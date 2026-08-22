@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="display:flex; flex-direction:column; gap:8px; min-width:0;">
+  <div style="display:flex; align-items:center; gap:7px;">
+    <span style="font-size:12.5px; font-weight:500; color:#C4CBC2;">{{ ctl.label }}</span>
+    <sc-if value="{{ ctl.showKey }}" hint-placeholder-val="{{ true }}">
+      <span style="font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; background:#141A15; border-radius:5px; padding:2px 6px; flex:0 0 auto;">{{ ctl.rawKey }}</span>
+    </sc-if>
+    <button onClick="{{ ctl.onInfo }}" title="Explain this setting" style="width:20px; height:20px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#005230;"><span class="msym" style="font-size:14px;">info</span></button>
+    <button onClick="{{ ctl.onWizard }}" title="Walk me through this setting" style="width:20px; height:20px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#005230;"><span class="msym" style="font-size:14px;">auto_fix_high</span></button>
+    <div style="flex:1;"></div>
+    <sc-if value="{{ isSlider }}" hint-placeholder-val="{{ true }}">
+      <span style="font-family:'Roboto Mono',monospace; font-size:12.5px; color:#82D9A5;">{{ ctl.display }}</span>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ isSwitch }}" hint-placeholder-val="{{ true }}">
+    <button onClick="{{ ctl.toggle }}" style="display:flex; align-items:center; gap:12px; background:transparent; border:0; padding:0; cursor:pointer;">
+      <sc-if value="{{ ctl.on }}" hint-placeholder-val="{{ true }}">
+        <span style="width:52px; height:32px; border-radius:16px; background:#82D9A5; display:flex; align-items:center; justify-content:flex-end; padding:0 4px;"><span style="width:24px; height:24px; border-radius:50%; background:#00391F; display:flex; align-items:center; justify-content:center;"><span class="msym" style="font-size:16px; color:#82D9A5;">check</span></span></span>
+        <span style="font-size:12.5px; color:#9FF7C4;">On</span>
+      </sc-if>
+      <sc-if value="{{ ctl.off }}">
+        <span style="width:52px; height:32px; border-radius:16px; background:#262B26; border:2px solid #414942; display:flex; align-items:center; justify-content:flex-start; padding:0 5px;"><span style="width:16px; height:16px; border-radius:50%; background:#8B938C;"></span></span>
+        <span style="font-size:12.5px; color:#9AA39B;">Off</span>
+      </sc-if>
+    </button>
+  </sc-if>
+
+  <sc-if value="{{ isSegmented }}">
+    <div style="display:flex; border:1px solid #414942; border-radius:999px; overflow:hidden; align-self:flex-start; max-width:100%; flex-wrap:nowrap;">
+      <sc-for list="{{ ctl.options }}" as="o" hint-placeholder-count="3">
+        <sc-if value="{{ o.on }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:5px; background:#005230; color:#9FF7C4; border:0; padding:8px 15px; font-family:Roboto,sans-serif; font-size:12.5px; font-weight:500; cursor:pointer; white-space:nowrap;"><span class="msym" style="font-size:15px;">check</span>{{ o.label }}</button>
+        </sc-if>
+        <sc-if value="{{ o.off }}">
+          <button onClick="{{ o.pick }}" style="background:transparent; color:#C4CBC2; border:0; border-left:1px solid #414942; padding:8px 15px; font-family:Roboto,sans-serif; font-size:12.5px; cursor:pointer; white-space:nowrap;" style-hover="background:#262B26;">{{ o.label }}</button>
+        </sc-if>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isSegNarrow }}">
+    <div style="display:flex; flex-direction:column; gap:4px;">
+      <sc-for list="{{ ctl.options }}" as="o" hint-placeholder-count="3">
+        <sc-if value="{{ o.on }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:8px; width:100%; background:#005230; color:#9FF7C4; border:0; border-radius:10px; padding:9px 12px; font-family:Roboto,sans-serif; font-size:12.5px; font-weight:500; cursor:pointer; text-align:left;"><span class="msym" style="font-size:16px;">radio_button_checked</span>{{ o.label }}</button>
+        </sc-if>
+        <sc-if value="{{ o.off }}">
+          <button onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:8px; width:100%; background:transparent; color:#C4CBC2; border:1px solid #414942; border-radius:10px; padding:9px 12px; font-family:Roboto,sans-serif; font-size:12.5px; cursor:pointer; text-align:left;" style-hover="background:#262B26;"><span class="msym" style="font-size:16px; color:#778078;">radio_button_unchecked</span>{{ o.label }}</button>
+        </sc-if>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isSelect }}">
+    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+      <sc-for list="{{ ctl.options }}" as="o" hint-placeholder-count="4">
+        <sc-if value="{{ o.on }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:7px 13px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer;"><span class="msym" style="font-size:14px;">check</span>{{ o.label }}</button>
+        </sc-if>
+        <sc-if value="{{ o.off }}">
+          <button onClick="{{ o.pick }}" style="background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 13px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;" style-hover="background:#262B26;">{{ o.label }}</button>
+        </sc-if>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isChips }}">
+    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+      <sc-for list="{{ ctl.options }}" as="o" hint-placeholder-count="5">
+        <sc-if value="{{ o.on }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:5px; background:#1B4D33; border:1px solid #1B4D33; border-radius:8px; padding:6px 12px; color:#9FF7C4; font-family:Roboto,sans-serif; font-size:12px; font-weight:500; cursor:pointer;"><span class="msym" style="font-size:14px;">check</span>{{ o.label }}</button>
+        </sc-if>
+        <sc-if value="{{ o.off }}">
+          <button onClick="{{ o.pick }}" style="background:transparent; border:1px solid #414942; border-radius:8px; padding:6px 12px; color:#9AA39B; font-family:Roboto,sans-serif; font-size:12px; cursor:pointer;" style-hover="background:#262B26; color:#C4CBC2;">{{ o.label }}</button>
+        </sc-if>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isStepper }}">
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <button onClick="{{ ctl.dec }}" style="width:36px; height:36px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:20px;">remove</span></button>
+      <input type="text" inputmode="numeric" value="{{ numText }}" onChange="{{ onNumInput }}" onInput="{{ onNumInput }}" style="width:74px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:7px 8px; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:18px; text-align:center; outline:none;" />
+      <button onClick="{{ ctl.inc }}" style="width:36px; height:36px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:20px;">add</span></button>
+      <button onClick="{{ togglePad }}" title="Number pad" style="width:36px; height:36px; border-radius:10px; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#005230;"><span class="msym" style="font-size:19px;">dialpad</span></button>
+      <span style="font-size:12px; color:#778078;">{{ rangeLabel }}</span>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isSlider }}">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <input type="range" min="{{ ctl.min }}" max="{{ ctl.max }}" step="{{ stepVal }}" value="{{ ctl.value }}" onInput="{{ ctl.onSlide }}" onChange="{{ ctl.onSlide }}" style="flex:1; height:22px; min-width:0;" />
+      <input type="text" inputmode="numeric" value="{{ numText }}" onChange="{{ onNumInput }}" onInput="{{ onNumInput }}" style="width:68px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:6px 8px; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:13.5px; text-align:center; outline:none; flex:0 0 auto;" />
+      <button onClick="{{ togglePad }}" title="Number pad" style="width:32px; height:32px; border-radius:9px; background:#262B26; border:0; color:#82D9A5; cursor:pointer; flex:0 0 auto;" style-hover="background:#005230;"><span class="msym" style="font-size:17px;">dialpad</span></button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ padOpen }}">
+    <div style="background:#0C110D; border:1px solid #333B34; border-radius:14px; padding:12px; margin-top:4px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+        <span style="font-family:'Roboto Mono',monospace; font-size:11px; letter-spacing:1px; color:#8FA394; text-transform:uppercase;">Number pad</span>
+        <div style="flex:1;"></div>
+        <span style="font-family:'Roboto Mono',monospace; font-size:16px; color:#9FF7C4;">{{ padValue }}</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
+        <sc-for list="{{ padKeys }}" as="k" hint-placeholder-count="12">
+          <button onClick="{{ k.press }}" style="height:44px; border-radius:10px; background:linear-gradient(#20281F,#171D18); border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:17px; cursor:pointer; box-shadow:0 2px 0 #0C110D;" style-active="transform:translateY(2px); box-shadow:none;" style-hover="background:#005230; color:#9FF7C4;">{{ k.label }}</button>
+        </sc-for>
+      </div>
+      <div style="display:flex; gap:6px; margin-top:8px;">
+        <button onClick="{{ padClear }}" style="flex:1; height:36px; border-radius:10px; background:#262B26; border:0; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;">Clear</button>
+        <button onClick="{{ padApply }}" style="flex:2; height:36px; border-radius:10px; background:#82D9A5; border:0; color:#00391F; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;">Set {{ padValue }}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isOrder }}">
+    <div style="display:flex; flex-direction:column; gap:5px;">
+      <sc-for list="{{ dragItems }}" as="i" hint-placeholder-count="3">
+        <div draggable="true" onDragStart="{{ i.onDragStart }}" onDragOver="{{ i.onDragOver }}" onDrop="{{ i.onDrop }}" onDragEnd="{{ i.onDragEnd }}" style="display:flex; align-items:center; gap:8px; background:{{ i.bg }}; border-radius:10px; padding:7px 8px 7px 12px; cursor:grab; transition:background .12s;">
+          <span class="msym" style="font-size:17px; color:#778078;">drag_indicator</span>
+          <span style="flex:1; font-family:'Roboto Mono',monospace; font-size:12.5px; color:#DFE4DC;">{{ i.label }}</span>
+          <button onClick="{{ i.up }}" style="width:26px; height:26px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;" style-hover="background:#262B26; color:#82D9A5;"><span class="msym" style="font-size:16px;">arrow_upward</span></button>
+          <button onClick="{{ i.down }}" style="width:26px; height:26px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;" style-hover="background:#262B26; color:#82D9A5;"><span class="msym" style="font-size:16px;">arrow_downward</span></button>
+          <button onClick="{{ i.drop }}" style="width:26px; height:26px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;" style-hover="background:#93000A; color:#fff;"><span class="msym" style="font-size:16px;">close</span></button>
+        </div>
+      </sc-for>
+      <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:2px;">
+        <sc-for list="{{ ctl.pool }}" as="p" hint-placeholder-count="2">
+          <button onClick="{{ p.add }}" style="display:flex; align-items:center; gap:4px; background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 11px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;" style-hover="border-color:#82D9A5; color:#9FF7C4;"><span class="msym" style="font-size:14px;">add</span>{{ p.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isText }}">
+    <div style="display:flex; align-items:center; gap:10px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:10px 14px;">
+      <span class="msym" style="font-size:17px; color:#82D9A5;">keyboard</span>
+      <span style="flex:1; font-family:'Roboto Mono',monospace; font-size:13.5px; color:#DFE4DC;">{{ ctl.display }}</span>
+      <span style="font-size:11px; color:#778078;">only free-text field</span>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:120},&quot;ctl&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;}}">
+class Component extends DCLogic {
+  state = { dragFrom:-1, over:-1, padOpen:false, padBuf:'' };
+  renderVals() {
+    const c = this.props.ctl || {};
+    const st = this.state;
+    const items = (c.items || []).map((it, i) => Object.assign({}, it, {
+      dragging: st.dragFrom === i,
+      dropTarget: st.over === i && st.dragFrom !== i && st.dragFrom >= 0,
+      bg: st.dragFrom === i ? '#005230' : (st.over === i && st.dragFrom >= 0 && st.dragFrom !== i ? '#22321F' : '#141A15'),
+      onDragStart: () => this.setState({ dragFrom:i }),
+      onDragOver: (e) => { e.preventDefault(); if (st.over !== i) this.setState({ over:i }); },
+      onDrop: (e) => { e.preventDefault(); if (st.dragFrom >= 0 && st.dragFrom !== i && c.move) c.move(st.dragFrom, i); this.setState({ dragFrom:-1, over:-1 }); },
+      onDragEnd: () => this.setState({ dragFrom:-1, over:-1 })
+    }));
+    const clamp = (n) => {
+      let x = parseFloat(n);
+      if (isNaN(x)) return c.value;
+      if (c.min !== undefined) x = Math.max(c.min, x);
+      if (c.max !== undefined) x = Math.min(c.max, x);
+      return x;
+    };
+    return {
+      numText: String(c.value),
+      onNumInput: (e) => { const raw = (e.target.value || '').replace(/[^0-9.\-]/g, ''); if (c.set) c.set(clamp(raw)); },
+      padOpen: st.padOpen,
+      padValue: st.padBuf || String(c.value),
+      togglePad: () => this.setState(s2 => ({ padOpen:!s2.padOpen, padBuf:'' })),
+      padKeys: ['1','2','3','4','5','6','7','8','9','.','0','⌫'].map(k => ({ label:k, press:() => this.setState(s2 => ({
+        padBuf: k === '⌫' ? s2.padBuf.slice(0, -1) : (s2.padBuf + k).slice(0, 9)
+      })) })),
+      padClear: () => this.setState({ padBuf:'' }),
+      padApply: () => { const b = this.state.padBuf; if (b && c.set) c.set(clamp(b)); this.setState({ padOpen:false, padBuf:'' }); },
+      dragItems: items,
+      isSwitch: c.kind === 'switch',
+      isSegmented: c.kind === 'segmented' && !c.narrow,
+      isSegNarrow: c.kind === 'segmented' && !!c.narrow,
+      isSelect: c.kind === 'select',
+      isChips: c.kind === 'chips',
+      isStepper: c.kind === 'stepper',
+      isSlider: c.kind === 'slider',
+      isOrder: c.kind === 'order',
+      isText: c.kind === 'text',
+      stepVal: c.step || 1,
+      rangeLabel: (c.min !== undefined ? c.min + '–' + c.max : '')
+    };
+  }
+}
+</script>
+</body>
+</html>
