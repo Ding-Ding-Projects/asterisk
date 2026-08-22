@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(fileURLToPath(import.meta.url));
 const docs = resolve(root, '..', 'docs');
 const output = join(root, 'dist');
-const assets = ['index.html', 'styles.css', 'app.js'];
+const assets = ['index.html', 'product.html', 'documentation.html', 'downloads.html', 'status.html', 'settings.html', 'styles.css', 'app.js'];
 const socialPreview = resolve(root, '..', '..', 'social-preview.png');
 
 if (process.argv.includes('--clean')) {
@@ -43,7 +43,7 @@ function renderMarkdown(markdown) {
     if(line.startsWith('- ')){if(!listOpen){outputLines.push('<ul>');listOpen=true}outputLines.push(`<li>${inlineMarkdown(line.slice(2))}</li>`);continue}
     if(listOpen){outputLines.push('</ul>');listOpen=false}
     if(!line)continue;
-    const heading=line.match(/^(#{1,6})\s+(.+)$/);if(heading){const level=heading[1].length;outputLines.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`)}else outputLines.push(`<p>${inlineMarkdown(line)}</p>`);
+    const heading=line.match(/^(#{1,6})\s+(.+)$/);if(heading){const level=heading[1].length,id=heading[2].toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');outputLines.push(`<h${level}${level===2?` id="${id}"`:''}>${inlineMarkdown(heading[2])}</h${level}>`)}else outputLines.push(`<p>${inlineMarkdown(line)}</p>`);
   }
   if(listOpen)outputLines.push('</ul>');
   return outputLines.join('\n');
@@ -55,7 +55,7 @@ async function composeDocs(sourceRelative='') {
     if(!entry.name.endsWith('.md'))continue;
     const markdown=await readFile(join(docs,child),'utf8'), title=markdown.match(/^#\s+(.+)$/m)?.[1]||'Ding PBX Console documentation';
     const htmlRelative=child.replace(/\.md$/,'.html'), destination=join(output,'docs',htmlRelative), depth=htmlRelative.split(/[\\/]/).length;
-    const back='../'.repeat(depth), page=`<!doctype html>\n<html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Ding PBX Console feature documentation."><title>${escapeHtml(title)} · Ding PBX Console</title><link rel="stylesheet" href="${back}styles.css"></head><body><a class="skip-link" href="#article">Skip to article</a><main id="article" class="documentation-page"><nav aria-label="Documentation breadcrumb"><a href="${back}index.html">Ding PBX Console</a> · <a href="${back}docs/README.html">Documentation</a></nav><article>${renderMarkdown(markdown)}</article><footer><p>This documentation website is not the installed desktop application and is not a PBX runtime.</p></footer></main></body></html>\n`;
+    const back='../'.repeat(depth), sections=[...markdown.matchAll(/^##\s+(.+)$/gm)].map(match=>({title:match[1],id:match[1].toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')})), sectionNav=sections.map(section=>`<a href="#${section.id}">${escapeHtml(section.title)}</a>`).join(''), page=`<!doctype html>\n<html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${escapeHtml(title)} documentation for Ding PBX Console."><meta property="og:title" content="${escapeHtml(title)} · Ding PBX Console"><meta property="og:description" content="Focused Ding PBX Console feature documentation."><meta property="og:url" content="https://ding-ding-projects.github.io/asterisk/docs/${htmlRelative.replaceAll('\\','/')}"><meta property="og:image" content="https://ding-ding-projects.github.io/asterisk/social-preview.png"><meta name="twitter:card" content="summary_large_image"><title>${escapeHtml(title)} · Ding PBX Console</title><link rel="stylesheet" href="${back}styles.css"></head><body><a class="skip-link" href="#article-content">Skip to article</a><main class="documentation-page"><nav aria-label="Documentation breadcrumb"><a href="${back}index.html">Ding PBX Console</a> · <a href="${back}documentation.html">Documentation map</a> · <a href="${back}docs/README.html">Category index</a></nav><div class="article-shell"><nav class="article-nav" aria-label="Article sections">${sectionNav||'<a href="#article-content">Article</a>'}</nav><article id="article-content">${renderMarkdown(markdown)}</article></div><footer><p>This documentation website is not the installed desktop application and is not a PBX runtime.</p></footer></main></body></html>\n`;
     await mkdir(dirname(destination),{recursive:true});await writeFile(destination,page,'utf8');
   }
 }

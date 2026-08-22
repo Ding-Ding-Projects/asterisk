@@ -39,11 +39,15 @@ archive is not stored in this public repository.
 - Documentation site: publication pending the first verified build
 - Installer: publication pending the first verified unsigned Squirrel.Windows package
 
-The static documentation and download surface in `console/site/` now presents a
-responsive marketing overview, the exact 32 destination identifiers, a clearly
-labelled local telemetry demonstration, and persisted local theme, language,
-search, regular-expression, tab, and accessibility controls. It is documentation
-and download infrastructure only—not the installed desktop runtime or a PBX.
+The static documentation and download experience in `console/site/` now uses six
+focused, routable pages: Home, Product, Documentation, Downloads, Status, and
+Settings. Compact navigation keeps the primary action above the fold, while the
+Documentation route pages through the exact 32 destination identifiers and each
+generated article provides anchored local section navigation. Shared local CSS
+and JavaScript provide responsive navigation, an explicitly simulated telemetry
+demonstration, persisted theme, language, motion and privacy settings, search,
+and an anchored regular-expression builder. It is documentation and download
+infrastructure only—not the installed desktop runtime or a PBX.
 Compose its deterministic local output with `node console/site/build.mjs`; the generated
 manifest records the output files and confirms that the page performs no runtime
 network requests. The installer action remains unavailable until a verified,
