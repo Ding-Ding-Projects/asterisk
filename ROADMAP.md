@@ -23,5 +23,6 @@
 - [x] Verify `download-dependencies.bat /s` from a clean user-scoped toolchain cache.
 - [x] Verify `build.bat /s` at the merged candidate commit.
 - [x] Verify `build-installer.bat /s` produces an unsigned installable Squirrel.Windows set.
+- [x] Bundle a complete Ubuntu WSL root filesystem containing Asterisk and every runtime dependency inside the installer.
 - [x] Verify the static Pages output includes `console/site/dist/build-manifest.json` and deploys without runtime asset fetches.
 - [ ] Publish and independently verify the first unique non-draft Ding PBX Console release and downloadable assets.

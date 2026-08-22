@@ -1,0 +1,9 @@
+.git
+.github
+console/node_modules
+console/dist
+console/dist-electron
+console/resources/*.tar
+console/resources/*.json
+**/*.pyc
+**/__pycache__

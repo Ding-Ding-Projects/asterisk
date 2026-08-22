@@ -13,7 +13,8 @@
     "test:ui": "node --test tests/ui/*.test.mjs",
     "test:control-plane": "tsx --test tests/control-plane/*.test.ts",
     "test:site": "node site/tests/site.test.mjs",
-    "package:squirrel": "npm run build && electron-builder --win squirrel --config electron-builder.yml"
+    "bundle:asterisk": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-asterisk-wsl-bundle.ps1",
+    "package:squirrel": "npm run bundle:asterisk && npm run build && electron-builder --win squirrel --config electron-builder.yml"
   },
   "dependencies": {
     "react": "19.2.8",

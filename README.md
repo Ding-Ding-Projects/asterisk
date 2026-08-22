@@ -15,6 +15,8 @@ The first supported targets are:
 - remote Debian or Ubuntu hosts reached over verified SSH; and
 - Docker on an approved remote Debian or Ubuntu host.
 
+The Windows installer carries a complete Ubuntu 24.04 WSL root filesystem built from the exact repository commit. Asterisk, its loadable modules, sample configuration, system service, and all runtime libraries are inside the installer; the packaged application does not depend on a machine-wide Asterisk installation, PATH lookup, or post-install dependency download.
+
 Every configuration mutation is designed to follow the same transaction: discover
 the current state, show a reviewable change plan, create a backup, require explicit
 confirmation, stage and validate the change, apply it, read the state back from the

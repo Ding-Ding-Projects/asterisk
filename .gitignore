@@ -52,3 +52,5 @@ compile_commands.json
 /console/dist-electron/
 /console/site/dist/
 /console/tsconfig.tsbuildinfo
+/console/resources/asterisk-wsl-rootfs.tar
+/console/resources/asterisk-wsl-rootfs.json

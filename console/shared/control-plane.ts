@@ -1,5 +1,5 @@
 export type ControlPlaneAction =
-  | 'server.list' | 'server.connect' | 'pbx.snapshot' | 'pbx.apply'
+  | 'server.list' | 'server.connect' | 'server.provision-bundled' | 'pbx.snapshot' | 'pbx.apply'
   | 'pbx.command' | 'history.list' | 'history.restore';
 
 export interface ControlPlaneRequest {
