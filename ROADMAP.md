@@ -5,7 +5,7 @@
 - [x] Add a pinned, digest-verified, user-scoped Windows dependency bootstrap.
 - [x] Add touchless and interactive root build entry points.
 - [x] Add unsigned Squirrel.Windows package verification for `Setup.exe`, `RELEASES`, and full packages.
-- [x] Replace inherited test and administration workflows with one build, package, release, and Pages workflow.
+- [x] Replace inherited test and administration workflows with separate build/package/release and Pages publication workflows.
 - [x] Add unique release tags, workflow timing, SHA-256 records, safe failure artifacts, and runner fallback.
 - [x] Add a reproducible committed line counter with project, generated, and inherited-source attribution.
 

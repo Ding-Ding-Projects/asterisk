@@ -14,7 +14,7 @@ This file is a public-safe repository mirror. The canonical shared instructions 
 - `download-dependencies.bat /s` installs the exact user-scoped toolchain and project dependencies from `dependency-manifest.json` and `console/package-lock.json`.
 - `build.bat /s` builds the runnable console. `build-installer.bat /s` builds and verifies the unsigned Squirrel.Windows distribution.
 - Code signing is permanently prohibited. Do not request, discover, create, store, or use signing credentials. Release notes must state that Windows may show unknown-publisher or SmartScreen warnings.
-- GitHub Actions builds, packages, publishes Pages, and creates releases. It does not run tests, lint, type checks, static analysis, coverage, screenshots, or accessibility checks.
+- GitHub Actions uses separate workflows for desktop build/package/release and Pages composition/deployment. Neither runs tests, lint, type checks, static analysis, coverage, screenshots, or accessibility checks.
 - Run relevant checks locally before committing. Never describe an unrun check as passed.
 - Every release must contain one `Setup.exe`, `RELEASES`, at least one full `.nupkg`, generated delta packages when available, SHA-256 evidence, the reproducible line-count table, exact workflow timing, and a unique immutable `ding-pbx-console-*` tag.
 
