@@ -1,0 +1,17 @@
+appId: org.dingdingprojects.dingpbxconsole
+productName: Ding PBX Console
+directories:
+  output: dist/squirrel-windows
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - app/electron/preload.cjs
+win:
+  target: squirrel
+  icon: assets/icon.png
+  signExecutable: false
+  signAndEditExecutable: true
+forceCodeSigning: false
+squirrelWindows:
+  artifactName: Ding-PBX-Console-Setup.${ext}
+  iconUrl: https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/assets/icon.png
