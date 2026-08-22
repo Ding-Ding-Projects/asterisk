@@ -6,6 +6,11 @@ files:
   - dist/**/*
   - dist-electron/**/*
   - app/electron/preload.cjs
+extraResources:
+  - from: resources/asterisk-wsl-rootfs.tar
+    to: asterisk/asterisk-wsl-rootfs.tar
+  - from: resources/asterisk-wsl-rootfs.json
+    to: asterisk/asterisk-wsl-rootfs.json
 win:
   target: squirrel
   icon: assets/icon.png

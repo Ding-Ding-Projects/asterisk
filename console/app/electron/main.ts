@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { NodeProcessExecutor, TargetDiscovery } from '../../control-plane/index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse } from '../../shared/control-plane.js';
@@ -7,6 +8,19 @@ let mainWindow: BrowserWindow | null = null;
 const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
 const targetDiscovery = new TargetDiscovery(processExecutor);
 
+function bundledAsteriskRuntime() {
+  const root = join(process.resourcesPath, 'asterisk');
+  const rootfs = join(root, 'asterisk-wsl-rootfs.tar');
+  const provenance = join(root, 'asterisk-wsl-rootfs.json');
+  if (!existsSync(rootfs) || !existsSync(provenance)) return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime is missing.' };
+  try {
+    const record = JSON.parse(readFileSync(provenance, 'utf8')) as Record<string, unknown>;
+    return { state: 'available', rootfs, provenance, record };
+  } catch {
+    return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime provenance is invalid.' };
+  }
+}
+
 async function controlPlaneRequest(request: ControlPlaneRequest): Promise<ControlPlaneResponse> {
   try {
     if (request.action === 'server.list') {
@@ -14,7 +28,7 @@ async function controlPlaneRequest(request: ControlPlaneRequest): Promise<Contro
         targetDiscovery.discoverWslDistributions().catch(error => ({ unavailable: error instanceof Error ? error.message : 'WSL discovery failed' })),
         targetDiscovery.discoverLocalDocker('ding-pbx-console').catch(error => ({ unavailable: error instanceof Error ? error.message : 'Docker discovery failed' })),
       ]);
-      return { ok: true, requestId: request.requestId, data: { observedAt: new Date().toISOString(), wsl, containers } };
+      return { ok: true, requestId: request.requestId, data: { observedAt: new Date().toISOString(), bundledRuntime: bundledAsteriskRuntime(), wsl, containers } };
     }
     if (request.action === 'server.connect' || request.action === 'pbx.snapshot') {
       const distribution = request.serverId?.trim();

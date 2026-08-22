@@ -61,9 +61,16 @@ try {
     $setup = @(Get-ChildItem -LiteralPath $output -File -Filter '*Setup.exe')
     $releases = @(Get-ChildItem -LiteralPath $output -File -Filter 'RELEASES')
     $full = @(Get-ChildItem -LiteralPath $output -File -Filter '*-full.nupkg')
+    $bundledRootfs = Join-Path $repoRoot 'console\dist\squirrel-windows\win-unpacked\resources\asterisk\asterisk-wsl-rootfs.tar'
+    $bundledProvenance = Join-Path $repoRoot 'console\dist\squirrel-windows\win-unpacked\resources\asterisk\asterisk-wsl-rootfs.json'
     if ($setup.Count -ne 1) { throw "expected exactly one Setup.exe under $output; found $($setup.Count)" }
     if ($releases.Count -ne 1) { throw "expected exactly one RELEASES under $output; found $($releases.Count)" }
     if ($full.Count -lt 1) { throw "expected at least one full .nupkg under $output; found none" }
+    if (-not (Test-Path -LiteralPath $bundledRootfs)) { throw 'packaged application is missing the bundled Asterisk WSL rootfs' }
+    if (-not (Test-Path -LiteralPath $bundledProvenance)) { throw 'packaged application is missing Asterisk bundle provenance' }
+    $bundleRecord = Get-Content -Raw -LiteralPath $bundledProvenance | ConvertFrom-Json
+    if ($bundleRecord.sha256 -ne (Get-Sha256 $bundledRootfs)) { throw 'packaged Asterisk WSL rootfs does not match its provenance digest' }
+    if ($bundleRecord.sourceCommit -ne (& git -C $repoRoot rev-parse HEAD).Trim()) { throw 'packaged Asterisk WSL rootfs came from a different source commit' }
     $releaseText = Get-Content -Raw -LiteralPath $releases[0].FullName
     foreach ($package in $full) {
         if ($releaseText -notmatch [regex]::Escape($package.Name)) { throw "RELEASES does not reference $($package.Name)" }

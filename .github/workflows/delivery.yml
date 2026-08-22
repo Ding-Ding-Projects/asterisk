@@ -12,6 +12,27 @@ permissions:
   id-token: write
 
 jobs:
+  build-asterisk-runtime:
+    name: Build complete Asterisk WSL runtime
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the exact source commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build the complete Ubuntu root filesystem
+        shell: pwsh
+        run: ./console/scripts/build-asterisk-wsl-bundle.ps1
+      - name: Upload the pinned WSL runtime for Windows packaging
+        uses: actions/upload-artifact@v4
+        with:
+          name: asterisk-wsl-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            console/resources/asterisk-wsl-rootfs.tar
+            console/resources/asterisk-wsl-rootfs.json
+          if-no-files-found: error
+          retention-days: 2
+
   resolve-runner:
     name: Resolve available Windows runner
     runs-on: windows-2025
@@ -79,13 +100,19 @@ jobs:
 
   build-package:
     name: Build unsigned Squirrel.Windows package
-    needs: resolve-runner
+    needs: [resolve-runner, build-asterisk-runtime]
     runs-on: ${{ fromJSON(needs.resolve-runner.outputs.runner) }}
     steps:
       - name: Check out the exact source commit
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Download the exact bundled Asterisk WSL runtime
+        uses: actions/download-artifact@v4
+        with:
+          name: asterisk-wsl-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: console/resources
 
       - name: Build console without tests or lint
         shell: cmd
