@@ -191,7 +191,16 @@ jobs:
             Get-ChildItem $staging -File -Filter '*-full.nupkg'
           )
           if ($required.Count -lt 3) { throw 'Required Squirrel.Windows release assets are incomplete.' }
-          if ((gh release view $tag --json tagName 2>$null)) { throw "Release tag $tag already exists; tags are immutable and never recycled." }
+          $previousPreference = $ErrorActionPreference
+          try {
+            $ErrorActionPreference = 'Continue'
+            $existingRelease = gh release view $tag --json tagName 2>$null
+            $releaseProbeExit = $LASTEXITCODE
+          } finally {
+            $ErrorActionPreference = $previousPreference
+          }
+          if ($releaseProbeExit -eq 0) { throw "Release tag $tag already exists; tags are immutable and never recycled." }
+          if ($releaseProbeExit -ne 1) { throw "Release uniqueness probe exited $releaseProbeExit." }
 
           $started = [DateTimeOffset]::Parse('${{ needs.resolve-runner.outputs.workflow-started }}')
           $notes = @()
