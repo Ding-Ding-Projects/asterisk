@@ -24,4 +24,5 @@
 - [x] Verify `build.bat /s` at the merged candidate commit.
 - [x] Verify `build-installer.bat /s` produces an unsigned installable Squirrel.Windows set.
 - [x] Verify the static Pages output includes `console/site/dist/build-manifest.json` and deploys without runtime asset fetches.
+- [x] Rework the static Pages home into a modern responsive marketing and documentation surface while preserving all 32 destination identifiers and honest release availability.
 - [ ] Publish and independently verify the first unique non-draft Ding PBX Console release and downloadable assets.
