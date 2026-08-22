@@ -34,12 +34,14 @@ $suffix = $sourceCommit.Substring(0, 12)
 $image = "ding-pbx-asterisk-runtime:$suffix"
 $container = "ding-pbx-asterisk-export-$suffix-$PID"
 $temporary = Join-Path $resourceRoot "asterisk-wsl-rootfs.$PID.tmp.tar"
+$containerCreated = $false
 
 try {
     docker build --file $dockerfile --build-arg "ASTERISK_SOURCE_REVISION=$sourceCommit" --tag $image $repoRoot
     if ($LASTEXITCODE -ne 0) { throw "docker build exited $LASTEXITCODE" }
     docker create --name $container $image | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "docker create exited $LASTEXITCODE" }
+    $containerCreated = $true
     docker export --output $temporary $container
     if ($LASTEXITCODE -ne 0) { throw "docker export exited $LASTEXITCODE" }
     $entries = @(tar -tf $temporary)
@@ -59,6 +61,6 @@ try {
     [System.IO.File]::WriteAllText($provenancePath, ($provenance | ConvertTo-Json -Depth 4), [System.Text.UTF8Encoding]::new($false))
     Write-Host ("Created {0} ({1} bytes, sha256:{2})." -f $bundlePath,$file.Length,$provenance.sha256)
 } finally {
-    docker rm --force $container 2>$null | Out-Null
+    if ($containerCreated) { docker rm --force $container | Out-Null }
     if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force }
 }
