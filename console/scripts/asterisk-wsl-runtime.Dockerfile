@@ -13,6 +13,7 @@ WORKDIR /src
 COPY . /src
 
 RUN test -n "$ASTERISK_SOURCE_REVISION" && \
+    sed -i 's/\r$//' bootstrap.sh configure && \
     ./bootstrap.sh && \
     ./configure --with-pjproject-bundled --without-dahdi --without-pri --without-tonezone && \
     make -j2 && \
