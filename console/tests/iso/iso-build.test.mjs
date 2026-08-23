@@ -209,3 +209,59 @@ test('the repack has no silent fallback that can publish an unbootable image', (
     'a fallback repack silently publishes an image that cannot boot',
   );
 });
+
+// --- CI workflow builds the ISO reproducibly, and solves the >2 GiB release-asset limit ---
+
+function readWorkflow() {
+  return readFileSync(path.join(repoRoot, '.github', 'workflows', 'installer-iso.yml'), 'utf8');
+}
+
+test('the installer-iso workflow exists and runs on a Linux runner', () => {
+  const content = readWorkflow();
+  assert.match(content, /runs-on:\s*ubuntu-24\.04/);
+});
+
+test('the installer-iso workflow verifies boot properties, not merely that the file exists', () => {
+  const content = readWorkflow();
+  assert.match(content, /CD001/, 'must check the ISO 9660 primary volume descriptor');
+  assert.match(content, /55aa/, 'must check the master boot record signature');
+  assert.match(content, /report_el_torito plain/);
+  assert.match(content, /grep -q BIOS/);
+  assert.match(content, /grep -q UEFI/);
+});
+
+test('the installer-iso workflow splits the ISO into volumes under the 2 GiB release-asset limit', () => {
+  const content = readWorkflow();
+  assert.match(content, /split -b 1900MiB/, 'volumes must be safely under the 2 GiB (2147483648 byte) per-file cap');
+  assert.match(content, /REASSEMBLE\.md/, 'a reassembly manifest must be produced');
+  assert.match(content, /sha256sum ding-pbx-installer\.iso\.part\*/, 'every volume must have its own recorded SHA-256');
+  // Prove this is a real check: a mutated copy using a size at or over the cap must fail it.
+  const broken = content.replace('split -b 1900MiB', 'split -b 2000MiB');
+  assert.doesNotMatch(broken, /split -b 1900MiB/);
+});
+
+test('the installer-iso workflow records the reassembled ISO SHA-256 so a user can prove they rebuilt the right file', () => {
+  const content = readWorkflow();
+  assert.match(content, /Reassembled ISO SHA-256/);
+  assert.match(content, /iso_sha256/);
+});
+
+test('the installer-iso workflow never signs the ISO', () => {
+  const content = readWorkflow();
+  const forbidden = /(signtool|Set-AuthenticodeSignature|code[- ]sign(ing)?\s+cert|New-SelfSignedCertificate)/i;
+  assert.doesNotMatch(content, forbidden);
+  const injected = content + '\nsigntool.exe sign /f cert.pfx output.iso\n';
+  assert.match(injected, forbidden, 'sanity: injected signing call must be caught');
+});
+
+test('the installer-iso workflow states the Secure Boot posture honestly', () => {
+  const content = readWorkflow();
+  assert.match(content, /Secure Boot/);
+  assert.match(content, /unsigned/i);
+});
+
+test('the installer-iso workflow uploads evidence even after a failure', () => {
+  const content = readWorkflow();
+  const evidenceStep = content.split('Upload build evidence even after a failure')[1] || '';
+  assert.match(evidenceStep.slice(0, 200), /if:\s*\$\{\{\s*always\(\)\s*\}\}/);
+});

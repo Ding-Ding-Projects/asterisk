@@ -106,6 +106,75 @@ before writing it to a USB drive or booting it in a VM.
 - Building the ISO requires Docker with a working Linux engine; it cannot be produced on a bare
   Windows host.
 
+## Building it in CI
+
+`.github/workflows/installer-iso.yml` builds this ISO reproducibly on a GitHub-hosted
+`ubuntu-24.04` runner (a Linux Docker engine is required to compile the Linux payload and produce
+an ISO 9660 image, which a Windows host cannot do natively -- Docker ships preinstalled on that
+runner image, so no separate setup is needed). It runs on `workflow_dispatch`, and automatically
+whenever a push to `master` touches `console/scripts/iso/**`, `console/scripts/build-iso.ps1`,
+`build-iso.bat`, or the workflow file itself.
+
+It runs the same three stages as local `build-iso.bat`/`build-iso.ps1` (payload build, ISO respin,
+boot verification), then keeps the same "not tests, not lint" discipline as every other workflow in
+this repository: no test job, no lint job, nothing gates the build. A run either builds, packages,
+and publishes evidence, or it fails outright on the build or verification step itself.
+
+### The 2 GiB release-asset problem
+
+A GitHub release asset is capped at 2 GiB (2,147,483,648 bytes) per file. The ISO this pipeline
+produces is roughly 3.47 GiB (3,720,878,080 bytes measured against a real build), so it cannot be
+attached to a release as a single file.
+
+The workflow solves this by splitting the verified ISO into 1900 MiB volumes (`split -b 1900MiB`,
+safely under the cap) and publishing all of them as release assets, alongside:
+
+- `ding-pbx-installer.iso.sha256` -- the reassembled image's own SHA-256, for a one-line check.
+- `ding-pbx-installer.iso.json` -- full provenance (source commit, base ISO URL/digest, Node
+  runtime version/digest, console build base image digest, ISO byte count and SHA-256, part
+  count, and the same Secure Boot / no-signing statement as the local build).
+- `ding-pbx-installer.iso.REASSEMBLE.md` -- exact reassembly commands for Linux/macOS and Windows,
+  plus the SHA-256 of every individual volume and of the reassembled whole.
+
+To reassemble and verify a downloaded release:
+
+```sh
+cat ding-pbx-installer.iso.part* > ding-pbx-installer.iso
+sha256sum -c ding-pbx-installer.iso.sha256
+```
+
+On Windows PowerShell:
+
+```powershell
+cmd /c "copy /b ding-pbx-installer.iso.part001+ding-pbx-installer.iso.part002+... ding-pbx-installer.iso"
+certutil -hashfile ding-pbx-installer.iso SHA256
+```
+
+Compare the resulting digest against the one recorded in `ding-pbx-installer.iso.sha256` and in
+`ding-pbx-installer.iso.json` before writing the ISO to a USB drive or booting it. **Do not boot an
+ISO whose reassembled digest does not match.**
+
+The workflow also uploads the complete, unsplit ISO as an ordinary GitHub Actions workflow
+artifact (a separate, larger size limit than a release asset), for convenience when the run is
+still fresh -- but workflow artifacts expire (14 days here) and are not a durable distribution
+channel, so the split release assets are the one to link to for anyone downloading later.
+
+### Boot verification in CI
+
+The workflow re-checks, on the artifact it actually produced, the exact three properties the local
+build and `console/tests/iso/iso-build.test.mjs` already require of the respin recipe: both El
+Torito boot catalog entries present (`BIOS` and `UEFI`), and a real master boot record signature
+(`55aa`) at byte 510, plus the ISO 9660 primary volume descriptor signature (`CD001`) at byte
+32769. These are the properties that distinguish a genuinely bootable image from a valid-looking
+ISO 9660 file that cannot boot -- see the long comment above the repack in
+`console/scripts/iso/iso-respin.Dockerfile` for the real incident that made these checks necessary.
+
+### Unsigned, same as the local build
+
+This ISO is unsigned in CI exactly as it is locally -- code signing is permanently out of scope for
+this project. The workflow states this in its own release notes and evidence rather than leaving it
+to be discovered at a Secure Boot prompt.
+
 ## Verification state
 
 Everything in `console/tests/iso/*.test.mjs` (20 tests) is run without Docker or a real ISO: it

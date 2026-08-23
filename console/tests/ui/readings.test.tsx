@@ -3,14 +3,17 @@ import test from 'node:test';
 
 import {
   NOT_READ,
+  amiRows,
   badgeFor,
   channelRows,
+  confbridgeRows,
   dashboardStats,
   endpointRows,
   formatDuration,
   formatUptime,
   healthBars,
   isReadable,
+  mohRows,
   moduleRows,
   queueRows,
   reasonFor,
@@ -18,6 +21,7 @@ import {
   registrationRows,
   rowsFor,
   valueOf,
+  voicemailRows,
 } from '../../app/renderer/src/readings.ts';
 import type { Channel, Contact, Endpoint, ModuleSummary, QueueSummary, Registration, ViewReadings } from '../../app/renderer/src/readings.ts';
 
@@ -258,4 +262,61 @@ test('regexMatchLabel counts real matches against a real corpus', () => {
 
 test('regexMatchLabel reports an invalid pattern instead of throwing', () => {
   assert.equal(regexMatchLabel('(', ['cat']), 'invalid pattern');
+});
+
+// ---------------------------------------------------------------- newly-wired screens
+
+test('voicemailRows fills only what voicemail show users actually reads', () => {
+  const rows = voicemailRows([
+    { context: 'default', mailbox: '1001', fullName: 'Ada Deng', zone: '', newMessages: 3 },
+    { context: 'default', mailbox: '1010', fullName: '', zone: '', newMessages: undefined },
+  ]);
+  assert.deepEqual(rows, [
+    ['1001', 'Ada Deng', NOT_READ, '3', NOT_READ],
+    ['1010', NOT_READ, NOT_READ, NOT_READ, NOT_READ],
+  ]);
+});
+
+test('confbridgeRows never invents a bridge profile or recording state', () => {
+  const rows = confbridgeRows([
+    { name: '9000', users: 3, marked: 1, locked: false, muted: false },
+    { name: '9001', users: 0, marked: 0, locked: true, muted: false },
+  ]);
+  assert.deepEqual(rows, [
+    ['9000', NOT_READ, '3', NOT_READ, 'Active'],
+    ['9001', NOT_READ, '0', NOT_READ, 'Locked'],
+  ]);
+});
+
+test('mohRows leaves the track count NOT_READ, which moh show classes never reports', () => {
+  const rows = mohRows([{ name: 'default', mode: 'files', directory: 'moh' }]);
+  assert.deepEqual(rows, [['default', 'files', 'moh', NOT_READ]]);
+});
+
+test('amiRows lists manager users and ARI apps with unreadable columns marked honestly', () => {
+  const rows = amiRows([{ username: 'monitor' }], [{ name: 'stasis-app' }]);
+  assert.deepEqual(rows, [
+    ['monitor', 'AMI', NOT_READ, NOT_READ],
+    ['stasis-app', 'ARI', NOT_READ, NOT_READ],
+  ]);
+});
+
+test('rowsFor dispatches voicemail/confbridge/moh/ami to their own row builders', () => {
+  const readings: ViewReadings = {
+    voicemailUsers: available({ users: [{ context: 'default', mailbox: '1001', fullName: 'Ada Deng', zone: '', newMessages: 1 }] }),
+    rooms: available([{ name: '9000', users: 1, marked: 0, locked: false, muted: false }]),
+    mohClasses: available([{ name: 'default', mode: 'files' }]),
+    managerUsers: available({ users: [{ username: 'monitor' }] }),
+    ariApps: available([]),
+  };
+  assert.equal(rowsFor('voicemail', readings).length, 1);
+  assert.equal(rowsFor('confbridge', readings).length, 1);
+  assert.equal(rowsFor('moh', readings).length, 1);
+  assert.equal(rowsFor('ami', readings).length, 1);
+  assert.deepEqual(rowsFor('cdr', readings), []);
+});
+
+test('a screen with an unavailable reading reports the real reason, not silence', () => {
+  const readings: ViewReadings = { rooms: unavailable('`asterisk -rx "confbridge list"` failed: No such command') };
+  assert.equal(reasonFor(readings, ['rooms']), '`asterisk -rx "confbridge list"` failed: No such command');
 });

@@ -2749,7 +2749,20 @@ const SCREENS = {
       rows:[['default','files','/var/lib/asterisk/moh','14'],['jazz','files','/srv/moh/jazz','22'],['ringing','ringing','—','—'],['stream','custom','mpg123 stream','—']] },
     groups:[{ title:'Playback', desc:'How each class behaves while somebody waits.', ctls:[
       ctl('h_mode','Mode','segmented','files',{ options:['files','quietmp3','ringing','custom'] }),
-      ctl('h_sort','Playback order','segmented','random',{ options:['alpha','random','randstart'] }),
+      // Choosing a mode used to be the end of it: `files` never asked which directory and
+      // `custom` never asked what to run, so either choice could be made and never
+      // completed. These are the fields musiconhold.conf actually requires for each mode,
+      // revealed only for the mode that uses them.
+      ctl('h_directory','Audio directory','text','/var/lib/asterisk/moh',{ showWhen:{ control:'h_mode', is:'files' },
+        info:'The directory Asterisk plays hold audio from. Written to musiconhold.conf as directory.' }),
+      ctl('h_upload','Add an audio file','file','',{ showWhen:{ control:'h_mode', is:'files' }, accept:'audio/*',
+        info:'Uploads one audio file into the directory above. Asterisk plays what it finds there; nothing is transcoded on the way in.' }),
+      // `custom` in musiconhold.conf runs a program and reads its output, so what it needs
+      // is a command rather than a file. Offering an upload here would be the wrong
+      // control for the mode, however much it looks like the helpful one.
+      ctl('h_application','Streaming command','text','',{ showWhen:{ control:'h_mode', is:'custom' },
+        info:'The program Asterisk runs and reads audio from. Written to musiconhold.conf as application.' }),
+      ctl('h_sort','Playback order','segmented','random',{ options:['alpha','random','randstart'], showWhen:{ control:'h_mode', is:'files' } }),
       ctl('h_announce','Announcement every','slider',30,{ min:0, max:300, step:15, unit:'s' }),
       ctl('h_volume','Volume trim','slider',0,{ min:-20, max:10, unit:' dB' })
     ]}] },
@@ -4337,6 +4350,11 @@ class ConsoleShell extends DCLogic {
         title:g.title, desc:g.desc,
         wizard:() => this.setState({ wizardOpen:true, wizardStep:0 }),
         ctls:g.ctls.filter(c => !(s.mode === 'Beginner' && (c.expertOnly || ADVANCED.indexOf(c.id) >= 0)))
+          // A control that only means something once another control has a particular
+          // value. Without this, picking an option that needs a value has nowhere to put
+          // it: choosing a custom hold source offered no field to name the source, so the
+          // choice could be made and never completed.
+          .filter(c => !c.showWhen || this.val(g.ctls.find(x => x.id === c.showWhen.control) || { id:c.showWhen.control }) === c.showWhen.is)
           .map(x => { const b = this.buildCtl(x); if (x.kind === 'segmented' && (x.options || []).length > 2) b.narrow = true; return b; })
       })),
 

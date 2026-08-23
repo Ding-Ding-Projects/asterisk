@@ -119,6 +119,15 @@ export interface Uptime {
 export function parseVoicemailUsers(stdout: string): { users: VoicemailUser[]; total?: number } {
   const users: VoicemailUser[] = [];
   let total: number | undefined;
+  // The fixed-width printf format means a Zone left blank (the common case) prints as
+  // pure whitespace, not an omitted field, so a token-based regex requiring a non-blank
+  // zone silently drops every row with no zone configured -- verified against a live
+  // target where all three configured mailboxes were dropped this way. Slice by the
+  // format's own column offsets instead: context(10) mbox(5) fullName(25) zone(10)
+  // newmsg(6), one space between each. A mailbox/context longer than its field (e.g. a
+  // long alias) overruns the fixed columns and the separator positions stop landing on
+  // spaces; that row is unparseable from its column layout alone and is dropped rather
+  // than misassigned.
   for (const line of lines(stdout)) {
     if (/^Context\s+Mbox\s+User\s+Zone\s+NewMsg\s*$/u.test(line)) continue;
     const totalMatch = /^(\d+)\s+voicemail users configured\.?$/u.exec(line.trim());
@@ -126,16 +135,14 @@ export function parseVoicemailUsers(stdout: string): { users: VoicemailUser[]; t
       total = Number.parseInt(totalMatch[1], 10);
       continue;
     }
-    const match = /^(\S+)\s+(\S+)\s+(\S.*?)\s{2,}(\S+)\s+(\S+)\s*$/u.exec(line);
-    if (!match) continue;
-    const newMessages = Number.parseInt(match[5], 10);
-    users.push({
-      context: match[1],
-      mailbox: match[2],
-      fullName: match[3].trim(),
-      zone: match[4],
-      newMessages: Number.isFinite(newMessages) ? newMessages : undefined,
-    });
+    if (line.length < 54 || line[10] !== " " || line[16] !== " " || line[42] !== " " || line[53] !== " ") continue;
+    const context = line.slice(0, 10).trim();
+    const mailbox = line.slice(11, 16).trim();
+    const fullName = line.slice(17, 42).trim();
+    const zone = line.slice(43, 53).trim();
+    const newMessages = Number.parseInt(line.slice(54).trim(), 10);
+    if (!context || !mailbox) continue;
+    users.push({ context, mailbox, fullName, zone, newMessages: Number.isFinite(newMessages) ? newMessages : undefined });
   }
   return { users, total };
 }

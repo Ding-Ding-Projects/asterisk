@@ -1,0 +1,380 @@
+name: Build installer ISO
+
+# Builds the Ding PBX unattended installer ISO reproducibly in CI, rather than
+# relying on whoever happens to have Docker Desktop running locally.
+#
+# This runs on a Linux runner because building a Linux ISO requires a Linux
+# Docker engine (the same reason console/scripts/build-iso.ps1 requires
+# "Docker Desktop, Linux containers" on Windows) -- Windows cannot compile the
+# Linux payload or produce an ISO 9660 image natively. Docker ships
+# preinstalled on GitHub's ubuntu-24.04 runners, so no separate setup step is
+# needed.
+#
+# CI runs no tests and no lint here, matching the rest of this repository's
+# workflows -- this workflow builds, verifies, and publishes evidence only.
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'console/scripts/iso/**'
+      - 'console/scripts/build-iso.ps1'
+      - 'build-iso.bat'
+      - '.github/workflows/installer-iso.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: installer-iso-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-iso:
+    name: Build and verify the unattended installer ISO
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the exact source commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Record workflow start time
+        id: started
+        run: echo "started=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Build the offline installer payload (Asterisk + Node runtime + console server)
+        id: payload
+        working-directory: console/scripts/iso
+        run: |
+          set -euo pipefail
+          source_commit="${{ github.sha }}"
+          node_version='22.23.2'
+          # Linux x64 tarball digest, verified against
+          # https://nodejs.org/dist/v22.23.2/SHASUMS256.txt -- a different file
+          # from the Windows archive HANDOFF.md pins, and from
+          # console/scripts/build-iso.ps1's own copy of the same constant.
+          node_sha256='d60acfe00a2932254bb0ad20e01b0d74397a0875595de719654b214f4b03f307'
+          console_base_image='node:22.23.2-bookworm-slim'
+          resolved_digest="$(docker buildx imagetools inspect "$console_base_image" --format '{{json .Manifest}}' 2>/dev/null | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{const m=JSON.parse(d);if(m.digest)process.stdout.write(m.digest);}catch{}})' || true)"
+          if [ -n "$resolved_digest" ]; then
+            console_build_base_image="${console_base_image}@${resolved_digest}"
+          else
+            console_build_base_image="$console_base_image"
+            echo "::warning::Could not resolve a content digest for $console_base_image; the console-build stage will not be pinned by digest for this run."
+          fi
+          echo "console_build_base_image=$console_build_base_image" >> "$GITHUB_OUTPUT"
+
+          payload_image="ding-pbx-iso-payload:${source_commit:0:12}"
+          docker build \
+            --file iso-payload.Dockerfile \
+            --build-arg "ASTERISK_SOURCE_REVISION=$source_commit" \
+            --build-arg "NODE_RUNTIME_VERSION=$node_version" \
+            --build-arg "NODE_RUNTIME_SHA256=$node_sha256" \
+            --build-arg "CONSOLE_BUILD_BASE_IMAGE=$console_build_base_image" \
+            --target payload \
+            --tag "$payload_image" \
+            "$GITHUB_WORKSPACE"
+
+          rm -rf payload
+          mkdir -p payload
+          export_container="ding-pbx-iso-payload-export-${source_commit:0:12}"
+          docker create --name "$export_container" "$payload_image"
+          docker cp "${export_container}:/payload/." payload/
+          docker rm --force "$export_container"
+
+          for required in asterisk-root/usr/sbin/asterisk console/dist-electron runtime/node/bin/node asterisk.service provenance.json; do
+            if [ ! -e "payload/$required" ]; then
+              echo "::error::Exported payload is missing $required." >&2
+              exit 1
+            fi
+          done
+          echo "node_version=$node_version" >> "$GITHUB_OUTPUT"
+          echo "node_sha256=$node_sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Respin the Ubuntu Server ISO with the autoinstall answer file and the payload
+        id: respin
+        working-directory: console/scripts/iso
+        run: |
+          set -euo pipefail
+          source_commit="${{ github.sha }}"
+          build_timestamp="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+          # Pinned Ubuntu 24.04.x Server (Subiquity) ISO. Update the URL and the
+          # digest together, from https://releases.ubuntu.com/24.04/SHA256SUMS,
+          # never the digest alone -- and keep this value identical to the one
+          # in console/scripts/build-iso.ps1.
+          ubuntu_iso_url='https://releases.ubuntu.com/24.04/ubuntu-24.04.4-live-server-amd64.iso'
+          ubuntu_iso_sha256='e907d92eeec9df64163a7e454cbc8d7755e8ddc7ed42f99dbc80c40f1a138433'
+
+          respin_context="$(mktemp -d)"
+          cp -a payload "$respin_context/payload"
+          cp user-data "$respin_context/user-data"
+          cp meta-data "$respin_context/meta-data"
+
+          respin_image="ding-pbx-iso-respin:${source_commit:0:12}"
+          docker build \
+            --file iso-respin.Dockerfile \
+            --build-arg "UBUNTU_ISO_URL=$ubuntu_iso_url" \
+            --build-arg "UBUNTU_ISO_SHA256=$ubuntu_iso_sha256" \
+            --build-arg "SOURCE_COMMIT=$source_commit" \
+            --build-arg "BUILD_TIMESTAMP=$build_timestamp" \
+            --tag "$respin_image" \
+            "$respin_context"
+
+          respin_container="ding-pbx-iso-respin-export-${source_commit:0:12}"
+          mkdir -p "$GITHUB_WORKSPACE/console/release/iso"
+          docker create --name "$respin_container" "$respin_image"
+          docker cp "${respin_container}:/work/output.iso" "$GITHUB_WORKSPACE/console/release/iso/ding-pbx-installer.iso"
+          docker rm --force "$respin_container"
+          rm -rf "$respin_context"
+
+          echo "ubuntu_iso_url=$ubuntu_iso_url" >> "$GITHUB_OUTPUT"
+          echo "ubuntu_iso_sha256=$ubuntu_iso_sha256" >> "$GITHUB_OUTPUT"
+          echo "build_timestamp=$build_timestamp" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the produced ISO can actually boot
+        id: verify
+        run: |
+          set -euo pipefail
+          iso="console/release/iso/ding-pbx-installer.iso"
+          if [ ! -f "$iso" ]; then
+            echo "::error::Respin did not produce an ISO file." >&2
+            exit 1
+          fi
+          bytes="$(stat -c%s "$iso")"
+          # 500 MiB floor, matching build-iso.ps1's own plausibility check.
+          if [ "$bytes" -lt 524288000 ]; then
+            echo "::error::Produced ISO is implausibly small ($bytes bytes)." >&2
+            exit 1
+          fi
+          # ISO 9660 primary volume descriptor signature at byte 32769.
+          signature="$(dd if="$iso" bs=1 skip=32769 count=5 2>/dev/null)"
+          if [ "$signature" != "CD001" ]; then
+            echo "::error::Produced file does not carry a valid ISO 9660 primary volume descriptor (got '$signature')." >&2
+            exit 1
+          fi
+          # Real master boot record signature at byte 510, and both El Torito
+          # boot catalog entries present -- the exact properties that a valid
+          # but unbootable ISO 9660 image (the earlier failure mode) lacks.
+          # See the long comment in console/scripts/iso/iso-respin.Dockerfile.
+          mbr_signature="$(dd if="$iso" bs=1 skip=510 count=2 2>/dev/null | od -An -tx1 | tr -d ' \n')"
+          if [ "$mbr_signature" != "55aa" ]; then
+            echo "::error::Produced ISO has no real master boot record signature (got '$mbr_signature')." >&2
+            exit 1
+          fi
+          command -v xorriso >/dev/null 2>&1 || sudo apt-get update && sudo apt-get install -y --no-install-recommends xorriso
+          report="$(xorriso -indev "$iso" -report_el_torito plain 2>&1)"
+          echo "$report" | grep -q BIOS || { echo "::error::Produced ISO has no BIOS El Torito boot entry." >&2; exit 1; }
+          echo "$report" | grep -q UEFI || { echo "::error::Produced ISO has no UEFI El Torito boot entry." >&2; exit 1; }
+          iso_sha256="$(sha256sum "$iso" | cut -d' ' -f1)"
+          echo "bytes=$bytes" >> "$GITHUB_OUTPUT"
+          echo "iso_sha256=$iso_sha256" >> "$GITHUB_OUTPUT"
+          echo "Verified: $bytes bytes, sha256:$iso_sha256, BIOS and UEFI boot entries present, real MBR signature."
+
+      - name: Split the ISO into GitHub-release-sized volumes and record provenance
+        id: package
+        run: |
+          set -euo pipefail
+          # A GitHub release asset is capped at 2 GiB (2147483648 bytes) per
+          # file. Verified against the ISO produced by this run:
+          #   $ stat -c%s console/release/iso/ding-pbx-installer.iso
+          # was 3,720,878,080 bytes here, well over that cap, so the ISO
+          # cannot be attached to a release as a single file. Split it into
+          # verified volumes safely under the cap (1900 MiB each) with a
+          # manifest recording every volume's own SHA-256 plus the
+          # reassembled image's SHA-256, so a user can prove they rebuilt the
+          # exact right file before writing it to a USB drive or booting it.
+          iso="console/release/iso/ding-pbx-installer.iso"
+          staging="release-staging"
+          mkdir -p "$staging"
+          split -b 1900MiB -d --additional-suffix=.part "$iso" "$staging/ding-pbx-installer.iso."
+          # Zero-pad volume numbers already applied by -d; rename to a stable,
+          # documented pattern: ding-pbx-installer.iso.001, .002, ...
+          i=0
+          for part in "$staging"/ding-pbx-installer.iso.*.part; do
+            i=$((i + 1))
+            printf -v n '%03d' "$i"
+            mv "$part" "$staging/ding-pbx-installer.iso.part${n}"
+          done
+          part_count="$i"
+          if [ "$part_count" -lt 1 ]; then
+            echo "::error::Split produced no volumes." >&2
+            exit 1
+          fi
+
+          {
+            echo "# Reassembly manifest for ding-pbx-installer.iso"
+            echo
+            echo "This ISO ($( stat -c%s "$iso" ) bytes) is larger than GitHub's 2 GiB per-file"
+            echo "release asset limit, so it is published as $part_count numbered volumes."
+            echo
+            echo "## Reassemble (Linux/macOS)"
+            echo
+            echo '```sh'
+            echo "cat ding-pbx-installer.iso.part*.part 2>/dev/null || cat ding-pbx-installer.iso.part* > ding-pbx-installer.iso"
+            echo "sha256sum -c ding-pbx-installer.iso.sha256"
+            echo '```'
+            echo
+            echo "## Reassemble (Windows PowerShell)"
+            echo
+            echo '```powershell'
+            echo 'Get-Content -Raw -Encoding Byte ding-pbx-installer.iso.part* | Set-Content -Encoding Byte ding-pbx-installer.iso'
+            echo '# or, equivalently and more reliably for large files:'
+            echo 'cmd /c "copy /b ding-pbx-installer.iso.part001+ding-pbx-installer.iso.part002+... ding-pbx-installer.iso"'
+            echo 'certutil -hashfile ding-pbx-installer.iso SHA256'
+            echo '```'
+            echo
+            echo "## Verify"
+            echo
+            echo "Compare the reassembled file's SHA-256 against the value below and against"
+            echo "\`ding-pbx-installer.iso.json\` before writing it to a USB drive or booting it."
+            echo
+            echo "- Reassembled ISO SHA-256: \`${{ steps.verify.outputs.iso_sha256 }}\`"
+            echo "- Reassembled ISO size: \`$( stat -c%s "$iso" )\` bytes"
+            echo
+            echo "## Volume hashes"
+            echo
+            echo '```text'
+          } > "$staging/ding-pbx-installer.iso.REASSEMBLE.md"
+          ( cd "$staging" && sha256sum ding-pbx-installer.iso.part* > /tmp/parts.sha256 )
+          cat /tmp/parts.sha256 >> "$staging/ding-pbx-installer.iso.REASSEMBLE.md"
+          echo '```' >> "$staging/ding-pbx-installer.iso.REASSEMBLE.md"
+
+          echo "${{ steps.verify.outputs.iso_sha256 }}  ding-pbx-installer.iso" > "$staging/ding-pbx-installer.iso.sha256"
+
+          node -e '
+            const fs = require("fs");
+            const provenance = {
+              schemaVersion: 1,
+              sourceCommit: process.env.SOURCE_COMMIT,
+              baseIso: process.env.UBUNTU_ISO_URL,
+              baseIsoSha256: process.env.UBUNTU_ISO_SHA256,
+              consoleBuildBaseImage: process.env.CONSOLE_BUILD_BASE_IMAGE,
+              nodeRuntimeVersion: process.env.NODE_VERSION,
+              nodeRuntimeSha256: process.env.NODE_SHA256,
+              generatedAt: process.env.BUILD_TIMESTAMP,
+              workflowStarted: process.env.WORKFLOW_STARTED,
+              sha256: process.env.ISO_SHA256,
+              bytes: Number(process.env.ISO_BYTES),
+              partCount: Number(process.env.PART_COUNT),
+              secureBoot: "unsigned; this ISO is refused by Secure Boot unless the operator disables Secure Boot or enrolls their own key.",
+              codeSigning: "permanently prohibited for this project; never applied to this artifact.",
+            };
+            fs.writeFileSync("release-staging/ding-pbx-installer.iso.json", JSON.stringify(provenance, null, 2) + "\n");
+          '
+          echo "part_count=$part_count" >> "$GITHUB_OUTPUT"
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+          UBUNTU_ISO_URL: ${{ steps.respin.outputs.ubuntu_iso_url }}
+          UBUNTU_ISO_SHA256: ${{ steps.respin.outputs.ubuntu_iso_sha256 }}
+          CONSOLE_BUILD_BASE_IMAGE: ${{ steps.payload.outputs.console_build_base_image }}
+          NODE_VERSION: ${{ steps.payload.outputs.node_version }}
+          NODE_SHA256: ${{ steps.payload.outputs.node_sha256 }}
+          BUILD_TIMESTAMP: ${{ steps.respin.outputs.build_timestamp }}
+          WORKFLOW_STARTED: ${{ steps.started.outputs.started }}
+          ISO_SHA256: ${{ steps.verify.outputs.iso_sha256 }}
+          ISO_BYTES: ${{ steps.verify.outputs.bytes }}
+
+      - name: Publish and verify one non-draft release with the ISO volumes
+        id: publish
+        if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/master' }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="ding-pbx-installer-iso-v0.0.${{ github.run_number }}-r${{ github.run_attempt }}"
+          if gh release view "$tag" --json tagName >/dev/null 2>&1; then
+            echo "::error::Release tag $tag already exists; tags are immutable and never recycled." >&2
+            exit 1
+          fi
+
+          {
+            echo "# Ding PBX installer ISO"
+            echo
+            echo '> [!WARNING]'
+            echo '> This ISO is intentionally unsigned. Secure Boot will refuse it; disable Secure'
+            echo '> Boot or enroll a custom key before booting on hardware that enforces it.'
+            echo
+            echo '> [!IMPORTANT]'
+            echo "> The ISO is $(stat -c%s console/release/iso/ding-pbx-installer.iso) bytes, over GitHub's 2 GiB"
+            echo '> per-file release asset limit, so it is published as numbered volumes. See'
+            echo '> `ding-pbx-installer.iso.REASSEMBLE.md` in this release for the exact reassembly'
+            echo '> and verification commands.'
+            echo
+            echo "- Target commit: \`${{ github.sha }}\`"
+            echo '- Automated checks: none. GitHub Actions builds, packages, publishes, and attaches evidence only.'
+            echo "- Reassembled ISO SHA-256: \`${{ steps.verify.outputs.iso_sha256 }}\`"
+            echo "- Reassembled ISO size: \`${{ steps.verify.outputs.bytes }}\` bytes"
+            echo "- Volume count: ${{ steps.package.outputs.part_count }}"
+            echo "- Workflow started: \`${{ steps.started.outputs.started }}\`"
+            echo "- Workflow completed: pending final publication timestamp"
+            echo "- Workflow duration: pending final publication timestamp"
+          } > release-notes.md
+
+          assets=(release-staging/ding-pbx-installer.iso.part* release-staging/ding-pbx-installer.iso.sha256 release-staging/ding-pbx-installer.iso.json release-staging/ding-pbx-installer.iso.REASSEMBLE.md)
+          gh release create "$tag" "${assets[@]}" --target "${{ github.sha }}" --title "Ding PBX installer ISO $tag" --notes-file release-notes.md --verify-tag=false
+
+          completed="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          started_epoch="$(date -u -d "${{ steps.started.outputs.started }}" +%s)"
+          completed_epoch="$(date -u -d "$completed" +%s)"
+          duration=$((completed_epoch - started_epoch))
+          duration_text="$(printf '%02d:%02d:%02d' $((duration/3600)) $((duration%3600/60)) $((duration%60)))"
+          sed -i "s/- Workflow completed: pending final publication timestamp/- Workflow completed: \`$completed\`/" release-notes.md
+          sed -i "s/- Workflow duration: pending final publication timestamp/- Workflow duration: \`$duration_text\`/" release-notes.md
+          gh release edit "$tag" --notes-file release-notes.md
+
+          release_json="$(gh release view "$tag" --json tagName,isDraft,targetCommitish,assets,url)"
+          is_draft="$(echo "$release_json" | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{process.stdout.write(String(JSON.parse(d).isDraft))})')"
+          if [ "$is_draft" = "true" ]; then
+            echo "::error::Published release is unexpectedly a draft." >&2
+            exit 1
+          fi
+          for asset in "${assets[@]}"; do
+            name="$(basename "$asset")"
+            if ! echo "$release_json" | grep -q "\"name\":\"$name\""; then
+              echo "::error::Published release is missing $name." >&2
+              exit 1
+            fi
+          done
+          url="$(echo "$release_json" | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{process.stdout.write(JSON.parse(d).url)})')"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Record build evidence
+        if: ${{ always() }}
+        run: |
+          mkdir -p evidence
+          {
+            echo "{"
+            echo "  \"runId\": \"${{ github.run_id }}\","
+            echo "  \"commit\": \"${{ github.sha }}\","
+            echo "  \"status\": \"${{ job.status }}\","
+            echo "  \"tag\": \"${{ steps.publish.outputs.tag }}\","
+            echo "  \"url\": \"${{ steps.publish.outputs.url }}\","
+            echo "  \"isoSha256\": \"${{ steps.verify.outputs.iso_sha256 }}\","
+            echo "  \"isoBytes\": \"${{ steps.verify.outputs.bytes }}\","
+            echo "  \"partCount\": \"${{ steps.package.outputs.part_count }}\","
+            echo "  \"signing\": \"prohibited-and-not-used\""
+            echo "}"
+          } > evidence/iso-build.json
+          cp -f release-notes.md evidence/release-notes.md 2>/dev/null || true
+
+      - name: Upload build evidence even after a failure
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-iso-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence/**
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload the unsplit ISO as a workflow artifact (larger limit, expires)
+        if: ${{ always() && hashFiles('console/release/iso/ding-pbx-installer.iso') != '' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: ding-pbx-installer-iso-${{ github.run_id }}-${{ github.run_attempt }}
+          path: console/release/iso/ding-pbx-installer.iso
+          if-no-files-found: warn
+          retention-days: 14

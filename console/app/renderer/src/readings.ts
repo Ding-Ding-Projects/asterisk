@@ -20,6 +20,12 @@ export interface QueueSummary {
 }
 export interface ModuleSummary { name: string; description: string; useCount: number; status: string }
 
+export interface VoicemailUser { context: string; mailbox: string; fullName: string; zone: string; newMessages?: number }
+export interface ConfbridgeConference { name: string; users: number; marked: number; locked: boolean; muted: boolean }
+export interface MohClass { name: string; mode?: string; directory?: string }
+export interface ManagerUser { username: string }
+export interface AriApp { name: string }
+
 interface Reading<T> { command: string; result: Observation<T> }
 
 export interface ViewReadings {
@@ -30,6 +36,12 @@ export interface ViewReadings {
   queues?: Reading<QueueSummary[]>;
   modules?: Reading<ModuleSummary[]>;
   uptime?: Reading<number>;
+  voicemailUsers?: Reading<{ users: VoicemailUser[]; total?: number }>;
+  voicemailZones?: Reading<unknown>;
+  rooms?: Reading<ConfbridgeConference[]>;
+  mohClasses?: Reading<MohClass[]>;
+  managerUsers?: Reading<{ users: ManagerUser[]; total?: number }>;
+  ariApps?: Reading<AriApp[]>;
 }
 
 /**
@@ -39,6 +51,31 @@ export interface ViewReadings {
  * their subsystems had nothing to say. Each now reads the commands its own subsystem
  * answers, parsed from the exact output format in Asterisk's own source.
  */
+/**
+ * Hand-written inventory of every destination whose screen renders a data table (the
+ * design's `kind: 'table'` screens), and whether `rowsFor` can put real rows on it.
+ *
+ * This is deliberately not derived from `rowsFor`'s own dispatch: a derived list would
+ * report a screen as "has a reader" the moment someone adds an `if` branch for it, even
+ * if that branch is wrong or produces nothing. Keeping it hand-written means removing a
+ * branch from `rowsFor` without updating this list is a mismatch a test can catch, not a
+ * silent regression.
+ *
+ * `dash` is excluded: it is a stat/health-bar screen (`dashboardStats`/`healthBars`), not
+ * a table, and is already backed by live channel/endpoint/queue/uptime readings.
+ */
+export const TABLE_DESTINATION_READERS: Record<string, boolean> = {
+  live: true,
+  endpoints: true,
+  trunks: true,
+  queues: true,
+  modules: true,
+  voicemail: true,
+  confbridge: true,
+  moh: true,
+  ami: true,
+};
+
 export const READABLE_VIEWS: PbxReadView[] = [
   'dash', 'live', 'endpoints', 'trunks', 'queues', 'modules',
   'voicemail', 'confbridge', 'moh', 'codecs', 'security', 'cdr', 'logger', 'ami', 'about', 'cli',
@@ -68,7 +105,59 @@ export function rowsFor(screen: string, readings: ViewReadings | undefined): str
   if (screen === 'trunks') return registrationRows(valueOf(readings.registrations) ?? []);
   if (screen === 'queues') return queueRows(valueOf(readings.queues) ?? []);
   if (screen === 'modules') return moduleRows(valueOf(readings.modules) ?? []);
+  if (screen === 'voicemail') return voicemailRows(valueOf(readings.voicemailUsers)?.users ?? []);
+  if (screen === 'confbridge') return confbridgeRows(valueOf(readings.rooms) ?? []);
+  if (screen === 'moh') return mohRows(valueOf(readings.mohClasses) ?? []);
+  if (screen === 'ami') return amiRows(valueOf(readings.managerUsers)?.users ?? [], valueOf(readings.ariApps) ?? []);
   return [];
+}
+
+/** `voicemail.conf` mailboxes. The design's columns are Box, Owner, Email, New, Storage;
+ *  `voicemail show users` gives box, owner name and unread count but never an email
+ *  address or the storage backend, so those two stay `NOT_READ` rather than guessed. */
+export function voicemailRows(users: VoicemailUser[]): string[][] {
+  return users.map((user) => [
+    user.mailbox,
+    user.fullName || NOT_READ,
+    NOT_READ,
+    user.newMessages === undefined ? NOT_READ : String(user.newMessages),
+    NOT_READ,
+  ]);
+}
+
+/** `confbridge.conf` rooms. The design's columns are Room, Bridge profile, Users,
+ *  Recording, State; `confbridge list` names neither the bridge profile nor whether a
+ *  room is being recorded, so both stay `NOT_READ`. */
+export function confbridgeRows(rooms: ConfbridgeConference[]): string[][] {
+  return rooms.map((room) => [
+    room.name,
+    NOT_READ,
+    String(room.users),
+    NOT_READ,
+    room.locked ? 'Locked' : room.users > 0 ? 'Active' : 'Idle',
+  ]);
+}
+
+/** `musiconhold.conf` classes. The design's columns are Class, Mode, Source, Tracks;
+ *  `moh show classes` gives the mode and directory but never a track count. */
+export function mohRows(classes: MohClass[]): string[][] {
+  return classes.map((mohClass) => [
+    mohClass.name,
+    mohClass.mode ?? NOT_READ,
+    mohClass.directory ?? NOT_READ,
+    NOT_READ,
+  ]);
+}
+
+/** `manager.conf`/`ari.conf` API users. The design's columns are User, Interface,
+ *  Permissions, State; neither `manager show users` nor `ari show apps` prints per-user
+ *  permission classes, connection state, or (for AMI) the interface beyond "this is a
+ *  manager user" -- those cells stay `NOT_READ`. */
+export function amiRows(managerUsers: ManagerUser[], ariApps: AriApp[]): string[][] {
+  return [
+    ...managerUsers.map((user) => [user.username, 'AMI', NOT_READ, NOT_READ]),
+    ...ariApps.map((app) => [app.name, 'ARI', NOT_READ, NOT_READ]),
+  ];
 }
 
 /**

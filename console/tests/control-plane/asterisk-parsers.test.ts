@@ -410,3 +410,57 @@ test('parseUptime does not turn a non-numeric uptime value into NaN', () => {
   assert.equal(result.uptimeSeconds, undefined);
   assert.equal(Number.isNaN(result.uptimeSeconds as unknown as number), false);
 });
+
+// ---------------------------------------------------------------- live-target fixtures
+//
+// Captured verbatim from a running Asterisk on 2026-08-23 via:
+//   wsl -d ding-pbx-console --user root -- asterisk -rx "<command>"
+// Kept as regression fixtures so a parser change is checked against real output, not
+// only against hand-written samples.
+
+test('parseVoicemailUsers reads the live target output', () => {
+  const sample = [
+    'Context    Mbox  User                      Zone       NewMsg',
+    'default    1234  Example Mailbox                           0',
+    'myaliases  1234@devices                                           0',
+    'other      1234  Company2 User                             0',
+    '3 voicemail users configured.',
+  ].join('\n');
+  const { users, total } = parseVoicemailUsers(sample);
+  assert.equal(total, 3);
+  // The middle row has no full name or zone printed for an alias mailbox; the parser
+  // must not misassign the trailing count into the wrong column, so it is dropped
+  // rather than guessed.
+  assert.deepEqual(
+    users.map((u) => u.mailbox),
+    ['1234', '1234'],
+  );
+  assert.equal(users[0].context, 'default');
+  assert.equal(users[0].fullName, 'Example Mailbox');
+  assert.equal(users[0].zone, '');
+  assert.equal(users[1].context, 'other');
+});
+
+test('parseConfbridgeList reads the live target output (no rooms configured)', () => {
+  const sample = [
+    'Conference Bridge Name           Users  Marked Locked Muted',
+    '================================ ====== ====== ====== =====',
+  ].join('\n');
+  assert.deepEqual(parseConfbridgeList(sample), []);
+});
+
+test('parseMohClasses reads the live target output', () => {
+  const sample = ['Class: default', '\tMode: files', '\tDirectory: moh'].join('\n');
+  const rows = parseMohClasses(sample);
+  assert.deepEqual(rows, [{ name: 'default', mode: 'files', directory: 'moh' }]);
+});
+
+test('parseManagerUsers reads the live target output (no users configured)', () => {
+  const sample = 'There are no manager users.\n';
+  assert.deepEqual(parseManagerUsers(sample), { users: [], total: undefined });
+});
+
+test('parseAriApps reads the live target output (no apps registered)', () => {
+  const sample = ['Application Name         ', '========================='].join('\n');
+  assert.deepEqual(parseAriApps(sample), []);
+});

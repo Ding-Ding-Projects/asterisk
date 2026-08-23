@@ -432,7 +432,7 @@ export class App extends Base {
     if (!isReadable(screen)) return NO_READER;
     const readings = this.readings[screen];
     if (!readings) return 'Reading…';
-    return reasonFor(readings, ['channels', 'endpoints', 'contacts', 'registrations', 'queues', 'modules', 'uptime']);
+    return reasonFor(readings, ['channels', 'endpoints', 'contacts', 'registrations', 'queues', 'modules', 'uptime', 'voicemailUsers', 'rooms', 'mohClasses', 'managerUsers', 'ariApps']);
   }
 
   /** Real dialplan nodes/edges in the design's canvas shapes, with a bezier path per edge
