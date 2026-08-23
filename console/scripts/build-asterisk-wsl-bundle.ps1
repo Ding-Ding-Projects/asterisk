@@ -51,8 +51,16 @@ try {
     # It exits without a usable listing, every required-entry check then fails, and the
     # error blames the rootfs for something that is wrong with the listing. Windows ships
     # bsdtar at System32, which reads drive letters correctly.
-    $tar = Join-Path $env:SystemRoot 'System32\tar.exe'
-    if (-not (Test-Path -LiteralPath $tar)) { $tar = 'tar' }
+    # Only on Windows. This script also runs under PowerShell on Linux, where
+    # $env:SystemRoot is null - Join-Path then fails outright with "Cannot bind argument
+    # to parameter 'Path' because it is null", which is how this check first broke the
+    # build after being added to fix the Windows case. The drive-letter problem does not
+    # exist off Windows, so there tar on PATH is simply correct.
+    $tar = 'tar'
+    if ($env:SystemRoot) {
+        $windowsTar = Join-Path $env:SystemRoot 'System32\tar.exe'
+        if (Test-Path -LiteralPath $windowsTar) { $tar = $windowsTar }
+    }
     $entries = @(& $tar -tf $temporary)
     # A listing that came back empty is a broken listing, not an empty archive. Say which,
     # or the next person spends an afternoon looking for a file that was always there.
