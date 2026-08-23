@@ -9,6 +9,7 @@ let source = await readFile(generated, 'utf8');
 
 const templateMarker = '      (v.isText ? h("div", { style: sty(`display:flex; align-items:center; gap:10px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:10px 14px;`) },';
 const stateMarker = "      isText: c.kind === 'text',";
+const extensionMarker = "isEditableText: c.kind === 'text' && String(c.id || '').startsWith('pbxadm:'),";
 
 if (!source.includes(templateMarker)) {
   throw new Error('PBX M3 extension could not find the compiled read-only text-control template marker.');
@@ -16,7 +17,7 @@ if (!source.includes(templateMarker)) {
 if (!source.includes(stateMarker)) {
   throw new Error('PBX M3 extension could not find the compiled text-control state marker.');
 }
-if (source.includes("isEditableText: c.kind === 'editable-text'")) {
+if (source.includes(extensionMarker)) {
   throw new Error('PBX M3 extension was applied twice without a fresh design compile.');
 }
 
@@ -31,7 +32,7 @@ const editableTemplate = `      (v.isEditableText ? h("div", { style: sty(\`disp
 source = source.replace(templateMarker, `${editableTemplate}${templateMarker}`);
 source = source.replace(
   stateMarker,
-  `      isEditableText: c.kind === 'editable-text',\n      onEditableTextInput: (e) => { if (c.set) c.set(e.target.value); },\n${stateMarker}`,
+  `      ${extensionMarker}\n      onEditableTextInput: (e) => { if (c.set) c.set(e.target.value); },\n      isText: c.kind === 'text' && !String(c.id || '').startsWith('pbxadm:'),`,
 );
 
 await writeFile(path, source, 'utf8');
