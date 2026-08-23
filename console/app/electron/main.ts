@@ -4,6 +4,11 @@ import { join, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { WslProvisioning, MANAGED_DISTRIBUTION } from '../../control-plane/wsl-provisioning.js';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
+import {
+  parseVoicemailUsers, parseVoicemailZones, parseConfbridgeList, parseMohClasses, parseCodecs,
+  parseTranslations, parseAclRules, parseManagerSettings, parseManagerUsers, parseAriApps,
+  parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime,
+} from '../../control-plane/asterisk-parsers.js';
 import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory } from '../../control-plane/index.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from '../../control-plane/index.js';
 import type { ReadOnlyCommand, TargetProfile } from '../../control-plane/index.js';
@@ -40,7 +45,65 @@ async function readView(target: TargetProfile, view: PbxReadView) {
   if (view === 'trunks') return { registrations: await readings.registrations(target) };
   if (view === 'queues') return { queues: await readings.queues(target) };
   if (view === 'canvas') return { dialplan: await dialplanReadings.graph(target) };
+  if (view === 'modules') return { modules: await readings.modules(target) };
+
+  /**
+   * The rest of the destinations, each reading the commands its own subsystem answers.
+   *
+   * These screens previously had no reader at all and stayed empty for want of one, not
+   * because there was nothing to show. Each parser here takes its shape from the exact
+   * format string in Asterisk's own source rather than from a guess, so a screen either
+   * shows the target's real answer or reports why it could not.
+   */
+  const parsed = await parsedView(target, view);
+  if (parsed) return parsed;
   return { modules: await readings.modules(target) };
+}
+
+/** Reads one or more commands for a screen and parses each with its real parser. */
+async function parsedView(target: TargetProfile, view: PbxReadView) {
+  const read = async <T>(command: ReadOnlyCommand, parse: (text: string) => T) => {
+    const reading = await readings.raw(target, command);
+    return reading.result.state === 'available'
+      ? { command, result: { ...reading.result, value: parse(String(reading.result.value ?? '')) } }
+      : { command, result: reading.result };
+  };
+
+  if (view === 'voicemail') {
+    const [users, zones] = await Promise.all([
+      read('voicemail show users', parseVoicemailUsers),
+      read('voicemail show zones', parseVoicemailZones),
+    ]);
+    return { voicemailUsers: users, voicemailZones: zones };
+  }
+  if (view === 'confbridge') return { rooms: await read('confbridge list', parseConfbridgeList) };
+  if (view === 'moh') return { mohClasses: await read('moh show classes', parseMohClasses) };
+  if (view === 'codecs') {
+    const [codecs, translations] = await Promise.all([
+      read('core show codecs', parseCodecs),
+      read('core show translation', parseTranslations),
+    ]);
+    return { codecs, translations };
+  }
+  if (view === 'security') return { aclRules: await read('acl show', parseAclRules) };
+  if (view === 'cdr') return { cdrStatus: await read('cdr show status', parseCdrStatus) };
+  if (view === 'logger') return { loggerChannels: await read('logger show channels', parseLoggerChannels) };
+  if (view === 'ami') {
+    const [settings, users, apps] = await Promise.all([
+      read('manager show settings', parseManagerSettings),
+      read('manager show users', parseManagerUsers),
+      read('ari show apps', parseAriApps),
+    ]);
+    return { managerSettings: settings, managerUsers: users, ariApps: apps };
+  }
+  if (view === 'about' || view === 'cli') {
+    const [sysinfo, uptime] = await Promise.all([
+      read('core show sysinfo', parseSysinfo),
+      read('core show uptime seconds', parseUptime),
+    ]);
+    return { sysinfo, uptime };
+  }
+  return undefined;
 }
 
 function bundledAsteriskRuntime() {

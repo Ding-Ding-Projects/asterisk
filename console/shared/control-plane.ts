@@ -12,7 +12,10 @@ export type ControlPlaneAction =
 
 /** The screens a `pbx.read` can answer, each backed by read-only Asterisk CLI output. */
 export type PbxReadView =
-  | 'dash' | 'live' | 'endpoints' | 'trunks' | 'queues' | 'modules' | 'canvas';
+  | 'dash' | 'live' | 'endpoints' | 'trunks' | 'queues' | 'modules' | 'canvas'
+  /* Destinations that previously had no reader and stayed empty for want of one. */
+  | 'voicemail' | 'confbridge' | 'moh' | 'codecs' | 'security' | 'cdr' | 'logger' | 'ami'
+  | 'about' | 'cli';
 
 export interface ControlPlaneRequest {
   requestId: string;

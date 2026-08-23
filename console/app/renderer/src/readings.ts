@@ -32,8 +32,17 @@ export interface ViewReadings {
   uptime?: Reading<number>;
 }
 
-/** Every table screen the console can read, and every one it cannot. */
-export const READABLE_VIEWS: PbxReadView[] = ['dash', 'live', 'endpoints', 'trunks', 'queues', 'modules'];
+/**
+ * Every screen the console can read from a target.
+ *
+ * The second group had no reader at all and sat empty for want of one rather than because
+ * their subsystems had nothing to say. Each now reads the commands its own subsystem
+ * answers, parsed from the exact output format in Asterisk's own source.
+ */
+export const READABLE_VIEWS: PbxReadView[] = [
+  'dash', 'live', 'endpoints', 'trunks', 'queues', 'modules',
+  'voicemail', 'confbridge', 'moh', 'codecs', 'security', 'cdr', 'logger', 'ami', 'about', 'cli',
+];
 
 export const isReadable = (screen: string): screen is PbxReadView =>
   (READABLE_VIEWS as string[]).includes(screen);
