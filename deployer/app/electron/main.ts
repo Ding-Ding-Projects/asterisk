@@ -85,7 +85,12 @@ function createWindow(): void {
     height: 680,
     frame: false,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      /* The hand-maintained CommonJS twin, not the compiled `preload.js`. This
+       * package is an ES module package, and a sandboxed preload cannot be an ES
+       * module -- it loads outside the module system, so the emitted file's imports
+       * never run and the bridge is never exposed. Nothing errors; the renderer just
+       * finds `window.deployer` undefined. See preload.cjs. */
+      preload: path.join(__dirname, "..", "..", "..", "..", "app", "electron", "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,

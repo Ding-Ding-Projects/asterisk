@@ -1,0 +1,21 @@
+/* The compiled design's own stylesheet, imported rather than restated.
+ *
+ * This application renders through the console's compiled shell, so it needs the
+ * stylesheet that shell was compiled against. It was missing entirely, and the symptom
+ * was not a missing stylesheet: every icon rendered as its own name in English, because
+ * the design draws icons with a ligature font and a ligature that does not resolve
+ * leaves the literal text behind. The window showed the words `call`, `rocket_launch`
+ * and `check` sitting in the layout where the glyphs belong.
+ *
+ * The font faces come with it: the compiler writes an @import for the vendored font
+ * files at the top of design-styles.css, and a CSS @import resolves relative to the
+ * file that contains it, so it finds them from here exactly as it does from the console.
+ */
+@import '../../../../console/app/renderer/src/generated/design-styles.css';
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}

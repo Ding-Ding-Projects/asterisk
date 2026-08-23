@@ -180,6 +180,25 @@ const Base = ConsoleShell as unknown as new (props: Record<string, never>) => Co
 };
 
 export class DeployerShell extends Base {
+  /**
+   * Move to a screen this application actually has, before the first render.
+   *
+   * The compiled shell initialises its own state to `dash`, which is correct for the
+   * console and wrong here: `registerDeployerScreens()` clears every entry in `SCREENS`
+   * and installs three of its own, so `dash` no longer exists by the time the shell
+   * looks it up. It then reads `.table` off `undefined` and the whole tree throws, which
+   * renders as an empty white window rather than as an error anybody would notice.
+   *
+   * Found by launching the built application and looking at it. It type-checked, its
+   * module graph resolved, and all forty-eight tests passed, because none of that
+   * exercises the one line where the shell's default screen meets a catalogue that no
+   * longer contains it.
+   */
+  constructor(props: Record<string, never>) {
+    super(props);
+    this.state = { ...this.state, screen: ORDER[0] };
+  }
+
   private running = false;
   private lastSteps: DeployStepReport[] = [];
   private lastResult: DeployResult | null = null;
