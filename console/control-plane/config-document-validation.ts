@@ -22,6 +22,16 @@ export interface ConfigDocumentFinding {
   message: string;
 }
 
+/**
+ * Structured Asterisk semantic validation belongs only to actual Asterisk INI resources.
+ * `StructuredConfigPlanner` is deliberately more general and has callers/tests that plan
+ * arbitrary JSON-shaped documents. Scoping here preserves that reusable contract while
+ * still gating every PBX Admin document (`/etc/asterisk/*.conf`) on the Asterisk model.
+ */
+function isAsteriskConfigResource(resource: string): boolean {
+  return resource.startsWith('/etc/asterisk/') && resource.endsWith('.conf');
+}
+
 function isConfigValue(value: unknown): value is ConfigValue {
   if (!Array.isArray(value)) return false;
   return value.every((section) => {
@@ -54,12 +64,14 @@ function mapTlsFindings(source: string, value: ConfigValue, kind: 'http' | 'pjsi
 }
 
 /**
- * Runs the typed validators already present in this repository against one desired
- * configuration document. Resources without a typed model still pass through the
- * transaction engine's structural and post-read checks; this function never invents a
- * validator for a file whose semantics the checkout has not modelled yet.
+ * Runs typed validators already present in this repository against one desired Asterisk
+ * configuration document. Non-Asterisk planner documents are intentionally ignored.
+ * Asterisk resources without a typed model still pass through the transaction engine's
+ * structural and post-read checks; this function never invents a semantic validator.
  */
 export function validateConfigDocument(resource: string, value: unknown): ConfigDocumentFinding[] {
+  if (!isAsteriskConfigResource(resource)) return [];
+
   if (!isConfigValue(value)) {
     return [{ severity: 'error', source: resource, message: 'The desired configuration is not a structured Asterisk ConfigValue.' }];
   }
