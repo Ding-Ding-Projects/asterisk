@@ -37,6 +37,22 @@ test('resources with no typed model are not assigned invented semantic rules', (
   assert.deepEqual(validateConfigDocument('/etc/asterisk/calendar.conf', value), []);
 });
 
+test('non-conf planner resources keep their generic JSON document contract', async () => {
+  const desired = { endpoint: { codecs: ['ulaw', 'g722'], enabled: true } };
+  assert.deepEqual(validateConfigDocument('/etc/asterisk/pjsip.json', desired), []);
+
+  let reads = 0;
+  const planner = new StructuredConfigPlanner(() => new Date('2026-08-23T06:00:00Z'));
+  const plan = await planner.createPlan(
+    'generic-json-plan',
+    'target',
+    [{ resource: '/etc/asterisk/pjsip.json', value: desired }],
+    { read: async () => { reads += 1; return { endpoint: { codecs: ['ulaw'], enabled: true } }; } },
+  );
+  assert.equal(reads, 1);
+  assert.equal(plan.diffs.length, 1);
+});
+
 test('planner refuses a typed-model error before touching the target', async () => {
   let reads = 0;
   const planner = new StructuredConfigPlanner(() => new Date('2026-08-23T06:00:00Z'));
@@ -52,7 +68,7 @@ test('planner refuses a typed-model error before touching the target', async () 
   assert.equal(reads, 0);
 });
 
-test('planner still reads and diffs a structurally valid document', async () => {
+test('planner still reads and diffs a structurally valid Asterisk config document', async () => {
   let reads = 0;
   const desired: ConfigValue = [{ name: 'general', entries: [{ key: 'atxferdropcall', value: 'no' }] }];
   const planner = new StructuredConfigPlanner(() => new Date('2026-08-23T06:00:00Z'));
