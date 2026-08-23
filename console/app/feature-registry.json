@@ -1,0 +1,282 @@
+{
+  "surface": "windows-console",
+  "schemaVersion": 1,
+  "features": {
+    "language-modes": {
+      "state": "absent",
+      "note": "No localization mechanism exists anywhere in the renderer: no locale files, no language-mode setting, no translated copy. Every string in App.tsx/PbxAdminApp.tsx and the compiled console is hardcoded English.",
+      "files": []
+    },
+    "funny-levels": {
+      "state": "absent",
+      "note": "No funny-level slider or copy-styling mechanism exists. Notification and dialog copy in App.tsx and the compiled console (this.fire/this.toast) is fixed text with no tone variation.",
+      "files": []
+    },
+    "dialog-emojis": {
+      "state": "absent",
+      "note": "No show-emojis-in-dialogs toggle exists; dialog/toast copy in App.tsx has no emoji decoration control.",
+      "files": []
+    },
+    "school-mode": {
+      "state": "absent",
+      "note": "No School mode setting, rename, or shared-credential unlock exists. The per-element lock mechanism in the compiled console (tryUnlock, PIN/password) is unrelated to School mode.",
+      "files": []
+    },
+    "narration": {
+      "state": "partial",
+      "note": "app/renderer/src/narration.ts implements TTS narration logic (queue, per-category cooldown, language selection) and is covered by tests/ui/narration.test.tsx, but the module is never imported by App.tsx, PbxAdminApp.tsx, or PbxAdminIntegratedApp.tsx, so it never runs inside the mounted application.",
+      "files": [
+        "app/renderer/src/narration.ts"
+      ]
+    },
+    "scheduled-settings": {
+      "state": "absent",
+      "note": "No scheduled-settings surface, date/time rule editor, or external source integration exists anywhere in the renderer or control-plane.",
+      "files": []
+    },
+    "external-settings-sources": {
+      "state": "absent",
+      "note": "No external settings source (validated HTTPS API or Home Assistant boolean entity) is wired anywhere; same gap as scheduled-settings.",
+      "files": []
+    },
+    "dim-sum-surprise": {
+      "state": "absent",
+      "note": "No startup dim-sum surprise, bundled dish assets, or 10% draw exists.",
+      "files": []
+    },
+    "regex-builder": {
+      "state": "partial",
+      "note": "A real regex-capable control is wired: App.tsx binds readings.regexMatchLabel() to a live regex-match count (App.tsx line 889, readings.ts lines 356-360), and the compiled console tab-close filter (generated/console.tsx applyTabFilter, near line 4459) evaluates typed text as new RegExp(q, \"i\") with a plain-text fallback. Neither is the full guided builder (literal/class/anchor/group construction, flags UI, capture-group display) the contract requires; it is a single pattern field with live match feedback.",
+      "files": [
+        "app/renderer/src/App.tsx",
+        "app/renderer/src/readings.ts",
+        "app/renderer/src/generated/console.tsx"
+      ]
+    },
+    "non-blocking-notifications": {
+      "state": "partial",
+      "note": "The compiled console (ConsoleShell, generated/console.tsx) implements this.fire()/this.toast() as the notification primitives, called extensively from App.tsx (lines 292, 325, 327, 342...) and the compiled UI itself. These read as corner toasts in the design, but there is no reviewable notification centre or history for dismissed notifications.",
+      "files": [
+        "app/renderer/src/App.tsx",
+        "app/renderer/src/generated/console.tsx"
+      ]
+    },
+    "status-hub": {
+      "state": "absent",
+      "note": "No live status-hub project, session card, or question-card surface exists. The single textual match for status-hub in the compiled console is a rail/menu label, not a working status surface.",
+      "files": []
+    },
+    "material-appearance": {
+      "state": "partial",
+      "note": "app/renderer/src/appearance.ts and colour.ts implement Material appearance tokens, an infinite-colour-picker translator (colour.ts, 743 lines) and per-element editing logic, covered by tests/ui/appearance.test.tsx and colour.test.tsx, but neither module is imported by App.tsx/PbxAdminApp.tsx. The compiled console separately implements its own tab-colour picker and a rainbow colour cycle (generated/console.tsx applyColour, tabColourOpts) which is real and wired, but narrower (tab colour only) than the appearance.ts/colour.ts module set.",
+      "files": [
+        "app/renderer/src/appearance.ts",
+        "app/renderer/src/colour.ts",
+        "app/renderer/src/generated/console.tsx"
+      ]
+    },
+    "app-logo-customization": {
+      "state": "absent",
+      "note": "No logo preset picker, custom-image upload, or icon-generation pipeline exists.",
+      "files": []
+    },
+    "local-file-converter": {
+      "state": "absent",
+      "note": "No file-converter surface, adapter registry, or category catalogue exists anywhere in the renderer, control-plane, or server. Has no documentation article under docs/platform either, consistent with never having been built.",
+      "files": []
+    },
+    "ollama-suite-manager": {
+      "state": "absent",
+      "note": "No Ollama integration of any kind (local API client, model store, chat surface, harness launcher) exists. Has no documentation article under docs/platform either.",
+      "files": []
+    },
+    "browser-style-tabs": {
+      "state": "implemented",
+      "note": "The compiled console (generated/console.tsx) implements a real tab strip with groups, docking (state.dock), colours, rename, pin (state.pinned / $t.pinned), and a bulk close-by-text/regex/colour filter (tabFilterOpen/applyTabFilter, near line 4437). This is live, wired UI, not a stub, though it is compiled from the checked-in design reference rather than hand-authored.",
+      "files": [
+        "app/renderer/src/generated/console.tsx"
+      ]
+    },
+    "tab-groups-and-searches": {
+      "state": "partial",
+      "note": "Tab groups (state.groups, tabGroups, group colours/collapse), a per-strip filter with Containing/Not-containing/By-colour modes (generated/console.tsx near line 4829), and pinning are real and wired. Missing: a dedicated group-name search, an in-group search, and a master cross-window tab search - only the single strip filter exists, so the four-search contract is not met.",
+      "files": [
+        "app/renderer/src/generated/console.tsx"
+      ]
+    },
+    "command-palette": {
+      "state": "partial",
+      "note": "app/renderer/src/catalog.ts builds a searchable command/settings catalogue (61 lines) but is never imported by App.tsx or any mounted component. No Ctrl+Shift+F activation exists in App.tsx or the compiled console.",
+      "files": [
+        "app/renderer/src/catalog.ts"
+      ]
+    },
+    "destructive-action-confirmation": {
+      "state": "implemented",
+      "note": "app/renderer/src/ceremony.ts (runCeremonyCommand) is imported and invoked by App.tsx (lines 8, 788) to run a confirmation ceremony before a destructive PBX command executes; the compiled console additionally implements areYouSure() as a timed confirm used for other destructive UI actions (tab-partner approval, dialplan-step delete). Genuinely wired end to end.",
+      "files": [
+        "app/renderer/src/ceremony.ts",
+        "app/renderer/src/App.tsx",
+        "app/renderer/src/generated/console.tsx"
+      ]
+    },
+    "local-version-history": {
+      "state": "absent",
+      "note": "control-plane/local-history.ts and control-plane/config-history.ts implement Git-backed local history server-side, but nothing in the renderer surfaces a history/versions panel, restore action, or diff view to the user. The feature exists as backend plumbing with no reachable UI.",
+      "files": [
+        "control-plane/local-history.ts",
+        "control-plane/config-history.ts"
+      ]
+    },
+    "changelog-viewer": {
+      "state": "partial",
+      "note": "app/renderer/src/changelog.ts (263 lines, tested by tests/ui/changelog.test.tsx) implements changelog entries, date filtering and commit-link rendering, but is never imported by any mounted component, so it never renders in the running app.",
+      "files": [
+        "app/renderer/src/changelog.ts"
+      ]
+    },
+    "external-editor-handoff": {
+      "state": "absent",
+      "note": "No open-in-external-editor / VS Code handoff exists anywhere in the renderer or control-plane.",
+      "files": []
+    },
+    "complete-exports": {
+      "state": "partial",
+      "note": "app/renderer/src/export.ts (547 lines, tested by tests/ui/export.test.tsx) implements multi-format export logic, but is never imported by App.tsx or any mounted component.",
+      "files": [
+        "app/renderer/src/export.ts"
+      ]
+    },
+    "bulk-actions": {
+      "state": "partial",
+      "note": "app/renderer/src/bulk.ts (336 lines, tested by tests/ui/bulk.test.tsx) implements bulk selection/action logic, but is never imported by App.tsx or any mounted component. The compiled console does implement one real bulk action (bulk = (verb, sel) => ...fire...) for canvas-node selection, narrower than the bulk.ts contract.",
+      "files": [
+        "app/renderer/src/bulk.ts",
+        "app/renderer/src/generated/console.tsx"
+      ]
+    },
+    "accessibility": {
+      "state": "absent",
+      "note": "No dedicated accessibility mechanism (focus management beyond default DOM behavior, ARIA audit, reduced-motion handling) was found in App.tsx or the compiled console source.",
+      "files": []
+    },
+    "responsive-sizing": {
+      "state": "partial",
+      "note": "The compiled console carries a per-screen narrow flag (App.tsx line 709, narrow: true) used to pick a narrower layout for at least one screen, but there is no evidence of a systematic responsive strategy (100/125/150/200% scale handling, narrow-width tab collapse) across the app.",
+      "files": [
+        "app/renderer/src/App.tsx"
+      ]
+    },
+    "personal-vocabulary-upload": {
+      "state": "implemented",
+      "note": "app/renderer/src/personal-vocabulary.ts is imported and fully wired into App.tsx: file load (line 321 loadVocabularyFile), clear (line 332 clearVocabulary), status (lines 309, 313, 382 vocabularyStatus) and storage (line 134 createMemoryStorage/localStorage). Genuinely implemented end to end.",
+      "files": [
+        "app/renderer/src/personal-vocabulary.ts",
+        "app/renderer/src/App.tsx"
+      ]
+    },
+    "per-element-toy-locks": {
+      "state": "partial",
+      "note": "The compiled console implements a real per-element lock/unlock mechanism (state.locks keyed by element id, tryUnlock() checking PIN or password, generated/console.tsx near line 3963) that is wired and functional. Missing against the contract: no OTP/TOTP option, no per-element lock-creation wizard reachable from a documented context-menu command, and no OS credential-vault storage - credentials live in plain component state.",
+      "files": [
+        "app/renderer/src/generated/console.tsx"
+      ]
+    },
+    "support-tickets": {
+      "state": "absent",
+      "note": "No Support Tickets surface exists; the per-element lock has no forgotten-password recovery route of any kind.",
+      "files": []
+    },
+    "unlock-ladder": {
+      "state": "partial",
+      "note": "app/renderer/src/unlock-ladder.ts (438 lines, tested by tests/ui/unlock-ladder.test.tsx) implements the dim-sum/sums/whack-a-mole/clock ladder logic and School-mode starting-rung behavior, but is never imported by any mounted component. The compiled console own lock mechanism (tryUnlock) has no ladder at all - a wrong PIN just re-prompts.",
+      "files": [
+        "app/renderer/src/unlock-ladder.ts"
+      ]
+    },
+    "built-in-authenticator": {
+      "state": "partial",
+      "note": "app/renderer/src/totp.ts (237 lines, tested by tests/ui/totp.test.tsx) implements RFC 6238 TOTP generation and verification, but is never imported by any mounted component, so no authenticator surface, QR registration, or code display is reachable in the running app.",
+      "files": [
+        "app/renderer/src/totp.ts"
+      ]
+    },
+    "attention-modes": {
+      "state": "absent",
+      "note": "No ADHD/attention-mode toggles (focus, low-stimulation, time-awareness, one-thing-at-a-time, momentum) exist anywhere in the renderer.",
+      "files": []
+    },
+    "browser-extension-download-surfaces": {
+      "state": "absent",
+      "note": "This is a desktop console for an Asterisk PBX; there is no browser extension in this repository and no Start-download/Downloading/complete dialog surfaces.",
+      "files": []
+    },
+    "offline-documentation-browser": {
+      "state": "partial",
+      "note": "app/renderer/src/docs-browser.ts (247 lines, tested by tests/ui/docs-browser.test.tsx) implements article lookup/search over the bundled docs, and app/renderer/src/generated/docs-bundle.ts (3033 lines, produced by scripts/bundle-docs.mjs from docs/**/*.md) is real bundled content. Neither is imported by App.tsx or any mounted component, so the documentation is bundled at build time but never reachable from the running app.",
+      "files": [
+        "app/renderer/src/docs-browser.ts",
+        "app/renderer/src/generated/docs-bundle.ts"
+      ]
+    },
+    "app-display-name": {
+      "state": "absent",
+      "note": "No renameable-display-name setting exists; the product name (Ding PBX Console) is hardcoded in the compiled console with no user-facing rename control.",
+      "files": []
+    },
+    "guided-forms": {
+      "state": "partial",
+      "note": "app/renderer/src/endpoint-create.ts (WIZARD_CONTROLS, buildEndpointDraft) is imported and wired into App.tsx (line 14, 482, 488) to drive the endpoint-creation wizard with real validated fields and a generated secret. This is a genuine guided form for one flow (new PJSIP endpoint), not a system-wide guided-forms contract.",
+      "files": [
+        "app/renderer/src/endpoint-create.ts",
+        "app/renderer/src/App.tsx"
+      ]
+    },
+    "bounded-overlays": {
+      "state": "absent",
+      "note": "No dedicated overlay-bounding/viewport-clamping logic was found; overlays in the compiled console use plain fixed-position styling with no evidence of viewport-boundary handling.",
+      "files": []
+    },
+    "context-menu-shortcuts": {
+      "state": "absent",
+      "note": "The compiled console context menu (ctxOpen/ctxSub) renders labels and icons only; no keyboard-shortcut column was found alongside its menu items.",
+      "files": []
+    },
+    "long-operation-progress": {
+      "state": "absent",
+      "note": "No dialog reporting real long-operation progress (queue/index/clone-style progress inside a start dialog) was found; ceremony.ts runs a bounded confirmation flow, not a progress-reporting operation.",
+      "files": []
+    },
+    "in-context-recovery": {
+      "state": "absent",
+      "note": "No surface-level recovery route (for example re-authentication offered directly beside a refused push/credential error) was found.",
+      "files": []
+    },
+    "provider-markup-rendering": {
+      "state": "partial",
+      "note": "app/renderer/src/docs-browser.ts renders bundled documentation body text, which is Markdown-shaped, but is not wired into the mounted app (see offline-documentation-browser). No renderer for remote-authored text (release notes, issue bodies) exists.",
+      "files": [
+        "app/renderer/src/docs-browser.ts"
+      ]
+    },
+    "forge-publishing": {
+      "state": "absent",
+      "note": "No GitHub/forge publishing flow (account picker, fork-vs-copy-and-push) exists; this is a PBX admin console, not a repository-publishing tool.",
+      "files": []
+    },
+    "collapsible-filters": {
+      "state": "absent",
+      "note": "No evidence of a collapsible filter/statistics row was found; the compiled console tab filter (tabFilterOpen) is a modal overlay, not a collapsible inline row.",
+      "files": []
+    },
+    "automatic-updates": {
+      "state": "implemented",
+      "note": "app/renderer/src/UpdateBanner.tsx (64 lines) is mounted as its own root in main.tsx (lines 39-41) and control-plane/updater.ts implements the update-check/download/ready-to-restart backend. Genuinely wired: the banner is created and rendered on every boot alongside the main app.",
+      "files": [
+        "app/renderer/src/UpdateBanner.tsx",
+        "app/renderer/src/main.tsx",
+        "control-plane/updater.ts"
+      ]
+    }
+  }
+}

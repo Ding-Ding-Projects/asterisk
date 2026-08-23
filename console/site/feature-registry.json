@@ -1,0 +1,271 @@
+{
+  "surface": "pages-site",
+  "schemaVersion": 1,
+  "features": {
+    "language-modes": {
+      "state": "partial",
+      "note": "site/app.js applyLanguage() (line 539) switches document.lang and preview copy between English, Cantonese and bilingual, wired from initSettings() language-mode select. This is a real, wired switch but only changes one preview string, not the whole site's rendered copy - most page text has no data-copy hook.",
+      "files": [
+        "site/app.js",
+        "site/settings.html"
+      ]
+    },
+    "funny-levels": {
+      "state": "partial",
+      "note": "site/app.js initSettings() wires english-funny and cantonese-funny sliders to state.englishFunny/state.cantoneseFunny (line 895) and applyCopy() (line 654) renders COPY table entries through copyText(key), which is the mechanism a funny level would style, but no inspection found actual per-level copy variants defined for englishFunny/cantoneseFunny beyond the language switch itself.",
+      "files": [
+        "site/app.js",
+        "site/settings.html"
+      ]
+    },
+    "dialog-emojis": {
+      "state": "absent",
+      "note": "No show-emojis-in-dialogs toggle or emoji-decoration logic was found in site/app.js.",
+      "files": []
+    },
+    "school-mode": {
+      "state": "absent",
+      "note": "No School mode setting, rename, or shared unlock credential was found anywhere in site/app.js or the settings page.",
+      "files": []
+    },
+    "narration": {
+      "state": "absent",
+      "note": "No TTS narrator, voice picker, or spoken-event queue was found in site/app.js.",
+      "files": []
+    },
+    "scheduled-settings": {
+      "state": "partial",
+      "note": "site/app.js initSettings() wires a schedule-enabled checkbox to state.scheduleEnabled, but no date/time rule editor, weekday selection, or external source integration was found - the checkbox exists with no scheduling surface behind it.",
+      "files": [
+        "site/app.js",
+        "site/settings.html"
+      ]
+    },
+    "external-settings-sources": {
+      "state": "absent",
+      "note": "No HTTPS API or Home Assistant integration exists; same gap as scheduled-settings.",
+      "files": []
+    },
+    "dim-sum-surprise": {
+      "state": "absent",
+      "note": "No startup dim-sum surprise or bundled dish assets were found.",
+      "files": []
+    },
+    "regex-builder": {
+      "state": "implemented",
+      "note": "site/app.js implements a real anchored regex builder: openRegex()/initRegex() (lines 808, 812) open a <dialog> attached to the triggering field (regex-target-label shows \"Attached to: <field>\"), support literal-insert buttons, i/m/u flags, and previewRegex() live matching, with applyRegex() writing the result back into the originating search field. Wired from every .regex-trigger button via initSearch() (line 807), including the settings search and documentation search.",
+      "files": [
+        "site/app.js"
+      ]
+    },
+    "non-blocking-notifications": {
+      "state": "implemented",
+      "note": "site/app.js implements notify()/notification history (renderNotifications, notification-history dialog) with bulk select/dismiss (initNotificationBulk, planBulk with destructive flag), a notification-open dialog, and export of notification history (notificationExportRows). Wired end to end from init() (line 1055).",
+      "files": [
+        "site/app.js"
+      ]
+    },
+    "status-hub": {
+      "state": "absent",
+      "note": "site/status.html exists as a page shell but no live status-hub project, session card, or question-card logic was found in site/app.js.",
+      "files": []
+    },
+    "material-appearance": {
+      "state": "partial",
+      "note": "site/app.js implements a genuine infinite-colour-picker/translator (rgbToHsl/hsvToRgb/rgbToLab/rgbToOklab/hwbToRgb/cmykToRgb and translateColour, wired via initColourTranslator) plus theme/density/accent/font-scale controls in initSettings() with a live preview (initSettingsPreview). This covers colour translation and basic tokens well, but there is no per-element \"Edit appearance...\" editor, no Word-depth typography controls, and no named-preset export/import beyond the general settings export.",
+      "files": [
+        "site/app.js",
+        "site/settings.html"
+      ]
+    },
+    "app-logo-customization": {
+      "state": "partial",
+      "note": "site/app.js wires logo-file/logo-clear to loadLogo()/applyLogo() with a logo-status readout, storing the custom logo in localStorage. This is a real local-only upload and clear path, but there is no crop/fit/background editor, no multi-size generation, and no shipped preset gallery beyond the single custom-upload slot.",
+      "files": [
+        "site/app.js",
+        "site/settings.html"
+      ]
+    },
+    "local-file-converter": {
+      "state": "absent",
+      "note": "The site's many to*() functions (toJson, toXml, toYaml, toSql, toToml, toDelimited, toMarkdown, toHtml) convert the documentation/notification export data into different text formats - this is export formatting (complete-exports), not a general-purpose local file converter with a category catalogue and bundled adapters. No such converter surface exists.",
+      "files": []
+    },
+    "ollama-suite-manager": {
+      "state": "absent",
+      "note": "No Ollama integration of any kind exists in the site.",
+      "files": []
+    },
+    "browser-style-tabs": {
+      "state": "absent",
+      "note": "The site is a small multi-page static site (index/product/documentation/downloads/settings/status.html navigated as separate pages); no in-page browser-style tab strip, docking, or tab groups were found in site/app.js.",
+      "files": []
+    },
+    "tab-groups-and-searches": {
+      "state": "absent",
+      "note": "No tabs exist on the site at all (see browser-style-tabs), so there are no tab groups or tab searches.",
+      "files": []
+    },
+    "command-palette": {
+      "state": "partial",
+      "note": "site/app.js implements openPalette() (line 816) opening a real <dialog id=\"command-palette\"> with a live-filtered palette-search field and renderPalette(), wired from a palette-open button and Ctrl+Shift+F was not confirmed as the activation key (only a button click and palette-search input were found) - the keyboard-shortcut activation contract is unverified.",
+      "files": [
+        "site/app.js"
+      ]
+    },
+    "destructive-action-confirmation": {
+      "state": "partial",
+      "note": "site/app.js planBulk() and bulk actions carry a destructive flag (line 299, 309) that changes copy to state \"This cannot be undone,\" and settings-reset is styled as a danger-button, but no two-key-plus-slider super-confirmation gate (the documented contract's specific mechanism) was found - only a plain destructive-labelled action.",
+      "files": [
+        "site/app.js",
+        "site/settings.html"
+      ]
+    },
+    "local-version-history": {
+      "state": "absent",
+      "note": "The documentation catalogue lists a \"History\" article (app/history, describing append-only local configuration revisions) as PRODUCT documentation content, but no actual history/versions panel, diff view, or restore action exists in the site itself - this is a described feature of the console product, not an implemented feature of the site.",
+      "files": []
+    },
+    "changelog-viewer": {
+      "state": "absent",
+      "note": "No changelog viewer, date filter, or commit-link rendering was found in site/app.js.",
+      "files": []
+    },
+    "external-editor-handoff": {
+      "state": "absent",
+      "note": "No open-in-external-editor / VS Code handoff exists on the site.",
+      "files": []
+    },
+    "complete-exports": {
+      "state": "implemented",
+      "note": "site/app.js implements a genuinely broad export pipeline: toJson/toJsonl/toYaml/toToml/toXml/toSql/toDelimited/toMarkdown/toHtml plus suitableFormats()/exportFilename()/download(), used by both initDocumentationExport() and the settings/notification export paths, with an explicit personalVocabulary:\"omitted\" marker in the settings export payload (line ~895) matching the export-honesty contract.",
+      "files": [
+        "site/app.js"
+      ]
+    },
+    "bulk-actions": {
+      "state": "implemented",
+      "note": "site/app.js implements planBulk()/summariseBulk()/bulkClick()/bulkSelectAll() with a reviewable affected/skipped preview and a destructive flag, wired into notification bulk-select/dismiss (initNotificationBulk).",
+      "files": [
+        "site/app.js"
+      ]
+    },
+    "accessibility": {
+      "state": "partial",
+      "note": "site/app.js implements a real WCAG contrast calculator (contrastRatio/contrastVerdict) used by the colour translator, and sr-only labels appear in settings.html, but no site-wide audit of focus order, ARIA roles, or reduced-motion coverage beyond the one reduceMotion() check in the counter animation (line 967) was verified.",
+      "files": [
+        "site/app.js",
+        "site/settings.html"
+      ]
+    },
+    "responsive-sizing": {
+      "state": "absent",
+      "note": "site/styles.css was not inspected for a systematic responsive strategy in this pass; no JS-level narrow-width handling (comparable to the app's \"narrow\" screen flag) was found in site/app.js.",
+      "files": []
+    },
+    "personal-vocabulary-upload": {
+      "state": "implemented",
+      "note": "site/app.js wires vocabulary-file/vocabulary-clear to loadVocabulary()/applyVocabulary(), with bounded validation of replacement entries (from/to length limits, line ~924) and a vocabulary-status readout, storing the cache in localStorage under ding-pbx-vocabulary-cache.",
+      "files": [
+        "site/app.js",
+        "site/settings.html"
+      ]
+    },
+    "per-element-toy-locks": {
+      "state": "absent",
+      "note": "No per-element lock/unlock mechanism was found anywhere in site/app.js.",
+      "files": []
+    },
+    "support-tickets": {
+      "state": "absent",
+      "note": "No Support Tickets surface exists on the site.",
+      "files": []
+    },
+    "unlock-ladder": {
+      "state": "absent",
+      "note": "No unlock ladder (dim sum / sums / whack-a-mole / clock) exists; there is nothing to unlock in the first place (see per-element-toy-locks).",
+      "files": []
+    },
+    "built-in-authenticator": {
+      "state": "absent",
+      "note": "No TOTP/authenticator surface, QR generation, or code display exists in site/app.js.",
+      "files": []
+    },
+    "attention-modes": {
+      "state": "implemented",
+      "note": "site/app.js implements real ADHD/attention accommodations wired in initSettings(): reduceFlashing, simplifiedLanguage, extendedTimeouts, focus, timeAwareness, oneThing (with updateOneThingBanner and a current-task field), and momentum (initMomentum/checkMomentum/updateSessionTimer), all persisted through state.attention and off by default per DEFAULTS.",
+      "files": [
+        "site/app.js",
+        "site/settings.html"
+      ]
+    },
+    "browser-extension-download-surfaces": {
+      "state": "absent",
+      "note": "This is a static documentation/marketing site; there is no browser extension and no Start-download/Downloading/complete dialog surfaces.",
+      "files": []
+    },
+    "offline-documentation-browser": {
+      "state": "partial",
+      "note": "site/documentation.html plus renderDestinations()/initDocumentationExport() in site/app.js present a searchable documentation catalogue with per-article export, but this is a static site consuming its own bundled catalogue over the network at page load, not an offline-bundled in-app documentation browser matching the console-app contract.",
+      "files": [
+        "site/app.js",
+        "site/documentation.html"
+      ]
+    },
+    "app-display-name": {
+      "state": "absent",
+      "note": "No renameable display-name setting was found on the site.",
+      "files": []
+    },
+    "guided-forms": {
+      "state": "absent",
+      "note": "No guided/picker-driven form beyond ordinary settings selects and file inputs was found; there is no enumerated-picker-over-freeform-text pattern comparable to the app's endpoint wizard.",
+      "files": []
+    },
+    "bounded-overlays": {
+      "state": "implemented",
+      "note": "The regex builder (openRegex) and command palette (openPalette) both use native <dialog>.showModal(), which the browser bounds to the viewport and paints its own surface, and openRegex() explicitly labels which field it is attached to (\"Attached to: <field>\"). This satisfies the bounded/anchored-overlay contract for these two surfaces.",
+      "files": [
+        "site/app.js"
+      ]
+    },
+    "context-menu-shortcuts": {
+      "state": "absent",
+      "note": "No context menu (oncontextmenu handling) exists anywhere on the site.",
+      "files": []
+    },
+    "long-operation-progress": {
+      "state": "absent",
+      "note": "The only progress-shaped code found is a decorative counter-animation easing function (line 967), not a real operation-progress report inside a start dialog.",
+      "files": []
+    },
+    "in-context-recovery": {
+      "state": "absent",
+      "note": "No surface-level recovery route (for example re-authentication offered directly beside a refused action) was found.",
+      "files": []
+    },
+    "provider-markup-rendering": {
+      "state": "absent",
+      "note": "No renderer for remote/provider-authored Markdown or rich text was found; documentation content in renderDestinations() is inserted as plain escaped text/HTML built by the site itself, not rendered from provider-authored markup.",
+      "files": []
+    },
+    "forge-publishing": {
+      "state": "absent",
+      "note": "No GitHub/forge publishing flow exists; this is a documentation/marketing site with no repository-publishing feature.",
+      "files": []
+    },
+    "collapsible-filters": {
+      "state": "implemented",
+      "note": "site/settings.html and site/documentation.html use real <details class=\"collapsible-panel\"> elements wrapping the search/filter controls (settings-filters-panel, documentation-filters-panel), wired to updateFilterStatus() in site/app.js which reports match counts into an aria-live status span - a genuine collapsible, accessible filter row.",
+      "files": [
+        "site/app.js",
+        "site/settings.html"
+      ]
+    },
+    "automatic-updates": {
+      "state": "absent",
+      "note": "This is a static site with nothing to auto-update client-side; no update-check/ready-banner logic exists in site/app.js. (The console app's automatic-updates feature is a separate surface tracked on the windows-console row.)",
+      "files": []
+    }
+  }
+}
