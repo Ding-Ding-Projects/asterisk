@@ -42,6 +42,63 @@
 - [x] Create, verify, stop and remove the console's own WSL distribution from the packaged Asterisk payload, replacing a `server.provision-bundled` action that was declared and implemented nowhere.
 - [x] Make the confirmation flow dispatch the command it guards and report the real outcome, including refusals, instead of announcing success without calling anything.
 
+## Cover Asterisk's real capability surface
+
+A survey against this checkout measured the console at roughly **12%** of Asterisk's
+configurable surface: 106 shippable sample configuration files, about 13 the console
+could name. The owner's direction is that every gap below is closed, partials included.
+
+**Foundation — done.** The control plane no longer limits this: writable resources went
+from 10 files to 41 and read-only commands from 23 to 63, every name verified against the
+Asterisk sources by a test that refuses an invented one. A new destination needs no change
+to the control plane.
+
+### Major gaps — no destination exists at all
+
+- [ ] **Access control rules** (`acl.conf`) — the highest-value gap by far. SIP scanning is constant and toll fraud is the expensive failure; the security screen currently edits no rule at all.
+- [ ] **Sound prompt management** — upload, list, audition and remove prompts. Every IVR and voicemail screen references prompts it cannot create.
+- [ ] **TLS and certificate management** (`http.conf` TLS, PJSIP transport certificates, STIR/SHAKEN keys) — every other screen assumes certificates that nothing can install or rotate.
+- [ ] **Hardware trunks** (`chan_dahdi.conf`) — analogue lines, T1/E1 and PRI.
+- [ ] **Database backends and realtime** (`res_odbc.conf`, `extconfig.conf`, `sorcery.conf`, `res_pgsql.conf`, `res_ldap.conf`) — required for hosted and multi-tenant deployments.
+- [ ] **Fax** (`res_fax.conf`, `udptl.conf`) — sending, receiving, T.38 gateway.
+- [ ] **Channel event logging** (`cel.conf`, `cel_odbc.conf`, `cel_pgsql.conf`) — the compliance counterpart to call records.
+- [ ] **Call attestation** (`stir_shaken.conf`) — profiles, certificates, verification.
+- [ ] **Emergency-services location** (`geolocation.conf`) — a regulatory requirement in several jurisdictions.
+- [ ] **Handset auto-provisioning** (`phoneprov.conf`) — the deployment flow asks how many phones and has nowhere to template them.
+- [ ] **Feature codes and parking** (`features.conf`) — transfer, park, pickup, recording keys.
+- [ ] **Shared line appearances** (`sla.conf`).
+- [ ] **IAX2 trunking** (`iax.conf`) — currently only illustrative rows, which is worse than absence because it reads as configurable.
+- [ ] **Configuration backup, restore and diff** across the whole tree — no safe whole-config recovery exists.
+- [ ] **A live REST resource browser** — channels, bridges, applications, events, beyond a static table.
+- [ ] **Dialplan scripting visibility** (AGI).
+- [ ] **Distributed dialplan lookup** (`dundi.conf`).
+- [ ] **Calendars** (`calendar.conf`).
+- [ ] **Monitoring integration** (`res_snmp.conf`, `prometheus.conf`).
+- [ ] **Directory and identity settings** (`asterisk.conf`), NAT discovery (`res_stun_monitor.conf`), messaging (`xmpp.conf`), caller display (`adsi.conf`).
+
+### Partial gaps — a destination exists but covers a fraction
+
+- [ ] **Security** — edits no access rule and no attestation certificate despite naming both.
+- [ ] **Trunks** — PJSIP only; no IAX2, no hardware, no registration retry detail.
+- [ ] **IVR** — no dialplan application depth, and prompts are names it cannot manage.
+- [ ] **Logger** — level chips only; no rotation, no queue log, no per-channel configuration.
+- [ ] **Modules** — no per-module reload and no dependency view.
+- [ ] **Call records** — one status reading; no backend selection across the several available.
+- [ ] **Manager and REST** — a static table; no live event stream and no operable actions.
+- [ ] **Voicemail** — no storage backend configuration and no greeting management.
+- [ ] **Codecs** — a listing only; no per-endpoint negotiation.
+
+### How each one lands
+
+Each destination needs: its resources in the writable list (**done for all of the above**),
+its read-only commands (**done**), a screen, and control bindings mapping each control to a
+real Asterisk key. The first two are finished, so the remaining work per subsystem is the
+screen and its bindings.
+
+**One honest constraint that governs all of it:** nothing here has yet written to a live
+Asterisk beyond a disposable target. No configuration mutation may be described as verified
+until an approved plan has run against a real exchange.
+
 ## Build the Asterisk runtime image in CI instead of on every machine
 
 The root filesystem is produced by building a container image that compiles Asterisk from
