@@ -42,19 +42,11 @@ export const CONFIGURABLE_RESOURCES = [
   `${CONFIG_DIRECTORY}/manager.conf`,
   `${CONFIG_DIRECTORY}/logger.conf`,
   `${CONFIG_DIRECTORY}/rtp.conf`,
-  /* Both are declared by a configuration screen in the design reference, so leaving them
-   * out would make those screens permanently unreadable for no reason a user could see. */
   `${CONFIG_DIRECTORY}/modules.conf`,
   `${CONFIG_DIRECTORY}/acl.conf`,
 
-  /* The subsystems a real exchange needs and this console could not reach at all.
-   * Every name below has a matching file in Asterisk's own `configs/samples`, checked
-   * against this checkout rather than remembered — a resource named here that Asterisk
-   * does not actually read would be a control that silently does nothing.
-   *
-   * Presence in this list makes a file readable and writable through the transaction
-   * path; it does not by itself put a screen in front of it. Coverage is deliberately
-   * ahead of the interface so a new screen needs no change here. */
+  /* Subsystems a complete administration surface needs. Every name below has a matching
+   * file in this checkout's configs/samples and is verified by capability-surface.test. */
   `${CONFIG_DIRECTORY}/chan_dahdi.conf`,       // analogue, T1/E1 and PRI trunks
   `${CONFIG_DIRECTORY}/iax.conf`,              // IAX2 peers and trunking
   `${CONFIG_DIRECTORY}/res_fax.conf`,          // fax sending, receiving and T.38
@@ -68,11 +60,13 @@ export const CONFIGURABLE_RESOURCES = [
   `${CONFIG_DIRECTORY}/res_ldap.conf`,
   `${CONFIG_DIRECTORY}/cdr_odbc.conf`,
   `${CONFIG_DIRECTORY}/cdr_pgsql.conf`,
-  `${CONFIG_DIRECTORY}/http.conf`,             // the built-in server, and its TLS
-  `${CONFIG_DIRECTORY}/stir_shaken.conf`,      // call attestation and its certificates
+  `${CONFIG_DIRECTORY}/http.conf`,             // built-in HTTP/TLS server
+  `${CONFIG_DIRECTORY}/ari.conf`,              // Asterisk REST Interface users/options
+  `${CONFIG_DIRECTORY}/stir_shaken.conf`,      // call attestation and certificates
   `${CONFIG_DIRECTORY}/geolocation.conf`,      // emergency-services location
   `${CONFIG_DIRECTORY}/phoneprov.conf`,        // handset auto-provisioning
-  `${CONFIG_DIRECTORY}/features.conf`,         // parking, transfer and feature codes
+  `${CONFIG_DIRECTORY}/features.conf`,         // transfer/pickup/dynamic feature codes
+  `${CONFIG_DIRECTORY}/res_parking.conf`,      // parking lots (moved out of features.conf in Asterisk 12)
   `${CONFIG_DIRECTORY}/sla.conf`,              // shared line appearances
   `${CONFIG_DIRECTORY}/dundi.conf`,            // distributed dialplan lookup
   `${CONFIG_DIRECTORY}/calendar.conf`,
@@ -83,7 +77,11 @@ export const CONFIGURABLE_RESOURCES = [
   `${CONFIG_DIRECTORY}/prometheus.conf`,
   `${CONFIG_DIRECTORY}/xmpp.conf`,
   `${CONFIG_DIRECTORY}/adsi.conf`,
-  `${CONFIG_DIRECTORY}/asterisk.conf`,         // directories, and the run-as identity
+  `${CONFIG_DIRECTORY}/asterisk.conf`,         // directories and run-as identity
+  `${CONFIG_DIRECTORY}/festival.conf`,         // Festival text-to-speech application
+  `${CONFIG_DIRECTORY}/cli_aliases.conf`,      // CLI alias templates
+  `${CONFIG_DIRECTORY}/cli_permissions.conf`,  // per-user CLI permissions
+  `${CONFIG_DIRECTORY}/indications.conf`,      // regional tones / call progress indications
 ] as const;
 
 export type ConfigurableResource = (typeof CONFIGURABLE_RESOURCES)[number];
@@ -201,9 +199,6 @@ export class WslConfigTransport implements ConfigTransport {
     try {
       return parseConfig(await this.#run(["cat", this.#path(allowed)]));
     } catch (error) {
-      /* Optional Asterisk subsystem files are often genuinely absent on a fresh target.
-       * Absence means an empty desired resource that the admin UI may create; permission
-       * errors and every other failure still surface unchanged. */
       if (looksAbsent(error)) return [];
       throw error;
     }
@@ -211,10 +206,6 @@ export class WslConfigTransport implements ConfigTransport {
 
   async backup(resource: string): Promise<string> {
     const allowed = assertConfigurable(resource);
-    /* A timestamped copy rather than an overwritten `.bak`, so a second failed apply
-     * cannot destroy the backup taken by the first. If the resource does not exist yet,
-     * record that fact as a bounded marker; rollback then removes the newly created file
-     * rather than turning "absent" into an empty config. */
     const stamp = this.#now().toISOString().replaceAll(/[:.]/gu, "-");
     const backup = this.#path(allowed, `.backup-${stamp}`);
     try {
@@ -231,21 +222,11 @@ export class WslConfigTransport implements ConfigTransport {
   async stage(resource: string, value: unknown): Promise<string> {
     const allowed = assertConfigurable(resource);
     const staged = this.#path(allowed, ".staged");
-    /* Content travels on standard input, never as an argument: a configuration file can
-     * carry anything, and an argument is visible in a process list. */
     await this.#run(["tee", staged], renderConfig(value as ConfigValue));
     this.#staged.set(staged, allowed);
     return staged;
   }
 
-  /**
-   * Confirms the staged file is on the target and reads back exactly as intended.
-   *
-   * Asterisk offers no offline syntax check, so this deliberately does not claim to be
-   * one. What it does prove is that the write landed and survived a round trip — which
-   * is the failure this step can actually catch, and saying more than that would be a
-   * claim the check cannot support.
-   */
   async validate(stagedHandle: string): Promise<void> {
     const resource = this.#staged.get(stagedHandle);
     if (!resource) throw new Error("That staged file was not created by this transaction.");
@@ -262,14 +243,6 @@ export class WslConfigTransport implements ConfigTransport {
     this.#staged.delete(stagedHandle);
   }
 
-  /**
-   * Restores a backup over the resource it was taken from.
-   *
-   * The resource is recovered by matching the handle against the allowlist itself rather
-   * than by parsing a path out of it, so a handle can only ever restore over a file the
-   * allowlist already contains. An `-absent` marker means the resource did not exist
-   * before the transaction, so rollback removes the file that transaction created.
-   */
   async rollback(backupHandle: string): Promise<void> {
     const resource = CONFIGURABLE_RESOURCES.find((candidate) => backupHandle.startsWith(`${candidate}.backup-`));
     if (!resource) {
