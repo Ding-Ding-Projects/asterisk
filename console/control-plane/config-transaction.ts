@@ -1,4 +1,5 @@
 import type { ApplyResult, ChangePlan, StructuredDiff } from "./contracts.js";
+import { blockingConfigFindings } from "./config-document-validation.js";
 
 export interface ConfigDocument {
   resource: string;
@@ -32,6 +33,12 @@ export class StructuredConfigPlanner {
     const diffs: StructuredDiff[] = [];
     for (const document of desired) {
       throwIfAborted(signal);
+      const blocking = blockingConfigFindings(document.resource, document.value);
+      if (blocking.length > 0) {
+        throw new Error(
+          `Configuration validation failed for ${document.resource}: ${blocking.map((finding) => finding.message).join(" ")}`,
+        );
+      }
       const before = await transport.read(document.resource, signal);
       const changedPaths = diffPaths(before, document.value);
       if (changedPaths.length > 0) diffs.push({ resource: document.resource, before, after: document.value, changedPaths });

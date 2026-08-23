@@ -42,19 +42,11 @@ export const CONFIGURABLE_RESOURCES = [
   `${CONFIG_DIRECTORY}/manager.conf`,
   `${CONFIG_DIRECTORY}/logger.conf`,
   `${CONFIG_DIRECTORY}/rtp.conf`,
-  /* Both are declared by a configuration screen in the design reference, so leaving them
-   * out would make those screens permanently unreadable for no reason a user could see. */
   `${CONFIG_DIRECTORY}/modules.conf`,
   `${CONFIG_DIRECTORY}/acl.conf`,
 
-  /* The subsystems a real exchange needs and this console could not reach at all.
-   * Every name below has a matching file in Asterisk's own `configs/samples`, checked
-   * against this checkout rather than remembered — a resource named here that Asterisk
-   * does not actually read would be a control that silently does nothing.
-   *
-   * Presence in this list makes a file readable and writable through the transaction
-   * path; it does not by itself put a screen in front of it. Coverage is deliberately
-   * ahead of the interface so a new screen needs no change here. */
+  /* Subsystems a complete administration surface needs. Every name below has a matching
+   * file in this checkout's configs/samples and is verified by capability-surface.test. */
   `${CONFIG_DIRECTORY}/chan_dahdi.conf`,       // analogue, T1/E1 and PRI trunks
   `${CONFIG_DIRECTORY}/iax.conf`,              // IAX2 peers and trunking
   `${CONFIG_DIRECTORY}/res_fax.conf`,          // fax sending, receiving and T.38
@@ -68,11 +60,13 @@ export const CONFIGURABLE_RESOURCES = [
   `${CONFIG_DIRECTORY}/res_ldap.conf`,
   `${CONFIG_DIRECTORY}/cdr_odbc.conf`,
   `${CONFIG_DIRECTORY}/cdr_pgsql.conf`,
-  `${CONFIG_DIRECTORY}/http.conf`,             // the built-in server, and its TLS
-  `${CONFIG_DIRECTORY}/stir_shaken.conf`,      // call attestation and its certificates
+  `${CONFIG_DIRECTORY}/http.conf`,             // built-in HTTP/TLS server
+  `${CONFIG_DIRECTORY}/ari.conf`,              // Asterisk REST Interface users/options
+  `${CONFIG_DIRECTORY}/stir_shaken.conf`,      // call attestation and certificates
   `${CONFIG_DIRECTORY}/geolocation.conf`,      // emergency-services location
   `${CONFIG_DIRECTORY}/phoneprov.conf`,        // handset auto-provisioning
-  `${CONFIG_DIRECTORY}/features.conf`,         // parking, transfer and feature codes
+  `${CONFIG_DIRECTORY}/features.conf`,         // transfer/pickup/dynamic feature codes
+  `${CONFIG_DIRECTORY}/res_parking.conf`,      // parking lots (moved out of features.conf in Asterisk 12)
   `${CONFIG_DIRECTORY}/sla.conf`,              // shared line appearances
   `${CONFIG_DIRECTORY}/dundi.conf`,            // distributed dialplan lookup
   `${CONFIG_DIRECTORY}/calendar.conf`,
@@ -83,7 +77,97 @@ export const CONFIGURABLE_RESOURCES = [
   `${CONFIG_DIRECTORY}/prometheus.conf`,
   `${CONFIG_DIRECTORY}/xmpp.conf`,
   `${CONFIG_DIRECTORY}/adsi.conf`,
-  `${CONFIG_DIRECTORY}/asterisk.conf`,         // directories, and the run-as identity
+  `${CONFIG_DIRECTORY}/asterisk.conf`,         // directories and run-as identity
+  `${CONFIG_DIRECTORY}/festival.conf`,         // Festival text-to-speech application
+  `${CONFIG_DIRECTORY}/cli_aliases.conf`,      // CLI alias templates
+  `${CONFIG_DIRECTORY}/cli_permissions.conf`,  // per-user CLI permissions
+  `${CONFIG_DIRECTORY}/indications.conf`,      // regional tones / call progress indications
+
+  /* Dialplan applications and their standalone-voicemail companions. Every one below is
+   * plain `[section]` / `key = value`, verified by capability-surface.test against this
+   * checkout's own configs/samples. */
+  `${CONFIG_DIRECTORY}/agents.conf`,           // static agent pool (app_agent_pool)
+  `${CONFIG_DIRECTORY}/followme.conf`,         // Find-Me/Follow-Me
+  `${CONFIG_DIRECTORY}/meetme.conf`,           // MeetMe conference rooms (DAHDI-backed)
+  `${CONFIG_DIRECTORY}/minivm.conf`,           // MiniVoicemail application set
+  `${CONFIG_DIRECTORY}/extensions_minivm.conf`, // MiniVoicemail's own dialplan snippet
+  `${CONFIG_DIRECTORY}/amd.conf`,              // answering-machine detection tuning
+  `${CONFIG_DIRECTORY}/alarmreceiver.conf`,    // AlarmReceiver app (security-panel signalling)
+
+  /* Signalling and application-layer protocol timers. */
+  `${CONFIG_DIRECTORY}/ss7.timers`,            // SS7/MTP3 timer overrides for libss7 (chan_dahdi)
+  `${CONFIG_DIRECTORY}/aeap.conf`,             // res_aeap: Asterisk External Application Protocol
+  `${CONFIG_DIRECTORY}/ccss.conf`,             // Call Completion Supplementary Services
+
+  /* Channel drivers, transports and provisioning. */
+  `${CONFIG_DIRECTORY}/chan_websocket.conf`,   // native WebSocket channel driver
+  `${CONFIG_DIRECTORY}/websocket_client.conf`, // outbound WebSocket client connections chan_websocket uses
+  `${CONFIG_DIRECTORY}/motif.conf`,            // chan_motif: Jingle/Google Talk signalling
+  `${CONFIG_DIRECTORY}/unistim.conf`,          // chan_unistim: Nortel/Mitel UNIStim handsets
+  `${CONFIG_DIRECTORY}/pjproject.conf`,        // PJPROJECT-wide logging/settings shared by PJSIP
+  `${CONFIG_DIRECTORY}/pjsip_notify.conf`,     // `pjsip send notify` event body templates
+  `${CONFIG_DIRECTORY}/pjsip_wizard.conf`,     // PJSIP config-wizard object templates
+  `${CONFIG_DIRECTORY}/iaxprov.conf`,          // IAX2 firmware/handset provisioning templates
+  `${CONFIG_DIRECTORY}/phoneprov_users.conf`,  // per-user phoneprov.conf assignments
+
+  /* Realtime/database backends and CDR/CEL sinks that carry no login credentials of
+   * their own — connection strings and auth for the databases they use live in
+   * res_odbc.conf (already listed) or the system ODBC/curl configuration, not here. */
+  `${CONFIG_DIRECTORY}/cdr_adaptive_odbc.conf`,
+  `${CONFIG_DIRECTORY}/cdr_beanstalkd.conf`,
+  `${CONFIG_DIRECTORY}/cdr_custom.conf`,
+  `${CONFIG_DIRECTORY}/cdr_manager.conf`,
+  `${CONFIG_DIRECTORY}/cdr_sqlite3_custom.conf`,
+  `${CONFIG_DIRECTORY}/cel_beanstalkd.conf`,
+  `${CONFIG_DIRECTORY}/cel_custom.conf`,
+  `${CONFIG_DIRECTORY}/cel_sqlite3_custom.conf`,
+  `${CONFIG_DIRECTORY}/res_config_odbc.conf`,  // realtime-via-ODBC sort behaviour
+  `${CONFIG_DIRECTORY}/res_config_sqlite3.conf`,
+  `${CONFIG_DIRECTORY}/func_odbc.conf`,        // custom dialplan functions backed by SQL
+  `${CONFIG_DIRECTORY}/hep.conf`,              // HEPv3 capture-server forwarding (res_hep)
+  `${CONFIG_DIRECTORY}/res_curl.conf`,         // shared CURLOPT defaults for res_curl/realtime-curl
+  `${CONFIG_DIRECTORY}/res_http_media_cache.conf`,
+
+  /* Core system, CLI and diagnostics. */
+  `${CONFIG_DIRECTORY}/cli.conf`,              // CLI startup-command hooks
+  `${CONFIG_DIRECTORY}/codecs.conf`,           // per-codec encoder tuning (e.g. Speex quality)
+  `${CONFIG_DIRECTORY}/dnsmgr.conf`,           // background DNS refresh manager
+  `${CONFIG_DIRECTORY}/dsp.conf`,              // silence/DTMF detection thresholds
+  `${CONFIG_DIRECTORY}/enum.conf`,             // ENUM (telephone-number-to-DNS) lookups
+  `${CONFIG_DIRECTORY}/resolver_unbound.conf`, // libunbound-based internal DNS resolver
+  `${CONFIG_DIRECTORY}/res_corosync.conf`,     // cluster/failover heartbeat (Corosync)
+  `${CONFIG_DIRECTORY}/say.conf`,              // language-specific "say number/date" phrasing
+  `${CONFIG_DIRECTORY}/smdi.conf`,             // Simplified Message Desk Interface
+  `${CONFIG_DIRECTORY}/statsd.conf`,           // StatsD metrics forwarding
+  `${CONFIG_DIRECTORY}/stasis.conf`,           // Stasis message-bus taskpool sizing
+
+  /*
+   * Deliberately excluded from configs/samples, and why:
+   *
+   *  - extensions.ael, extensions.lua: dialplan written in AEL or Lua, not the
+   *    `[section]` / `key = value` shape this transport parses and renders. Staging one
+   *    through renderConfig() would silently rewrite it to garbage.
+   *  - dbsep.conf, res_config_mysql.conf, cdr_tds.conf, cel_tds.conf: each file's whole
+   *    purpose is a database login (dbuser/dbpass, or TDS username/password) — there is
+   *    no non-credential content left over once those fields are stripped, so exposing
+   *    the file at all is exposing a credential field. res_odbc.conf, res_curl.conf and
+   *    res_config_odbc.conf stay in because their credential-shaped fields (userpwd,
+   *    ssl_keypasswd) are optional extras beside substantial non-secret configuration,
+   *    the same balance the IAX2 model already strikes by typing every iax.conf peer
+   *    field except `secret`.
+   *  - ast_debug_tools.conf: read by companion shell scripts under contrib/, not by
+   *    Asterisk itself, and uses '#' comments this parser does not recognise.
+   *  - config_test.conf, test_sorcery.conf: fixtures for Asterisk's own C unit tests
+   *    (test_config.c, test_sorcery.c); nothing running Asterisk ever loads them.
+   *  - app_skel.conf: the sample config for app_skel.c, a documentation skeleton for
+   *    module authors, not a real dialplan application.
+   *  - chan_mobile.conf, ooh323.conf: sample files with no corresponding module in this
+   *    source tree (chan_mobile.c and chan_ooh323 do not exist here), so nothing would
+   *    ever read a file placed at either path.
+   *  - console.conf: configures chan_console, a local sound-card channel driver. The WSL
+   *    target this transport writes to has no local audio hardware, so this control
+   *    could never do anything for it.
+   */
 ] as const;
 
 export type ConfigurableResource = (typeof CONFIGURABLE_RESOURCES)[number];
@@ -159,6 +243,11 @@ export interface WslConfigTransportOptions {
   now?: () => Date;
 }
 
+function looksAbsent(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /No such file or directory/u.test(message);
+}
+
 export class WslConfigTransport implements ConfigTransport {
   readonly #executor: ProcessExecutor;
   readonly #distribution: string;
@@ -193,37 +282,37 @@ export class WslConfigTransport implements ConfigTransport {
 
   async read(resource: string): Promise<ConfigValue> {
     const allowed = assertConfigurable(resource);
-    return parseConfig(await this.#run(["cat", this.#path(allowed)]));
+    try {
+      return parseConfig(await this.#run(["cat", this.#path(allowed)]));
+    } catch (error) {
+      if (looksAbsent(error)) return [];
+      throw error;
+    }
   }
 
   async backup(resource: string): Promise<string> {
     const allowed = assertConfigurable(resource);
-    /* A timestamped copy rather than an overwritten `.bak`, so a second failed apply
-     * cannot destroy the backup taken by the first. */
     const stamp = this.#now().toISOString().replaceAll(/[:.]/gu, "-");
     const backup = this.#path(allowed, `.backup-${stamp}`);
-    await this.#run(["cp", "--preserve=mode,ownership,timestamps", this.#path(allowed), backup]);
-    return backup;
+    try {
+      await this.#run(["cp", "--preserve=mode,ownership,timestamps", this.#path(allowed), backup]);
+      return backup;
+    } catch (error) {
+      if (!looksAbsent(error)) throw error;
+      const absent = `${backup}-absent`;
+      await this.#run(["touch", absent]);
+      return absent;
+    }
   }
 
   async stage(resource: string, value: unknown): Promise<string> {
     const allowed = assertConfigurable(resource);
     const staged = this.#path(allowed, ".staged");
-    /* Content travels on standard input, never as an argument: a configuration file can
-     * carry anything, and an argument is visible in a process list. */
     await this.#run(["tee", staged], renderConfig(value as ConfigValue));
     this.#staged.set(staged, allowed);
     return staged;
   }
 
-  /**
-   * Confirms the staged file is on the target and reads back exactly as intended.
-   *
-   * Asterisk offers no offline syntax check, so this deliberately does not claim to be
-   * one. What it does prove is that the write landed and survived a round trip — which
-   * is the failure this step can actually catch, and saying more than that would be a
-   * claim the check cannot support.
-   */
   async validate(stagedHandle: string): Promise<void> {
     const resource = this.#staged.get(stagedHandle);
     if (!resource) throw new Error("That staged file was not created by this transaction.");
@@ -240,17 +329,14 @@ export class WslConfigTransport implements ConfigTransport {
     this.#staged.delete(stagedHandle);
   }
 
-  /**
-   * Restores a backup over the resource it was taken from.
-   *
-   * The resource is recovered by matching the handle against the allowlist itself rather
-   * than by parsing a path out of it, so a handle can only ever restore over a file the
-   * allowlist already contains.
-   */
   async rollback(backupHandle: string): Promise<void> {
     const resource = CONFIGURABLE_RESOURCES.find((candidate) => backupHandle.startsWith(`${candidate}.backup-`));
     if (!resource) {
       throw new Error("That backup handle does not belong to a configurable resource.");
+    }
+    if (backupHandle.endsWith("-absent")) {
+      await this.#run(["rm", "-f", resource]);
+      return;
     }
     await this.#run(["cp", backupHandle, resource]);
   }

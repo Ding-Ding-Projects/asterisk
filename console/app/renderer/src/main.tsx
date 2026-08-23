@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './App';
+import { PbxAdminIntegratedApp } from './PbxAdminIntegratedApp';
 import { UpdateBanner } from './UpdateBanner';
 import { installHttpBridge, isHostedRuntime } from './bridge/http-bridge';
 import './styles.css';
@@ -28,7 +28,13 @@ async function boot() {
     }
   }
 
-  createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
+  /* The root is the PBX-admin-integrated shell rather than the plain console one. Both
+   * sides of this file changed at once and the merge could have kept either: the hosted
+   * bootstrap above arrived on the default branch, and this component arrived here.
+   * Dropping the component would have served the console without its FreePBX
+   * destinations; dropping the bootstrap would have served it in a browser with no
+   * transport and no session check. Both are required, so both are kept. */
+  createRoot(document.getElementById('root')!).render(<React.StrictMode><PbxAdminIntegratedApp /></React.StrictMode>);
 
   /* Mounted as its own root, deliberately outside the generated console shell: see
    * `UpdateBanner.tsx` for why a persistent, cross-screen banner has no home there. */

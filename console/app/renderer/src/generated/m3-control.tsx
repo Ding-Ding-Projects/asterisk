@@ -192,6 +192,12 @@ function Template(v: any) {
               )))
           )
         ) : null),
+      (v.isEditableText ? h("div", { style: sty(`display:flex; align-items:center; gap:10px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:8px 12px;`) },
+          h("span", { style: sty(`font-size:17px; color:#82D9A5; flex:0 0 auto;`), className: "msym" },
+            "edit"
+          ),
+          h("input", { type: `text`, value: v.ctl.value, "aria-label": v.ctl.label, onChange: fn(v.onEditableTextInput), onInput: fn(v.onEditableTextInput), style: sty(`flex:1; min-width:0; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:13.5px; padding:2px;`) })
+        ) : null),
       (v.isText ? h("div", { style: sty(`display:flex; align-items:center; gap:10px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:10px 14px;`) },
           h("span", { style: sty(`font-size:17px; color:#82D9A5;`), className: "msym" },
             "keyboard"
@@ -267,7 +273,9 @@ class M3Control extends DCLogic {
       isStepper: c.kind === 'stepper',
       isSlider: c.kind === 'slider',
       isOrder: c.kind === 'order',
-      isText: c.kind === 'text',
+      isEditableText: c.kind === 'text' && String(c.id || '').startsWith('pbxadm:'),
+      onEditableTextInput: (e) => { if (c.set) c.set(e.target.value); },
+      isText: c.kind === 'text' && !String(c.id || '').startsWith('pbxadm:'),
       isFile: c.kind === 'file',
       stepVal: c.step || 1,
       rangeLabel: (c.min !== undefined ? c.min + '–' + c.max : '')

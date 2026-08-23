@@ -11,9 +11,8 @@
  *
  *  - **A resource is one of `CONFIGURABLE_RESOURCES` and nothing else.** `list` and
  *    `prune` refuse an unlisted resource by name before running any command. `restore`
- *    refuses a handle unless it is exactly an allowlisted resource followed by
- *    `.backup-`, matched against the allowlist itself rather than parsed out of the
- *    string, for the same reason `rollback` does it that way in the transport.
+ *    only accepts an exact handle returned by `list`, so a caller cannot manufacture a
+ *    path merely by giving it a valid resource prefix.
  *  - **Every command is an allowlisted executable with separate arguments.** No shell,
  *    no interpolation of a caller-supplied value into a command string.
  */
@@ -30,7 +29,7 @@ export interface HistoryEntry {
   handle: string;
   /** The moment the backup was taken, parsed back out of its filename, when parseable. */
   takenAt: string | undefined;
-  /** The backup file's size in bytes. */
+  /** The backup file's size in bytes. An absent marker is normally zero bytes. */
   bytes: number;
 }
 
@@ -70,6 +69,16 @@ export class ConfigHistory {
     return result.stdout;
   }
 
+  async #exists(path: string): Promise<boolean> {
+    const result = await this.#executor.execute({
+      executable: "wsl.exe",
+      args: ["-d", this.#distribution, "--", "test", "-e", path],
+      timeoutMs: 15_000,
+      maxOutputBytes: 4096,
+    });
+    return result.status === "succeeded";
+  }
+
   /** Names of every entry in the backup directory, or an empty list if it cannot be read. */
   async #directoryEntries(): Promise<ReadonlyArray<string>> {
     try {
@@ -96,7 +105,8 @@ export class ConfigHistory {
 
   /**
    * Lists backups for one allowlisted resource, or for every configurable resource
-   * when none is given. Newest first.
+   * when none is given. Newest first. `-absent` markers participate in the same list:
+   * they record that a transaction created a resource which did not exist beforehand.
    */
   async list(resource?: string): Promise<ReadonlyArray<HistoryEntry>> {
     const targets = resource === undefined ? CONFIGURABLE_RESOURCES : [assertConfigurable(resource)];
@@ -109,7 +119,9 @@ export class ConfigHistory {
       for (const filename of filenames) {
         if (!filename.startsWith(prefix)) continue;
         const handle = `${CONFIG_DIRECTORY}/${filename}`;
-        const takenAt = parseBackupStamp(filename.slice(prefix.length));
+        const suffix = filename.slice(prefix.length);
+        const stamp = suffix.endsWith("-absent") ? suffix.slice(0, -"-absent".length) : suffix;
+        const takenAt = parseBackupStamp(stamp);
         const bytes = await this.#sizeOf(handle);
         entries.push({ resource: target, handle, takenAt, bytes });
       }
@@ -129,13 +141,30 @@ export class ConfigHistory {
   }
 
   /**
-   * Restores a backup over the resource it was taken from, then reads the resource
-   * back and confirms it matches the backup's own content.
+   * Restores a listed backup over the resource it was taken from, then reads the
+   * resource back and confirms it matches. An `-absent` marker restores absence by
+   * removing the file and verifying it no longer exists.
    */
   async restore(handle: string): Promise<{ ok: boolean; resource: string; detail: string }> {
     const resource = CONFIGURABLE_RESOURCES.find((candidate) => handle.startsWith(`${candidate}.backup-`));
     if (!resource) {
       throw new Error(`"${handle}" is not a configurable resource's backup, so it was not restored.`);
+    }
+
+    /* Prefix matching alone is not enough: `/etc/asterisk/pjsip.conf.backup-../../x`
+     * still begins with a valid resource. Only a handle the bounded directory listing
+     * actually returned can reach a copy/remove command. */
+    const known = (await this.list(resource)).some((entry) => entry.handle === handle);
+    if (!known || !(await this.#exists(handle))) {
+      throw new Error(`"${handle}" is not a recovery point currently listed on the target, so it was not restored.`);
+    }
+
+    if (handle.endsWith("-absent")) {
+      await this.#run(["rm", "-f", resource]);
+      if (await this.#exists(resource)) {
+        return { ok: false, resource, detail: `${resource} still exists after restoring its absent recovery point.` };
+      }
+      return { ok: true, resource, detail: `${resource} was removed, restoring the target state in which it did not exist.` };
     }
 
     const backupContent = await this.#run(["cat", handle]);

@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ConfigHistory } from '../../control-plane/config-history.js';
-import { CONFIGURABLE_RESOURCES } from '../../control-plane/wsl-config-transport.js';
 import type { CommandRequest, CommandResult, ProcessExecutor } from '../../control-plane/executor.js';
 
 class FakeExecutor implements ProcessExecutor {
@@ -25,8 +24,6 @@ const build = (script: (request: CommandRequest) => Partial<CommandResult>) => {
   return { executor, history };
 };
 
-// A directory listing containing two pjsip backups (newest last, to prove sorting is real)
-// and one queues backup, plus a decoy file that must never be mistaken for a backup.
 const LISTING = [
   'pjsip.conf.backup-2026-08-20T01-00-00-000Z',
   'pjsip.conf.backup-2026-08-23T01-19-03-627Z',
@@ -58,7 +55,6 @@ test('list with no resource covers every configurable resource, newest first ove
   const { history } = build(withListing());
   const entries = await history.list();
   assert.equal(entries.length, 3);
-  // globally newest (pjsip 08-23) must lead, regardless of which resource it belongs to
   assert.equal(entries[0].handle, `${DIRECTORY}/pjsip.conf.backup-2026-08-23T01-19-03-627Z`);
   const resources = new Set(entries.map((e) => e.resource));
   assert.deepEqual([...resources].sort(), [PJSIP, QUEUES].sort());
@@ -89,16 +85,16 @@ test('an unparseable timestamp still yields an entry, with takenAt undefined', a
   assert.equal(entries[0].bytes, 7);
 });
 
-test('restore copies the backup over the live resource and verifies by reading it back', async () => {
+test('restore copies a listed backup over the live resource and verifies by reading it back', async () => {
   const handle = `${DIRECTORY}/pjsip.conf.backup-2026-08-23T01-19-03-627Z`;
   let live = 'old content';
-  const { executor, history } = build((r) => {
+  const { executor, history } = build(withListing((r) => {
     const v = verb(r);
     if (v === 'cat' && target(r) === handle) return { stdout: 'backup content' };
     if (v === 'cp') { live = 'backup content'; return {}; }
     if (v === 'cat' && target(r) === PJSIP) return { stdout: live };
     return {};
-  });
+  }));
   const result = await history.restore(handle);
   assert.equal(result.ok, true);
   assert.equal(result.resource, PJSIP);
@@ -109,13 +105,13 @@ test('restore copies the backup over the live resource and verifies by reading i
 
 test('restore reports a verification mismatch as failure rather than success', async () => {
   const handle = `${DIRECTORY}/pjsip.conf.backup-2026-08-23T01-19-03-627Z`;
-  const { history } = build((r) => {
+  const { history } = build(withListing((r) => {
     const v = verb(r);
     if (v === 'cat' && target(r) === handle) return { stdout: 'backup content' };
     if (v === 'cp') return {};
     if (v === 'cat' && target(r) === PJSIP) return { stdout: 'something else entirely' };
     return {};
-  });
+  }));
   const result = await history.restore(handle);
   assert.equal(result.ok, false);
   assert.match(result.detail, /does not match/u);
