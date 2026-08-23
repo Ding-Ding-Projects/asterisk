@@ -30,18 +30,6 @@ jobs:
         working-directory: console
         run: npm ci
 
-      - name: Generate PBX M3 extension artifact
-        working-directory: console
-        run: npm run compile:design
-
-      - name: Upload generated PBX M3 control
-        uses: actions/upload-artifact@v4
-        with:
-          name: ding-pbx-generated-m3-${{ github.run_id }}-${{ github.run_attempt }}
-          path: console/app/renderer/src/generated/m3-control.tsx
-          if-no-files-found: error
-          retention-days: 2
-
       - name: Run repository test suite
         working-directory: console
         shell: bash
