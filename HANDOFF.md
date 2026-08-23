@@ -247,6 +247,45 @@ work to recover and no half-finished module in the tree:
 Neither is blocked by anything external. Both are ordinary work.
 
 
+### In flight at 2026-08-23
+
+Four lanes were running when this was written. Each is uncommitted work in a named
+checkout; none had landed, and none of it should be described as working until its own
+report and suites are checked.
+
+**On `feat/freepbx-parity-electron`** (checkout `../asterisk-pr3`, pull request #3):
+
+- Its one failing check is **fixed and green** -- commit `a6701e9d70`, run 32654148588.
+  The checked-in `m3-control.tsx` was one trailing blank line short of what the compiler
+  and the PBX extension produce. Nothing about the rendered interface changed.
+  - Worth knowing before diagnosing that gate again: **the assertion prints a long slice
+    of surrounding context before the difference**, so the excerpt shows an unrelated
+    element and reads as a missing control. It said `... 9995 more characters`, which is
+    truncated context and not the size of the change. Reproduce it instead of reading the
+    excerpt: run the compile, run the extension, then diff the generated directory.
+  - This is **not** the line-ending hazard recorded elsewhere in this document. The same
+    single blank line reproduces identically on Windows and on the Linux runner.
+- The parity plan's own gate -- a recorded successful validation run -- is now satisfied,
+  so `draft` is the only remaining block on that pull request.
+- Two lanes are extending it: the feature catalogue beyond its current 95 Standard Module
+  entries, and the writable resource surface beyond its current 47.
+
+**On `master`** (this checkout), two lanes for a direction added this session:
+
+- **A VM-hosted server mode**, so the console can be installed on a machine beside
+  Asterisk and administered from a browser, the way FreePBX is. It reuses the existing
+  action dispatch rather than growing a second one, and adds authentication, TLS, a
+  loopback-by-default bind address, a systemd unit and an install script.
+- **A second desktop application that deploys that server in one click**, to a local
+  hypervisor VM or an existing Linux host over SSH, verifying by asking the server and
+  Asterisk rather than by trusting an exit code.
+
+The parity boundary is unchanged and still correct: the FreePBX PHP framework, its
+database and module loader, commercial licensing and entitlement, provider cloud APIs,
+and the host operating-system firewall are **not** implemented and must not be presented
+as though they were.
+
+
 ## Next owner actions
 
 Ordered by what actually blocks the next claim.
