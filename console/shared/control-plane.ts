@@ -1,5 +1,12 @@
+/**
+ * `runtime.*` manage the console's own WSL distribution, created from the Asterisk
+ * payload inside the installer. They replace an earlier `server.provision-bundled`
+ * that was declared here and implemented nowhere, so the application could see its own
+ * packaged runtime and had no way to run it.
+ */
 export type ControlPlaneAction =
-  | 'server.list' | 'server.connect' | 'server.provision-bundled' | 'pbx.snapshot' | 'pbx.apply'
+  | 'server.list' | 'server.connect' | 'pbx.snapshot' | 'pbx.apply'
+  | 'runtime.status' | 'runtime.provision' | 'runtime.stop' | 'runtime.remove'
   | 'pbx.read' | 'pbx.command' | 'history.list' | 'history.restore';
 
 /** The screens a `pbx.read` can answer, each backed by read-only Asterisk CLI output. */

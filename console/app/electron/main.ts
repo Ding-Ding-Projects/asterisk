@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { WslProvisioning, MANAGED_DISTRIBUTION } from '../../control-plane/wsl-provisioning.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, TargetDiscovery } from '../../control-plane/index.js';
 import type { TargetProfile } from '../../control-plane/index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../../shared/control-plane.js';
@@ -52,8 +53,54 @@ function bundledAsteriskRuntime() {
   }
 }
 
+/**
+ * The console's own WSL distribution, created from the payload inside the installer.
+ *
+ * The virtual disk lives under the user's own application data rather than anywhere
+ * needing elevation, and the directory is created on demand because `wsl --import`
+ * expects its destination to exist.
+ */
+function wslProvisioning() {
+  const runtime = bundledAsteriskRuntime();
+  const installDirectory = join(app.getPath('userData'), 'wsl');
+  mkdirSync(installDirectory, { recursive: true });
+  return {
+    payloadPresent: runtime.state === 'available',
+    runtime,
+    provisioning: new WslProvisioning({
+      executor: processExecutor,
+      rootfsPath: runtime.state === 'available' ? (runtime as { rootfs: string }).rootfs : '',
+      installDirectory,
+    }),
+  };
+}
+
 async function controlPlaneRequest(request: ControlPlaneRequest): Promise<ControlPlaneResponse> {
   try {
+    /* Creating, inspecting and removing the console's own distribution. Each is scoped
+     * to that one distribution name and never touches a distribution the user made. */
+    if (request.action === 'runtime.status') {
+      const { provisioning, payloadPresent, runtime } = wslProvisioning();
+      return { ok: true, requestId: request.requestId, data: { managedDistribution: MANAGED_DISTRIBUTION, bundledRuntime: runtime, status: await provisioning.status(payloadPresent) } };
+    }
+    if (request.action === 'runtime.provision') {
+      const { provisioning, payloadPresent } = wslProvisioning();
+      const outcome = await provisioning.provision(payloadPresent);
+      return { ok: outcome.status.state === 'ready', requestId: request.requestId, code: outcome.status.state === 'ready' ? undefined : 'RUNTIME_PROVISION_FAILED', message: outcome.status.reason, data: outcome } as ControlPlaneResponse;
+    }
+    if (request.action === 'runtime.stop') {
+      const { provisioning } = wslProvisioning();
+      const step = await provisioning.stop();
+      return { ok: step.ok, requestId: request.requestId, code: step.ok ? undefined : 'RUNTIME_STOP_FAILED', message: step.ok ? undefined : step.detail, data: step } as ControlPlaneResponse;
+    }
+    if (request.action === 'runtime.remove') {
+      /* Irreversible: it discards everything inside the distribution. The renderer puts
+       * this behind the product's destructive-action confirmation, and the module
+       * refuses any name other than the one the console created. */
+      const { provisioning } = wslProvisioning();
+      const step = await provisioning.remove(request.serverId?.trim() ?? '');
+      return { ok: step.ok, requestId: request.requestId, code: step.ok ? undefined : 'RUNTIME_REMOVE_REFUSED', message: step.ok ? undefined : step.detail, data: step } as ControlPlaneResponse;
+    }
     if (request.action === 'server.list') {
       const [wsl, containers] = await Promise.all([
         targetDiscovery.discoverWslDistributions().catch(error => ({ unavailable: error instanceof Error ? error.message : 'WSL discovery failed' })),

@@ -8,3 +8,4 @@ export * from "./provisioning.js";
 export * from "./config-transaction.js";
 export * from "./asterisk-readings.js";
 export * from "./dialplan-graph.js";
+export * from "./wsl-provisioning.js";
