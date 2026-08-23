@@ -334,6 +334,41 @@ destination exists. One subsection of it is unbuildable rather than unbuilt -- t
 SIP channel fields specify a driver this Asterisk does not contain.
 
 
+### What blocks a release-grade close, exactly
+
+The completeness inventory holds **84 unverified rows and 4 exempt, none verified**, across two
+surfaces. A row reaches `verified` only when all six of its evidence artifacts resolve on disk, and
+**three of the six do not exist anywhere in the repository**:
+
+- `console/app/feature-registry.json` — absent
+- `console/app/locales/feature-registry.json` — absent
+- `console/tests/contracts/` — absent
+
+So producing captures and interaction records, which is now possible, cannot move a single row on
+its own. That was worth discovering before spending a pass on captures: the missing columns are the
+binding constraint, and one of them is not a documentation gap at all -- the application has no
+localization mechanism, so the localized-copy column requires building one.
+
+### Driving the built application, and one way it stops working
+
+Screens below the sidebar fold cannot be reached by scrolling: scrolling is a foreground action and
+the headless route refuses it rather than taking over the visible desktop. The route that works is
+the debugging protocol -- launch with `--remote-debugging-port`, require the target list to hold
+exactly one `page`, and drive it with `Runtime.evaluate`. Never pass `awaitPromise`; keep every
+expression synchronous.
+
+**A blocking launch will wedge the capture tool completely.** Using `run_command` for a windowed
+application never returns, and the stuck call holds the server: every later call, including trivial
+ones, times out with no response. It looks exactly like the server having died. It is not -- killing
+the stray application processes frees it immediately, and the server was healthy again on the next
+call. Use the headless-desktop launch call, never `run_command`, for anything with a window.
+
+Two detection traps in this interface, both of which read as "the control is missing" when it is
+present: looking for a native `select` finds nothing, because a choice renders as a row of buttons;
+and matching button text finds every option **except the one currently set**, because the selected
+option carries a mark and its text is not the bare value.
+
+
 ## Next owner actions
 
 Ordered by what actually blocks the next claim.
