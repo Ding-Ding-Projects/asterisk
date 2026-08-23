@@ -68,7 +68,7 @@
   }
   function initReveals(){const items=all('.reveal');if(reduceMotion()||!('IntersectionObserver'in window)){items.forEach(item=>item.classList.add('visible'));return}const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{rootMargin:'0px 0px -8% 0px',threshold:.08});items.forEach(item=>observer.observe(item))}
 
-  function renderDestinations(query=''){const grid=$('destination-grid');if(!grid)return;const matches=DESTINATIONS.filter(item=>matchText(`${item.name} ${item.group} ${item.description}`,query,'feature-search')),pageSize=8,pageCount=Math.max(1,Math.ceil(matches.length/pageSize));destinationPage=Math.min(destinationPage,pageCount-1);const shown=matches.slice(destinationPage*pageSize,(destinationPage+1)*pageSize);grid.innerHTML=shown.map(item=>`<article class="destination-card reveal" id="destination-${item.id}" tabindex="-1"><span class="destination-icon" aria-hidden="true">${item.icon}</span><span class="card-kicker">${escapeHtml(item.group)}</span><h2>${escapeHtml(item.name)}</h2><p>${escapeHtml(item.description)}</p><a class="text-button" href="${BASE}docs/${item.article}.html">Read article <span aria-hidden="true">→</span></a></article>`).join('')||'<p class="empty-state">No destinations match this search.</p>';if($('destination-count'))$('destination-count').textContent=`${matches.length} destination${matches.length===1?'':'s'} · page ${destinationPage+1} of ${pageCount}`;if($('destination-pagination'))$('destination-pagination').innerHTML=Array.from({length:pageCount},(_,index)=>`<button type="button" data-page="${index}" ${index===destinationPage?'aria-current="page"':''}>${index+1}</button>`).join('');initReveals()}
+  function renderDestinations(query=''){const grid=$('destination-grid');if(!grid)return;const matches=DESTINATIONS.filter(item=>matchText(`${item.name} ${item.group} ${item.description}`,query,'feature-search')),pageSize=8,pageCount=Math.max(1,Math.ceil(matches.length/pageSize));destinationPage=Math.min(destinationPage,pageCount-1);const shown=matches.slice(destinationPage*pageSize,(destinationPage+1)*pageSize);grid.innerHTML=shown.map(item=>`<article class="destination-card reveal" id="destination-${item.id}" tabindex="-1"><span class="destination-icon" aria-hidden="true">${item.icon}</span><span class="card-kicker">${escapeHtml(item.group)}</span><h2>${escapeHtml(item.name)}</h2><p>${escapeHtml(item.description)}</p><a class="text-button" href="${BASE}docs/${item.article}.html">Read article <span aria-hidden="true">→</span></a></article>`).join('')||'<p class="empty-state">No destinations match this search.</p>';if($('destination-count'))$('destination-count').textContent=`${matches.length} destination${matches.length===1?'':'s'} · page ${destinationPage+1} of ${pageCount}`;if($('destination-pagination'))$('destination-pagination').innerHTML=Array.from({length:pageCount},(_,index)=>`<button type="button" data-page="${index}" ${index===destinationPage?'aria-current="page"':''}>${index+1}</button>`).join('');initReveals();updateDestinationMap(matches)}
   function matchText(text,query,target){if(!query)return true;const config=regexState.get(target);if(config?.enabled){try{return new RegExp(config.pattern,config.flags).test(text)}catch{return false}}return text.toLocaleLowerCase().includes(query.toLocaleLowerCase())}
   function filter(selector,query,target){all(selector).forEach(item=>item.hidden=!matchText(item.dataset.search||item.textContent,query,target))}
 
@@ -123,6 +123,45 @@
     if('IntersectionObserver'in window){const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){animate(entry.target);observer.unobserve(entry.target)}}),{threshold:.4});targets.forEach(el=>observer.observe(el))}else targets.forEach(animate);
   }
 
-  function init(){applyState();initNavigation();renderDestinations();initSearch();initRegex();initSettings();renderNotifications();initReveals();initHeroCanvas();initCounters();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>renderPalette(event.target.value));$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications()});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];save();renderNotifications()})}
+
+  const GROUPS=['App','PBX','Media','Data','System','Agent'];
+  function updateDestinationMap(matches){
+    const map=$('destination-map');if(!map)return;
+    const matchedIds=new Set(matches.map(item=>item.id));
+    GROUPS.forEach(group=>{
+      const total=DESTINATIONS.filter(item=>item.group===group).length;
+      const matched=DESTINATIONS.filter(item=>item.group===group&&matchedIds.has(item.id)).length;
+      const rail=map.querySelector(`[data-group="${group}"]`);if(!rail)return;
+      const fill=rail.querySelector('.rail-fill');if(fill)fill.style.width=`${total?Math.round((matched/total)*100):0}%`;
+      const count=rail.querySelector('.rail-count');if(count)count.textContent=`${matched}/${total}`;
+      rail.classList.toggle('rail-empty',matched===0);
+    });
+  }
+  function initDestinationMap(){
+    const map=$('destination-map');if(!map)return;
+    map.innerHTML=GROUPS.map(group=>{const total=DESTINATIONS.filter(item=>item.group===group).length;return `<div class="rail" data-group="${escapeHtml(group)}"><span class="rail-label">${escapeHtml(group)}</span><span class="rail-track"><span class="rail-fill" style="width:100%"></span></span><span class="rail-count mono">${total}/${total}</span></div>`}).join('');
+  }
+
+  function initConnectionDiagram(){
+    const diagram=$('connection-diagram');if(!diagram)return;
+    const kinds=[...new Set(all('[data-path]').map(el=>el.dataset.path))];if(!kinds.length)return;
+    let index=0,timer=0,running=false;
+    function setActive(kind){all('[data-path]').forEach(el=>el.classList.toggle('active',el.dataset.path===kind))}
+    function tick(){index=(index+1)%kinds.length;setActive(kinds[index])}
+    function start(){if(running||reduceMotion())return;running=true;timer=setInterval(tick,2600)}
+    function stop(){running=false;if(timer)clearInterval(timer);timer=0}
+    setActive(kinds[0]);
+    if(reduceMotion())return;
+    if('IntersectionObserver'in window){const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(document.hidden)return;if(entry.isIntersecting)start();else stop()}),{threshold:.2});observer.observe(diagram);document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else if(diagram.getBoundingClientRect().top<innerHeight)start()})}else start();
+  }
+
+  function initSettingsPreview(){
+    const preview=$('settings-preview');if(!preview)return;
+    const sync=()=>{if($('preview-scale'))$('preview-scale').style.width=`${Math.max(0,Math.min(100,(state.fontScale-90)/40*100))}%`;if($('preview-density'))$('preview-density').textContent=state.density};
+    ['theme-mode','language-mode','density-mode','accent-color','font-scale','motion-mode'].forEach(id=>{const el=$(id);if(el)el.addEventListener('input',sync)});
+    sync();
+  }
+
+  function init(){applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initRegex();initSettings();renderNotifications();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>renderPalette(event.target.value));$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications()});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];save();renderNotifications()})}
   init();
 })();

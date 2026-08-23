@@ -37,6 +37,48 @@ export const READ_ONLY_COMMANDS = [
   "logger show channels",
   "acl show",
   "dialplan show",
+
+  /* Everything below was verified to exist in this checkout by searching the CLI
+   * registrations in the Asterisk sources, not recalled. A command that does not exist
+   * fails at the target and looks to a user like the subsystem is broken. */
+
+  // Fax
+  "fax show settings", "fax show stats", "fax show sessions",
+  // Analogue, T1/E1 and PRI hardware
+  "dahdi show channels", "dahdi show status", "dahdi show version",
+  // IAX2 trunking
+  "iax2 show peers", "iax2 show registry",
+  // Channel event logging, the compliance counterpart to call records
+  "cel show status",
+  // Database connectivity
+  "odbc show", "database show",
+  // The built-in HTTP server, which the manager and REST interfaces ride on
+  "http show status",
+  // Call parking, transfer and feature codes
+  "features show", "parking show",
+  // Shared line appearances
+  "sla show stations", "sla show trunks",
+  // Dialplan scripting
+  "agi show commands",
+  // Distributed dialplan lookup
+  "dundi show peers", "dundi show mappings",
+  // Call attestation
+  "stir_shaken show profile", "stir_shaken show verification", "stir_shaken show tn",
+  // Emergency-services location. The command is geoloc, not geolocation.
+  "geoloc show profiles", "geoloc list locations",
+  // Manager and REST interfaces
+  "manager show connected", "manager show users", "manager show commands",
+  "ari show apps", "ari show users",
+  // Endpoint detail the endpoints screen could not previously reach
+  "pjsip show aors", "pjsip show identifies", "pjsip show channelstats",
+  // Calendars
+  "calendar show calendars", "calendar show types",
+  // Media and codecs
+  "core show translation", "core show file formats", "media cache show",
+  // Voicemail
+  "voicemail show zones",
+  // Runtime health
+  "stun show status", "core show threads",
 ] as const;
 
 export type ReadOnlyCommand = (typeof READ_ONLY_COMMANDS)[number];

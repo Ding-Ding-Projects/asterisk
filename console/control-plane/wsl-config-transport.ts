@@ -46,6 +46,44 @@ export const CONFIGURABLE_RESOURCES = [
    * out would make those screens permanently unreadable for no reason a user could see. */
   `${CONFIG_DIRECTORY}/modules.conf`,
   `${CONFIG_DIRECTORY}/acl.conf`,
+
+  /* The subsystems a real exchange needs and this console could not reach at all.
+   * Every name below has a matching file in Asterisk's own `configs/samples`, checked
+   * against this checkout rather than remembered — a resource named here that Asterisk
+   * does not actually read would be a control that silently does nothing.
+   *
+   * Presence in this list makes a file readable and writable through the transaction
+   * path; it does not by itself put a screen in front of it. Coverage is deliberately
+   * ahead of the interface so a new screen needs no change here. */
+  `${CONFIG_DIRECTORY}/chan_dahdi.conf`,       // analogue, T1/E1 and PRI trunks
+  `${CONFIG_DIRECTORY}/iax.conf`,              // IAX2 peers and trunking
+  `${CONFIG_DIRECTORY}/res_fax.conf`,          // fax sending, receiving and T.38
+  `${CONFIG_DIRECTORY}/cel.conf`,              // channel event logging
+  `${CONFIG_DIRECTORY}/cel_odbc.conf`,
+  `${CONFIG_DIRECTORY}/cel_pgsql.conf`,
+  `${CONFIG_DIRECTORY}/res_odbc.conf`,         // database connectivity
+  `${CONFIG_DIRECTORY}/extconfig.conf`,        // which objects come from a database
+  `${CONFIG_DIRECTORY}/sorcery.conf`,
+  `${CONFIG_DIRECTORY}/res_pgsql.conf`,
+  `${CONFIG_DIRECTORY}/res_ldap.conf`,
+  `${CONFIG_DIRECTORY}/cdr_odbc.conf`,
+  `${CONFIG_DIRECTORY}/cdr_pgsql.conf`,
+  `${CONFIG_DIRECTORY}/http.conf`,             // the built-in server, and its TLS
+  `${CONFIG_DIRECTORY}/stir_shaken.conf`,      // call attestation and its certificates
+  `${CONFIG_DIRECTORY}/geolocation.conf`,      // emergency-services location
+  `${CONFIG_DIRECTORY}/phoneprov.conf`,        // handset auto-provisioning
+  `${CONFIG_DIRECTORY}/features.conf`,         // parking, transfer and feature codes
+  `${CONFIG_DIRECTORY}/sla.conf`,              // shared line appearances
+  `${CONFIG_DIRECTORY}/dundi.conf`,            // distributed dialplan lookup
+  `${CONFIG_DIRECTORY}/calendar.conf`,
+  `${CONFIG_DIRECTORY}/queuerules.conf`,       // queue penalty rules
+  `${CONFIG_DIRECTORY}/udptl.conf`,            // the transport T.38 fax rides on
+  `${CONFIG_DIRECTORY}/res_stun_monitor.conf`,
+  `${CONFIG_DIRECTORY}/res_snmp.conf`,
+  `${CONFIG_DIRECTORY}/prometheus.conf`,
+  `${CONFIG_DIRECTORY}/xmpp.conf`,
+  `${CONFIG_DIRECTORY}/adsi.conf`,
+  `${CONFIG_DIRECTORY}/asterisk.conf`,         // directories, and the run-as identity
 ] as const;
 
 export type ConfigurableResource = (typeof CONFIGURABLE_RESOURCES)[number];
