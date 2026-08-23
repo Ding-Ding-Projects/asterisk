@@ -156,3 +156,56 @@ test('required iso/ files exist', () => {
     assert.ok(existsSync(path.join(isoDir, file)), `missing ${file}`);
   }
 });
+
+/**
+ * The repack must not name boot files by path, and must prove the result can boot.
+ *
+ * Written after a real build produced an unbootable image. The recipe came from
+ * Ubuntu's own autoinstall guide and named `boot_hybrid.img` for the master boot
+ * record; Ubuntu 24.04.4 does not ship that file. The hybrid repack failed, the
+ * fallback ran, and the output was a valid ISO 9660 image with completely correct
+ * contents that no machine would boot.
+ *
+ * Nothing caught it. The file existed, it was the right size, its signature was right,
+ * and every assertion in this file passed. The only thing that would have caught it is
+ * asking whether it can boot.
+ */
+test('the repack derives boot options from the base image rather than naming boot files', () => {
+  /* Comment lines are excluded deliberately: the block above the recipe explains why
+   * the old boot file is no longer named, and that explanation is worth keeping. The
+   * guard is about what the build runs, not about what it documents. */
+  const content = read('iso-respin.Dockerfile')
+    .split('\n')
+    .filter((line) => !line.trimStart().startsWith('#'))
+    .join('\n');
+  assert.doesNotMatch(
+    content,
+    /boot_hybrid\.img/u,
+    'naming a boot file by path breaks on any release that does not ship it, and it fails silently',
+  );
+  assert.match(content, /-report_el_torito as_mkisofs/u, 'the base image must be asked to describe its own boot setup');
+});
+
+test('the repack asserts the image can boot, not merely that it exists', () => {
+  const content = read('iso-respin.Dockerfile');
+  /* Both El Torito entries: a BIOS image and an EFI one. An installer missing either
+   * boots on only half the machines it claims to support. */
+  assert.match(content, /report_el_torito plain[\s\S]{0,80}grep -q BIOS/u);
+  assert.match(content, /report_el_torito plain[\s\S]{0,80}grep -q UEFI/u);
+  /* And a real master boot record, which is what makes it bootable written to a USB
+   * stick rather than only from an optical drive. */
+  assert.match(content, /skip=510 count=2/u, 'the master boot record signature is never checked');
+  assert.match(content, /= 55aa/u);
+});
+
+test('the repack has no silent fallback that can publish an unbootable image', () => {
+  const content = read('iso-respin.Dockerfile');
+  /* The original recipe ended in `|| xorriso -as mkisofs ... -o output.iso`, so a failed
+   * hybrid repack still produced a file and the build reported success. A fallback that
+   * degrades the one property the artifact exists for is worse than a failure. */
+  assert.doesNotMatch(
+    content,
+    /\|\|\s*xorriso -as mkisofs/u,
+    'a fallback repack silently publishes an image that cannot boot',
+  );
+});

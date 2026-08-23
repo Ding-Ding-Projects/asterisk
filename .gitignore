@@ -60,3 +60,7 @@ compile_commands.json
 # modules and get committed as though they were written by hand.
 console/control-plane/*.js
 console/control-plane/*.d.ts
+
+# Built installer images. Multi-gigabyte artifacts are never committed; the release
+# record carries their digest instead.
+console/release/
