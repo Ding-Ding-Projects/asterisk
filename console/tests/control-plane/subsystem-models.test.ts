@@ -18,6 +18,11 @@ import {
   parseIax,
   validateIax,
   toConfigValueIax,
+  parsePjsip,
+  validatePjsip,
+  toConfigValuePjsip,
+  newPjsipEndpoint,
+  randomPjsipSecret,
 } from "../../control-plane/subsystem-models.js";
 
 /* --------------------------------------------------------------------------------
@@ -475,4 +480,193 @@ test("iax: unrelated sections are preserved", () => {
   const rendered = toConfigValueIax(view);
   const dundi = rendered.find((s) => s.name === "dundi")!;
   assert.ok(dundi.entries.some((e) => e.key === "dbsecret" && e.value === "dundi/secret"));
+});
+
+/* --------------------------------- pjsip ----------------------------------- */
+
+const PJSIP_SAMPLE = `
+[transport-udp]
+type=transport
+protocol=udp
+bind=0.0.0.0
+
+[7000]
+type=endpoint
+context=from-internal
+disallow=all
+allow=ulaw
+allow=alaw
+auth=7000
+aors=7000
+dtmf_mode=rfc4733
+direct_media=no
+force_rport=yes
+rewrite_contact=yes
+rtp_symmetric=yes
+callerid=Front Desk <7000>
+
+[7000]
+type=auth
+auth_type=digest
+username=7000
+password=correct-horse-battery-staple
+
+[7000]
+type=aor
+max_contacts=1
+remove_existing=yes
+
+[global]
+type=global
+`;
+
+test("pjsip: parses a realistic endpoint/auth/aor trio", () => {
+  const view = parsePjsip(parse(PJSIP_SAMPLE));
+  assert.equal(view.endpoints.length, 1);
+  const ep = view.endpoints[0]!;
+  assert.equal(ep.name, "7000");
+  assert.ok(ep.hasEndpoint && ep.hasAuth && ep.hasAor);
+  assert.equal(ep.endpoint.context, "from-internal");
+  assert.deepEqual(ep.endpoint.disallow, ["all"]);
+  assert.deepEqual(ep.endpoint.allow, ["ulaw", "alaw"]);
+  assert.equal(ep.endpoint.auth, "7000");
+  assert.equal(ep.endpoint.aors, "7000");
+  assert.equal(ep.auth.auth_type, "digest");
+  assert.equal(ep.auth.username, "7000");
+  assert.equal(ep.auth.password, "correct-horse-battery-staple");
+  assert.equal(ep.aor.max_contacts, "1");
+  assert.equal(ep.aor.remove_existing, "yes");
+});
+
+test("pjsip: non-endpoint sections (transport, global) are never mistaken for an endpoint", () => {
+  const view = parsePjsip(parse(PJSIP_SAMPLE));
+  assert.ok(!view.endpoints.some((e) => e.name === "transport-udp" || e.name === "global"));
+  const rendered = toConfigValuePjsip(view);
+  assert.ok(rendered.some((s) => s.name === "transport-udp" && s.entries.some((e) => e.key === "protocol" && e.value === "udp")));
+  assert.ok(rendered.some((s) => s.name === "global" && entryOf(rendered, "global", "type") === "global"));
+});
+
+function entryOf(value: ConfigValue, sectionName: string, key: string): string | undefined {
+  return value.find((s) => s.name === sectionName)?.entries.find((e) => e.key === key)?.value;
+}
+
+test("pjsip: empty input returns an empty view, never throws", () => {
+  const view = parsePjsip([]);
+  assert.deepEqual(view.endpoints, []);
+  assert.deepEqual(validatePjsip(view), []);
+});
+
+test("pjsip: a clean configuration produces no findings", () => {
+  const view = parsePjsip(parse(PJSIP_SAMPLE));
+  assert.deepEqual(validatePjsip(view), []);
+});
+
+test("pjsip: a no-change round trip renders identically", () => {
+  const parsed = parse(PJSIP_SAMPLE);
+  const view = parsePjsip(parsed);
+  assert.equal(renderConfig(toConfigValuePjsip(view)), renderConfig(parsed));
+});
+
+test("pjsip: editing a field changes only that field on write-back", () => {
+  const view = parsePjsip(parse(PJSIP_SAMPLE));
+  const ep = view.endpoints[0]!;
+  const edited = { ...view, endpoints: [{ ...ep, endpoint: { ...ep.endpoint, context: "from-external", media_encryption: "sdes" } }] };
+  const rendered = toConfigValuePjsip(edited);
+  assert.equal(entryOf(rendered, "7000", "context"), "from-external");
+  assert.equal(entryOf(rendered, "7000", "media_encryption"), "sdes");
+  // Unedited fields on the same endpoint survive untouched.
+  assert.equal(entryOf(rendered, "7000", "callerid"), "Front Desk <7000>");
+});
+
+test("pjsip: removing an endpoint from the view deletes all three of its sections", () => {
+  const view = parsePjsip(parse(PJSIP_SAMPLE));
+  const rendered = toConfigValuePjsip({ ...view, endpoints: [] });
+  assert.equal(rendered.filter((s) => s.name === "7000").length, 0);
+  // The unrelated transport and global sections are untouched by the deletion.
+  assert.ok(rendered.some((s) => s.name === "transport-udp"));
+  assert.ok(rendered.some((s) => s.name === "global"));
+});
+
+test("pjsip: adding a brand-new endpoint via newPjsipEndpoint applies cleanly", () => {
+  const { view: fresh, secret } = newPjsipEndpoint("7001", "from-internal");
+  assert.equal(fresh.name, "7001");
+  assert.ok(secret.length >= 32, "generated secret should be a real random hex string");
+  assert.equal(fresh.auth.password, secret);
+  const base = parsePjsip(parse(PJSIP_SAMPLE));
+  const withNew = { ...base, endpoints: [...base.endpoints, fresh] };
+  const rendered = toConfigValuePjsip(withNew);
+  const newEndpointSection = rendered.filter((s) => s.name === "7001").find((s) => s.entries.some((e) => e.key === "type" && e.value === "endpoint"));
+  assert.ok(newEndpointSection);
+  assert.ok(newEndpointSection!.entries.some((e) => e.key === "context" && e.value === "from-internal"));
+  const newAorSection = rendered.filter((s) => s.name === "7001").find((s) => s.entries.some((e) => e.key === "type" && e.value === "aor"));
+  assert.ok(newAorSection);
+  const newAuthSection = rendered.filter((s) => s.name === "7001").find((s) => s.entries.some((e) => e.key === "type" && e.value === "auth"));
+  assert.ok(newAuthSection!.entries.some((e) => e.key === "password" && e.value === secret));
+  // The original endpoint is untouched.
+  assert.equal(entryOf(rendered, "7000", "context"), "from-internal");
+  assert.deepEqual(validatePjsip(withNew).filter((f) => f.severity === "error"), []);
+});
+
+test("pjsip: two calls to randomPjsipSecret never collide and are never a fixed value", () => {
+  const a = randomPjsipSecret();
+  const b = randomPjsipSecret();
+  assert.notEqual(a, b);
+  assert.equal(a.length, 48); // 24 bytes as hex
+  assert.notEqual(a, "1234567890");
+  assert.notEqual(a, "changeme");
+});
+
+test("pjsip: each validation finding is triggered", () => {
+  const badBool = parsePjsip(parse("[100]\ntype=endpoint\ncontext=x\ndisallow=all\ndirect_media=maybe\n"));
+  assert.ok(validatePjsip(badBool).some((f) => f.message.includes("direct_media")));
+
+  const badDtmf = parsePjsip(parse("[100]\ntype=endpoint\ncontext=x\ndisallow=all\ndtmf_mode=carrier-pigeon\n"));
+  assert.ok(validatePjsip(badDtmf).some((f) => f.message.includes("dtmf_mode")));
+
+  const badEncryption = parsePjsip(parse("[100]\ntype=endpoint\ncontext=x\ndisallow=all\nmedia_encryption=rot13\n"));
+  assert.ok(validatePjsip(badEncryption).some((f) => f.message.includes("media_encryption")));
+
+  const badIdentify = parsePjsip(parse("[100]\ntype=endpoint\ncontext=x\ndisallow=all\nidentify_by=vibes\n"));
+  assert.ok(validatePjsip(badIdentify).some((f) => f.message.includes("identify_by")));
+
+  const noContext = parsePjsip(parse("[100]\ntype=endpoint\ndisallow=all\n"));
+  assert.ok(validatePjsip(noContext).some((f) => f.severity === "warning" && f.message.includes("no context")));
+
+  const noCodecs = parsePjsip(parse("[100]\ntype=endpoint\ncontext=x\n"));
+  assert.ok(validatePjsip(noCodecs).some((f) => f.severity === "warning" && f.message.includes("does not restrict codecs")));
+
+  const noAuth = parsePjsip(parse("[100]\ntype=endpoint\ncontext=x\ndisallow=all\n"));
+  assert.ok(validatePjsip(noAuth).some((f) => f.severity === "warning" && f.message.includes("no auth object")));
+
+  const noAor = parsePjsip(parse("[100]\ntype=endpoint\ncontext=x\ndisallow=all\n[100]\ntype=auth\nusername=100\npassword=x\n"));
+  assert.ok(validatePjsip(noAor).some((f) => f.severity === "warning" && f.message.includes("no AoR")));
+
+  const missingAuthFields = parsePjsip(parse("[100]\ntype=endpoint\ncontext=x\ndisallow=all\n[100]\ntype=auth\n[100]\ntype=aor\nmax_contacts=1\n"));
+  assert.ok(missingAuthFields.endpoints[0]!.hasAuth);
+  const findings = validatePjsip(missingAuthFields);
+  assert.ok(findings.some((f) => f.message.includes("auth username is required")));
+  assert.ok(findings.some((f) => f.message.includes("auth password is required")));
+
+  const badAuthType = parsePjsip(parse("[100]\ntype=endpoint\ncontext=x\ndisallow=all\n[100]\ntype=auth\nauth_type=carrier-pigeon\nusername=x\npassword=x\n"));
+  assert.ok(validatePjsip(badAuthType).some((f) => f.message.includes("auth_type must be")));
+
+  const overCeiling = parsePjsip(parse(`[100]\ntype=endpoint\ncontext=x\ndisallow=all\n[100]\ntype=auth\nusername=x\npassword=x\n[100]\ntype=aor\nmax_contacts=101\n`));
+  assert.ok(validatePjsip(overCeiling).some((f) => f.message.includes("exceeds the Core ceiling")));
+
+  const nonNumericContacts = parsePjsip(parse(`[100]\ntype=endpoint\ncontext=x\ndisallow=all\n[100]\ntype=auth\nusername=x\npassword=x\n[100]\ntype=aor\nmax_contacts=many\n`));
+  assert.ok(validatePjsip(nonNumericContacts).some((f) => f.message.includes("must be a whole number")));
+
+  const badRemoveExisting = parsePjsip(parse(`[100]\ntype=endpoint\ncontext=x\ndisallow=all\n[100]\ntype=auth\nusername=x\npassword=x\n[100]\ntype=aor\nremove_existing=sure\n`));
+  assert.ok(validatePjsip(badRemoveExisting).some((f) => f.message.includes("remove_existing must be")));
+
+  const badQualify = parsePjsip(parse(`[100]\ntype=endpoint\ncontext=x\ndisallow=all\n[100]\ntype=auth\nusername=x\npassword=x\n[100]\ntype=aor\nqualify_frequency=often\n`));
+  assert.ok(validatePjsip(badQualify).some((f) => f.message.includes("qualify_frequency must be")));
+
+  const duplicateName = parsePjsip(parse(`[100]\ntype=endpoint\ncontext=x\ndisallow=all\n`));
+  duplicateName.endpoints.push({ ...duplicateName.endpoints[0]! });
+  assert.ok(validatePjsip(duplicateName).some((f) => f.message.includes("declared more than once")));
+
+  const emptyName = parsePjsip(parse(`[100]\ntype=endpoint\ncontext=x\ndisallow=all\n`));
+  emptyName.endpoints[0]!.name = "";
+  assert.ok(validatePjsip(emptyName).some((f) => f.message.includes("name must not be empty")));
 });

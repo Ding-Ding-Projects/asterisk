@@ -790,3 +790,491 @@ export function toConfigValueIax(view: IaxView): ConfigValue {
   }
   return withSections(view.rest, replacements);
 }
+
+// ---------------------------------------------------------------------------------------
+// PJSIP endpoints (pjsip.conf) -- an "endpoint" as edited here is the trio of
+// same-named [name] sections res_pjsip.so uses to build one extension: type=endpoint
+// (the dialable identity and its media/NAT/security policy), type=auth (the credential
+// it authenticates with) and type=aor (where its registered contacts are tracked). All
+// three share one [name] header by convention -- see configs/samples/pjsip.conf.sample
+// lines 304-320 ([7000] used three times, once per type) -- which is the shape this
+// editor creates, edits and deletes as one atomic identity rather than three unrelated
+// sections a user could get out of sync.
+//
+// Every field below is cited to configs/samples/pjsip.conf.sample; a key that is only
+// mentioned in passing (bundle, callgroup, pickupgroup, use_received_transport,
+// min_expiry/max_expiry, message_context and rtcp_mux all are -- none of them appear as
+// their own documented ;key=value line anywhere in that file) is left out rather than
+// guessed at, even though an earlier pass of this catalog assumed they were present.
+// ---------------------------------------------------------------------------------------
+
+/** configs/samples/pjsip.conf.sample lines 680-908 (the [endpoint](!) template). */
+export interface PjsipEndpointFields {
+  /** line 662-663: "Dialplan context for inbound sessions". */
+  context?: string;
+  /** line 685: "Media Codec s to disallow". Repeatable in practice (disallow=all
+   *  then one or more allow= lines), kept as an ordered list for symmetry with allow. */
+  disallow: string[];
+  /** line 653: "Media Codec s to allow" -- repeatable (sample lines 350-351 show two
+   *  allow= lines on one endpoint). */
+  allow: string[];
+  /** line 685 region "transport=": "Explicit transport configuration to use". */
+  transport?: string;
+  /** line 686: "DTMF mode (default: rfc4733)". The sample does not enumerate the
+   *  accepted values beyond the default; rfc4733/inband/info/auto/auto_info are the
+   *  standard res_pjsip.so set and are offered here, but only rfc4733 is directly
+   *  sample-verified. */
+  dtmf_mode?: string;
+  /** line 680-681: "Determines whether media may flow directly between endpoints". */
+  direct_media?: string;
+  /** line 87: "Enable the ICE mechanism to help traverse NAT". */
+  ice_support?: string;
+  /** line 145-146: "Determines whether res_pjsip will use and enforce usage of AVPF". */
+  use_avpf?: string;
+  /** line 147-149/358: "Determines whether res_pjsip will use and enforce usage of
+   *  media encryption for this endpoint"; sample line 358 shows the value sdes. */
+  media_encryption?: string;
+  /** line 150-151: "Use encryption if possible but do not fail the call if not
+   *  possible." */
+  media_encryption_optimistic?: string;
+  /** line 86: "Force use of return port (default: yes)". */
+  force_rport?: string;
+  /** line 119-120/417-419: "Allow Contact header to be rewritten with the source IP
+   *  address port". */
+  rewrite_contact?: string;
+  /** line 121/417: "Enforce that RTP must be symmetric". */
+  rtp_symmetric?: string;
+  /** line 138-139: "Accept identification information received from this endpoint". */
+  trust_id_inbound?: string;
+  /** line 124: "Send the P Asserted Identity header". */
+  send_pai?: string;
+  /** line 88-101: "A comma-separated list of ways the Endpoint or AoR can be
+   *  identified" -- username, auth_username, ip, header, request_uri. */
+  identify_by?: string;
+  /** line 105-107: "NOTIFY the endpoint when state changes for any of the specified
+   *  mailboxes." */
+  mailboxes?: string;
+  /** line 107-108: "The voicemail extension to send in the NOTIFY Message-Account
+   *  header". */
+  voicemail_extension?: string;
+  /** line 109-111: "An MWI subscribe will replace unsoliticed NOTIFYs". */
+  mwi_subscribe_replaces_unsolicited?: string;
+  /** line 47: "(default: yes)" -- aggregate MWI across mailboxes. */
+  aggregate_mwi?: string;
+  /** line 129-130: "Session timers for SIP packets". */
+  timers?: string;
+  /** line 127-128: "Minimum session timers expiration period". */
+  timers_min_se?: string;
+  /** line 115-116: "Authentication object used for outbound requests". */
+  outbound_auth?: string;
+  /** line 117-118: "Proxy through which to send requests, a full SIP URI must be
+   *  provided". */
+  outbound_proxy?: string;
+  /** line 238-240: "Hang up channel if RTP is not received for the specified
+   *  number of seconds". */
+  rtp_timeout?: string;
+  /** line 241-242: same as above, while the channel is on hold. */
+  rtp_timeout_hold?: string;
+  /** line 659/597: "CallerID information for the endpoint", e.g. "My Name
+   *  <8005551212>". */
+  callerid?: string;
+  /** line 165-166: "The number of in use channels which will cause busy to be
+   *  reported". */
+  device_state_busy_at?: string;
+  /** line 308-309: "The maximum number of allowed negotiated audio streams". */
+  max_audio_streams?: string;
+  /** line 310-311: "The maximum number of allowed negotiated video streams". */
+  max_video_streams?: string;
+  /** line 299-300: "Whether to notifies all the progress details on blind
+   *  transfer". */
+  refer_blind_progress?: string;
+  /** endpoint line 309/352/414: auth=<name> -- the auth object(s) this endpoint uses
+   *  for INBOUND authentication challenges (comma-separated object names). */
+  auth?: string;
+  /** endpoint line 276/310/353: aors=<name> -- the AoR object(s) this endpoint's
+   *  contacts register against (comma-separated object names). */
+  aors?: string;
+}
+
+/** configs/samples/pjsip.conf.sample lines 457-500 (the [auth](!) template). */
+export interface PjsipAuthFields {
+  /** line 459-466: digest or google_oauth; digest is what a plain extension uses
+   *  and is the only mechanism this editor exposes a full form for. */
+  auth_type?: string;
+  /** line 498: "Username to use for account (Required)". */
+  username?: string;
+  /** line 500: "PlainText password used for authentication". A real generated secret,
+   *  never a fixed or guessed default -- see randomPjsipSecret below. */
+  password?: string;
+  /** line 474-475: "For incoming authentication (asterisk is the UAS)". */
+  realm?: string;
+}
+
+/** configs/samples/pjsip.conf.sample lines 649-691 (the [aor](!) template). */
+export interface PjsipAorFields {
+  /** line 652: "Permanent contacts assigned to AoR" -- repeatable (sample lines
+   *  284-285 show two contact= lines on one AoR). A statically-provisioned trunk
+   *  uses this; a phone that registers itself leaves it empty. */
+  contact: string[];
+  /** line 662-664: "Maximum number of contacts that can bind to an AoR (default:
+   *  0)" -- 0 means no registration is allowed at all, so a real extension needs
+   *  at least 1. */
+  max_contacts?: string;
+  /** line 665-666: "Allow a registration to succeed by displacing any existing
+   *  contact...". */
+  remove_existing?: string;
+  /** line 684-685: "Interval at which to qualify an AoR via OPTIONS requests
+   *  (default: 0, disabled)". */
+  qualify_frequency?: string;
+  /** line 691-692: "Proxy through which to send OPTIONS requests". */
+  outbound_proxy?: string;
+  /** line 659-660: same key as the endpoint's, but scoped to the AoR per the
+   *  sample's own separate [aor](!) template block. */
+  voicemail_extension?: string;
+}
+
+export interface PjsipEndpointView {
+  /** Shared [name] header across the endpoint/auth/aor trio. */
+  name: string;
+  /** Whether a type=endpoint section by this name already exists on the target
+   *  (false for a not-yet-applied new endpoint being staged). */
+  hasEndpoint: boolean;
+  hasAuth: boolean;
+  hasAor: boolean;
+  endpoint: PjsipEndpointFields;
+  auth: PjsipAuthFields;
+  aor: PjsipAorFields;
+}
+
+export interface PjsipView {
+  /** Every recognized endpoint identity, in first-appearance order. A [name] group
+   *  is recognized as an endpoint identity only when at least one of its sections
+   *  declares type=endpoint -- this deliberately excludes [transport-udp], [global],
+   *  [system], ACLs, registrations and every other non-endpoint PJSIP object type,
+   *  none of which this editor touches. */
+  endpoints: PjsipEndpointView[];
+  readonly rest: ConfigValue;
+}
+
+const PJSIP_DTMF_MODES = new Set(["rfc4733", "inband", "info", "auto", "auto_info"]);
+const PJSIP_IDENTIFY_BY = new Set(["username", "auth_username", "ip", "header", "request_uri"]);
+const PJSIP_MEDIA_ENCRYPTION = new Set(["no", "sdes", "dtls"]);
+const PJSIP_AUTH_TYPES = new Set(["digest", "google_oauth"]);
+const PJSIP_MAX_CONTACTS_CEILING = 100; // CORE-EXT-015: Core's own documented ceiling.
+
+function sectionsNamed(value: ConfigValue, name: string): ConfigSection[] {
+  return value.filter((candidate) => candidate.name === name);
+}
+
+function sectionOfType(sections: ConfigSection[], type: string): ConfigSection | undefined {
+  return sections.find((candidate) => entryValue(candidate, "type") === type);
+}
+
+export function parsePjsip(value: ConfigValue): PjsipView {
+  const seen = new Set<string>();
+  const endpoints: PjsipEndpointView[] = [];
+  for (const candidate of value) {
+    if (seen.has(candidate.name)) continue;
+    const group = sectionsNamed(value, candidate.name);
+    const endpointSection = sectionOfType(group, "endpoint");
+    if (!endpointSection) continue; // not an endpoint identity -- leave for `rest`.
+    seen.add(candidate.name);
+    const authSection = sectionOfType(group, "auth");
+    const aorSection = sectionOfType(group, "aor");
+    endpoints.push({
+      name: candidate.name,
+      hasEndpoint: true,
+      hasAuth: authSection !== undefined,
+      hasAor: aorSection !== undefined,
+      endpoint: {
+        context: entryValue(endpointSection, "context"),
+        disallow: entryValues(endpointSection, "disallow"),
+        allow: entryValues(endpointSection, "allow"),
+        transport: entryValue(endpointSection, "transport"),
+        dtmf_mode: entryValue(endpointSection, "dtmf_mode"),
+        direct_media: entryValue(endpointSection, "direct_media"),
+        ice_support: entryValue(endpointSection, "ice_support"),
+        use_avpf: entryValue(endpointSection, "use_avpf"),
+        media_encryption: entryValue(endpointSection, "media_encryption"),
+        media_encryption_optimistic: entryValue(endpointSection, "media_encryption_optimistic"),
+        force_rport: entryValue(endpointSection, "force_rport"),
+        rewrite_contact: entryValue(endpointSection, "rewrite_contact"),
+        rtp_symmetric: entryValue(endpointSection, "rtp_symmetric"),
+        trust_id_inbound: entryValue(endpointSection, "trust_id_inbound"),
+        send_pai: entryValue(endpointSection, "send_pai"),
+        identify_by: entryValue(endpointSection, "identify_by"),
+        mailboxes: entryValue(endpointSection, "mailboxes"),
+        voicemail_extension: entryValue(endpointSection, "voicemail_extension"),
+        mwi_subscribe_replaces_unsolicited: entryValue(endpointSection, "mwi_subscribe_replaces_unsolicited"),
+        aggregate_mwi: entryValue(endpointSection, "aggregate_mwi"),
+        timers: entryValue(endpointSection, "timers"),
+        timers_min_se: entryValue(endpointSection, "timers_min_se"),
+        outbound_auth: entryValue(endpointSection, "outbound_auth"),
+        outbound_proxy: entryValue(endpointSection, "outbound_proxy"),
+        rtp_timeout: entryValue(endpointSection, "rtp_timeout"),
+        rtp_timeout_hold: entryValue(endpointSection, "rtp_timeout_hold"),
+        callerid: entryValue(endpointSection, "callerid"),
+        device_state_busy_at: entryValue(endpointSection, "device_state_busy_at"),
+        max_audio_streams: entryValue(endpointSection, "max_audio_streams"),
+        max_video_streams: entryValue(endpointSection, "max_video_streams"),
+        refer_blind_progress: entryValue(endpointSection, "refer_blind_progress"),
+        auth: entryValue(endpointSection, "auth"),
+        aors: entryValue(endpointSection, "aors"),
+      },
+      auth: {
+        auth_type: entryValue(authSection, "auth_type"),
+        username: entryValue(authSection, "username"),
+        password: entryValue(authSection, "password"),
+        realm: entryValue(authSection, "realm"),
+      },
+      aor: {
+        contact: entryValues(aorSection, "contact"),
+        max_contacts: entryValue(aorSection, "max_contacts"),
+        remove_existing: entryValue(aorSection, "remove_existing"),
+        qualify_frequency: entryValue(aorSection, "qualify_frequency"),
+        outbound_proxy: entryValue(aorSection, "outbound_proxy"),
+        voicemail_extension: entryValue(aorSection, "voicemail_extension"),
+      },
+    });
+  }
+  return { endpoints, rest: value };
+}
+
+export function validatePjsip(view: PjsipView): Finding[] {
+  const findings: Finding[] = [];
+  const names = new Set<string>();
+  const BOOL_ENDPOINT_FIELDS = [
+    "direct_media", "ice_support", "use_avpf", "media_encryption_optimistic",
+    "force_rport", "rewrite_contact", "rtp_symmetric", "trust_id_inbound", "send_pai",
+    "mwi_subscribe_replaces_unsolicited", "aggregate_mwi", "timers",
+  ] as const;
+  for (const ep of view.endpoints) {
+    if (ep.name.trim().length === 0) {
+      findings.push({ severity: "error", message: "PJSIP endpoint name must not be empty." });
+    }
+    if (names.has(ep.name)) {
+      findings.push({ severity: "error", message: `PJSIP endpoint [${ep.name}] is declared more than once.` });
+    }
+    names.add(ep.name);
+    for (const field of BOOL_ENDPOINT_FIELDS) {
+      const v = ep.endpoint[field];
+      if (v !== undefined && !YES_NO.has(v)) {
+        findings.push({ severity: "error", message: `PJSIP [${ep.name}] ${field} must be yes or no.` });
+      }
+    }
+    if (ep.endpoint.dtmf_mode !== undefined && !PJSIP_DTMF_MODES.has(ep.endpoint.dtmf_mode)) {
+      findings.push({ severity: "error", message: `PJSIP [${ep.name}] dtmf_mode must be one of ${[...PJSIP_DTMF_MODES].join(", ")}.` });
+    }
+    if (ep.endpoint.media_encryption !== undefined && !PJSIP_MEDIA_ENCRYPTION.has(ep.endpoint.media_encryption)) {
+      findings.push({ severity: "error", message: `PJSIP [${ep.name}] media_encryption must be no, sdes, or dtls.` });
+    }
+    if (ep.endpoint.identify_by !== undefined) {
+      const invalid = ep.endpoint.identify_by.split(",").map((m) => m.trim()).filter((m) => m.length > 0 && !PJSIP_IDENTIFY_BY.has(m));
+      if (invalid.length > 0) {
+        findings.push({ severity: "error", message: `PJSIP [${ep.name}] identify_by lists an unsupported method: ${invalid.join(", ")}.` });
+      }
+    }
+    if (ep.endpoint.context === undefined || ep.endpoint.context.trim().length === 0) {
+      findings.push({ severity: "warning", message: `PJSIP [${ep.name}] has no context; inbound calls have nowhere to route to.` });
+    }
+    if (ep.endpoint.disallow.length === 0 && ep.endpoint.allow.length === 0) {
+      findings.push({ severity: "warning", message: `PJSIP [${ep.name}] does not restrict codecs (no disallow/allow); this is unusual outside the sample's trunk templates.` });
+    }
+    if (ep.hasAuth) {
+      if (ep.auth.auth_type !== undefined && !PJSIP_AUTH_TYPES.has(ep.auth.auth_type)) {
+        findings.push({ severity: "error", message: `PJSIP [${ep.name}] auth_type must be digest or google_oauth.` });
+      }
+      if (ep.auth.auth_type === "digest" || ep.auth.auth_type === undefined) {
+        if (ep.auth.username === undefined || ep.auth.username.trim().length === 0) {
+          findings.push({ severity: "error", message: `PJSIP [${ep.name}] auth username is required.` });
+        }
+        if (ep.auth.password === undefined || ep.auth.password.trim().length === 0) {
+          findings.push({ severity: "error", message: `PJSIP [${ep.name}] auth password is required.` });
+        }
+      }
+    } else {
+      findings.push({ severity: "warning", message: `PJSIP [${ep.name}] has no auth object; the endpoint cannot authenticate inbound registrations or calls.` });
+    }
+    if (ep.hasAor) {
+      if (ep.aor.max_contacts !== undefined) {
+        if (!/^\d+$/u.test(ep.aor.max_contacts)) {
+          findings.push({ severity: "error", message: `PJSIP [${ep.name}] AoR max_contacts must be a whole number.` });
+        } else if (Number(ep.aor.max_contacts) > PJSIP_MAX_CONTACTS_CEILING) {
+          findings.push({ severity: "error", message: `PJSIP [${ep.name}] AoR max_contacts exceeds the Core ceiling of ${PJSIP_MAX_CONTACTS_CEILING}.` });
+        } else if (Number(ep.aor.max_contacts) === 0 && ep.aor.contact.length === 0) {
+          findings.push({ severity: "warning", message: `PJSIP [${ep.name}] AoR allows 0 contacts and has no static contact; nothing can ever register to it.` });
+        }
+      }
+      if (ep.aor.remove_existing !== undefined && !YES_NO.has(ep.aor.remove_existing)) {
+        findings.push({ severity: "error", message: `PJSIP [${ep.name}] AoR remove_existing must be yes or no.` });
+      }
+      if (ep.aor.qualify_frequency !== undefined && !/^\d+$/u.test(ep.aor.qualify_frequency)) {
+        findings.push({ severity: "error", message: `PJSIP [${ep.name}] AoR qualify_frequency must be a whole number of seconds.` });
+      }
+    } else {
+      findings.push({ severity: "warning", message: `PJSIP [${ep.name}] has no AoR; nothing can register or be dialed for this endpoint.` });
+    }
+  }
+  return findings;
+}
+
+const PJSIP_ENDPOINT_MANAGED_KEYS: readonly string[] = [
+  "type", "context", "disallow", "allow", "transport", "dtmf_mode", "direct_media",
+  "ice_support", "use_avpf", "media_encryption", "media_encryption_optimistic",
+  "force_rport", "rewrite_contact", "rtp_symmetric", "trust_id_inbound", "send_pai",
+  "identify_by", "mailboxes", "voicemail_extension", "mwi_subscribe_replaces_unsolicited",
+  "aggregate_mwi", "timers", "timers_min_se", "outbound_auth", "outbound_proxy",
+  "rtp_timeout", "rtp_timeout_hold", "callerid", "device_state_busy_at",
+  "max_audio_streams", "max_video_streams", "refer_blind_progress", "auth", "aors",
+];
+const PJSIP_AUTH_MANAGED_KEYS: readonly string[] = ["type", "auth_type", "username", "password", "realm"];
+const PJSIP_AOR_MANAGED_KEYS: readonly string[] = [
+  "type", "contact", "max_contacts", "remove_existing", "qualify_frequency",
+  "outbound_proxy", "voicemail_extension",
+];
+
+function endpointFieldValues(key: string, endpoint: PjsipEndpointFields): readonly string[] {
+  switch (key) {
+    case "type": return ["endpoint"];
+    case "disallow": return endpoint.disallow;
+    case "allow": return endpoint.allow;
+    default: {
+      const scalar = (endpoint as unknown as Record<string, string | undefined>)[key];
+      return scalar !== undefined ? [scalar] : [];
+    }
+  }
+}
+
+function authFieldValues(key: string, auth: PjsipAuthFields): readonly string[] {
+  if (key === "type") return ["auth"];
+  const scalar = (auth as Record<string, string | undefined>)[key];
+  return scalar !== undefined ? [scalar] : [];
+}
+
+function aorFieldValues(key: string, aor: PjsipAorFields): readonly string[] {
+  switch (key) {
+    case "type": return ["aor"];
+    case "contact": return aor.contact;
+    default: {
+      const scalar = (aor as unknown as Record<string, string | undefined>)[key];
+      return scalar !== undefined ? [scalar] : [];
+    }
+  }
+}
+
+/**
+ * Renders the full desired pjsip.conf ConfigValue. Every section this parser
+ * recognized as belonging to an endpoint identity (i.e. every [name] group that had
+ * a type=endpoint section, per parsePjsip) is dropped from the original file and
+ * replaced with exactly the trio each surviving view.endpoints entry describes --
+ * so removing an entry from view.endpoints deletes its endpoint/auth/aor sections,
+ * and every section this model does not recognize (transports, [global], ACLs,
+ * registrations, [system], and so on) passes through untouched.
+ */
+export function toConfigValuePjsip(view: PjsipView): ConfigValue {
+  const recognizedNames = new Set(parsePjsip(view.rest).endpoints.map((e) => e.name));
+  const byName = new Map(view.endpoints.map((ep) => [ep.name, ep] as const));
+
+  function rebuiltTrioFor(ep: PjsipEndpointView): ConfigSection[] {
+    const original = sectionsNamed(view.rest, ep.name);
+    const originalEndpoint = sectionOfType(original, "endpoint");
+    const originalAuth = sectionOfType(original, "auth");
+    const originalAor = sectionOfType(original, "aor");
+    const trio: ConfigSection[] = [
+      {
+        name: ep.name,
+        entries: rebuildEntries(originalEndpoint?.entries ?? [], PJSIP_ENDPOINT_MANAGED_KEYS, (key) => endpointFieldValues(key, ep.endpoint)),
+      },
+    ];
+    if (ep.hasAuth) {
+      trio.push({
+        name: ep.name,
+        entries: rebuildEntries(originalAuth?.entries ?? [], PJSIP_AUTH_MANAGED_KEYS, (key) => authFieldValues(key, ep.auth)),
+      });
+    }
+    if (ep.hasAor) {
+      trio.push({
+        name: ep.name,
+        entries: rebuildEntries(originalAor?.entries ?? [], PJSIP_AOR_MANAGED_KEYS, (key) => aorFieldValues(key, ep.aor)),
+      });
+    }
+    return trio;
+  }
+
+  // Preserve the position of every unrecognized section exactly, and replace the whole
+  // endpoint/auth/aor trio in-place at the position its first section appeared -- so a
+  // no-change round trip renders byte-identical output rather than reordering endpoints
+  // to the end of the file.
+  const result: ConfigSection[] = [];
+  const emittedEndpoint = new Set<string>();
+  for (const s of view.rest) {
+    if (recognizedNames.has(s.name)) {
+      if (emittedEndpoint.has(s.name)) continue;
+      emittedEndpoint.add(s.name);
+      const ep = byName.get(s.name);
+      if (ep) result.push(...rebuiltTrioFor(ep));
+      continue;
+    }
+    result.push(s);
+  }
+  // Endpoints that did not exist on `view.rest` at all (brand-new, staged additions)
+  // are appended at the end, in the order they appear in `view.endpoints`.
+  for (const ep of view.endpoints) {
+    if (recognizedNames.has(ep.name)) continue;
+    result.push(...rebuiltTrioFor(ep));
+  }
+  return result;
+}
+
+/**
+ * A real random PJSIP auth secret -- 24 bytes of crypto.getRandomValues rendered as
+ * hex, the same shape onboarding.ts's randomSecret() already uses for the "super
+ * easy" deploy's generated PJSIP passwords. Never a fixed or guessed default: callers
+ * must show it to the operator exactly once (so the phone can be provisioned) and must
+ * keep it out of the plan the user reviews, out of logs, out of exports and out of any
+ * capture, per this catalog's adoption rules.
+ */
+export function randomPjsipSecret(): string {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Builds a brand-new endpoint identity with sane, sample-cited defaults, ready to be
+ *  pushed through toConfigValuePjsip. The generated secret is returned separately
+ *  (secret) so a caller can show it once without it ever living in `view` longer
+ *  than the single apply that needs it. */
+export function newPjsipEndpoint(name: string, context: string): { view: PjsipEndpointView; secret: string } {
+  const secret = randomPjsipSecret();
+  return {
+    secret,
+    view: {
+      name,
+      hasEndpoint: true,
+      hasAuth: true,
+      hasAor: true,
+      endpoint: {
+        context,
+        disallow: ["all"],
+        allow: ["ulaw", "alaw"],
+        dtmf_mode: "rfc4733",
+        direct_media: "no",
+        force_rport: "yes",
+        rewrite_contact: "yes",
+        rtp_symmetric: "yes",
+        auth: name,
+        aors: name,
+      },
+      auth: {
+        auth_type: "digest",
+        username: name,
+        password: secret,
+      },
+      aor: {
+        contact: [],
+        max_contacts: "1",
+        remove_existing: "yes",
+      },
+    },
+  };
+}
