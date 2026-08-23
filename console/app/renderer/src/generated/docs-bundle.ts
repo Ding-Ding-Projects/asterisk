@@ -24,7 +24,7 @@ export interface DocsBundle {
 
 export const DOCS_BUNDLE: DocsBundle = {
   "generatedAt": "1970-01-01T00:00:00.000Z",
-  "articleCount": 82,
+  "articleCount": 83,
   "articles": [
     {
       "id": "agent/hub",
@@ -596,6 +596,51 @@ export const DOCS_BUNDLE: DocsBundle = {
         "ami.md"
       ],
       "body": "# Data\n\nRecords & APIs: call records, event logging and the machine interfaces.\n\n- [CDR & CEL](cdr.md)\n- [AMI & ARI](ami.md)\n"
+    },
+    {
+      "id": "installer-iso",
+      "category": "installer-iso.md",
+      "title": "The Ding PBX installer ISO",
+      "headings": [
+        {
+          "title": "What it is",
+          "id": "what-it-is"
+        },
+        {
+          "title": "Architecture",
+          "id": "architecture"
+        },
+        {
+          "title": "What happens on the target machine",
+          "id": "what-happens-on-the-target-machine"
+        },
+        {
+          "title": "First-boot credential flow",
+          "id": "first-boot-credential-flow"
+        },
+        {
+          "title": "Requirements",
+          "id": "requirements"
+        },
+        {
+          "title": "How to boot and install it",
+          "id": "how-to-boot-and-install-it"
+        },
+        {
+          "title": "Verifying the download",
+          "id": "verifying-the-download"
+        },
+        {
+          "title": "Honest security posture",
+          "id": "honest-security-posture"
+        },
+        {
+          "title": "Verification state",
+          "id": "verification-state"
+        }
+      ],
+      "links": [],
+      "body": "# The Ding PBX installer ISO\n\n## What it is\n\nA bootable, unattended-install ISO that turns a bare machine (or VM) into a working Ding PBX\nserver, the same way a FreePBX distro ISO does. Boot it, walk away, and when it reboots itself\nthere is a running Asterisk and a Ding PBX Console admin surface reachable from a browser on the\nlocal network — with no default password of any kind.\n\nIt is built by `build-iso.bat` at the repository root (`console/scripts/build-iso.ps1`), following\nthe same reproducibility discipline as the WSL Asterisk bundle: a base image pinned by digest,\nAsterisk compiled from the exact repository commit, every download verified against a recorded\nSHA-256 before it is trusted, and a provenance record written beside the finished artifact.\n\n## Architecture\n\nThe build has three stages, each a separate Docker stage or image so a failure in one is easy to\nisolate:\n\n1. **`iso-payload.Dockerfile`** compiles Asterisk from source (the same recipe as\n   `asterisk-wsl-runtime.Dockerfile`), builds the Ding PBX Console server (`npm ci && npm run\n   build` against `console/`), and downloads a portable Linux Node.js runtime verified by SHA-256.\n   These three pieces — Asterisk, the console server, and Node — are assembled into one payload\n   directory with an `install-target.sh` script and systemd units.\n2. **`iso-respin.Dockerfile`** downloads the official Ubuntu 24.04 LTS Server ISO, verified against\n   a pinned SHA-256 before anything touches it, extracts it, drops in the payload plus an\n   `autoinstall` (Subiquity cloud-init) answer file at `/server/`, points the bootloader at\n   `autoinstall ds=nocloud;s=/cdrom/server/`, and repacks a hybrid BIOS+UEFI-bootable ISO with\n   `xorriso`.\n3. **`build-iso.ps1`** orchestrates both stages from Windows (Docker's Linux engine does the actual\n   work, since Windows cannot compile the Linux payload or produce an ISO 9660 image natively),\n   exports and verifies the result, and writes `console/release/iso/ding-pbx-installer.iso.json`\n   with the source commit, base image and Node digests, and the finished ISO's own SHA-256.\n\n## What happens on the target machine\n\nBooting the ISO runs Ubuntu's ordinary Subiquity installer with no prompts: it partitions the\ndisk, installs the base OS, then autoinstall's `late-commands` step runs `install-target.sh`\n(inside the newly installed system, via `curtin in-target`), which:\n\n- installs the bundled Node.js runtime to `/usr/local/lib/ding-pbx-node`\n- installs the compiled Asterisk tree and enables `asterisk.service`\n- installs the Ding PBX Console server under `/opt/ding-pbx-console` (reusing\n  `console/server/deploy/install.sh` unmodified) and enables `ding-pbx-console.service`, bound to\n  `0.0.0.0:8443` so it is reachable from the LAN rather than loopback-only\n- installs a first-boot banner unit that writes the machine's current LAN address into\n  `/etc/issue`, so whoever is at the console sees exactly where to point a browser\n\n## First-boot credential flow\n\n**No credential of any kind is written to the ISO.** The `identity.password` field in the\nautoinstall answer file is the locked sentinel `\"!\"`, which refuses interactive password login for\nthat local Unix account entirely — it exists only so the installer has an account to run under,\nnever as an administrative credential.\n\nThe actual admin account is created by the Ding PBX Console server itself, the first time anyone\nvisits it: `console/server/auth.ts`'s `createAdminAccount` gates every other request behind the\nfirst-run setup screen until an account exists. Whoever reaches the printed LAN address first\ncreates the admin account. Because the service binds to the LAN rather than loopback by default so\nthat an operator can reach it at all, **the operative security boundary during the first-boot\nwindow is the network the machine is plugged into**, not a credential — treat that window (from\nfirst boot until an admin account is created) the way you would treat an unconfigured switch port:\nkeep the machine off an untrusted network, or firewall port 8443 to the operator's own address,\nuntil setup is done.\n\n## Requirements\n\n- A machine or VM with x86-64 hardware, at least 2 vCPU / 2 GiB RAM / 8 GiB disk for a minimal\n  install (Asterisk itself is light; size storage for call recordings and voicemail separately).\n- **Secure Boot must be disabled**, or a custom key enrolled for this ISO. Code signing is\n  permanently out of scope for this project (see the repository's no-signing policy) — the ISO is\n  genuinely unsigned, and a machine enforcing Secure Boot will refuse to boot it. This is stated by\n  the build script's own output and here, rather than left for someone to discover at a boot\n  prompt.\n- Network reachable by DHCP during install (the base OS and package list install from the\n  network unless a local mirror is configured; the Asterisk/Node/console payload itself needs no\n  network, since it is embedded on the ISO).\n\n## How to boot and install it\n\n1. Write `console/release/iso/ding-pbx-installer.iso` to a USB drive (`dd`, Rufus, or Ventoy) or\n   attach it as a VM CD-ROM.\n2. Boot from it. No prompts appear; the machine partitions its disk and installs unattended.\n3. On completion the machine reboots itself into the installed system.\n4. At the console login screen, read the printed address (`Console admin setup: http://<ip>:8443/`)\n   and open it from a browser on the same network.\n5. Create the admin account. From then on the console requires that account's credentials for\n   every request.\n\n## Verifying the download\n\n`console/release/iso/ding-pbx-installer.iso.json` records the exact source commit, the pinned base\nUbuntu ISO URL and SHA-256, the pinned Node.js runtime version and SHA-256, and the finished ISO's\nown SHA-256. Compare that last value against a locally computed digest of the downloaded file\nbefore writing it to a USB drive or booting it in a VM.\n\n## Honest security posture\n\n- The ISO itself is unsigned; Secure Boot refuses it.\n- No credential is embedded anywhere on the ISO or in its build.\n- The admin surface binds to the LAN by default during the first-boot window, before any account\n  exists — see **First-boot credential flow** above for the mitigation.\n- `late-commands`' package list (`packages:` in the autoinstall answer file) is installed from\n  whatever apt sources the target machine reaches at install time; only the Asterisk, Node.js, and\n  Ding PBX Console payload itself is fully offline and reproducible from the ISO's own contents.\n- Building the ISO requires Docker with a working Linux engine; it cannot be produced on a bare\n  Windows host.\n\n## Verification state\n\nEverything in `console/tests/iso/*.test.mjs` (20 tests) is run without Docker or a real ISO: it\nstatically checks the autoinstall answer file for structural correctness and the absence of any\nembedded credential, checks that `build-iso.ps1` verifies its downloads and the finished artifact\nrather than trusting a green build log, and checks that no code-signing call exists anywhere in the\npipeline. Every one of those checks was proved meaningful by breaking the real file it guards,\nobserving the test go red, and restoring it.\n\n**A full ISO has not been built or booted in this environment**: this repository checkout has no\nrunning Docker engine and no network access to `releases.ubuntu.com` or `nodejs.org`, so the base\nUbuntu ISO digest and the Linux Node.js runtime digest in `build-iso.ps1` are recorded as explicit\nplaceholders that must be replaced with the real published values before a real build — the\ndownload-and-verify step fails closed rather than silently accepting the wrong file if they are\nleft unset. The exact `xorriso` boot-preservation flags in `iso-respin.Dockerfile` follow the\ndocumented Ubuntu autoinstall custom-ISO recipe but have not been exercised against a real ISO\neither, and are the highest-risk, least-verified part of this pipeline.\n"
     },
     {
       "id": "media/codecs",
@@ -2814,6 +2859,10 @@ export const DOCS_BUNDLE: DocsBundle = {
           "id": "rails"
         },
         {
+          "title": "Delivery",
+          "id": "delivery"
+        },
+        {
           "title": "Shared behavior",
           "id": "shared-behavior"
         }
@@ -2825,10 +2874,11 @@ export const DOCS_BUNDLE: DocsBundle = {
         "system/README.md",
         "agent/README.md",
         "app/README.md",
+        "installer-iso.md",
         "app/history.md",
         "app/arcade.md"
       ],
-      "body": "# Ding PBX Console documentation\n\nDing PBX Console is a Windows desktop administration experience for Asterisk. The renderer is compiled directly from the design's navigation model, so this documentation follows the same structure: six rails and 32 destinations, one article per destination, grouped and ordered exactly as the app presents them.\n\nThe documentation map contains 32 destinations in six rails. Every article covers behavior, configuration, failure modes and security, verification, and suggested reading.\n\n## Rails\n\n- [PBX](pbx/README.md) — Telephony: endpoints, routing and everything a call touches while it is alive.\n- [Media](media/README.md) — Media & voice: codecs, RTP, recordings, prompts and conferencing.\n- [Data](data/README.md) — Records & APIs: call records, event logging and the machine interfaces.\n- [System](system/README.md) — Runtime & security: modules, logging, certificates and the CLI.\n- [Agent](agent/README.md) — Agent global memory: memory, sync, skills, hub sessions and the emission guard.\n- [App](app/README.md) — Deploy & application: stand up a new server, then appearance, updates and the console itself.\n\n## Shared behavior\n\nConfiguration controls are pickers, switches, sliders and steppers wired to real keys in the owning Asterisk configuration file — never free-text fields that could drift from what Asterisk actually does. Where an article shows a default value or an option list, it is the same default the design and the renderer ship with; nothing here is a simulated call, a sample statistic, or an invented extension. Destructive actions run the full confirmation ceremony described in [History & git](app/history.md) and [Arcade](app/arcade.md).\n"
+      "body": "# Ding PBX Console documentation\n\nDing PBX Console is a Windows desktop administration experience for Asterisk. The renderer is compiled directly from the design's navigation model, so this documentation follows the same structure: six rails and 32 destinations, one article per destination, grouped and ordered exactly as the app presents them.\n\nThe documentation map contains 32 destinations in six rails. Every article covers behavior, configuration, failure modes and security, verification, and suggested reading.\n\n## Rails\n\n- [PBX](pbx/README.md) — Telephony: endpoints, routing and everything a call touches while it is alive.\n- [Media](media/README.md) — Media & voice: codecs, RTP, recordings, prompts and conferencing.\n- [Data](data/README.md) — Records & APIs: call records, event logging and the machine interfaces.\n- [System](system/README.md) — Runtime & security: modules, logging, certificates and the CLI.\n- [Agent](agent/README.md) — Agent global memory: memory, sync, skills, hub sessions and the emission guard.\n- [App](app/README.md) — Deploy & application: stand up a new server, then appearance, updates and the console itself.\n\n## Delivery\n\n- [The Ding PBX installer ISO](installer-iso.md) — a bootable, unattended-install ISO that turns a bare machine into a working server.\n\n## Shared behavior\n\nConfiguration controls are pickers, switches, sliders and steppers wired to real keys in the owning Asterisk configuration file — never free-text fields that could drift from what Asterisk actually does. Where an article shows a default value or an option list, it is the same default the design and the renderer ship with; nothing here is a simulated call, a sample statistic, or an invented extension. Destructive actions run the full confirmation ceremony described in [History & git](app/history.md) and [Arcade](app/arcade.md).\n"
     },
     {
       "id": "system/cli",

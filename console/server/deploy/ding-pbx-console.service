@@ -1,0 +1,37 @@
+# systemd unit for Ding PBX Console server mode.
+#
+# Install: copy to /etc/systemd/system/ding-pbx-console.service, then
+#   systemctl daemon-reload && systemctl enable --now ding-pbx-console
+#
+# Runs as its own unprivileged user (see install.sh), binds to loopback by default —
+# put a reverse proxy (nginx/caddy) in front for TLS and network exposure, or supply
+# DING_TLS_CERT/DING_TLS_KEY below to terminate TLS in the process directly.
+[Unit]
+Description=Ding PBX Console (server mode)
+After=network.target
+Documentation=https://github.com/Ding-Ding-Projects/asterisk
+
+[Service]
+Type=simple
+User=ding-pbx-console
+Group=ding-pbx-console
+WorkingDirectory=/opt/ding-pbx-console
+Environment=DING_HOST=127.0.0.1
+Environment=DING_PORT=8443
+Environment=DING_DATA_DIR=/var/lib/ding-pbx-console
+# Environment=DING_TLS_CERT=/etc/ding-pbx-console/tls/fullchain.pem
+# Environment=DING_TLS_KEY=/etc/ding-pbx-console/tls/privkey.pem
+ExecStart=/usr/bin/node /opt/ding-pbx-console/dist-electron/server/bin/ding-pbx-server.js
+Restart=on-failure
+RestartSec=5
+
+# Hardening: no new privileges, private /tmp, restricted filesystem visibility beyond
+# what the unit actually needs to read and write.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ding-pbx-console
+
+[Install]
+WantedBy=multi-user.target

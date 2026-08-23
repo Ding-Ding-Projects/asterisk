@@ -13,6 +13,10 @@ The documentation map contains 32 destinations in six rails. Every article cover
 - [Agent](agent/README.md) — Agent global memory: memory, sync, skills, hub sessions and the emission guard.
 - [App](app/README.md) — Deploy & application: stand up a new server, then appearance, updates and the console itself.
 
+## Delivery
+
+- [The Ding PBX installer ISO](installer-iso.md) — a bootable, unattended-install ISO that turns a bare machine into a working server.
+
 ## Shared behavior
 
 Configuration controls are pickers, switches, sliders and steppers wired to real keys in the owning Asterisk configuration file — never free-text fields that could drift from what Asterisk actually does. Where an article shows a default value or an option list, it is the same default the design and the renderer ship with; nothing here is a simulated call, a sample statistic, or an invented extension. Destructive actions run the full confirmation ceremony described in [History & git](app/history.md) and [Arcade](app/arcade.md).

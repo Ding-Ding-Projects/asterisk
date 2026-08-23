@@ -19,8 +19,11 @@
     "compile:design": "node scripts/compile-design.mjs",
     "test:renderer": "tsx --test tests/ui/*.test.tsx",
     "test:inventories": "node scripts/verify-inventories.mjs --allow-unverified && node scripts/negative-design-parity.mjs && node scripts/negative-surface-completeness.mjs && node scripts/negative-evidence-claims.mjs",
-    "test": "npm run test:ui && npm run test:renderer && npm run test:control-plane && npm run test:site && npm run test:inventories",
-    "bundle:docs": "node scripts/bundle-docs.mjs"
+    "test:iso": "node --test tests/iso/*.test.mjs",
+    "test": "npm run test:ui && npm run test:renderer && npm run test:control-plane && npm run test:site && npm run test:server && npm run test:iso && npm run test:inventories",
+    "bundle:docs": "node scripts/bundle-docs.mjs",
+    "start:server": "node dist-electron/server/bin/ding-pbx-server.js",
+    "test:server": "tsx --test tests/server/*.test.ts"
   },
   "dependencies": {
     "@fontsource/roboto": "^5.3.0",

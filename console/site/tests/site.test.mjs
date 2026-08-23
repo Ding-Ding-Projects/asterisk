@@ -75,7 +75,7 @@ test('build composes deterministic local output without fetches', async () => {
   // 43 platform contract articles and their index. An exact count is the point: this is
   // the determinism check,
   // so a number that drifts should fail and be explained rather than quietly widened.
-  assert.equal(manifest.outputFiles.length, 142);
+  assert.equal(manifest.outputFiles.length, 143);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');

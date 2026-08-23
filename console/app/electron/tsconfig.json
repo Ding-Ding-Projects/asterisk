@@ -10,7 +10,17 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["main.ts", "preload.ts", "squirrel-events.ts", "updater-runtime.ts", "../../shared/**/*.ts", "../../control-plane/**/*.ts"]
+  "include": [
+    "main.ts",
+    "preload.ts",
+    "squirrel-events.ts",
+    "updater-runtime.ts",
+    "../../shared/**/*.ts",
+    "../../control-plane/**/*.ts",
+    "../../server/**/*.ts"
+  ]
 }
