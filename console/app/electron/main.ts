@@ -9,7 +9,7 @@ import {
   parseTranslations, parseAclRules, parseManagerSettings, parseManagerUsers, parseAriApps,
   parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime,
 } from '../../control-plane/asterisk-parsers.js';
-import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory } from '../../control-plane/index.js';
+import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory } from '../../control-plane/index.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from '../../control-plane/index.js';
 import type { ReadOnlyCommand, TargetProfile } from '../../control-plane/index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../../shared/control-plane.js';
@@ -343,6 +343,62 @@ async function controlPlaneRequest(request: ControlPlaneRequest): Promise<Contro
         message: restored.ok ? undefined : restored.detail,
         data: restored,
       } as ControlPlaneResponse;
+    }
+
+    /**
+     * Prompts, greetings and music-on-hold media on the target.
+     *
+     * Several screens offer a "custom" choice and had no way to supply the file, which
+     * makes the choice decorative. Uploads are refused by name before any command is
+     * built, verified by their leading bytes where the format has any, and confirmed by
+     * reading the written size back.
+     */
+    if (request.action === 'media.list' || request.action === 'media.upload' || request.action === 'media.remove') {
+      const target = await resolveTarget(request.serverId);
+      const library = new MediaLibrary({ executor: processExecutor, distribution: target.wslDistribution! });
+      const root = request.payload?.root === 'musicOnHold' ? 'musicOnHold' : 'prompts';
+
+      if (request.action === 'media.list') {
+        const subdirectory = typeof request.payload?.subdirectory === 'string' ? request.payload.subdirectory : undefined;
+        return { ok: true, requestId: request.requestId, data: { root, files: await library.list(root, subdirectory) } };
+      }
+
+      const name = typeof request.payload?.name === 'string' ? request.payload.name : '';
+      if (request.action === 'media.remove') {
+        /* Irreversible. The interface puts this behind its confirmation gate; the library
+         * refuses any name that fails the same validator an upload must pass. */
+        const removed = await library.remove(root, name);
+        return { ok: removed.removed, requestId: request.requestId, code: removed.removed ? undefined : 'MEDIA_REMOVE_REFUSED', message: removed.removed ? undefined : removed.detail, data: removed } as ControlPlaneResponse;
+      }
+
+      const contentBase64 = typeof request.payload?.contentBase64 === 'string' ? request.payload.contentBase64 : '';
+      if (!contentBase64) return { ok: false, requestId: request.requestId, code: 'CONTENT_REQUIRED', message: 'No file content was supplied.' };
+      return { ok: true, requestId: request.requestId, data: await library.upload(root, name, contentBase64) };
+    }
+
+    /**
+     * The console's own append-only record of what it changed.
+     *
+     * Separate from `history.*`, which lists the backups a configuration write leaves on
+     * the target. This one records the console's own actions locally, and a restore is
+     * itself recorded rather than rewriting anything.
+     */
+    if (request.action.startsWith('local-history.')) {
+      const history = new LocalHistory({ executor: processExecutor, repositoryPath: join(app.getPath('userData'), 'history') });
+      await history.initialize();
+
+      if (request.action === 'local-history.list') {
+        const options = (request.payload ?? {}) as { action?: string; since?: string; until?: string; limit?: number };
+        return { ok: true, requestId: request.requestId, data: { entries: await history.list(options), counts: await history.actionCounts() } };
+      }
+      if (request.action === 'local-history.record') {
+        const entry = request.payload as unknown as Parameters<LocalHistory['record']>[0];
+        return { ok: true, requestId: request.requestId, data: await history.record(entry) };
+      }
+      if (request.action === 'local-history.restore') {
+        const commitId = typeof request.payload?.commitId === 'string' ? request.payload.commitId : '';
+        return { ok: true, requestId: request.requestId, data: await history.restore(commitId) };
+      }
     }
 
     if (request.action === 'pbx.read') {

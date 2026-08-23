@@ -8,7 +8,11 @@ export type ControlPlaneAction =
   | 'server.list' | 'server.connect' | 'pbx.snapshot' | 'pbx.apply'
   | 'runtime.status' | 'runtime.provision' | 'runtime.stop' | 'runtime.remove'
   | 'pbx.read' | 'pbx.command' | 'pbx.config' | 'pbx.plan'
-  | 'history.list' | 'history.restore';
+  | 'history.list' | 'history.restore'
+  /* Prompts and music-on-hold media on the target, so a "custom" choice can be given a file. */
+  | 'media.list' | 'media.upload' | 'media.remove'
+  /* The console's own append-only record of what it changed, kept locally. */
+  | 'local-history.list' | 'local-history.record' | 'local-history.restore';
 
 /** The screens a `pbx.read` can answer, each backed by read-only Asterisk CLI output. */
 export type PbxReadView =
