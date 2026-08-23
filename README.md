@@ -1,280 +1,157 @@
-# The Asterisk(R) Open Source PBX
+# Ding PBX Console
 
-## Ding PBX Console
+**Ding PBX Console** is a Windows desktop application for administering [Asterisk](https://www.asterisk.org/) PBX installations. It talks to a target over an allowlisted, no-shell control plane, carries its own Ubuntu WSL runtime so a target exists out of the box, and covers 32 destinations across dialplan, endpoints, trunks, queues, voicemail, security, and system administration.
 
-This fork is developing **Ding PBX Console**, a Windows desktop control plane for
-provisioning, observing, and safely configuring Asterisk development and preview
-installations. The desktop application is additive: the upstream Asterisk source
-tree and its build remain available at the repository root, while console-specific
-source and documentation live under `console/`.
+Install: download the latest unsigned Windows installer from the [Releases page](https://github.com/Ding-Ding-Projects/asterisk/releases/latest) and run it — it will show an unknown-publisher warning (see [Installers are unsigned](#installers-are-unsigned)).
+Documentation and downloads: **https://ding-ding-projects.github.io/asterisk/**
 
-The first supported targets are:
-
-- WSL 2 Ubuntu on Windows;
-- a dedicated local Docker project;
-- remote Debian or Ubuntu hosts reached over verified SSH; and
-- Docker on an approved remote Debian or Ubuntu host.
-
-The Windows installer carries a complete Ubuntu 24.04 WSL root filesystem built from the exact repository commit. Asterisk, its loadable modules, sample configuration, system service, and all runtime libraries are inside the installer; the packaged application does not depend on a machine-wide Asterisk installation, PATH lookup, or post-install dependency download.
-
-Every configuration mutation is designed to follow the same transaction: discover
-the current state, show a reviewable change plan, create a backup, require explicit
-confirmation, stage and validate the change, apply it, read the state back from the
-target, and roll back when verification fails. Development targets Asterisk
-`master` and the Asterisk 24 preview line, so the application presents compatibility
-as preview support rather than a stable-LTS guarantee.
-
-> [!IMPORTANT]
-> Ding PBX Console is an independent project. It is not an official Sangoma or
-> Asterisk product, it does not use the Asterisk logo, and it does not change the
-> upstream project's licensing or trademark notices.
-
-The supplied interactive design export is the visual and behavior contract. Its
-public implementation preserves the navigation, controls, menus, drag-and-drop,
-wizards, confirmation flows, settings, and accessibility intent while removing
-private vocabulary and third-party runtime assets. The original private design
-archive is not stored in this public repository.
-
-- [Implementation issue](https://github.com/Ding-Ding-Projects/asterisk/issues/1)
-- [Rolling progress discussion](https://github.com/Ding-Ding-Projects/asterisk/discussions/2)
-- [Delivery project](https://github.com/orgs/Ding-Ding-Projects/projects/24)
-- Documentation site: publication pending the first verified build
-- Installer: publication pending the first verified unsigned Squirrel.Windows package
-
-The static documentation and download experience in `console/site/` now uses six
-focused, routable pages: Home, Product, Documentation, Downloads, Status, and
-Settings. Compact navigation keeps the primary action above the fold, while the
-Documentation route pages through the exact 32 destination identifiers and each
-generated article provides anchored local section navigation. Shared local CSS
-and JavaScript provide responsive navigation, an explicitly simulated telemetry
-demonstration, persisted theme, language, motion and privacy settings, search,
-and an anchored regular-expression builder. It is documentation and download
-infrastructure only—not the installed desktop runtime or a PBX.
-Compose its deterministic local output with `node console/site/build.mjs`; the generated
-manifest records the output files and confirms that the page performs no runtime
-network requests. The installer action remains unavailable until a verified,
-immutable release URL exists.
-
-<details>
-<summary><strong>Shared contributor requirements</strong></summary>
-
-This repository follows the shared Ding-Ding-Projects engineering requirements.
-The complete repository-local mirror is in [`AGENTS.md`](AGENTS.md). In summary:
-preserve unrelated work; keep user-facing behavior accessible and localizable;
-bundle runtime dependencies and assets; use real controls rather than decorative
-lookalikes; keep tests local rather than in GitHub Actions; keep release claims tied
-to exact commits and artifacts; never add code signing; and keep private machine,
-credential, vocabulary, and infrastructure details out of public records.
-
-</details>
-
-```
-By Mark Spencer <markster@digium.com> and the Asterisk.org developer community.
-Copyright (C) 2001-2025 Sangoma Technologies Corporation and other copyright holders.
-```
-
-## SECURITY
-
-It is imperative that you read and fully understand the contents of
-the security information document before you attempt to configure and run
-an Asterisk server.
-
-See [Important Security Considerations](https://docs.asterisk.org/Deployment/Important-Security-Considerations) for more information.
-
-## WHAT IS ASTERISK ?
-
-Asterisk is an Open Source PBX and telephony toolkit.  It is, in a
-sense, middleware between Internet and telephony channels on the bottom,
-and Internet and telephony applications at the top.  However, Asterisk supports
-more telephony interfaces than just Internet telephony.  Asterisk also has a
-vast amount of support for traditional PSTN telephony, as well.
-
-For more information on the project itself, please visit the [Asterisk
-Home Page](https://www.asterisk.org) and the official
-[Asterisk Documentation](https://docs.asterisk.org).
-
-## SUPPORTED OPERATING SYSTEMS
-
-### Linux
-
-The Asterisk Open Source PBX is developed and tested primarily on the
-GNU/Linux operating system, and is supported on every major GNU/Linux
-distribution.
-
-### Others
-
-Asterisk has also been 'ported' and reportedly runs properly on other
-operating systems as well, Apple's Mac OS X, and the BSD variants.
-
-## GETTING STARTED
-
-Most users are using VoIP/SIP exclusively these days but if you need to
-interface to TDM or analog services or devices, be sure you've got supported
-hardware.
-
-Supported telephony hardware includes:
-* All Analog and Digital Interface cards from Sangoma
-* Any full duplex sound card supported by PortAudio
-* The Xorcom Astribank channel bank
-
-### UPGRADING FROM AN EARLIER VERSION
-
-If you are updating from a previous version of Asterisk, make sure you
-read the Change Logs.
-
-<!-- CHANGELOGS (the URL will change based on the location of this README) -->
-[Change Logs](https://downloads.asterisk.org/pub/telephony/asterisk)
-<!-- END-CHANGELOGS -->
-
-### NEW INSTALLATIONS
-
-Ensure that your system contains a compatible compiler and development
-libraries.  Asterisk requires either the GNU Compiler Collection (GCC) version
-4.1 or higher, or a compiler that supports the C99 specification and some of
-the gcc language extensions.  In addition, your system needs to have the C
-library headers available, and the headers and libraries for ncurses.
-
-There are many modules that have additional dependencies.  To see what
-libraries are being looked for, see `./configure --help`, or run
-`make menuselect` to view the dependencies for specific modules.
-
-On many distributions, these dependencies are installed by packages with names
-like 'glibc-devel', 'ncurses-devel', 'openssl-devel' and 'zlib-devel'
-or similar.  The `contrib/scripts/install_prereq` script can be used to install
-the dependencies for most Debian and Redhat based Linux distributions.
-The script also handles SUSE, Arch, Gentoo, FreeBSD, NetBSD and OpenBSD but
-those distributions mightnoit have complete support or they might be out of date.
-
-So, let's proceed:
-
-1. Read the documentation.<br>
-The [Asterisk Documentation](https://docs.asterisk.org) website has full
-information for building, installing, configuring and running Asterisk.
-
-2. Run `./configure`<br>
-Execute the configure script to guess values for system-dependent
-variables used during compilation. If the script indicates that some required
-components are missing, you can run `./contrib/scripts/install_prereq install`
-to install the necessary components. Note that this will install all dependencies
-for every functionality of Asterisk. After running the script, you will need
-to rerun `./configure`.
-
-3. Run `make menuselect`<br>
-This is needed if you want to select the modules that will be compiled and to
-check dependencies for various optional modules.
-
-4. Run `make`<br>
-Assuming the build completes successfully:
-
-5. Run `make install`<br>
-If this is your first time working with Asterisk, you may wish to install
-the sample PBX, with demonstration extensions, etc.  If so, run:
-
-6. Run `make samples`<br>
-Doing so will overwrite any existing configuration files you have installed.
-
-7. Finally, you can launch Asterisk in the foreground mode (not a daemon) with
-`asterisk -vvvc`<br>
-You'll see a bunch of verbose messages fly by your screen as Asterisk
-initializes (that's the "very very verbose" mode).  When it's ready, if
-you specified the "c" then you'll get a command line console, that looks
-like this:<br>
-`*CLI>`<br>
-You can type `core show help` at any time to get help with the system.  For help
-with a specific command, type `core show help <command>`.
-
-`man asterisk` at the Unix/Linux command prompt will give you detailed
-information on how to start and stop Asterisk, as well as all the command
-line options for starting Asterisk.
-
-### ABOUT CONFIGURATION FILES
-
-All Asterisk configuration files share a common format.  Comments are
-delimited by `;` (since `#` of course, being a DTMF digit, may occur in
-many places).  A configuration file is divided into sections whose names
-appear in `[]`'s.  Each section typically contains statements in the form
-`variable = value` although you may see `variable => value` in older samples.
-
-### SPECIAL NOTE ON TIME
-
-Those using SIP phones should be aware that Asterisk is sensitive to
-large jumps in time.  Manually changing the system time using date(1)
-(or other similar commands) may cause SIP registrations and other
-internal processes to fail.  For this reason, you should always use
-a time synchronization package to keep your system time accurate.
-All OS/distributions make one or more of the following packages
-available:
-
-* ntpd/ntpsec
-* chronyd
-* systemd-timesyncd
-
-Be sure to install and configure one (and only one) of them.
-
-### FILE DESCRIPTORS
-
-Depending on the size of your system and your configuration,
-Asterisk can consume a large number of file descriptors.  In UNIX,
-file descriptors are used for more than just files on disk.  File
-descriptors are also used for handling network communication
-(e.g. SIP, IAX2, or H.323 calls) and hardware access (e.g. analog and
-digital trunk hardware).  Asterisk accesses many on-disk files for
-everything from configuration information to voicemail storage.
-
-Most systems limit the number of file descriptors that Asterisk can
-have open at one time.  This can limit the number of simultaneous
-calls that your system can handle.  For example, if the limit is set
-at 1024 (a common default value) Asterisk can handle approximately 150
-SIP calls simultaneously.  To change the number of file descriptors
-follow the instructions for your system below:
-
-#### PAM-BASED LINUX SYSTEM
-
-If your system uses PAM (Pluggable Authentication Modules) edit
-`/etc/security/limits.conf`.  Add these lines to the bottom of the file:
-
-```text
-root            soft    nofile          4096
-root            hard    nofile          8196
-asterisk        soft    nofile          4096
-asterisk        hard    nofile          8196
-```
-
-(adjust the numbers to taste).  You may need to reboot the system for
-these changes to take effect.
-
-#### GENERIC UNIX SYSTEM
-
-If there are no instructions specifically adapted to your system
-above you can try adding the command `ulimit -n 8192` to the script
-that starts Asterisk.
-
-## MORE INFORMATION
-
-Visit the [Asterisk Documentation](https://docs.asterisk.org) website
-for more documentation on various features and please read all the
-configuration samples that include documentation on the configuration options.
-
-Finally, you may wish to join the
-[Asterisk Community Forums](https://community.asterisk.org)
-
-
-Welcome to the growing worldwide community of Asterisk users!
-
-```
-        Mark Spencer, and the Asterisk.org development community
-```
+**Contents:** [What it is](#what-ding-pbx-console-is) · [Reaching a PBX](#reaching-a-pbx) · [Build and installer scripts](#build-and-installer-scripts) · [The bundled WSL runtime](#the-bundled-wsl-runtime) · [Safety model](#the-control-planes-safety-model) · [Testing](#testing) · [Documentation](#documentation) · [Contributing](#contributing) · [What is not done yet](#what-is-not-done-yet) · [This is a fork of Asterisk](#this-is-a-fork-of-asterisk) · [How long this would take a person](#how-long-this-would-take-a-person-to-write)
 
 ---
 
-Asterisk is a trademark of Sangoma Technologies Corporation
+<details>
+<summary><strong>What Ding PBX Console is</strong></summary>
 
-\[[Sangoma](https://www.sangoma.com/)\] 
-\[[Home Page](https://www.asterisk.org)\] 
-\[[Support](https://www.asterisk.org/support)\] 
-\[[Documentation](https://docs.asterisk.org)\] 
-\[[Community Forums](https://community.asterisk.org)\] 
-\[[Release Notes](https://github.com/asterisk/asterisk/releases)\] 
-\[[Security](https://docs.asterisk.org/Deployment/Important-Security-Considerations/)\] 
-\[[Mailing List Archive](https://lists.digium.com)\] 
+A Windows desktop application, built with Electron and a compiled design system, that gives an administrator one place to observe and configure an Asterisk PBX: channels, endpoints, trunks, registrations, queues, contacts, modules, dialplan (drawn from the target's own `dialplan show` output), voicemail, conferences, music on hold, codecs, access control, call records, logging, and the AMI/REST surface.
+
+It ships as a single Windows installer that carries a complete Ubuntu 24.04 root filesystem with Asterisk and its runtime dependencies already compiled in, so there is a target to connect to without the user separately standing up a PBX first.
+
+The interface is organized into six navigation rails covering 32 destinations, with tabbed navigation, searchable menus and lists, an anchored regex builder, a command palette, guided flows, appearance controls, non-blocking notifications, and guarded destructive-action previews.
+
+</summary>
+</details>
+
+<details>
+<summary><strong>Reaching a PBX</strong></summary>
+
+The console discovers or connects to a target through:
+
+- **WSL 2 Ubuntu on Windows** — including the console's own bundled distribution, created, verified, stopped, and removed entirely through the app (**App → Deploy & servers**);
+- **a local Docker container** discovered by project label; or
+- **a remote Debian or Ubuntu host** reached over SSH with scoped trust-on-first-use host-key handling.
+
+Every one of those routes goes through the same bounded control plane described below — there is no path that reaches a target through an unrestricted shell.
+
+</summary>
+</details>
+
+<details>
+<summary><strong>Build and installer scripts (repository root)</strong></summary>
+
+Run from the repository root on Windows:
+
+| Script | What it does |
+| --- | --- |
+| `download-dependencies.bat [/s]` | Fetches and digest-verifies every pinned dependency (currently a pinned Node.js build) into a user-scoped, per-project cache. Idempotent; re-run is a no-op once warm. |
+| `build.bat [/s]` | Runs the dependency fetch, `npm ci`, and builds a runnable copy of the console out of the checkout. `/s` (also `--silent`, or `SILENT=1`) runs unattended with no prompts, for CI or another agent. |
+| `build-installer.bat [/s]` | Builds the actual Windows installer through Squirrel.Windows — the same packaging path CI uses — and verifies the produced `Setup.exe`, `RELEASES` index, and full `.nupkg` exist, are the right shape, and are unsigned (`NotSigned`) as expected. Prints the SHA-256 of each output. |
+| `build-wsl-throwaway.bat` | Builds the Ubuntu root filesystem image that gets bundled into the installer, by compiling this repository's own Asterisk source inside a container. |
+
+Every script installs what it needs itself — no separate "install X first" step — reports honestly per phase, and never touches code signing (permanently out of scope; see [Installers are unsigned](#installers-are-unsigned)).
+
+</summary>
+</details>
+
+<details>
+<summary><strong>The bundled WSL runtime</strong></summary>
+
+The installer carries a complete Ubuntu 24.04 root filesystem, built by `build-wsl-throwaway.bat` from this exact repository commit, with Asterisk and every runtime library it needs already compiled and installed — verified by checking the closure of dynamic-library dependencies, not just a successful compile. The console can create, verify, stop, and remove its own distribution (**App → Deploy & servers**), verifying success by asking the distribution for its actual Asterisk version rather than trusting a process exit code, and it refuses to import over an existing distribution or remove one it did not create — both refusals have been exercised against a real Windows/WSL machine, not a scripted stand-in.
+
+Currently the runtime image is compiled locally by `build-wsl-throwaway.bat`, which takes tens of minutes and needs a working container engine. Building it in CI and pulling a digest-pinned image at packaging time instead is tracked as open work in `ROADMAP.md`.
+
+</summary>
+</details>
+
+<details>
+<summary><strong>The control plane's safety model</strong></summary>
+
+Nothing the console does reaches a target through an open shell. Every action goes through:
+
+- an **allowlist of read-only CLI commands** (63 of them, each verified against Asterisk's own source rather than invented) for observation, and
+- an **allowlist of writable configuration resources** (41 files) for change, reached only through `ConfigTransaction` / `StructuredConfigPlanner`: **backup → stage → validate → apply → post-read → compare**, with automatic rollback if the post-read doesn't match what was written.
+
+There is no free-text command execution and no path that lets the interface construct an arbitrary shell invocation. Every destructive or write action is dispatched through one confirmation flow that now actually calls the underlying action and reports its real outcome — including refusals — rather than announcing success unconditionally.
+
+</summary>
+</details>
+
+<details>
+<summary><strong>Testing</strong></summary>
+
+From `console/`:
+
+```
+npm test
+```
+
+This runs the renderer, control-plane, and static-site suites, then the design-parity and completeness inventory validators together with their negative regressions (which deliberately break each guard and confirm it goes red, then confirm restoring it goes green).
+
+Measured on this tree at the commit below:
+
+| Suite | Tests | Pass | Fail |
+| --- | ---: | ---: | ---: |
+| Inventory / drift | 12 | 12 | 0 |
+| Renderer | 424 | 424 | 0 |
+| Control plane | 348 | 345 | **3** |
+| Static site | 10 | 10 | 0 |
+
+The three control-plane failures are all in the access-control-list (`acl.conf`) address-matching tests (`evaluate returns the matching rule index for a permitted address`, `... a denied address`, and `... an IPv6 address`) — expected, since access-control-rule editing is one of the largest unimplemented gaps (see below) and its evaluator is still under construction. Every other suite is fully green, and both inventory negative regressions were confirmed red-then-green on this run.
+
+</summary>
+</details>
+
+<details>
+<summary><strong>Documentation</strong></summary>
+
+The Windows application bundles all 82 feature articles offline, with search and link resolution, so the documentation ships inside the installer with no network dependency. The same content, plus product and download pages, is published as a static site with no runtime asset fetches at **https://ding-ding-projects.github.io/asterisk/**.
+
+</summary>
+</details>
+
+<details>
+<summary><strong>Contributing</strong></summary>
+
+1. Clone the repository, then run `download-dependencies.bat /s` at the root (or `npm ci` inside `console/` for renderer-only work).
+2. `npm test` in `console/` runs the full local suite described above.
+3. **Do not hand-edit `console/app/renderer/src/generated/`.** It is compiled from the checked-in design reference at `design/` by `node console/scripts/compile-design.mjs`; `console/tests/ui/design-drift.test.mjs` fails the build if the shipped renderer is not byte-identical to a fresh compile. Change the design reference and recompile instead.
+4. `ROADMAP.md` and `HANDOFF.md` are kept current and are the honest source of what is and isn't done — read them before proposing a feature.
+5. No sample or invented data may be reintroduced into the running application: an unread surface stays empty with a stated reason, and an unread cell renders as an em dash, never a placeholder value.
+
+</summary>
+</details>
+
+<details>
+<summary><strong>What is not done yet</strong></summary>
+
+Stated plainly, from `ROADMAP.md` and `HANDOFF.md`:
+
+- **Nothing has been written to a real Asterisk exchange.** Every write path — including the configuration transaction engine — has been proved only against a disposable throwaway distribution created for testing. No configuration change may be described as verified against production until an approved plan has run against a real target.
+- **16 of 32 destinations are backed by live data.** The rest render honestly empty screens rather than sample content.
+- **48 of 130 bound controls remain deliberately unwired.** Each screen states how many of its own controls are not yet connected — a wrong binding doesn't fail loudly, it writes the wrong setting to a telephone exchange and looks like it worked.
+- **The desktop interface has no accessibility attributes at all**, and nothing under its application directory is covered by a test.
+- **Large gaps in Asterisk coverage remain**, including access control rules (`acl.conf`), sound prompt management, TLS/certificate management, hardware trunks, database/realtime backends, fax, channel event logging, STIR/SHAKEN attestation, and several more — see `ROADMAP.md` for the full list.
+- **No screenshots or built-artifact captures exist yet** for most of the interface. Where a picture would normally go here, none is included rather than fabricated or borrowed from elsewhere; producing a real capture set from the built application is open work.
+
+</summary>
+</details>
+
+## Installers are unsigned
+
+Every published Windows installer is **deliberately unsigned** — code signing is out of scope for this project by policy — so Windows will show an unknown-publisher warning (SmartScreen) when you run it. This is expected and does not indicate tampering; verify the SHA-256 against the `SHA256SUMS.txt` asset on the same release if you want independent confirmation.
+
+## This is a fork of Asterisk
+
+**This repository is a fork of the [Asterisk](https://www.asterisk.org/) Open Source PBX project**, licensed under the GNU General Public License version 2. Ding PBX Console is additive software built on top of this checkout to administer Asterisk; it does not replace, relicense, or claim authorship of Asterisk itself. The full, unmodified upstream Asterisk source tree and build system remain at the repository root exactly as they do in any Asterisk checkout.
+
+- Upstream project: **https://www.asterisk.org/** — source, downloads, and documentation for Asterisk itself.
+- License: see [`LICENSE`](LICENSE) and [`COPYING`](COPYING).
+- Original authors and contributors: see [`CREDITS`](CREDITS).
+
+If you are looking for Asterisk the PBX platform rather than this console, the upstream project above is the right place.
+
+## How long this would take a person to write
+
+**Estimate: roughly 6–10 months** for one experienced developer, working alone, to reach the current state of the console (excluding the inherited Asterisk source tree itself).
+
+Method: the committed line counter (`console/scripts/count-lines.mjs`) reports **30,282 hand-written project lines** (source, tests, and markup actually written for this project, excluding generated output and vendored/inherited code) as of commit `53ba00d1b`. At a sustained rate of roughly 100–160 net lines per working day for original application code, tests, and hand-written markup of this kind — a rate that accounts for the design-parity compiler work, the control-plane safety machinery, and the two negative-regression test suites, all of which cost far more time per line than routine CRUD screens — that comes out to about 190–300 working days, or **roughly 6–10 months** of full-time solo work. This is an estimate derived from a line count, not a measurement of actual elapsed time, and it is deliberately given as a range rather than a single figure.
 
