@@ -13,6 +13,7 @@ import {
   type PbxFeatureDefinition,
 } from './pbx-admin-model';
 import { featureForAdvancedScreen, registerPbxAdminScreens } from './pbx-admin-screens';
+import { lookupFieldControl } from '../../../control-plane/field-control-catalog';
 import { SCREENS } from './generated/console';
 
 registerPbxAdminScreens();
@@ -393,12 +394,20 @@ export class PbxAdminApp extends App {
           const label = entry.key || '(blank setting name)';
           const info = `${resource} · [${section.name || 'global'}] · occurrence ${entryIndex + 1}`;
           // Asterisk's own yes/no spelling is an unambiguous boolean — render it as a
-          // real switch instead of a free-text box for "yes"/"no". Every other value
-          // stays text: this editor has no per-key field model, so anything without a
-          // literal boolean value it can verify is left as free text rather than
-          // guessing at a select/stepper range that was never actually read.
+          // real switch instead of a free-text box for "yes"/"no".
           if (isAsteriskBoolean(entry.value)) {
             return switchControl(id, label, parseAsteriskBoolean(entry.value), info);
+          }
+          // Beyond booleans, `field-control-catalog.ts` carries every closed, single-value
+          // set that the resource's own sample file documents for this exact key (an IAX2
+          // `amaflags`, a fax `maxrate`, ...). When one exists, offer exactly those values
+          // as a real select rather than a text box — and when the value currently on disk
+          // is not among them (an old/foreign edit), fall through to text so nothing is
+          // silently coerced into an option that was never actually there.
+          const enumField = resource ? lookupFieldControl(basename(resource), entry.key) : undefined;
+          if (enumField && (entry.value.length === 0 || enumField.options.includes(entry.value))) {
+            const control = selectControl(id, label, entry.value || enumField.options[0]!, enumField.options);
+            return { ...control, info };
           }
           return textControl(id, label, entry.value, info);
         });

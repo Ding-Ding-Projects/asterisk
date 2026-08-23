@@ -117,8 +117,8 @@ const UDPTL_KEYS: ReadonlyArray<keyof UdptlGeneralView> = [
   "udptlfecspan",
   "use_even_ports",
 ];
-const FAX_RATES = new Set(["2400", "4800", "7200", "9600", "12000", "14400"]);
-const FAX_MODEMS = new Set(["v17", "v27", "v29"]);
+export const FAX_RATES = new Set(["2400", "4800", "7200", "9600", "12000", "14400"]);
+export const FAX_MODEMS = new Set(["v17", "v27", "v29"]);
 
 export function parseFax(faxValue: ConfigValue, udptlValue: ConfigValue): FaxView {
   const faxGeneral = section(faxValue, "general");
@@ -667,10 +667,10 @@ const IAX_GENERAL_SCALAR_KEYS: ReadonlyArray<keyof Omit<IaxGeneralView, "bindadd
   "auth",
   "requirecalltoken",
 ];
-const IAX_AMAFLAGS = new Set(["default", "omit", "billing", "documentation"]);
-const IAX_BANDWIDTHS = new Set(["low", "medium", "high"]);
+export const IAX_AMAFLAGS = new Set(["default", "omit", "billing", "documentation"]);
+export const IAX_BANDWIDTHS = new Set(["low", "medium", "high"]);
 const IAX_AUTH_METHODS = new Set(["md5", "plaintext", "rsa"]);
-const IAX_TYPES = new Set(["user", "peer", "friend"]);
+export const IAX_TYPES = new Set(["user", "peer", "friend"]);
 
 export function parseIax(value: ConfigValue): IaxView {
   const general = section(value, "general");
@@ -956,10 +956,10 @@ export interface PjsipView {
   readonly rest: ConfigValue;
 }
 
-const PJSIP_DTMF_MODES = new Set(["rfc4733", "inband", "info", "auto", "auto_info"]);
+export const PJSIP_DTMF_MODES = new Set(["rfc4733", "inband", "info", "auto", "auto_info"]);
 const PJSIP_IDENTIFY_BY = new Set(["username", "auth_username", "ip", "header", "request_uri"]);
-const PJSIP_MEDIA_ENCRYPTION = new Set(["no", "sdes", "dtls"]);
-const PJSIP_AUTH_TYPES = new Set(["digest", "google_oauth"]);
+export const PJSIP_MEDIA_ENCRYPTION = new Set(["no", "sdes", "dtls"]);
+export const PJSIP_AUTH_TYPES = new Set(["digest", "google_oauth"]);
 const PJSIP_MAX_CONTACTS_CEILING = 100; // CORE-EXT-015: Core's own documented ceiling.
 
 function sectionsNamed(value: ConfigValue, name: string): ConfigSection[] {

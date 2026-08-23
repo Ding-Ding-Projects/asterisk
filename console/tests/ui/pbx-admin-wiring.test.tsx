@@ -83,6 +83,16 @@ test('PBX Admin uses bounded desktop actions and never exposes a raw command or 
   assert.match(source, /this\.areYouSure/u, 'destructive / live writes must pass through the existing confirmation dialog');
 });
 
+test('the generic per-entry editor consults the field control catalog before falling back to text', async () => {
+  const source = await readFile(appUrl, 'utf8');
+  assert.match(
+    source,
+    /lookupFieldControl\(/u,
+    'the generic draft renderer must ask field-control-catalog for a typed closed set before defaulting a non-boolean value to a text box',
+  );
+  assert.match(source, /import \{ lookupFieldControl \} from '\.\.\/\.\.\/\.\.\/control-plane\/field-control-catalog'/u);
+});
+
 test('live/report standard modules route through existing Ding screens instead of cloning UI', async () => {
   const source = await readFile(integratedUrl, 'utf8');
   assert.match(source, /featureForAdvancedScreen/u);
