@@ -159,6 +159,11 @@ export interface WslConfigTransportOptions {
   now?: () => Date;
 }
 
+function looksAbsent(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /No such file or directory|cannot stat/u.test(message);
+}
+
 export class WslConfigTransport implements ConfigTransport {
   readonly #executor: ProcessExecutor;
   readonly #distribution: string;
@@ -193,17 +198,34 @@ export class WslConfigTransport implements ConfigTransport {
 
   async read(resource: string): Promise<ConfigValue> {
     const allowed = assertConfigurable(resource);
-    return parseConfig(await this.#run(["cat", this.#path(allowed)]));
+    try {
+      return parseConfig(await this.#run(["cat", this.#path(allowed)]));
+    } catch (error) {
+      /* Optional Asterisk subsystem files are often genuinely absent on a fresh target.
+       * Absence means an empty desired resource that the admin UI may create; permission
+       * errors and every other failure still surface unchanged. */
+      if (looksAbsent(error)) return [];
+      throw error;
+    }
   }
 
   async backup(resource: string): Promise<string> {
     const allowed = assertConfigurable(resource);
     /* A timestamped copy rather than an overwritten `.bak`, so a second failed apply
-     * cannot destroy the backup taken by the first. */
+     * cannot destroy the backup taken by the first. If the resource does not exist yet,
+     * record that fact as a bounded marker; rollback then removes the newly created file
+     * rather than turning "absent" into an empty config. */
     const stamp = this.#now().toISOString().replaceAll(/[:.]/gu, "-");
     const backup = this.#path(allowed, `.backup-${stamp}`);
-    await this.#run(["cp", "--preserve=mode,ownership,timestamps", this.#path(allowed), backup]);
-    return backup;
+    try {
+      await this.#run(["cp", "--preserve=mode,ownership,timestamps", this.#path(allowed), backup]);
+      return backup;
+    } catch (error) {
+      if (!looksAbsent(error)) throw error;
+      const absent = `${backup}-absent`;
+      await this.#run(["touch", absent]);
+      return absent;
+    }
   }
 
   async stage(resource: string, value: unknown): Promise<string> {
@@ -245,12 +267,17 @@ export class WslConfigTransport implements ConfigTransport {
    *
    * The resource is recovered by matching the handle against the allowlist itself rather
    * than by parsing a path out of it, so a handle can only ever restore over a file the
-   * allowlist already contains.
+   * allowlist already contains. An `-absent` marker means the resource did not exist
+   * before the transaction, so rollback removes the file that transaction created.
    */
   async rollback(backupHandle: string): Promise<void> {
     const resource = CONFIGURABLE_RESOURCES.find((candidate) => backupHandle.startsWith(`${candidate}.backup-`));
     if (!resource) {
       throw new Error("That backup handle does not belong to a configurable resource.");
+    }
+    if (backupHandle.endsWith("-absent")) {
+      await this.#run(["rm", "-f", resource]);
+      return;
     }
     await this.#run(["cp", backupHandle, resource]);
   }
