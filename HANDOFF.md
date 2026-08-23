@@ -82,6 +82,38 @@ Everything below is on the default branch. To pick this up elsewhere:
 - **The design reference's font set was being shipped as a fraction of itself.** The reference names one Google Fonts stylesheet whose single request answers with **49 `@font-face` blocks** — one per family, per weight, per `unicode-range` subset. Three package substitutes stood in for them, collapsing four Roboto weights, dropping every non-latin subset, and supplying a Material Symbols face with no variation axes beneath a `.msym` rule that sets `FILL`, `wght`, `GRAD` and `opsz`. The browser synthesised silently, producing an interface that was uniformly slightly wrong with nothing to read in the source that looked incorrect. `console/scripts/download-fonts.mjs` now downloads all 49 files from the URL read out of the design file itself, preserves `font-weight` and `unicode-range` verbatim, rewrites only `src`, and records a SHA-256 per file in a committed manifest. Cost: 5.2 MB, of which 3.96 MB is the genuine variable symbol face.
 - **The compiler's coverage of the design specification is otherwise complete.** An attribute-level audit of both reference files confirmed every tag, attribute, event and control-flow construct reaches the compiled renderer: 1,010 and 76 inline `style` props are emitted, the `<style>` block is carried, `style-hover`/`style-active` are rerouted into generated CSS, and `list`/`as`/`ctl` are consumed by the control-flow branches before the generic drop list runs. `design/support.js` is entirely design-tool editor and live-preview machinery — a browser interpreter of the same work `compile-design.mjs` does ahead of time — and its one behavioural contract, `DCLogic`, is already reimplemented in shipped `console/app/renderer/src/dc-runtime.tsx`. `design/uploads/*.png` are unreferenced authoring leftovers. The fonts were the divergence.
 
+## Session handoff — closing at commit `87cead7124`
+
+### What this session changed
+
+| Commit | Change |
+| --- | --- |
+| `0611732d09` | Downloaded the design reference's complete 49-face font set; was 3 package substitutes |
+| `23bd12e797` | Made the completeness inventory resolve and require its own evidence artifacts |
+| `f552a8cd3a` | Corrected the handoff and roadmap against the real tree |
+| `899a3c3ecf` | Removed private vocabulary from every shipped and published surface, with a guard |
+| `7e8adb70ce` | Created and managed the console's own WSL distribution from the packaged payload |
+| `87cead7124` | Made the confirmation flow actually run the command it guarded |
+
+### Verification at close
+
+- Local suite: **144 test cases green, exit 0** — 12 design/leak, 49 renderer, 83 control-plane, plus the static-site and inventory checks. Every negative regression was observed red on a deliberate break and green on restoration.
+- Remote CI was verified green at `23bd12e797`, which published release `ding-pbx-console-v0.0.7-r1` (non-draft, exact target, six assets). Runs for `899a3c3ecf`, `7e8adb70ce` and `87cead7124` were still in flight at close and their verdicts are **not** recorded here, because a predicted verdict is not a verdict.
+- Release `ding-pbx-console-v0.0.5-r1` was independently verified: `RELEASES` and `SHA256SUMS.txt` were downloaded and read back, and the size `RELEASES` records for the full package matches the published asset exactly.
+
+### The state a next owner most needs to know
+
+**The interface is far less wired than it appears.** An audit found **7 of 32 destinations backed by live control-plane data**. Of nine declared control-plane actions, three were implemented and two were ever called from the interface. Twenty-one screens are complete, responsive editor forms — switches, selects, sliders — that persist nothing anywhere.
+
+This session fixed the worst of it: every destructive and write control funnelled through one confirmation flow that closed the dialog and announced the command had been "executed and attested" while calling nothing at all. It now dispatches and reports the truth, including its refusals. **The twenty-one editor screens remain unwired** and are the largest honest gap in the product.
+
+One genuine mitigation already in place: `App.tsx` blanks the design's 72 seeded sample rows at render, so no invented data reaches the screen. The affected destinations are honestly empty rather than falsely populated.
+
+### Open items requiring a decision this session did not take
+
+1. **Two commit messages carry private vocabulary**: `9beed2f159` and `899a3c3ecf`. Correcting them requires rewriting history and force-pushing, which was not authorised and was not done. Release notes were swept and are clean.
+2. **Installers published before `899a3c3ecf` contain the pre-scrub wording.** Binaries cannot be edited. Superseding or removing those releases is a decision for the owner.
+
 ## Next owner actions
 
 1. Review and merge `design-parity-real-readings`, then publish the integrated candidate from the default branch and verify the workflow, release assets, and GitHub Pages response independently.

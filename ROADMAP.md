@@ -38,6 +38,18 @@
 - [x] Make the completeness check resolve its evidence templates and require the artifacts to exist, so a row cannot claim `verified` without them, with a red-then-green negative regression proving it refuses false claims rather than refusing everything.
 - [x] Download the design reference's complete 49-face font set from its own stylesheet URL, preserving every weight and `unicode-range`, replacing package substitutes that covered only a fraction of it.
 - [x] Audit the design compiler attribute-by-attribute and confirm 100% of the design specification reaches the renderer; record that `design/support.js` is design-tool editor machinery rather than missing runtime.
+- [x] Remove private vocabulary from every shipped and published surface, and add a hand-written-list guard with a planted-term negative regression so a new term cannot arrive unnoticed.
+- [x] Create, verify, stop and remove the console's own WSL distribution from the packaged Asterisk payload, replacing a `server.provision-bundled` action that was declared and implemented nowhere.
+- [x] Make the confirmation flow dispatch the command it guards and report the real outcome, including refusals, instead of announcing success without calling anything.
+
+## Wiring the interface to real behaviour
+
+Measured position: **7 of 32 destinations are backed by live control-plane data**; 3 of 9 declared actions are implemented.
+
+- [ ] Implement `pbx.apply`, `history.list` and `history.restore` so the 21 configuration-editor screens can stage and commit, or relabel those screens read-only until they can. They are complete, responsive forms today that persist nothing.
+- [ ] Give the permanently empty table destinations (`ivr`, `voicemail`, `confbridge`, `moh`, `ami`, `sync`, `skills`, `hub`, `vocab`, `ops`, `secrets`, `notifications`) either a real reader or an empty state that distinguishes "not wired yet" from "connected and genuinely zero rows".
+- [ ] Remove or gate `server.connect`, which is implemented in the main process and never called from the interface.
+- [ ] Decide whether the pre-scrub installers published before `899a3c3ecf` should be superseded or removed; their binaries carry private wording and cannot be edited.
 - [x] Run the built Windows console through the approved headless interaction route and record genuine packaged interaction evidence for WSL discovery.
 
 ## Release readiness
