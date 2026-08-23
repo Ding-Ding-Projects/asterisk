@@ -11,3 +11,4 @@ export * from "./dialplan-graph.js";
 export * from "./wsl-provisioning.js";
 export * from "./wsl-config-transport.js";
 export * from "./config-history.js";
+export * from "./local-history.js";

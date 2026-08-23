@@ -42,7 +42,7 @@
   ];
 
   const BASE = document.documentElement.dataset.base || './';
-  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false},scheduleEnabled:false,notifications:[]};
+  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},scheduleEnabled:false,notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false}};
   const STORAGE_KEY = 'ding-pbx-pages-v2';
   const regexState = new Map();
   let regexTarget = '';
@@ -51,13 +51,245 @@
   const $ = id => document.getElementById(id);
   const all = selector => [...document.querySelectorAll(selector)];
   function escapeHtml(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-  function loadState(){try{return{...DEFAULTS,...JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')}}catch{return{...DEFAULTS}}}
+  function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');return{...DEFAULTS,...saved,attention:{...DEFAULTS.attention,...(saved.attention||{})},collapsed:{...DEFAULTS.collapsed,...(saved.collapsed||{})}}}catch{return{...DEFAULTS,attention:{...DEFAULTS.attention},collapsed:{...DEFAULTS.collapsed}}}}
   const state=loadState();
   function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
-  function update(key,value){state[key]=value;save();applyState();notify('Setting saved',`${key} now uses ${value}.`)}
-  function applyState(){document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);applyLanguage()}
-  function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();notify('Setting saved',`attention.${key} now uses ${value}.`)}
+  function update(key,value){state[key]=value;save();applyState();notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`))}
+  function applyState(){document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyVocabulary();updateSessionTimer();updateOneThingBanner()}
+  function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`))}
   function applyLanguage(){if(!$('language-preview'))return;document.documentElement.lang=state.language==='zh'?'zh-Hant':'en';$('language-preview').textContent=state.language==='en'?'English presentation active.':state.language==='zh'?'廣東話顯示已啟用。':'Bilingual presentation active. / 雙語顯示已啟用。'}
+
+  // Funny-level copy: voice changes with the slider, facts never do. Each key holds
+  // four English variants (Plain..Maximum) and four Cantonese variants at the same
+  // levels, selected by the independent per-language funny sliders. Level 0 is the
+  // exact wording this page already shipped, so nothing changes for anyone who never
+  // touches the sliders.
+  const COPY = {
+    heroLede:{en:[
+      'Ding PBX Console is a planned desktop administration experience for Asterisk. This website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
+      'Ding PBX Console is a planned desktop administration experience for Asterisk. Worth saying plainly: this website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
+      'Ding PBX Console is a planned desktop administration experience for Asterisk. Friendly reminder: this website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
+      'Ding PBX Console is a planned desktop administration experience for Asterisk. Say it with us: this website is documentation and download infrastructure—not the installed desktop application, and definitely not a PBX runtime.'
+    ],zh:[
+      'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，亦唔係 PBX 運行環境。',
+      'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。講多句：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，亦唔係 PBX 運行環境。',
+      'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。老實講：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，更加唔係 PBX 運行環境。',
+      'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。認真同你講：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，梗係唔係 PBX 運行環境喇，聽晒未？'
+    ]},
+    themeDesc:{en:[
+      'Applies immediately and persists.',
+      'Applies immediately and persists — no reload needed.',
+      'Flips instantly and sticks around.',
+      'Flips in a blink and stays put, no takebacks.'
+    ],zh:[
+      '即時套用並會保存。',
+      '即時套用並保存，唔使重新載入。',
+      '一下就轉咗，仲會記住。',
+      '眨吓眼就轉晒色，仲賴死唔走。'
+    ]},
+    motionDesc:{en:[
+      'Stops non-essential site animation. The operating-system preference also applies.',
+      'Stops non-essential site animation, on top of your operating-system preference.',
+      'Calms down the moving parts. Your OS setting still applies too.',
+      'Puts the wiggly bits to bed. Your OS setting still has the final say.'
+    ],zh:[
+      '停止非必要嘅網站動畫，亦會跟隨作業系統設定。',
+      '停止非必要嘅網站動畫，同你部機嘅設定夾埋用。',
+      '靜番啲跳動嘅嘢。你部機嘅設定照樣有效。',
+      '安撫晒啲郁嚟郁去嘅嘢，你部機話事嗰個仲係話事。'
+    ]},
+    emptyDestinations:{en:[
+      'No destinations match this search.',
+      'No destinations match this search — try a shorter term.',
+      'Nothing matched. Try loosening the search a little.',
+      'Came up empty. Try fewer words and see what turns up.'
+    ],zh:[
+      '冇符合搜尋嘅目的地。',
+      '冇符合搜尋嘅目的地，不如試短啲嘅字。',
+      '乜都搵唔到，試吓少啲字。',
+      '搵到一場空，少打幾隻字睇下有冇。'
+    ]},
+    emptyNotifications:{en:[
+      'No local notifications.',
+      'No local notifications yet.',
+      'Nothing here yet — quiet on purpose.',
+      'Empty in here. Nothing to report, nothing to fret.'
+    ],zh:[
+      '冇本地通知。',
+      '暫時冇本地通知。',
+      '呢度暫時得個空，靜靜哋。',
+      '冇嘢，乜都冇發生過。'
+    ]},
+    notifSettingSaved:{en:[
+      'Setting saved',
+      'Setting saved.',
+      'Saved. Nice and tidy.',
+      'Saved! One small win banked.'
+    ],zh:[
+      '設定已保存',
+      '設定已經保存。',
+      '搞掂，已經保存咗。',
+      '保存咗喇！小小成就一件。'
+    ]},
+    notifSettingsReset:{en:[
+      'Settings reset',
+      'Settings reset.',
+      'Reset done. Back to the defaults.',
+      'Ctrl-Z for life: back to how it shipped.'
+    ],zh:[
+      '設定已重設',
+      '設定已經重設。',
+      '重設完成，返晒去原廠設定。',
+      '人生都有 Ctrl-Z：返番去出廠設定。'
+    ]},
+    notifRegexApplied:{en:[
+      'Regular expression applied',
+      'Regular expression applied.',
+      'Pattern applied and live.',
+      'Regex locked in and already hunting.'
+    ],zh:[
+      '已套用正則表達式',
+      '正則表達式已經套用。',
+      '樣式已經套用緊。',
+      '正則已就位，開始搵嘢。'
+    ]}
+  };
+
+  function copyLevel(key,lang){
+    const table=COPY[key];if(!table)return '';
+    const arr=table[lang]||table.en;
+    const level=lang==='zh'?state.cantoneseFunny:state.englishFunny;
+    return arr[Math.min(arr.length-1,Math.max(0,Number(level)||0))]||arr[0];
+  }
+  function copyText(key){
+    if(!COPY[key])return '';
+    if(state.attention.simplifiedLanguage){
+      return applyVocabularyText(COPY[key][state.language==='zh'?'zh':'en'][0]);
+    }
+    let text;
+    if(state.language==='en')text=copyLevel(key,'en');
+    else if(state.language==='zh')text=copyLevel(key,'zh');
+    else text=`${copyLevel(key,'en')} / ${copyLevel(key,'zh')}`;
+    return applyVocabularyText(text);
+  }
+  function applyCopy(){all('[data-copy]').forEach(el=>{const key=el.dataset.copy;if(COPY[key])el.textContent=copyText(key)})}
+
+  function vocabularyReplacements(){
+    try{
+      const raw=localStorage.getItem('ding-pbx-vocabulary-cache');
+      if(!raw)return null;
+      const parsed=JSON.parse(raw);
+      return Array.isArray(parsed.replacements)?parsed.replacements:null;
+    }catch{return null}
+  }
+  function applyVocabularyText(text){
+    const list=vocabularyReplacements();
+    if(!list||!list.length)return text;
+    let out=String(text);
+    for(const item of list){if(!item||typeof item.from!=='string'||!item.from)continue;out=out.split(item.from).join(String(item.to))}
+    return out;
+  }
+  const VOCAB_SKIP_TAGS=new Set(['SCRIPT','STYLE','CODE','KBD','PRE','INPUT','TEXTAREA','SELECT','OPTION']);
+  function applyVocabularyToNode(root){
+    if(!root||!('createTreeWalker'in document))return;
+    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(node){
+      const parent=node.parentElement;
+      if(!parent)return NodeFilter.FILTER_REJECT;
+      if(VOCAB_SKIP_TAGS.has(parent.tagName))return NodeFilter.FILTER_REJECT;
+      if(parent.classList&&parent.classList.contains('mono'))return NodeFilter.FILTER_REJECT;
+      if(parent.closest('[data-no-vocab]'))return NodeFilter.FILTER_REJECT;
+      if(!node.nodeValue||!node.nodeValue.trim())return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }});
+    const nodes=[];let n;while((n=walker.nextNode()))nodes.push(n);
+    nodes.forEach(node=>{
+      if(node.__vocabOriginal===undefined)node.__vocabOriginal=node.nodeValue;
+      node.nodeValue=applyVocabularyText(node.__vocabOriginal);
+    });
+    root.querySelectorAll('[aria-label]').forEach(el=>{
+      if(VOCAB_SKIP_TAGS.has(el.tagName)||el.closest('[data-no-vocab]'))return;
+      if(el.dataset.vocabOriginalLabel===undefined)el.dataset.vocabOriginalLabel=el.getAttribute('aria-label');
+      el.setAttribute('aria-label',applyVocabularyText(el.dataset.vocabOriginalLabel));
+    });
+  }
+  function applyVocabulary(){applyVocabularyToNode(document.body)}
+
+  const DEFAULT_FAVICON='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="8" fill="#82D9A5"/><text x="50%" y="58%" font-family="monospace" font-size="22" font-weight="800" text-anchor="middle" fill="#0B0F0C">D</text></svg>');
+  function applyLogo(){
+    let cached=null;
+    try{cached=localStorage.getItem('ding-pbx-logo-cache')}catch{cached=null}
+    all('.brand-mark').forEach(el=>{
+      const img=el.querySelector('img.brand-mark-image');
+      if(cached){
+        if(img){img.src=cached}
+        else{el.innerHTML='';const image=document.createElement('img');image.className='brand-mark-image';image.alt='';image.src=cached;el.appendChild(image)}
+      }else if(img){el.innerHTML='D'}
+    });
+    let icon=document.querySelector('link[rel="icon"]');
+    if(!icon){icon=document.createElement('link');icon.rel='icon';document.head.appendChild(icon)}
+    icon.href=cached||DEFAULT_FAVICON;
+  }
+
+  let sessionStart=Date.now();
+  function updateSessionTimer(){
+    const el=$('session-timer');if(!el)return;
+    if(!state.attention.timeAwareness){el.hidden=true;el.textContent='';return}
+    el.hidden=false;
+    const minutes=Math.floor((Date.now()-sessionStart)/60000);
+    el.textContent=minutes<1?'On this page: under a minute':`On this page: ${minutes} minute${minutes===1?'':'s'}`;
+  }
+  function initTimeAwareness(){updateSessionTimer();setInterval(updateSessionTimer,15000)}
+  function updateOneThingBanner(){
+    const el=$('one-thing-banner');if(!el)return;
+    if(!state.attention.oneThing||!state.attention.currentTask){el.hidden=true;el.textContent='';return}
+    el.hidden=false;
+    el.textContent=`Current focus: ${applyVocabularyText(state.attention.currentTask)}`;
+  }
+  let lastInteraction=Date.now(),momentumSnoozeUntil=0;
+  function markInteraction(){lastInteraction=Date.now()}
+  function checkMomentum(){
+    if(!state.attention.momentum)return;
+    if(Date.now()<momentumSnoozeUntil)return;
+    const idleMinutes=(Date.now()-lastInteraction)/60000;
+    if(idleMinutes>=10){
+      notify('Still here','Nothing has changed on this page for a while. No action is needed.');
+      momentumSnoozeUntil=Date.now()+15*60000;
+      lastInteraction=Date.now();
+    }
+  }
+  function initMomentum(){
+    ['click','input','keydown','scroll'].forEach(type=>document.addEventListener(type,markInteraction,{passive:true}));
+    setInterval(checkMomentum,60000);
+  }
+  function ensureAttentionUI(){
+    const topActions=document.querySelector('.top-actions');
+    if(topActions&&!$('session-timer')){
+      const timer=document.createElement('span');
+      timer.id='session-timer';timer.className='session-timer';timer.hidden=true;timer.setAttribute('aria-live','off');
+      topActions.prepend(timer);
+    }
+    const main=document.querySelector('main');
+    if(main&&!$('one-thing-banner')){
+      const banner=document.createElement('div');
+      banner.id='one-thing-banner';banner.className='one-thing-banner';banner.hidden=true;banner.setAttribute('role','status');
+      main.prepend(banner);
+    }
+  }
+
+  function initCollapsibles(){
+    const map={'destination-map-panel':'destinationMap','settings-preview-panel':'settingsPreview','documentation-filters-panel':'documentationFilters','settings-filters-panel':'settingsFilters'};
+    Object.entries(map).forEach(([id,key])=>{
+      const el=$(id);if(!el)return;
+      el.open=!state.collapsed[key];
+      el.addEventListener('toggle',()=>{state.collapsed[key]=!el.open;save()});
+    });
+  }
+  function updateFilterStatus(statusId,inputId){
+    const el=$(statusId);if(!el)return;
+    const value=($(inputId)&&$(inputId).value||'').trim();
+    el.textContent=value?' — filtering active':'';
+  }
+
 
   function initNavigation(){
     const button=$('nav-toggle'),menu=$('site-nav');if(!button||!menu)return;
@@ -68,7 +300,7 @@
   }
   function initReveals(){const items=all('.reveal');if(reduceMotion()||!('IntersectionObserver'in window)){items.forEach(item=>item.classList.add('visible'));return}const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{rootMargin:'0px 0px -8% 0px',threshold:.08});items.forEach(item=>observer.observe(item))}
 
-  function renderDestinations(query=''){const grid=$('destination-grid');if(!grid)return;const matches=DESTINATIONS.filter(item=>matchText(`${item.name} ${item.group} ${item.description}`,query,'feature-search')),pageSize=8,pageCount=Math.max(1,Math.ceil(matches.length/pageSize));destinationPage=Math.min(destinationPage,pageCount-1);const shown=matches.slice(destinationPage*pageSize,(destinationPage+1)*pageSize);grid.innerHTML=shown.map(item=>`<article class="destination-card reveal" id="destination-${item.id}" tabindex="-1"><span class="destination-icon" aria-hidden="true">${item.icon}</span><span class="card-kicker">${escapeHtml(item.group)}</span><h2>${escapeHtml(item.name)}</h2><p>${escapeHtml(item.description)}</p><a class="text-button" href="${BASE}docs/${item.article}.html">Read article <span aria-hidden="true">→</span></a></article>`).join('')||'<p class="empty-state">No destinations match this search.</p>';if($('destination-count'))$('destination-count').textContent=`${matches.length} destination${matches.length===1?'':'s'} · page ${destinationPage+1} of ${pageCount}`;if($('destination-pagination'))$('destination-pagination').innerHTML=Array.from({length:pageCount},(_,index)=>`<button type="button" data-page="${index}" ${index===destinationPage?'aria-current="page"':''}>${index+1}</button>`).join('');initReveals();updateDestinationMap(matches)}
+  function renderDestinations(query=''){const grid=$('destination-grid');if(!grid)return;const matches=DESTINATIONS.filter(item=>matchText(`${item.name} ${item.group} ${item.description}`,query,'feature-search')),pageSize=8,pageCount=Math.max(1,Math.ceil(matches.length/pageSize));destinationPage=Math.min(destinationPage,pageCount-1);const shown=matches.slice(destinationPage*pageSize,(destinationPage+1)*pageSize);grid.innerHTML=shown.map(item=>`<article class="destination-card reveal" id="destination-${item.id}" tabindex="-1"><span class="destination-icon" aria-hidden="true">${item.icon}</span><span class="card-kicker">${escapeHtml(item.group)}</span><h2>${escapeHtml(item.name)}</h2><p>${escapeHtml(item.description)}</p><a class="text-button" href="${BASE}docs/${item.article}.html">Read article <span aria-hidden="true">→</span></a></article>`).join('')||`<p class="empty-state">${escapeHtml(copyText('emptyDestinations'))}</p>`;if($('destination-count'))$('destination-count').textContent=`${matches.length} destination${matches.length===1?'':'s'} · page ${destinationPage+1} of ${pageCount}`;if($('destination-pagination'))$('destination-pagination').innerHTML=Array.from({length:pageCount},(_,index)=>`<button type="button" data-page="${index}" ${index===destinationPage?'aria-current="page"':''}>${index+1}</button>`).join('');initReveals();updateDestinationMap(matches);applyVocabulary();updateFilterStatus('documentation-filter-status','feature-search')}
   function matchText(text,query,target){if(!query)return true;const config=regexState.get(target);if(config?.enabled){try{return new RegExp(config.pattern,config.flags).test(text)}catch{return false}}return text.toLocaleLowerCase().includes(query.toLocaleLowerCase())}
   function filter(selector,query,target){all(selector).forEach(item=>item.hidden=!matchText(item.dataset.search||item.textContent,query,target))}
 
@@ -76,16 +308,16 @@
   function openRegex(target){regexTarget=target;const dialog=$('regex-dialog');if(!dialog)return;const saved=regexState.get(target)||{pattern:'',flags:'iu'};$('regex-target-label').textContent=`Attached to: ${target}`;$('regex-pattern').value=saved.pattern;$('regex-i').checked=saved.flags.includes('i');$('regex-m').checked=saved.flags.includes('m');$('regex-u').checked=saved.flags.includes('u');dialog.showModal();previewRegex();setTimeout(()=>$('regex-pattern').focus(),0)}
   function regexConfig(){return{pattern:$('regex-pattern').value.slice(0,256),flags:`${$('regex-i').checked?'i':''}${$('regex-m').checked?'m':''}${$('regex-u').checked?'u':''}`}}
   function previewRegex(){if(!$('regex-feedback'))return;const config=regexConfig();if(!config.pattern){$('regex-feedback').textContent='Enter a pattern.';return}try{const re=new RegExp(config.pattern,config.flags),flags=re.flags.includes('g')?re.flags:`${re.flags}g`,matches=[...$('regex-sample').value.matchAll(new RegExp(re.source,flags))];$('regex-feedback').textContent=`Valid JavaScript regular expression · ${matches.length} sample match${matches.length===1?'':'es'}.`}catch(error){$('regex-feedback').textContent=`Invalid pattern: ${error.message}`}}
-  function applyRegex(){const config=regexConfig();try{new RegExp(config.pattern,config.flags)}catch{return}regexState.set(regexTarget,{...config,enabled:Boolean(config.pattern)});$('regex-dialog').close();$(regexTarget)?.dispatchEvent(new Event('input'));notify('Regular expression applied',`${regexTarget} now uses the local JavaScript regular expression engine.`)}
+  function applyRegex(){const config=regexConfig();try{new RegExp(config.pattern,config.flags)}catch{return}regexState.set(regexTarget,{...config,enabled:Boolean(config.pattern)});$('regex-dialog').close();$(regexTarget)?.dispatchEvent(new Event('input'));notify(copyText('notifRegexApplied'),applyVocabularyText(`${regexTarget} now uses the local JavaScript regular expression engine.`))}
   function initRegex(){if(!$('regex-dialog'))return;$('regex-pattern').addEventListener('input',previewRegex);$('regex-apply').onclick=applyRegex;all('[data-insert]').forEach(button=>button.onclick=()=>{const input=$('regex-pattern'),start=input.selectionStart;input.value=`${input.value.slice(0,start)}${button.dataset.insert}${input.value.slice(input.selectionEnd)}`;input.focus();input.setSelectionRange(start+button.dataset.insert.length,start+button.dataset.insert.length);previewRegex()})}
 
 
   function renderPalette(query=''){const list=$('palette-results');if(!list)return;const pages=[['Home','index.html'],['Product','product.html'],['Documentation','documentation.html'],['Downloads','downloads.html'],['Status','status.html'],['Settings','settings.html']],items=[...pages,...DESTINATIONS.map(item=>[item.name,`documentation.html#destination-${item.id}`])].filter(([name])=>matchText(name,query,'palette-search'));list.innerHTML=items.length?items.map(([name,path])=>`<a class="palette-result" role="option" href="${BASE}${path}"><strong>${escapeHtml(name)}</strong><span>Open destination</span></a>`).join(''):'<p>No matching commands.</p>'}
-  function openPalette(){const dialog=$('command-palette');if(!dialog)return;dialog.showModal();$('palette-search').value='';renderPalette();setTimeout(()=>$('palette-search').focus(),0)}
-  function notify(title,body){state.notifications.unshift({title,body,time:Date.now()});state.notifications=state.notifications.slice(0,30);save();renderNotifications();const region=$('toast-region');if(!region)return;const toast=document.createElement('div');toast.className='toast';toast.innerHTML=`<strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span>`;region.append(toast);setTimeout(()=>toast.remove(),5000)}
-  function renderNotifications(){if($('notification-count'))$('notification-count').textContent=state.notifications.length;if(!$('notification-history'))return;$('notification-history').innerHTML=state.notifications.length?state.notifications.map(item=>`<article class="notice"><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.body)}</p><small>${new Date(item.time).toLocaleString()}</small></article>`).join(''):'<p>No local notifications.</p>'}
+  function openPalette(){const dialog=$('command-palette');if(!dialog)return;dialog.showModal();$('palette-search').value='';renderPalette();applyVocabulary();setTimeout(()=>$('palette-search').focus(),0)}
+  function notify(title,body){state.notifications.unshift({title,body,time:Date.now()});state.notifications=state.notifications.slice(0,30);save();renderNotifications();const region=$('toast-region');if(!region)return;const toast=document.createElement('div');toast.className='toast';toast.innerHTML=`<strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span>`;region.append(toast);setTimeout(()=>toast.remove(),state.attention.extendedTimeouts?15000:5000)}
+  function renderNotifications(){if($('notification-count'))$('notification-count').textContent=state.notifications.length;if(!$('notification-history'))return;$('notification-history').innerHTML=state.notifications.length?state.notifications.map(item=>`<article class="notice"><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.body)}</p><small>${new Date(item.time).toLocaleString()}</small></article>`).join(''):`<p>${escapeHtml(copyText('emptyNotifications'))}</p>`;applyVocabulary()}
 
-  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);$('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);$('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));$('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);$('settings-reset').onclick=()=>{Object.assign(state,DEFAULTS);save();applyState();notify('Settings reset','The local page settings returned to their shipped values.')};$('settings-export').onclick=()=>download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state},null,2));$('vocabulary-file').onchange=loadVocabulary;$('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');$('vocabulary-file').value='';$('vocabulary-status').textContent='No file loaded; original wording is active.'};$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.'}}
+  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);$('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);$('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));$('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState()};$('settings-reset').onclick=()=>{Object.assign(state,DEFAULTS);save();applyState();notify(copyText('notifSettingsReset'),applyVocabularyText('The local page settings returned to their shipped values.'))};$('settings-export').onclick=()=>download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state},null,2));$('vocabulary-file').onchange=loadVocabulary;$('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');$('vocabulary-file').value='';$('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()};$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'))}
   async function loadVocabulary(event){const file=event.target.files[0];if(!file)return;if(file.size>65536){$('vocabulary-status').textContent=`Rejected: the file is ${Math.round(file.size/1024)} KiB and the limit is 64 KiB.`;return}try{const raw=JSON.parse(await file.text());
     /* Accept the spellings a real file actually uses before judging it.
      *
@@ -115,8 +347,8 @@
     if(parsed.replacements.length>256)throw new Error(`this file has ${parsed.replacements.length} replacements and the limit is 256. Remove ${parsed.replacements.length-256}.`);
     const badIndex=parsed.replacements.findIndex(item=>!item||typeof item.from!=='string'||typeof item.to!=='string'||item.from.length>128||item.to.length>256);
     if(badIndex>=0){const bad=parsed.replacements[badIndex];const why=!bad||typeof bad.from!=='string'?'"from" is missing or is not a string':typeof bad.to!=='string'?'"to" is missing or is not a string':bad.from.length>128?`"from" is ${bad.from.length} characters and the limit is 128`:`"to" is ${bad.to.length} characters and the limit is 256`;throw new Error(`replacement ${badIndex+1} is not valid: ${why}. Every replacement needs bounded from and to strings.`)}
-    const keys=parsed.replacements.map(item=>item.from);const seen=new Set();const duplicate=keys.find(key=>seen.size===seen.add(key).size);if(new Set(keys).size!==keys.length)throw new Error(`Duplicate keys are not accepted; each from value must appear once. ${JSON.stringify(duplicate)} appears more than once.`);localStorage.setItem('ding-pbx-vocabulary-cache',JSON.stringify(parsed));$('vocabulary-status').textContent=`Loaded ${parsed.replacements.length} local replacement${parsed.replacements.length===1?'':'s'}. No data was transmitted.`}catch(error){$('vocabulary-status').textContent=`Rejected: ${error.message}`}}
-  async function loadLogo(event){const file=event.target.files[0];if(!file)return;if(file.size>131072){$('logo-status').textContent='Rejected: file exceeds 128 KiB.';return}if(!/^image\/(png|jpeg|svg\+xml)$/.test(file.type)){$('logo-status').textContent='Rejected: only PNG, JPEG, or SVG images are accepted.';return}try{const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Could not read the file.'));reader.readAsDataURL(file)});localStorage.setItem('ding-pbx-logo-cache',dataUrl);$('logo-status').textContent=`Loaded local logo (${Math.round(file.size/1024)} KiB). No data was transmitted.`}catch(error){$('logo-status').textContent=`Rejected: ${error.message}`}}
+    const keys=parsed.replacements.map(item=>item.from);const seen=new Set();const duplicate=keys.find(key=>seen.size===seen.add(key).size);if(new Set(keys).size!==keys.length)throw new Error(`Duplicate keys are not accepted; each from value must appear once. ${JSON.stringify(duplicate)} appears more than once.`);localStorage.setItem('ding-pbx-vocabulary-cache',JSON.stringify(parsed));$('vocabulary-status').textContent=`Loaded ${parsed.replacements.length} local replacement${parsed.replacements.length===1?'':'s'}. No data was transmitted.`;applyVocabulary();applyState()}catch(error){$('vocabulary-status').textContent=`Rejected: ${error.message}`}}
+  async function loadLogo(event){const file=event.target.files[0];if(!file)return;if(file.size>131072){$('logo-status').textContent='Rejected: file exceeds 128 KiB.';return}if(!/^image\/(png|jpeg|svg\+xml)$/.test(file.type)){$('logo-status').textContent='Rejected: only PNG, JPEG, or SVG images are accepted.';return}try{const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Could not read the file.'));reader.readAsDataURL(file)});localStorage.setItem('ding-pbx-logo-cache',dataUrl);$('logo-status').textContent=`Loaded local logo (${Math.round(file.size/1024)} KiB). No data was transmitted.`;applyLogo()}catch(error){$('logo-status').textContent=`Rejected: ${error.message}`}}
   function download(name,text){const link=document.createElement('a'),url=URL.createObjectURL(new Blob([text],{type:'application/json'}));link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
   function reduceMotion(){return matchMedia('(prefers-reduced-motion: reduce)').matches||state.lowMotion}
 
@@ -191,6 +423,6 @@
     sync();
   }
 
-  function init(){applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initRegex();initSettings();renderNotifications();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>renderPalette(event.target.value));$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications()});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];save();renderNotifications()})}
+  function init(){ensureAttentionUI();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initRegex();initSettings();initCollapsibles();renderNotifications();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications()});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
   init();
 })();
