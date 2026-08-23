@@ -159,7 +159,7 @@ export interface WslConfigTransportOptions {
 
 function looksAbsent(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
-  return /No such file or directory|cannot stat/u.test(message);
+  return /No such file or directory/u.test(message);
 }
 
 export class WslConfigTransport implements ConfigTransport {
