@@ -2859,8 +2859,8 @@ const SCREENS = {
   skills:{ rail:'agent', icon:'auto_awesome', label:'Skills registry', badge:'26', title:'Skills registry', file:'skills/', kind:'table',
     sub:'Installed agent skills with their trigger scope. Enabling a skill is a switch; nothing about a skill is typed here.',
     table:{ add:'Install skill', grid:'1.2fr 1.6fr 100px 110px', cols:['Skill','Description','Scope','State'],
-      rows:[['ultrahui','Multi-lane orchestration','global','Enabled'],['status-hub-protocol','Hub session protocol','global','Enabled'],['wire-status-hub','Client wiring recipes','project','Enabled'],['verify-headless-site','Headless verification','global','Enabled'],['mat-day','Presentation contract','project','Disabled']] },
-    groups:[{ title:'Orchestration', desc:'UltraHui lane defaults.', ctls:[
+      rows:[['multi-agent-orchestration','Multi-lane orchestration','global','Enabled'],['status-protocol','Hub session protocol','global','Enabled'],['status-client','Client wiring recipes','project','Enabled'],['headless-verification','Headless verification','global','Enabled'],['cleanup-presentation','Presentation contract','project','Disabled']] },
+    groups:[{ title:'Orchestration', desc:'Multi-agent lane defaults.', ctls:[
       ctl('u_lanes','Maximum parallel lanes','stepper',4,{ min:1, max:12 }),
       ctl('u_isolate','Isolated worktree per lane','switch',true),
       ctl('u_model','Lane model override','select','gpt-5.6-luna',{ options:['gpt-5.6-luna','inherit'] }),
@@ -2878,9 +2878,9 @@ const SCREENS = {
       ctl('b_report','Report worktree state each run','switch',true)
     ]}] },
   vocab:{ rail:'agent', icon:'policy', label:'Vocabulary & guard', badge:'lock', title:'Vocabulary & emission guard', file:'vocabulary-dictionary.json', kind:'table',
-    sub:'The private vocabulary dictionary and the emission guard that blocks a forbidden term before it can leave the process.',
+    sub:'Terms are read from a dictionary JSON you upload from this machine. Nothing is bundled, nothing is sent anywhere, and the table stays empty until you load a file.',
     table:{ add:'Add term', grid:'1fr 1fr 1fr 110px', cols:['Term','Alias','Plural','Lock'],
-      rows:[['dependency','See Fut','See Futs','Locked'],['screenshot','HuiShot','HuiShots','Locked'],['question','❓','❓s','Locked'],['guard','Chong Leung','Chong Leungs','Locked']] },
+      rows:[], empty:'No terms loaded. Upload a local dictionary JSON to populate this table.' },
     groups:[{ title:'Emission guard', desc:'Runs on every string the app is about to write or display.', ctls:[
       ctl('n_guard','Guard enabled','switch',true),
       ctl('n_mode','On violation','segmented','Block',{ options:['Warn','Block','Rewrite'] }),
@@ -2912,9 +2912,9 @@ const SCREENS = {
   servers:{ rail:'app', icon:'dns', label:'Deploy & servers', badge:'3', title:'Deploy a server', file:'provisioning', kind:'servers',
     sub:'This is the main road: press the big button and a working PBX exists in about seven seconds. Connecting to a PBX somebody else built is underneath, and it is the side road.',
     table:{ add:'New connection', grid:'1fr 1fr 1.2fr 1fr 120px', cols:['Profile','Route','Target','Interface','State'],
-      rows:[['pbx-hq','SSH','asterisk-ops@pbx-hq.internal','AMI 5038 TLS','Connected'],['pbx-lab','Local Yere Dow','asterisk-lab','AMI 5038','Connected'],['pbx-edge','SSH Yere Dow','asterisk-edge @ 10.20.4.10','ARI 8089 TLS','Unregistered']] },
+      rows:[['pbx-hq','SSH','asterisk-ops@pbx-hq.internal','AMI 5038 TLS','Connected'],['pbx-lab','Local Docker','asterisk-lab','AMI 5038','Connected'],['pbx-edge','SSH Docker','asterisk-edge @ 10.20.4.10','ARI 8089 TLS','Unregistered']] },
     groups:[{ title:'Route', desc:'How this console reaches Asterisk. Everything below reshapes itself around this answer.', ctls:[
-      ctl('sv_kind','Connection type','segmented','Local',{ options:['Local','Local Yere Dow','SSH','SSH Yere Dow'], info:'Local is the same machine. Local Yere Dow is a container here. SSH is another machine. SSH Yere Dow is a container on another machine, reached over SSH and then into the container.' }),
+      ctl('sv_kind','Connection type','segmented','Local',{ options:['Local','Local Docker','SSH','SSH Docker'], info:'Local is the same machine. Local Docker is a container here. SSH is another machine. SSH Docker is a container on another machine, reached over SSH and then into the container.' }),
       ctl('sv_host','Host','select','pbx-hq.internal',{ options:['localhost','pbx-hq.internal','pbx-branch.internal','10.20.4.10'] }),
       ctl('sv_container','Container','select','asterisk-prod',{ options:['asterisk-prod','asterisk-lab','asterisk-edge'] }),
       ctl('sv_user','SSH user','select','asterisk-ops',{ options:['asterisk-ops','root','deploy'] }),
@@ -3068,7 +3068,7 @@ const DOCS = {
   a_read:{ what:'Which classes of AMI events and commands this user may read.', why:'AMI is full administrative access. Class-based permissions are the only granularity available.', values:'system, call, log, verbose, command, agent, user, config, dtmf, reporting, cdr, dialplan, originate, message.', gotcha:'The command class allows arbitrary CLI execution. Granting it is equivalent to granting a shell.' },
   mo_auto:{ what:'Whether Asterisk loads every module it finds at startup.', why:'Convenient, but it means an unused module with a vulnerability is loaded anyway.', values:'On for a lab. Off with an explicit load list for a hardened deployment.', gotcha:'Turning it off without listing what you actually need produces a PBX that starts cleanly and does nothing.' },
   g_rotate:{ what:'How log files are rotated when they reach the size limit.', why:'Unrotated logs fill the disk, and a full disk stops Asterisk.', values:'rotate renames sequentially, timestamp appends the date, sequential numbers forever, none disables it.', gotcha:'If an external logrotate is also configured, both will fight and you will lose log lines at the boundary.' },
-  sv_kind:{ what:'How this console reaches Asterisk: locally, into a container, over SSH, or over SSH and then into a container.', why:'Everything else on the screen reshapes around this answer, including how configuration files are written.', values:'Local for the same machine, Local Yere Dow for a container here, SSH for another machine, SSH Yere Dow for a container elsewhere.', gotcha:'Over SSH the manager port is forwarded through the tunnel, so it never crosses the network unprotected — but only if tunnel forwarding stays enabled.' },
+  sv_kind:{ what:'How this console reaches Asterisk: locally, into a container, over SSH, or over SSH and then into a container.', why:'Everything else on the screen reshapes around this answer, including how configuration files are written.', values:'Local for the same machine, Local Docker for a container here, SSH for another machine, SSH Docker for a container elsewhere.', gotcha:'Over SSH the manager port is forwarded through the tunnel, so it never crosses the network unprotected — but only if tunnel forwarding stays enabled.' },
   sv_hostkey:{ what:'Whether a changed SSH host key aborts the connection.', why:'A changed host key means either a rebuild or an interception. Only one of those is benign.', values:'On, always.', gotcha:'The prompt asking a human to accept a new key is precisely how these attacks succeed. This console refuses instead of asking.' },
   hi_commit:{ what:'Whether every individual control change writes a git commit immediately.', why:'It gives you an exact, attributable history and a one-click revert of any single change.', values:'On is strongly recommended.', gotcha:'Off batches changes until you commit manually, which in practice means nobody remembers what changed between two working states.' },
   fun_random:{ what:'Gives every rendered element its own randomly generated appearance.', why:'Because you asked, and because it makes a dull configuration screen memorable.', values:'A seed, a scope of properties to randomise, a wildness percentage and an optional reroll on every screen change.', gotcha:'At high wildness with rotation enabled, dense tables become genuinely hard to read. That is the intent, but it is worth knowing.' },
@@ -3080,7 +3080,7 @@ const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_str
 const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about'];
 
 const GAMES = [
-  { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the poke guy', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },
+  { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },
   { id:'dtmf', kind:'dtmf', icon:'dialpad', name:'Tone memory', reward:3, blurb:'A sequence flashes on the display. Tap it back on the keypad. One digit longer each round.' },
   { id:'sort', kind:'sort', icon:'swap_vert', name:'Codec sort', reward:2, blurb:'Put five codecs in bandwidth order, lowest first, then check your answer.' },
   { id:'match', kind:'match', icon:'extension', name:'Match the option', reward:3, blurb:'Tap an option, then tap what it does. Six pairs, no penalty for thinking.' },
@@ -3317,7 +3317,7 @@ const WIZARDS = {
   servers:[
     step('Reach','How do we reach Asterisk?','Four routes are supported. Pick the one that matches where the PBX actually runs.',
       'Local means the same machine as this console. A container needs a name, not an address. SSH tunnels the manager port so it never crosses the network in the open.',
-      [ctl('sv_kind','Connection type','segmented','Local',{ options:['Local','Local Yere Dow','SSH','SSH Yere Dow'], info:'Local Yere Dow is a container running on this machine. SSH Yere Dow is a container on another machine, reached over SSH first and then into the container.' }),
+      [ctl('sv_kind','Connection type','segmented','Local',{ options:['Local','Local Docker','SSH','SSH Docker'], info:'Local Docker is a container running on this machine. SSH Docker is a container on another machine, reached over SSH first and then into the container.' }),
        ctl('sv_profile','Save as','select','New profile',{ options:['New profile','pbx-hq','pbx-branch','lab'] })]),
     step('Target','Where exactly?','Hosts, containers and sockets are discovered and offered as a list — nothing here is typed.',
       'The console enumerates running containers and your SSH config, so a typo in a hostname is not a failure mode that exists.',
@@ -3518,7 +3518,7 @@ const ONBOARD = [
     ctl('ob_menu','Do callers hear a menu before a human?','switch',true),
     ctl('ob_hours','Do you close at night?','switch',true)] },
   { icon:'dns', t:'Where should it run?', b:'The console can provision onto this machine, a container, or a server over SSH. It checks the target is reachable and has room before it starts.', ctls:[
-    ctl('ob_where','Target','segmented','This machine',{ options:['This machine','Local Yere Dow','SSH','SSH Yere Dow'] }),
+    ctl('ob_where','Target','segmented','This machine',{ options:['This machine','Local Docker','SSH','SSH Docker'] }),
     ctl('ob_host','Host','select','pbx-hq.internal',{ options:['localhost','pbx-hq.internal','pbx-branch.internal','10.20.4.10'] }),
     ctl('ob_tls','Encrypt everything','switch',true)] },
   { icon:'shield_lock', t:'Change control', b:'Destructive actions run a four-gate ceremony: an operator key, a held arming switch, a slide-to-commit and a five-target attention check. Every change also commits to a local git repository.', ctls:[
@@ -4055,7 +4055,7 @@ class ConsoleShell extends DCLogic {
       const kind = this.v('sv_kind', 'Local');
       const L = ['[profile]', 'type = ' + kind.toLowerCase().replace(/ /g, '-')];
       if (kind !== 'Local') L.push('host = ' + this.v('sv_host', 'pbx-hq.internal'));
-      if (kind.indexOf('Yere Dow') >= 0) L.push('container = ' + this.v('sv_container', 'asterisk-prod'));
+      if (kind.indexOf('Docker') >= 0) L.push('container = ' + this.v('sv_container', 'asterisk-prod'));
       if (kind.indexOf('SSH') >= 0) L.push('ssh_user = ' + this.v('sv_user', 'asterisk-ops'), 'ssh_port = ' + this.v('sv_sshport', 22), 'ssh_key = ' + this.v('sv_key', 'id_ed25519 (agent)'), 'strict_host_key = ' + (this.v('sv_hostkey', true) ? 'yes' : 'no'));
       L.push('interface = ' + this.v('sv_iface', 'AMI'), 'manager_port = ' + this.v('sv_amiport', 5038), 'tls = ' + (this.v('sv_tls', true) ? 'yes' : 'no'), 'config_dir = ' + this.v('sv_conf', '/etc/asterisk'));
       return L.join('\n');
@@ -4293,7 +4293,7 @@ class ConsoleShell extends DCLogic {
       memRows:[
         { scope:'projects', text:'conservation-bakery — desktop app, Windows first', when:'2d' },
         { scope:'projects', text:'material-virtualbox — native Qt, Squirrel rule does not reach', when:'4d' },
-        { scope:'extensions', text:'status-hub-protocol — session and reply contract', when:'6d' },
+        { scope:'extensions', text:'status-protocol — session and reply contract', when:'6d' },
         { scope:'shared', text:'Every countable vocabulary noun takes a final s', when:'8d' },
         { scope:'host', text:'HOST_INVENTORY — pbx-hq, pbx-branch, builder', when:'11d' }
       ],
