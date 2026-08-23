@@ -4292,7 +4292,12 @@ class ConsoleShell extends DCLogic {
         { icon:'delete', label:'Delete', run:() => this.ceremony('Delete ' + sel.length + ' objects', 'delete ' + sel.join(' ')) }
       ],
       tableRows:tbl.rows.map(r => ({
-        pick:() => this.toast(r[0] + ' loaded into the editor below'),
+        // This announced that the row had been loaded into the editor below and loaded
+        // nothing at all — a toast asserting something that had not happened. A screen
+        // that can really load a row supplies its own handler; the rest say plainly that
+        // they cannot rather than claiming they did.
+        pick:() => { if (this.onPickRow) { this.onPickRow(r[0]); return; }
+          this.toast(r[0] + ' cannot be loaded into the editor on this screen yet'); },
         rnd:this.rnd(80 + tbl.rows.indexOf(r)),
         bg:sel.indexOf(r[0]) >= 0 ? '#1D2A22' : 'transparent',
         border:sel.indexOf(r[0]) >= 0 ? '#82D9A5' : '#8B938C',

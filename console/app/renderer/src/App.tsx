@@ -11,6 +11,10 @@ import { readControlValues, unmappedControls } from './control-keys';
 import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
 import { ServerSwitcher } from './servers';
+import { buildEndpointDraft, endpointDocument, PJSIP_RESOURCE, WIZARD_CONTROLS } from './endpoint-create';
+import {
+  applyControlValues, controlValuesFor, editDocument, findEndpoint, removeEndpoint,
+} from './endpoint-edit';
 import {
   clearVocabulary, createMemoryStorage, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
 } from './personal-vocabulary';
@@ -421,6 +425,87 @@ export class App extends Base {
     if (removed) this.fire('Connection removed', `${name} was removed from the server list.`);
     else this.fire('Not removed', 'The control plane did not accept that removal.');
   };
+
+  /** The endpoint whose settings the controls below are currently showing. */
+  private editingEndpoint = '';
+
+  /** The target's real pjsip.conf, or undefined when it has not been read. */
+  private pjsipValue(): ConfigValue | undefined {
+    return this.configs.endpoints?.state === 'read' ? this.configs.endpoints.value : undefined;
+  }
+
+  /**
+   * Loading a row into the controls below it.
+   *
+   * The design announced that this had happened and did nothing: the controls bind to a
+   * section named `endpoint`, which a real pjsip.conf never contains, so nothing was ever
+   * loaded and the toast was simply untrue.
+   */
+  onPickRow = (name: string): void => {
+    const value = this.pjsipValue();
+    if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
+    const endpoint = findEndpoint(value, name);
+    if (!endpoint) { this.fire('Not loaded', `${name} is not in this target's pjsip.conf.`); return; }
+    this.editingEndpoint = name;
+    const state = this.state as { values: Record<string, unknown> };
+    this.setState({ values: { ...state.values, ...controlValuesFor(endpoint) } } as never);
+    this.toast(`${name} loaded into the editor below.`);
+  };
+
+  /** Writes the controls back onto the endpoint they were loaded from. */
+  onSaveEndpoint = async (): Promise<void> => {
+    const value = this.pjsipValue();
+    if (!value || !this.editingEndpoint) { this.fire('Nothing to save', 'Select an endpoint first.'); return; }
+    const edit = applyControlValues(value, this.editingEndpoint, (this.state as { values: Record<string, unknown> }).values);
+    if ('error' in edit) { this.fire('Not saved', edit.error); return; }
+    if (edit.summary.length === 0) { this.toast('Nothing changed, so nothing was written.'); return; }
+    await this.writePjsip(editDocument(edit, PJSIP_RESOURCE), edit.summary, `${this.editingEndpoint} updated`);
+  };
+
+  /** Removes the loaded endpoint, meaning all three of its sections. */
+  onDeleteEndpoint = (): void => {
+    const value = this.pjsipValue();
+    if (!value || !this.editingEndpoint) { this.fire('Nothing to remove', 'Select an endpoint first.'); return; }
+    const name = this.editingEndpoint;
+    const removal = removeEndpoint(value, name);
+    if ('error' in removal) { this.fire('Not removed', removal.error); return; }
+    this.areYouSure('Remove ' + name, removal.summary.join('\n'), 3, () => {
+      void this.writePjsip(editDocument(removal, PJSIP_RESOURCE), removal.summary, `${name} removed`).then(() => {
+        this.editingEndpoint = '';
+      });
+    });
+  };
+
+  /** Creating one from the guided wizard's own answers. */
+  onCreateEndpoint = async (): Promise<void> => {
+    const value = this.pjsipValue() ?? [];
+    const draft = buildEndpointDraft(value, (this.state as { values: Record<string, unknown> }).values);
+    if ('error' in draft) { this.fire('Not created', draft.error); return; }
+    const applied = await this.writePjsip(endpointDocument(draft), draft.summary, `${draft.view.endpoints.slice(-1)[0].name} created`);
+    /* Shown once, and deliberately never in the plan above: a plan gets read aloud and
+     * screenshotted, and a password has no business in one. */
+    if (applied) {
+      this.fire('Write this password down', `${String((this.state as { values: Record<string, unknown> }).values[WIZARD_CONTROLS.name] ?? '')}: ${draft.secret}
+
+It is shown once. The phone needs it to register.`);
+    }
+  };
+
+  /** One write path for all three, so none of them can skip the backup and read-back. */
+  private async writePjsip(document: { resource: string; value: ConfigValue }, summary: string[], done: string): Promise<boolean> {
+    const payload = { documents: [{ resource: document.resource, value: document.value }] };
+    const planned = await this.request('pbx.plan', { serverId: this.target.id, payload });
+    if (!planned?.ok) { this.fire('Not written', planned?.message ?? 'The control plane did not answer.'); return false; }
+    const applied = await this.request('pbx.apply', { serverId: this.target.id, payload });
+    if (!applied?.ok) { this.fire('Not written', applied?.message ?? 'The change was planned but not applied.'); return false; }
+    /* The reading is now stale, and a stale reading is how the next edit gets built on a
+     * value that is no longer there. */
+    delete this.configs.endpoints;
+    this.seeded.delete('endpoints');
+    this.fire(done, summary.join('\n'));
+    this.forceUpdate();
+    return true;
+  }
 
   /** Reads the screen currently on top, once per screen change. */
   private refresh = async () => {
