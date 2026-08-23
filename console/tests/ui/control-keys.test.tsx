@@ -40,7 +40,9 @@ test('total bound-screen and control counts are what this pass produced', () => 
   const screenCount = Object.keys(CONTROL_BINDINGS).length;
   const controlCount = allBindings().length;
   assert.equal(screenCount, 13);
-  assert.equal(controlCount, 82);
+  // 82 from the first pass, plus a_origin (ami/allowed_origins) and s_failaction
+  // (security/failure_action) found on this second look.
+  assert.equal(controlCount, 84);
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -271,4 +273,89 @@ test('unmappedControls returns everything for a screen with no bindings at all',
 
 test('unmappedControls returns nothing for a screen this table has no knowledge of', () => {
   assert.deepEqual(unmappedControls('does_not_exist'), []);
+});
+
+// -------------------------------------------------- second-pass bindings: a_origin
+
+test('a_origin reads ari.conf.sample allowed_origins as a comma-separated list', () => {
+  // configs/samples/ari.conf.sample [general] ~line 5: ";allowed_origins =  ; Comma
+  // separated list of allowed origins, for Cross-Origin Resource Sharing."
+  const cfg: ConfigValue = [
+    { name: 'general', entries: [{ key: 'allowed_origins', value: 'https://console.local,https://ops.example' }] },
+  ];
+  const values = readControlValues('ami', cfg);
+  assert.deepEqual(values.a_origin, ['https://console.local', 'https://ops.example']);
+});
+
+test('a_origin writes back as a plain comma-separated allowed_origins value', () => {
+  const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'enabled', value: 'yes' }] }];
+  const next = applyControlValues('ami', cfg, { a_origin: ['https://console.local', '*'] });
+  const section = next.find((s) => s.name === 'general');
+  assert.equal(section?.entries.find((e) => e.key === 'allowed_origins')?.value, 'https://console.local,*');
+  // the unrelated key already in the shared 'general' section survives untouched
+  assert.equal(section?.entries.find((e) => e.key === 'enabled')?.value, 'yes');
+});
+
+// ---------------------------------------------- second-pass bindings: s_failaction
+
+test('s_failaction value mapping reads every real failure_action spelling', () => {
+  // configs/samples/stir_shaken.conf.sample [verification] template ~line 441:
+  // ";failure_action = reject_request"; the "continue" and "continue_return_reason"
+  // spellings are documented in the same block (~line 347-365).
+  const cases: Array<[string, string]> = [
+    ['continue', 'Continue'],
+    ['continue_return_reason', 'Tag'],
+    ['reject_request', 'Reject'],
+  ];
+  for (const [raw, control] of cases) {
+    const cfg: ConfigValue = [{ name: 'verification', entries: [{ key: 'failure_action', value: raw }] }];
+    assert.equal(readControlValues('security', cfg).s_failaction, control, `expected ${raw} to read as ${control}`);
+  }
+});
+
+test('s_failaction value mapping writes every control value back to its real spelling', () => {
+  const cases: Array<[string, string]> = [
+    ['Continue', 'continue'],
+    ['Tag', 'continue_return_reason'],
+    ['Reject', 'reject_request'],
+  ];
+  for (const [control, raw] of cases) {
+    const cfg: ConfigValue = [{ name: 'verification', entries: [{ key: 'failure_action', value: 'continue' }] }];
+    const next = applyControlValues('security', cfg, { s_failaction: control });
+    const section = next.find((s) => s.name === 'verification');
+    assert.equal(section?.entries.find((e) => e.key === 'failure_action')?.value, raw, `expected ${control} to write ${raw}`);
+  }
+});
+
+test('an unrecognised failure_action spelling is left unset rather than guessed', () => {
+  const cfg: ConfigValue = [{ name: 'verification', entries: [{ key: 'failure_action', value: 'something_else' }] }];
+  assert.equal('s_failaction' in readControlValues('security', cfg), false);
+});
+
+test('an unrecognised s_failaction control value is refused on write rather than passed through', () => {
+  const cfg: ConfigValue = [{ name: 'verification', entries: [{ key: 'failure_action', value: 'continue' }] }];
+  const next = applyControlValues('security', cfg, { s_failaction: 'Not A Real Option' });
+  const section = next.find((s) => s.name === 'verification');
+  // the original value survives untouched rather than being overwritten with the
+  // design's own unrecognised word
+  assert.equal(section?.entries.find((e) => e.key === 'failure_action')?.value, 'continue');
+});
+
+// ------------------------------------------------------------ post-second-pass sanity
+
+test('unmappedControls reflects the two controls bound on this second look', () => {
+  assert.ok(!unmappedControls('ami').includes('a_origin'));
+  assert.ok(!unmappedControls('security').includes('s_failaction'));
+  // and every deliberately-refused-on-a-second-look control is still refused
+  for (const stillUnbound of ['a_tlsport', 'a_deny']) {
+    assert.ok(unmappedControls('ami').includes(stillUnbound), `expected ${stillUnbound} to remain unmapped`);
+  }
+  for (const stillUnbound of [
+    's_acl', 's_permit', 's_failban', 's_bantime', 's_guest', 's_cert', 's_method', 's_verify', 's_ciphers',
+  ]) {
+    assert.ok(unmappedControls('security').includes(stillUnbound), `expected ${stillUnbound} to remain unmapped`);
+  }
+  for (const stillUnbound of ['k_order', 'k_transcode', 'k_opusbr', 'k_ptime', 'r_dtmf', 'r_dtls']) {
+    assert.ok(unmappedControls('codecs').includes(stillUnbound), `expected ${stillUnbound} to remain unmapped`);
+  }
 });

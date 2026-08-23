@@ -37,6 +37,15 @@ export interface ControlBinding {
    * still means what its label says.
    */
   invert?: boolean;
+  /**
+   * Set only for a `string`-kind control whose own values do not literally match the
+   * spelling Asterisk uses for the same setting (a segmented control showing "Reject"
+   * where the real key wants `reject_request`, say). Maps the control's own value to
+   * the raw Asterisk string on write, and the reverse on read. Deliberately explicit
+   * rather than inferred — an enumeration that happened to coincide by accident is
+   * exactly the kind of silent luck this table refuses to rely on.
+   */
+  valueMap?: Readonly<Record<string, string>>;
 }
 
 const YES_VALUES = new Set(['yes', 'true', 'on', '1']);
@@ -74,10 +83,16 @@ function parseAsteriskNumber(raw: string): number | undefined {
 /**
  * Convert one raw config-file string into the shape a control of the given kind wants.
  * Returns `undefined` when the raw value cannot be interpreted as that kind at all
- * (an unrecognised boolean spelling, non-numeric text for a number, …) so callers can
- * tell "not set" from "set to something we cannot parse" if they need to.
+ * (an unrecognised boolean spelling, non-numeric text for a number, a raw value that
+ * is not in `valueMap` at all, …) so callers can tell "not set" from "set to something
+ * we cannot parse" if they need to.
  */
-function fromRaw(raw: string, kind: ControlValueKind, invert: boolean | undefined): unknown {
+function fromRaw(
+  raw: string,
+  kind: ControlValueKind,
+  invert: boolean | undefined,
+  valueMap: Readonly<Record<string, string>> | undefined,
+): unknown {
   switch (kind) {
     case 'boolean': {
       const b = parseAsteriskBoolean(raw);
@@ -90,12 +105,25 @@ function fromRaw(raw: string, kind: ControlValueKind, invert: boolean | undefine
       return parseAsteriskList(raw);
     case 'string':
     default:
-      return raw;
+      if (!valueMap) return raw;
+      // Reverse lookup: find the control-facing value whose mapped raw string matches.
+      // A raw value the map does not know about is left unset rather than passed
+      // through unmapped, which would silently show Asterisk's own spelling in a
+      // control that only knows how to display and write the design's own words.
+      for (const [controlValue, rawValue] of Object.entries(valueMap)) {
+        if (rawValue === raw) return controlValue;
+      }
+      return undefined;
   }
 }
 
 /** Convert a control's own value back into the string Asterisk itself would write. */
-function toRaw(value: unknown, kind: ControlValueKind, invert: boolean | undefined): string | undefined {
+function toRaw(
+  value: unknown,
+  kind: ControlValueKind,
+  invert: boolean | undefined,
+  valueMap: Readonly<Record<string, string>> | undefined,
+): string | undefined {
   switch (kind) {
     case 'boolean': {
       if (typeof value !== 'boolean') return undefined;
@@ -110,8 +138,17 @@ function toRaw(value: unknown, kind: ControlValueKind, invert: boolean | undefin
       return formatAsteriskList(value);
     }
     case 'string':
-    default:
-      return value === undefined || value === null ? undefined : String(value);
+    default: {
+      if (value === undefined || value === null) return undefined;
+      if (!valueMap) return String(value);
+      // A control value with no entry in the map is refused rather than written
+      // verbatim — writing the design's own word into Asterisk's config when it is
+      // not one of the values Asterisk understands is exactly the invisible defect
+      // this whole table exists to avoid.
+      return Object.prototype.hasOwnProperty.call(valueMap, String(value))
+        ? valueMap[String(value)]
+        : undefined;
+    }
   }
 }
 
@@ -123,6 +160,16 @@ function n(control: string, section: string, key: string): ControlBinding {
 }
 function s(control: string, section: string, key: string): ControlBinding {
   return { control, section, key, kind: 'string' };
+}
+/** A `string`-kind binding whose control values do not literally match Asterisk's own
+ *  spelling — see `ControlBinding.valueMap`. */
+function sMapped(
+  control: string,
+  section: string,
+  key: string,
+  valueMap: Readonly<Record<string, string>>,
+): ControlBinding {
+  return { control, section, key, kind: 'string', valueMap };
 }
 function l(control: string, section: string, key: string): ControlBinding {
   return { control, section, key, kind: 'list' };
@@ -240,10 +287,21 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   ],
 
   // configs/samples/rtp.conf.sample — [general]. codecs.conf.sample has no [general]
-  // section and no opus/ptime keys at all, so every k_* control is unmapped; only the
-  // rtp.conf-backed controls (r_*) are bound. r_dtmf (no RFC2833 payload-type key) and
-  // r_dtls (DTLS is negotiated per-endpoint in pjsip.conf, not in rtp.conf) are
-  // unmapped.
+  // section at all, so k_order (no global codec-order key exists anywhere — order is
+  // only ever set per-endpoint via pjsip.conf's `allow=`, already bound as e_codecs)
+  // and k_transcode (no transcoding-toggle key of any kind) are unmapped. k_opusbr
+  // ("Opus bitrate", a kbps slider) looked bindable to codecs.conf.sample's commented
+  // `;[opus]` template's `;bitrate=` line (~line 189) but is left unmapped on a second
+  // look: that key's unit is bits per second, not kilobits (the sample documents "Any
+  // value between 500 and 512000"), and this table has no supported way to scale a
+  // number on write without silently mis-scaling a boolean/string/list control that
+  // happens to share the 'number' kind elsewhere — writing the slider's raw kbps value
+  // straight into `bitrate=` would set an opus bitrate a thousand times too low. k_ptime
+  // ("Preferred ptime", one of '10'/'20'/'30'/'40'/'60') has no matching key either:
+  // pjsip.conf's `use_ptime` (~line 748) is a yes/no switch for honoring the far end's
+  // own requested packetisation, not a ptime value to set. r_dtmf (no RFC2833
+  // payload-type key) and r_dtls (DTLS is negotiated per-endpoint in pjsip.conf, not in
+  // rtp.conf) are unmapped.
   codecs: [
     n('r_start', 'general', 'rtpstart'),
     n('r_end', 'general', 'rtpend'),
@@ -273,9 +331,18 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
 
   // configs/samples/manager.conf.sample — [general] (the only section header the
   // sample declares; the read/write example at ~line 330 sits textually under it).
-  // configs/samples/http.conf.sample — [general]. a_tlsport (no tlsbindport key in
-  // http.conf.sample) and a_origin (no CORS/allowed-origins key) are unmapped; a_deny
-  // is unmapped because the real `deny=` key takes a CIDR string, not a boolean.
+  // configs/samples/http.conf.sample — [general]. configs/samples/ari.conf.sample —
+  // [general] (~line 1), which shares this screen's synthetic 'general' section
+  // safely: none of its own keys collide by name with manager.conf's or http.conf's.
+  // a_origin ("Allowed origins", a chip list) binds to ari.conf.sample's
+  // `;allowed_origins=` (~line 5) — a second look found this; the first pass checked
+  // only http.conf.sample, which genuinely has no CORS key, and missed that ari.conf
+  // is one of this screen's declared files and does have one. a_tlsport (a discrete
+  // numeric port) stays unmapped: http.conf.sample's only TLS bind setting is
+  // `;tlsbindaddr=0.0.0.0:8089` (~line 89), a combined address:port string with no
+  // separate port key this table's kinds can address without guessing where the colon
+  // falls. a_deny is unmapped because the real `deny=` key takes a CIDR string, not a
+  // boolean.
   ami: [
     b('a_http', 'general', 'enabled'),
     n('a_port', 'general', 'bindport'),
@@ -283,6 +350,7 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     l('a_read', 'general', 'read'),
     l('a_write', 'general', 'write'),
     n('a_timeout', 'general', 'httptimeout'),
+    l('a_origin', 'general', 'allowed_origins'),
   ],
 
   // configs/samples/modules.conf.sample.
@@ -306,17 +374,34 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
 
   // configs/samples/stir_shaken.conf.sample — [attestation] template (~line 128) and
   // [verification] template (~line 436). Both use `global_disable`, whose sense is the
-  // opposite of the design's "enabled" switches, hence `invert`. s_acl, s_permit,
-  // s_failban, s_bantime, s_guest, s_cert, s_method, s_verify, s_ciphers and
-  // s_failaction have no matching key in acl.conf.sample or stir_shaken.conf.sample
-  // with the same meaning and value set as the design control, and are unmapped —
+  // opposite of the design's "enabled" switches, hence `invert`. s_failaction ("On
+  // verification failure": Continue/Tag/Reject) binds to the [verification] template's
+  // `;failure_action=` (~line 441, `= reject_request`; also shown at ~line 504 under
+  // the [myprofile] profile template) — a second look found this. The sample documents
+  // the key's three real values directly: "continue" (request keeps processing),
+  // "reject_request" (rejected outright with a SIP error) and
+  // "continue_return_reason" (keeps processing but tells the caller why verification
+  // failed via a SIP Reason header) — mapped explicitly below to Continue/Reject/Tag
+  // respectively ("Tag" for continue_return_reason because tagging the response with a
+  // Reason header, rather than rejecting or silently continuing, is what that value
+  // does). s_acl, s_permit, s_failban, s_bantime, s_guest, s_cert, s_method, s_verify
+  // and s_ciphers have no matching key in acl.conf.sample or stir_shaken.conf.sample
+  // with the same meaning and value set as the design control, and stay unmapped —
   // most of acl.conf.sample's `permit=`/`deny=` entries live in a *named* ACL section
   // chosen dynamically by another control, which a static section binding cannot
-  // follow without risking a write to the wrong ACL.
+  // follow without risking a write to the wrong ACL; s_cert/s_method/s_ciphers name TLS
+  // settings that live in http.conf, not in this screen's two files; s_verify's "verify
+  // client certificates" is a distinct TLS-mTLS concept from stir_shaken.conf's own
+  // certificate-loading options, not the same setting under a different name.
   security: [
     b('s_stir', 'attestation', 'global_disable', true),
     s('s_level', 'attestation', 'attest_level'),
     b('s_verifyin', 'verification', 'global_disable', true),
+    sMapped('s_failaction', 'verification', 'failure_action', {
+      Continue: 'continue',
+      Tag: 'continue_return_reason',
+      Reject: 'reject_request',
+    }),
   ],
 };
 
@@ -332,7 +417,7 @@ export function readControlValues(screen: string, value: ConfigValue | undefined
     const section = value.find((candidate) => candidate.name === binding.section);
     const entry = section?.entries.find((e) => e.key === binding.key);
     if (!entry) continue;
-    const parsed = fromRaw(entry.value, binding.kind, binding.invert);
+    const parsed = fromRaw(entry.value, binding.kind, binding.invert, binding.valueMap);
     if (parsed !== undefined) out[binding.control] = parsed;
   }
   return out;
@@ -361,7 +446,7 @@ export function applyControlValues(
 
   for (const binding of bindings) {
     if (!(binding.control in changes)) continue;
-    const raw = toRaw(changes[binding.control], binding.kind, binding.invert);
+    const raw = toRaw(changes[binding.control], binding.kind, binding.invert, binding.valueMap);
     if (raw === undefined) continue;
 
     let section = sections.find((sec) => sec.name === binding.section);
