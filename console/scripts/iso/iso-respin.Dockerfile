@@ -24,6 +24,24 @@ COPY payload/ /work/payload/
 COPY user-data /work/nocloud/user-data
 COPY meta-data /work/nocloud/meta-data
 
+# The repack below asks the base image to describe its own boot arrangement rather than
+# naming boot files by path.
+#
+# The first version followed Ubuntu's published autoinstall guide, which names
+# `boot_hybrid.img` for the master boot record. Ubuntu 24.04.4 does not ship that file.
+# The hybrid repack therefore failed, the fallback ran, and the build produced a valid
+# ISO 9660 image with entirely correct contents that could not boot. That is the worst
+# outcome available for an installer: every check short of booting it passes.
+#
+# `-report_el_torito as_mkisofs` returns the exact options that reproduce the source
+# image's boot setup, including reading the master boot record and the appended EFI
+# partition back out of it by byte interval. That is what the vendor shipped rather than
+# a reconstruction, and it does not go stale when a point release moves a file.
+#
+# The three assertions afterwards check that it can boot rather than that a file exists:
+# both El Torito entries present, and a real master boot record signature at byte 510.
+# Verified against a real build: without them the fallback image passed every other
+# check in this file.
 RUN set -eux; \
     test -n "$UBUNTU_ISO_URL"; test -n "$UBUNTU_ISO_SHA256"; \
     wget -q -O /work/base.iso "$UBUNTU_ISO_URL"; \
@@ -41,14 +59,14 @@ RUN set -eux; \
         sed -i 's#---#autoinstall ds=nocloud\\;s=/cdrom/server/ ---#' "$cfg" || true; \
       fi; \
     done; \
-    xorriso -indev /work/base.iso -report_el_torito as_mkisofs 2>/work/boot-opts.txt || true; \
-    xorriso -as mkisofs \
-      -r -V "DINGPBX" -J -joliet-long \
-      -b boot/grub/i386-pc/eltorito.img -no-emul-boot -boot-load-size 4 -boot-info-table \
-      --grub2-boot-info --grub2-mbr /work/extracted/boot/grub/i386-pc/boot_hybrid.img \
-      -eltorito-alt-boot -e EFI/boot/bootx64.efi -no-emul-boot -isohybrid-gpt-basdat \
-      -o /work/output.iso /work/extracted \
-      || xorriso -as mkisofs -r -V "DINGPBX" -J -joliet-long -o /work/output.iso /work/extracted; \
+    BOOTOPTS="$(xorriso -indev /work/base.iso -report_el_torito as_mkisofs 2>/dev/null \
+      | grep -E '^(--grub2-mbr|--protective-msdos-label|-partition_|--mbr-force-bootable|-append_partition|-appended_part_as_gpt|-iso_mbr_part_type|-c |-b |-no-emul-boot|-boot-load-size|-boot-info-table|--grub2-boot-info|-eltorito-alt-boot|-e )' \
+      | sed "s#'base.iso'#'/work/base.iso'#g" | tr '\n' ' ')"; \
+    test -n "$BOOTOPTS"; \
+    eval xorriso -as mkisofs -r -V DINGPBX -J -joliet-long "$BOOTOPTS" -o /work/output.iso /work/extracted; \
+    xorriso -indev /work/output.iso -report_el_torito plain 2>&1 | grep -q BIOS; \
+    xorriso -indev /work/output.iso -report_el_torito plain 2>&1 | grep -q UEFI; \
+    test "$(dd if=/work/output.iso bs=1 skip=510 count=2 2>/dev/null | od -An -tx1 | tr -d ' ')" = 55aa; \
     ls -la /work/output.iso
 
 CMD ["/bin/true"]
