@@ -53,6 +53,10 @@ test('exposes keyboard, tab, regex, and local settings interactions', () => {
   assert.ok((everyPage.match(/class="regex-trigger"/g) || []).length >= 8);
   for (const id of ['language-mode','english-funny','cantonese-funny','vocabulary-file','attention-settings','schedule-enabled','logo-file','notification-history']) assert.match(everyPage, new RegExp(`id="${id}"`));
 });
+test('links the vendored fonts from every source page and uses them', () => {
+  for (const [name, page] of Object.entries(pages)) assert.match(page, /<link rel="stylesheet" href="\.\.\/assets\/fonts\/fonts\.css">/, name);
+  assert.match(css, /font-family:Roboto,/); assert.match(css, /"Roboto Mono"/);
+});
 test('has accessible names and reduced motion support', () => {
   assert.match(everyPage, /class="skip-link"/); assert.match(everyPage, /aria-live="polite"/); assert.match(everyPage, /aria-label="Open notification history"/);
   assert.match(css, /prefers-reduced-motion:reduce/); assert.match(css, /min-width:320px/); assert.match(css, /:focus-visible/);
@@ -69,11 +73,15 @@ test('documents local-only validation and redacted export boundaries', () => {
 test('build composes deterministic local output without fetches', async () => {
   execFileSync(process.execPath, [join(root, 'build.mjs')], { cwd: repo, stdio: 'pipe' });
   const manifest = JSON.parse(await readFile(join(root, 'dist', 'build-manifest.json'), 'utf8'));
-  assert.equal(manifest.networkFetches, 0); assert.equal(manifest.outputFiles.length, 48);
+  assert.equal(manifest.networkFetches, 0); assert.equal(manifest.outputFiles.length, 99);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');
   assert.doesNotMatch(built, /\.\.\/docs\//); assert.match(built, /href="docs\/README\.html"/);
+  assert.doesNotMatch(built, /href="\.\.\/assets\//); assert.match(built, /href="assets\/fonts\/fonts\.css"/);
+  assert.ok((await stat(join(root, 'dist', 'assets', 'fonts', 'fonts.css'))).isFile());
+  assert.ok((await stat(join(root, 'dist', 'assets', 'fonts', 'roboto-400-10.woff2'))).isFile());
+  assert.ok(manifest.outputFiles.some(file => file.path === 'assets/fonts/fonts.css'));
   const article=await readFile(join(root,'dist','docs','pbx','dash.html'),'utf8');assert.match(article,/<h1>Dashboard<\/h1>/);assert.doesNotMatch(article,/\.md"/);
 });
 
