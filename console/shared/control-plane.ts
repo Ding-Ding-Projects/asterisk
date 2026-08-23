@@ -19,6 +19,12 @@ export type ControlPlaneAction =
   | 'daemon.status' | 'daemon.start' | 'daemon.stop' | 'daemon.restart'
   | 'pbx.read' | 'pbx.command' | 'pbx.config' | 'pbx.plan'
   | 'history.list' | 'history.restore'
+  /*
+   * Whole-target snapshots of every allowlisted Asterisk configuration resource.
+   * Snapshot payloads are versioned JSON created and parsed by ConfigBackup; no path or
+   * resource outside the transport allowlist can be introduced by the renderer.
+   */
+  | 'backup.capture' | 'backup.compare' | 'backup.verify' | 'backup.restore'
   /* Prompts and music-on-hold media on the target, so a "custom" choice can be given a file. */
   | 'media.list' | 'media.upload' | 'media.remove'
   /* The console's own append-only record of what it changed, kept locally. */
