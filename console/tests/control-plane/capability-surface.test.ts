@@ -94,6 +94,117 @@ test('negative regression: an invented command is still caught by the prefix che
   assert.equal(registeredPath('core show channels concise', body), 'core show channels');
 });
 
+/**
+ * A hand-written inventory of every resource CONFIGURABLE_RESOURCES is expected to
+ * carry, by basename. The count tripwire below only notices the list getting shorter;
+ * it says nothing if a resource is silently swapped for another one while the total
+ * count holds steady or grows. This checks identity, not just size.
+ */
+const EXPECTED_RESOURCE_BASENAMES: ReadonlyArray<string> = [
+  "pjsip.conf",
+  "extensions.conf",
+  "queues.conf",
+  "voicemail.conf",
+  "confbridge.conf",
+  "musiconhold.conf",
+  "cdr.conf",
+  "manager.conf",
+  "logger.conf",
+  "rtp.conf",
+  "modules.conf",
+  "acl.conf",
+  "chan_dahdi.conf",
+  "iax.conf",
+  "res_fax.conf",
+  "cel.conf",
+  "cel_odbc.conf",
+  "cel_pgsql.conf",
+  "res_odbc.conf",
+  "extconfig.conf",
+  "sorcery.conf",
+  "res_pgsql.conf",
+  "res_ldap.conf",
+  "cdr_odbc.conf",
+  "cdr_pgsql.conf",
+  "http.conf",
+  "ari.conf",
+  "stir_shaken.conf",
+  "geolocation.conf",
+  "phoneprov.conf",
+  "features.conf",
+  "res_parking.conf",
+  "sla.conf",
+  "dundi.conf",
+  "calendar.conf",
+  "queuerules.conf",
+  "udptl.conf",
+  "res_stun_monitor.conf",
+  "res_snmp.conf",
+  "prometheus.conf",
+  "xmpp.conf",
+  "adsi.conf",
+  "asterisk.conf",
+  "festival.conf",
+  "cli_aliases.conf",
+  "cli_permissions.conf",
+  "indications.conf",
+  "agents.conf",
+  "followme.conf",
+  "meetme.conf",
+  "minivm.conf",
+  "extensions_minivm.conf",
+  "amd.conf",
+  "alarmreceiver.conf",
+  "ss7.timers",
+  "aeap.conf",
+  "ccss.conf",
+  "chan_websocket.conf",
+  "websocket_client.conf",
+  "motif.conf",
+  "unistim.conf",
+  "pjproject.conf",
+  "pjsip_notify.conf",
+  "pjsip_wizard.conf",
+  "iaxprov.conf",
+  "phoneprov_users.conf",
+  "cdr_adaptive_odbc.conf",
+  "cdr_beanstalkd.conf",
+  "cdr_custom.conf",
+  "cdr_manager.conf",
+  "cdr_sqlite3_custom.conf",
+  "cel_beanstalkd.conf",
+  "cel_custom.conf",
+  "cel_sqlite3_custom.conf",
+  "res_config_odbc.conf",
+  "res_config_sqlite3.conf",
+  "func_odbc.conf",
+  "hep.conf",
+  "res_curl.conf",
+  "res_http_media_cache.conf",
+  "cli.conf",
+  "codecs.conf",
+  "dnsmgr.conf",
+  "dsp.conf",
+  "enum.conf",
+  "resolver_unbound.conf",
+  "res_corosync.conf",
+  "say.conf",
+  "smdi.conf",
+  "statsd.conf",
+  "stasis.conf",
+];
+
+test('every hand-written expected resource is still on the allowlist by name', () => {
+  const actual = new Set(CONFIGURABLE_RESOURCES.map((resource) => basename(resource)));
+  const expected = new Set(EXPECTED_RESOURCE_BASENAMES);
+  const missing = [...expected].filter((name) => !actual.has(name));
+  const unexpected = [...actual].filter((name) => !expected.has(name));
+  assert.deepEqual(missing, [], `these expected resources are gone from CONFIGURABLE_RESOURCES:
+  ${missing.join('\n  ')}`);
+  assert.deepEqual(unexpected, [], `these resources are on CONFIGURABLE_RESOURCES but not in the hand-written expected list above — add them there deliberately:
+  ${unexpected.join('\n  ')}`);
+});
+
 test('every configurable resource is a file Asterisk actually ships a sample for', () => {
   const samples = join(root, 'configs', 'samples');
   const missing = CONFIGURABLE_RESOURCES.filter((resource) => !existsSync(join(samples, `${basename(resource)}.sample`)));
@@ -117,7 +228,7 @@ test('the surface has actually grown, so a regression that empties it fails', ()
   /* Tripwires, not targets. A list that silently shrinks is the failure mode here:
    * capability quietly disappears and every screen above it goes empty with no error. */
   assert.ok(READ_ONLY_COMMANDS.length >= 60, `only ${READ_ONLY_COMMANDS.length} read-only commands remain`);
-  assert.ok(CONFIGURABLE_RESOURCES.length >= 38, `only ${CONFIGURABLE_RESOURCES.length} configurable resources remain`);
+  assert.ok(CONFIGURABLE_RESOURCES.length >= 85, `only ${CONFIGURABLE_RESOURCES.length} configurable resources remain`);
 });
 
 test('no read-only command is one that writes', () => {

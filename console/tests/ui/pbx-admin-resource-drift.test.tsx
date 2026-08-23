@@ -9,5 +9,5 @@ test('PBX Admin renderer resource mirror is byte-for-byte equivalent as a set to
     [...CONFIGURABLE_RESOURCES].sort(),
     'renderer/backend configurable resource lists drifted apart',
   );
-  assert.equal(CONFIGURABLE_RESOURCES.length, 47);
+  assert.equal(CONFIGURABLE_RESOURCES.length, 91);
 });
