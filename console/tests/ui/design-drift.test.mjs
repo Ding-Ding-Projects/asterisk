@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const consoleRoot = new URL('../../', import.meta.url);
 const generated = new URL('app/renderer/src/generated/', consoleRoot);
 const compiler = fileURLToPath(new URL('scripts/compile-design.mjs', consoleRoot));
+const pbxExtension = fileURLToPath(new URL('scripts/extend-pbx-m3.mjs', consoleRoot));
 
 const snapshot = async () => {
   const names = (await readdir(generated)).sort();
@@ -15,30 +16,31 @@ const snapshot = async () => {
 };
 
 /**
- * The shipped interface must be exactly what the design reference compiles to. If anyone
- * hand-edits the generated renderer, or edits the design without recompiling, this fails.
+ * The shipped interface must be exactly what the design reference plus the checked-in
+ * PBX M3 extension compile to. If anyone hand-edits generated output, edits the design
+ * without recompiling, or changes the extension without regenerating, this fails.
  */
-test('the shipped renderer is byte-identical to a fresh compile of the design reference', async () => {
+test('the shipped renderer is byte-identical to a fresh compile of the design reference and PBX M3 extension', async () => {
   const before = await snapshot();
   assert.ok(Object.keys(before).length > 0, 'no compiled design output is checked in');
 
   execFileSync(process.execPath, [compiler], { stdio: 'pipe' });
+  execFileSync(process.execPath, [pbxExtension], { stdio: 'pipe' });
 
   const after = await snapshot();
   assert.deepEqual(Object.keys(after), Object.keys(before), 'recompiling changed the set of generated files');
   for (const name of Object.keys(before)) {
-    assert.equal(after[name], before[name], `${name} drifted from the design reference`);
+    assert.equal(after[name], before[name], `${name} drifted from the reproducible design-system compile`);
   }
 });
 
 /**
  * The independently audited design carries 267 declarative bindings — 265 plus the two
- * added for the `file` control kind's own picker (a `Clear loaded file` button, one
- * more `onClick`) and its hidden native `<input type="file">` (one more `onChange`).
- * The compiler must reproduce every one, plus exactly the three window controls the
- * design leaves inert because it is a mockup of a frameless window.
+ * added for the `file` control kind's own picker. The generated PBX editable-text M3
+ * extension adds one real input with both onChange and onInput. The three frameless
+ * window controls remain the only runtime window bindings outside that source material.
  */
-test('the compiled renderer reproduces every audited design binding', async () => {
+test('the compiled renderer reproduces every audited design binding plus the PBX editable-text input', async () => {
   const sources = await Promise.all(
     ['console.tsx', 'm3-control.tsx'].map((name) => readFile(new URL(name, generated), 'utf8')),
   );
@@ -48,8 +50,8 @@ test('the compiled renderer reproduces every audited design binding', async () =
   }
   assert.deepEqual(counts, {
     onClick: 212 + 3 + 1,
-    onChange: 10 + 1,
-    onInput: 10,
+    onChange: 10 + 1 + 1,
+    onInput: 10 + 1,
     onContextMenu: 9,
     onDragStart: 4,
     onDragOver: 4,
@@ -65,7 +67,7 @@ test('the compiled renderer reproduces every audited design binding', async () =
   assert.equal(windowControls.length, 3, 'the frameless window controls were not wired');
 });
 
-test('the generated renderer declares the design reference as its only source', async () => {
+test('the generated renderer declares the design reference as its source and the compiler as generator', async () => {
   const manifest = JSON.parse(await readFile(new URL('design-manifest.json', generated), 'utf8'));
   assert.deepEqual(manifest.sources, ['design/Asterisk Console M3.dc.html', 'design/M3 Control.dc.html']);
   assert.match(manifest.generatedBy, /compile-design\.mjs$/u);
