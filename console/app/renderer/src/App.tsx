@@ -8,6 +8,7 @@ import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type Ca
 import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
 import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, type ConfigValue } from './configuration';
 import { readControlValues, unmappedControls } from './control-keys';
+import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
 
 /**
@@ -75,6 +76,8 @@ export class App extends Base {
   private configPending = '';
   /** Screens whose bound controls have already been seeded from the target. */
   private seeded = new Set<string>();
+  /** What the console's own Asterisk runtime can do right now. */
+  private runtime: RuntimeStatus | undefined;
 
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
@@ -114,8 +117,14 @@ export class App extends Base {
     const data = response.data as { wsl?: string[] | { unavailable: string } };
     const distributions = Array.isArray(data.wsl) ? data.wsl : [];
     if (!distributions.length) {
+      /* Finding nothing was a dead end: it reported that no target existed and stopped,
+       * while the installer was carrying a complete Asterisk runtime the console could
+       * create one from. Ask what the runtime can actually do and say so, so the message
+       * names the way forward instead of only the problem. */
       const detail = Array.isArray(data.wsl) ? 'no WSL distribution discovered' : data.wsl?.unavailable ?? 'no local target discovered';
-      this.target = { ...NO_TARGET, detail };
+      const runtime = await this.request('runtime.status');
+      this.runtime = runtime?.ok ? (runtime.data as RuntimeStatus) : undefined;
+      this.target = { ...NO_TARGET, detail: `${detail}${runtimeHint(this.runtime)}` };
       this.forceUpdate();
       return;
     }
@@ -348,6 +357,44 @@ export class App extends Base {
       liveConfigResource: this.configs[screen]?.resource ?? '',
       liveConfigText: renderForDisplay(this.configs[screen]?.value),
       liveConfigState: this.configs[screen]?.state ?? (this.target.connected ? 'reading' : 'disconnected'),
+
+      /**
+       * Creating the console's own Asterisk runtime, from the payload in the installer.
+       *
+       * Offered only when the runtime reports it can actually be created, so this is
+       * never a control that looks available and cannot work. It reports each step the
+       * provisioning returns rather than a single success word, because importing a root
+       * filesystem and installing into it is slow enough that silence reads as a hang.
+       */
+      runtimeLabel: runtimeLabel(this.runtime),
+      canProvisionRuntime: canProvision(this.runtime),
+      provisionRuntime: () => {
+        if (!canProvision(this.runtime)) {
+          this.fire('Not available', runtimeLabel(this.runtime));
+          return;
+        }
+        this.toast('Creating the Asterisk runtime — this imports a root filesystem and takes a while.');
+        void this.request('runtime.provision').then((response) => {
+          if (!response) {
+            this.fire('Not run', 'The desktop bridge is unavailable, so nothing was created.');
+            return;
+          }
+          /* `data` lives only on the success branch of the response union, so the steps
+           * are read from whichever branch actually carries them rather than asserted
+           * past the type. A failed provision still returns its steps, and those are the
+           * most useful thing to show: they say how far it got. */
+          const carrier = response as { data?: { steps?: Array<{ name: string; ok: boolean; detail: string }> } };
+          const steps = (carrier.data?.steps ?? [])
+            .map((step) => `${step.ok ? 'ok' : 'failed'}: ${step.name} — ${step.detail}`)
+            .join('\n');
+          if (!response.ok) {
+            this.fire('Not created', `${response.message ?? 'Creating the runtime did not succeed.'}\n\n${steps}`.trim());
+            return;
+          }
+          this.fire('Runtime ready', steps || 'The runtime was created and answered.');
+          void this.discover();
+        });
+      },
 
       connLabel: this.target.label,
       connUptime: this.target.detail,
