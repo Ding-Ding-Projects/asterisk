@@ -227,6 +227,26 @@ completeness inventory has evidence behind no row -- 42 features across two surf
 which only the documentation column is complete.
 
 
+### Where this session stopped
+
+Closed at a usage limit, deliberately rather than mid-edit. The working tree was clean
+and the default branch matched the remote exactly at the time of writing, so nothing was
+left uncommitted anywhere.
+
+Two lanes were started and stopped before either wrote a file, so there is no partial
+work to recover and no half-finished module in the tree:
+
+- **Localization.** Still entirely absent, and it is the item that blocks a whole
+  evidence column as well as being a product contract in its own right. Start here.
+- **The implementation registry** (`console/app/feature-registry.json`). Still absent.
+  It is the cheapest of the five missing evidence columns because it is a record of code
+  that already exists, but it is only worth having if every row is checked against the
+  source first: a registry that names a file which does not implement the feature is
+  worse than no registry, because the inventory check would then pass on a false claim.
+
+Neither is blocked by anything external. Both are ordinary work.
+
+
 ## Next owner actions
 
 Ordered by what actually blocks the next claim.
