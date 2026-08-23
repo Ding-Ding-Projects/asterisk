@@ -109,10 +109,10 @@ This session fixed the worst of it: every destructive and write control funnelle
 
 One genuine mitigation already in place: `App.tsx` blanks the design's 72 seeded sample rows at render, so no invented data reaches the screen. The affected destinations are honestly empty rather than falsely populated.
 
-### Open items requiring a decision this session did not take
+### Decisions taken, and what remains open
 
-1. **Two commit messages carry private vocabulary**: `9beed2f159` and `899a3c3ecf`. Correcting them requires rewriting history and force-pushing, which was not authorised and was not done. Release notes were swept and are clean.
-2. **Installers published before `899a3c3ecf` contain the pre-scrub wording.** Binaries cannot be edited. Superseding or removing those releases is a decision for the owner.
+1. **Two commit messages carry private wording** — `9beed2f159` and `899a3c3ecf`. **Decided: they stay.** Correcting them would mean rewriting published history and force-pushing, and the owner declined that. This is recorded so a later reader finds a decision rather than an oversight, and so nobody "fixes" it by rewriting shared history later. Every editable surface was swept instead: release notes, the task issue, and the repository's own files are clean, and a guard now refuses any new occurrence in a shipped or published file.
+2. **Installers published before `899a3c3ecf` contain the pre-scrub wording.** Binaries cannot be edited, so this cannot be scrubbed in place. Superseding or removing those releases remains open for the owner. Every release published from `899a3c3ecf` onward is clean.
 
 ## Next owner actions
 

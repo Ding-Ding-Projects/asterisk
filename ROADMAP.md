@@ -49,7 +49,8 @@ Measured position: **7 of 32 destinations are backed by live control-plane data*
 - [ ] Implement `pbx.apply`, `history.list` and `history.restore` so the 21 configuration-editor screens can stage and commit, or relabel those screens read-only until they can. They are complete, responsive forms today that persist nothing.
 - [ ] Give the permanently empty table destinations (`ivr`, `voicemail`, `confbridge`, `moh`, `ami`, `sync`, `skills`, `hub`, `vocab`, `ops`, `secrets`, `notifications`) either a real reader or an empty state that distinguishes "not wired yet" from "connected and genuinely zero rows".
 - [ ] Remove or gate `server.connect`, which is implemented in the main process and never called from the interface.
-- [ ] Decide whether the pre-scrub installers published before `899a3c3ecf` should be superseded or removed; their binaries carry private wording and cannot be edited.
+- [ ] Decide whether the pre-scrub installers published before `899a3c3ecf` should be superseded or removed; their binaries carry private wording and cannot be edited. Every release from `899a3c3ecf` onward is clean.
+- ~~Correct the two commit messages that carry private wording (`9beed2f159`, `899a3c3ecf`).~~ **Deliberately not doing this.** It would require rewriting published history and force-pushing, and the owner declined. Recorded here so the gap reads as a decision rather than an oversight, and so a later contributor does not rewrite shared history to close it. Every editable surface was swept instead, and a guard refuses new occurrences.
 - [x] Run the built Windows console through the approved headless interaction route and record genuine packaged interaction evidence for WSL discovery.
 
 ## Release readiness
