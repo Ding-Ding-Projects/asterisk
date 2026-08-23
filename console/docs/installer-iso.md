@@ -184,11 +184,29 @@ rather than trusting a green build log, and checks that no code-signing call exi
 pipeline. Every one of those checks was proved meaningful by breaking the real file it guards,
 observing the test go red, and restoring it.
 
-**A full ISO has not been built or booted in this environment**: this repository checkout has no
-running Docker engine and no network access to `releases.ubuntu.com` or `nodejs.org`, so the base
-Ubuntu ISO digest and the Linux Node.js runtime digest in `build-iso.ps1` are recorded as explicit
-placeholders that must be replaced with the real published values before a real build — the
-download-and-verify step fails closed rather than silently accepting the wrong file if they are
-left unset. The exact `xorriso` boot-preservation flags in `iso-respin.Dockerfile` follow the
-documented Ubuntu autoinstall custom-ISO recipe but have not been exercised against a real ISO
-either, and are the highest-risk, least-verified part of this pipeline.
+**A full ISO has been built.** 3,720,878,080 bytes, from the packaged Asterisk runtime whose digest
+was checked against its own manifest first. Its structure was verified rather than assumed: one El
+Torito BIOS entry, one EFI entry, an ISO 9660 primary volume descriptor, and a real master boot
+record signature at byte 510. The base Ubuntu image and the Linux Node.js runtime are pinned to
+their published SHA-256 values, both verified against the sums their vendors publish, and every
+download fails closed rather than accepting a file that does not match.
+
+**Building it found a defect that no other check would have.** The first image produced was a valid
+ISO 9660 with entirely correct contents that no machine would boot. The repack followed Ubuntu's own
+published autoinstall recipe, which names `boot_hybrid.img` for the master boot record; Ubuntu
+24.04.4 does not ship that file. The hybrid repack failed, a fallback repack ran, and the build
+reported success. Every test in the suite passed on that image.
+
+The fallback is gone — one that quietly drops the single property the artifact exists for is worse
+than no fallback. The repack now asks the base image to describe its own boot arrangement through
+`xorriso -report_el_torito as_mkisofs` and uses that answer, reading the master boot record and the
+appended EFI partition back out of it by byte interval. That is what the vendor shipped rather than
+a reconstruction of it, and it does not go stale when a point release moves a file.
+
+**Still not done: the image has not been booted.** Its structure says it can; only running it proves
+it does. That, and the fact that it is unsigned and Secure Boot will therefore refuse it, are the two
+things to know before trusting it.
+
+It was built under WSL rather than a container, because the container engine on the build host would
+not start. The CI workflow builds it in a container on a Linux runner, which is the reproducible
+path; the local script remains the fallback.
