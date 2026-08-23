@@ -117,14 +117,33 @@ build, and the local toolchain stops being a prerequisite for producing a releas
 
 ## Wiring the interface to real behaviour
 
-Measured position: **7 of 32 destinations are backed by live control-plane data**; 3 of 9 declared actions are implemented.
+Position now: **16 of 32 destinations are backed by live data** and **21 control-plane
+actions are implemented**. When this work began it was 7 and 3.
 
-- [x] Implement the configuration transport `ConfigTransaction` and `StructuredConfigPlanner` require. Ten allowlisted absolute resource paths, content on standard input rather than in an argument, ordered entries so repeated keys survive a round trip, and a post-read mismatch that rolls back instead of reporting success.
-- [ ] Wire `pbx.plan` and `pbx.apply` actions onto that transport and connect the 21 configuration-editor screens to them, so a change previews as a real diff and commits through the existing backup/stage/validate/apply/post-read path. The engine and its transport are both ready; only the action wiring and the screen bindings remain.
-- [ ] Exercise an approved write plan against the managed WSL distribution before describing any configuration mutation as verified against a real target. Nothing in this project has yet written to a live Asterisk.
-- [ ] Implement `history.list` and `history.restore` against the same backups the transport already takes.
-- [ ] Give the permanently empty table destinations (`ivr`, `voicemail`, `confbridge`, `moh`, `ami`, `sync`, `skills`, `hub`, `vocab`, `ops`, `secrets`, `notifications`) either a real reader or an empty state that distinguishes "not wired yet" from "connected and genuinely zero rows".
+- [x] Implement the configuration transport `ConfigTransaction` and `StructuredConfigPlanner` require. Allowlisted absolute resource paths, content on standard input rather than in an argument, ordered entries so repeated keys survive a round trip, and a post-read mismatch that rolls back instead of reporting success.
+- [x] Wire `pbx.config`, `pbx.plan` and `pbx.apply` so a change previews as a real diff against the target and commits through that path.
+- [x] Read the real configuration file on every screen that declares one, and seed the bound controls from it, so a switch shows the target's setting instead of a shipped default.
+- [x] Bind controls to real Asterisk keys — 82 of 130 across 13 screens, each justified by a line in Asterisk's own samples. The other 48 are deliberately unbound and each screen says how many, because a wrong binding writes the wrong setting to an exchange and looks like it worked.
+- [x] Implement `history.list` and `history.restore` against the backups that path already takes.
+- [x] Give ten previously unreadable destinations a real reader: voicemail, conferences, music on hold, codecs, access control, call records, logging, manager and REST, and the two system screens. Fourteen parsers, each shaped from the literal format string in Asterisk's own source rather than a guess — a guessed parser returns an empty list, which is what those screens already showed, so the defect would have been invisible.
+- [x] Add media management so a screen offering a custom prompt can accept a file, refusing by name before a command is built and confirming what landed.
+- [x] Add a real append-only local history where a restore is a new record rather than a rewrite.
+- [ ] **Exercise an approved write plan against a real exchange.** Nothing here has yet written to anything but a disposable distribution, so no configuration change may be called verified.
+- [ ] Bind the remaining 48 controls, each from a key justified in the samples, or state on the screen exactly which setting it cannot write. None may be guessed.
+- [ ] Call the media, local-history and runtime actions from their screens. The actions exist; the interface does not yet reach them.
 - [ ] Remove or gate `server.connect`, which is implemented in the main process and never called from the interface.
+
+### Canvases worth building
+
+An assessment rejected most candidates as tables wearing a costume — queues, conferences,
+access rules, voicemail routing and feature codes are flat, ordered or one-to-one, and a
+graph of one-to-one edges is a two-column table with extra steps. Module dependencies were
+downgraded to not buildable: no Asterisk command exposes inter-module dependencies, so it
+is a wish rather than a proposal. Two survived on merit.
+
+- [ ] **Codec translation paths.** `core show translation` is literally an N×N cost matrix, so the data is already graph-shaped rather than needing graph semantics invented for it. Answers "why is this call transcoding twice" and "what is the cheapest common codec" — questions a matrix past six codecs genuinely cannot.
+- [ ] **Endpoint to registration topology.** Endpoint, address-of-record, contact and registration as one chain. Answers "why can't this trunk call out", which today means cross-referencing three screens by hand; a broken link in a chain is what a graph shows and a table hides.
+- [ ] Highlight time-conditional edges inside the existing dialplan canvas rather than building a second canvas for them — they are already drawn there.
 - [ ] Decide whether the pre-scrub installers published before `899a3c3ecf` should be superseded or removed; their binaries carry private wording and cannot be edited. Every release from `899a3c3ecf` onward is clean.
 - ~~Correct the two commit messages that carry private wording (`9beed2f159`, `899a3c3ecf`).~~ **Deliberately not doing this.** It would require rewriting published history and force-pushing, and the owner declined. Recorded here so the gap reads as a decision rather than an oversight, and so a later contributor does not rewrite shared history to close it. Every editable surface was swept instead, and a guard refuses new occurrences.
 - [x] Run the built Windows console through the approved headless interaction route and record genuine packaged interaction evidence for WSL discovery.
