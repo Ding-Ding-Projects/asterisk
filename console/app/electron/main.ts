@@ -2,8 +2,8 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { existsSync, readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { WslProvisioning, MANAGED_DISTRIBUTION } from '../../control-plane/wsl-provisioning.js';
-import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, TargetDiscovery } from '../../control-plane/index.js';
-import type { TargetProfile } from '../../control-plane/index.js';
+import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from '../../control-plane/index.js';
+import type { ReadOnlyCommand, TargetProfile } from '../../control-plane/index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../../shared/control-plane.js';
 
 let mainWindow: BrowserWindow | null = null;
@@ -122,6 +122,29 @@ async function controlPlaneRequest(request: ControlPlaneRequest): Promise<Contro
         operatingSystem: os.status === 'succeeded' ? targetDiscovery.parseDebianOperatingSystem(os.stdout) : { state: 'unavailable', reason: os.stderr, observedAt: new Date().toISOString() },
         asterisk: asterisk.status === 'succeeded' ? { state: 'available', value: asterisk.stdout.trim(), observedAt: new Date().toISOString() } : { state: 'unavailable', reason: asterisk.stderr || 'Asterisk is not installed or not running.', observedAt: new Date().toISOString() },
       } };
+    }
+    /**
+     * Runs one command against the connected target and returns what it actually said.
+     *
+     * Every confirmation flow in the interface used to end by announcing that the
+     * command had been "executed and attested" without anything having been run. This
+     * is the path that makes the announcement true. A command outside the read-only
+     * allowlist is refused by name rather than performed, and the refusal is returned
+     * to the caller so the interface can say so — an honest refusal is worth more than
+     * a cheerful message about work that did not happen.
+     */
+    if (request.action === 'pbx.command') {
+      const command = typeof request.payload?.command === 'string' ? request.payload.command.trim() : '';
+      if (!command) return { ok: false, requestId: request.requestId, code: 'COMMAND_REQUIRED', message: 'No command was supplied.' };
+      if (!(READ_ONLY_COMMANDS as ReadonlyArray<string>).includes(command)) {
+        return { ok: false, requestId: request.requestId, code: 'COMMAND_NOT_ALLOWLISTED', message: `"${command}" is not in the read-only command allowlist, so it was not run.` };
+      }
+      const target = await resolveTarget(request.serverId);
+      const result = await cliGateway.run(target, command as ReadOnlyCommand);
+      if (result.status !== 'succeeded') {
+        return { ok: false, requestId: request.requestId, code: 'COMMAND_FAILED', message: result.stderr.trim() || `The command exited with ${result.exitCode}.` };
+      }
+      return { ok: true, requestId: request.requestId, data: { command, output: result.stdout, durationMs: result.durationMs, observedAt: new Date().toISOString() } };
     }
     if (request.action === 'pbx.read') {
       if (!request.view) return { ok: false, requestId: request.requestId, code: 'VIEW_REQUIRED', message: 'A read must name the screen it is for.' };

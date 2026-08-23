@@ -5,6 +5,7 @@ import {
   type ViewReadings,
 } from './readings';
 import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
+import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
 
 /**
@@ -262,6 +263,30 @@ export class App extends Base {
         minimize: () => bridge?.window.minimize(),
         toggleMaximize: () => bridge?.window.toggleMaximize(),
         close: () => bridge?.window.close(),
+      },
+      /**
+       * The confirmation flow used to end by announcing that the command had been
+       * "executed and attested" while calling nothing at all. Every destructive and
+       * write control in the interface funnels through here, so that one line was the
+       * single largest untrue claim in the product.
+       *
+       * It now dispatches the command and reports exactly what came back: the real
+       * output on success, and the exact reason otherwise — no connected target, a
+       * command outside the read-only allowlist, or the target's own error. A refusal
+       * shown plainly is worth far more than a cheerful message about work that never
+       * happened.
+       */
+      executeCeremony: () => {
+        const command = String((this.state as { ceremonyCmd?: string }).ceremonyCmd ?? '');
+        this.set('ceremonyOpen', false);
+        void runCeremonyCommand({
+          command,
+          connected: this.target.connected,
+          serverId: this.target.id,
+          request: (action, extra) => this.request(action, extra) as Promise<CeremonyResponse | undefined>,
+          toast: (message) => this.toast(message),
+          fire: (title, body) => this.fire(title, body),
+        });
       },
       connLabel: this.target.label,
       connUptime: this.target.detail,
