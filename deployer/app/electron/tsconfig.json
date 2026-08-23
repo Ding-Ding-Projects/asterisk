@@ -4,23 +4,21 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "rootDir": "../..",
+    "rootDir": "../../..",
     "outDir": "../../dist-electron",
     "strict": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
-    "types": [
-      "node"
-    ]
+    "types": ["node"],
+    "paths": { "electron": ["../../../console/node_modules/electron/electron.d.ts"] }
   },
   "include": [
     "main.ts",
     "preload.ts",
-    "squirrel-events.ts",
-    "updater-runtime.ts",
-    "../../shared/**/*.ts",
     "../../control-plane/**/*.ts",
-    "../../server/**/*.ts"
+    "../../../console/control-plane/executor.ts",
+    "../../../console/control-plane/ssh.ts",
+    "../../../console/control-plane/redaction.ts"
   ]
 }

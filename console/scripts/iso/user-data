@@ -1,0 +1,62 @@
+#cloud-config
+# Ubuntu autoinstall (subiquity) answer file for the Ding PBX installer ISO.
+#
+# This file carries no credential of any kind. The local admin account created
+# below has its password field locked (`!`) so interactive password login is
+# refused; the machine is administered afterwards over SSH by key, or from the
+# console, or through the Ding PBX Console admin surface itself, which forces
+# the operator to create its own account on first visit (see auth.ts /
+# createAdminAccount) rather than shipping any default credential.
+#
+# Reference: https://ubuntu.com/server/docs/install/autoinstall-reference
+autoinstall:
+  version: 1
+  refresh-installer:
+    update: false
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+  network:
+    version: 2
+    ethernets:
+      all-en:
+        match:
+          name: "en*"
+        dhcp4: true
+      all-eth:
+        match:
+          name: "eth*"
+        dhcp4: true
+  ssh:
+    install-server: true
+    allow-pw: false
+  storage:
+    layout:
+      name: direct
+  identity:
+    hostname: ding-pbx
+    username: dingadmin
+    # Locked: this account cannot log in with a password. It exists only as the
+    # local Unix account systemd/SSH-key administration runs under; it is never
+    # a credential shipped on this ISO.
+    password: "!"
+  packages:
+    - libjansson4
+    - libedit2
+    - libsqlite3-0
+    - libxml2
+    - libcurl4t64
+    - libncurses6
+    - uuid-runtime
+    - ca-certificates
+    - rsync
+  late-commands:
+    # Everything under /cdrom/ding-pbx/ was placed on this ISO at build time by
+    # console/scripts/build-iso.ps1 + console/scripts/iso-payload.Dockerfile.
+    # Nothing here reaches the network: the payload (Asterisk, the Node.js
+    # runtime, and the built Ding PBX Console server) is entirely local to the
+    # ISO, exactly as the reproducible WSL bundle build embeds its payload
+    # rather than fetching it post-install.
+    - curtin in-target -- mkdir -p /opt/ding-pbx-install
+    - cp -a /cdrom/ding-pbx/. /target/opt/ding-pbx-install/
+    - curtin in-target -- bash /opt/ding-pbx-install/install-target.sh

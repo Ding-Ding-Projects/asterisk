@@ -1,0 +1,13 @@
+[Unit]
+Description=Write the Ding PBX console address to the login banner
+After=network-online.target
+Wants=network-online.target
+Before=getty.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/dingpbx-firstboot-banner.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
