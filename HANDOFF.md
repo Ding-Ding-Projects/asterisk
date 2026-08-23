@@ -102,6 +102,19 @@ Everything below is on the default branch. To pick this up elsewhere:
 - Remote CI was verified green at `23bd12e797`, which published release `ding-pbx-console-v0.0.7-r1` (non-draft, exact target, six assets). Runs for `899a3c3ecf`, `7e8adb70ce` and `87cead7124` were still in flight at close and their verdicts are **not** recorded here, because a predicted verdict is not a verdict.
 - Release `ding-pbx-console-v0.0.5-r1` was independently verified: `RELEASES` and `SHA256SUMS.txt` were downloaded and read back, and the size `RELEASES` records for the full package matches the published asset exactly.
 
+### WSL lifecycle, verified against a real machine
+
+The provisioning module was driven against the host's real `wsl.exe` through the ordinary allowlisted executor, mutating nothing:
+
+| Call | Result |
+| --- | --- |
+| `status(payloadPresent: true)` | `notProvisioned` — WSL answered, the console's distribution is absent |
+| `status(payloadPresent: false)` | `payloadMissing` — the two states are correctly distinguished rather than conflated |
+| `provision(payloadPresent: false)` | refused, and **no command reached WSL at all** |
+| `remove('docker-desktop')` | **refused** — *"This console only removes ding-pbx-console; it will not unregister docker-desktop."* |
+
+That last row is the one worth keeping. `docker-desktop` is the host's only real distribution, and the ownership boundary held against it on the real machine rather than against a scripted executor. The import path itself is still covered only by tests, because a development checkout has no packaged payload to import; it needs an installed build to exercise for real.
+
 ### Repository state at close
 
 One branch on the remote (`master`), one local branch, one checkout, no linked worktrees, no stashes, clean tree. The four feature branches were already removed when they merged, so no cleanup pass was required and none was staged. `StructuredConfigPlanner` and `ConfigTransaction` — 270 lines of backup, stage, validate, apply, post-read and reverse-order rollback — had never executed once, because nothing implemented the transport they call; that transport now exists and is covered end to end, including a target that silently never changed being caught by the post-read and rolled back rather than reported as applied.
