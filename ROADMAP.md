@@ -42,6 +42,22 @@
 - [x] Create, verify, stop and remove the console's own WSL distribution from the packaged Asterisk payload, replacing a `server.provision-bundled` action that was declared and implemented nowhere.
 - [x] Make the confirmation flow dispatch the command it guards and report the real outcome, including refusals, instead of announcing success without calling anything.
 
+## Build the Asterisk runtime image in CI instead of on every machine
+
+The root filesystem is produced by building a container image that compiles Asterisk from
+this checkout. That takes tens of minutes, needs a working local container engine, and —
+until the tar-listing defect was fixed — had never once succeeded on a developer machine,
+which is why no published installer has ever carried the payload.
+
+- [ ] Build the runtime image in the release workflow and publish it to the registry, tagged and digest-pinned by the exact source commit.
+- [ ] Have the packaging step pull that image and export the root filesystem, rather than compiling Asterisk again. The application still ships the exported tar inside the installer, so nothing is pulled at run time on a user's machine and the offline guarantee is unchanged.
+- [ ] Record the image digest in the existing provenance file alongside the source commit and the tar's own hash, so a shipped payload can be traced to the exact image that produced it.
+- [ ] Keep the local build script working as the fallback path and prove it from a cold checkout, so a contributor without registry access is never blocked.
+
+Expected effect: the packaging step becomes a pull and an export rather than a compile, the
+payload becomes reproducible from a digest rather than from whatever a machine happened to
+build, and the local toolchain stops being a prerequisite for producing a release.
+
 ## Wiring the interface to real behaviour
 
 Measured position: **7 of 32 destinations are backed by live control-plane data**; 3 of 9 declared actions are implemented.
