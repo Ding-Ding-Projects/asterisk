@@ -419,17 +419,16 @@ const consoleModule = compileComponent({
 });
 
 /** The design loads Roboto, Roboto Mono and Material Symbols from a font CDN.
- *  The packaged application must not fetch at runtime, so the same families are
- *  bundled locally and the CDN links are dropped. */
+ *  The packaged application must not fetch at runtime, so the exact faces that
+ *  stylesheet declares are downloaded by console/scripts/download-fonts.mjs and
+ *  imported from here instead. That download keeps every one of the 49 declared
+ *  @font-face blocks with its original font-weight and unicode-range, so the
+ *  typographic hierarchy and the per-subset ranges survive; the earlier package
+ *  substitutes covered only a fraction of them and gave Material Symbols a face
+ *  whose variation axes the design's .msym rule could not actually drive. */
 const baseCss = [
   '/* GENERATED FILE — do not edit. Produced by console/scripts/compile-design.mjs. */',
-  "@import 'material-symbols/outlined.css';",
-  "@import '@fontsource/roboto/300.css';",
-  "@import '@fontsource/roboto/400.css';",
-  "@import '@fontsource/roboto/500.css';",
-  "@import '@fontsource/roboto/700.css';",
-  "@import '@fontsource/roboto-mono/400.css';",
-  "@import '@fontsource/roboto-mono/500.css';",
+  "@import '../../../../assets/fonts/fonts.css';",
   '',
   sanitizeBrand(consoleSource.style),
   '',
