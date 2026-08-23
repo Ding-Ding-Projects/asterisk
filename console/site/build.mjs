@@ -18,12 +18,33 @@ if (process.argv.includes('--clean')) {
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
 
+/**
+ * The vendored fonts, copied in and rewritten to a path that exists once published.
+ *
+ * The pages reference `../assets/fonts/` because that is where the fonts really are
+ * relative to the source directory. Published output is flat under `dist/`, so that
+ * same path points outside the published tree and every font 404s — while the source
+ * directory serves perfectly, which is exactly what makes it easy to miss. Copy them
+ * in and rewrite the reference, the same way the docs links are already rewritten.
+ */
+const fontSource = resolve(root, '..', 'assets', 'fonts');
+const fontOutput = join(output, 'assets', 'fonts');
+await mkdir(fontOutput, { recursive: true });
+const fontFiles = await readdir(fontSource);
+for (const file of fontFiles) {
+  await copyFile(join(fontSource, file), join(fontOutput, file));
+}
+if (!fontFiles.includes('fonts.css')) {
+  throw new Error(`No fonts.css in ${fontSource}; the published pages would fall back silently.`);
+}
+
 for (const asset of assets) {
   let content = await readFile(join(root, asset));
+  let text = content.toString('utf8').replaceAll('../assets/fonts/', 'assets/fonts/');
   if (asset === 'index.html') {
-    content = Buffer.from(content.toString('utf8').replaceAll('../docs/', 'docs/').replaceAll('.md"', '.html"'));
+    text = text.replaceAll('../docs/', 'docs/').replaceAll('.md"', '.html"');
   }
-  await writeFile(join(output, asset), content);
+  await writeFile(join(output, asset), Buffer.from(text));
 }
 await copyFile(socialPreview, join(output, 'social-preview.png'));
 

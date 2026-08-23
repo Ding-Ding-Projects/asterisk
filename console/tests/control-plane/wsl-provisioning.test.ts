@@ -174,3 +174,92 @@ test('every command goes through the allowlisted executable with no shell', asyn
     }
   }
 });
+
+/* ---- provisioning from a pinned base image, when no payload was packaged ---- */
+
+const BASE = {
+  url: 'https://example.invalid/ubuntu-24.04-wsl-amd64.tar',
+  sha256: 'a'.repeat(64),
+  downloadPath: 'C:/Users/example/AppData/Local/ding-pbx-console/base.tar',
+};
+
+function fromBase(
+  script: (request: CommandRequest) => Partial<CommandResult>,
+  download: () => Promise<{ bytes: number; sha256: string }>,
+) {
+  const executor = new FakeExecutor(script);
+  const provisioning = new WslProvisioning({
+    executor,
+    rootfsPath: '',
+    installDirectory: 'C:/Users/example/AppData/Local/ding-pbx-console/wsl',
+    baseImage: BASE,
+    downloader: { download },
+    now: () => new Date('2026-08-23T00:00:00.000Z'),
+  });
+  return { executor, provisioning };
+}
+
+const healthy = (r: CommandRequest) => {
+  if (isList(r)) return { stdout: 'docker-desktop\n' };
+  if (isVersion(r)) return { stdout: 'Asterisk 20.6.0\n' };
+  return {};
+};
+
+test('base-image provisioning downloads, verifies, imports, installs and verifies', async () => {
+  const { executor, provisioning } = fromBase(healthy, async () => ({ bytes: 300, sha256: BASE.sha256 }));
+  const outcome = await provisioning.provisionFromBaseImage();
+  assert.equal(outcome.status.state, 'ready', outcome.status.reason);
+  assert.equal(outcome.status.asteriskVersion, 'Asterisk 20.6.0');
+  assert.deepEqual(
+    outcome.steps.map((s) => s.name),
+    ['base image configured', 'distribution absent', 'download base image', 'verify base image', 'import runtime', 'install Asterisk', 'verify Asterisk'],
+  );
+  const apt = executor.calls.filter((c) => c.args.includes('apt-get'));
+  assert.equal(apt.length, 2, 'it did not run both the update and the install');
+  assert.equal(apt[1].environment?.DEBIAN_FRONTEND, 'noninteractive', 'apt could stop to ask a question nobody can answer');
+});
+
+test('a digest mismatch stops before the archive is ever imported', async () => {
+  const { executor, provisioning } = fromBase(healthy, async () => ({ bytes: 300, sha256: 'b'.repeat(64) }));
+  const outcome = await provisioning.provisionFromBaseImage();
+  assert.equal(outcome.status.state, 'failed');
+  assert.match(outcome.status.reason ?? '', /does not match its expected digest/u);
+  assert.equal(executor.calls.filter(isImport).length, 0, 'it imported an archive it could not verify');
+});
+
+test('a failed download is reported and nothing is imported', async () => {
+  const { executor, provisioning } = fromBase(healthy, async () => { throw new Error('the network is unreachable'); });
+  const outcome = await provisioning.provisionFromBaseImage();
+  assert.equal(outcome.status.state, 'failed');
+  assert.match(outcome.status.reason ?? '', /network is unreachable/u);
+  assert.equal(executor.calls.filter(isImport).length, 0);
+});
+
+test('a failed package install is failed, not silently ready', async () => {
+  const { provisioning } = fromBase((r) => {
+    if (isList(r)) return { stdout: '' };
+    if (r.args.includes('apt-get')) return { status: 'failed', exitCode: 100, stderr: 'Unable to locate package asterisk' };
+    return {};
+  }, async () => ({ bytes: 300, sha256: BASE.sha256 }));
+  const outcome = await provisioning.provisionFromBaseImage();
+  assert.equal(outcome.status.state, 'failed');
+  assert.match(outcome.status.reason ?? '', /Unable to locate package/u);
+});
+
+test('base-image provisioning refuses to overwrite an existing distribution', async () => {
+  const { executor, provisioning } = fromBase(
+    (r) => (isList(r) ? { stdout: `${MANAGED_DISTRIBUTION}\n` } : {}),
+    async () => ({ bytes: 300, sha256: BASE.sha256 }),
+  );
+  const outcome = await provisioning.provisionFromBaseImage();
+  assert.equal(outcome.status.state, 'failed');
+  assert.match(outcome.status.reason ?? '', /already exists/u);
+  assert.equal(executor.calls.filter(isImport).length, 0);
+});
+
+test('with no base image configured it says so rather than half-trying', async () => {
+  const { provisioning } = build(() => ({}));
+  const outcome = await provisioning.provisionFromBaseImage();
+  assert.equal(outcome.status.state, 'failed');
+  assert.match(outcome.status.reason ?? '', /no packaged runtime and no base image/u);
+});

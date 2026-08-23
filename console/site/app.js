@@ -42,7 +42,7 @@
   ];
 
   const BASE = document.documentElement.dataset.base || './';
-  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#8b7cff',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false},scheduleEnabled:false,notifications:[]};
+  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false},scheduleEnabled:false,notifications:[]};
   const STORAGE_KEY = 'ding-pbx-pages-v2';
   const regexState = new Map();
   let regexTarget = '';

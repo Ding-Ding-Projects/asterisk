@@ -49,12 +49,34 @@ export interface ProvisionOutcome {
   steps: ReadonlyArray<ProvisionStep>;
 }
 
+/**
+ * Fetches a base root filesystem when the installer did not carry one.
+ *
+ * Injected rather than imported so the download can be driven in tests without a
+ * network, and so the privileged process owns the actual transfer.
+ */
+export interface RootfsDownloader {
+  /** Downloads `url` to `destination` and reports what actually landed. */
+  download(url: string, destination: string, signal?: AbortSignal): Promise<{ bytes: number; sha256: string }>;
+}
+
+/** A pinned base image, used only when no packaged payload is present. */
+export interface BaseImageSource {
+  url: string;
+  /** Required. An unverified root filesystem is not imported. */
+  sha256: string;
+  /** Absolute path the archive is downloaded to. */
+  downloadPath: string;
+}
+
 export interface WslProvisioningOptions {
   executor: ProcessExecutor;
   /** Absolute path to the packaged root filesystem archive. */
   rootfsPath: string;
   /** Absolute directory the distribution's virtual disk is created in. */
   installDirectory: string;
+  baseImage?: BaseImageSource;
+  downloader?: RootfsDownloader;
   now?: () => Date;
 }
 
@@ -66,10 +88,15 @@ export class WslProvisioning {
   readonly #installDirectory: string;
   readonly #now: () => Date;
 
+  readonly #baseImage?: BaseImageSource;
+  readonly #downloader?: RootfsDownloader;
+
   constructor(options: WslProvisioningOptions) {
     this.#executor = options.executor;
     this.#rootfs = options.rootfsPath;
     this.#installDirectory = options.installDirectory;
+    this.#baseImage = options.baseImage;
+    this.#downloader = options.downloader;
     this.#now = options.now ?? (() => new Date());
   }
 
@@ -233,6 +260,128 @@ export class WslProvisioning {
         asteriskVersion: version.detail,
         observedAt: this.#stamp(),
       },
+      steps,
+    };
+  }
+
+  /** Imports an archive as the managed distribution. Callers prove it is safe first. */
+  async #import(archive: string, signal?: AbortSignal): Promise<ProvisionStep> {
+    const result = await this.#executor.execute({
+      executable: "wsl.exe",
+      args: ["--import", MANAGED_DISTRIBUTION, this.#installDirectory, archive, "--version", "2"],
+      signal,
+      timeoutMs: 15 * 60_000,
+      maxOutputBytes: 256 * 1024,
+    });
+    return {
+      name: "import runtime",
+      ok: result.status === "succeeded",
+      detail: result.status === "succeeded"
+        ? `imported into ${this.#installDirectory}`
+        : stripNulls(result.stderr).trim() || `wsl --import exited with ${result.exitCode}`,
+    };
+  }
+
+  /**
+   * Installs Asterisk into the managed distribution from its own package archive.
+   *
+   * Two separate commands rather than one shell line, because the executor takes an
+   * executable and arguments and never a shell. `apt-get` is given the flags that stop
+   * it asking questions, since there is nobody at the other end to answer them.
+   */
+  async #installAsterisk(signal?: AbortSignal): Promise<ProvisionStep> {
+    const steps: Array<ReadonlyArray<string>> = [
+      ["apt-get", "update", "-qq"],
+      ["apt-get", "install", "-y", "--no-install-recommends", "asterisk"],
+    ];
+    for (const args of steps) {
+      const result = await this.#executor.execute({
+        executable: "wsl.exe",
+        args: ["-d", MANAGED_DISTRIBUTION, "--user", "root", "--", ...args],
+        environment: { DEBIAN_FRONTEND: "noninteractive" },
+        signal,
+        timeoutMs: 20 * 60_000,
+        maxOutputBytes: 4 * 1024 * 1024,
+      });
+      if (result.status !== "succeeded") {
+        return {
+          name: "install Asterisk",
+          ok: false,
+          detail: stripNulls(result.stderr).trim() || `${args[0]} exited with ${result.exitCode}`,
+        };
+      }
+    }
+    return { name: "install Asterisk", ok: true, detail: "installed from the distribution's package archive" };
+  }
+
+  /**
+   * Creates the distribution from a pinned base image when no payload was packaged.
+   *
+   * This is the path for a build that did not carry a runtime: fetch a base root
+   * filesystem, prove it is the expected one, import it, install Asterisk inside, and
+   * verify by asking the distribution rather than by trusting any step's exit code.
+   *
+   * The digest check is not a formality. An archive fetched over a network and imported
+   * unverified becomes the root filesystem of a machine on the user's computer, so a
+   * mismatch stops the whole operation before `wsl --import` is ever reached.
+   */
+  async provisionFromBaseImage(signal?: AbortSignal): Promise<ProvisionOutcome> {
+    const steps: ProvisionStep[] = [];
+    const fail = (reason: string): ProvisionOutcome => ({
+      status: { state: "failed", distribution: MANAGED_DISTRIBUTION, reason, observedAt: this.#stamp() },
+      steps,
+    });
+
+    if (!this.#baseImage || !this.#downloader) {
+      steps.push({ name: "base image configured", ok: false, detail: "No base image or downloader is configured." });
+      return fail("This build has no packaged runtime and no base image to fall back to.");
+    }
+    steps.push({ name: "base image configured", ok: true, detail: this.#baseImage.url });
+
+    let existing: ReadonlyArray<string>;
+    try {
+      existing = await this.#listDistributions(signal);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "WSL is not available.";
+      steps.push({ name: "WSL available", ok: false, detail: reason });
+      return { status: { state: "wslUnavailable", distribution: MANAGED_DISTRIBUTION, reason, observedAt: this.#stamp() }, steps };
+    }
+    if (existing.includes(MANAGED_DISTRIBUTION)) {
+      steps.push({ name: "distribution absent", ok: false, detail: `${MANAGED_DISTRIBUTION} already exists.` });
+      return fail(`${MANAGED_DISTRIBUTION} already exists. Remove it first if you intend to recreate it.`);
+    }
+    steps.push({ name: "distribution absent", ok: true, detail: `${MANAGED_DISTRIBUTION} is not registered yet` });
+
+    let downloaded: { bytes: number; sha256: string };
+    try {
+      downloaded = await this.#downloader.download(this.#baseImage.url, this.#baseImage.downloadPath, signal);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "The download failed.";
+      steps.push({ name: "download base image", ok: false, detail });
+      return fail(detail);
+    }
+    if (downloaded.sha256.toLowerCase() !== this.#baseImage.sha256.toLowerCase()) {
+      const detail = `The downloaded base image does not match its expected digest, so it was not imported. Expected ${this.#baseImage.sha256}, got ${downloaded.sha256}.`;
+      steps.push({ name: "verify base image", ok: false, detail });
+      return fail(detail);
+    }
+    steps.push({ name: "download base image", ok: true, detail: `${downloaded.bytes} bytes` });
+    steps.push({ name: "verify base image", ok: true, detail: `sha256 ${downloaded.sha256}` });
+
+    const imported = await this.#import(this.#baseImage.downloadPath, signal);
+    steps.push(imported);
+    if (!imported.ok) return fail(imported.detail);
+
+    const installed = await this.#installAsterisk(signal);
+    steps.push(installed);
+    if (!installed.ok) return fail(installed.detail);
+
+    const version = await this.#asteriskVersion(signal);
+    steps.push({ name: "verify Asterisk", ok: version.ok, detail: version.detail });
+    if (!version.ok) return fail(version.detail);
+
+    return {
+      status: { state: "ready", distribution: MANAGED_DISTRIBUTION, asteriskVersion: version.detail, observedAt: this.#stamp() },
       steps,
     };
   }

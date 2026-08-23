@@ -44,9 +44,27 @@ try {
     $containerCreated = $true
     docker export --output $temporary $container
     if ($LASTEXITCODE -ne 0) { throw "docker export exited $LASTEXITCODE" }
-    $entries = @(tar -tf $temporary)
+    # Resolve tar explicitly rather than through PATH. GNU tar - which Git for Windows
+    # puts on PATH - reads a leading drive letter as an rsh host specification, so
+    # `tar -tf C:\path` tries to contact a machine called "C" and lists nothing:
+    #   /usr/bin/tar: Cannot connect to C: resolve failed
+    # It exits without a usable listing, every required-entry check then fails, and the
+    # error blames the rootfs for something that is wrong with the listing. Windows ships
+    # bsdtar at System32, which reads drive letters correctly.
+    $tar = Join-Path $env:SystemRoot 'System32\tar.exe'
+    if (-not (Test-Path -LiteralPath $tar)) { $tar = 'tar' }
+    $entries = @(& $tar -tf $temporary)
+    # A listing that came back empty is a broken listing, not an empty archive. Say which,
+    # or the next person spends an afternoon looking for a file that was always there.
+    if ($entries.Count -eq 0) {
+        throw "Listing the exported rootfs produced no entries using '$tar'. The archive is $((Get-Item -LiteralPath $temporary).Length) bytes, so this is a listing failure rather than an empty archive."
+    }
+    # docker export writes bare paths, but other producers prefix them with './'. Accept
+    # either rather than failing on a cosmetic difference in how the archive was written.
+    $normalised = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($entry in $entries) { [void]$normalised.Add(($entry -replace '^\./', '').TrimEnd('/')) }
     foreach ($required in @('usr/sbin/asterisk','usr/share/ding-pbx/bundle-manifest.json','etc/wsl.conf','etc/systemd/system/asterisk.service')) {
-        if ($required -notin $entries) { throw "Bundled rootfs is missing $required" }
+        if (-not $normalised.Contains($required)) { throw "Bundled rootfs is missing $required (listed $($entries.Count) entries)" }
     }
     if (-not ($entries | Where-Object { $_ -like 'usr/lib/asterisk/modules/*.so' } | Select-Object -First 1)) { throw 'Bundled rootfs contains no Asterisk modules.' }
     if (Test-Path -LiteralPath $bundlePath) { Remove-Item -LiteralPath $bundlePath -Force }

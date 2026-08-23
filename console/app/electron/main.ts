@@ -1,7 +1,9 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
-import { existsSync, readFileSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { createHash } from 'node:crypto';
 import { WslProvisioning, MANAGED_DISTRIBUTION } from '../../control-plane/wsl-provisioning.js';
+import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from '../../control-plane/index.js';
 import type { ReadOnlyCommand, TargetProfile } from '../../control-plane/index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../../shared/control-plane.js';
@@ -54,7 +56,47 @@ function bundledAsteriskRuntime() {
 }
 
 /**
- * The console's own WSL distribution, created from the payload inside the installer.
+ * Streams a base root filesystem to disk and reports the digest of what landed.
+ *
+ * The digest is computed from the bytes actually written rather than from anything the
+ * server said about them, because the caller's whole reason for asking is to decide
+ * whether this archive is safe to make the root filesystem of a machine.
+ */
+const rootfsDownloader = {
+  async download(url: string, destination: string) {
+    const response = await fetch(url, { redirect: 'error' });
+    if (!response.ok) throw new Error(`Downloading the base image failed with HTTP ${response.status}.`);
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.length === 0) throw new Error('The base image download was empty.');
+    mkdirSync(dirname(destination), { recursive: true });
+    writeFileSync(destination, bytes);
+    return { bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') };
+  },
+};
+
+/**
+ * An optional pinned base image, used only when the installer carried no runtime.
+ *
+ * Deliberately read from a committed manifest rather than hard-coded here. A URL is
+ * easy to write down; the digest that makes it safe to import has to be verified
+ * against the real artifact first, and inventing one would be worse than shipping no
+ * fallback at all. Absent the manifest, the fallback reports plainly that it has
+ * nothing to fall back to.
+ */
+function pinnedBaseImage() {
+  const manifest = join(process.resourcesPath, 'asterisk', 'base-image.json');
+  if (!existsSync(manifest)) return undefined;
+  try {
+    const record = JSON.parse(readFileSync(manifest, 'utf8')) as { url?: string; sha256?: string };
+    if (typeof record.url !== 'string' || !/^[0-9a-f]{64}$/iu.test(record.sha256 ?? '')) return undefined;
+    return { url: record.url, sha256: record.sha256 as string, downloadPath: join(app.getPath('userData'), 'base-image.tar') };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The console's own WSL distribution.
  *
  * The virtual disk lives under the user's own application data rather than anywhere
  * needing elevation, and the directory is created on demand because `wsl --import`
@@ -71,6 +113,8 @@ function wslProvisioning() {
       executor: processExecutor,
       rootfsPath: runtime.state === 'available' ? (runtime as { rootfs: string }).rootfs : '',
       installDirectory,
+      baseImage: pinnedBaseImage(),
+      downloader: rootfsDownloader,
     }),
   };
 }
@@ -85,7 +129,12 @@ async function controlPlaneRequest(request: ControlPlaneRequest): Promise<Contro
     }
     if (request.action === 'runtime.provision') {
       const { provisioning, payloadPresent } = wslProvisioning();
-      const outcome = await provisioning.provision(payloadPresent);
+      /* Prefer the packaged runtime: it needs no network and is the exact build this
+       * installer was tested with. Only a build that carried nothing falls back to
+       * fetching a pinned base image and installing Asterisk into it. */
+      const outcome = payloadPresent
+        ? await provisioning.provision(true)
+        : await provisioning.provisionFromBaseImage();
       return { ok: outcome.status.state === 'ready', requestId: request.requestId, code: outcome.status.state === 'ready' ? undefined : 'RUNTIME_PROVISION_FAILED', message: outcome.status.reason, data: outcome } as ControlPlaneResponse;
     }
     if (request.action === 'runtime.stop') {
@@ -184,6 +233,15 @@ ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindo
 ipcMain.on('window:close', () => mainWindow?.close());
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
 
-app.whenReady().then(createWindow);
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+/* Before anything else. Squirrel launches the app with a --squirrel-* argument on
+ * install, update and uninstall and waits about fifteen seconds for it to finish and
+ * exit; an app that does not recognise the argument just starts normally, so Squirrel
+ * waits out the whole timeout and gives up on the hook. Any work done ahead of this
+ * check — opening a window, reading configuration — is spent from that same budget. */
+if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
+  app.quit();
+} else {
+  app.whenReady().then(createWindow);
+  app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+}

@@ -69,12 +69,35 @@ test('documents local-only validation and redacted export boundaries', () => {
 test('build composes deterministic local output without fetches', async () => {
   execFileSync(process.execPath, [join(root, 'build.mjs')], { cwd: repo, stdio: 'pipe' });
   const manifest = JSON.parse(await readFile(join(root, 'dist', 'build-manifest.json'), 'utf8'));
-  assert.equal(manifest.networkFetches, 0); assert.equal(manifest.outputFiles.length, 48);
+  assert.equal(manifest.networkFetches, 0);
+  // 48 pages, documents and the social preview, plus the 51 vendored font files
+  // (49 faces, fonts.css and manifest.json) now copied in so the published pages can
+  // actually reach them. An exact count is the point: this is the determinism check,
+  // so a number that drifts should fail and be explained rather than quietly widened.
+  assert.equal(manifest.outputFiles.length, 99);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');
   assert.doesNotMatch(built, /\.\.\/docs\//); assert.match(built, /href="docs\/README\.html"/);
   const article=await readFile(join(root,'dist','docs','pbx','dash.html'),'utf8');assert.match(article,/<h1>Dashboard<\/h1>/);assert.doesNotMatch(article,/\.md"/);
+});
+
+
+test('the vendored fonts are published inside dist and every page reaches them', async () => {
+  // The pages reference ../assets/fonts/ because that is where the fonts sit relative
+  // to the source directory, which serves perfectly and hides the defect: the same
+  // path points outside the published tree, so every font would 404 once deployed.
+  const files = await readdir(join(root, 'dist', 'assets', 'fonts'));
+  assert.ok(files.includes('fonts.css'), 'dist carries no fonts.css, so the published pages fall back silently');
+  const faces = files.filter((file) => file.endsWith('.woff2')).length;
+  assert.ok(faces >= 40, 'the published output carries only ' + faces + ' font faces; the vendored set is 49');
+  for (const page of ['index.html', 'product.html', 'downloads.html', 'documentation.html', 'status.html', 'settings.html']) {
+    const html = await readFile(join(root, 'dist', page), 'utf8');
+    // Plain string checks rather than patterns: the needles here are all slashes and
+    // dots, and a mangled pattern would match nothing while still reporting a pass.
+    assert.ok(!html.includes('../assets/'), page + ' still points outside the published tree');
+    assert.ok(html.includes('href="assets/fonts/fonts.css"'), page + ' does not reference the published fonts');
+  }
 });
 
 let passed = 0;
