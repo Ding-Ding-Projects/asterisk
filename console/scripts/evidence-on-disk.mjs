@@ -19,6 +19,46 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+/**
+ * Proves every `exempt` row carries a written reason.
+ *
+ * An exemption is a decision and must cost something to make, or the status becomes a
+ * quiet way of clearing a row nobody wants to do. Requiring a named reason, a decider
+ * and a date means an exclusion stays legible as a choice — and means the next person
+ * finds an argument to disagree with rather than a gap to fill in.
+ */
+export function verifyExemptions(inventory, exemptions) {
+  const declared = new Map();
+  for (const entry of exemptions?.exemptions ?? []) {
+    for (const surface of entry.surfaces ?? []) {
+      if (typeof entry.reason === 'string' && entry.reason.trim().length >= 40 && entry.decidedBy && entry.decidedOn) {
+        declared.set(`${surface}.${entry.feature}`, entry);
+      }
+    }
+  }
+
+  const problems = [];
+  let exemptRows = 0;
+  for (const surface of inventory.surfaces) {
+    for (const feature of surface.features) {
+      const key = `${surface.id}.${feature.id}`;
+      if (feature.status === 'exempt') {
+        exemptRows += 1;
+        if (!declared.has(key)) {
+          problems.push(`${key} is marked exempt with no recorded reason, decider and date in exemptions.json`);
+        }
+      } else if (declared.has(key)) {
+        problems.push(`${key} has a recorded exemption but is not marked exempt, so the record and the inventory disagree`);
+      }
+    }
+  }
+
+  if (problems.length > 0) {
+    throw new Error(`${problems.length} exemption problem(s):\n  - ${problems.join('\n  - ')}`);
+  }
+  return { exemptRows };
+}
+
 export function verifyEvidenceOnDisk(inventory, { root, exists = existsSync, read = readFileSync } = {}) {
   if (typeof root !== 'string' || root.length === 0) {
     throw new Error('verifyEvidenceOnDisk requires an absolute repository root');

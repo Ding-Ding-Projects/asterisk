@@ -58,7 +58,182 @@
         "capture": "console/release/captures/windows-console/{id}.png"
       },
       "features": [
-        {"id":"language-modes","status":"unverified"},{"id":"funny-levels","status":"unverified"},{"id":"dialog-emojis","status":"unverified"},{"id":"school-mode","status":"unverified"},{"id":"narration","status":"unverified"},{"id":"scheduled-settings","status":"unverified"},{"id":"external-settings-sources","status":"unverified"},{"id":"dim-sum-surprise","status":"unverified"},{"id":"regex-builder","status":"unverified"},{"id":"non-blocking-notifications","status":"unverified"},{"id":"status-hub","status":"unverified"},{"id":"material-appearance","status":"unverified"},{"id":"app-logo-customization","status":"unverified"},{"id":"local-file-converter","status":"unverified"},{"id":"ollama-suite-manager","status":"unverified"},{"id":"browser-style-tabs","status":"unverified"},{"id":"tab-groups-and-searches","status":"unverified"},{"id":"command-palette","status":"unverified"},{"id":"destructive-action-confirmation","status":"unverified"},{"id":"local-version-history","status":"unverified"},{"id":"changelog-viewer","status":"unverified"},{"id":"external-editor-handoff","status":"unverified"},{"id":"complete-exports","status":"unverified"},{"id":"bulk-actions","status":"unverified"},{"id":"accessibility","status":"unverified"},{"id":"responsive-sizing","status":"unverified"},{"id":"personal-vocabulary-upload","status":"unverified"},{"id":"per-element-toy-locks","status":"unverified"},{"id":"support-tickets","status":"unverified"},{"id":"unlock-ladder","status":"unverified"},{"id":"built-in-authenticator","status":"unverified"},{"id":"attention-modes","status":"unverified"},{"id":"browser-extension-download-surfaces","status":"unverified"},{"id":"offline-documentation-browser","status":"unverified"},{"id":"app-display-name","status":"unverified"},{"id":"guided-forms","status":"unverified"},{"id":"bounded-overlays","status":"unverified"},{"id":"context-menu-shortcuts","status":"unverified"},{"id":"long-operation-progress","status":"unverified"},{"id":"in-context-recovery","status":"unverified"},{"id":"provider-markup-rendering","status":"unverified"},{"id":"forge-publishing","status":"unverified"},{"id":"collapsible-filters","status":"unverified"},{"id":"automatic-updates","status":"unverified"}
+        {
+          "id": "language-modes",
+          "status": "unverified"
+        },
+        {
+          "id": "funny-levels",
+          "status": "unverified"
+        },
+        {
+          "id": "dialog-emojis",
+          "status": "unverified"
+        },
+        {
+          "id": "school-mode",
+          "status": "unverified"
+        },
+        {
+          "id": "narration",
+          "status": "unverified"
+        },
+        {
+          "id": "scheduled-settings",
+          "status": "unverified"
+        },
+        {
+          "id": "external-settings-sources",
+          "status": "unverified"
+        },
+        {
+          "id": "dim-sum-surprise",
+          "status": "unverified"
+        },
+        {
+          "id": "regex-builder",
+          "status": "unverified"
+        },
+        {
+          "id": "non-blocking-notifications",
+          "status": "unverified"
+        },
+        {
+          "id": "status-hub",
+          "status": "unverified"
+        },
+        {
+          "id": "material-appearance",
+          "status": "unverified"
+        },
+        {
+          "id": "app-logo-customization",
+          "status": "unverified"
+        },
+        {
+          "id": "local-file-converter",
+          "status": "exempt"
+        },
+        {
+          "id": "ollama-suite-manager",
+          "status": "exempt"
+        },
+        {
+          "id": "browser-style-tabs",
+          "status": "unverified"
+        },
+        {
+          "id": "tab-groups-and-searches",
+          "status": "unverified"
+        },
+        {
+          "id": "command-palette",
+          "status": "unverified"
+        },
+        {
+          "id": "destructive-action-confirmation",
+          "status": "unverified"
+        },
+        {
+          "id": "local-version-history",
+          "status": "unverified"
+        },
+        {
+          "id": "changelog-viewer",
+          "status": "unverified"
+        },
+        {
+          "id": "external-editor-handoff",
+          "status": "unverified"
+        },
+        {
+          "id": "complete-exports",
+          "status": "unverified"
+        },
+        {
+          "id": "bulk-actions",
+          "status": "unverified"
+        },
+        {
+          "id": "accessibility",
+          "status": "unverified"
+        },
+        {
+          "id": "responsive-sizing",
+          "status": "unverified"
+        },
+        {
+          "id": "personal-vocabulary-upload",
+          "status": "unverified"
+        },
+        {
+          "id": "per-element-toy-locks",
+          "status": "unverified"
+        },
+        {
+          "id": "support-tickets",
+          "status": "unverified"
+        },
+        {
+          "id": "unlock-ladder",
+          "status": "unverified"
+        },
+        {
+          "id": "built-in-authenticator",
+          "status": "unverified"
+        },
+        {
+          "id": "attention-modes",
+          "status": "unverified"
+        },
+        {
+          "id": "browser-extension-download-surfaces",
+          "status": "unverified"
+        },
+        {
+          "id": "offline-documentation-browser",
+          "status": "unverified"
+        },
+        {
+          "id": "app-display-name",
+          "status": "unverified"
+        },
+        {
+          "id": "guided-forms",
+          "status": "unverified"
+        },
+        {
+          "id": "bounded-overlays",
+          "status": "unverified"
+        },
+        {
+          "id": "context-menu-shortcuts",
+          "status": "unverified"
+        },
+        {
+          "id": "long-operation-progress",
+          "status": "unverified"
+        },
+        {
+          "id": "in-context-recovery",
+          "status": "unverified"
+        },
+        {
+          "id": "provider-markup-rendering",
+          "status": "unverified"
+        },
+        {
+          "id": "forge-publishing",
+          "status": "unverified"
+        },
+        {
+          "id": "collapsible-filters",
+          "status": "unverified"
+        },
+        {
+          "id": "automatic-updates",
+          "status": "unverified"
+        }
       ]
     },
     {
@@ -72,7 +247,182 @@
         "capture": "console/release/captures/pages-site/{id}.png"
       },
       "features": [
-        {"id":"language-modes","status":"unverified"},{"id":"funny-levels","status":"unverified"},{"id":"dialog-emojis","status":"unverified"},{"id":"school-mode","status":"unverified"},{"id":"narration","status":"unverified"},{"id":"scheduled-settings","status":"unverified"},{"id":"external-settings-sources","status":"unverified"},{"id":"dim-sum-surprise","status":"unverified"},{"id":"regex-builder","status":"unverified"},{"id":"non-blocking-notifications","status":"unverified"},{"id":"status-hub","status":"unverified"},{"id":"material-appearance","status":"unverified"},{"id":"app-logo-customization","status":"unverified"},{"id":"local-file-converter","status":"unverified"},{"id":"ollama-suite-manager","status":"unverified"},{"id":"browser-style-tabs","status":"unverified"},{"id":"tab-groups-and-searches","status":"unverified"},{"id":"command-palette","status":"unverified"},{"id":"destructive-action-confirmation","status":"unverified"},{"id":"local-version-history","status":"unverified"},{"id":"changelog-viewer","status":"unverified"},{"id":"external-editor-handoff","status":"unverified"},{"id":"complete-exports","status":"unverified"},{"id":"bulk-actions","status":"unverified"},{"id":"accessibility","status":"unverified"},{"id":"responsive-sizing","status":"unverified"},{"id":"personal-vocabulary-upload","status":"unverified"},{"id":"per-element-toy-locks","status":"unverified"},{"id":"support-tickets","status":"unverified"},{"id":"unlock-ladder","status":"unverified"},{"id":"built-in-authenticator","status":"unverified"},{"id":"attention-modes","status":"unverified"},{"id":"browser-extension-download-surfaces","status":"unverified"},{"id":"offline-documentation-browser","status":"unverified"},{"id":"app-display-name","status":"unverified"},{"id":"guided-forms","status":"unverified"},{"id":"bounded-overlays","status":"unverified"},{"id":"context-menu-shortcuts","status":"unverified"},{"id":"long-operation-progress","status":"unverified"},{"id":"in-context-recovery","status":"unverified"},{"id":"provider-markup-rendering","status":"unverified"},{"id":"forge-publishing","status":"unverified"},{"id":"collapsible-filters","status":"unverified"},{"id":"automatic-updates","status":"unverified"}
+        {
+          "id": "language-modes",
+          "status": "unverified"
+        },
+        {
+          "id": "funny-levels",
+          "status": "unverified"
+        },
+        {
+          "id": "dialog-emojis",
+          "status": "unverified"
+        },
+        {
+          "id": "school-mode",
+          "status": "unverified"
+        },
+        {
+          "id": "narration",
+          "status": "unverified"
+        },
+        {
+          "id": "scheduled-settings",
+          "status": "unverified"
+        },
+        {
+          "id": "external-settings-sources",
+          "status": "unverified"
+        },
+        {
+          "id": "dim-sum-surprise",
+          "status": "unverified"
+        },
+        {
+          "id": "regex-builder",
+          "status": "unverified"
+        },
+        {
+          "id": "non-blocking-notifications",
+          "status": "unverified"
+        },
+        {
+          "id": "status-hub",
+          "status": "unverified"
+        },
+        {
+          "id": "material-appearance",
+          "status": "unverified"
+        },
+        {
+          "id": "app-logo-customization",
+          "status": "unverified"
+        },
+        {
+          "id": "local-file-converter",
+          "status": "exempt"
+        },
+        {
+          "id": "ollama-suite-manager",
+          "status": "exempt"
+        },
+        {
+          "id": "browser-style-tabs",
+          "status": "unverified"
+        },
+        {
+          "id": "tab-groups-and-searches",
+          "status": "unverified"
+        },
+        {
+          "id": "command-palette",
+          "status": "unverified"
+        },
+        {
+          "id": "destructive-action-confirmation",
+          "status": "unverified"
+        },
+        {
+          "id": "local-version-history",
+          "status": "unverified"
+        },
+        {
+          "id": "changelog-viewer",
+          "status": "unverified"
+        },
+        {
+          "id": "external-editor-handoff",
+          "status": "unverified"
+        },
+        {
+          "id": "complete-exports",
+          "status": "unverified"
+        },
+        {
+          "id": "bulk-actions",
+          "status": "unverified"
+        },
+        {
+          "id": "accessibility",
+          "status": "unverified"
+        },
+        {
+          "id": "responsive-sizing",
+          "status": "unverified"
+        },
+        {
+          "id": "personal-vocabulary-upload",
+          "status": "unverified"
+        },
+        {
+          "id": "per-element-toy-locks",
+          "status": "unverified"
+        },
+        {
+          "id": "support-tickets",
+          "status": "unverified"
+        },
+        {
+          "id": "unlock-ladder",
+          "status": "unverified"
+        },
+        {
+          "id": "built-in-authenticator",
+          "status": "unverified"
+        },
+        {
+          "id": "attention-modes",
+          "status": "unverified"
+        },
+        {
+          "id": "browser-extension-download-surfaces",
+          "status": "unverified"
+        },
+        {
+          "id": "offline-documentation-browser",
+          "status": "unverified"
+        },
+        {
+          "id": "app-display-name",
+          "status": "unverified"
+        },
+        {
+          "id": "guided-forms",
+          "status": "unverified"
+        },
+        {
+          "id": "bounded-overlays",
+          "status": "unverified"
+        },
+        {
+          "id": "context-menu-shortcuts",
+          "status": "unverified"
+        },
+        {
+          "id": "long-operation-progress",
+          "status": "unverified"
+        },
+        {
+          "id": "in-context-recovery",
+          "status": "unverified"
+        },
+        {
+          "id": "provider-markup-rendering",
+          "status": "unverified"
+        },
+        {
+          "id": "forge-publishing",
+          "status": "unverified"
+        },
+        {
+          "id": "collapsible-filters",
+          "status": "unverified"
+        },
+        {
+          "id": "automatic-updates",
+          "status": "unverified"
+        }
       ]
     }
   ]

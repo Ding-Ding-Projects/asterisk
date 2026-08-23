@@ -33,8 +33,13 @@ export function validateSurfaceInventory(data, { allowUnverified = false } = {})
     exactSet(surface.features.map((feature) => feature.id), data.requiredFeatureIds, `${surface.id}.features`);
     for (const feature of surface.features) {
       exactSet(Object.keys(feature), ['id', 'status'], `${surface.id}.${feature.id} fields`);
-      if (!['verified', 'unverified'].includes(feature.status)) throw new Error(`${surface.id}.${feature.id}: invalid status`);
-      if (!allowUnverified && feature.status !== 'verified') throw new Error(`${surface.id}.${feature.id}: evidence remains unverified`);
+      /* `exempt` is a decision, not a gap. A feature the owner has deliberately excluded
+       * has to be recorded as excluded, or it reads to the next person as something that
+       * was forgotten — and somebody eventually "fixes" it by building a thing nobody
+       * wanted. It is only accepted alongside a written reason, checked separately, so
+       * the status cannot become a quiet way of clearing a row. */
+      if (!['verified', 'unverified', 'exempt'].includes(feature.status)) throw new Error(`${surface.id}.${feature.id}: invalid status`);
+      if (!allowUnverified && feature.status === 'unverified') throw new Error(`${surface.id}.${feature.id}: evidence remains unverified`);
     }
   }
   return { surfaces: data.surfaces.length, featuresPerSurface: data.requiredFeatureIds.length };

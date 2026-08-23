@@ -9,7 +9,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { verifyEvidenceOnDisk } from './evidence-on-disk.mjs';
+import { verifyEvidenceOnDisk, verifyExemptions } from './evidence-on-disk.mjs';
 
 const root = resolve(import.meta.dirname, '..', '..');
 const source = JSON.parse(readFileSync(resolve(root, 'console/inventories/surface-completeness.json'), 'utf8'));
@@ -72,3 +72,45 @@ console.log(`GREEN: a fully evidenced row is accepted (${accepted.checked} artif
 
 verifyEvidenceOnDisk(source, { root });
 console.log('GREEN: restored surface completeness inventory passed the evidence-on-disk check.');
+
+/* An exemption is a decision and has to cost something to make, or the status becomes a
+ * quiet way of clearing a row nobody wants to do. These prove it costs a written reason. */
+const exemptions = JSON.parse(readFileSync(resolve(root, 'console/inventories/exemptions.json'), 'utf8'));
+const cloneExemptions = () => structuredClone(exemptions);
+
+function exemptionMustFail(name, mutateInventory, mutateExemptions = (data) => data) {
+  const inventory = clone();
+  const record = cloneExemptions();
+  mutateInventory(inventory);
+  mutateExemptions(record);
+  try { verifyExemptions(inventory, record); }
+  catch (error) { console.log(`RED: ${name}: ${error.message.split('\n')[1]?.trim() ?? error.message}`); return; }
+  throw new Error(`${name}: deliberate break stayed green`);
+}
+
+verifyExemptions(source, exemptions);
+
+exemptionMustFail(
+  'mark a row exempt with no recorded reason at all',
+  (data) => { data.surfaces[0].features.find((feature) => feature.id === 'narration').status = 'exempt'; },
+);
+
+exemptionMustFail(
+  'record an exemption whose reason is too short to be a reason',
+  () => {},
+  (record) => { record.exemptions[0].reason = 'no'; },
+);
+
+exemptionMustFail(
+  'record an exemption with no decider',
+  () => {},
+  (record) => { delete record.exemptions[0].decidedBy; },
+);
+
+exemptionMustFail(
+  'leave a recorded exemption whose row is not actually marked exempt',
+  (data) => { data.surfaces[0].features.find((feature) => feature.id === 'ollama-suite-manager').status = 'unverified'; },
+);
+
+verifyExemptions(source, exemptions);
+console.log('GREEN: every exempt row carries a recorded reason, decider and date.');
