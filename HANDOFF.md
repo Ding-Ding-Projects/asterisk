@@ -142,12 +142,12 @@ One genuine mitigation already in place: `App.tsx` blanks the design's 72 seeded
 
 | | At the start of this work | Now |
 | --- | --- | --- |
-| Destinations backed by live data | 7 of 32 | **16 of 32** |
+| Destinations backed by live data | 7 of 32 | **20 of 32** |
 | Control-plane actions implemented | 3 | **21** |
 | Read-only Asterisk commands | 23 | **63** |
-| Writable configuration files | 10 | **41** |
+| Writable configuration files | 10 | **91** |
 | Controls bound to real Asterisk keys | 0 | **82 of 130** |
-| Local test cases | 117 | **1,014** |
+| Local test cases | 117 | **1,116** |
 
 ### What is genuinely working
 
@@ -284,6 +284,54 @@ The parity boundary is unchanged and still correct: the FreePBX PHP framework, i
 database and module loader, commercial licensing and entitlement, provider cloud APIs,
 and the host operating-system firewall are **not** implemented and must not be presented
 as though they were.
+
+
+### Session of 2026-08-23
+
+Verified by running each suite on this tree: **1,116 local tests** -- 19 inventory and
+drift, 516 renderer, 533 control plane, 10 static site, 8 hosted server, 30 installer
+image. Build clean, design-drift guard green.
+
+What changed, and why each mattered:
+
+- **The catalogue tab is gone.** All 107 FreePBX features registered a screen with an
+  empty control list, parked in a rail of their own -- 107 named pages that did nothing.
+  Nineteen described capabilities the console already had a screen for and are merged
+  into it rather than duplicated; the other eighty-eight are routed onto the four real
+  rails from a per-feature table that can be read and argued with.
+- **The onboarding wizard was implemented.** The compiled design carried every step of it
+  and the application implemented none, so the first surface a new user met did nothing
+  while offering to build a working phone system in one press. It now reads the target's
+  configuration, builds a real plan, confirms it through the same gate as every other
+  write, and applies it through the transaction path. The one promise that could not be
+  backed -- business hours -- was removed from the copy rather than faked.
+- **Four subsystems gained rows**: voicemail, conferences, hold music and the manager
+  interfaces. Reading them against a live target found a parser that required a zone
+  column and therefore returned nothing at all for three configured mailboxes.
+- **A choice can now ask for what it needs.** The design gained a conditional mechanism;
+  the hold-music screen offered four modes and asked for nothing further, so two of them
+  could be chosen and never completed.
+- **An installer image was built.** The first one was valid, correct and unbootable, and
+  every test passed on it. See the ISO section for what that cost and what it changed.
+- **A PJSIP endpoint model** that treats the endpoint, auth and aor trio as one identity,
+  verified by writing an endpoint to the live target and reading every field back.
+
+Two corrections worth carrying forward, both found by checking a claim rather than
+accepting it:
+
+- An audit recorded six PJSIP keys as verified against the sample file. None of them has
+  a documented line in it; they were mentioned in prose only. They are excluded rather
+  than given invented values.
+- The feature catalogue contained two entries -- `sms-plus` and `sms-webhook` -- matching
+  no module FreePBX ships under any name. A fabricated feature breaks no test, so nothing
+  was ever going to catch it.
+
+**The scoreboard has not moved.** `FREEPBX_FEATURES.md` reads 605 unchecked, none
+checked. Everything above is real and none of it clears that document's bar, which
+requires a rendered control, applied and read back, with a positive and a negative
+regression. Its own rule is the reason: an item is not checked merely because a
+destination exists. One subsection of it is unbuildable rather than unbuilt -- the legacy
+SIP channel fields specify a driver this Asterisk does not contain.
 
 
 ## Next owner actions
