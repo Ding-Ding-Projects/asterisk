@@ -1,5 +1,5 @@
 import type { Component } from 'react';
-import ConsoleShell, { ORDER, SCREENS } from './generated/console';
+import ConsoleShell, { ORDER, ONBOARD, SCREENS } from './generated/console';
 import {
   badgeFor, dashboardStats, formatDuration, healthBars, isReadable, reasonFor, regexMatchLabel, rowsFor, serverRows, valueOf,
   type ViewReadings,
@@ -11,6 +11,7 @@ import { readControlValues, unmappedControls } from './control-keys';
 import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
 import { ServerSwitcher } from './servers';
+import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
 import {
   clearVocabulary, createMemoryStorage, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
 } from './personal-vocabulary';
@@ -321,6 +322,148 @@ export class App extends Base {
     else this.fire('Not removed', 'The control plane did not accept that removal.');
   };
 
+  // ---------------------------------------------------------------- onboarding wizard
+
+  /** True while a real deploy or connect from the wizard is in flight, so the button
+   *  cannot be pressed twice and start two transactions against the same target. */
+  private onboardBusy = false;
+
+  private onboardAnswers(): OnboardAnswers {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const intent = values.ob_intent === 'Connect to an existing one' ? 'Connect to an existing one' : 'Deploy a new server';
+    return {
+      intent,
+      phones: Number(values.ob_phones ?? 8),
+      menu: values.ob_menu !== false,
+      tls: values.ob_tls !== false,
+      // The wizard never asked a separate "harden" question; the only affordance for
+      // it is the confirmation-gate choice on the Safety step. Any gate stronger than
+      // the loosest one counts as asking for hardening, so "Credits allowed" (the
+      // weakest) is the one case that does not imply it.
+      hardened: String(values.ob_gates ?? 'All four gates') !== 'Credits allowed',
+    };
+  }
+
+  /** Reads the three files the deploy touches, in parallel, tolerating an absent file
+   *  (an empty section list) the same way the rest of the console already does. */
+  private async readOnboardInputs(serverId: string): Promise<OnboardPlanInputs> {
+    const read = async (resource: string): Promise<ConfigValue> => {
+      const response = await this.request('pbx.config', { serverId, payload: { resource } });
+      const value = (response as { data?: { value?: ConfigValue } } | undefined)?.data?.value;
+      return Array.isArray(value) ? value : [];
+    };
+    const [pjsip, extensions, http] = await Promise.all([
+      read('/etc/asterisk/pjsip.conf'),
+      read('/etc/asterisk/extensions.conf'),
+      read('/etc/asterisk/http.conf'),
+    ]);
+    return { pjsip, extensions, http };
+  }
+
+  /** The "connect to an existing one" half of the wizard's first question. Reuses the
+   *  exact server-add path the Deploy & servers screen already uses for real, rather
+   *  than a second implementation that could drift from it. */
+  private async onboardConnect(): Promise<void> {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const whereLabel = String(values.ob_where ?? 'This machine');
+    const whereMap: Record<string, string> = { 'This machine': 'local', 'Local Docker': 'local-docker', SSH: 'ssh', 'SSH Docker': 'ssh-docker' };
+    const connectionKind = whereMap[whereLabel] ?? 'local';
+    const host = String(values.ob_host ?? '');
+    const input: { name: string; connectionKind: string; host?: string } = {
+      name: host || `connection-${this.servers.servers.length + 1}`,
+      connectionKind,
+    };
+    if (connectionKind !== 'local') input.host = host;
+    const created = await this.servers.add(input as never);
+    this.forceUpdate();
+    if (created) {
+      this.fire('Connected', `${created.name} was added to the server list and is available on Deploy & servers.`);
+      void this.discover();
+      this.set('onboardOpen', false);
+      this.set('screen', 'servers');
+      this.set('railId', 'app');
+    } else {
+      this.fire('Not connected', 'The control plane did not accept that connection. Nothing was written.');
+    }
+  }
+
+  /** The "deploy a new server" half. Ensures a target exists (provisioning the local
+   *  runtime if the console has none yet), reads what is really on it, builds the plan
+   *  with `buildOnboardPlan`, previews it through the same confirmation gate every
+   *  other write in the app uses, and — only on confirmation — applies it and reports
+   *  exactly what happened, per resource. */
+  private async onboardDeploy(): Promise<void> {
+    if (!this.target.connected) {
+      if (!canProvision(this.runtime)) {
+        this.fire('No target', `Nothing is connected and a runtime cannot be created here: ${runtimeLabel(this.runtime)}`);
+        return;
+      }
+      this.toast('Creating the Asterisk runtime for the wizard — this takes a while.');
+      const provisioned = await this.request('runtime.provision');
+      if (!provisioned?.ok) {
+        this.fire('Not created', provisioned?.message ?? 'Creating the runtime did not succeed, so there is nothing to deploy to.');
+        return;
+      }
+      await this.discover();
+      if (!this.target.connected) {
+        this.fire('No target', 'The runtime was created but nothing is connected yet — open Deploy & servers to finish connecting, then try the wizard again.');
+        return;
+      }
+    }
+
+    const answers = this.onboardAnswers();
+    const inputs = await this.readOnboardInputs(this.target.id);
+    const plan = buildOnboardPlan(answers, inputs);
+
+    const summaryLines = [
+      `Target: ${this.target.label}`,
+      ...plan.summary.map((line) => `• ${line}`),
+      ...plan.skipped.map((line) => `• ${line}`),
+      answers.hardened ? '' : '',
+      `Business hours: ${ONBOARD_HOURS_NOTE}`,
+      '',
+      'Every file is backed up before it is touched, and this is recorded in local history so it can be restored.',
+    ].filter((line, i, arr) => line !== '' || arr[i - 1] !== '');
+
+    if (plan.summary.length === 0) {
+      this.fire('Nothing to change', 'The target already matches what the wizard would have written, so nothing was touched.');
+      this.set('onboardOpen', false);
+      this.set('screen', 'servers');
+      this.set('railId', 'app');
+      return;
+    }
+
+    this.areYouSure('Apply the deploy plan?', summaryLines.join('\n'), 3, () => {
+      if (this.onboardBusy) return;
+      this.onboardBusy = true;
+      void (async () => {
+        try {
+          const response = await this.request('pbx.apply', { serverId: this.target.id, payload: { documents: plan.documents } });
+          const result = (response as { data?: { result?: { status: string; message?: string } }; message?: string } | undefined);
+          if (!response?.ok) {
+            this.fire('Deploy not applied', `${response?.message ?? result?.data?.result?.message ?? 'The target refused the change.'}`);
+            return;
+          }
+          const secretLines = plan.newExtensions.map((e) => `${e.id}: ${e.secret}`).join('\n');
+          this.fire(
+            'Deployed',
+            [
+              `Applied: ${plan.summary.join('; ')}.`,
+              plan.newExtensions.length > 0 ? `New extension secrets (shown once — write these down):\n${secretLines}` : '',
+              plan.skipped.length > 0 ? `Not applied: ${plan.skipped.join(' ')}` : '',
+              'Every changed file was backed up first and is in local history if you need to undo this.',
+            ].filter(Boolean).join('\n\n'),
+          );
+          this.set('onboardOpen', false);
+          this.set('screen', 'servers');
+          this.set('railId', 'app');
+        } finally {
+          this.onboardBusy = false;
+        }
+      })();
+    });
+  }
+
   /** Reads the screen currently on top, once per screen change. */
   private refresh = async () => {
     const screen = (this.state as { screen: string }).screen;
@@ -597,6 +740,32 @@ export class App extends Base {
           this.fire('Runtime ready', steps || 'The runtime was created and answered.');
           void this.discover();
         });
+      },
+
+      /**
+       * The onboarding wizard used to be a demo: five screens of questions that ended
+       * by setting a few `ob_*` values nothing else read, closing itself, and switching
+       * to the servers screen having written nothing anywhere. These three bindings
+       * replace that with the real thing — a plan built from what the target actually
+       * has, shown for confirmation, applied through the same transaction path (backup,
+       * stage, validate, apply, read-back) every other write in the console uses, and
+       * reported per resource rather than with one success word.
+       */
+      superEasy: () => {
+        this.setState((st: { values: Record<string, unknown> }) => ({
+          values: { ...st.values, ob_intent: 'Deploy a new server', ob_ease: 'Super easy', ob_phones: 8, ob_menu: true, ob_hours: true, ob_tls: true },
+        }));
+        void this.onboardDeploy();
+      },
+      onboardNext: () => {
+        const step = (this.state as { onboardStep: number }).onboardStep;
+        if (step < ONBOARD.length - 1) {
+          this.setState((st: { onboardStep: number }) => ({ onboardStep: st.onboardStep + 1 }));
+          return;
+        }
+        const answers = this.onboardAnswers();
+        if (answers.intent === 'Connect to an existing one') void this.onboardConnect();
+        else void this.onboardDeploy();
       },
 
       connLabel: this.target.label,

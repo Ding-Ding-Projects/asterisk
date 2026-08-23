@@ -1836,7 +1836,7 @@ function Template(v: any) {
                   "Super easy mode — just build it for me"
                 ),
                 h("div", { style: sty(`font-size:13px; color:#1B4D33; margin-top:3px; line-height:1.5;`) },
-                  "Skip every question. Eight extensions, one menu, business hours, TLS, hardened. You can change all of it later, and nothing here is permanent."
+                  "Skip every question. Eight extensions, one menu, TLS if a certificate is already on the target, and hardened defaults. Business hours is not set up here — do that afterward in Configure. You can change all of it later, and nothing here is permanent."
                 )
               ),
               h("span", { style: sty(`font-size:26px; color:#00391F;`), className: "msym" },
@@ -3538,7 +3538,7 @@ const ONBOARD = [
   { icon:'help_center', t:'Three questions, that is all', b:'On Super easy this is the entire interview. Everything else is chosen for you using the defaults a working office uses, and every one of them stays editable afterwards.', ctls:[
     ctl('ob_phones','How many phones?','stepper',8,{ min:1, max:500 }),
     ctl('ob_menu','Do callers hear a menu before a human?','switch',true),
-    ctl('ob_hours','Do you close at night?','switch',true)] },
+    ctl('ob_hours','Do you close at night?','switch',true,{ info:'Recorded as a preference only — a real schedule needs actual open/close times, which this wizard does not ask for. Set it up afterward in Configure > Dialplan.' })] },
   { icon:'dns', t:'Where should it run?', b:'The console can provision onto this machine, a container, or a server over SSH. It checks the target is reachable and has room before it starts.', ctls:[
     ctl('ob_where','Target','segmented','This machine',{ options:['This machine','Local Docker','SSH','SSH Docker'] }),
     ctl('ob_host','Host','select','pbx-hq.internal',{ options:['localhost','pbx-hq.internal','pbx-branch.internal','10.20.4.10'] }),
