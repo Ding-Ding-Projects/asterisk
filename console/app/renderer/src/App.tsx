@@ -27,14 +27,14 @@ const BOUNDARY =
   'screens stay empty rather than showing invented values. Discover one from App > Deploy & servers.';
 
 const BOUNDARY_PLAIN =
-  'The app is not talking to a phone system yet. Screens stay empty on purpose â€” an empty table is ' +
+  'The app is not talking to a phone system yet. Screens stay empty on purpose — an empty table is ' +
   'honest, a made-up one is not. Find a server first and the rows fill in.';
 
 const NO_READER = 'This screen has no live reading wired yet, so it stays empty.';
 
 const NO_HISTORY =
-  'No configuration change has been written this session. The console only reads a PBX right now â€” it has ' +
-  'no wired path that stages, applies or commits a change â€” so there is nothing yet for this screen to show.';
+  'No configuration change has been written this session. The console only reads a PBX right now — it has ' +
+  'no wired path that stages, applies or commits a change — so there is nothing yet for this screen to show.';
 
 const NO_MEMORY =
   'This console has no local agent-memory store wired in. There is no memory corpus to search, sync, or ' +
@@ -117,7 +117,7 @@ export class App extends Base {
       this.forceUpdate();
       return;
     }
-    this.target = { ...NO_TARGET, label: 'discoveringâ€¦', detail: 'reading local targets' };
+    this.target = { ...NO_TARGET, label: 'discovering…', detail: 'reading local targets' };
     this.forceUpdate();
     const response = await this.request('server.list');
     if (!response?.ok) {
@@ -265,7 +265,7 @@ export class App extends Base {
     if (screen === 'history') return NO_HISTORY;
     if (screen === 'memory') return NO_MEMORY;
     if (screen === 'trunkauth') return NO_AUTH_REQUESTS;
-    if (!this.target.connected) return `No target is connected â€” ${this.target.detail}.`;
+    if (!this.target.connected) return `No target is connected — ${this.target.detail}.`;
     /* A configuration screen reports the file it edits and what is really in it. This
      * says what was read; it does not claim the controls below are bound to it, because
      * they are not yet, and implying otherwise would be the same untruth the
@@ -274,7 +274,7 @@ export class App extends Base {
       const summary = configSummary(this.configs[screen], this.target.connected);
       /* Say how many controls on this screen are genuinely bound to that file. A screen
        * that reads its file but leaves half its switches on design defaults must not let
-       * a reader assume every control below is live â€” that is the same untruth as the
+       * a reader assume every control below is live — that is the same untruth as the
        * dialog that used to announce work it had not done, just quieter. */
       const unmapped = unmappedControls(screen).length;
       if (this.configs[screen]?.state === 'read' && unmapped > 0) {
@@ -283,12 +283,12 @@ export class App extends Base {
       return summary;
     }
     if (screen === 'canvas') {
-      if (!this.canvasReadings) return 'Readingâ€¦';
+      if (!this.canvasReadings) return 'Reading…';
       return canvasReason(this.canvasReadings);
     }
     if (!isReadable(screen)) return NO_READER;
     const readings = this.readings[screen];
-    if (!readings) return 'Readingâ€¦';
+    if (!readings) return 'Reading…';
     return reasonFor(readings, ['channels', 'endpoints', 'contacts', 'registrations', 'queues', 'modules', 'uptime']);
   }
 
@@ -367,7 +367,7 @@ export class App extends Base {
       nodes,
       edges,
       nodeCtls,
-      nodeTitle: source ? `${source.context} Â· ${source.extension}` : (designVals.nodeTitle as string),
+      nodeTitle: source ? `${source.context} · ${source.extension}` : (designVals.nodeTitle as string),
       nodeApp: source && source.steps[0] ? `${source.steps[0].app}(${source.steps[0].data})` : '',
     };
   }
@@ -394,7 +394,7 @@ export class App extends Base {
        * single largest untrue claim in the product.
        *
        * It now dispatches the command and reports exactly what came back: the real
-       * output on success, and the exact reason otherwise â€” no connected target, a
+       * output on success, and the exact reason otherwise — no connected target, a
        * command outside the read-only allowlist, or the target's own error. A refusal
        * shown plainly is worth far more than a cheerful message about work that never
        * happened.
@@ -433,7 +433,7 @@ export class App extends Base {
           this.fire('Not available', runtimeLabel(this.runtime));
           return;
         }
-        this.toast('Creating the Asterisk runtime â€” this imports a root filesystem and takes a while.');
+        this.toast('Creating the Asterisk runtime — this imports a root filesystem and takes a while.');
         void this.request('runtime.provision').then((response) => {
           if (!response) {
             this.fire('Not run', 'The desktop bridge is unavailable, so nothing was created.');
@@ -445,7 +445,7 @@ export class App extends Base {
            * most useful thing to show: they say how far it got. */
           const carrier = response as { data?: { steps?: Array<{ name: string; ok: boolean; detail: string }> } };
           const steps = (carrier.data?.steps ?? [])
-            .map((step) => `${step.ok ? 'ok' : 'failed'}: ${step.name} â€” ${step.detail}`)
+            .map((step) => `${step.ok ? 'ok' : 'failed'}: ${step.name} — ${step.detail}`)
             .join('\n');
           if (!response.ok) {
             this.fire('Not created', `${response.message ?? 'Creating the runtime did not succeed.'}\n\n${steps}`.trim());
@@ -465,7 +465,7 @@ export class App extends Base {
       stats: dashboardStats(readings),
       liveCalls: (valueOf(readings?.channels) ?? []).map((channel) => ({
         chan: channel.name,
-        peer: channel.callerNumber || channel.extension || 'â€”',
+        peer: channel.callerNumber || channel.extension || '—',
         dur: formatDuration(channel.durationSeconds),
         spy: () => this.ceremony('Listen to a live call', `channel spy ${channel.name}`),
         rec: () => this.ceremony('Start recording a live call', `mixmonitor start ${channel.name}`),
