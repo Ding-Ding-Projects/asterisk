@@ -32,8 +32,32 @@ jobs:
 
       - name: Run repository test suite
         working-directory: console
-        run: npm test
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee "$RUNNER_TEMP/ding-pbx-npm-test.log"
+
+      - name: Upload test log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ding-pbx-test-log-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ding-pbx-npm-test.log
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Build production console
         working-directory: console
-        run: npm run build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee "$RUNNER_TEMP/ding-pbx-build.log"
+
+      - name: Upload build log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ding-pbx-build-log-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ding-pbx-build.log
+          if-no-files-found: warn
+          retention-days: 14
