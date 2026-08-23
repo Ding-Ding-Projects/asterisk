@@ -42,6 +42,10 @@ export const CONFIGURABLE_RESOURCES = [
   `${CONFIG_DIRECTORY}/manager.conf`,
   `${CONFIG_DIRECTORY}/logger.conf`,
   `${CONFIG_DIRECTORY}/rtp.conf`,
+  /* Both are declared by a configuration screen in the design reference, so leaving them
+   * out would make those screens permanently unreadable for no reason a user could see. */
+  `${CONFIG_DIRECTORY}/modules.conf`,
+  `${CONFIG_DIRECTORY}/acl.conf`,
 ] as const;
 
 export type ConfigurableResource = (typeof CONFIGURABLE_RESOURCES)[number];

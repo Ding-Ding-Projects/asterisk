@@ -4,6 +4,7 @@ import { join, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { WslProvisioning, MANAGED_DISTRIBUTION } from '../../control-plane/wsl-provisioning.js';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
+import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory } from '../../control-plane/index.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from '../../control-plane/index.js';
 import type { ReadOnlyCommand, TargetProfile } from '../../control-plane/index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../../shared/control-plane.js';
@@ -195,6 +196,92 @@ async function controlPlaneRequest(request: ControlPlaneRequest): Promise<Contro
       }
       return { ok: true, requestId: request.requestId, data: { command, output: result.stdout, durationMs: result.durationMs, observedAt: new Date().toISOString() } };
     }
+    /**
+     * Reads one configuration file from the target and returns it parsed.
+     *
+     * This is what turns a configuration screen from a form showing the design's default
+     * values into a form showing what the target actually has. It is read-only and is
+     * refused for anything outside the configurable allowlist.
+     */
+    if (request.action === 'pbx.config') {
+      const resource = typeof request.payload?.resource === 'string' ? request.payload.resource : '';
+      const target = await resolveTarget(request.serverId);
+      const transport = new WslConfigTransport({ executor: processExecutor, distribution: target.wslDistribution! });
+      const value = await transport.read(resource);
+      return { ok: true, requestId: request.requestId, data: { resource, value, observedAt: new Date().toISOString() } };
+    }
+
+    /**
+     * Shows what a change would do, without doing any of it.
+     *
+     * The planner reads the current file from the target and diffs it against what the
+     * screen is asking for, so the preview is a real comparison against the live
+     * configuration rather than an assumption about it.
+     */
+    if (request.action === 'pbx.plan' || request.action === 'pbx.apply') {
+      const documents = Array.isArray(request.payload?.documents) ? request.payload.documents : [];
+      if (documents.length === 0) {
+        return { ok: false, requestId: request.requestId, code: 'DOCUMENTS_REQUIRED', message: 'No configuration documents were supplied.' };
+      }
+      for (const document of documents as Array<{ resource?: unknown }>) {
+        if (typeof document.resource !== 'string' || !(CONFIGURABLE_RESOURCES as ReadonlyArray<string>).includes(document.resource)) {
+          return { ok: false, requestId: request.requestId, code: 'RESOURCE_NOT_CONFIGURABLE', message: `"${String(document.resource)}" is not a configurable resource, so nothing was changed.` };
+        }
+      }
+
+      const target = await resolveTarget(request.serverId);
+      const transport = new WslConfigTransport({ executor: processExecutor, distribution: target.wslDistribution! });
+      const plan = await new StructuredConfigPlanner().createPlan(
+        `plan-${request.requestId}`,
+        target.id,
+        documents as ReadonlyArray<{ resource: string; value: unknown }>,
+        transport,
+      );
+
+      if (request.action === 'pbx.plan') {
+        return { ok: true, requestId: request.requestId, data: { plan } };
+      }
+      if (plan.diffs.length === 0) {
+        return { ok: true, requestId: request.requestId, data: { plan, result: { status: 'applied', message: 'Nothing to change; the target already matches.' } } };
+      }
+
+      /* Backup, stage, validate, apply, then read the result back and compare it against
+       * what was asked for. A mismatch rolls every applied resource back in reverse
+       * order rather than reporting a success the target did not actually perform. */
+      const result = await new ConfigTransaction(transport).apply(plan);
+      return {
+        ok: result.status === 'applied',
+        requestId: request.requestId,
+        code: result.status === 'applied' ? undefined : 'CONFIG_APPLY_FAILED',
+        message: result.status === 'applied' ? undefined : result.message,
+        data: { plan, result },
+      } as ControlPlaneResponse;
+    }
+
+    /**
+     * The configuration history, which is the backups the transaction engine already
+     * takes before every write. Nothing extra is recorded: the recovery points are a
+     * by-product of applying safely, which is why they can be trusted.
+     */
+    if (request.action === 'history.list' || request.action === 'history.restore') {
+      const target = await resolveTarget(request.serverId);
+      const history = new ConfigHistory({ executor: processExecutor, distribution: target.wslDistribution! });
+      if (request.action === 'history.list') {
+        const resource = typeof request.payload?.resource === 'string' ? request.payload.resource : undefined;
+        return { ok: true, requestId: request.requestId, data: { entries: await history.list(resource), observedAt: new Date().toISOString() } };
+      }
+      const handle = typeof request.payload?.handle === 'string' ? request.payload.handle : '';
+      if (!handle) return { ok: false, requestId: request.requestId, code: 'HANDLE_REQUIRED', message: 'No recovery point was named.' };
+      const restored = await history.restore(handle);
+      return {
+        ok: restored.ok,
+        requestId: request.requestId,
+        code: restored.ok ? undefined : 'HISTORY_RESTORE_FAILED',
+        message: restored.ok ? undefined : restored.detail,
+        data: restored,
+      } as ControlPlaneResponse;
+    }
+
     if (request.action === 'pbx.read') {
       if (!request.view) return { ok: false, requestId: request.requestId, code: 'VIEW_REQUIRED', message: 'A read must name the screen it is for.' };
       const target = await resolveTarget(request.serverId);

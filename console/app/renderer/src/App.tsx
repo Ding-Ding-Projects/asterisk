@@ -6,6 +6,7 @@ import {
 } from './readings';
 import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
 import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
+import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, type ConfigValue } from './configuration';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
 
 /**
@@ -68,6 +69,9 @@ export class App extends Base {
   private pending = '';
   private canvasReadings: CanvasReadings | undefined;
   private canvasPending = false;
+  /** Live configuration per screen, keyed by screen id. */
+  private configs: Partial<Record<string, ConfigReading>> = {};
+  private configPending = '';
 
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
@@ -133,6 +137,20 @@ export class App extends Base {
       this.forceUpdate();
       return;
     }
+    /* A configuration screen names the file it edits. Read that file from the target so
+     * the screen can show what the machine actually has, instead of standing there
+     * displaying the design's own defaults as though they were settings in force. */
+    const resource = resourceForFile((SCREENS as Record<string, { file?: unknown }>)[screen]?.file);
+    if (resource && !this.configs[screen] && this.configPending !== screen) {
+      this.configPending = screen;
+      const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+      this.configPending = '';
+      this.configs[screen] = response?.ok
+        ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+        : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+      this.forceUpdate();
+    }
+
     if (!isReadable(screen)) return;
     if (this.readings[screen] || this.pending === screen) return;
     this.pending = screen;
@@ -159,6 +177,13 @@ export class App extends Base {
     if (screen === 'memory') return NO_MEMORY;
     if (screen === 'trunkauth') return NO_AUTH_REQUESTS;
     if (!this.target.connected) return `No target is connected — ${this.target.detail}.`;
+    /* A configuration screen reports the file it edits and what is really in it. This
+     * says what was read; it does not claim the controls below are bound to it, because
+     * they are not yet, and implying otherwise would be the same untruth the
+     * confirmation dialog used to tell. */
+    if (resourceForFile((SCREENS as Record<string, { file?: unknown }>)[screen]?.file)) {
+      return configSummary(this.configs[screen], this.target.connected);
+    }
     if (screen === 'canvas') {
       if (!this.canvasReadings) return 'Reading…';
       return canvasReason(this.canvasReadings);
@@ -288,6 +313,13 @@ export class App extends Base {
           fire: (title, body) => this.fire(title, body),
         });
       },
+      /* The real file, for the screens that edit one. A screen showing the target's own
+       * configuration is the difference between an administration tool and a picture of
+       * one, and it costs one read. */
+      liveConfigResource: this.configs[screen]?.resource ?? '',
+      liveConfigText: renderForDisplay(this.configs[screen]?.value),
+      liveConfigState: this.configs[screen]?.state ?? (this.target.connected ? 'reading' : 'disconnected'),
+
       connLabel: this.target.label,
       connUptime: this.target.detail,
       openConnection: () => this.showInfo('Connection', BOUNDARY, BOUNDARY_PLAIN, '38%', '70px'),

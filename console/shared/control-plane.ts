@@ -7,7 +7,8 @@
 export type ControlPlaneAction =
   | 'server.list' | 'server.connect' | 'pbx.snapshot' | 'pbx.apply'
   | 'runtime.status' | 'runtime.provision' | 'runtime.stop' | 'runtime.remove'
-  | 'pbx.read' | 'pbx.command' | 'history.list' | 'history.restore';
+  | 'pbx.read' | 'pbx.command' | 'pbx.config' | 'pbx.plan'
+  | 'history.list' | 'history.restore';
 
 /** The screens a `pbx.read` can answer, each backed by read-only Asterisk CLI output. */
 export type PbxReadView =
