@@ -51,7 +51,7 @@
       "id": "windows-console",
       "evidenceTemplates": {
         "implementation": "console/app/feature-registry.json#{id}",
-        "documentation": "docs/features/{id}.md",
+        "documentation": "console/docs/platform/{id}.md",
         "localization": "console/app/locales/feature-registry.json#{id}",
         "localCheck": "console/tests/contracts/{id}.test.mjs",
         "builtInteraction": "console/release/evidence/windows-console/{id}.json",
@@ -240,7 +240,7 @@
       "id": "pages-site",
       "evidenceTemplates": {
         "implementation": "console/site/feature-registry.json#{id}",
-        "documentation": "console/site/content/features/{id}.md",
+        "documentation": "console/docs/platform/{id}.md",
         "localization": "console/site/locales/feature-registry.json#{id}",
         "localCheck": "console/site/tests/contracts/{id}.test.mjs",
         "builtInteraction": "console/release/evidence/pages-site/{id}.json",
