@@ -7,6 +7,7 @@ import {
 import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
 import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
 import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, type ConfigValue } from './configuration';
+import { readControlValues, unmappedControls } from './control-keys';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
 
 /**
@@ -72,6 +73,8 @@ export class App extends Base {
   /** Live configuration per screen, keyed by screen id. */
   private configs: Partial<Record<string, ConfigReading>> = {};
   private configPending = '';
+  /** Screens whose bound controls have already been seeded from the target. */
+  private seeded = new Set<string>();
 
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
@@ -148,6 +151,23 @@ export class App extends Base {
       this.configs[screen] = response?.ok
         ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
         : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+
+      /* Seed the bound controls from the file that was just read. The design reads a
+       * control as `values[id]` falling back to its own default, so putting the target's
+       * real setting into `values` is what turns a switch showing a shipped default into
+       * a switch showing what the machine has. Only bound controls move; the rest keep
+       * the design default and are reported as unmapped rather than quietly implied to
+       * be live. Seeded once per screen so a reading never overwrites an edit in
+       * progress. */
+      const live = this.configs[screen];
+      if (live?.state === 'read' && !this.seeded.has(screen)) {
+        const bound = readControlValues(screen, live.value);
+        if (Object.keys(bound).length > 0) {
+          const state = this.state as { values: Record<string, unknown> };
+          this.setState({ values: { ...state.values, ...bound } } as never);
+        }
+        this.seeded.add(screen);
+      }
       this.forceUpdate();
     }
 
@@ -182,7 +202,16 @@ export class App extends Base {
      * they are not yet, and implying otherwise would be the same untruth the
      * confirmation dialog used to tell. */
     if (resourceForFile((SCREENS as Record<string, { file?: unknown }>)[screen]?.file)) {
-      return configSummary(this.configs[screen], this.target.connected);
+      const summary = configSummary(this.configs[screen], this.target.connected);
+      /* Say how many controls on this screen are genuinely bound to that file. A screen
+       * that reads its file but leaves half its switches on design defaults must not let
+       * a reader assume every control below is live — that is the same untruth as the
+       * dialog that used to announce work it had not done, just quieter. */
+      const unmapped = unmappedControls(screen).length;
+      if (this.configs[screen]?.state === 'read' && unmapped > 0) {
+        return `${summary} ${unmapped} control(s) on this screen are not yet bound to a setting in it and still show shipped defaults.`;
+      }
+      return summary;
     }
     if (screen === 'canvas') {
       if (!this.canvasReadings) return 'Reading…';
