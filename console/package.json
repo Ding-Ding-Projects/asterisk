@@ -8,7 +8,8 @@
   "main": "dist-electron/app/electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "npm run compile:design && npm run bundle:docs && tsc -b && vite build",
+    "build": "npm run compile:design && npm run bundle:docs && npm run write:update-manifest && tsc -b && vite build",
+    "write:update-manifest": "node scripts/write-update-manifest.mjs",
     "start": "electron .",
     "test:ui": "node --test tests/ui/*.test.mjs",
     "test:control-plane": "tsx --test tests/control-plane/*.test.ts",

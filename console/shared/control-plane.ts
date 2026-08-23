@@ -6,7 +6,17 @@
  */
 export type ControlPlaneAction =
   | 'server.list' | 'server.connect' | 'pbx.snapshot' | 'pbx.apply'
+  | 'server.inventory.list' | 'server.inventory.add' | 'server.inventory.update'
+  | 'server.inventory.remove' | 'server.inventory.set-active'
   | 'runtime.status' | 'runtime.provision' | 'runtime.stop' | 'runtime.remove'
+  /*
+   * `daemon.*` start, stop and restart the Asterisk process itself inside the managed
+   * distribution `runtime.*` provisions. Provisioning only ever proved the binary
+   * exists (`asterisk -V`); nothing started the daemon that every `pbx.read` needs to
+   * actually connect to, so a freshly provisioned distribution was unusable until
+   * someone ran `asterisk -F` by hand. See `control-plane/asterisk-service.ts`.
+   */
+  | 'daemon.status' | 'daemon.start' | 'daemon.stop' | 'daemon.restart'
   | 'pbx.read' | 'pbx.command' | 'pbx.config' | 'pbx.plan'
   | 'history.list' | 'history.restore'
   /* Prompts and music-on-hold media on the target, so a "custom" choice can be given a file. */
@@ -38,10 +48,34 @@ export type ControlPlaneResponse =
   | { ok: true; requestId: string; data: unknown }
   | { ok: false; requestId: string; code: string; message: string };
 
+/**
+ * What the renderer needs to render the update banner. Deliberately narrower than the
+ * main process's own `UpdaterState` (see `control-plane/updater.ts`) — it never carries
+ * a filesystem path or the raw release payload, only what the banner displays.
+ */
+export interface UpdaterStatusForRenderer {
+  state: 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'failed';
+  latestVersion?: string;
+  releaseUrl?: string;
+  lastError?: string;
+}
+
 export interface DingDesktopApi {
   platform: string;
   window: { minimize(): void; toggleMaximize(): void; close(): void };
   controlPlane: { request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> };
+  updater: {
+    /** Current state, read once (e.g. on mount) without waiting for the next push. */
+    getStatus(): Promise<UpdaterStatusForRenderer>;
+    /** Manual "Check for updates" action. Resolves once the check (and any download) settles. */
+    checkNow(): Promise<UpdaterStatusForRenderer>;
+    /** "Restart to install update" — only valid once state is 'ready'. Never returns; the app quits. */
+    restartToInstall(): void;
+    /** "Later" — hides the banner until the next check finds something (or the user checks manually). */
+    dismiss(): void;
+    /** Subscribes to every state change; returns an unsubscribe function. */
+    onStatus(listener: (status: UpdaterStatusForRenderer) => void): () => void;
+  };
 }
 
 declare global { interface Window { dingDesktop?: DingDesktopApi } }

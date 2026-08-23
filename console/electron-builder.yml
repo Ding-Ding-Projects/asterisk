@@ -11,6 +11,8 @@ extraResources:
     to: asterisk/asterisk-wsl-rootfs.tar
   - from: resources/asterisk-wsl-rootfs.json
     to: asterisk/asterisk-wsl-rootfs.json
+  - from: resources/update-manifest.json
+    to: update-manifest.json
 win:
   target: squirrel
   icon: assets/icon.png

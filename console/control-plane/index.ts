@@ -13,3 +13,5 @@ export * from "./wsl-config-transport.js";
 export * from "./config-history.js";
 export * from "./local-history.js";
 export * from "./media-library.js";
+export * from "./updater.js";
+export * from "./server-inventory.js";

@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { WslProvisioning, MANAGED_DISTRIBUTION } from '../../control-plane/wsl-provisioning.js';
+import { AsteriskService } from '../../control-plane/asterisk-service.js';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import {
   parseVoicemailUsers, parseVoicemailZones, parseConfbridgeList, parseMohClasses, parseCodecs,
@@ -10,24 +11,55 @@ import {
   parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime,
 } from '../../control-plane/asterisk-parsers.js';
 import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory } from '../../control-plane/index.js';
+import { ServerInventory } from '../../control-plane/index.js';
+import type { ServerInventoryStore, ServerRecord } from '../../control-plane/index.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from '../../control-plane/index.js';
 import type { ReadOnlyCommand, TargetProfile } from '../../control-plane/index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../../shared/control-plane.js';
+import type { UpdaterStatusForRenderer } from '../../shared/control-plane.js';
+import {
+  parseReleaseTag, resolveLatestUpdate, initialUpdaterState, beganChecking, checkSucceeded,
+  updateFailed, beganDownloading, downloadReady, dismissedForNow, verifyDownload, findDigestForAsset,
+} from '../../control-plane/updater.js';
+import type { UpdaterState } from '../../control-plane/updater.js';
+import {
+  readCurrentTag, fetchReleases, downloadAsset, fetchShaSumsText, discardDownload, launchInstallerAndQuit,
+} from './updater-runtime.js';
 
 let mainWindow: BrowserWindow | null = null;
 const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
+const asteriskService = new AsteriskService({ executor: processExecutor });
 const targetDiscovery = new TargetDiscovery(processExecutor);
 const cliGateway = new LocalAsteriskCliGateway(processExecutor);
 const readings = new AsteriskReadings(cliGateway);
 const dialplanReadings = new DialplanReadings(cliGateway);
 
-/** A read only ever runs against a distribution that the current discovery result contains. */
+/**
+ * A read only ever runs against a distribution that the current discovery result
+ * contains.
+ *
+ * `serverId` is looked up two ways, so both the single-target discovery flow and the
+ * multi-server inventory keep working unchanged: if it names a server registered in
+ * the inventory, that server's own connection details are used (currently WSL only);
+ * otherwise it is treated as a raw WSL distribution name, exactly as it always was.
+ * Either way the resolved distribution must still appear in the live discovery
+ * result — a registered server whose distribution was removed outside the console is
+ * refused here rather than silently allowed through.
+ */
 async function resolveTarget(serverId: string | undefined): Promise<TargetProfile> {
-  const distribution = serverId?.trim();
+  const requested = serverId?.trim();
+  if (!requested) throw new Error('Select a server first.');
+
+  const registered = serverInventory().get(requested);
+  const distribution = (registered?.wslDistribution ?? requested).trim();
   if (!distribution) throw new Error('Select a discovered WSL distribution first.');
+
   const discovered = await targetDiscovery.discoverWslDistributions();
   if (!discovered.includes(distribution)) throw new Error('The WSL distribution is not in the current discovery result.');
-  return { id: distribution, displayName: distribution, connectionKind: 'wsl', wslDistribution: distribution };
+
+  return registered
+    ? { ...serverInventory().toTargetProfile(registered.id), wslDistribution: distribution }
+    : { id: distribution, displayName: distribution, connectionKind: 'wsl', wslDistribution: distribution };
 }
 
 async function readView(target: TargetProfile, view: PbxReadView) {
@@ -183,6 +215,37 @@ function wslProvisioning() {
   };
 }
 
+/**
+ * A plain JSON file under the user's own application data holds the configured server
+ * list, so it survives a restart the same way the update banner's state does. This is
+ * the one piece of I/O `ServerInventory` itself never performs — the module stays pure
+ * and testable, and this is where that boundary meets the filesystem.
+ */
+class FileServerInventoryStore implements ServerInventoryStore {
+  constructor(private readonly path: string) {}
+  read() {
+    if (!existsSync(this.path)) return undefined;
+    try {
+      return JSON.parse(readFileSync(this.path, 'utf8')) as { servers: ServerRecord[]; activeServerId?: string };
+    } catch {
+      return undefined;
+    }
+  }
+  write(snapshot: { servers: ServerRecord[]; activeServerId?: string }) {
+    mkdirSync(dirname(this.path), { recursive: true });
+    writeFileSync(this.path, JSON.stringify(snapshot, null, 2));
+  }
+}
+
+let cachedServerInventory: ServerInventory | undefined;
+function serverInventory(): ServerInventory {
+  if (!cachedServerInventory) {
+    const path = join(app.getPath('userData'), 'servers.json');
+    cachedServerInventory = new ServerInventory({ store: new FileServerInventoryStore(path) });
+  }
+  return cachedServerInventory;
+}
+
 async function controlPlaneRequest(request: ControlPlaneRequest): Promise<ControlPlaneResponse> {
   try {
     /* Creating, inspecting and removing the console's own distribution. Each is scoped
@@ -214,6 +277,32 @@ async function controlPlaneRequest(request: ControlPlaneRequest): Promise<Contro
       const step = await provisioning.remove(request.serverId?.trim() ?? '');
       return { ok: step.ok, requestId: request.requestId, code: step.ok ? undefined : 'RUNTIME_REMOVE_REFUSED', message: step.ok ? undefined : step.detail, data: step } as ControlPlaneResponse;
     }
+    /*
+     * The Asterisk process itself, inside the distribution `runtime.*` provisions.
+     * Every one of these is verified by asking the daemon, never by trusting an exit
+     * code — see `control-plane/asterisk-service.ts`.
+     */
+    if (request.action === 'daemon.status') {
+      const status = await asteriskService.status();
+      return { ok: true, requestId: request.requestId, data: { status } };
+    }
+    if (request.action === 'daemon.start') {
+      const outcome = await asteriskService.start();
+      const answering = outcome.status.state === 'daemonAnswering';
+      return { ok: answering, requestId: request.requestId, code: answering ? undefined : 'DAEMON_START_FAILED', message: answering ? undefined : outcome.status.reason, data: outcome } as ControlPlaneResponse;
+    }
+    if (request.action === 'daemon.stop') {
+      const force = (request.payload as { force?: boolean } | undefined)?.force === true;
+      const outcome = await asteriskService.stop({ force });
+      const stopped = outcome.status.state === 'daemonNotRunning';
+      return { ok: stopped, requestId: request.requestId, code: stopped ? undefined : 'DAEMON_STOP_FAILED', message: stopped ? undefined : outcome.status.reason, data: outcome } as ControlPlaneResponse;
+    }
+    if (request.action === 'daemon.restart') {
+      const force = (request.payload as { force?: boolean } | undefined)?.force === true;
+      const outcome = await asteriskService.restart({ force });
+      const answering = outcome.status.state === 'daemonAnswering';
+      return { ok: answering, requestId: request.requestId, code: answering ? undefined : 'DAEMON_RESTART_FAILED', message: answering ? undefined : outcome.status.reason, data: outcome } as ControlPlaneResponse;
+    }
     if (request.action === 'server.list') {
       const [wsl, containers] = await Promise.all([
         targetDiscovery.discoverWslDistributions().catch(error => ({ unavailable: error instanceof Error ? error.message : 'WSL discovery failed' })),
@@ -221,15 +310,88 @@ async function controlPlaneRequest(request: ControlPlaneRequest): Promise<Contro
       ]);
       return { ok: true, requestId: request.requestId, data: { observedAt: new Date().toISOString(), bundledRuntime: bundledAsteriskRuntime(), wsl, containers } };
     }
+    /**
+     * The configured multi-server inventory: several servers, each with its own
+     * connection details and its own independently tracked state, persisted to disk.
+     * This is separate from `server.list` above, which is local target *discovery*
+     * (what WSL/Docker targets exist on this machine right now) — the inventory is
+     * what the user has actually chosen to register and switch between.
+     */
+    if (request.action === 'server.inventory.list') {
+      const inventory = serverInventory();
+      return { ok: true, requestId: request.requestId, data: { servers: inventory.list(), activeServerId: inventory.activeId() } };
+    }
+    if (request.action === 'server.inventory.add') {
+      try {
+        const server = serverInventory().add(request.payload as never);
+        return { ok: true, requestId: request.requestId, data: { server } };
+      } catch (error) {
+        return { ok: false, requestId: request.requestId, code: (error as { code?: string }).code ?? 'SERVER_ADD_FAILED', message: error instanceof Error ? error.message : 'Could not add the server.' };
+      }
+    }
+    if (request.action === 'server.inventory.update') {
+      try {
+        const id = request.serverId?.trim();
+        if (!id) return { ok: false, requestId: request.requestId, code: 'SERVER_REQUIRED', message: 'Select a server to edit.' };
+        const server = serverInventory().update(id, request.payload as never);
+        return { ok: true, requestId: request.requestId, data: { server } };
+      } catch (error) {
+        return { ok: false, requestId: request.requestId, code: (error as { code?: string }).code ?? 'SERVER_UPDATE_FAILED', message: error instanceof Error ? error.message : 'Could not update the server.' };
+      }
+    }
+    if (request.action === 'server.inventory.remove') {
+      /* Irreversible, exactly like `runtime.remove`: the renderer puts this behind the
+       * product's destructive-action confirmation before ever sending it here. */
+      try {
+        const id = request.serverId?.trim();
+        if (!id) return { ok: false, requestId: request.requestId, code: 'SERVER_REQUIRED', message: 'Select a server to remove.' };
+        serverInventory().remove(id);
+        return { ok: true, requestId: request.requestId, data: { removed: id } };
+      } catch (error) {
+        return { ok: false, requestId: request.requestId, code: (error as { code?: string }).code ?? 'SERVER_REMOVE_FAILED', message: error instanceof Error ? error.message : 'Could not remove the server.' };
+      }
+    }
+    if (request.action === 'server.inventory.set-active') {
+      try {
+        const id = request.serverId?.trim();
+        if (!id) return { ok: false, requestId: request.requestId, code: 'SERVER_REQUIRED', message: 'Select a server to switch to.' };
+        const server = serverInventory().setActive(id);
+        return { ok: true, requestId: request.requestId, data: { server } };
+      } catch (error) {
+        return { ok: false, requestId: request.requestId, code: (error as { code?: string }).code ?? 'SERVER_SET_ACTIVE_FAILED', message: error instanceof Error ? error.message : 'Could not switch the active server.' };
+      }
+    }
     if (request.action === 'server.connect' || request.action === 'pbx.snapshot') {
-      const distribution = request.serverId?.trim();
-      if (!distribution) return { ok: false, requestId: request.requestId, code: 'TARGET_REQUIRED', message: 'Select a discovered WSL distribution.' };
+      const requested = request.serverId?.trim();
+      if (!requested) return { ok: false, requestId: request.requestId, code: 'TARGET_REQUIRED', message: 'Select a server to connect to.' };
+
+      /* `requested` names either a registered server or, for the original single-target
+       * flow, a raw WSL distribution string directly — see `resolveTarget` above for the
+       * same lookup. Whichever it is, connecting to this one server never touches any
+       * other server's state: a registered server's `connecting`/`connected`/
+       * `unreachable`/`refused` state is recorded independently by its own id, so one
+       * server being down can never invalidate or block another. */
+      const registered = serverInventory().get(requested);
+      const distribution = (registered?.wslDistribution ?? requested).trim();
+      if (registered) serverInventory().setState(registered.id, 'connecting');
+
       const discovered = await targetDiscovery.discoverWslDistributions();
-      if (!discovered.includes(distribution)) return { ok: false, requestId: request.requestId, code: 'TARGET_NOT_DISCOVERED', message: 'The WSL distribution is not in the current discovery result.' };
+      if (!discovered.includes(distribution)) {
+        const reason = 'The WSL distribution is not in the current discovery result.';
+        if (registered) serverInventory().setState(registered.id, 'unreachable', reason);
+        return { ok: false, requestId: request.requestId, code: 'TARGET_NOT_DISCOVERED', message: reason };
+      }
       const [os, asterisk] = await Promise.all([
         processExecutor.execute({ executable: 'wsl.exe', args: ['-d', distribution, '--', 'cat', '/etc/os-release'], timeoutMs: 10_000 }),
         processExecutor.execute({ executable: 'wsl.exe', args: ['-d', distribution, '--', 'asterisk', '-rx', 'core show version'], timeoutMs: 10_000 }),
       ]);
+      if (registered) {
+        if (os.status === 'succeeded') {
+          serverInventory().setState(registered.id, 'connected');
+        } else {
+          serverInventory().setState(registered.id, 'refused', os.stderr || 'The WSL distribution refused the connection.');
+        }
+      }
       return { ok: true, requestId: request.requestId, data: {
         target: { connectionKind: 'wsl', distribution },
         operatingSystem: os.status === 'succeeded' ? targetDiscovery.parseDebianOperatingSystem(os.stdout) : { state: 'unavailable', reason: os.stderr, observedAt: new Date().toISOString() },
@@ -412,6 +574,83 @@ async function controlPlaneRequest(request: ControlPlaneRequest): Promise<Contro
   }
 }
 
+/*
+ * Update checking. See `control-plane/updater.ts` for why this downloads a full Setup.exe
+ * from GitHub Releases rather than driving Electron's built-in (Squirrel-protocol)
+ * `autoUpdater`: this project's delivery workflow publishes each push as its own
+ * self-contained release rather than one running multi-version feed directory, so the
+ * Squirrel delta-update wire protocol has nothing to reconstruct a chain from. Signing is
+ * permanently prohibited for this project; the feed and every downloaded artifact remain
+ * unsigned, and this code never claims otherwise. Only bytes are verified, via SHA-256.
+ */
+const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
+let updaterState: UpdaterState = initialUpdaterState(undefined);
+
+function currentOrdinal() {
+  const tag = readCurrentTag();
+  return tag ? parseReleaseTag(tag) : undefined;
+}
+
+function toRendererStatus(state: UpdaterState): UpdaterStatusForRenderer {
+  return {
+    state: state.state,
+    latestVersion: state.resolved?.tag,
+    releaseUrl: state.resolved?.releaseUrl,
+    lastError: state.lastError,
+  };
+}
+
+function publishUpdaterState(next: UpdaterState) {
+  updaterState = next;
+  mainWindow?.webContents.send('updater:status', toRendererStatus(updaterState));
+}
+
+/** Runs one full check-and-download cycle. Never throws; every failure lands in `updateFailed`. */
+async function runUpdateCheck(): Promise<void> {
+  publishUpdaterState(beganChecking(updaterState, new Date()));
+  let releases;
+  try {
+    releases = await fetchReleases();
+  } catch (error) {
+    publishUpdaterState(updateFailed(updaterState, error instanceof Error ? error.message : String(error)));
+    return;
+  }
+  const resolved = resolveLatestUpdate(releases, currentOrdinal());
+  publishUpdaterState(checkSucceeded(updaterState, resolved));
+  if (!resolved) return;
+
+  publishUpdaterState(beganDownloading(updaterState));
+  try {
+    const [file, shaSumsText] = await Promise.all([
+      downloadAsset(resolved.setupAsset),
+      fetchShaSumsText(resolved),
+    ]);
+    const expectedDigest = shaSumsText ? findDigestForAsset(shaSumsText, resolved.setupAsset.name) : undefined;
+    const verdict = verifyDownload(resolved, file, expectedDigest);
+    if (!verdict.ok) {
+      discardDownload(file.path);
+      publishUpdaterState(updateFailed(updaterState, verdict.reason));
+      return;
+    }
+    publishUpdaterState(downloadReady(updaterState, file.path));
+  } catch (error) {
+    publishUpdaterState(updateFailed(updaterState, error instanceof Error ? error.message : String(error)));
+  }
+}
+
+function scheduleUpdateChecks() {
+  updaterState = initialUpdaterState(readCurrentTag());
+  void runUpdateCheck();
+  setInterval(() => { void runUpdateCheck(); }, UPDATE_CHECK_INTERVAL_MS);
+}
+
+ipcMain.handle('updater:get-status', () => toRendererStatus(updaterState));
+ipcMain.handle('updater:check-now', async () => { await runUpdateCheck(); return toRendererStatus(updaterState); });
+ipcMain.on('updater:dismiss', () => publishUpdaterState(dismissedForNow(updaterState)));
+ipcMain.on('updater:restart-to-install', () => {
+  if (updaterState.state === 'ready' && updaterState.downloadedPath) launchInstallerAndQuit(updaterState.downloadedPath);
+});
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -447,7 +686,7 @@ ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequ
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();
 } else {
-  app.whenReady().then(createWindow);
+  app.whenReady().then(createWindow).then(scheduleUpdateChecks);
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 }

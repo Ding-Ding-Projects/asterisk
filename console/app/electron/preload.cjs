@@ -10,6 +10,17 @@ const api = Object.freeze({
   controlPlane: Object.freeze({
     request: request => ipcRenderer.invoke('control-plane:request', request),
   }),
+  updater: Object.freeze({
+    getStatus: () => ipcRenderer.invoke('updater:get-status'),
+    checkNow: () => ipcRenderer.invoke('updater:check-now'),
+    restartToInstall: () => ipcRenderer.send('updater:restart-to-install'),
+    dismiss: () => ipcRenderer.send('updater:dismiss'),
+    onStatus: listener => {
+      const handler = (_event, status) => listener(status);
+      ipcRenderer.on('updater:status', handler);
+      return () => ipcRenderer.removeListener('updater:status', handler);
+    },
+  }),
 });
 
 contextBridge.exposeInMainWorld('dingDesktop', api);

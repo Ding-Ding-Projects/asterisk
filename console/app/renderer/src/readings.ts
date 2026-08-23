@@ -71,6 +71,69 @@ export function rowsFor(screen: string, readings: ViewReadings | undefined): str
   return [];
 }
 
+/**
+ * One row per configured server, for the design's own "Deploy & servers" table.
+ *
+ * That table shipped with three invented rows in the design reference — `pbx-hq`,
+ * `pbx-lab`, `pbx-edge` — which the console blanks like every other sample. Blanking
+ * them left the screen permanently empty, so a console that could hold several servers
+ * showed none of them. These are the real ones.
+ *
+ * The columns are the design's: Profile, Route, Target, Interface, State. A field the
+ * console genuinely has no value for is `NOT_READ`, never a plausible-looking guess —
+ * a made-up hostname on a connection screen is worse than an empty cell, because
+ * somebody will try to use it.
+ */
+export function serverRows(servers: ReadonlyArray<ServerRow>): string[][] {
+  return servers.map((server) => [
+    server.name,
+    ROUTE_LABELS[server.connectionKind] ?? server.connectionKind,
+    serverTarget(server),
+    server.port ? `port ${server.port}` : NOT_READ,
+    /* The reason travels with the state. A server that is merely "unreachable" tells
+     * nobody why, and the why is the only part anybody can act on. */
+    server.reason ? `${STATE_LABELS[server.state] ?? server.state} — ${server.reason}` : STATE_LABELS[server.state] ?? server.state,
+  ]);
+}
+
+/** The subset of a configured server this module needs. Kept local so the renderer's
+ *  row-building does not depend on the control plane's own record shape. */
+export interface ServerRow {
+  name: string;
+  connectionKind: string;
+  host?: string;
+  port?: number;
+  user?: string;
+  wslDistribution?: string;
+  dockerContext?: string;
+  state: string;
+  reason?: string;
+}
+
+const ROUTE_LABELS: Record<string, string> = {
+  local: 'Local',
+  wsl: 'Local WSL',
+  docker: 'Local Docker',
+  ssh: 'SSH',
+  'ssh-docker': 'SSH Docker',
+};
+
+const STATE_LABELS: Record<string, string> = {
+  idle: 'Not connected',
+  connecting: 'Connecting',
+  connected: 'Connected',
+  unreachable: 'Unreachable',
+  refused: 'Refused',
+};
+
+/** Whatever actually identifies this server, in the order that is most use to a reader. */
+function serverTarget(server: ServerRow): string {
+  if (server.wslDistribution) return server.wslDistribution;
+  if (server.dockerContext) return server.dockerContext;
+  if (server.host) return server.user ? `${server.user}@${server.host}` : server.host;
+  return NOT_READ;
+}
+
 export function channelRows(channels: Channel[]): string[][] {
   return channels.map((channel) => [
     channel.name,

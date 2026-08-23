@@ -6,3 +6,41 @@ body,
 #root {
   height: 100%;
 }
+
+/* GitHub-Desktop-style non-blocking update banner. Anchored to a screen corner and
+ * never a modal — informational/success surfaces are non-blocking notifications per
+ * house rule, and this one persists until the user acts rather than auto-dismissing,
+ * because "an update is ready" is worth keeping visible. */
+.update-banner {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 9999;
+  max-width: 420px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #1b241b;
+  color: #e6efe6;
+  border: 1px solid #33402f;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.update-banner a { color: #8fd08f; }
+
+.update-banner button {
+  border: 1px solid #4a5a44;
+  background: #2a3628;
+  color: inherit;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.update-banner button:hover { background: #34412f; }

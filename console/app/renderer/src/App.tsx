@@ -1,7 +1,7 @@
 import type { Component } from 'react';
 import ConsoleShell, { ORDER, SCREENS } from './generated/console';
 import {
-  badgeFor, dashboardStats, formatDuration, healthBars, isReadable, reasonFor, regexMatchLabel, rowsFor, valueOf,
+  badgeFor, dashboardStats, formatDuration, healthBars, isReadable, reasonFor, regexMatchLabel, rowsFor, serverRows, valueOf,
   type ViewReadings,
 } from './readings';
 import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
@@ -10,6 +10,7 @@ import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, t
 import { readControlValues, unmappedControls } from './control-keys';
 import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
+import { ServerSwitcher } from './servers';
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -67,6 +68,12 @@ const Base = ConsoleShell as unknown as new (props: Record<string, never>) => Co
 
 export class App extends Base {
   private target: Target = NO_TARGET;
+  /** The configured multi-server inventory and the cross-server response-routing
+   *  guard: an answer is only ever merged into `readings[screen]` when it is both the
+   *  newest request issued for `this.target.id` and still addressed to that exact
+   *  server, so a slow reply from a server the user has since switched away from (or
+   *  a superseded re-read of the same server) can never clobber what is on screen. */
+  private servers = new ServerSwitcher((action, extra) => this.request(action, extra));
   private readings: Partial<Record<string, ViewReadings>> = {};
   private pending = '';
   private canvasReadings: CanvasReadings | undefined;
@@ -85,6 +92,10 @@ export class App extends Base {
 
   componentDidMount() {
     super.componentDidMount?.();
+    /* The configured server list is not a reading from any PBX — it exists before
+     * anything is reachable and must be on screen whether or not discovery finds a
+     * target, so it is loaded independently of it. */
+    void this.servers.load().then(() => this.forceUpdate());
     void this.discover();
   }
 
@@ -183,11 +194,19 @@ export class App extends Base {
     if (!isReadable(screen)) return;
     if (this.readings[screen] || this.pending === screen) return;
     this.pending = screen;
-    const response = await this.request('pbx.read', { serverId: this.target.id, view: screen as PbxReadView });
+    const serverId = this.target.id;
+    const token = this.servers.begin(serverId);
+    const response = await this.request('pbx.read', { serverId, view: screen as PbxReadView });
     this.pending = '';
-    this.readings[screen] = response?.ok
+    const data: ViewReadings = response?.ok
       ? (response.data as ViewReadings)
       : { channels: { command: 'pbx.read', result: { state: 'unavailable', observedAt: new Date().toISOString(), reason: response?.message ?? 'the control plane did not answer' } } };
+    /* Guarded write: dropped, rather than applied, when a newer request for this same
+     * server has since been issued, or when the active server has since changed out
+     * from under this in-flight request (`this.target.id` may no longer equal
+     * `serverId` by the time this answer lands). Either way the screen keeps waiting
+     * for a current answer instead of showing a stale or misrouted one. */
+    if (!this.servers.applyReading(token, this.target.id, this.readings as Record<string, ViewReadings>, data)) return;
     this.forceUpdate();
   };
 
@@ -197,7 +216,15 @@ export class App extends Base {
     const screens = SCREENS as Record<string, { table?: { rows: string[][] } }>;
     for (const id of TABLE_SCREENS) {
       const table = screens[id].table;
-      if (table) table.rows = id === screen ? rowsFor(screen, this.readings[screen]) : [];
+      if (!table) continue;
+      if (id !== screen) {
+        table.rows = [];
+        continue;
+      }
+      /* The servers table is the one screen whose rows are not a reading from a PBX:
+       * they are the console's own configured servers, which exist whether or not
+       * anything is reachable. Feeding it from `readings` left it permanently empty. */
+      table.rows = id === 'servers' ? serverRows(this.servers.servers) : rowsFor(screen, this.readings[screen]);
     }
   }
 
