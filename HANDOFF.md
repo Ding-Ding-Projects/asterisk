@@ -82,7 +82,11 @@ Everything below is on the default branch. To pick this up elsewhere:
 - **The design reference's font set was being shipped as a fraction of itself.** The reference names one Google Fonts stylesheet whose single request answers with **49 `@font-face` blocks** — one per family, per weight, per `unicode-range` subset. Three package substitutes stood in for them, collapsing four Roboto weights, dropping every non-latin subset, and supplying a Material Symbols face with no variation axes beneath a `.msym` rule that sets `FILL`, `wght`, `GRAD` and `opsz`. The browser synthesised silently, producing an interface that was uniformly slightly wrong with nothing to read in the source that looked incorrect. `console/scripts/download-fonts.mjs` now downloads all 49 files from the URL read out of the design file itself, preserves `font-weight` and `unicode-range` verbatim, rewrites only `src`, and records a SHA-256 per file in a committed manifest. Cost: 5.2 MB, of which 3.96 MB is the genuine variable symbol face.
 - **The compiler's coverage of the design specification is otherwise complete.** An attribute-level audit of both reference files confirmed every tag, attribute, event and control-flow construct reaches the compiled renderer: 1,010 and 76 inline `style` props are emitted, the `<style>` block is carried, `style-hover`/`style-active` are rerouted into generated CSS, and `list`/`as`/`ctl` are consumed by the control-flow branches before the generic drop list runs. `design/support.js` is entirely design-tool editor and live-preview machinery — a browser interpreter of the same work `compile-design.mjs` does ahead of time — and its one behavioural contract, `DCLogic`, is already reimplemented in shipped `console/app/renderer/src/dc-runtime.tsx`. `design/uploads/*.png` are unreferenced authoring leftovers. The fonts were the divergence.
 
-## Session handoff — closing at commit `87cead7124`
+## Session handoff — superseded, see the section below
+
+_The record that follows was accurate at commit `87cead7124` and has been overtaken. It is kept because its corrections and its WSL evidence still stand; its counts do not._
+
+### Superseded record
 
 ### What this session changed
 
@@ -131,6 +135,42 @@ One genuine mitigation already in place: `App.tsx` blanks the design's 72 seeded
 
 1. **Two commit messages carry private wording** — `9beed2f159` and `899a3c3ecf`. **Decided: they stay.** Correcting them would mean rewriting published history and force-pushing, and the owner declined that. This is recorded so a later reader finds a decision rather than an oversight, and so nobody "fixes" it by rewriting shared history later. Every editable surface was swept instead: release notes, the task issue, and the repository's own files are clean, and a guard now refuses any new occurrence in a shipped or published file.
 2. **Installers published before `899a3c3ecf` contain the pre-scrub wording.** Binaries cannot be edited, so this cannot be scrubbed in place. Superseding or removing those releases remains open for the owner. Every release published from `899a3c3ecf` onward is clean.
+
+## Current handoff
+
+### Where the console actually is
+
+| | At the start of this work | Now |
+| --- | --- | --- |
+| Destinations backed by live data | 7 of 32 | **16 of 32** |
+| Control-plane actions implemented | 3 | **21** |
+| Read-only Asterisk commands | 23 | **63** |
+| Writable configuration files | 10 | **41** |
+| Controls bound to real Asterisk keys | 0 | **82 of 130** |
+| Local test cases | 117 | **511** |
+
+### What is genuinely working
+
+- **The console creates and manages its own Asterisk runtime.** The installer always carried a complete Ubuntu 24.04 root filesystem and nothing ever imported it. Four actions now create, verify, stop and remove a distribution the console owns, verifying by asking the distribution for its Asterisk version rather than trusting an exit code, refusing to import over an existing one, and refusing to remove one it did not create. Both refusals were exercised against the real machine, not a scripted double.
+- **Configuration is read and written through a transaction.** `StructuredConfigPlanner` and `ConfigTransaction` — back up, stage, validate, apply, read back, compare, roll back in reverse — existed and had never once executed, because nothing implemented the transport they call. That transport exists now, and the whole path has run end to end against a real Asterisk installation: a change applied, independently re-read, then rolled back.
+- **Confirmation actually performs the action.** Every destructive and write control funnelled through one flow that closed the dialog and announced the command "executed and attested" while calling nothing at all. It dispatches now and reports the real outcome, refusals included.
+- **Ten destinations gained a reader**, each parsing the output format taken from the literal format string in Asterisk's own source rather than a guess. A guessed parser returns an empty list, which is exactly what those screens already showed, so that defect would have been invisible.
+- **Media upload exists**, so a screen offering a custom prompt can accept one, refusing by name before a command is built and confirming the written size.
+- **A real append-only history**, where a restore is a new record rather than a rewrite.
+- **A standards-correct authenticator**, verified against all published RFC 6238 test vectors rather than merely passing its own tests.
+
+### What is not, stated plainly
+
+- **Nothing here has written to a real exchange.** Everything above was proved against a disposable distribution created for the purpose. No configuration change may be described as verified against production until an approved plan has run there.
+- **48 of 130 controls remain unbound.** Each screen reports how many of its own controls are not yet connected. They stay unbound deliberately: a wrong binding does not fail loudly, it writes the wrong setting to a telephone exchange and looks like it worked.
+- **The desktop interface has no accessibility attributes at all**, and nothing under its application directory is covered by a test. Both facts are recorded in the platform documentation where a reader will meet them.
+- **The completeness inventory has no evidence behind any row.** The check now resolves every artifact a row claims and refuses a false claim, so the figure it prints is true rather than flattering.
+
+### Corrections made during this work
+
+- The claim that no release had ever carried the Asterisk payload **was wrong**. The installer script verifies the packaged runtime and throws when it is absent, and it predates this work; builds have been passing, so the payload has been shipping. The listing defect found was real but Windows-only, and the bundle step runs on Linux where it never applied.
+- A fix for that Windows defect was applied unconditionally and **broke the Linux build**, because `$env:SystemRoot` is null there. Repaired, with both platform branches exercised before committing.
+- A change adding the control plane to the standalone type-check would have accomplished nothing: TypeScript excludes files owned by a referenced project. The configuration was never wrong — the verification command being used was.
 
 ## Next owner actions
 
