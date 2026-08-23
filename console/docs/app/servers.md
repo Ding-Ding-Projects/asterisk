@@ -2,22 +2,22 @@
 
 ## Behavior
 
-This is the main road: press the big button and a working PBX exists in about seven seconds. Connecting to a PBX somebody else built is underneath, and it is the side road. It is backed by `provisioning`. The rail badge on this destination currently reads `3`. It lives on the App rail, under the Deploy & application group: Stand up a new server, then appearance, updates and the console itself.
+This screen discovers local targets, verifies the selected target through the control plane, and keeps the configured server list in the installation's local inventory. Discovery alone is not treated as a connection: the desktop calls `server.connect`, starts the managed daemon when needed, and retries the verification once. The rail badge is empty until a real server row exists. It lives on the App rail, under the Deploy & application group: stand up a new server, then appearance, updates and the console itself.
 
 ## Configuration
 
 ### Route
 
-How this console reaches Asterisk. Everything below reshapes itself around this answer.
+How this console reaches Asterisk. Everything below reshapes itself around this answer. The selected local target is read from the real discovery result rather than from the design's example names.
 
 - **Connection type** (`sv_kind`) — a segmented control, default `Local`, choices `Local`, `Local Docker`, `SSH`, `SSH Docker`. Local is the same machine. Local Docker is a container here. SSH is another machine. SSH Docker is a container on another machine, reached over SSH and then into the container.
   - *What it is:* How this console reaches Asterisk: locally, into a container, over SSH, or over SSH and then into a container.
   - *Why it exists:* Everything else on the screen reshapes around this answer, including how configuration files are written.
   - *Choosing a value:* Local for the same machine, Local Docker for a container here, SSH for another machine, SSH Docker for a container elsewhere.
   - *Gotcha:* Over SSH the manager port is forwarded through the tunnel, so it never crosses the network unprotected — but only if tunnel forwarding stays enabled.
-- **Host** (`sv_host`) — a select control, default `pbx-hq.internal`, choices `localhost`, `pbx-hq.internal`, `pbx-branch.internal`, `10.20.4.10`.
-- **Container** (`sv_container`) — a select control, default `asterisk-prod`, choices `asterisk-prod`, `asterisk-lab`, `asterisk-edge`.
-- **SSH user** (`sv_user`) — a select control, default `asterisk-ops`, choices `asterisk-ops`, `root`, `deploy`.
+- **Host** (`sv_host`) — the host value supplied to the local inventory. It starts empty until the user supplies a target.
+- **Container** (`sv_container`) — the container context supplied to the local inventory when a container route is selected.
+- **SSH user** (`sv_user`) — the user supplied to the local inventory for an SSH route.
 - **SSH port** (`sv_sshport`) — a stepper control, default `22`.
 - **Strict host key checking** (`sv_hostkey`) — a switch control, default `true`. On means a changed host key aborts the connection instead of asking you to accept it. That prompt is how people get compromised.
   - *What it is:* Whether a changed SSH host key aborts the connection.
@@ -38,11 +38,11 @@ AMI for live events and CLI, ARI for Stasis applications.
 
 ## Failure modes and security
 
-Every control here maps to a real key in provisioning; an unreachable configuration store is shown as unreachable, never backfilled with placeholder values. Over SSH the manager port is forwarded through the tunnel, so it never crosses the network unprotected — but only if tunnel forwarding stays enabled. The prompt asking a human to accept a new key is precisely how these attacks succeed. This console refuses instead of asking.
+The server list is an honest local inventory. A discovered target is not labelled connected until `server.connect` confirms it. If the control plane cannot answer, the row retains the exact unavailable reason and the dashboard retries failed readings on its one-second refresh cadence. Over SSH the manager port is forwarded through the tunnel, so it never crosses the network unprotected — but only if tunnel forwarding stays enabled. The prompt asking a human to accept a new key is precisely how these attacks succeed. This console refuses instead of asking.
 
 ## Verification
 
-Exercise every control against its documented default and its full option range, confirm the write lands in provisioning, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm every default shown here matches what a fresh install actually ships, and that changing a value here is reflected the next time this screen loads.
+Exercise discovery with no target, discovery with a target whose daemon is stopped, a successful `server.connect`, and a refused connection. Confirm no row is labelled connected before the control-plane response, and that a failed dashboard read retries without relaunching the app.
 
 ## Suggested articles
 
