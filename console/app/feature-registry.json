@@ -213,10 +213,13 @@
     },
     "offline-documentation-browser": {
       "state": "partial",
-      "note": "app/renderer/src/docs-browser.ts (247 lines, tested by tests/ui/docs-browser.test.tsx) implements article lookup/search over the bundled docs, and app/renderer/src/generated/docs-bundle.ts (3033 lines, produced by scripts/bundle-docs.mjs from docs/**/*.md) is real bundled content. Neither is imported by App.tsx or any mounted component, so the documentation is bundled at build time but never reachable from the running app.",
+      "note": "app/renderer/src/docs-browser.ts implements article lookup/search over the bundled docs, app/renderer/src/generated/docs-bundle.ts (83 articles) is real bundled content, and app/renderer/src/docs-markdown.ts parses each article's body into headings/paragraphs/code/list blocks with resolved inter-article links. The `docs` destination is now a real screen on the App rail (compiled from design/Asterisk Console M3.dc.html, kind:'docs') wired in App.tsx (docsVals) with a real search field, a regex-builder toggle and palette, an article list, a rendered body pane and in-app link navigation. Headlessly driven in the built app (Electron via CDP): the article list shows all 83 titles/excerpts, selecting an article renders its real headings/paragraphs (no raw '#'/'[]' Markdown syntax), an inline `[text](href)` link inside one article's body navigated to the linked article, and a query with no matches shows an honest '0 matches' state. Remaining gap: no promoted screenshot/interaction evidence has been filed under this project's design-parity capture pipeline, so this stays 'partial' rather than 'verified'.",
       "files": [
         "app/renderer/src/docs-browser.ts",
-        "app/renderer/src/generated/docs-bundle.ts"
+        "app/renderer/src/docs-markdown.ts",
+        "app/renderer/src/generated/docs-bundle.ts",
+        "app/renderer/src/App.tsx",
+        "design/Asterisk Console M3.dc.html"
       ]
     },
     "app-display-name": {
@@ -254,9 +257,10 @@
     },
     "provider-markup-rendering": {
       "state": "partial",
-      "note": "app/renderer/src/docs-browser.ts renders bundled documentation body text, which is Markdown-shaped, but is not wired into the mounted app (see offline-documentation-browser). No renderer for remote-authored text (release notes, issue bodies) exists.",
+      "note": "app/renderer/src/docs-markdown.ts parses bundled documentation body text (headings, paragraphs, fenced code, bullet list items, inline `[text](href)` links) into render-ready blocks, and the `docs` screen (App.tsx docsVals + the compiled `isDocs` template block) renders those blocks as real UI rather than printing raw Markdown source — confirmed by headless capture of the running app. This covers the bundled offline docs only; there is still no renderer for remote-authored text such as release notes or issue bodies.",
       "files": [
-        "app/renderer/src/docs-browser.ts"
+        "app/renderer/src/docs-markdown.ts",
+        "app/renderer/src/App.tsx"
       ]
     },
     "forge-publishing": {

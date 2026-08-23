@@ -103,9 +103,10 @@ html, body { margin:0; padding:0; background:#0B0F0C; }
 .k-h26:hover{border-color:#82D9A5 !important; color:#9FF7C4 !important}
 .k-h27:hover{border-color:#82D9A5 !important; color:#C4CBC2 !important}
 .k-h28:hover{background:rgba(0,0,0,.45) !important}
-.k-h29:hover{background:#333B34 !important; color:#C4CBC2 !important}
-.k-h30:hover{background:#262B26 !important; color:#C4CBC2 !important}
-.k-h31:hover{background:#333B34 !important}
-.k-h32:hover{background:#005230 !important; color:#9FF7C4 !important}
-.k-h32:active{transform:scale(.92) !important}
-.k-h33:hover{color:#9FF7C4 !important}
+.k-h29:hover{color:#C7FFDD !important}
+.k-h30:hover{background:#333B34 !important; color:#C4CBC2 !important}
+.k-h31:hover{background:#262B26 !important; color:#C4CBC2 !important}
+.k-h32:hover{background:#333B34 !important}
+.k-h33:hover{background:#005230 !important; color:#9FF7C4 !important}
+.k-h33:active{transform:scale(.92) !important}
+.k-h34:hover{color:#9FF7C4 !important}

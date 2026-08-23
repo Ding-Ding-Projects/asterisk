@@ -39,6 +39,10 @@ test('the shipped renderer is byte-identical to a fresh compile of the design re
  * added for the `file` control kind's own picker. The generated PBX editable-text M3
  * extension adds one real input with both onChange and onInput. The three frameless
  * window controls remain the only runtime window bindings outside that source material.
+ * The `docs` destination (offline documentation browser) adds 6 onClick bindings
+ * (search field regex toggle, regex palette tokens, per-result select, per-block link
+ * spans in both paragraph and list-item form, suggested-article select) and 1 onChange
+ * binding (the search field itself).
  */
 test('the compiled renderer reproduces every audited design binding plus the PBX editable-text input', async () => {
   const sources = await Promise.all(
@@ -49,8 +53,8 @@ test('the compiled renderer reproduces every audited design binding plus the PBX
     counts[event] = (counts[event] ?? 0) + 1;
   }
   assert.deepEqual(counts, {
-    onClick: 212 + 3 + 1,
-    onChange: 10 + 1 + 1,
+    onClick: 212 + 3 + 1 + 6,
+    onChange: 10 + 1 + 1 + 1,
     onInput: 10 + 1,
     onContextMenu: 9,
     onDragStart: 4,

@@ -915,6 +915,101 @@
           </div>
         </sc-if>
 
+        <sc-if value="{{ isDocs }}">
+          <div style="display:grid; grid-template-columns:340px 1fr; gap:12px; margin-bottom:14px;">
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <div style="background:#1B211C; border-radius:16px; padding:14px 16px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                  <span class="msym" style="font-size:18px; color:#82D9A5;">search</span>
+                  <input value="{{ docsQuery }}" onChange="{{ setDocsQuery }}" placeholder="Search articles" style="flex:1; background:#0C110D; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-size:12.5px;" />
+                  <button onClick="{{ toggleDocsRegex }}" title="Regular expression" style="width:28px; height:28px; border-radius:8px; border:1px solid #414942; background:{{ docsRegexBg }}; color:{{ docsRegexColor }}; cursor:pointer; display:flex; align-items:center; justify-content:center;"><span class="msym" style="font-size:15px;">regular_expression</span></button>
+                </div>
+                <sc-if value="{{ docsRegexOn }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:2px;">
+                    <sc-for list="{{ docsRegexPalette }}" as="p" hint-placeholder-count="6">
+                      <button onClick="{{ p.add }}" style="background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;" style-hover="border-color:#82D9A5; color:#9FF7C4;">{{ p.label }}</button>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ docsQueryError }}">
+                  <div style="font-size:11.5px; color:#FFB4AB; margin-top:6px;">{{ docsQueryError }}</div>
+                </sc-if>
+              </div>
+              <div style="background:#1B211C; border-radius:16px; overflow:hidden; flex:1; min-height:420px; display:flex; flex-direction:column;">
+                <div style="padding:12px 16px; font-size:12px; color:#9AA39B;">{{ docsResultsLabel }}</div>
+                <div style="overflow-y:auto; flex:1;">
+                  <sc-for list="{{ docsResults }}" as="r" hint-placeholder-count="8">
+                    <div onClick="{{ r.select }}" style="padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:{{ r.bg }};" style-hover="background:#232A24;">
+                      <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-family:'Roboto Mono',monospace; font-size:10.5px; color:#82D9A5; text-transform:uppercase;">{{ r.category }}</span>
+                        <span style="font-size:13px; color:#E2E9E1; font-weight:500;">{{ r.title }}</span>
+                      </div>
+                      <div style="font-size:11.5px; color:#9AA39B; margin-top:3px;">{{ r.excerpt }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+            <div style="background:#1B211C; border-radius:16px; padding:20px 24px; min-height:440px; display:flex; flex-direction:column; gap:10px;">
+              <div style="display:flex; align-items:baseline; gap:10px;">
+                <span style="font-size:19px; font-weight:500;">{{ docsSelectedTitle }}</span>
+                <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394; text-transform:uppercase;">{{ docsSelectedCategory }}</span>
+              </div>
+              <div style="font-size:13.5px; color:#C4CBC2; line-height:1.7; max-width:78ch; overflow-y:auto;">
+                <sc-for list="{{ docsBlocks }}" as="b" hint-placeholder-count="6">
+                  <sc-if value="{{ b.isH1 }}">
+                    <div style="font-size:20px; font-weight:500; color:#E2E9E1; margin:14px 0 6px;">{{ b.text }}</div>
+                  </sc-if>
+                  <sc-if value="{{ b.isH2 }}">
+                    <div style="font-size:16.5px; font-weight:500; color:#E2E9E1; margin:14px 0 6px;">{{ b.text }}</div>
+                  </sc-if>
+                  <sc-if value="{{ b.isH3 }}">
+                    <div style="font-size:14.5px; font-weight:500; color:#C4CBC2; margin:12px 0 5px;">{{ b.text }}</div>
+                  </sc-if>
+                  <sc-if value="{{ b.isCode }}">
+                    <pre style="background:#0C110D; border-radius:10px; padding:12px 14px; font-family:'Roboto Mono',monospace; font-size:12px; color:#9FF7C4; overflow-x:auto; margin:8px 0;">{{ b.text }}</pre>
+                  </sc-if>
+                  <sc-if value="{{ b.isListItem }}">
+                    <div style="display:flex; gap:8px; margin:2px 0;">
+                      <span style="color:#8FA394;">•</span>
+                      <span>
+                        <sc-for list="{{ b.spans }}" as="sp" hint-placeholder-count="2">
+                          <sc-if value="{{ sp.isLink }}">
+                            <span onClick="{{ sp.onClick }}" style="color:#9FF7C4; text-decoration:underline; cursor:pointer;">{{ sp.text }}</span>
+                          </sc-if>
+                          <sc-if value="{{ sp.isPlain }}" hint-placeholder-val="{{ true }}">
+                            <span>{{ sp.text }}</span>
+                          </sc-if>
+                        </sc-for>
+                      </span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ b.isParagraph }}" hint-placeholder-val="{{ true }}">
+                    <div style="margin:8px 0;">
+                      <sc-for list="{{ b.spans }}" as="sp" hint-placeholder-count="3">
+                        <sc-if value="{{ sp.isLink }}">
+                          <span onClick="{{ sp.onClick }}" style="color:#9FF7C4; text-decoration:underline; cursor:pointer;">{{ sp.text }}</span>
+                        </sc-if>
+                        <sc-if value="{{ sp.isPlain }}" hint-placeholder-val="{{ true }}">
+                          <span>{{ sp.text }}</span>
+                        </sc-if>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </sc-for>
+              </div>
+              <sc-if value="{{ docsHasSuggested }}">
+                <div style="margin-top:14px; background:#0C110D; border-radius:12px; padding:14px 16px;">
+                  <div style="font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:8px;">Suggested articles</div>
+                  <sc-for list="{{ docsSuggested }}" as="sg" hint-placeholder-count="4">
+                    <div onClick="{{ sg.select }}" style="display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;" style-hover="color:#C7FFDD;"><span class="msym" style="font-size:15px;">{{ sg.icon }}</span>{{ sg.title }}</div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+
         <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
           <div style="background:#1B211C; border-radius:16px; padding:18px 20px; margin-bottom:12px; animation:m3Rise .36s cubic-bezier(.2,0,0,1) both; {{ g.rnd }}">
             <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:16px;">
@@ -2280,7 +2375,9 @@ const SCREENS = {
       ctl('z_installer','Installer','segmented','Squirrel.Windows',{ options:['Squirrel.Windows'] }),
       ctl('z_telemetry','Telemetry','switch',false),
       ctl('z_crash','Send crash reports','switch',false)
-    ]}] }
+    ]}] },
+  docs:{ rail:'app', icon:'menu_book', label:'Documentation', badge:'', title:'Documentation', file:'docs/', kind:'docs',
+    sub:'Every bundled feature article, searchable offline. Links between articles resolve inside this browser.', groups:[] }
 };
 
 
@@ -2320,7 +2417,7 @@ const DOCS = {
 
 const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
-const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about'];
+const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },
@@ -3373,7 +3470,7 @@ class Component extends DCLogic {
       openInfoScreen:() => this.showInfo(sc.title, sc.sub, 'This screen edits ' + (sc.file || 'the console itself') + '. Every row you see is a real object in the running system, and every control writes one option.', '46%', '150px'),
       openWizard:() => (sc.kind === 'servers' && this.onAddServer ? this.onAddServer() : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null })),
 
-      isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory',
+      isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory', isDocs:sc.kind === 'docs',
       /* The servers screen has its own hero (One Click Setup) above this, but its
        * configured connections are a real table too, so it shares the generic table
        * markup — search, filters, the add button, and every row's own context menu. */
@@ -3570,6 +3667,26 @@ class Component extends DCLogic {
         { icon:'verified_user', title:'Attestation', action:'Re-attest', rows:[{ k:'State', v:'Signed' }, { k:'Backup', v:'verified' }, { k:'Chain', v:'unbroken' }], act:() => this.ceremony('Re-attest the memory ledger', 'attest --rebuild') },
         { icon:'policy', title:'Emission guard', action:'Scan surfaces', rows:[{ k:'Mode', v:'Block' }, { k:'Violations', v:'0' }, { k:'Lock', v:'engaged' }], act:() => this.toast('Guard scan queued across UI text, logs and exports') }
       ],
+
+      docsQuery:'',
+      setDocsQuery:(e) => this.set('docsQuery', e.target.value),
+      docsRegexOn:false,
+      toggleDocsRegex:() => this.set('docsRegexOn', !s.docsRegexOn),
+      docsRegexBg:s.docsRegexOn ? '#005230' : 'transparent',
+      docsRegexColor:s.docsRegexOn ? '#9FF7C4' : '#778078',
+      docsRegexPalette:['^', '$', '\d+', '[a-z]+', '.*', '\.md$'].map(p => ({ label:p, add:() => this.set('docsQuery', (s.docsQuery || '') + p) })),
+      docsQueryError:'',
+      docsResultsLabel:'12 articles',
+      docsCategories:[{ name:'platform', count:12 }, { name:'security', count:6 }],
+      docsResults:[
+        { id:'platform/overview', category:'platform', title:'Overview', excerpt:'What this console is and how it reads a PBX.', bg:'transparent', select:() => this.set('docsSelectedId', 'platform/overview') }
+      ],
+      docsSelectedTitle:'Overview',
+      docsSelectedCategory:'platform',
+      docsBlocks:[{ isParagraph:true, spans:[{ isPlain:true, text:'Select an article to read it here.' }] }],
+      docsOutline:[],
+      docsHasSuggested:false,
+      docsSuggested:[],
 
       groups:(sc.groups || []).map((g, gi) => ({
         rnd:this.rnd(gi + 1),

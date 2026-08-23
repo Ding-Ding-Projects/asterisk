@@ -19,6 +19,9 @@ import {
   clearVocabulary, createMemoryStorage, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
 } from './personal-vocabulary';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
+import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
+import { DOCS_BUNDLE } from './generated/docs-bundle';
+import { parseMarkdown, plainTextExcerpt, type DocsBlock } from './docs-markdown';
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -1059,6 +1062,99 @@ It is shown once. The phone needs it to register.`);
 
       // Trunk authentication has no partner-request channel wired in.
       ...(screen === 'trunkauth' ? { authRequests: [], authHistory: [] } : {}),
+
+      // The bundled offline documentation browser: real article search, a real
+      // selected article rendered as blocks (not raw Markdown source), and real
+      // in-browser navigation for article-to-article links.
+      ...(screen === 'docs' ? this.docsVals() : {}),
+    };
+  }
+
+  /** Real values for the `docs` screen — see `docsVals` usage in `renderVals` above. */
+  private docsVals(): Record<string, unknown> {
+    const state = this.state as { docsQuery?: string; docsRegexOn?: boolean; docsSelectedId?: string };
+    const query = state.docsQuery ?? '';
+    const allArticles = listArticles(DOCS_BUNDLE);
+
+    let queryError = '';
+    let results: Array<{ id: string; category: string; title: string; excerpt: string }>;
+    if (query.trim().length === 0) {
+      results = allArticles.map((article) => ({
+        id: article.id,
+        category: article.category,
+        title: article.title,
+        excerpt: plainTextExcerpt(article.body, 120),
+      }));
+    } else {
+      const outcome = docsSearch(DOCS_BUNDLE, query, { regex: !!state.docsRegexOn });
+      if (!outcome.ok) {
+        queryError = outcome.error ?? 'Invalid search.';
+        results = [];
+      } else {
+        const seen = new Set<string>();
+        results = [];
+        for (const match of outcome.matches) {
+          if (seen.has(match.articleId)) continue;
+          seen.add(match.articleId);
+          results.push({ id: match.articleId, category: match.category, title: match.title, excerpt: match.excerpt });
+        }
+      }
+    }
+
+    const selectedId = state.docsSelectedId && allArticles.some((a) => a.id === state.docsSelectedId)
+      ? state.docsSelectedId
+      : results[0]?.id ?? allArticles[0]?.id ?? '';
+    const article = allArticles.find((a) => a.id === selectedId);
+
+    const HEADING_KEY: Record<'h1' | 'h2' | 'h3', string> = { h1: 'isH1', h2: 'isH2', h3: 'isH3' };
+    const spansFor = (spans: readonly { text: string; href?: string }[]) => spans.map((span) => {
+      const targetId = span.href && article ? resolveLink(DOCS_BUNDLE, article, span.href) : undefined;
+      return targetId
+        ? { isLink: true, text: span.text, onClick: () => this.set('docsSelectedId', targetId) }
+        : { isPlain: true, text: span.text };
+    });
+    const blockToVals = (block: DocsBlock): Record<string, unknown> => {
+      switch (block.kind) {
+        case 'code':
+          return { isCode: true, text: block.text };
+        case 'h1':
+        case 'h2':
+        case 'h3':
+          return { [HEADING_KEY[block.kind]]: true, text: block.text };
+        case 'list-item':
+          return { isListItem: true, spans: spansFor(block.spans) };
+        case 'paragraph':
+        default:
+          return { isParagraph: true, spans: spansFor(block.spans) };
+      }
+    };
+
+    const suggested = article
+      ? docsSuggestedFor(DOCS_BUNDLE, article.id).map((s) => ({
+          icon: s.relation === 'outgoing' ? 'arrow_forward' : 'arrow_back',
+          title: s.title,
+          select: () => this.set('docsSelectedId', s.id),
+        }))
+      : [];
+
+    return {
+      docsResults: results.map((r) => ({
+        id: r.id,
+        category: r.category,
+        title: r.title,
+        excerpt: r.excerpt,
+        bg: r.id === selectedId ? '#232A24' : 'transparent',
+        select: () => this.set('docsSelectedId', r.id),
+      })),
+      docsResultsLabel: query.trim().length === 0
+        ? `${results.length} article${results.length === 1 ? '' : 's'}`
+        : `${results.length} match${results.length === 1 ? '' : 'es'}`,
+      docsQueryError: queryError,
+      docsSelectedTitle: article?.title ?? 'No article',
+      docsSelectedCategory: article?.category ?? '',
+      docsBlocks: article ? parseMarkdown(article.body).map(blockToVals) : [{ isParagraph: true, spans: [{ isPlain: true, text: 'No documentation article is bundled.' }] }],
+      docsHasSuggested: suggested.length > 0,
+      docsSuggested: suggested,
     };
   }
 

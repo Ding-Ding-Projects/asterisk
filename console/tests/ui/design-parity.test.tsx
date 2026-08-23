@@ -26,15 +26,15 @@ function renderDestination(id: string, overrides: Record<string, unknown> = {}):
 const strip = (markup: string) => markup.replace(/<[^>]*>/g, ' ').replace(/&#x27;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/\s+/g, ' ');
 
 test('the design reference supplies every rail and destination', () => {
-  assert.equal(ORDER.length, 32);
-  assert.equal(destinations.length, 32);
+  assert.equal(ORDER.length, 33);
+  assert.equal(destinations.length, 33);
   assert.deepEqual(rails.map((rail) => rail.id), ['pbx', 'media', 'data', 'sys', 'agent', 'app']);
   assert.deepEqual(
     rails.map((rail) => destinations.filter((destination) => destination.rail === rail.id).length),
-    [8, 4, 2, 4, 7, 7],
+    [8, 4, 2, 4, 7, 8],
   );
   assert.equal(RAIL.length, 6);
-  assert.equal(Object.keys(SCREENS).length, 32);
+  assert.equal(Object.keys(SCREENS).length, 33);
 });
 
 test('the design audit baseline counts survive compilation', () => {

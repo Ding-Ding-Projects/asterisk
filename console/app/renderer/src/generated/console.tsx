@@ -1336,6 +1336,113 @@ function Template(v: any) {
                     )))
                 )
               ) : null),
+            (v.isDocs ? h("div", { style: sty(`display:grid; grid-template-columns:340px 1fr; gap:12px; margin-bottom:14px;`) },
+                h("div", { style: sty(`display:flex; flex-direction:column; gap:12px;`) },
+                  h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:14px 16px;`) },
+                    h("div", { style: sty(`display:flex; align-items:center; gap:8px; margin-bottom:10px;`) },
+                      h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
+                        "search"
+                      ),
+                      h("input", { value: v.docsQuery, onChange: fn(v.setDocsQuery), placeholder: `Search articles`, style: sty(`flex:1; background:#0C110D; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-size:12.5px;`) }),
+                      h("button", { onClick: fn(v.toggleDocsRegex), title: `Regular expression`, style: sty(`width:28px; height:28px; border-radius:8px; border:1px solid #414942; background:${S(v.docsRegexBg)}; color:${S(v.docsRegexColor)}; cursor:pointer; display:flex; align-items:center; justify-content:center;`) },
+                        h("span", { style: sty(`font-size:15px;`), className: "msym" },
+                          "regular_expression"
+                        )
+                      )
+                    ),
+                    (v.docsRegexOn ? h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px; margin-bottom:2px;`) },
+                        A(v.docsRegexPalette).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h26" },
+                            S($p.label)
+                          )))
+                      ) : null),
+                    (v.docsQueryError ? h("div", { style: sty(`font-size:11.5px; color:#FFB4AB; margin-top:6px;`) },
+                        S(v.docsQueryError)
+                      ) : null)
+                  ),
+                  h("div", { style: sty(`background:#1B211C; border-radius:16px; overflow:hidden; flex:1; min-height:420px; display:flex; flex-direction:column;`) },
+                    h("div", { style: sty(`padding:12px 16px; font-size:12px; color:#9AA39B;`) },
+                      S(v.docsResultsLabel)
+                    ),
+                    h("div", { style: sty(`overflow-y:auto; flex:1;`) },
+                      A(v.docsResults).map(($r, $r$i) => R($r$i, h("div", { onClick: fn($r.select), style: sty(`padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($r.bg)};`), className: "k-h16" },
+                          h("div", { style: sty(`display:flex; align-items:center; gap:8px;`) },
+                            h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#82D9A5; text-transform:uppercase;`) },
+                              S($r.category)
+                            ),
+                            h("span", { style: sty(`font-size:13px; color:#E2E9E1; font-weight:500;`) },
+                              S($r.title)
+                            )
+                          ),
+                          h("div", { style: sty(`font-size:11.5px; color:#9AA39B; margin-top:3px;`) },
+                            S($r.excerpt)
+                          )
+                        )))
+                    )
+                  )
+                ),
+                h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:20px 24px; min-height:440px; display:flex; flex-direction:column; gap:10px;`) },
+                  h("div", { style: sty(`display:flex; align-items:baseline; gap:10px;`) },
+                    h("span", { style: sty(`font-size:19px; font-weight:500;`) },
+                      S(v.docsSelectedTitle)
+                    ),
+                    h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394; text-transform:uppercase;`) },
+                      S(v.docsSelectedCategory)
+                    )
+                  ),
+                  h("div", { style: sty(`font-size:13.5px; color:#C4CBC2; line-height:1.7; max-width:78ch; overflow-y:auto;`) },
+                    A(v.docsBlocks).map(($b, $b$i) => R($b$i, F(
+                      ($b.isH1 ? h("div", { style: sty(`font-size:20px; font-weight:500; color:#E2E9E1; margin:14px 0 6px;`) },
+                          S($b.text)
+                        ) : null),
+                      ($b.isH2 ? h("div", { style: sty(`font-size:16.5px; font-weight:500; color:#E2E9E1; margin:14px 0 6px;`) },
+                          S($b.text)
+                        ) : null),
+                      ($b.isH3 ? h("div", { style: sty(`font-size:14.5px; font-weight:500; color:#C4CBC2; margin:12px 0 5px;`) },
+                          S($b.text)
+                        ) : null),
+                      ($b.isCode ? h("pre", { style: sty(`background:#0C110D; border-radius:10px; padding:12px 14px; font-family:'Roboto Mono',monospace; font-size:12px; color:#9FF7C4; overflow-x:auto; margin:8px 0;`) },
+                          S($b.text)
+                        ) : null),
+                      ($b.isListItem ? h("div", { style: sty(`display:flex; gap:8px; margin:2px 0;`) },
+                          h("span", { style: sty(`color:#8FA394;`) },
+                            "•"
+                          ),
+                          h("span", null,
+                            A($b.spans).map(($sp, $sp$i) => R($sp$i, F(
+                              ($sp.isLink ? h("span", { onClick: fn($sp.onClick), style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
+                                  S($sp.text)
+                                ) : null),
+                              ($sp.isPlain ? h("span", null,
+                                  S($sp.text)
+                                ) : null)
+                            )))
+                          )
+                        ) : null),
+                      ($b.isParagraph ? h("div", { style: sty(`margin:8px 0;`) },
+                          A($b.spans).map(($sp, $sp$i) => R($sp$i, F(
+                            ($sp.isLink ? h("span", { onClick: fn($sp.onClick), style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
+                                S($sp.text)
+                              ) : null),
+                            ($sp.isPlain ? h("span", null,
+                                S($sp.text)
+                              ) : null)
+                          )))
+                        ) : null)
+                    )))
+                  ),
+                  (v.docsHasSuggested ? h("div", { style: sty(`margin-top:14px; background:#0C110D; border-radius:12px; padding:14px 16px;`) },
+                      h("div", { style: sty(`font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:8px;`) },
+                        "Suggested articles"
+                      ),
+                      A(v.docsSuggested).map(($sg, $sg$i) => R($sg$i, h("div", { onClick: fn($sg.select), style: sty(`display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;`), className: "k-h29" },
+                          h("span", { style: sty(`font-size:15px;`), className: "msym" },
+                            S($sg.icon)
+                          ),
+                          S($sg.title)
+                        )))
+                    ) : null)
+                )
+              ) : null),
             A(v.groups).map(($g, $g$i) => R($g$i, h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:18px 20px; margin-bottom:12px; animation:m3Rise .36s cubic-bezier(.2,0,0,1) both; ${S($g.rnd)}`) },
                 h("div", { style: sty(`display:flex; align-items:flex-start; gap:12px; margin-bottom:16px;`) },
                   h("div", { style: sty(`flex:1;`) },
@@ -1380,7 +1487,7 @@ function Template(v: any) {
                     S($d.icon)
                   )
                 ) : null),
-              ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:24px; height:24px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h29" },
+              ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:24px; height:24px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h30" },
                   h("span", { style: sty(`font-size:14px;`), className: "msym" },
                     S($d.icon)
                   )
@@ -1522,7 +1629,7 @@ function Template(v: any) {
                       S($d.icon)
                     )
                   ) : null),
-                ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h30" },
+                ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h31" },
                     h("span", { style: sty(`font-size:15px;`), className: "msym" },
                       S($d.icon)
                     )
@@ -1629,7 +1736,7 @@ function Template(v: any) {
             )
           ),
           h("div", { style: sty(`max-height:420px; overflow-y:auto; padding:8px;`) },
-            A(v.paletteItems).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.go), style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;`), className: "k-h31" },
+            A(v.paletteItems).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.go), style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;`), className: "k-h32" },
                 h("span", { style: sty(`font-size:19px; color:#82D9A5;`), className: "msym" },
                   S($p.icon)
                 ),
@@ -1657,7 +1764,7 @@ function Template(v: any) {
                   S(v.ceremonyCmd)
                 )
               ),
-              h("button", { onClick: fn(v.cancelCeremony), style: sty(`width:36px; height:36px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h31" },
+              h("button", { onClick: fn(v.cancelCeremony), style: sty(`width:36px; height:36px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h32" },
                 h("span", { style: sty(`font-size:20px;`), className: "msym" },
                   "close"
                 )
@@ -1897,7 +2004,7 @@ function Template(v: any) {
                     S($d.icon)
                   )
                 ) : null),
-              ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h29" },
+              ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h30" },
                   h("span", { style: sty(`font-size:15px;`), className: "msym" },
                     S($d.icon)
                   )
@@ -2009,7 +2116,7 @@ function Template(v: any) {
           h("div", { style: sty(`padding:8px 12px 6px; font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; border-bottom:1px solid #333B34; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
             S(v.ctxTarget)
           ),
-          A(v.ctxItems).map(($i, $i$i) => R($i$i, h("button", { onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h31" },
+          A(v.ctxItems).map(($i, $i$i) => R($i$i, h("button", { onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
               h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                 S($i.icon)
               ),
@@ -2022,7 +2129,7 @@ function Template(v: any) {
             )))
         ),
         (v.subOpen ? h("div", { style: sty(`position:absolute; left:${S(v.subX)}; top:${S(v.subY)}; width:230px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);`) },
-            A(v.subItems).map(($i, $i$i) => R($i$i, h("button", { onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h31" },
+            A(v.subItems).map(($i, $i$i) => R($i$i, h("button", { onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
                 h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                   S($i.icon)
                 ),
@@ -2050,14 +2157,14 @@ function Template(v: any) {
                     S($d.icon)
                   )
                 ) : null),
-              ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h29" },
+              ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h30" },
                   h("span", { style: sty(`font-size:15px;`), className: "msym" },
                     S($d.icon)
                   )
                 ) : null)
             ))),
             h("div", { style: sty(`flex:1;`) }),
-            h("button", { onClick: fn(v.closeLock), style: sty(`width:30px; height:30px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h31" },
+            h("button", { onClick: fn(v.closeLock), style: sty(`width:30px; height:30px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h32" },
               h("span", { style: sty(`font-size:18px;`), className: "msym" },
                 "close"
               )
@@ -2238,7 +2345,7 @@ function Template(v: any) {
                 A(v.unlockDots).map(($d, $d$i) => R($d$i, h("span", { style: sty(`width:14px; height:14px; border-radius:50%; background:${S($d.bg)}; border:2px solid #414942;`) })))
               ) : null),
             h("div", { style: sty(`display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;`) },
-              A(v.unlockKeys).map(($k, $k$i) => R($k$i, h("button", { onClick: fn($k.press), style: sty(`height:50px; border-radius:14px; background:#1B211C; border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .08s;`), className: "k-h32" },
+              A(v.unlockKeys).map(($k, $k$i) => R($k$i, h("button", { onClick: fn($k.press), style: sty(`height:50px; border-radius:14px; background:#1B211C; border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .08s;`), className: "k-h33" },
                   S($k.label)
                 )))
             ),
@@ -2320,7 +2427,7 @@ function Template(v: any) {
                 )
               ),
               h("div", { style: sty(`display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;`) },
-                A(v.colorFormats).map(($f, $f$i) => R($f$i, h("button", { onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h33" },
+                A(v.colorFormats).map(($f, $f$i) => R($f$i, h("button", { onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h34" },
                     S($f.label)
                   )))
               )
@@ -2363,7 +2470,7 @@ function Template(v: any) {
                   S(v.sureTitle)
                 )
               ),
-              h("button", { onClick: fn(v.closeSure), style: sty(`width:34px; height:34px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h31" },
+              h("button", { onClick: fn(v.closeSure), style: sty(`width:34px; height:34px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h32" },
                 h("span", { style: sty(`font-size:19px;`), className: "msym" },
                   "close"
                 )
@@ -2428,14 +2535,14 @@ function Template(v: any) {
                 "Type it, or build a pattern. The preview shows exactly which tabs close."
               )
             ),
-            h("button", { onClick: fn(v.closeTabFilter), style: sty(`width:32px; height:32px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h31" },
+            h("button", { onClick: fn(v.closeTabFilter), style: sty(`width:32px; height:32px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h32" },
               h("span", { style: sty(`font-size:18px;`), className: "msym" },
                 "close"
               )
             )
           ),
           (v.tabFilterIsColour ? h("div", { style: sty(`display:flex; flex-direction:column; gap:6px; margin-top:14px;`) },
-              A(v.tabFilterColours).map(($c, $c$i) => R($c$i, h("button", { onClick: fn($c.pick), style: sty(`display:flex; align-items:center; gap:11px; background:#141A15; border:2px solid ${S($c.border)}; border-radius:12px; padding:10px 13px; cursor:pointer; text-align:left;`), className: "k-h31" },
+              A(v.tabFilterColours).map(($c, $c$i) => R($c$i, h("button", { onClick: fn($c.pick), style: sty(`display:flex; align-items:center; gap:11px; background:#141A15; border:2px solid ${S($c.border)}; border-radius:12px; padding:10px 13px; cursor:pointer; text-align:left;`), className: "k-h32" },
                   h("span", { style: sty(`width:18px; height:18px; border-radius:50%; background:${S($c.colour)}; flex:0 0 auto;`) }),
                   h("div", { style: sty(`flex:1; min-width:0;`) },
                     h("div", { style: sty(`font-size:12.5px; color:#DFE4DC;`) },
@@ -2513,7 +2620,7 @@ function Template(v: any) {
             A(v.cpickCtls).map(($c, $c$i) => R($c$i, h(M3Control, { ctl: $c })))
           ),
           h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;`) },
-            A(v.cpickFormats).map(($f, $f$i) => R($f$i, h("button", { onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h33" },
+            A(v.cpickFormats).map(($f, $f$i) => R($f$i, h("button", { onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h34" },
                 S($f.label)
               )))
           ),
@@ -2528,7 +2635,7 @@ function Template(v: any) {
                 "Already used by other tabs"
               ),
               h("div", { style: sty(`display:flex; flex-direction:column; gap:6px;`) },
-                A(v.usedColours).map(($u, $u$i) => R($u$i, h("button", { onClick: fn($u.pick), style: sty(`display:flex; align-items:center; gap:10px; background:#141A15; border:0; border-radius:10px; padding:9px 12px; cursor:pointer; text-align:left;`), className: "k-h31" },
+                A(v.usedColours).map(($u, $u$i) => R($u$i, h("button", { onClick: fn($u.pick), style: sty(`display:flex; align-items:center; gap:10px; background:#141A15; border:0; border-radius:10px; padding:9px 12px; cursor:pointer; text-align:left;`), className: "k-h32" },
                     h("span", { style: sty(`width:14px; height:14px; border-radius:50%; background:${S($u.colour)};`) }),
                     h("span", { style: sty(`flex:1; font-size:12.5px; color:#DFE4DC;`) },
                       S($u.tabs)
@@ -3064,7 +3171,9 @@ const SCREENS = {
       ctl('z_installer','Installer','segmented','Squirrel.Windows',{ options:['Squirrel.Windows'] }),
       ctl('z_telemetry','Telemetry','switch',false),
       ctl('z_crash','Send crash reports','switch',false)
-    ]}] }
+    ]}] },
+  docs:{ rail:'app', icon:'menu_book', label:'Documentation', badge:'', title:'Documentation', file:'docs/', kind:'docs',
+    sub:'Every bundled feature article, searchable offline. Links between articles resolve inside this browser.', groups:[] }
 };
 
 
@@ -3104,7 +3213,7 @@ const DOCS = {
 
 const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
-const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about'];
+const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },
@@ -4157,7 +4266,7 @@ class ConsoleShell extends DCLogic {
       openInfoScreen:() => this.showInfo(sc.title, sc.sub, 'This screen edits ' + (sc.file || 'the console itself') + '. Every row you see is a real object in the running system, and every control writes one option.', '46%', '150px'),
       openWizard:() => (sc.kind === 'servers' && this.onAddServer ? this.onAddServer() : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null })),
 
-      isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory',
+      isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory', isDocs:sc.kind === 'docs',
       /* The servers screen has its own hero (One Click Setup) above this, but its
        * configured connections are a real table too, so it shares the generic table
        * markup — search, filters, the add button, and every row's own context menu. */
@@ -4354,6 +4463,26 @@ class ConsoleShell extends DCLogic {
         { icon:'verified_user', title:'Attestation', action:'Re-attest', rows:[{ k:'State', v:'Signed' }, { k:'Backup', v:'verified' }, { k:'Chain', v:'unbroken' }], act:() => this.ceremony('Re-attest the memory ledger', 'attest --rebuild') },
         { icon:'policy', title:'Emission guard', action:'Scan surfaces', rows:[{ k:'Mode', v:'Block' }, { k:'Violations', v:'0' }, { k:'Lock', v:'engaged' }], act:() => this.toast('Guard scan queued across UI text, logs and exports') }
       ],
+
+      docsQuery:'',
+      setDocsQuery:(e) => this.set('docsQuery', e.target.value),
+      docsRegexOn:false,
+      toggleDocsRegex:() => this.set('docsRegexOn', !s.docsRegexOn),
+      docsRegexBg:s.docsRegexOn ? '#005230' : 'transparent',
+      docsRegexColor:s.docsRegexOn ? '#9FF7C4' : '#778078',
+      docsRegexPalette:['^', '$', '\d+', '[a-z]+', '.*', '\.md$'].map(p => ({ label:p, add:() => this.set('docsQuery', (s.docsQuery || '') + p) })),
+      docsQueryError:'',
+      docsResultsLabel:'12 articles',
+      docsCategories:[{ name:'platform', count:12 }, { name:'security', count:6 }],
+      docsResults:[
+        { id:'platform/overview', category:'platform', title:'Overview', excerpt:'What this console is and how it reads a PBX.', bg:'transparent', select:() => this.set('docsSelectedId', 'platform/overview') }
+      ],
+      docsSelectedTitle:'Overview',
+      docsSelectedCategory:'platform',
+      docsBlocks:[{ isParagraph:true, spans:[{ isPlain:true, text:'Select an article to read it here.' }] }],
+      docsOutline:[],
+      docsHasSuggested:false,
+      docsSuggested:[],
 
       groups:(sc.groups || []).map((g, gi) => ({
         rnd:this.rnd(gi + 1),
