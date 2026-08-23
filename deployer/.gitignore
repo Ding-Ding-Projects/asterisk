@@ -1,0 +1,7 @@
+# Build output and installed dependencies. Neither is source, and committing
+# them once put 1.36 million lines of generated files into a single commit.
+node_modules/
+dist/
+dist-electron/
+release/
+*.tsbuildinfo

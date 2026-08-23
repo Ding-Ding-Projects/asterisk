@@ -1,0 +1,32 @@
+{
+  "name": "ding-pbx-deployer",
+  "version": "0.1.0",
+  "description": "One-click deployer that stands up a Ding PBX server on a VM or remote host.",
+  "author": "Ding-Ding-Projects",
+  "private": true,
+  "type": "module",
+  "main": "dist-electron/deployer/app/electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b app/electron/tsconfig.json && tsc -b && vite build",
+    "start": "electron .",
+    "test:control-plane": "tsx --test tests/*.test.ts",
+    "test": "npm run test:control-plane"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitejs/plugin-react": "6.1.0",
+    "electron": "43.4.1",
+    "electron-builder": "26.15.3",
+    "electron-builder-squirrel-windows": "26.15.3",
+    "tsx": "4.23.12",
+    "typescript": "7.0.2",
+    "vite": "8.2.2"
+  }
+}

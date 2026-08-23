@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": "../../..",
+    "outDir": "../../dist-electron",
+    "strict": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "types": ["node"],
+    "paths": { "electron": ["../../../console/node_modules/electron/electron.d.ts"] }
+  },
+  "include": [
+    "main.ts",
+    "preload.ts",
+    "../../control-plane/**/*.ts",
+    "../../../console/control-plane/executor.ts",
+    "../../../console/control-plane/ssh.ts",
+    "../../../console/control-plane/redaction.ts"
+  ]
+}
