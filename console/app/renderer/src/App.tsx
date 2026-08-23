@@ -37,7 +37,7 @@ function connectionFailureReason(response: ControlPlaneResponse | undefined): st
   if (!response) return 'The desktop control plane did not answer the connection check.';
   if (!response.ok) return response.message;
   const data = response.data as { operatingSystem?: ConnectionObservation; asterisk?: ConnectionObservation };
-  const unavailable = [
+  const unavailable: Array<[string, ConnectionObservation | undefined]> = [
     ['operating system', data.operatingSystem],
     ['Asterisk', data.asterisk],
   ]
