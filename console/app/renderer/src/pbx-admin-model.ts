@@ -10,139 +10,146 @@ export interface PbxFeatureDefinition {
   description: string;
   resources: ReadonlyArray<string>;
   tools?: ReadonlyArray<PbxFeatureTool>;
+  /** Existing Ding destination whose live/runtime UI is the implementation for this task. */
+  delegateScreen?: string;
 }
 
 const A = '/etc/asterisk';
 const r = (name: string) => `${A}/${name}`;
 
 /**
- * The advanced workspace is additive: it does not replace the generated design or its
- * purpose-built screens. It gives every allowlisted Asterisk subsystem a discoverable
- * home while dedicated controls are filled in over time. Every resource named here is
- * already inside WslConfigTransport.CONFIGURABLE_RESOURCES; a typo is still refused by
- * the main process before anything is read or written.
- *
- * Labels deliberately follow administrator tasks rather than Asterisk filenames. They
- * track the standard FreePBX module vocabulary where Asterisk has a genuine equivalent,
- * but the implementation remains Asterisk-native: dialplan-backed FreePBX modules map
- * to extensions.conf, media-backed modules also expose the bounded media library, and
- * PBX services map only to configuration files this checkout proves Asterisk consumes.
- * A FreePBX-framework-only or commercial service is not invented here just to make a
- * menu item exist.
+ * Exact renderer-side mirror of WslConfigTransport.CONFIGURABLE_RESOURCES. It is a
+ * deliberate drift guard: capability tests prove the backend names exist in Asterisk's
+ * own samples, while renderer tests prove every one remains reachable from PBX Admin.
  */
-export const PBX_FEATURES: ReadonlyArray<PbxFeatureDefinition> = [
-  // Applications — task names mirror the standard FreePBX applications catalogue where
-  // there is a real Asterisk/dialplan/media implementation surface.
-  { id: 'extensions', group: 'Applications', label: 'Extensions & users', description: 'Endpoint identities, dialplan entries, voicemail boxes and per-extension behaviour.', resources: [r('pjsip.conf'), r('extensions.conf'), r('voicemail.conf')] },
-  { id: 'announcements', group: 'Applications', label: 'Announcements', description: 'Dialplan announcement destinations backed by target prompt recordings.', resources: [r('extensions.conf')], tools: ['config', 'media'] },
-  { id: 'calendar-event-groups', group: 'Applications', label: 'Calendar event groups', description: 'Calendar-backed groups that feed time-aware dialplan decisions.', resources: [r('calendar.conf'), r('extensions.conf')] },
-  { id: 'callback', group: 'Applications', label: 'Callback', description: 'Dialplan callback destinations and outbound call handling.', resources: [r('extensions.conf'), r('pjsip.conf')] },
-  { id: 'call-flow-control', group: 'Applications', label: 'Call flow control', description: 'Toggleable dialplan branches and destinations for day/night or operational modes.', resources: [r('extensions.conf')] },
-  { id: 'call-recording', group: 'Applications', label: 'Call recording', description: 'Dialplan recording policy and logger integration for recorded calls.', resources: [r('extensions.conf'), r('logger.conf')] },
-  { id: 'conferences', group: 'Applications', label: 'Conferences', description: 'ConfBridge bridge and user profiles.', resources: [r('confbridge.conf')] },
-  { id: 'directory', group: 'Applications', label: 'Directory', description: 'Dialplan directory destinations using extension and voicemail identity data.', resources: [r('extensions.conf'), r('voicemail.conf')] },
-  { id: 'disa', group: 'Applications', label: 'DISA', description: 'Direct Inward System Access dialplan destinations and outbound routing context.', resources: [r('extensions.conf')] },
-  { id: 'follow-me', group: 'Applications', label: 'Follow me', description: 'Dialplan destinations that ring additional endpoints or external numbers.', resources: [r('extensions.conf')] },
-  { id: 'ivr', group: 'Applications', label: 'IVR', description: 'Menus, digit handling, timeouts, destinations and prompt references.', resources: [r('extensions.conf')], tools: ['config', 'media'] },
-  { id: 'languages', group: 'Applications', label: 'Languages', description: 'Language-aware dialplan and target prompt media selection.', resources: [r('extensions.conf')], tools: ['config', 'media'] },
-  { id: 'misc-applications', group: 'Applications', label: 'Misc applications', description: 'Custom feature codes that send callers to a chosen dialplan destination.', resources: [r('extensions.conf'), r('features.conf')] },
-  { id: 'misc-destinations', group: 'Applications', label: 'Misc destinations', description: 'Reusable custom call targets referenced by other dialplan features.', resources: [r('extensions.conf')] },
-  { id: 'missed-call-notification', group: 'Applications', label: 'Missed-call notification', description: 'Dialplan and manager-facing hooks used to observe unanswered call outcomes.', resources: [r('extensions.conf'), r('manager.conf')] },
-  { id: 'paging', group: 'Applications', label: 'Paging & intercom', description: 'Endpoint and dialplan settings used for paging and intercom destinations.', resources: [r('pjsip.conf'), r('extensions.conf')] },
-  { id: 'parking', group: 'Applications', label: 'Parking', description: 'Parking lots, transfer keys, pickup and in-call feature codes.', resources: [r('features.conf'), r('extensions.conf')] },
-  { id: 'queue-priorities', group: 'Applications', label: 'Queue priorities', description: 'Queue penalty rules and dialplan entry points that change caller priority.', resources: [r('queuerules.conf'), r('queues.conf'), r('extensions.conf')] },
-  { id: 'queues', group: 'Applications', label: 'Queues', description: 'Queue strategy, members, announcements, penalty rules and service levels.', resources: [r('queues.conf'), r('queuerules.conf')] },
-  { id: 'ring-groups', group: 'Applications', label: 'Ring groups', description: 'Ordered destinations and hunt behaviour expressed in the dialplan.', resources: [r('extensions.conf')] },
-  { id: 'set-callerid', group: 'Applications', label: 'Set CallerID', description: 'Dialplan caller-ID transforms and endpoint identity policy.', resources: [r('extensions.conf'), r('pjsip.conf')] },
-  { id: 'time-conditions', group: 'Applications', label: 'Time conditions', description: 'Calendar and dialplan-driven routing by time and date.', resources: [r('extensions.conf'), r('calendar.conf')] },
-  { id: 'time-groups', group: 'Applications', label: 'Time groups', description: 'Reusable schedules for time-based dialplan decisions.', resources: [r('extensions.conf'), r('calendar.conf')] },
-  { id: 'voicemail-blasting', group: 'Applications', label: 'Voicemail blasting', description: 'Dialplan fan-out to multiple voicemail boxes and mailbox policy.', resources: [r('extensions.conf'), r('voicemail.conf')] },
-  { id: 'wake-up-calls', group: 'Applications', label: 'Wake-up calls', description: 'Calendar- and dialplan-driven scheduled call destinations.', resources: [r('calendar.conf'), r('extensions.conf')] },
-  { id: 'voicemail', group: 'Applications', label: 'Voicemail', description: 'Mailbox policy, storage behaviour, greetings and notification settings.', resources: [r('voicemail.conf')], tools: ['config', 'media'] },
-  { id: 'recordings', group: 'Applications', label: 'System recordings', description: 'Prompt files used by IVR, voicemail, queues and announcement destinations.', resources: [], tools: ['media'] },
-  { id: 'moh', group: 'Applications', label: 'Music on hold', description: 'Music-on-hold classes and their media files.', resources: [r('musiconhold.conf')], tools: ['config', 'media'] },
-
-  // Connectivity — provider-branded FreePBX modules collapse to the same underlying
-  // Asterisk trunk/API/dialplan primitives instead of embedding one vendor's service.
-  { id: 'api', group: 'Connectivity', label: 'API services', description: 'AMI, ARI and embedded HTTP service configuration used by external integrations.', resources: [r('manager.conf'), r('http.conf')] },
-  { id: 'call-forwarding', group: 'Connectivity', label: 'Call forwarding', description: 'Dialplan forwarding destinations and endpoint routing behaviour.', resources: [r('extensions.conf'), r('pjsip.conf')] },
-  { id: 'call-waiting', group: 'Connectivity', label: 'Call waiting', description: 'Endpoint and dialplan policy that controls additional inbound calls while busy.', resources: [r('pjsip.conf'), r('extensions.conf')] },
-  { id: 'dnd', group: 'Connectivity', label: 'Do not disturb', description: 'Endpoint and dialplan routing behaviour for blocked inbound ringing.', resources: [r('pjsip.conf'), r('extensions.conf')] },
-  { id: 'pjsip-trunks', group: 'Connectivity', label: 'PJSIP trunks', description: 'PJSIP endpoint, AOR, auth, registration and transport objects.', resources: [r('pjsip.conf')] },
-  { id: 'iax-trunks', group: 'Connectivity', label: 'IAX2 trunks', description: 'IAX2 peers, users and trunking settings.', resources: [r('iax.conf')] },
-  { id: 'dahdi', group: 'Connectivity', label: 'DAHDI channels & DIDs', description: 'Hardware channels plus dialplan DID routing for analogue, T1/E1 and PRI connectivity.', resources: [r('chan_dahdi.conf'), r('extensions.conf')] },
-  { id: 'inbound-routes', group: 'Connectivity', label: 'Inbound routes', description: 'DID and caller-based inbound destinations in the dialplan.', resources: [r('extensions.conf'), r('pjsip.conf')] },
-  { id: 'outbound-routes', group: 'Connectivity', label: 'Outbound routes', description: 'Dial patterns, trunk selection and outbound caller handling.', resources: [r('extensions.conf'), r('pjsip.conf')] },
-  { id: 'firewall', group: 'Connectivity', label: 'Firewall / ACL policy', description: 'Asterisk named ACLs and service access restrictions. This does not pretend to be an operating-system firewall.', resources: [r('acl.conf'), r('manager.conf'), r('http.conf')] },
-  { id: 'nat', group: 'Connectivity', label: 'NAT & STUN', description: 'PJSIP transport NAT behaviour and STUN monitoring.', resources: [r('pjsip.conf'), r('res_stun_monitor.conf')] },
-  { id: 'sms-routing', group: 'Connectivity', label: 'SIP messaging / SMS routing', description: 'PJSIP MESSAGE handling and dialplan/HTTP integration points for provider messaging.', resources: [r('pjsip.conf'), r('extensions.conf'), r('http.conf')] },
-  { id: 'sla', group: 'Connectivity', label: 'Shared line appearances', description: 'Shared line trunks and stations.', resources: [r('sla.conf')] },
-  { id: 'dundi', group: 'Connectivity', label: 'DUNDi', description: 'Distributed dialplan lookup and peer policy.', resources: [r('dundi.conf')] },
-
-  // Administration.
-  { id: 'acl', group: 'Administration', label: 'Access control', description: 'Named Asterisk ACLs used by transports, endpoints and services.', resources: [r('acl.conf')] },
-  { id: 'blacklist', group: 'Administration', label: 'Blacklist', description: 'Dialplan-level number blocking and access restrictions.', resources: [r('extensions.conf'), r('acl.conf')] },
-  { id: 'bulk-config', group: 'Administration', label: 'Bulk configuration', description: 'Structured access to every allowlisted Asterisk resource for large administrative edits.', resources: [
-    r('pjsip.conf'), r('extensions.conf'), r('queues.conf'), r('voicemail.conf'), r('confbridge.conf'), r('musiconhold.conf'),
-  ] },
-  { id: 'callerid-lookup', group: 'Administration', label: 'CallerID lookup routing', description: 'Dialplan hooks and HTTP service settings for caller identity enrichment.', resources: [r('extensions.conf'), r('http.conf')] },
-  { id: 'certificates', group: 'Administration', label: 'Certificate management / TLS', description: 'HTTP TLS, PJSIP transport certificate references and verification policy.', resources: [r('http.conf'), r('pjsip.conf'), r('stir_shaken.conf')] },
-  { id: 'custom-destinations', group: 'Administration', label: 'Custom destinations', description: 'Named custom dialplan entry points for other routing features.', resources: [r('extensions.conf')] },
-  { id: 'custom-extensions', group: 'Administration', label: 'Custom extensions', description: 'Manually defined extension dialplan entries and endpoint associations.', resources: [r('extensions.conf'), r('pjsip.conf')] },
-  { id: 'feature-codes', group: 'Administration', label: 'Feature codes', description: 'Transfer, pickup, parking and other in-call feature mappings.', resources: [r('features.conf'), r('extensions.conf')] },
-  { id: 'stir-shaken', group: 'Administration', label: 'STIR/SHAKEN', description: 'Outbound attestation, inbound verification, profiles and certificate references.', resources: [r('stir_shaken.conf')] },
-  { id: 'geolocation', group: 'Administration', label: 'Emergency geolocation', description: 'Location profiles and emergency-services routing metadata.', resources: [r('geolocation.conf')] },
-  { id: 'backup', group: 'Administration', label: 'Transactional recovery', description: 'Per-resource recovery points created by the verified configuration transaction engine.', resources: [], tools: ['history'] },
-  { id: 'phoneprov', group: 'Administration', label: 'Phone provisioning', description: 'Handset templates and provisioning profiles.', resources: [r('phoneprov.conf')] },
-  { id: 'manager', group: 'Administration', label: 'AMI, ARI & HTTP services', description: 'Manager users, embedded HTTP service and REST-facing settings.', resources: [r('manager.conf'), r('http.conf')] },
-  { id: 'modules', group: 'Administration', label: 'Module administration', description: 'Autoload, preload, noload and required Asterisk modules.', resources: [r('modules.conf')] },
-  { id: 'logger', group: 'Administration', label: 'Logging', description: 'Log channels, rotation and queue logging.', resources: [r('logger.conf')] },
-  { id: 'core', group: 'Administration', label: 'Asterisk core settings', description: 'Core directories, run-as identity and process-level settings.', resources: [r('asterisk.conf')] },
-  { id: 'realtime', group: 'Administration', label: 'Realtime & database backends', description: 'ODBC, PostgreSQL, LDAP, extconfig and Sorcery object mappings.', resources: [r('res_odbc.conf'), r('extconfig.conf'), r('sorcery.conf'), r('res_pgsql.conf'), r('res_ldap.conf')] },
-  { id: 'monitoring', group: 'Administration', label: 'Monitoring', description: 'Prometheus and SNMP telemetry exports.', resources: [r('prometheus.conf'), r('res_snmp.conf')] },
-  { id: 'calendar', group: 'Administration', label: 'Calendars', description: 'Calendar sources used by dialplan and time-aware routing.', resources: [r('calendar.conf')] },
-  { id: 'xmpp', group: 'Administration', label: 'XMPP messaging', description: 'XMPP client and messaging integration settings.', resources: [r('xmpp.conf')] },
-  { id: 'adsi', group: 'Administration', label: 'Caller display / ADSI', description: 'ADSI and legacy caller-display service settings.', resources: [r('adsi.conf')] },
-
-  // Reports.
-  { id: 'cdr', group: 'Reports', label: 'CDR reports backend', description: 'Call Detail Record policy and ODBC/PostgreSQL backends.', resources: [r('cdr.conf'), r('cdr_odbc.conf'), r('cdr_pgsql.conf')] },
-  { id: 'cel', group: 'Reports', label: 'Call event logging', description: 'Detailed Channel Event Logging and database backends.', resources: [r('cel.conf'), r('cel_odbc.conf'), r('cel_pgsql.conf')] },
-  { id: 'fax', group: 'Reports', label: 'Fax & T.38', description: 'Fax engine settings plus UDPTL transport behaviour.', resources: [r('res_fax.conf'), r('udptl.conf')] },
-  { id: 'report-logging', group: 'Reports', label: 'Asterisk logfiles', description: 'Logger channels and queue log policy consumed by the existing live log surfaces.', resources: [r('logger.conf')] },
-  { id: 'weak-password-policy', group: 'Reports', label: 'Credential review surface', description: 'PJSIP authentication objects and manager credentials exposed for administrator review without fabricating a security score.', resources: [r('pjsip.conf'), r('manager.conf')] },
-
-  // Settings.
-  { id: 'advanced', group: 'Settings', label: 'Advanced settings', description: 'The allowlisted Asterisk configuration resources that underpin the desktop console.', resources: [
-    r('asterisk.conf'), r('pjsip.conf'), r('extensions.conf'), r('queues.conf'), r('voicemail.conf'), r('confbridge.conf'),
-    r('musiconhold.conf'), r('cdr.conf'), r('manager.conf'), r('logger.conf'), r('rtp.conf'), r('modules.conf'), r('acl.conf'),
-  ] },
-  { id: 'iax-settings', group: 'Settings', label: 'Asterisk IAX settings', description: 'IAX2 global, peer and user configuration.', resources: [r('iax.conf')] },
-  { id: 'logfile-settings', group: 'Settings', label: 'Asterisk logfile settings', description: 'Logger channels, rotation and queue logging.', resources: [r('logger.conf')] },
-  { id: 'ami-settings', group: 'Settings', label: 'Asterisk Manager Interface', description: 'AMI bind, authentication and privilege configuration.', resources: [r('manager.conf')] },
-  { id: 'ari-settings', group: 'Settings', label: 'Asterisk REST Interface', description: 'ARI-facing HTTP service and authentication surface.', resources: [r('http.conf'), r('manager.conf')] },
-  { id: 'sip', group: 'Settings', label: 'Asterisk SIP settings', description: 'Global PJSIP transports, endpoints and registrations.', resources: [r('pjsip.conf')] },
-  { id: 'extension-settings', group: 'Settings', label: 'Extension settings', description: 'PJSIP endpoint defaults plus extension dialplan and voicemail settings.', resources: [r('pjsip.conf'), r('extensions.conf'), r('voicemail.conf')] },
-  { id: 'fax-settings', group: 'Settings', label: 'Fax configuration', description: 'Fax engine and UDPTL transport settings.', resources: [r('res_fax.conf'), r('udptl.conf')] },
-  { id: 'moh-settings', group: 'Settings', label: 'Music on hold settings', description: 'Music-on-hold class configuration and media.', resources: [r('musiconhold.conf')], tools: ['config', 'media'] },
-  { id: 'pin-sets', group: 'Settings', label: 'PIN sets', description: 'Dialplan authentication/PIN gates for protected destinations.', resources: [r('extensions.conf')] },
-  { id: 'route-congestion', group: 'Settings', label: 'Route congestion messages', description: 'Dialplan failure routing and prompt playback for unavailable outbound routes.', resources: [r('extensions.conf')], tools: ['config', 'media'] },
-  { id: 'rtp', group: 'Settings', label: 'RTP & media', description: 'RTP port ranges, strict RTP, ICE and media transport behaviour.', resources: [r('rtp.conf')] },
-  { id: 'voicemail-admin', group: 'Settings', label: 'Voicemail admin', description: 'Global voicemail policy and mailbox configuration.', resources: [r('voicemail.conf')], tools: ['config', 'media'] },
-
-  // Capability-only Asterisk surfaces with no direct FreePBX standard-module analogue.
-  { id: 'sla', group: 'Settings', label: 'Shared line appearances', description: 'Shared line trunks and stations.', resources: [r('sla.conf')] },
-  { id: 'dundi', group: 'Settings', label: 'DUNDi', description: 'Distributed dialplan lookup and peer policy.', resources: [r('dundi.conf')] },
-];
-
-/** Exact renderer-side mirror of the main process allowlist. Kept only as a drift guard. */
 export const EXPECTED_CONFIGURABLE_RESOURCES: ReadonlyArray<string> = [
   'pjsip.conf', 'extensions.conf', 'queues.conf', 'voicemail.conf', 'confbridge.conf', 'musiconhold.conf',
   'cdr.conf', 'manager.conf', 'logger.conf', 'rtp.conf', 'modules.conf', 'acl.conf', 'chan_dahdi.conf', 'iax.conf',
   'res_fax.conf', 'cel.conf', 'cel_odbc.conf', 'cel_pgsql.conf', 'res_odbc.conf', 'extconfig.conf', 'sorcery.conf',
-  'res_pgsql.conf', 'res_ldap.conf', 'cdr_odbc.conf', 'cdr_pgsql.conf', 'http.conf', 'stir_shaken.conf',
-  'geolocation.conf', 'phoneprov.conf', 'features.conf', 'sla.conf', 'dundi.conf', 'calendar.conf', 'queuerules.conf',
-  'udptl.conf', 'res_stun_monitor.conf', 'res_snmp.conf', 'prometheus.conf', 'xmpp.conf', 'adsi.conf', 'asterisk.conf',
+  'res_pgsql.conf', 'res_ldap.conf', 'cdr_odbc.conf', 'cdr_pgsql.conf', 'http.conf', 'ari.conf', 'stir_shaken.conf',
+  'geolocation.conf', 'phoneprov.conf', 'features.conf', 'res_parking.conf', 'sla.conf', 'dundi.conf', 'calendar.conf',
+  'queuerules.conf', 'udptl.conf', 'res_stun_monitor.conf', 'res_snmp.conf', 'prometheus.conf', 'xmpp.conf', 'adsi.conf',
+  'asterisk.conf', 'festival.conf', 'cli_aliases.conf', 'cli_permissions.conf', 'indications.conf',
 ].map(r);
+
+const ALL = EXPECTED_CONFIGURABLE_RESOURCES;
+
+/**
+ * FreePBX-style task catalogue mapped onto Asterisk/Ding primitives.
+ *
+ * The five groups mirror Sangoma's current Standard Modules menus. A FreePBX module
+ * whose work is ultimately dialplan/configuration maps to the exact Asterisk resources
+ * Ding can transact. A module whose live function already exists in Ding delegates to
+ * that existing screen. Vendor-branded connectivity modules expose the underlying
+ * PJSIP/HTTP/dialplan integration points; they do not claim to reproduce Sangoma's
+ * commercial provisioning service or credentials.
+ */
+export const PBX_FEATURES: ReadonlyArray<PbxFeatureDefinition> = [
+  // ---------------------------------------------------------------- Applications
+  { id: 'announcements', group: 'Applications', label: 'Announcements', description: 'Play a target recording and route the caller onward.', resources: [r('extensions.conf')], tools: ['config', 'media'] },
+  { id: 'calendar-event-groups', group: 'Applications', label: 'Calendar Event Groups', description: 'Calendar-backed groups used by time-aware call flow.', resources: [r('calendar.conf'), r('extensions.conf')] },
+  { id: 'calendar', group: 'Applications', label: 'Calendar', description: 'Calendar sources and dialplan use of calendar state.', resources: [r('calendar.conf'), r('extensions.conf')] },
+  { id: 'callback', group: 'Applications', label: 'Callback', description: 'Dialplan callback destinations and outbound call handling.', resources: [r('extensions.conf'), r('pjsip.conf')] },
+  { id: 'call-flow-control', group: 'Applications', label: 'Call Flow Control', description: 'Toggleable dialplan branches for operational/day-night modes.', resources: [r('extensions.conf')] },
+  { id: 'call-recording', group: 'Applications', label: 'Call Recording', description: 'Dialplan recording policy and recording feature codes.', resources: [r('extensions.conf'), r('features.conf'), r('logger.conf')] },
+  { id: 'conferences', group: 'Applications', label: 'Conferences', description: 'ConfBridge bridge and user profiles.', resources: [r('confbridge.conf')] },
+  { id: 'directory', group: 'Applications', label: 'Directory', description: 'Directory destinations driven by extension and voicemail identity data.', resources: [r('extensions.conf'), r('voicemail.conf')] },
+  { id: 'disa', group: 'Applications', label: 'DISA', description: 'Direct Inward System Access dialplan entry points and contexts.', resources: [r('extensions.conf')] },
+  { id: 'extensions', group: 'Applications', label: 'Extensions', description: 'PJSIP identities, extension dialplan and voicemail boxes.', resources: [r('pjsip.conf'), r('extensions.conf'), r('voicemail.conf')], delegateScreen: 'endpoints' },
+  { id: 'follow-me', group: 'Applications', label: 'Follow Me', description: 'Find-me/follow-me dialplan destinations and endpoint routing.', resources: [r('extensions.conf'), r('pjsip.conf')] },
+  { id: 'ivr', group: 'Applications', label: 'IVR', description: 'Menus, digit handling, timeouts, destinations and prompt references.', resources: [r('extensions.conf')], tools: ['config', 'media'] },
+  { id: 'languages', group: 'Applications', label: 'Languages', description: 'Language-aware dialplan, core language settings and prompt media.', resources: [r('extensions.conf'), r('asterisk.conf'), r('indications.conf')], tools: ['config', 'media'] },
+  { id: 'misc-applications', group: 'Applications', label: 'Misc Applications', description: 'Custom feature codes that send callers to selected destinations.', resources: [r('extensions.conf'), r('features.conf')] },
+  { id: 'misc-destinations', group: 'Applications', label: 'Misc Destinations', description: 'Reusable custom call targets referenced by other dialplan features.', resources: [r('extensions.conf')] },
+  { id: 'missed-call-notification', group: 'Applications', label: 'MissedCall Notification', description: 'Unanswered-call dialplan and manager integration points.', resources: [r('extensions.conf'), r('manager.conf')] },
+  { id: 'paging', group: 'Applications', label: 'Paging and Intercom', description: 'Paging/intercom endpoint and dialplan destinations.', resources: [r('pjsip.conf'), r('extensions.conf')] },
+  { id: 'parking', group: 'Applications', label: 'Parking', description: 'Modern Asterisk parking lots plus in-call park feature mapping.', resources: [r('res_parking.conf'), r('features.conf'), r('extensions.conf')] },
+  { id: 'queue-priorities', group: 'Applications', label: 'Queue Priorities', description: 'Queue penalty rules and dialplan priority entry points.', resources: [r('queuerules.conf'), r('queues.conf'), r('extensions.conf')] },
+  { id: 'queues', group: 'Applications', label: 'Queues', description: 'Queue strategy, members, announcements, penalties and service levels.', resources: [r('queues.conf'), r('queuerules.conf')], delegateScreen: 'queues' },
+  { id: 'ring-groups', group: 'Applications', label: 'Ring Groups', description: 'Ordered hunt/ring destinations expressed in the dialplan.', resources: [r('extensions.conf')] },
+  { id: 'set-callerid', group: 'Applications', label: 'Set CallerID', description: 'Dialplan CallerID transforms and PJSIP identity policy.', resources: [r('extensions.conf'), r('pjsip.conf')] },
+  { id: 'text-to-speech', group: 'Applications', label: 'Text to Speech', description: 'Festival TTS service configuration and dialplan Festival application use.', resources: [r('festival.conf'), r('extensions.conf')] },
+  { id: 'time-conditions', group: 'Applications', label: 'Time Conditions', description: 'Calendar/dialplan routing by time and date.', resources: [r('calendar.conf'), r('extensions.conf')] },
+  { id: 'time-groups', group: 'Applications', label: 'Time Groups', description: 'Reusable time schedules for dialplan decisions.', resources: [r('calendar.conf'), r('extensions.conf')] },
+  { id: 'voicemail-blasting', group: 'Applications', label: 'Voicemail Blasting', description: 'Dialplan fan-out to multiple voicemail boxes.', resources: [r('extensions.conf'), r('voicemail.conf')] },
+  { id: 'wake-up-calls', group: 'Applications', label: 'Wake Up Calls', description: 'Calendar and dialplan scheduled call destinations.', resources: [r('calendar.conf'), r('extensions.conf')] },
+
+  // ---------------------------------------------------------------- Connectivity
+  { id: 'api', group: 'Connectivity', label: 'API', description: 'AMI, ARI and embedded HTTP integration configuration.', resources: [r('manager.conf'), r('ari.conf'), r('http.conf')], delegateScreen: 'ami' },
+  { id: 'call-forwarding', group: 'Connectivity', label: 'Call Forwarding', description: 'Dialplan forwarding destinations and PJSIP behavior.', resources: [r('extensions.conf'), r('pjsip.conf')] },
+  { id: 'call-waiting', group: 'Connectivity', label: 'Call Waiting', description: 'Endpoint/dialplan behavior for additional inbound calls while busy.', resources: [r('pjsip.conf'), r('extensions.conf')] },
+  { id: 'dahdi-dids', group: 'Connectivity', label: 'DAHDI (Analog) Channel DIDs', description: 'Hardware channel DID routing into the dialplan.', resources: [r('chan_dahdi.conf'), r('extensions.conf')] },
+  { id: 'dahdi-configs', group: 'Connectivity', label: 'DAHDI Configs', description: 'Analogue, T1/E1 and PRI Asterisk channel configuration.', resources: [r('chan_dahdi.conf')] },
+  { id: 'dnd', group: 'Connectivity', label: 'Do Not Disturb', description: 'Endpoint and dialplan routing behavior for blocked ringing.', resources: [r('pjsip.conf'), r('extensions.conf')] },
+  { id: 'firewall', group: 'Connectivity', label: 'Firewall', description: 'Asterisk named ACL and service-level access policy. Operating-system firewall rules remain outside the no-shell boundary.', resources: [r('acl.conf'), r('manager.conf'), r('http.conf')] },
+  { id: 'inbound-routes', group: 'Connectivity', label: 'Inbound Routes', description: 'DID/CID matching and inbound dialplan destinations.', resources: [r('extensions.conf'), r('pjsip.conf')] },
+  { id: 'outbound-routes', group: 'Connectivity', label: 'Outbound Routes', description: 'Dial patterns, trunk selection and outbound caller handling.', resources: [r('extensions.conf'), r('pjsip.conf')] },
+  { id: 'sipstation', group: 'Connectivity', label: 'SIPStation', description: 'Underlying PJSIP trunk/registration and route integration points for a SIPStation service.', resources: [r('pjsip.conf'), r('extensions.conf')] },
+  { id: 'sms-plus', group: 'Connectivity', label: 'SMS Plus', description: 'PJSIP MESSAGE, dialplan and HTTP integration points for SMS service connectivity.', resources: [r('pjsip.conf'), r('extensions.conf'), r('http.conf')] },
+  { id: 'sms-webhook', group: 'Connectivity', label: 'SMS Webhook', description: 'HTTP and dialplan integration points used to receive or dispatch message events.', resources: [r('http.conf'), r('extensions.conf'), r('pjsip.conf')] },
+  { id: 'trunks', group: 'Connectivity', label: 'Trunks', description: 'PJSIP, IAX2, DAHDI and DUNDi trunk primitives.', resources: [r('pjsip.conf'), r('iax.conf'), r('chan_dahdi.conf'), r('dundi.conf')], delegateScreen: 'trunks' },
+  { id: 'voip-innovations', group: 'Connectivity', label: 'Voip Innovations', description: 'Underlying PJSIP registration, routing and HTTP integration points for provider service connectivity.', resources: [r('pjsip.conf'), r('extensions.conf'), r('http.conf')] },
+  { id: 'nat', group: 'Connectivity', label: 'NAT & STUN', description: 'PJSIP NAT behavior and STUN monitoring.', resources: [r('pjsip.conf'), r('res_stun_monitor.conf')] },
+  { id: 'iax-trunks', group: 'Connectivity', label: 'IAX2 Trunks', description: 'IAX2 peers, users and trunking.', resources: [r('iax.conf')] },
+  { id: 'sla', group: 'Connectivity', label: 'Shared Line Appearances', description: 'Shared line trunks and stations.', resources: [r('sla.conf')] },
+  { id: 'dundi', group: 'Connectivity', label: 'DUNDi', description: 'Distributed dialplan lookup and peer policy.', resources: [r('dundi.conf')] },
+
+  // ---------------------------------------------------------------- Administration
+  { id: 'administrators', group: 'Administration', label: 'Administrators', description: 'Asterisk console-user permissions; Ding desktop itself remains local-user scoped.', resources: [r('cli_permissions.conf')] },
+  { id: 'asterisk-cli', group: 'Administration', label: 'Asterisk CLI', description: 'Asterisk CLI visibility plus alias/permission configuration.', resources: [r('cli_aliases.conf'), r('cli_permissions.conf')], delegateScreen: 'cli' },
+  { id: 'backup', group: 'Administration', label: 'Backup and Restore', description: 'Transactional recovery points across every allowlisted Asterisk configuration resource.', resources: ALL, tools: ['history'] },
+  { id: 'blacklist', group: 'Administration', label: 'Blacklist', description: 'Dialplan number blocking and Asterisk access restrictions.', resources: [r('extensions.conf'), r('acl.conf')] },
+  { id: 'bulk-config', group: 'Administration', label: 'Bulk Handler', description: 'Structured bulk access to the complete allowlisted Asterisk configuration surface.', resources: ALL },
+  { id: 'callerid-lookup', group: 'Administration', label: 'CallerID Lookup Sources', description: 'Dialplan and HTTP integration for caller identity lookups.', resources: [r('extensions.conf'), r('http.conf')] },
+  { id: 'certificates', group: 'Administration', label: 'Certificate Management', description: 'HTTP TLS, PJSIP TLS transports and STIR/SHAKEN certificate references.', resources: [r('http.conf'), r('pjsip.conf'), r('stir_shaken.conf')] },
+  { id: 'cid-superfecta', group: 'Administration', label: 'CID Superfecta', description: 'Composable caller-ID lookup integration via dialplan and HTTP resources.', resources: [r('extensions.conf'), r('http.conf')] },
+  { id: 'config-file-editor', group: 'Administration', label: 'Configuration File Editor', description: 'Structured, allowlisted Asterisk configuration editing with live preview and rollback.', resources: ALL },
+  { id: 'contact-manager', group: 'Administration', label: 'Contact Manager', description: 'PJSIP endpoint/contact configuration and the existing live contact view.', resources: [r('pjsip.conf')], delegateScreen: 'endpoints' },
+  { id: 'custom-destinations', group: 'Administration', label: 'Custom Destinations', description: 'Named custom dialplan entry points for routing features.', resources: [r('extensions.conf')] },
+  { id: 'custom-extensions', group: 'Administration', label: 'Custom Extensions', description: 'Custom extension dialplan entries and endpoint associations.', resources: [r('extensions.conf'), r('pjsip.conf')] },
+  { id: 'feature-codes', group: 'Administration', label: 'Feature Codes', description: 'Transfer, pickup, record and other in-call feature mappings.', resources: [r('features.conf'), r('extensions.conf')] },
+  { id: 'module-admin', group: 'Administration', label: 'Module Admin', description: 'Asterisk module load policy and live module state.', resources: [r('modules.conf')], delegateScreen: 'modules' },
+  { id: 'presence-state', group: 'Administration', label: 'Presence State', description: 'Dialplan presence/hint state definitions.', resources: [r('extensions.conf')] },
+  { id: 'sound-languages', group: 'Administration', label: 'Sound Languages', description: 'Core language/tone configuration plus prompt media.', resources: [r('asterisk.conf'), r('indications.conf')], tools: ['config', 'media'] },
+  { id: 'system-admin', group: 'Administration', label: 'System Admin', description: 'Ding deployment/runtime/server controls plus Asterisk process and HTTP settings.', resources: [r('asterisk.conf'), r('http.conf'), r('logger.conf')], delegateScreen: 'servers' },
+  { id: 'system-recordings', group: 'Administration', label: 'System Recordings', description: 'Validated Asterisk prompt recordings in the target media library.', resources: [], tools: ['media'] },
+  { id: 'user-management', group: 'Administration', label: 'User Management', description: 'Asterisk console-user permission policy and extension identity configuration.', resources: [r('cli_permissions.conf'), r('pjsip.conf'), r('voicemail.conf')] },
+  { id: 'admin-voicemail', group: 'Administration', label: 'Voicemail', description: 'Mailbox policy, storage behavior and greetings.', resources: [r('voicemail.conf')], tools: ['config', 'media'], delegateScreen: 'voicemail' },
+  { id: 'stir-shaken', group: 'Administration', label: 'STIR/SHAKEN', description: 'Outbound attestation and inbound verification profiles.', resources: [r('stir_shaken.conf')] },
+  { id: 'geolocation', group: 'Administration', label: 'Emergency Geolocation', description: 'Emergency-services location profiles.', resources: [r('geolocation.conf')] },
+  { id: 'phoneprov', group: 'Administration', label: 'Phone Provisioning', description: 'Handset provisioning profiles and files.', resources: [r('phoneprov.conf')] },
+  { id: 'realtime', group: 'Administration', label: 'Realtime & Database Backends', description: 'ODBC, PostgreSQL, LDAP, extconfig and Sorcery mappings.', resources: [r('res_odbc.conf'), r('extconfig.conf'), r('sorcery.conf'), r('res_pgsql.conf'), r('res_ldap.conf')] },
+  { id: 'monitoring', group: 'Administration', label: 'Monitoring', description: 'Prometheus and SNMP telemetry exports.', resources: [r('prometheus.conf'), r('res_snmp.conf')] },
+  { id: 'xmpp', group: 'Administration', label: 'XMPP Messaging', description: 'XMPP client and messaging integration.', resources: [r('xmpp.conf')] },
+  { id: 'adsi', group: 'Administration', label: 'Caller Display / ADSI', description: 'ADSI and legacy caller-display service settings.', resources: [r('adsi.conf')] },
+
+  // ---------------------------------------------------------------- Reports
+  { id: 'asterisk-info', group: 'Reports', label: 'Asterisk Info', description: 'Live Asterisk system information.', resources: [r('asterisk.conf')], delegateScreen: 'about' },
+  { id: 'asterisk-logfiles', group: 'Reports', label: 'Asterisk Logfiles', description: 'Live log-channel visibility and logger configuration.', resources: [r('logger.conf')], delegateScreen: 'logger' },
+  { id: 'cel', group: 'Reports', label: 'Call Event Logging', description: 'Detailed channel event logging and database backends.', resources: [r('cel.conf'), r('cel_odbc.conf'), r('cel_pgsql.conf')] },
+  { id: 'cdr', group: 'Reports', label: 'CDR Reports', description: 'Call-detail-record policy and database backends.', resources: [r('cdr.conf'), r('cdr_odbc.conf'), r('cdr_pgsql.conf')], delegateScreen: 'cdr' },
+  { id: 'system-status', group: 'Reports', label: 'FreePBX System Status', description: 'Ding dashboard/runtime status equivalent using live Asterisk readings.', resources: [], delegateScreen: 'dash' },
+  { id: 'print-extensions', group: 'Reports', label: 'Print Extensions', description: 'Live endpoint inventory suitable for extension listing/export workflows.', resources: [r('pjsip.conf')], delegateScreen: 'endpoints' },
+  { id: 'weak-password-detection', group: 'Reports', label: 'Weak Password Detection', description: 'Authentication objects exposed for credential-policy review without inventing a score.', resources: [r('pjsip.conf'), r('manager.conf'), r('ari.conf')] },
+  { id: 'fax', group: 'Reports', label: 'Fax & T.38', description: 'Fax engine settings and UDPTL transport behavior.', resources: [r('res_fax.conf'), r('udptl.conf')] },
+
+  // ---------------------------------------------------------------- Settings
+  { id: 'advanced', group: 'Settings', label: 'Advanced Settings', description: 'Complete allowlisted Asterisk configuration surface.', resources: ALL },
+  { id: 'iax-settings', group: 'Settings', label: 'Asterisk IAX Settings', description: 'IAX2 global, peer and user configuration.', resources: [r('iax.conf')] },
+  { id: 'logfile-settings', group: 'Settings', label: 'Asterisk Logfile Settings', description: 'Logger channels, rotation and queue logging.', resources: [r('logger.conf')], delegateScreen: 'logger' },
+  { id: 'ami-settings', group: 'Settings', label: 'Asterisk Managers Interface', description: 'AMI bind, authentication and privilege configuration.', resources: [r('manager.conf')], delegateScreen: 'ami' },
+  { id: 'ari-settings', group: 'Settings', label: 'Asterisk REST Interface Users', description: 'ARI users, CORS and embedded HTTP service settings.', resources: [r('ari.conf'), r('http.conf')], delegateScreen: 'ami' },
+  { id: 'sip-settings', group: 'Settings', label: 'Asterisk SIP Settings', description: 'Global PJSIP transports, endpoints and registrations.', resources: [r('pjsip.conf')] },
+  { id: 'extension-settings', group: 'Settings', label: 'Extension Settings', description: 'PJSIP endpoint defaults plus extension dialplan and voicemail.', resources: [r('pjsip.conf'), r('extensions.conf'), r('voicemail.conf')] },
+  { id: 'fax-settings', group: 'Settings', label: 'Fax Configuration', description: 'Fax engine and UDPTL transport settings.', resources: [r('res_fax.conf'), r('udptl.conf')] },
+  { id: 'filestore', group: 'Settings', label: 'Filestore', description: 'Asterisk data/spool/media directory settings and media storage roots.', resources: [r('asterisk.conf')], tools: ['config', 'media'] },
+  { id: 'moh-settings', group: 'Settings', label: 'Music on Hold', description: 'Music-on-hold classes and target media.', resources: [r('musiconhold.conf')], tools: ['config', 'media'], delegateScreen: 'moh' },
+  { id: 'pin-sets', group: 'Settings', label: 'Pin Sets', description: 'Dialplan PIN/authentication gates for protected destinations.', resources: [r('extensions.conf')] },
+  { id: 'route-congestion', group: 'Settings', label: 'Route Congestion Messages', description: 'Dialplan failure routing, indication tones and prompt playback.', resources: [r('extensions.conf'), r('indications.conf')], tools: ['config', 'media'] },
+  { id: 'tts-engines', group: 'Settings', label: 'Text to Speech Engines', description: 'Festival text-to-speech engine endpoint, cache and command settings.', resources: [r('festival.conf')] },
+  { id: 'voicemail-admin', group: 'Settings', label: 'Voicemail Admin', description: 'Global voicemail policy, mailbox configuration and greetings.', resources: [r('voicemail.conf')], tools: ['config', 'media'], delegateScreen: 'voicemail' },
+  { id: 'rtp', group: 'Settings', label: 'RTP & Media', description: 'RTP port range, strict RTP and ICE behavior.', resources: [r('rtp.conf')], delegateScreen: 'codecs' },
+];
 
 export function coveredConfigResources(features: ReadonlyArray<PbxFeatureDefinition> = PBX_FEATURES): ReadonlyArray<string> {
   return [...new Set(features.flatMap((feature) => feature.resources))].sort();
@@ -160,9 +167,10 @@ export interface ConfigValidationIssue {
 }
 
 /**
- * The editor is intentionally structured rather than a raw text area. These checks do
- * not claim to validate Asterisk semantics; they only refuse shapes that render into an
- * ambiguous or malformed INI line before a plan is even requested.
+ * The editor is structured rather than a raw text area. These checks do not claim to
+ * validate every Asterisk subsystem semantic; they refuse shapes that render into an
+ * ambiguous/malformed INI line before a live plan is requested. Typed backend models
+ * perform additional semantic validation in StructuredConfigPlanner.
  */
 export function validateConfigValue(value: ConfigValue): ReadonlyArray<ConfigValidationIssue> {
   const issues: ConfigValidationIssue[] = [];
