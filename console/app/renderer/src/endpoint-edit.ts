@@ -27,6 +27,12 @@ export const ENDPOINT_CONTROLS = {
   forcerport: 'e_forcerport',
   rewrite: 'e_rewrite',
   encryption: 'e_encryption',
+  codecs: 'e_codecs',
+  maxContacts: 'e_maxcontacts',
+  removeExisting: 'e_removeexisting',
+  qualify: 'e_qualify',
+  mailboxes: 'e_mailboxes',
+  voicemailExtension: 'e_voicemail_ext',
 } as const;
 
 /** Asterisk writes `yes` and `no`; the interface uses a switch. */
@@ -62,6 +68,12 @@ export function controlValuesFor(endpoint: PjsipEndpointView): Record<string, un
   put(ENDPOINT_CONTROLS.symmetric, toSwitch(endpoint.endpoint.rtp_symmetric));
   put(ENDPOINT_CONTROLS.forcerport, toSwitch(endpoint.endpoint.force_rport));
   put(ENDPOINT_CONTROLS.rewrite, toSwitch(endpoint.endpoint.rewrite_contact));
+  put(ENDPOINT_CONTROLS.codecs, endpoint.endpoint.allow.length > 0 ? endpoint.endpoint.allow : undefined);
+  put(ENDPOINT_CONTROLS.maxContacts, endpoint.aor.max_contacts !== undefined ? Number(endpoint.aor.max_contacts) : undefined);
+  put(ENDPOINT_CONTROLS.removeExisting, toSwitch(endpoint.aor.remove_existing));
+  put(ENDPOINT_CONTROLS.qualify, endpoint.aor.qualify_frequency !== undefined ? Number(endpoint.aor.qualify_frequency) : undefined);
+  put(ENDPOINT_CONTROLS.mailboxes, endpoint.endpoint.mailboxes);
+  put(ENDPOINT_CONTROLS.voicemailExtension, endpoint.endpoint.voicemail_extension);
   return values;
 }
 
@@ -94,8 +106,24 @@ export function applyControlValues(
     (target.endpoint as unknown as Record<string, unknown>)[key] = next;
     summary.push(`pjsip.conf: ${name} ${label} ${before ?? 'unset'} to ${next}`);
   };
+  const setAor = (key: keyof PjsipEndpointView['aor'], next: string | undefined, label: string) => {
+    if (next === undefined) return;
+    const before = target.aor[key] as string | undefined;
+    if (before === next) return;
+    (target.aor as unknown as Record<string, unknown>)[key] = next;
+    summary.push(`pjsip.conf: ${name} AoR ${label} ${before ?? 'unset'} to ${next}`);
+  };
 
   const text = (id: string) => (typeof values[id] === 'string' ? (values[id] as string) : undefined);
+  /* An untouched optional text control still reports the design's empty-string default,
+   * so an empty value here is read as "nothing entered" rather than "clear the field" —
+   * otherwise every save would write mailboxes='' the first time the screen is opened. */
+  const optionalText = (id: string) => {
+    const value = text(id);
+    return value === undefined || value === '' ? undefined : value;
+  };
+  const number = (id: string) => (typeof values[id] === 'number' ? String(values[id] as number) : undefined);
+
   set('transport', text(ENDPOINT_CONTROLS.transport), 'transport');
   set('context', text(ENDPOINT_CONTROLS.context), 'context');
   set('dtmf_mode', text(ENDPOINT_CONTROLS.dtmf), 'DTMF mode');
@@ -104,6 +132,28 @@ export function applyControlValues(
   set('rtp_symmetric', fromSwitch(values[ENDPOINT_CONTROLS.symmetric]), 'symmetric RTP');
   set('force_rport', fromSwitch(values[ENDPOINT_CONTROLS.forcerport]), 'force rport');
   set('rewrite_contact', fromSwitch(values[ENDPOINT_CONTROLS.rewrite]), 'contact rewriting');
+  set('mailboxes', optionalText(ENDPOINT_CONTROLS.mailboxes), 'mailboxes');
+  set('voicemail_extension', optionalText(ENDPOINT_CONTROLS.voicemailExtension), 'voicemail extension');
+
+  /* The order control is the allow list itself; disallow=all is what makes an allow list
+   * mean anything in pjsip.conf, so the two are always written together. */
+  const codecs = values[ENDPOINT_CONTROLS.codecs];
+  if (Array.isArray(codecs) && codecs.every((c) => typeof c === 'string')) {
+    const nextAllow = codecs as string[];
+    const beforeAllow = target.endpoint.allow;
+    const sameOrder = beforeAllow.length === nextAllow.length && beforeAllow.every((c, i) => c === nextAllow[i]);
+    if (!sameOrder) {
+      target.endpoint.allow = nextAllow;
+      if (target.endpoint.disallow.length === 0 || !target.endpoint.disallow.includes('all')) {
+        target.endpoint.disallow = ['all'];
+      }
+      summary.push(`pjsip.conf: ${name} codecs ${beforeAllow.join(',') || 'unset'} to ${nextAllow.join(',')}`);
+    }
+  }
+
+  setAor('max_contacts', number(ENDPOINT_CONTROLS.maxContacts), 'max_contacts');
+  setAor('remove_existing', fromSwitch(values[ENDPOINT_CONTROLS.removeExisting]), 'remove_existing');
+  setAor('qualify_frequency', number(ENDPOINT_CONTROLS.qualify), 'qualify_frequency');
 
   return { view, summary };
 }

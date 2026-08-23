@@ -2625,9 +2625,14 @@ function pjsipCtls() {
     ]},
     { title:'Registration & AOR', desc:'How many devices may share this identity and how often Asterisk pokes them.', ctls:[
       ctl('e_maxcontacts','max_contacts','stepper',2,{ min:0, max:10 }),
+      ctl('e_removeexisting','remove_existing','switch',false,{ info:'When a new registration arrives and max_contacts is already reached, this displaces the oldest contact instead of refusing the new one.' }),
       ctl('e_qualify','qualify_frequency','slider',60,{ min:0, max:300, step:10, unit:'s', info:'Asterisk sends a tiny OPTIONS ping this often to see if the phone is still alive. Zero switches the pings off.' }),
       ctl('e_expiry','Registration expiry','slider',3600,{ min:60, max:7200, step:60, unit:'s' }),
       ctl('e_codecs','Allowed codecs','order',['opus','g722','ulaw','alaw'],{ pool:['opus','g722','ulaw','alaw','g729','gsm'] })
+    ]},
+    { title:'Voicemail', desc:'Where this endpoint sends message-waiting notifications.', ctls:[
+      ctl('e_mailboxes','mailboxes','text','',{ info:'Comma-separated mailbox@context pairs, e.g. 6001@default. Asterisk NOTIFYs this endpoint whenever any of them changes.' }),
+      ctl('e_voicemail_ext','voicemail_extension','text','',{ info:'The extension sent in the NOTIFY Message-Account header. Leave blank to use the global default_voicemail_extension.' })
     ]}
   ];
 }

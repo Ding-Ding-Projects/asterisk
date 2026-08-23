@@ -180,16 +180,16 @@ No item above is ticked: a model or a reader is not a rendered, validated, appli
 - [x] CORE-PJSIP-DEV-003 — DTMF mode, including version-appropriate RFC 4733 behavior. Verified 2026-08-23: select control e_dtmf bound to endpoint.dtmf_mode.
 - [x] CORE-PJSIP-DEV-004 — Context. Verified 2026-08-23: segmented control e_context; changed from-internal to from-external on the live target and confirmed in Asterisk own output.
 - [ ] CORE-PJSIP-DEV-005 — Caller-ID trust, Remote-Party-ID/PAI send mode, connected-line updates, and `user=phone`.
-- [ ] CORE-PJSIP-DEV-006 — Qualify Frequency; the audited PJSIP form removes the inherited chan_sip Qualify toggle.
+- [x] CORE-PJSIP-DEV-006 — Qualify Frequency; the audited PJSIP form removes the inherited chan_sip Qualify toggle. Verified 2026-08-23: slider control e_qualify bound to aor.qualify_frequency; round-tripped through 90s and confirmed via `pjsip show aor` on the live target.
 - [x] CORE-PJSIP-DEV-007 — Active Transport. Verified 2026-08-23: segmented control e_transport bound to endpoint.transport.
 - [ ] CORE-PJSIP-DEV-008 — AVPF, Force AVP, ICE, RTCP mux, and WebRTC defaults.
 - [ ] CORE-PJSIP-DEV-009 — RTP bundling, with separate storage from WebRTC; do not reproduce Core's `bundle` key collision.
 - [ ] CORE-PJSIP-DEV-010 — Maximum Audio Streams and Maximum Video Streams.
-- [ ] CORE-PJSIP-DEV-011 — Audio, video, text, and image codec enablement plus order.
+- [x] CORE-PJSIP-DEV-011 — Audio, video, text, and image codec enablement plus order. Verified 2026-08-23: order control e_codecs writes endpoint.allow (in order) plus disallow=["all"]; confirmed on the live target as `allow : (ulaw|alaw)` via `pjsip show endpoint`.
 - [ ] CORE-PJSIP-DEV-012 — Call Groups and Pickup Groups.
-- [ ] CORE-PJSIP-DEV-013 — Dial string.
-- [ ] CORE-PJSIP-DEV-014 — Mailbox and Voicemail Extension.
-- [ ] CORE-PJSIP-DEV-015 — Maximum Contacts and Remove Existing Contacts.
+- [ ] CORE-PJSIP-DEV-013 — Dial string. Excluded: no `dial=` key exists in pjsip.conf.sample or the PJSIP model; this is a FreePBX abstraction over the dialplan, not a native pjsip.conf field.
+- [x] CORE-PJSIP-DEV-014 — Mailbox and Voicemail Extension. Verified 2026-08-23: free-text controls e_mailboxes and e_voicemail_ext bound to endpoint.mailboxes/voicemail_extension; confirmed on the live target via `pjsip show endpoint`.
+- [x] CORE-PJSIP-DEV-015 — Maximum Contacts and Remove Existing Contacts. Verified 2026-08-23: stepper control e_maxcontacts and switch control e_removeexisting bound to aor.max_contacts/remove_existing; confirmed on the live target via `pjsip show aor`.
 - [ ] CORE-PJSIP-DEV-016 — Media Use Received Transport.
 - [x] CORE-PJSIP-DEV-017 — RTP Symmetric, Rewrite Contact, and Force rport. Verified 2026-08-23: switch controls e_symmetric, e_rewrite and e_forcerport, round-tripped through yes and no.
 - [ ] CORE-PJSIP-DEV-018 — MWI Subscription Type and Aggregate MWI.

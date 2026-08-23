@@ -116,3 +116,86 @@ test('another endpoint is untouched by editing or removing one', () => {
   const removed = ok(removeEndpoint(two, '1001'));
   assert.deepEqual(endpointNames(editDocument(removed, '/etc/asterisk/pjsip.conf').value), ['1002']);
 });
+
+test('the codec order control seeds from the endpoint allow list', () => {
+  const endpoint = findEndpoint(withOne(), '1001');
+  assert.ok(endpoint);
+  const values = controlValuesFor(endpoint);
+  assert.deepEqual(values[ENDPOINT_CONTROLS.codecs], ['ulaw', 'alaw']);
+});
+
+test('reordering codecs writes the allow list in the new order plus disallow=all', () => {
+  const target = withOne();
+  const edit = ok(applyControlValues(target, '1001', { [ENDPOINT_CONTROLS.codecs]: ['opus', 'g722', 'ulaw'] }));
+  const ep = edit.view.endpoints[0].endpoint;
+  assert.deepEqual(ep.allow, ['opus', 'g722', 'ulaw']);
+  assert.deepEqual(ep.disallow, ['all']);
+  assert.ok(edit.summary.some((line) => line.includes('codecs')));
+});
+
+test('saving the codec order unchanged produces no allow/disallow rewrite', () => {
+  const target = withOne();
+  const edit = ok(applyControlValues(target, '1001', { [ENDPOINT_CONTROLS.codecs]: ['ulaw', 'alaw'] }));
+  assert.ok(!edit.summary.some((line) => line.includes('codecs')));
+});
+
+test('AoR max_contacts, remove_existing and qualify_frequency seed and round-trip', () => {
+  const endpoint = findEndpoint(withOne(), '1001');
+  assert.ok(endpoint);
+  const values = controlValuesFor(endpoint);
+  assert.equal(values[ENDPOINT_CONTROLS.maxContacts], 1);
+  assert.equal(values[ENDPOINT_CONTROLS.removeExisting], true);
+  assert.equal(values[ENDPOINT_CONTROLS.qualify], undefined, 'a field the AoR never set stays out of the seeded values');
+
+  const target = withOne();
+  const edit = ok(applyControlValues(target, '1001', {
+    [ENDPOINT_CONTROLS.maxContacts]: 3,
+    [ENDPOINT_CONTROLS.removeExisting]: false,
+    [ENDPOINT_CONTROLS.qualify]: 90,
+  }));
+  const aor = edit.view.endpoints[0].aor;
+  assert.equal(aor.max_contacts, '3');
+  assert.equal(aor.remove_existing, 'no');
+  assert.equal(aor.qualify_frequency, '90');
+  assert.ok(edit.summary.some((line) => line.includes('max_contacts')));
+  assert.ok(edit.summary.some((line) => line.includes('remove_existing')));
+  assert.ok(edit.summary.some((line) => line.includes('qualify_frequency')));
+});
+
+test('saving AoR fields unchanged produces no summary line for them', () => {
+  const target = withOne();
+  const edit = ok(applyControlValues(target, '1001', {
+    [ENDPOINT_CONTROLS.maxContacts]: 1,
+    [ENDPOINT_CONTROLS.removeExisting]: true,
+  }));
+  assert.ok(!edit.summary.some((line) => line.includes('max_contacts')));
+  assert.ok(!edit.summary.some((line) => line.includes('remove_existing')));
+});
+
+test('mailboxes and voicemail extension are free text and round-trip', () => {
+  const target = withOne();
+  const edit = ok(applyControlValues(target, '1001', {
+    [ENDPOINT_CONTROLS.mailboxes]: '6001@default,7001@default',
+    [ENDPOINT_CONTROLS.voicemailExtension]: '1001',
+  }));
+  const ep = edit.view.endpoints[0].endpoint;
+  assert.equal(ep.mailboxes, '6001@default,7001@default');
+  assert.equal(ep.voicemail_extension, '1001');
+
+  const seeded = controlValuesFor(edit.view.endpoints[0]);
+  assert.equal(seeded[ENDPOINT_CONTROLS.mailboxes], '6001@default,7001@default');
+  assert.equal(seeded[ENDPOINT_CONTROLS.voicemailExtension], '1001');
+});
+
+test('an untouched mailbox text control (still the design default of empty string) writes nothing', () => {
+  /* The control has no way to distinguish "never touched" from "explicitly cleared" once
+   * both read as an empty string, so this side is treated as no edit -- the safer of the
+   * two false readings, since it never invents a value nobody asked for. */
+  const target = withOne();
+  const edit = ok(applyControlValues(target, '1001', {
+    [ENDPOINT_CONTROLS.mailboxes]: '',
+    [ENDPOINT_CONTROLS.context]: 'from-internal',
+  }));
+  assert.equal(edit.view.endpoints[0].endpoint.mailboxes, undefined);
+  assert.ok(!edit.summary.some((line) => line.includes('mailboxes')));
+});
