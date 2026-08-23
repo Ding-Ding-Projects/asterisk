@@ -15,25 +15,58 @@ import {
   validateConfigValue,
 } from '../../app/renderer/src/pbx-admin-model';
 
-test('advanced PBX catalogue covers every allowlisted writable Asterisk resource', () => {
-  assert.equal(EXPECTED_CONFIGURABLE_RESOURCES.length, 41);
+test('PBX Admin catalogue covers every allowlisted writable Asterisk resource', () => {
+  assert.equal(EXPECTED_CONFIGURABLE_RESOURCES.length, 47);
   assert.deepEqual(missingConfigResources(), []);
   assert.deepEqual(coveredConfigResources(), [...EXPECTED_CONFIGURABLE_RESOURCES].sort());
 });
 
-test('catalogue exposes the major FreePBX administration domains without sample target data', () => {
-  const ids = new Set(PBX_FEATURES.map((feature) => feature.id));
+test('catalogue carries every current FreePBX standard Applications module', () => {
+  const ids = new Set(PBX_FEATURES.filter((feature) => feature.group === 'Applications').map((feature) => feature.id));
   for (const required of [
-    'extensions', 'ring-groups', 'ivr', 'queues', 'voicemail', 'conferences', 'time-conditions',
-    'pjsip-trunks', 'iax-trunks', 'dahdi', 'inbound-routes', 'outbound-routes',
-    'acl', 'certificates', 'stir-shaken', 'backup', 'phoneprov', 'realtime', 'monitoring',
-    'cdr', 'cel', 'fax', 'rtp',
-  ]) {
-    assert.ok(ids.has(required), `missing feature ${required}`);
-  }
+    'announcements', 'calendar-event-groups', 'calendar', 'callback', 'call-flow-control', 'call-recording',
+    'conferences', 'directory', 'disa', 'extensions', 'follow-me', 'ivr', 'languages', 'misc-applications',
+    'misc-destinations', 'missed-call-notification', 'paging', 'parking', 'queue-priorities', 'queues',
+    'ring-groups', 'set-callerid', 'text-to-speech', 'time-conditions', 'time-groups', 'voicemail-blasting',
+    'wake-up-calls',
+  ]) assert.ok(ids.has(required), `missing Applications feature ${required}`);
+});
 
-  // The catalogue may name resources and administrator tasks, but it must not carry a
-  // pretend live configuration value that could be mistaken for a target reading.
+test('catalogue carries every current FreePBX standard Connectivity module', () => {
+  const ids = new Set(PBX_FEATURES.filter((feature) => feature.group === 'Connectivity').map((feature) => feature.id));
+  for (const required of [
+    'api', 'call-forwarding', 'call-waiting', 'dahdi-dids', 'dahdi-configs', 'dnd', 'firewall',
+    'inbound-routes', 'outbound-routes', 'sipstation', 'sms-plus', 'sms-webhook', 'trunks', 'voip-innovations',
+  ]) assert.ok(ids.has(required), `missing Connectivity feature ${required}`);
+});
+
+test('catalogue carries every current FreePBX standard Administration module', () => {
+  const ids = new Set(PBX_FEATURES.filter((feature) => feature.group === 'Administration').map((feature) => feature.id));
+  for (const required of [
+    'administrators', 'asterisk-cli', 'backup', 'blacklist', 'bulk-config', 'callerid-lookup', 'certificates',
+    'cid-superfecta', 'config-file-editor', 'contact-manager', 'custom-destinations', 'custom-extensions',
+    'feature-codes', 'module-admin', 'presence-state', 'sound-languages', 'system-admin', 'system-recordings',
+    'user-management', 'admin-voicemail',
+  ]) assert.ok(ids.has(required), `missing Administration feature ${required}`);
+});
+
+test('catalogue carries every current FreePBX standard Reports module', () => {
+  const ids = new Set(PBX_FEATURES.filter((feature) => feature.group === 'Reports').map((feature) => feature.id));
+  for (const required of [
+    'asterisk-info', 'asterisk-logfiles', 'cel', 'cdr', 'system-status', 'print-extensions', 'weak-password-detection',
+  ]) assert.ok(ids.has(required), `missing Reports feature ${required}`);
+});
+
+test('catalogue carries every current FreePBX standard Settings module', () => {
+  const ids = new Set(PBX_FEATURES.filter((feature) => feature.group === 'Settings').map((feature) => feature.id));
+  for (const required of [
+    'advanced', 'iax-settings', 'logfile-settings', 'ami-settings', 'ari-settings', 'sip-settings',
+    'extension-settings', 'fax-settings', 'filestore', 'moh-settings', 'pin-sets', 'route-congestion',
+    'tts-engines', 'voicemail-admin',
+  ]) assert.ok(ids.has(required), `missing Settings feature ${required}`);
+});
+
+test('catalogue never embeds sample target rows or configured values', () => {
   for (const feature of PBX_FEATURES) {
     assert.equal('value' in feature, false);
     assert.equal('rows' in feature, false);
