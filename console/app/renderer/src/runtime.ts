@@ -13,6 +13,7 @@ export type ProvisionState =
   | 'wslUnavailable'
   | 'payloadMissing'
   | 'provisioning'
+  | 'unusable'
   | 'failed';
 
 export interface RuntimeStatus {
@@ -55,6 +56,16 @@ export function runtimeHint(runtime: RuntimeStatus | undefined): string {
   if (state === 'wslUnavailable') {
     return ` — ${runtime?.status?.reason ?? 'WSL did not answer on this machine'}.`;
   }
+  if (state === 'unusable') {
+    /* The one state with no way forward until this was written. The distribution is
+     * registered, so creating it is refused; it does not answer, so it cannot be used.
+     * Naming the reason alone left a person with a runtime they could neither run nor
+     * replace, so the sentence names the actual escape: remove it, then create it again. */
+    return (
+      ` — ${name} is registered but did not answer: ${runtime?.status?.reason ?? 'no reason was reported'}.` +
+      ` It cannot be created again while it is registered, so remove it first and then create it.`
+    );
+  }
   if (state === 'failed') {
     return ` — creating ${name} did not succeed: ${runtime?.status?.reason ?? 'no reason was reported'}.`;
   }
@@ -64,6 +75,18 @@ export function runtimeHint(runtime: RuntimeStatus | undefined): string {
 /** Whether the console can create its own runtime right now, and may offer to. */
 export function canProvision(runtime: RuntimeStatus | undefined): boolean {
   return runtime?.status?.state === 'notProvisioned';
+}
+
+/**
+ * Whether removing the managed distribution is the route out of where the console is.
+ *
+ * Only true for a registered distribution that does not answer. Removing a working
+ * runtime is a destructive action a person may still choose, but it is not something the
+ * interface should be recommending, so this stays narrow: it answers "is removal the fix
+ * for this particular state", not "is removal possible".
+ */
+export function canRecoverRuntime(runtime: RuntimeStatus | undefined): boolean {
+  return runtime?.status?.state === 'unusable';
 }
 
 /** A short label for the managed runtime, for a status line beside the target. */
@@ -76,6 +99,7 @@ export function runtimeLabel(runtime: RuntimeStatus | undefined): string {
     case 'payloadMissing': return 'no runtime in this build';
     case 'wslUnavailable': return 'WSL unavailable';
     case 'provisioning': return 'being created';
+    case 'unusable': return `registered but not answering — ${status.reason ?? 'no reason reported'}`;
     case 'failed': return `failed — ${status.reason ?? 'no reason reported'}`;
     default: return 'unknown';
   }

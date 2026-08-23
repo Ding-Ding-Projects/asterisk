@@ -28,6 +28,26 @@ export type ProvisionState =
   | "wslUnavailable"
   | "payloadMissing"
   | "provisioning"
+  /**
+   * Registered with WSL, but it did not answer.
+   *
+   * This is deliberately not `failed`, and the distinction is the whole point: `failed`
+   * means an operation this console ran did not succeed, whereas this means the
+   * distribution was already in a state the console never put it in. Reporting it as
+   * `failed` produced a message that said creating the distribution had not succeeded
+   * when nothing was being created, and it left the only way out unmentioned.
+   *
+   * It is reachable on a real machine and was found on one: the distribution stays
+   * registered while its virtual disk is deleted underneath it — an interrupted import,
+   * a disk moved or cleaned up, a profile restored without it. WSL keeps the
+   * registration, so every list still shows the distribution, and every attempt to run
+   * anything in it fails to attach the disk.
+   *
+   * It matters because the console refuses to import over an existing name, so this
+   * state cannot be left as a dead end: the runtime is unusable, creating it is refused
+   * because it already exists, and the recovery is to unregister it first.
+   */
+  | "unusable"
   | "failed";
 
 export interface ProvisionStatus {
@@ -155,8 +175,10 @@ export class WslProvisioning {
 
     const version = await this.#asteriskVersion(signal);
     if (!version.ok) {
+      /* The distribution is registered and did not answer. Nothing was being created,
+       * so this is `unusable` rather than `failed`; see the state's own note. */
       return {
-        state: "failed",
+        state: "unusable",
         distribution: MANAGED_DISTRIBUTION,
         reason: version.detail,
         observedAt: this.#stamp(),
@@ -179,9 +201,15 @@ export class WslProvisioning {
       maxOutputBytes: 64 * 1024,
     });
     if (result.status !== "succeeded") {
+      /* WSL's own failures arrive on stdout, not stderr. Reading stderr alone threw away
+       * the only line worth having — a missing virtual disk reports the disk's full path
+       * and an error code on stdout and leaves stderr completely empty, so the console
+       * replaced a precise diagnostic with a generic sentence and the person looking at
+       * it had nothing to go on. Verified against a real machine, not assumed. */
+      const reported = stripNulls(result.stderr).trim() || stripNulls(result.stdout).trim();
       return {
         ok: false,
-        detail: stripNulls(result.stderr).trim() || "The distribution exists but Asterisk did not answer.",
+        detail: reported || "The distribution exists but Asterisk did not answer.",
       };
     }
     return { ok: true, detail: stripNulls(result.stdout).trim() };

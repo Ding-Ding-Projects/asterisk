@@ -64,15 +64,40 @@ test('reports ready with the version the distribution actually answered', async 
   assert.equal(status.asteriskVersion, 'Asterisk 23.5.0');
 });
 
-test('a distribution that exists but cannot run Asterisk is failed, not ready', async () => {
+test('a distribution that exists but cannot run Asterisk is unusable, not ready', async () => {
   const { provisioning } = build((r) => {
     if (isList(r)) return { stdout: `${MANAGED_DISTRIBUTION}\n` };
     if (isVersion(r)) return { status: 'failed', exitCode: 127, stderr: 'asterisk: command not found' };
     return {};
   });
   const status = await provisioning.status(true);
-  assert.equal(status.state, 'failed');
+  /* Not `failed`: nothing was being created here. The distinction is what lets the
+   * interface offer the one thing that actually helps — see the state's own note. */
+  assert.equal(status.state, 'unusable');
   assert.match(status.reason ?? '', /command not found/u);
+});
+
+test('a registered distribution whose disk is gone is unusable and keeps the real reason', async () => {
+  /* Reproduced from a real machine. WSL keeps the registration when the virtual disk
+   * is deleted underneath it, so the distribution lists normally and nothing can run in
+   * it. This is the state that used to be a dead end: importing is refused because the
+   * name exists, and the only way out is to unregister it first. */
+  const diskGone =
+    "Failed to attach disk 'C:\\Users\\someone\\AppData\\Local\\ding-pbx-console\\wsl\\ext4.vhdx' to WSL2: " +
+    'The system cannot find the path specified. \nError code: Wsl/Service/CreateInstance/MountDisk/HCS/ERROR_PATH_NOT_FOUND';
+  const { provisioning } = build((r) => {
+    if (isList(r)) return { stdout: `${MANAGED_DISTRIBUTION}\n` };
+    if (isVersion(r)) return { status: 'failed', exitCode: 127, stdout: diskGone };
+    return {};
+  });
+
+  const status = await provisioning.status(true);
+  assert.equal(status.state, 'unusable');
+  assert.ok(
+    (status.reason ?? '').includes('ERROR_PATH_NOT_FOUND'),
+    'the disk-attach failure was dropped, leaving nothing to diagnose from',
+  );
+  assert.equal(status.asteriskVersion, undefined, 'an error message was reported as a version');
 });
 
 test('provision imports the packaged payload and verifies it end to end', async () => {
