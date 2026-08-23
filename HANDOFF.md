@@ -34,7 +34,7 @@ This handoff covers the integrated Ding PBX Console desktop application, bounded
 - `console/tests/ui/design-parity.test.tsx` renders all 32 destinations from the compiled design and asserts each one's title, description, Expert-mode owning file, control groups including the design control's slider, stepper and reorder affordances, Beginner-mode plain wording, and all 17 transient-state families. `console/tests/ui/app-no-sample-data.test.tsx` renders the real application and asserts the design's invented commits, memory rows, partner requests and navigation badges never appear.
 - Because that evidence is render-based rather than capture-based, the parity inventory records those destinations as `compiled`, not `verified`. `compiled` is a new status the validator defines and enforces: it requires the inventory to name both the design compiler and the rendering test, and the negative regression proves those requirements turn red when removed. Moving to `verified` still needs the reference-versus-built captures and visual diffs the inventory's evidence templates describe.
 - Observed in the running renderer by driving it: the design's exact background, Roboto body type, and Material Symbols Outlined all resolve from the local bundle with zero remote requests; the onboarding overlay, command palette and navigation work; the palette lists destinations in the design's own order; and no sample rows, tiles, health bars or badges appear while no target is connected.
-- Not verified: nothing has been run against a live Asterisk. This machine has neither WSL nor Docker, so no target exists here. Every CLI parser was written against the format strings in this repository's Asterisk sources — `main/cli.c`, `main/pbx.c`, `main/loader.c`, `res/res_pjsip/pjsip_configuration.c`, `res/res_pjsip/location.c`, `res/res_pjsip_outbound_registration.c`, `apps/app_queue.c` — and is covered by fixtures derived from those functions, but source-derived is not live-verified. The packaged desktop application was not rebuilt or re-captured for this change.
+- Superseded on 2026-08-22: readings **have** now been exercised against a live Asterisk. A WSL distribution was created from the packaged root filesystem on a real machine, its digest verified against the recorded manifest, the daemon started, and the console read from it. What remains unverified is any **write** to a real exchange. Every CLI parser was originally written against the format strings in this repository’s Asterisk sources and is covered by fixtures derived from them; the live run confirmed the read path end to end but did not exercise every parser against real output.
 
 ## Continuing on another device
 
@@ -43,7 +43,7 @@ Everything below is on the default branch. To pick this up elsewhere:
 1. Clone, then from `console/` run `download-dependencies.bat /s` at the repository root, or `npm ci` inside `console/` for renderer work only.
 2. `npm test` in `console/` runs the whole local suite — renderer, control plane, static site, inventory validators and both negative regressions. `npm run build` compiles the design and builds the renderer.
 3. Do not hand-edit `console/app/renderer/src/generated/`. It is produced by `node console/scripts/compile-design.mjs` from `design/`, which is a read-only reference. Change the design and recompile; `console/tests/ui/design-drift.test.mjs` fails if the shipped renderer is not byte-identical to a fresh compile. Those paths are pinned to `eol=lf` so the guard holds on any platform.
-4. The single highest-value next step is a machine with WSL or Docker. No reading in this repository has been exercised against a live Asterisk, because this machine has neither. Install a target, discover it from **App > Deploy & servers**, then walk the readable destinations and correct any parser whose fixtures do not match reality.
+4. Superseded: a machine with WSL was used on 2026-08-22 and the read path was exercised against a live Asterisk. The highest-value next step is now a **write** against a disposable target, and real captures for the completeness inventory.
 5. No sample data may be reintroduced. Every surface shows only what was actually read; where nothing was read the surface stays empty and states why, and an unread cell is an em dash.
 
 ## Delivery record for the design-parity change
@@ -147,7 +147,7 @@ One genuine mitigation already in place: `App.tsx` blanks the design's 72 seeded
 | Read-only Asterisk commands | 23 | **63** |
 | Writable configuration files | 10 | **41** |
 | Controls bound to real Asterisk keys | 0 | **82 of 130** |
-| Local test cases | 117 | **511** |
+| Local test cases | 117 | **1,014** |
 
 ### What is genuinely working
 
@@ -172,11 +172,83 @@ One genuine mitigation already in place: `App.tsx` blanks the design's 72 seeded
 - A fix for that Windows defect was applied unconditionally and **broke the Linux build**, because `$env:SystemRoot` is null there. Repaired, with both platform branches exercised before committing.
 - A change adding the control plane to the standalone type-check would have accomplished nothing: TypeScript excludes files owned by a referenced project. The configuration was never wrong — the verification command being used was.
 
+### Session of 2026-08-22
+
+Verified on this tree, by running each suite: **1,014 local tests pass** -- 16 inventory
+and drift, 485 renderer, 503 control plane, 10 static site -- plus the inventory
+validators and the negative regressions.
+
+Landed this session:
+
+- **Automatic updates.** The application shipped Squirrel installers and never checked
+  for a newer one, so an installed copy stayed on its version permanently. Squirrel's own
+  protocol expects one accumulating multi-version feed and this pipeline publishes
+  standalone immutable releases, so the check reads the releases API, verifies the
+  download against that release's own digest list, and re-runs the installer. That is
+  integrity, not authenticity: artifacts remain unsigned by policy and the banner says so.
+  Observed working in the built application.
+- **More than one server.** An inventory with independently tracked per-server state and
+  a response-routing guard, so a slow answer from one server cannot be written into
+  another's slot. The design's servers table was being fed from PBX readings, which it is
+  not -- the list exists before anything is reachable -- and its screen kind was not one
+  the table branch recognised, so it never rendered at all.
+- **A daemon lifecycle.** Provisioning verified `asterisk -V`, which proves only that the
+  binary exists. Every reading needs a running daemon and nothing ever started one, so a
+  healthy runtime read nothing on every screen. Start now polls until the daemon actually
+  answers rather than trusting an exit code, and the console starts it automatically on
+  discovery.
+- **Personal vocabulary loading**, bounded and fail-closed, matching the site's schema so
+  the same file loads in both. Nothing ships preloaded.
+- **Controls for all of the above**, added to the design reference and compiled, including
+  a new file control kind. Three of these capabilities were finished and unreachable
+  before this.
+
+Found by deploying rather than by reading:
+
+- A WSL distribution stays **registered when its virtual disk is deleted underneath it**.
+  The console then refused to create it (the name exists) and could not use it (it does
+  not answer), with a message saying creation had failed when nothing had been created.
+  That dead end is now its own state, whose message names the escape.
+- **WSL writes its failures to stdout, not stderr.** Reading stderr alone discarded the
+  disk path and error code and replaced them with a generic sentence.
+
+Mistakes made and corrected in the same session, recorded because both are easy to repeat:
+
+- An edit written through a tool defaulting to the platform's legacy code page turned an
+  ellipsis into a byte no UTF-8 reader accepts, and the bundler refused the module --
+  naming the *importing* file, not the unreadable one.
+- The repair was worse than the fault: re-encoding the whole file treated every already
+  correct character as legacy, so every dash and ellipsis was encoded twice. It built
+  cleanly, passed every test, and put mojibake on screen. `console/tests/ui/source-encoding.test.mjs`
+  now checks both faults, because a valid-UTF-8 check alone cannot catch the second.
+
+Still true and unchanged: **no write has been made to a real exchange**, and the
+completeness inventory has evidence behind no row -- 42 features across two surfaces, of
+which only the documentation column is complete.
+
+
 ## Next owner actions
 
-1. Review and merge `design-parity-real-readings`, then publish the integrated candidate from the default branch and verify the workflow, release assets, and GitHub Pages response independently.
-2. Run every reading against a live Asterisk on a machine that has one. No parser has yet been exercised against real command output — only against fixtures derived from this repository's Asterisk sources — so treat the readings as unverified until a real target has answered them. **This machine now has both WSL and Docker**, correcting an earlier note that said it had neither: `wsl.exe` is present (one distribution, `docker-desktop`) and Docker server `29.6.2` responds with no containers running. Either is a viable disposable target, so this item is no longer blocked on hardware.
-3. Produce the reference-versus-built captures and visual diffs the parity inventory's evidence templates describe, so the 32 destinations can move from `compiled` to `verified`. `compiled` records a render-based assertion only.
-4. Read per-endpoint transport and codecs so those columns stop reading `—`, and wire real sources for the history, agent-rail and trunk-authentication surfaces, which are currently empty with a stated reason.
-5. Continue replacing unverified per-surface inventory evidence with exact built-interaction and capture records; the earlier candidate proves the server-discovery route, not every universal feature.
-6. Exercise an explicitly approved target-specific write plan against a disposable PBX target before describing any configuration mutation as production-verified.
+Ordered by what actually blocks the next claim.
+
+1. **Write to a disposable PBX target through an explicitly approved plan.** The read path
+   is now exercised end to end against a live Asterisk; the write path is not. Until that
+   happens, no configuration mutation may be described as working.
+2. **Produce the completeness inventory's evidence.** 42 features across two surfaces need
+   six artifacts each. Documentation is complete for all 42; the implementation registry,
+   localization registry and contract-test directory do not exist, and there is one
+   built-interaction record and one capture. This is what blocks a yum tong pass.
+3. **Build the localization mechanism.** The application has no i18n of any kind, so the
+   three language modes and both funny-level sliders do not exist. It blocks a whole
+   evidence column and is a product contract in its own right.
+4. **Bind the remaining controls, or state per screen why not.** Each screen reports its
+   own unbound count. They stay unbound deliberately -- a wrong binding writes a wrong key.
+5. **Make the dashboard's stated refresh cadence true.** It says `refreshing 1s` and does
+   not re-check after a failed read: a stale error survived until the application was
+   relaunched. A label claiming a cadence it does not keep is the decorative-UI defect the
+   rest of this product forbids.
+6. **Add accessibility attributes to the desktop interface**, which currently has none,
+   and cover the application directory with tests.
+7. **Retained, not merged: `claude/busy-zhukovsky-ae0b75`.** One commit, clean worktree,
+   but not an ancestor of `master`, and `master` has moved well past it -- merging would
+   revert later site work. Keep it or drop it deliberately; do not merge it blindly.
