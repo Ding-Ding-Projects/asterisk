@@ -11,6 +11,9 @@ import { readControlValues, unmappedControls } from './control-keys';
 import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
 import { ServerSwitcher } from './servers';
+import {
+  clearVocabulary, createMemoryStorage, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
+} from './personal-vocabulary';
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -85,6 +88,16 @@ export class App extends Base {
   private seeded = new Set<string>();
   /** What the console's own Asterisk runtime can do right now. */
   private runtime: RuntimeStatus | undefined;
+  /** Local storage for the personal-vocabulary loader. `window.localStorage` on a real
+   *  desktop build; falls back to an in-memory stub so the control still works (for the
+   *  session) on a host with no persistent store rather than throwing. */
+  private vocabStorage: VocabularyStorage =
+    typeof window !== 'undefined' && window.localStorage ? window.localStorage : createMemoryStorage();
+  /** The chosen file's own name, kept only for display — never its contents. */
+  private pickedFileNames = new Map<string, string>();
+  /** The daemon lifecycle group on Deploy & servers has no reading of its own until a
+   *  target is connected and its status has actually been asked for once. */
+  private daemonStatusLine = 'Unknown — no target connected yet.';
 
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
@@ -163,6 +176,9 @@ export class App extends Base {
     const answer = await this.request('daemon.status');
     if (!answer?.ok) return;
     const state = (answer.data as { status?: { state?: string } }).status?.state;
+    /* This is the same reading the Deploy & servers status line shows, so it is
+     * seeded from it rather than issuing a second `daemon.status` request. */
+    void this.refreshDaemonStatus();
     if (state === 'daemonAnswering') return;
 
     this.toast('Starting the phone system…');
@@ -175,7 +191,134 @@ export class App extends Base {
      * is discarded rather than left on screen as though it were current. */
     this.readings = {};
     this.canvasReadings = undefined;
+    void this.refreshDaemonStatus();
     this.forceUpdate();
+  };
+
+  // ---------------------------------------------------------------- personal vocabulary
+
+  /** Read by the compiled `file` control kind for the file-picker's own label. */
+  fileControlName = (ctl: { id: string }): string => {
+    const named = this.pickedFileNames.get(ctl.id);
+    if (named) return named;
+    const status = vocabularyStatus(this.vocabStorage);
+    return status.replacementCount > 0 ? `${status.replacementCount} replacement(s) loaded` : 'No file chosen';
+  };
+
+  fileControlHasFile = (): boolean => vocabularyStatus(this.vocabStorage).replacementCount > 0;
+
+  /** The file's bytes never leave this process: read locally, validated by the pure
+   *  loader in `personal-vocabulary.ts`, and — only on success — cached locally. */
+  onFilePicked = (ctl: { id: string }, file: File): void => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = typeof reader.result === 'string' ? reader.result : '';
+      const result = loadVocabularyFile(this.vocabStorage, text);
+      this.pickedFileNames.set(ctl.id, result.ok ? file.name : `${file.name} — rejected`);
+      this.forceUpdate();
+      if (result.ok) this.toast(result.status);
+      else this.fire('Vocabulary file rejected', result.status);
+    };
+    reader.onerror = () => this.fire('Vocabulary file not read', 'The file could not be read from disk.');
+    reader.readAsText(file);
+  };
+
+  onFileCleared = (ctl: { id: string }): void => {
+    const result = clearVocabulary(this.vocabStorage);
+    this.pickedFileNames.delete(ctl.id);
+    this.forceUpdate();
+    this.toast(result.status);
+  };
+
+  // ---------------------------------------------------------------- daemon lifecycle
+
+  private daemonAction = async (verb: 'start' | 'stop' | 'restart'): Promise<void> => {
+    if (!this.target.connected) {
+      this.fire('No target connected', 'Connect to a server first — there is nothing to start, stop, or restart yet.');
+      return;
+    }
+    this.toast(`${verb === 'start' ? 'Starting' : verb === 'stop' ? 'Stopping' : 'Restarting'} the phone system…`);
+    const response = await this.request(`daemon.${verb}`);
+    if (!response?.ok) {
+      this.fire('Not done', response?.message ?? `The phone system did not ${verb}.`);
+      await this.refreshDaemonStatus();
+      return;
+    }
+    /* Anything read before this point may no longer reflect what Asterisk is doing. */
+    this.readings = {};
+    this.canvasReadings = undefined;
+    await this.refreshDaemonStatus();
+    this.fire(`Phone system ${verb === 'start' ? 'started' : verb === 'stop' ? 'stopped' : 'restarted'}`, `Asterisk on ${this.target.label} answered after the ${verb}.`);
+  };
+
+  private refreshDaemonStatus = async (): Promise<void> => {
+    const response = await this.request('daemon.status');
+    if (!response?.ok) {
+      this.daemonStatusLine = response?.message ?? 'The control plane did not answer.';
+      this.forceUpdate();
+      return;
+    }
+    const status = (response.data as { status?: { state?: string; reason?: string } }).status;
+    const labels: Record<string, string> = {
+      daemonAnswering: 'Answering',
+      daemonNotRunning: 'Not running',
+      daemonUnresponsive: 'Running, not answering yet',
+      distributionNotRunning: 'Target is not running',
+    };
+    const state = status?.state ?? '';
+    const label = labels[state] ?? state ?? 'Unknown';
+    this.daemonStatusLine = status?.reason ? `${label} — ${status.reason}` : label;
+    this.forceUpdate();
+  };
+
+  /** Read by the compiled `text`-kind control marked `action:'daemon-status'`/`'vocab-status'`. */
+  controlActionText = (action: string): string => {
+    if (action === 'daemon-status') return this.daemonStatusLine;
+    if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
+    return '';
+  };
+
+  /** Read by every control the design marks with `c.action`, whatever its kind. */
+  onControlAction = (action: string): void => {
+    if (action === 'vocab-clear') { this.onFileCleared({ id: 'va_file' }); return; }
+    if (action === 'daemon-start') { void this.daemonAction('start'); return; }
+    if (action === 'daemon-stop') { void this.daemonAction('stop'); return; }
+    if (action === 'daemon-restart') { void this.daemonAction('restart'); return; }
+  };
+
+  // ---------------------------------------------------------------- server add / remove
+
+  /** Reads the already-bound `sv_*` connection controls straight out of component state —
+   *  the same values the form on screen is showing — and adds the configured server. */
+  onAddServer = async (): Promise<void> => {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const kindLabel = String(values.sv_kind ?? 'Local');
+    const kindMap: Record<string, string> = { Local: 'local', 'Local Docker': 'local-docker', SSH: 'ssh', 'SSH Docker': 'ssh-docker' };
+    const connectionKind = kindMap[kindLabel] ?? 'local';
+    const host = String(values.sv_host ?? '');
+    const input: { name: string; connectionKind: string; wslDistribution?: string; host?: string; user?: string; port?: number } = {
+      name: host || `connection-${this.servers.servers.length + 1}`,
+      connectionKind,
+    };
+    if (connectionKind !== 'local') input.host = host;
+    if (connectionKind === 'ssh' || connectionKind === 'ssh-docker') {
+      input.user = String(values.sv_user ?? '');
+      input.port = Number(values.sv_sshport ?? 22);
+    }
+    const created = await this.servers.add(input as never);
+    this.forceUpdate();
+    if (created) this.fire('Connection added', `${created.name} is now in the server list below.`);
+    else this.fire('Not added', 'The control plane did not accept that connection.');
+  };
+
+  /** The design has already run this past `areYouSure` before calling it. */
+  onRemoveServerRow = async (name: string): Promise<void> => {
+    const server = this.servers.servers.find((s) => s.name === name);
+    if (!server) { this.fire('Not found', `${name} is no longer in the server list.`); return; }
+    const removed = await this.servers.remove(server.id);
+    this.forceUpdate();
+    if (removed) this.fire('Connection removed', `${name} was removed from the server list.`);
+    else this.fire('Not removed', 'The control plane did not accept that removal.');
   };
 
   /** Reads the screen currently on top, once per screen change. */

@@ -32,9 +32,11 @@ test('the shipped renderer is byte-identical to a fresh compile of the design re
 });
 
 /**
- * The independently audited design carries 265 declarative bindings. The compiler must
- * reproduce every one, plus exactly the three window controls the design leaves inert
- * because it is a mockup of a frameless window.
+ * The independently audited design carries 267 declarative bindings — 265 plus the two
+ * added for the `file` control kind's own picker (a `Clear loaded file` button, one
+ * more `onClick`) and its hidden native `<input type="file">` (one more `onChange`).
+ * The compiler must reproduce every one, plus exactly the three window controls the
+ * design leaves inert because it is a mockup of a frameless window.
  */
 test('the compiled renderer reproduces every audited design binding', async () => {
   const sources = await Promise.all(
@@ -45,8 +47,8 @@ test('the compiled renderer reproduces every audited design binding', async () =
     counts[event] = (counts[event] ?? 0) + 1;
   }
   assert.deepEqual(counts, {
-    onClick: 212 + 3,
-    onChange: 10,
+    onClick: 212 + 3 + 1,
+    onChange: 10 + 1,
     onInput: 10,
     onContextMenu: 9,
     onDragStart: 4,

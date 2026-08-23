@@ -202,6 +202,26 @@ function Template(v: any) {
           h("span", { style: sty(`font-size:11px; color:#778078;`) },
             "only free-text field"
           )
+        ) : null),
+      (v.isFile ? h("div", { style: sty(`display:flex; flex-direction:column; gap:8px;`) },
+          h("label", { style: sty(`position:relative; display:flex; align-items:center; gap:10px; background:#141A15; border:1px dashed #414942; border-radius:10px; padding:10px 14px; cursor:pointer; min-height:44px;`), className: "c-h8" },
+            h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
+              "upload_file"
+            ),
+            h("span", { style: sty(`flex:1; font-family:'Roboto Mono',monospace; font-size:12.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
+              S(v.ctl.fileName)
+            ),
+            h("span", { style: sty(`font-size:11px; color:#82D9A5; font-weight:500;`) },
+              "Choose file"
+            ),
+            h("input", { type: `file`, accept: v.ctl.accept, "aria-label": v.ctl.label, onChange: fn(v.ctl.onPick), style: sty(`position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;`) })
+          ),
+          (v.ctl.hasFile ? h("button", { onClick: fn(v.ctl.onClear), style: sty(`align-self:flex-start; display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:8px; padding:6px 12px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`), className: "c-h9" },
+              h("span", { style: sty(`font-size:15px;`), className: "msym" },
+                "close"
+              ),
+              "Clear loaded file"
+            ) : null)
         ) : null)
     )
   );
@@ -248,6 +268,7 @@ class M3Control extends DCLogic {
       isSlider: c.kind === 'slider',
       isOrder: c.kind === 'order',
       isText: c.kind === 'text',
+      isFile: c.kind === 'file',
       stepVal: c.step || 1,
       rangeLabel: (c.min !== undefined ? c.min + '–' + c.max : '')
     };

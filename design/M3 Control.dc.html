@@ -149,6 +149,20 @@
       <span style="font-size:11px; color:#778078;">only free-text field</span>
     </div>
   </sc-if>
+
+  <sc-if value="{{ isFile }}">
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <label style="position:relative; display:flex; align-items:center; gap:10px; background:#141A15; border:1px dashed #414942; border-radius:10px; padding:10px 14px; cursor:pointer; min-height:44px;" style-hover="border-color:#82D9A5;">
+        <span class="msym" style="font-size:18px; color:#82D9A5;">upload_file</span>
+        <span style="flex:1; font-family:'Roboto Mono',monospace; font-size:12.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ ctl.fileName }}</span>
+        <span style="font-size:11px; color:#82D9A5; font-weight:500;">Choose file</span>
+        <input type="file" accept="{{ ctl.accept }}" aria-label="{{ ctl.label }}" onChange="{{ ctl.onPick }}" style="position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;" />
+      </label>
+      <sc-if value="{{ ctl.hasFile }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ ctl.onClear }}" style="align-self:flex-start; display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:8px; padding:6px 12px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;" style-hover="background:#262B26; color:#FFB4AB;"><span class="msym" style="font-size:15px;">close</span>Clear loaded file</button>
+      </sc-if>
+    </div>
+  </sc-if>
 </div>
 
 </x-dc>
@@ -195,6 +209,7 @@ class Component extends DCLogic {
       isSlider: c.kind === 'slider',
       isOrder: c.kind === 'order',
       isText: c.kind === 'text',
+      isFile: c.kind === 'file',
       stepVal: c.step || 1,
       rangeLabel: (c.min !== undefined ? c.min + '–' + c.max : '')
     };

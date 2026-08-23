@@ -71,6 +71,8 @@ html, body { margin:0; padding:0; background:#0B0F0C; }
 .c-h5:hover{background:#262B26 !important; color:#82D9A5 !important}
 .c-h6:hover{background:#93000A !important; color:#fff !important}
 .c-h7:hover{border-color:#82D9A5 !important; color:#9FF7C4 !important}
+.c-h8:hover{border-color:#82D9A5 !important}
+.c-h9:hover{background:#262B26 !important; color:#FFB4AB !important}
 .k-h0:hover{background:#262B26 !important; color:#DFE4DC !important}
 .k-h1:hover{background:#262B26 !important}
 .k-h2:hover{background:#1B211C !important; color:#DFE4DC !important}

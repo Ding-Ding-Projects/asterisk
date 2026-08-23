@@ -766,7 +766,7 @@
           </div>
         </sc-if>
 
-        <sc-if value="{{ isTable }}">
+        <sc-if value="{{ isTableLike }}">
           <div style="background:#1B211C; border-radius:16px; overflow:hidden; margin-bottom:14px;">
             <div style="display:flex; align-items:center; gap:10px; padding:12px 16px;">
               <div style="display:flex; align-items:center; gap:8px; background:#141A15; border-radius:999px; padding:8px 14px; flex:1;">
@@ -2143,6 +2143,11 @@ const SCREENS = {
       ctl('sv_forward','Forward through the SSH tunnel','switch',true),
       ctl('sv_watch','Reconnect automatically','switch',true),
       ctl('sv_readonly','Open read-only','switch',false)
+    ]},{ title:'Phone system', desc:'Asterisk itself on the connected target, separate from the console that is talking to it.', ctls:[
+      ctl('da_status','Status','text','Unknown — no target connected yet.',{ action:'daemon-status', info:'Whether Asterisk on the connected target is up and answering the manager interface right now.' }),
+      ctl('da_start','Start','segmented','Start',{ options:['Start'], action:'daemon-start', info:'Starts Asterisk on the connected target if it is not already answering.' }),
+      ctl('da_stop','Stop','segmented','Stop',{ options:['Stop'], action:'daemon-stop', info:'Stops Asterisk on the connected target. Every call in progress ends.' }),
+      ctl('da_restart','Restart','segmented','Restart',{ options:['Restart'], action:'daemon-restart', info:'Stops and starts Asterisk on the connected target. Every call in progress ends.' })
     ]}] },
   notifications:{ rail:'app', icon:'notifications', label:'Notifications', badge:'4', title:'Notification centre', file:'console', kind:'table',
     sub:'Every non-blocking notification the console has raised, reviewable after the fact so nothing important disappears with a toast.',
@@ -2245,6 +2250,10 @@ const SCREENS = {
       ctl('p_tour','Offer the tour on launch','switch',false),
       ctl('p_tray','Keep running in tray','switch',true),
       ctl('p_confirm','Full ceremony on every destructive action','switch',true,{ info:'Leave this on. It is the four-gate check: key, arming switch, slider and attention test.' })
+    ]},{ title:'Personal vocabulary', desc:'A local JSON file that remaps specific words shown in this console to your own preferred terms. Loaded once from a file you choose; nothing in it is ever transmitted anywhere.', ctls:[
+      ctl('va_file','Vocabulary file','file','',{ accept:'application/json,.json', info:'Choose a local JSON file with a top-level "version" of 1 and a "replacements" list of from/to pairs. It is read once, right here, entirely on this machine.' }),
+      ctl('va_status','Status','text','No file loaded; original wording is active.',{ action:'vocab-status', info:'What the console currently has loaded, in plain words: how many replacements are active, or that nothing is loaded and the shipped wording is showing.' }),
+      ctl('va_clear','Reset','segmented','Clear loaded file',{ options:['Clear loaded file'], action:'vocab-clear', info:'Removes the cached file and restores the shipped wording immediately. It never touches the file on disk, only what this console has cached.' })
     ]}] },
   about:{ rail:'app', icon:'info', label:'About & policy', badge:'', title:'About', file:'', kind:'generic',
     sub:'Build provenance and the policies this console is bound by.',
@@ -3212,6 +3221,22 @@ class Component extends DCLogic {
     if (c.kind === 'stepper' || c.kind === 'slider') o.set = (nv) => this.setVal(c, Number(nv));
     if (c.kind === 'slider') { o.onSlide = (e) => this.setVal(c, Number(e.target.value)); o.display = v + (c.unit || ''); o.pct = ((v - c.min) / (c.max - c.min) * 100) + '%'; }
     if (c.kind === 'text') o.display = v;
+    if (c.kind === 'file') {
+      o.accept = c.accept || '';
+      o.fileName = (this.fileControlName ? this.fileControlName(c) : (v || 'No file chosen'));
+      o.hasFile = !!(this.fileControlHasFile ? this.fileControlHasFile(c) : v);
+      o.onPick = (e) => { const f = e.target && e.target.files && e.target.files[0]; if (f && this.onFilePicked) this.onFilePicked(c, f); };
+      o.onClear = () => { if (this.onFileCleared) this.onFileCleared(c); };
+    }
+    /* Escape hatch for controls whose action is a real side effect (starting a daemon,
+     * clearing a local cache) rather than a value the console merely remembers. `c.action`
+     * names it; the host component supplies `onControlAction`, and any real value-write
+     * `pick`/`toggle` the control already has still runs first, so the console's own commit
+     * history keeps recording the choice exactly as it does for every other control. */
+    if (c.action && (c.kind === 'segmented' || c.kind === 'select') && o.options) {
+      o.options = o.options.map((opt) => Object.assign({}, opt, { pick:() => { opt.pick(); if (this.onControlAction) this.onControlAction(c.action, c, opt.label); } }));
+    }
+    if (c.action && c.kind === 'text') o.display = (this.controlActionText ? this.controlActionText(c.action, c) : o.display);
     return o;
   };
 
@@ -3328,9 +3353,13 @@ class Component extends DCLogic {
       })(),
       screenTitle:sc.title, screenFile:sc.file, screenSub:sc.sub,
       openInfoScreen:() => this.showInfo(sc.title, sc.sub, 'This screen edits ' + (sc.file || 'the console itself') + '. Every row you see is a real object in the running system, and every control writes one option.', '46%', '150px'),
-      openWizard:() => this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null }),
+      openWizard:() => (sc.kind === 'servers' && this.onAddServer ? this.onAddServer() : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null })),
 
       isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory',
+      /* The servers screen has its own hero (One Click Setup) above this, but its
+       * configured connections are a real table too, so it shares the generic table
+       * markup — search, filters, the add button, and every row's own context menu. */
+      isTableLike:sc.kind === 'table' || sc.kind === 'servers',
 
       stats:[
         { icon:'call', label:'Active calls', value:'4', delta:'peak today 19' },
@@ -4053,7 +4082,7 @@ class Component extends DCLogic {
             { icon:'refresh', label:'Reload just this', hint:'', run:() => { close(); this.ceremony('Reload ' + name, 'reload ' + name); } },
             { icon:'download', label:'Export as configuration', hint:'', run:() => { close(); this.toast(name + ' exported'); } },
             { icon:'history', label:'Version history for this', hint:'', run:() => { close(); this.openScreen('history'); } },
-            { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, 'This object and everything referencing it are removed. The four gates still apply after the minigame.', 3, () => this.ceremony('Delete ' + name, 'delete ' + name)); } },
+            { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.', 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : this.ceremony('Delete ' + name, 'delete ' + name))); } },
             common[0], common[1]
           ]);
         }
