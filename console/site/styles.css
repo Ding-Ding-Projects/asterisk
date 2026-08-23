@@ -556,3 +556,36 @@ body.attn-focus .topbar:hover,body.attn-focus .topbar:focus-within,body.attn-foc
   body.attn-focus .topbar,body.attn-focus footer{transition:none}
   .collapsible-panel>summary::after{transition:none}
 }
+
+/* Site Integration pig: real exports, real bulk actions, real colour translator.
+   Appended at the end so nothing earlier changes specificity. */
+.export-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0;padding:14px 16px;border:1px solid var(--outline-variant);border-radius:var(--radius);background:var(--surface-1)}
+.export-toolbar label{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--muted)}
+.export-loss{width:100%;margin:0;color:var(--warning);font-size:.8rem}
+.export-loss:empty{display:none}
+
+.notif-toolbar{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.notif-bulk-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.notif-bulk-row .filter-status{margin-left:auto}
+.notif-confirm{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px;border:1px solid var(--danger);border-radius:var(--radius-sm);background:color-mix(in srgb,var(--danger-strong) 12%,transparent)}
+.notif-confirm[hidden]{display:none}
+.notif-confirm p{margin:0;flex:1 1 220px;font-size:.85rem}
+.notice{display:flex;align-items:flex-start;gap:10px}
+.notice input[type="checkbox"]{margin-top:2px;flex:none}
+.notice-body{flex:1;min-width:0}
+
+.setting-card-stack{flex-direction:column;align-items:stretch;gap:14px}
+.colour-translate{display:flex;flex-direction:column;gap:10px}
+.colour-translate .search-composite{width:100%}
+.colour-translate-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.colour-translate-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--outline-variant);border-radius:var(--radius-sm);background:var(--surface-2)}
+.colour-translate-row span:first-child{color:var(--muted-2);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
+.colour-translate-row output{font-family:var(--font-mono);font-size:.78rem}
+.colour-translate-row button{padding:4px 10px;font-size:.72rem;background:var(--surface-3)}
+.contrast-result{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-sm);border:1px solid var(--outline-variant);font-size:.84rem}
+.contrast-result[data-verdict="fail"]{border-color:var(--danger);color:var(--danger)}
+.contrast-result[data-verdict="AA"],.contrast-result[data-verdict="AAA"]{border-color:var(--good);color:var(--good)}
+
+@media(max-width:640px){
+  .notif-bulk-row .filter-status{margin-left:0}
+}
