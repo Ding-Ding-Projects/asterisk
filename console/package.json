@@ -8,7 +8,7 @@
   "main": "dist-electron/app/electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "npm run compile:design && tsc -b && vite build",
+    "build": "npm run compile:design && npm run bundle:docs && tsc -b && vite build",
     "start": "electron .",
     "test:ui": "node --test tests/ui/*.test.mjs",
     "test:control-plane": "tsx --test tests/control-plane/*.test.ts",
@@ -18,7 +18,8 @@
     "compile:design": "node scripts/compile-design.mjs",
     "test:renderer": "tsx --test tests/ui/*.test.tsx",
     "test:inventories": "node scripts/verify-inventories.mjs --allow-unverified && node scripts/negative-design-parity.mjs && node scripts/negative-surface-completeness.mjs && node scripts/negative-evidence-claims.mjs",
-    "test": "npm run test:ui && npm run test:renderer && npm run test:control-plane && npm run test:site && npm run test:inventories"
+    "test": "npm run test:ui && npm run test:renderer && npm run test:control-plane && npm run test:site && npm run test:inventories",
+    "bundle:docs": "node scripts/bundle-docs.mjs"
   },
   "dependencies": {
     "@fontsource/roboto": "^5.3.0",

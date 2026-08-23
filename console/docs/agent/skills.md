@@ -8,7 +8,7 @@ Installed agent skills with their trigger scope. Enabling a skill is a switch; n
 
 ### Orchestration
 
-UltraHui lane defaults.
+Multi-agent orchestration defaults.
 
 - **Maximum parallel lanes** (`u_lanes`) — a stepper control, default `4`.
 - **Isolated worktree per lane** (`u_isolate`) — a switch control, default `true`.

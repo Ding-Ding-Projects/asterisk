@@ -365,7 +365,14 @@
     function frame(){
       const rect=canvas.getBoundingClientRect();if(rect.width<2||rect.height<2){if(running)raf=requestAnimationFrame(frame);return}
       ctx.clearRect(0,0,rect.width,rect.height);
-      const style=getComputedStyle(document.documentElement),line=style.getPropertyValue('--outline-variant').trim()||'#333',accent=style.getPropertyValue('--primary').trim()||'#82D9A5';
+      /* Draw in the accent, not the outline colour. The outline token is #333B34 against
+         a #0B0F0C surface — a legitimate colour for a hairline border between panels, and
+         very close to invisible for a graph drawn on top of that same surface. The whole
+         figure rendered correctly and could not be seen, which is the worst way for
+         something to be wrong: nothing errors, every test passes, and the page simply
+         looks the way it did before. Edges take the accent at reduced alpha so they read
+         without shouting; nodes take it solid. */
+      const style=getComputedStyle(document.documentElement),accent=style.getPropertyValue('--primary').trim()||'#82D9A5',line=accent;
       ctx.lineWidth=1.5;ctx.strokeStyle=line;
       edges.forEach(([a,b])=>{const p1=point(nodes[a],rect),p2=point(nodes[b],rect);ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke()});
       nodes.forEach(node=>{const p=point(node,rect);ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fillStyle=line;ctx.fill()});

@@ -1,0 +1,2979 @@
+// GENERATED FILE — do not edit by hand.
+// Produced by console/scripts/bundle-docs.mjs from console/docs/**/*.md.
+// Re-run `node scripts/bundle-docs.mjs` after changing any documentation article.
+
+export interface DocsHeading {
+  readonly title: string;
+  readonly id: string;
+}
+
+export interface DocsArticle {
+  readonly id: string;
+  readonly category: string;
+  readonly title: string;
+  readonly headings: readonly DocsHeading[];
+  readonly links: readonly string[];
+  readonly body: string;
+}
+
+export interface DocsBundle {
+  readonly generatedAt: string;
+  readonly articleCount: number;
+  readonly articles: readonly DocsArticle[];
+}
+
+export const DOCS_BUNDLE: DocsBundle = {
+  "generatedAt": "1970-01-01T00:00:00.000Z",
+  "articleCount": 82,
+  "articles": [
+    {
+      "id": "agent/hub",
+      "category": "agent",
+      "title": "Status hub sessions",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "skills.md",
+        "memory.md",
+        "sync.md"
+      ],
+      "body": "# Status hub sessions\n\n## Behavior\n\nOpen sessions, their questions and reply state. The ingest token lives in the trusted process and is never shown in this window. It is backed by `status-hub`. The rail badge on this destination currently reads `3`. It lives on the Agent rail, under the Agent global memory group: Memory, sync, skills, hub sessions and the emission guard.\n\n## Configuration\n\n### Session policy\n\nHow the console behaves as a hub client.\n\n- **Reply poll interval** (`b_poll`) — a slider control, default `15`.\n- **Desktop notification on reply** (`b_notify`) — a switch control, default `true`.\n- **Auto-close idle sessions** (`b_close`) — a switch control, default `false`.\n- **Report worktree state each run** (`b_report`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery row reflects a real object in status-hub; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in status-hub, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Skills registry](skills.md), [Memory console](memory.md), and [Sync & attestation](sync.md).\n"
+    },
+    {
+      "id": "agent/memory",
+      "category": "agent",
+      "title": "Memory console",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "sync.md",
+        "vocab.md",
+        "hub.md"
+      ],
+      "body": "# Memory console\n\n## Behavior\n\nSearch the memory corpus with a visual regex builder, and watch the sync, attestation and emission guard state alongside it. It is backed by `agent global memory`. The rail badge on this destination currently reads `2.4k`. It lives on the Agent rail, under the Agent global memory group: Memory, sync, skills, hub sessions and the emission guard.\n\n## Configuration\n\nThere is no settings form here. A visual regex builder searches the memory corpus directly, and the sync, attestation and emission-guard state are shown alongside it for context.\n\n## Failure modes and security\n\nA failed attestation on the most recent sync blocks further writes until it is acknowledged on the Sync & attestation screen.\n\n## Verification\n\nConfirm every default shown here matches what a fresh install actually ships, and that changing a value here is reflected the next time this screen loads.\n\n## Suggested articles\n\n[Sync & attestation](sync.md), [Vocabulary & guard](vocab.md), and [Status hub](hub.md).\n"
+    },
+    {
+      "id": "agent/ops",
+      "category": "agent",
+      "title": "Operations & releases",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "../app/history.md",
+        "secrets.md",
+        "../app/about.md"
+      ],
+      "body": "# Operations & releases\n\n## Behavior\n\nRelease history and the update feed. Packages are unsigned by policy; the console says so plainly rather than implying verification. It is backed by `release`. The rail badge on this destination currently reads `v3.2`. It lives on the Agent rail, under the Agent global memory group: Memory, sync, skills, hub sessions and the emission guard.\n\n## Configuration\n\n### Updates\n\nUnsigned artifacts. The operating system may warn about an unknown publisher — that is expected.\n\n- **Check for updates** (`o_check`) — a segmented control, default `On start + hourly`, choices `On start`, `On start + hourly`, `Manual`.\n- **Stage in background** (`o_stage`) — a switch control, default `true`.\n- **Install on next restart** (`o_restart`) — a switch control, default `true`.\n- **Channel** (`o_channel`) — a segmented control, default `Stable`, choices `Stable`, `Beta`.\n- **Verify package hashes** (`o_hash`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery row reflects a real object in release; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in release, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[History & git](../app/history.md), [Secret intake](secrets.md), and [About & policy](../app/about.md).\n"
+    },
+    {
+      "id": "agent/README",
+      "category": "agent",
+      "title": "Agent",
+      "headings": [],
+      "links": [
+        "memory.md",
+        "sync.md",
+        "skills.md",
+        "hub.md",
+        "vocab.md",
+        "ops.md",
+        "secrets.md"
+      ],
+      "body": "# Agent\n\nAgent global memory: memory, sync, skills, hub sessions and the emission guard.\n\n- [Memory console](memory.md)\n- [Sync & attestation](sync.md)\n- [Skills registry](skills.md)\n- [Status hub](hub.md)\n- [Vocabulary & guard](vocab.md)\n- [Operations](ops.md)\n- [Secret intake](secrets.md)\n"
+    },
+    {
+      "id": "agent/secrets",
+      "category": "agent",
+      "title": "Secret intake",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "vocab.md",
+        "../data/ami.md",
+        "ops.md"
+      ],
+      "body": "# Secret intake\n\n## Behavior\n\nCredentials are captured once through the intake flow and referenced by name everywhere else. No secret value is ever rendered. It is backed by `templates/secret-intake`. The rail badge on this destination currently reads `6`. It lives on the Agent rail, under the Agent global memory group: Memory, sync, skills, hub sessions and the emission guard.\n\n## Configuration\n\n### Handling\n\nStorage and rotation rules for everything in the intake.\n\n- **Storage** (`x_store`) — a segmented control, default `OS keychain`, choices `OS keychain`, `Encrypted file`.\n- **Rotation reminder** (`x_rotate`) — a slider control, default `90`.\n- **Mask in all surfaces** (`x_mask`) — a switch control, default `true`.\n- **Allow export** (`x_export`) — a switch control, default `false`.\n\n## Failure modes and security\n\nEvery row reflects a real object in templates/secret-intake; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in templates/secret-intake, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Vocabulary & guard](vocab.md), [AMI & ARI](../data/ami.md), and [Operations](ops.md).\n"
+    },
+    {
+      "id": "agent/skills",
+      "category": "agent",
+      "title": "Skills registry",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "memory.md",
+        "hub.md",
+        "ops.md"
+      ],
+      "body": "# Skills registry\n\n## Behavior\n\nInstalled agent skills with their trigger scope. Enabling a skill is a switch; nothing about a skill is typed here. It is backed by `skills/`. The rail badge on this destination currently reads `26`. It lives on the Agent rail, under the Agent global memory group: Memory, sync, skills, hub sessions and the emission guard.\n\n## Configuration\n\n### Orchestration\n\nMulti-agent orchestration defaults.\n\n- **Maximum parallel lanes** (`u_lanes`) — a stepper control, default `4`.\n- **Isolated worktree per lane** (`u_isolate`) — a switch control, default `true`.\n- **Lane model override** (`u_model`) — a select control, default `gpt-5.6-luna`, choices `gpt-5.6-luna`, `inherit`.\n- **Verification panel for high-risk lanes** (`u_verify`) — a switch control, default `true`.\n- **Keep destructive actions with orchestrator** (`u_destruct`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery row reflects a real object in skills/; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in skills/, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Memory console](memory.md), [Status hub](hub.md), and [Operations](ops.md).\n"
+    },
+    {
+      "id": "agent/sync",
+      "category": "agent",
+      "title": "Sync & attestation",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "memory.md",
+        "secrets.md",
+        "../app/history.md"
+      ],
+      "body": "# Sync & attestation\n\n## Behavior\n\nEvery sync run, its attestation and its backup. A failed attestation blocks the next write until it is acknowledged here. It is backed by `agent-memory-sync`. The rail badge on this destination currently reads `ok`. It lives on the Agent rail, under the Agent global memory group: Memory, sync, skills, hub sessions and the emission guard.\n\n## Configuration\n\n### Schedule\n\nWhen the console pushes memory upstream.\n\n- **Automatic sync** (`y_auto`) — a switch control, default `true`.\n- **Interval** (`y_every`) — a slider control, default `60`.\n- **Backup before write** (`y_backup`) — a switch control, default `true`.\n- **Require attestation** (`y_attest`) — a switch control, default `true`.\n- **Keep backups** (`y_retain`) — a stepper control, default `30`.\n\n## Failure modes and security\n\nEvery row reflects a real object in agent-memory-sync; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in agent-memory-sync, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Memory console](memory.md), [Secret intake](secrets.md), and [History & git](../app/history.md).\n"
+    },
+    {
+      "id": "agent/vocab",
+      "category": "agent",
+      "title": "Vocabulary & emission guard",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "memory.md",
+        "secrets.md",
+        "../app/notifications.md"
+      ],
+      "body": "# Vocabulary & emission guard\n\n## Behavior\n\nThe private vocabulary dictionary and the emission guard that blocks a forbidden term before it can leave the process. It is backed by `vocabulary-dictionary.json`. The rail badge on this destination currently reads `lock`. It lives on the Agent rail, under the Agent global memory group: Memory, sync, skills, hub sessions and the emission guard.\n\n## Configuration\n\n### Emission guard\n\nRuns on every string the app is about to write or display.\n\n- **Guard enabled** (`n_guard`) — a switch control, default `true`.\n- **On violation** (`n_mode`) — a segmented control, default `Block`, choices `Warn`, `Block`, `Rewrite`.\n- **Scan surfaces** (`n_scan`) — a chips control, default `UI text`, `Logs`, `Exports`, choices `UI text`, `Logs`, `Exports`, `Clipboard`, `Telemetry`.\n- **Vocabulary lock** (`n_lock`) — a switch control, default `true`.\n- **Report drift daily** (`n_drift`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery row reflects a real object in vocabulary-dictionary.json; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in vocabulary-dictionary.json, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Memory console](memory.md), [Secret intake](secrets.md), and [Notifications](../app/notifications.md).\n"
+    },
+    {
+      "id": "app/about",
+      "category": "app",
+      "title": "About",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "../agent/ops.md",
+        "../system/security.md",
+        "customise.md"
+      ],
+      "body": "# About\n\n## Behavior\n\nBuild provenance and the policies this console is bound by. It lives on the App rail, under the Deploy & application group: Stand up a new server, then appearance, updates and the console itself.\n\n## Configuration\n\n### Policy\n\nNon-negotiable behaviour, surfaced so it is never a surprise.\n\n- **Code signing** (`z_sign`) — a segmented control, default `Prohibited`, choices `Prohibited`. Packages ship unsigned on purpose. Windows may show an unknown-publisher warning; nothing here claims to be verified.\n- **Installer** (`z_installer`) — a segmented control, default `Squirrel.Windows`, choices `Squirrel.Windows`.\n- **Telemetry** (`z_telemetry`) — a switch control, default `false`.\n- **Send crash reports** (`z_crash`) — a switch control, default `false`.\n\n## Failure modes and security\n\nEvery control here maps to a real key in the owning configuration; an unreachable configuration store is shown as unreachable, never backfilled with placeholder values.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in the owning file, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm every default shown here matches what a fresh install actually ships, and that changing a value here is reflected the next time this screen loads.\n\n## Suggested articles\n\n[Operations](../agent/ops.md), [Security](../system/security.md), and [Customise everything](customise.md).\n"
+    },
+    {
+      "id": "app/appearance",
+      "category": "app",
+      "title": "Appearance",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "customise.md",
+        "history.md",
+        "notifications.md"
+      ],
+      "body": "# Appearance\n\n## Behavior\n\nDensity, theme and motion for this console. Changes apply immediately with an undo. It is backed by `console settings`. It lives on the App rail, under the Deploy & application group: Stand up a new server, then appearance, updates and the console itself.\n\n## Configuration\n\n### Layout\n\nHow much fits on screen.\n\n- **Row density** (`p_density`) — a segmented control, default `Comfortable`, choices `Dense`, `Comfortable`, `Spacious`.\n- **Theme** (`p_theme`) — a segmented control, default `Dark`, choices `Dark`, `Light`, `Follow system`.\n- **Interface scale** (`p_scale`) — a slider control, default `100`.\n- **Reduced motion** (`p_motion`) — a switch control, default `false`.\n- **Monospace numerics** (`p_mono`) — a switch control, default `true`.\n\n### Behaviour\n\nThe console itself.\n\n- **Open on launch** (`p_start`) — a select control, default `Dashboard`, choices `Dashboard`, `Endpoints`, `Last screen`.\n- **Offer the tour on launch** (`p_tour`) — a switch control, default `false`.\n- **Keep running in tray** (`p_tray`) — a switch control, default `true`.\n- **Full ceremony on every destructive action** (`p_confirm`) — a switch control, default `true`. Leave this on. It is the four-gate check: key, arming switch, slider and attention test.\n\n## Failure modes and security\n\nEvery control here maps to a real key in console settings; an unreachable configuration store is shown as unreachable, never backfilled with placeholder values.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in console settings, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm every default shown here matches what a fresh install actually ships, and that changing a value here is reflected the next time this screen loads.\n\n## Suggested articles\n\n[Customise everything](customise.md), [History & git](history.md), and [Notifications](notifications.md).\n"
+    },
+    {
+      "id": "app/arcade",
+      "category": "app",
+      "title": "Confirmation credits",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "history.md",
+        "customise.md",
+        "notifications.md"
+      ],
+      "body": "# Confirmation credits\n\n## Behavior\n\nThe four-gate ceremony is thorough and, twelve times a day, exhausting. Win credits here and spend one to skip a ceremony. Credits are earned, never bought with money, and destructive actions above the danger line always cost two. It is backed by `arcade`. It lives on the App rail, under the Deploy & application group: Stand up a new server, then appearance, updates and the console itself.\n\n## Configuration\n\n### Spending rules\n\nHow credits are allowed to replace a ceremony.\n\n- **Allow credits to skip ceremonies** (`cr_enable`) — a switch control, default `true`.\n- **Cost per skip** (`cr_cost`) — a stepper control, default `1`.\n- **High-danger actions still need the full ceremony** (`cr_danger`) — a switch control, default `true`. Restarting Asterisk, unloading a module and deleting an endpoint are above the danger line. Leave this on unless you enjoy explaining outages.\n- **Maximum credits held** (`cr_cap`) — a stepper control, default `20`.\n- **Credits expire after** (`cr_expire`) — a slider control, default `7`.\n\n## Failure modes and security\n\nEvery control here maps to a real key in arcade; an unreachable configuration store is shown as unreachable, never backfilled with placeholder values.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in arcade, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm every default shown here matches what a fresh install actually ships, and that changing a value here is reflected the next time this screen loads.\n\n## Suggested articles\n\n[History & git](history.md), [Customise everything](customise.md), and [Notifications](notifications.md).\n"
+    },
+    {
+      "id": "app/customise",
+      "category": "app",
+      "title": "Customise everything",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "appearance.md",
+        "arcade.md",
+        "notifications.md"
+      ],
+      "body": "# Customise everything\n\n## Behavior\n\nThe global layer. Every one of these reaches across the whole console, and every individual element can still override it from its own right-click menu. It is backed by `console profile`. The rail badge on this destination currently reads `∞`. It lives on the App rail, under the Deploy & application group: Stand up a new server, then appearance, updates and the console itself.\n\n## Configuration\n\n### Fun\n\nHow playful the console is allowed to be. This is a real setting, not a joke — it scales celebrations, copy and randomness together.\n\n- **Fun level** (`fun_level`) — a slider control, default `2`. 0 is a bank. 1 is polite. 2 is the default — celebrations on meaningful wins. 3 adds jokes and bolder motion. 4 is confetti for changing a slider, rainbow fills and an app that will not stop congratulating you.\n  - *What it is:* How playful the console is allowed to be, from 0 to 4.\n  - *Why it exists:* One dial that scales celebrations, copy tone, motion and randomness together.\n  - *Choosing a value:* 0 Bank, 1 Polite, 2 Balanced, 3 Playful, 4 Unhinged.\n  - *Gotcha:* Level 4 celebrates trivial changes. It is delightful for a week and then you will want level 2.\n- **Copy tone** (`fun_copy`) — a segmented control, default `Warm`, choices `Terse`, `Neutral`, `Warm`, `Comedian`.\n- **Celebrate on** (`fun_celebrate`) — a chips control, default `Big wins`, `Security improvements`, choices `Every change`, `Big wins`, `Security improvements`, `Minigame wins`, `Nothing`.\n- **Confetti density** (`fun_confetti`) — a slider control, default `90`.\n- **Sound effects** (`fun_sound`) — a switch control, default `false`.\n- **Show the mascot** (`fun_mascot`) — a switch control, default `false`.\n- **Allow hidden surprises** (`fun_easter`) — a switch control, default `true`.\n- **Random appearance for every element** (`fun_random`) — a switch control, default `false`. On, every rendered element is given its OWN randomly generated appearance — its own colour, radius, weight, shadow and entrance. Nothing shares a look. Turn it off and everything snaps back to the design system; your manual per-element overrides survive either way.\n  - *What it is:* Gives every rendered element its own randomly generated appearance.\n  - *Why it exists:* Because you asked, and because it makes a dull configuration screen memorable.\n  - *Choosing a value:* A seed, a scope of properties to randomise, a wildness percentage and an optional reroll on every screen change.\n  - *Gotcha:* At high wildness with rotation enabled, dense tables become genuinely hard to read. That is the intent, but it is worth knowing.\n- **Randomness seed** (`fun_random_seed`) — a stepper control, default `1`.\n- **Randomise** (`fun_random_scope`) — a chips control, default `Colour`, `Radius`, `Shadow`, choices `Colour`, `Radius`, `Shadow`, `Type weight`, `Size`, `Rotation`, `Entrance animation`.\n- **How wild** (`fun_random_strength`) — a slider control, default `40`.\n- **Reroll on every screen change** (`fun_random_reroll`) — a switch control, default `false`.\n\n### Motion\n\nGlobal timing. Individual elements can still set their own.\n\n- **Animation speed** (`mo_speed`) — a slider control, default `100`.\n- **Default easing** (`mo_curve`) — a segmented control, default `Emphasised`, choices `Linear`, `Standard`, `Emphasised`, `Springy`.\n- **Screen transition** (`mo_screen`) — a select control, default `Lift and fade`, choices `Lift and fade`, `Cross fade`, `Slide`, `Zoom`, `None`.\n- **Dialog entrance** (`mo_dialog`) — a select control, default `Per dialog`, choices `Per dialog`, `Uniform rise`, `Uniform zoom`.\n- **Respect reduced motion** (`mo_reduce`) — a switch control, default `true`.\n- **Hover lift** (`mo_hover`) — a switch control, default `true`.\n\n### Layout\n\nStructure of the whole window.\n\n- **Rail position** (`ly_dock`) — a segmented control, default `Left`, choices `Left`, `Right`, `Top`, `Compact`.\n- **Density** (`ly_density`) — a segmented control, default `Comfortable`, choices `Dense`, `Comfortable`, `Spacious`.\n- **Corner radius** (`ly_radius`) — a slider control, default `16`.\n- **Card spacing** (`ly_gap`) — a slider control, default `12`.\n- **Tab strip** (`ly_tabs`) — a segmented control, default `Above content`, choices `Above content`, `Below rail`, `Hidden`.\n- **Section list width** (`ly_sidebar`) — a slider control, default `268`.\n- **Monospace numerics everywhere** (`ly_mono`) — a switch control, default `true`.\n\n### Theme\n\nColour across the console. Every colour control in the app uses the same infinite picker.\n\n- **Mode** (`th_mode`) — a segmented control, default `Dark`, choices `Dark`, `Light`, `Follow system`, `Per screen`.\n- **Accent hue** (`th_hue`) — a slider control, default `148`.\n- **Accent saturation** (`th_sat`) — a slider control, default `60`.\n- **Contrast** (`th_contrast`) — a segmented control, default `Standard`, choices `Standard`, `Medium`, `High`.\n- **Rainbow accent** (`th_rainbow`) — a switch control, default `false`.\n- **Rainbow speed** (`th_rbspeed`) — a slider control, default `8`.\n- **Tint surfaces with the accent** (`th_tint`) — a slider control, default `6`.\n\n### Behaviour\n\nWhat the console does without being asked.\n\n- **Open on launch** (`bh_start`) — a select control, default `Dashboard`, choices `Dashboard`, `Endpoints`, `Last screen`, `Customise everything`.\n- **Confirmation** (`bh_confirm`) — a segmented control, default `Four gates`, choices `Four gates`, `Credits allowed`, `Single confirm`.\n- **Commit every change to git** (`bh_commit`) — a switch control, default `true`.\n- **Default lock method** (`bh_lockdefault`) — a select control, default `PIN`, choices `PIN`, `Password`, `Password + PIN`, `Password + PIN + TOTP`.\n- **Offer the wizard first on every screen** (`bh_wizard`) — a switch control, default `false`.\n- **Show explain buttons** (`bh_explain`) — a switch control, default `true`.\n- **Offer the tour on launch** (`bh_tour`) — a switch control, default `false`.\n\n### Profiles\n\nSave the entire look and behaviour, then move it between machines.\n\n- **Active profile** (`pr_active`) — a select control, default `Default`, choices `Default`, `Night operations`, `Training room`, `Demo`.\n- **Sync profile with agent memory** (`pr_sync`) — a switch control, default `true`.\n- **Allow per-screen overrides** (`pr_perscreen`) — a switch control, default `true`.\n- **Include appearance overrides in exports** (`pr_export`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery control here maps to a real key in console profile; an unreachable configuration store is shown as unreachable, never backfilled with placeholder values. Level 4 celebrates trivial changes. It is delightful for a week and then you will want level 2. At high wildness with rotation enabled, dense tables become genuinely hard to read. That is the intent, but it is worth knowing.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in console profile, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm every default shown here matches what a fresh install actually ships, and that changing a value here is reflected the next time this screen loads.\n\n## Suggested articles\n\n[Appearance](appearance.md), [Arcade](arcade.md), and [Notifications](notifications.md).\n"
+    },
+    {
+      "id": "app/history",
+      "category": "app",
+      "title": "History",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "servers.md",
+        "../system/security.md",
+        "arcade.md"
+      ],
+      "body": "# History\n\n## Behavior\n\nEvery control you touch commits to a local git repository the moment you touch it. This screen is the full history: the commit graph, the exact diff, blame per option, branches for trying things out, and a restore that runs the four gates. It is backed by `/etc/asterisk/.git`. It lives on the App rail, under the Deploy & application group: Stand up a new server, then appearance, updates and the console itself.\n\n## Configuration\n\n### Commit behaviour\n\nWhat happens on every single change.\n\n- **Commit on every change** (`hi_commit`) — a switch control, default `true`. On means each toggle, slider and picker writes a real git commit against the configuration directory. Off batches changes until you commit by hand — which is how people lose track of what they changed.\n  - *What it is:* Whether every individual control change writes a git commit immediately.\n  - *Why it exists:* It gives you an exact, attributable history and a one-click revert of any single change.\n  - *Choosing a value:* On is strongly recommended.\n  - *Gotcha:* Off batches changes until you commit manually, which in practice means nobody remembers what changed between two working states.\n- **Commit message style** (`hi_msg`) — a segmented control, default `Descriptive`, choices `Terse`, `Descriptive`, `Conventional`.\n- **Attribute commits to** (`hi_author`) — a segmented control, default `Signed-in user`, choices `Signed-in user`, `Console`, `Both`.\n- **Sign commits** (`hi_sign`) — a switch control, default `false`.\n- **Mirror to a remote** (`hi_push`) — a switch control, default `false`.\n- **Run asterisk config validation as a pre-commit hook** (`hi_hook`) — a switch control, default `true`.\n\n### Retention & safety\n\nHow much history is kept and what a restore does.\n\n- **Keep commits** (`hi_keep`) — a stepper control, default `500`.\n- **Garbage collect monthly** (`hi_gc`) — a switch control, default `true`.\n- **Show a diff before restoring** (`hi_diff`) — a switch control, default `true`.\n- **Restore onto a new branch instead of main** (`hi_branch`) — a switch control, default `true`.\n- **Reload Asterisk after a restore** (`hi_reload`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery control here maps to a real key in /etc/asterisk/.git; an unreachable configuration store is shown as unreachable, never backfilled with placeholder values. Off batches changes until you commit manually, which in practice means nobody remembers what changed between two working states.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in /etc/asterisk/.git, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm every default shown here matches what a fresh install actually ships, and that changing a value here is reflected the next time this screen loads.\n\n## Suggested articles\n\n[Deploy & servers](servers.md), [Security](../system/security.md), and [Arcade](arcade.md).\n"
+    },
+    {
+      "id": "app/notifications",
+      "category": "app",
+      "title": "Notification centre",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "history.md",
+        "arcade.md",
+        "../agent/vocab.md"
+      ],
+      "body": "# Notification centre\n\n## Behavior\n\nEvery non-blocking notification the console has raised, reviewable after the fact so nothing important disappears with a toast. It is backed by `console`. The rail badge on this destination currently reads `4`. It lives on the App rail, under the Deploy & application group: Stand up a new server, then appearance, updates and the console itself.\n\n## Configuration\n\n### Delivery\n\nWhat interrupts you and what merely gets recorded.\n\n- **Show toasts** (`nt_toast`) — a switch control, default `true`.\n- **Play a sound** (`nt_sound`) — a switch control, default `false`.\n- **Notify on** (`nt_levels`) — a chips control, default `Errors`, `Warnings`, choices `Errors`, `Warnings`, `Info`, `Every change`.\n- **Quiet hours** (`nt_quiet`) — a switch control, default `false`.\n- **Keep history for** (`nt_keep`) — a slider control, default `30`.\n\n## Failure modes and security\n\nEvery row reflects a real object in console; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in console, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[History & git](history.md), [Arcade](arcade.md), and [Vocabulary & guard](../agent/vocab.md).\n"
+    },
+    {
+      "id": "app/README",
+      "category": "app",
+      "title": "App",
+      "headings": [],
+      "links": [
+        "servers.md",
+        "arcade.md",
+        "notifications.md",
+        "history.md",
+        "customise.md",
+        "appearance.md",
+        "about.md"
+      ],
+      "body": "# App\n\nDeploy & application: stand up a new server, then appearance, updates and the console itself.\n\n- [Deploy & servers](servers.md)\n- [Arcade](arcade.md)\n- [Notifications](notifications.md)\n- [History & git](history.md)\n- [Customise everything](customise.md)\n- [Appearance](appearance.md)\n- [About & policy](about.md)\n"
+    },
+    {
+      "id": "app/servers",
+      "category": "app",
+      "title": "Deploy a server",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "../system/security.md",
+        "../data/ami.md",
+        "../agent/ops.md"
+      ],
+      "body": "# Deploy a server\n\n## Behavior\n\nThis is the main road: press the big button and a working PBX exists in about seven seconds. Connecting to a PBX somebody else built is underneath, and it is the side road. It is backed by `provisioning`. The rail badge on this destination currently reads `3`. It lives on the App rail, under the Deploy & application group: Stand up a new server, then appearance, updates and the console itself.\n\n## Configuration\n\n### Route\n\nHow this console reaches Asterisk. Everything below reshapes itself around this answer.\n\n- **Connection type** (`sv_kind`) — a segmented control, default `Local`, choices `Local`, `Local Docker`, `SSH`, `SSH Docker`. Local is the same machine. Local Docker is a container here. SSH is another machine. SSH Docker is a container on another machine, reached over SSH and then into the container.\n  - *What it is:* How this console reaches Asterisk: locally, into a container, over SSH, or over SSH and then into a container.\n  - *Why it exists:* Everything else on the screen reshapes around this answer, including how configuration files are written.\n  - *Choosing a value:* Local for the same machine, Local Docker for a container here, SSH for another machine, SSH Docker for a container elsewhere.\n  - *Gotcha:* Over SSH the manager port is forwarded through the tunnel, so it never crosses the network unprotected — but only if tunnel forwarding stays enabled.\n- **Host** (`sv_host`) — a select control, default `pbx-hq.internal`, choices `localhost`, `pbx-hq.internal`, `pbx-branch.internal`, `10.20.4.10`.\n- **Container** (`sv_container`) — a select control, default `asterisk-prod`, choices `asterisk-prod`, `asterisk-lab`, `asterisk-edge`.\n- **SSH user** (`sv_user`) — a select control, default `asterisk-ops`, choices `asterisk-ops`, `root`, `deploy`.\n- **SSH port** (`sv_sshport`) — a stepper control, default `22`.\n- **Strict host key checking** (`sv_hostkey`) — a switch control, default `true`. On means a changed host key aborts the connection instead of asking you to accept it. That prompt is how people get compromised.\n  - *What it is:* Whether a changed SSH host key aborts the connection.\n  - *Why it exists:* A changed host key means either a rebuild or an interception. Only one of those is benign.\n  - *Choosing a value:* On, always.\n  - *Gotcha:* The prompt asking a human to accept a new key is precisely how these attacks succeed. This console refuses instead of asking.\n\n### Manager interface\n\nAMI for live events and CLI, ARI for Stasis applications.\n\n- **Interface** (`sv_iface`) — a segmented control, default `AMI`, choices `AMI`, `ARI`, `Both`.\n- **Manager port** (`sv_amiport`) — a stepper control, default `5038`.\n- **TLS** (`sv_tls`) — a switch control, default `true`.\n- **Forward through the SSH tunnel** (`sv_forward`) — a switch control, default `true`.\n- **Reconnect automatically** (`sv_watch`) — a switch control, default `true`.\n- **Open read-only** (`sv_readonly`) — a switch control, default `false`.\n\n## Failure modes and security\n\nEvery control here maps to a real key in provisioning; an unreachable configuration store is shown as unreachable, never backfilled with placeholder values. Over SSH the manager port is forwarded through the tunnel, so it never crosses the network unprotected — but only if tunnel forwarding stays enabled. The prompt asking a human to accept a new key is precisely how these attacks succeed. This console refuses instead of asking.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in provisioning, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm every default shown here matches what a fresh install actually ships, and that changing a value here is reflected the next time this screen loads.\n\n## Suggested articles\n\n[Security](../system/security.md), [AMI & ARI](../data/ami.md), and [Operations](../agent/ops.md).\n"
+    },
+    {
+      "id": "data/ami",
+      "category": "data",
+      "title": "Manager & REST interfaces",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "cdr.md",
+        "../system/security.md",
+        "../agent/secrets.md"
+      ],
+      "body": "# Manager & REST interfaces\n\n## Behavior\n\nMachine access to the PBX. Permissions are checkbox matrices, never a comma string you have to remember. It is backed by `manager.conf · ari.conf · http.conf`. The rail badge on this destination currently reads `2`. It lives on the Data rail, under the Records & APIs group: Call records, event logging and the machine interfaces.\n\n## Configuration\n\n### HTTP server\n\nARI and the built-in web sockets ride on this.\n\n- **HTTP enabled** (`a_http`) — a switch control, default `true`.\n- **Bind port** (`a_port`) — a stepper control, default `8088`.\n- **TLS enabled** (`a_tls`) — a switch control, default `true`.\n- **TLS port** (`a_tlsport`) — a stepper control, default `8089`.\n- **Allowed origins** (`a_origin`) — a chips control, default `https://console.local`, choices `https://console.local`, `https://ops.example`, `*`.\n\n### Manager permissions\n\nTick the classes this user may read or write.\n\n- **Read classes** (`a_read`) — a chips control, default `system`, `call`, `log`, choices `system`, `call`, `log`, `verbose`, `command`, `agent`, `user`, `config`, `dtmf`, `reporting`, `cdr`, `dialplan`, `originate`, `message`.\n  - *What it is:* Which classes of AMI events and commands this user may read.\n  - *Why it exists:* AMI is full administrative access. Class-based permissions are the only granularity available.\n  - *Choosing a value:* system, call, log, verbose, command, agent, user, config, dtmf, reporting, cdr, dialplan, originate, message.\n  - *Gotcha:* The command class allows arbitrary CLI execution. Granting it is equivalent to granting a shell.\n- **Write classes** (`a_write`) — a chips control, default `call`, choices `system`, `call`, `log`, `verbose`, `command`, `agent`, `user`, `config`, `originate`, `message`.\n- **Deny by default** (`a_deny`) — a switch control, default `true`.\n- **Idle timeout** (`a_timeout`) — a slider control, default `300`.\n\n## Failure modes and security\n\nEvery row reflects a real object in manager.conf · ari.conf · http.conf; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen. The command class allows arbitrary CLI execution. Granting it is equivalent to granting a shell.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in manager.conf · ari.conf · http.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[CDR & CEL](cdr.md), [Security](../system/security.md), and [Secret intake](../agent/secrets.md).\n"
+    },
+    {
+      "id": "data/cdr",
+      "category": "data",
+      "title": "Call records",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "ami.md",
+        "../pbx/dash.md",
+        "../system/logger.md"
+      ],
+      "body": "# Call records\n\n## Behavior\n\nWhich backend stores records, what counts as an answered call, and which events are logged. Backends are picked, connection secrets come from secret intake. It is backed by `cdr.conf · cel.conf`. It lives on the Data rail, under the Records & APIs group: Call records, event logging and the machine interfaces.\n\n## Configuration\n\n### CDR\n\nOne row per call.\n\n- **CDR enabled** (`d_enable`) — a switch control, default `true`.\n- **Backend** (`d_backend`) — a select control, default `odbc`, choices `csv`, `custom`, `odbc`, `pgsql`, `sqlite3`, `mysql`, `manager`, `radius`.\n  - *What it is:* Where call detail records are written.\n  - *Why it exists:* Billing, reporting and disputes all depend on these records existing.\n  - *Choosing a value:* csv for small sites, odbc or pgsql for anything that needs querying, custom when you have your own schema.\n  - *Gotcha:* If the database becomes unreachable, Asterisk may block on writes. Batch mode mitigates it; test the failure case before you rely on it.\n- **Log unanswered calls** (`d_unanswered`) — a switch control, default `false`.\n- **Log congestion** (`d_congestion`) — a switch control, default `false`.\n- **Batch mode** (`d_batch`) — a switch control, default `true`.\n- **Batch size** (`d_size`) — a stepper control, default `100`.\n\n### CEL\n\nOne row per channel event — far more detail, far more volume.\n\n- **CEL enabled** (`l_enable`) — a switch control, default `true`.\n- **Tracked events** (`l_events`) — a chips control, default `CHAN_START`, `ANSWER`, `HANGUP`, `BRIDGE_ENTER`, choices `CHAN_START`, `CHAN_END`, `ANSWER`, `HANGUP`, `BRIDGE_ENTER`, `BRIDGE_EXIT`, `APP_START`, `APP_END`, `PARK_START`, `BLINDTRANSFER`.\n- **Tracked applications** (`l_apps`) — a chips control, default `Dial`, `Queue`, choices `Dial`, `Queue`, `VoiceMail`, `ConfBridge`, `Playback`, `Park`.\n- **Timestamp format** (`l_date`) — a segmented control, default `ISO8601`, choices `ISO8601`, `epoch`, `local`.\n\n## Failure modes and security\n\nEvery control here maps to a real key in cdr.conf · cel.conf; an unreachable configuration store is shown as unreachable, never backfilled with placeholder values. If the database becomes unreachable, Asterisk may block on writes. Batch mode mitigates it; test the failure case before you rely on it.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in cdr.conf · cel.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm every default shown here matches what a fresh install actually ships, and that changing a value here is reflected the next time this screen loads.\n\n## Suggested articles\n\n[AMI & ARI](ami.md), [Dashboard](../pbx/dash.md), and [Logger](../system/logger.md).\n"
+    },
+    {
+      "id": "data/README",
+      "category": "data",
+      "title": "Data",
+      "headings": [],
+      "links": [
+        "cdr.md",
+        "ami.md"
+      ],
+      "body": "# Data\n\nRecords & APIs: call records, event logging and the machine interfaces.\n\n- [CDR & CEL](cdr.md)\n- [AMI & ARI](ami.md)\n"
+    },
+    {
+      "id": "media/codecs",
+      "category": "media",
+      "title": "Codecs & RTP",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "../pbx/endpoints.md",
+        "confbridge.md",
+        "moh.md"
+      ],
+      "body": "# Codecs & RTP\n\n## Behavior\n\nTranscoding, packetisation and the media port range. Drag the codec list to change preference order globally. It is backed by `codecs.conf · rtp.conf`. It lives on the Media rail, under the Media & voice group: Codecs, RTP, recordings, prompts and conferencing.\n\n## Configuration\n\n### Codec preference\n\nThe order Asterisk offers codecs in an SDP. Drag to reorder — there is no list to type.\n\n- **Global order** (`k_order`) — a order control, default `opus`, `g722`, `ulaw`, `alaw`, `g729`.\n  - *What it is:* The order codecs are offered in an SDP.\n  - *Why it exists:* The far end picks the first one it also speaks, so order is preference.\n  - *Choosing a value:* opus for quality, g722 for wideband on desk phones, ulaw as the universal fallback, g729 only where bandwidth is scarce and you have licences.\n  - *Gotcha:* Putting a narrowband codec first means every call is narrowband, no matter what the phones support.\n- **Allow transcoding** (`k_transcode`) — a switch control, default `true`.\n- **Opus bitrate** (`k_opusbr`) — a slider control, default `24`.\n- **Preferred ptime** (`k_ptime`) — a segmented control, default `20`, choices `10`, `20`, `30`, `40`, `60`.\n\n### RTP\n\nWhere media lands and how it survives a bad network.\n\n- **RTP port range start** (`r_start`) — a slider control, default `10000`.\n  - *What it is:* The lowest UDP port Asterisk will use for media.\n  - *Why it exists:* Firewalls need to know the range to open.\n  - *Choosing a value:* 10000 to 20000 is the usual convention.\n  - *Gotcha:* Two calls need two ports each. A range smaller than four times your busy-hour concurrency will drop calls with no obvious error.\n- **RTP port range end** (`r_end`) — a slider control, default `20000`.\n- **RFC2833 payload** (`r_dtmf`) — a stepper control, default `101`.\n- **strictrtp** (`r_strict`) — a switch control, default `true`.\n- **ICE support** (`r_ice`) — a switch control, default `false`.\n- **DTLS for WebRTC** (`r_dtls`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery control here maps to a real key in codecs.conf · rtp.conf; an unreachable configuration store is shown as unreachable, never backfilled with placeholder values. Putting a narrowband codec first means every call is narrowband, no matter what the phones support. Two calls need two ports each. A range smaller than four times your busy-hour concurrency will drop calls with no obvious error.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in codecs.conf · rtp.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm every default shown here matches what a fresh install actually ships, and that changing a value here is reflected the next time this screen loads.\n\n## Suggested articles\n\n[Endpoints](../pbx/endpoints.md), [Conferences](confbridge.md), and [Music on hold](moh.md).\n"
+    },
+    {
+      "id": "media/confbridge",
+      "category": "media",
+      "title": "ConfBridge rooms",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "moh.md",
+        "codecs.md",
+        "../pbx/canvas.md"
+      ],
+      "body": "# ConfBridge rooms\n\n## Behavior\n\nBridge profiles, user profiles and menus. Every mixing option is a control; the DTMF menu is edited on the canvas. It is backed by `confbridge.conf`. The rail badge on this destination currently reads `6`. It lives on the Media rail, under the Media & voice group: Codecs, RTP, recordings, prompts and conferencing.\n\n## Configuration\n\n### Mixing\n\nAudio quality and how the bridge combines participants.\n\n- **Internal sample rate** (`c_rate`) — a segmented control, default `48000`, choices `8000`, `16000`, `48000`, `auto`.\n- **Mixing interval** (`c_mixing`) — a segmented control, default `20`, choices `10`, `20`, `40`, `80`.\n- **Video mode** (`c_video`) — a segmented control, default `follow_talker`, choices `none`, `follow_talker`, `last_marked`, `sfu`.\n- **Denoise** (`c_denoise`) — a switch control, default `true`.\n- **Jitter buffer** (`c_jitter`) — a switch control, default `true`.\n- **Talker detection events** (`c_talker`) — a switch control, default `true`.\n\n### Participants\n\nWhat each caller may do once inside.\n\n- **Maximum members** (`c_max`) — a stepper control, default `50`.\n- **Wait for marked user** (`c_marked`) — a switch control, default `true`.\n- **Announce join and leave** (`c_announce`) — a segmented control, default `name`, choices `off`, `tone`, `name`, `count`.\n- **Music while alone** (`c_music`) — a switch control, default `true`.\n- **DTMF menu** (`c_dtmf`) — a select control, default `default_menu`, choices `default_menu`, `admin_menu`, `listen_only`.\n\n## Failure modes and security\n\nEvery row reflects a real object in confbridge.conf; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in confbridge.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Music on hold](moh.md), [Codecs & RTP](codecs.md), and [Dialplan canvas](../pbx/canvas.md).\n"
+    },
+    {
+      "id": "media/moh",
+      "category": "media",
+      "title": "Music on hold",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "confbridge.md",
+        "codecs.md",
+        "voicemail.md"
+      ],
+      "body": "# Music on hold\n\n## Behavior\n\nHold classes and their sources. Files are chosen from a picker; the playlist is reordered by dragging. It is backed by `musiconhold.conf`. The rail badge on this destination currently reads `4`. It lives on the Media rail, under the Media & voice group: Codecs, RTP, recordings, prompts and conferencing.\n\n## Configuration\n\n### Playback\n\nHow each class behaves while somebody waits.\n\n- **Mode** (`h_mode`) — a segmented control, default `files`, choices `files`, `quietmp3`, `ringing`, `custom`.\n- **Playback order** (`h_sort`) — a segmented control, default `random`, choices `alpha`, `random`, `randstart`.\n- **Announcement every** (`h_announce`) — a slider control, default `30`.\n- **Volume trim** (`h_volume`) — a slider control, default `0`.\n\n## Failure modes and security\n\nEvery row reflects a real object in musiconhold.conf; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in musiconhold.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Conferences](confbridge.md), [Codecs & RTP](codecs.md), and [Voicemail](voicemail.md).\n"
+    },
+    {
+      "id": "media/README",
+      "category": "media",
+      "title": "Media",
+      "headings": [],
+      "links": [
+        "voicemail.md",
+        "confbridge.md",
+        "moh.md",
+        "codecs.md"
+      ],
+      "body": "# Media\n\nMedia & voice: codecs, RTP, recordings, prompts and conferencing.\n\n- [Voicemail](voicemail.md)\n- [Conferences](confbridge.md)\n- [Music on hold](moh.md)\n- [Codecs & RTP](codecs.md)\n"
+    },
+    {
+      "id": "media/voicemail",
+      "category": "media",
+      "title": "Voicemail boxes",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "../pbx/queues.md",
+        "codecs.md",
+        "../agent/secrets.md"
+      ],
+      "body": "# Voicemail boxes\n\n## Behavior\n\nMailboxes, greetings and delivery. Attachment and storage options are switches; nothing about a mailbox needs typing except the owner name. It is backed by `voicemail.conf`. The rail badge on this destination currently reads `18`. It lives on the Media rail, under the Media & voice group: Codecs, RTP, recordings, prompts and conferencing.\n\n## Configuration\n\n### Delivery\n\nWhat happens the moment a message lands.\n\n- **Attach recording to email** (`v_attach`) — a switch control, default `true`.\n- **Delete after emailing** (`v_delete`) — a switch control, default `false`. Careful. On means the only copy of the message is the one in the mailbox of the email server.\n  - *What it is:* Whether the recording is deleted from the PBX once it has been emailed.\n  - *Why it exists:* Mailbox storage on a PBX is finite and messages accumulate forever.\n  - *Choosing a value:* Off keeps a copy on the PBX. On makes email the only copy.\n  - *Gotcha:* If the mail server bounces the message, on means the recording is gone. Verify delivery before enabling it.\n- **Message format** (`v_format`) — a segmented control, default `wav49`, choices `wav`, `wav49`, `gsm`, `ogg`.\n- **Maximum messages** (`v_maxmsg`) — a stepper control, default `100`.\n- **Maximum message length** (`v_maxsecs`) — a slider control, default `180`.\n  - *What it is:* The longest a single voicemail message may be.\n  - *Why it exists:* It bounds storage and stops accidental open-line recordings filling the disk.\n  - *Choosing a value:* 180 seconds is generous for business use.\n  - *Gotcha:* Callers are cut off mid-word with no warning tone unless you also configure one.\n- **Discard shorter than** (`v_minsecs`) — a slider control, default `3`.\n\n### Caller experience\n\nPrompts, review and escape routes.\n\n- **Let caller review** (`v_review`) — a switch control, default `true`.\n- **Zero escapes to operator** (`v_operator`) — a switch control, default `true`.\n- **Play date envelope** (`v_envelope`) — a switch control, default `true`.\n- **Announce caller ID** (`v_saycid`) — a switch control, default `false`.\n\n## Failure modes and security\n\nEvery row reflects a real object in voicemail.conf; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen. If the mail server bounces the message, on means the recording is gone. Verify delivery before enabling it. Callers are cut off mid-word with no warning tone unless you also configure one.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in voicemail.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Queues & agents](../pbx/queues.md), [Codecs & RTP](codecs.md), and [Secret intake](../agent/secrets.md).\n"
+    },
+    {
+      "id": "pbx/canvas",
+      "category": "pbx",
+      "title": "Dialplan canvas",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "ivr.md",
+        "queues.md",
+        "endpoints.md"
+      ],
+      "body": "# Dialplan canvas\n\n## Behavior\n\nOne infinite canvas for dialplan, IVR and queue routing. Drop a step, wire it to the next, and the console writes the priorities for you. The inspector on the right edits whichever step is selected. It is backed by `extensions.conf`. The rail badge on this destination currently reads `∞`. It lives on the PBX rail, under the Telephony group: Endpoints, routing and everything a call touches while it is alive.\n\n## Configuration\n\nThere is no settings form here. Every node dropped on the canvas becomes a step in extensions.conf, wired to the next node with a connector; the console generates the dialplan priorities so nothing needs to be numbered by hand.\n\n## Failure modes and security\n\nA node that references a destination that no longer exists is flagged on the canvas rather than silently dropped from extensions.conf.\n\n## Verification\n\nConfirm dragging, connecting and deleting a node updates extensions.conf correctly, and that an orphaned reference is surfaced rather than silently dropped.\n\n## Suggested articles\n\n[IVR menus](ivr.md), [Queues & agents](queues.md), and [Endpoints](endpoints.md).\n"
+    },
+    {
+      "id": "pbx/dash",
+      "category": "pbx",
+      "title": "Dashboard",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "live.md",
+        "endpoints.md",
+        "../data/cdr.md"
+      ],
+      "body": "# Dashboard\n\n## Behavior\n\nEverything the PBX is doing right now. Numbers come from AMI, not from a config file, so nothing here is editable — it is the truth of the running system. It is backed by `live`. The rail badge on this destination currently reads `live`. It lives on the PBX rail, under the Telephony group: Endpoints, routing and everything a call touches while it is alive.\n\n## Configuration\n\nThis screen has no editable controls. It is read-only telemetry, refreshed from the live AMI connection to Asterisk, and nothing on it is written back to a configuration file.\n\n## Failure modes and security\n\nBecause the numbers come from AMI rather than a file, an unreachable manager connection means the dashboard shows its disconnected state honestly instead of the last good numbers.\n\n## Verification\n\nConfirm the screen goes to its disconnected state when AMI is unreachable and recovers without a manual refresh once it returns.\n\n## Suggested articles\n\n[Live channels](live.md), [Endpoints](endpoints.md), and [CDR & CEL](../data/cdr.md).\n"
+    },
+    {
+      "id": "pbx/endpoints",
+      "category": "pbx",
+      "title": "PJSIP endpoints",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "trunks.md",
+        "../system/security.md",
+        "../media/codecs.md"
+      ],
+      "body": "# PJSIP endpoints\n\n## Behavior\n\nPhones, softphones and applications that register with this PBX. Selecting a row loads its full option set below — every one of them a control, never a text field. It is backed by `pjsip.conf`. The rail badge on this destination currently reads `12`. It lives on the PBX rail, under the Telephony group: Endpoints, routing and everything a call touches while it is alive.\n\n## Configuration\n\n### Identity\n\nWho this endpoint claims to be on the wire, and what the far end is allowed to present back.\n\n- **Transport** (`e_transport`) — a select control, default `transport-udp`, choices `transport-udp`, `transport-tcp`, `transport-tls`, `transport-wss`. A transport is the road the signalling travels on. UDP is the plain road, TLS is the same road inside an armoured tunnel.\n  - *What it is:* Chooses which configured transport this endpoint signals over: plain UDP, TCP, TLS, or WebSocket for browsers.\n  - *Why it exists:* Signalling carries who is calling whom, the credentials exchange and the media keys. On UDP all of that is readable by anything on the path.\n  - *Choosing a value:* transport-udp is the historic default and fine inside a trusted LAN. transport-tcp helps where packets are large or fragmented. transport-tls is the right answer for anything crossing a network you do not own. transport-wss is required for WebRTC browser clients.\n  - *Gotcha:* The transport must already exist as a section in pjsip.conf. Selecting TLS without a certificate configured means the endpoint simply never registers, with a message that does not obviously say so.\n- **Dialplan context** (`e_context`) — a select control, default `from-internal`, choices `from-internal`, `from-external`, `from-trunk`, `sip-guest`. When this endpoint dials, Asterisk looks for the number inside this context. Think of it as which phone book gets opened.\n  - *What it is:* The dialplan context this endpoint enters when it dials.\n  - *Why it exists:* A context is a namespace of extensions. It is the single most important security boundary in Asterisk: an endpoint can only reach what its context lets it reach.\n  - *Choosing a value:* from-internal for staff phones, from-external for anything untrusted, from-trunk for carriers.\n  - *Gotcha:* Putting a desk phone in from-external is the classic toll-fraud opening. If a compromised phone lands in a context that can dial out, it will.\n- **Caller ID presentation** (`e_callerid`) — a segmented control, default `Allowed`, choices `Allowed`, `Prohibited`, `Unavailable`.\n- **Trust inbound identity** (`e_trust`) — a switch control, default `false`. Only turn this on for carriers you control. It tells Asterisk to believe P-Asserted-Identity headers the other side sends.\n\n### Media & NAT\n\nEvery option here came out of pjsip.conf. Toggle, do not type.\n\n- **direct_media** (`e_direct`) — a switch control, default `false`. Off means audio goes through Asterisk. On means the two phones talk to each other directly and Asterisk steps out of the audio path.\n  - *What it is:* Whether the two phones may send audio straight to each other, leaving Asterisk out of the media path.\n  - *Why it exists:* It halves bandwidth at the PBX and removes a hop of latency.\n  - *Choosing a value:* no keeps audio flowing through Asterisk. yes lets the endpoints talk directly once the call is up.\n  - *Gotcha:* With direct media you cannot record, cannot monitor, and mid-call transfers get fragile. Almost every deployment that needs features leaves it off.\n- **rtp_symmetric** (`e_symmetric`) — a switch control, default `true`.\n  - *What it is:* Requires that RTP arrives from the same address and port we are sending to.\n  - *Why it exists:* It defeats a class of audio injection where a third party sprays packets at your open RTP port.\n  - *Choosing a value:* yes is strongly recommended. no only for equipment that genuinely cannot comply.\n  - *Gotcha:* Combined with rewrite_contact it also fixes most NAT audio problems, which is why the pair is usually enabled together.\n- **force_rport** (`e_forcerport`) — a switch control, default `true`.\n  - *What it is:* Sends responses back to the port the request actually came from, rather than the port the phone claimed.\n  - *Why it exists:* A phone behind NAT advertises its private port. Replying there sends the packet nowhere.\n  - *Choosing a value:* yes for anything behind a router, which is nearly everything.\n  - *Gotcha:* Turning it off for a remote phone produces one-way registration that silently expires.\n- **rewrite_contact** (`e_rewrite`) — a switch control, default `true`. Needed when a phone behind a home router announces its private address. Asterisk quietly replaces it with the address the packet really came from.\n  - *What it is:* Replaces the Contact header address with the address the packet actually arrived from.\n  - *Why it exists:* Same NAT problem as force_rport, at the registration layer.\n  - *Choosing a value:* yes for remote and home workers. Not needed on a flat trusted LAN.\n  - *Gotcha:* On a carrier trunk this can be wrong: the carrier may legitimately present a Contact that differs from the source.\n- **ice_support** (`e_ice`) — a switch control, default `false`.\n- **media_encryption** (`e_encryption`) — a segmented control, default `sdes`, choices `no`, `sdes`, `dtls`.\n  - *What it is:* Whether media is encrypted, and with which scheme.\n  - *Why it exists:* TLS protects signalling only. Without media encryption the conversation itself is in the clear.\n  - *Choosing a value:* no is unencrypted. sdes exchanges keys in the SDP and requires TLS to be meaningful. dtls negotiates keys in the media stream itself and is what WebRTC uses.\n  - *Gotcha:* sdes over UDP signalling is theatre — the keys travel in plain text. If you turn on sdes, turn on TLS as well.\n- **dtmf_mode** (`e_dtmf`) — a segmented control, default `rfc4733`, choices `rfc4733`, `inband`, `info`, `auto`.\n  - *What it is:* How keypad presses travel from the phone to Asterisk.\n  - *Why it exists:* IVR menus, voicemail passwords and conference controls all depend on getting this right.\n  - *Choosing a value:* rfc4733 sends them as RTP events and is the modern default. inband sends actual tones in the audio, which compressed codecs mangle. info uses SIP INFO messages. auto tries to work it out.\n  - *Gotcha:* inband with g729 is the single most common cause of an IVR that ignores every key press.\n\n### Registration & AOR\n\nHow many devices may share this identity and how often Asterisk pokes them.\n\n- **max_contacts** (`e_maxcontacts`) — a stepper control, default `2`.\n  - *What it is:* How many devices may register against this one identity at the same time.\n  - *Why it exists:* One identity ringing a desk phone and a mobile app together needs at least two.\n  - *Choosing a value:* 1 for a single desk phone. 2 to 3 for desk plus mobile. 0 means unlimited and should not be used.\n  - *Gotcha:* A stolen credential can quietly add a device. Keep this as low as the deployment allows and watch the contact list.\n- **qualify_frequency** (`e_qualify`) — a slider control, default `60`. Asterisk sends a tiny OPTIONS ping this often to see if the phone is still alive. Zero switches the pings off.\n  - *What it is:* How often Asterisk sends a lightweight OPTIONS request to check the endpoint is still alive.\n  - *Why it exists:* It is how the console knows an endpoint went unreachable before a caller discovers it.\n  - *Choosing a value:* 60 seconds is a sensible default. 30 for critical endpoints. 0 disables the check.\n  - *Gotcha:* Very short intervals across hundreds of endpoints generate real traffic and real CPU. It is a poll, not a subscription.\n- **Registration expiry** (`e_expiry`) — a slider control, default `3600`.\n- **Allowed codecs** (`e_codecs`) — a order control, default `opus`, `g722`, `ulaw`, `alaw`.\n\n## Failure modes and security\n\nEvery row reflects a real object in pjsip.conf; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen. The transport must already exist as a section in pjsip.conf. Selecting TLS without a certificate configured means the endpoint simply never registers, with a message that does not obviously say so. Putting a desk phone in from-external is the classic toll-fraud opening. If a compromised phone lands in a context that can dial out, it will. With direct media you cannot record, cannot monitor, and mid-call transfers get fragile. Almost every deployment that needs features leaves it off. Combined with rewrite_contact it also fixes most NAT audio problems, which is why the pair is usually enabled together.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in pjsip.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Trunks](trunks.md), [Security](../system/security.md), and [Codecs & RTP](../media/codecs.md).\n"
+    },
+    {
+      "id": "pbx/ivr",
+      "category": "pbx",
+      "title": "IVR menus",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "canvas.md",
+        "queues.md",
+        "../media/voicemail.md"
+      ],
+      "body": "# IVR menus\n\n## Behavior\n\nEach menu is a canvas subgraph with a prompt and a key map. Editing a key here moves the matching node on the canvas. It is backed by `extensions.conf`. The rail badge on this destination currently reads `5`. It lives on the PBX rail, under the Telephony group: Endpoints, routing and everything a call touches while it is alive.\n\n## Configuration\n\n### Menu behaviour\n\nApplies to the selected menu.\n\n- **Digit timeout** (`i_timeout`) — a slider control, default `7`.\n- **Retries before fallback** (`i_retries`) — a stepper control, default `3`.\n- **On invalid entry** (`i_invalid`) — a segmented control, default `Repeat`, choices `Repeat`, `Operator`, `Voicemail`, `Hangup`.\n- **Allow direct extension dial** (`i_direct`) — a switch control, default `true`.\n- **Prompt language** (`i_lang`) — a select control, default `en`, choices `en`, `es`, `fr`, `de`, `zh`.\n- **Allow barge-in over prompt** (`i_barge`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery row reflects a real object in extensions.conf; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in extensions.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Dialplan canvas](canvas.md), [Queues & agents](queues.md), and [Voicemail](../media/voicemail.md).\n"
+    },
+    {
+      "id": "pbx/live",
+      "category": "pbx",
+      "title": "Live channels",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "dash.md",
+        "../system/security.md",
+        "endpoints.md"
+      ],
+      "body": "# Live channels\n\n## Behavior\n\nEvery channel currently up. Spy, record or hang up any of them; each action runs the full four-gate confirmation. It is backed by `core show channels`. The rail badge on this destination currently reads `4`. It lives on the PBX rail, under the Telephony group: Endpoints, routing and everything a call touches while it is alive.\n\n## Configuration\n\n### Monitor defaults\n\nApplied to any spy or recording started from this screen.\n\n- **Spy mode** (`m_spy`) — a segmented control, default `Whisper`, choices `Listen`, `Whisper`, `Barge`.\n- **Recording format** (`m_format`) — a segmented control, default `wav`, choices `wav`, `gsm`, `g722`, `ogg`.\n- **Beep on record start** (`m_beep`) — a switch control, default `true`.\n- **Keep recordings for** (`m_retain`) — a slider control, default `90`.\n\n## Failure modes and security\n\nEvery row reflects a real object in core show channels; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in core show channels, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Dashboard](dash.md), [Security](../system/security.md), and [Endpoints](endpoints.md).\n"
+    },
+    {
+      "id": "pbx/queues",
+      "category": "pbx",
+      "title": "Queues & agents",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "canvas.md",
+        "ivr.md",
+        "../media/moh.md"
+      ],
+      "body": "# Queues & agents\n\n## Behavior\n\nRing strategy, penalties and service level, all lifted from queues.conf. Agents are dragged between queues on the canvas. It is backed by `queues.conf`. The rail badge on this destination currently reads `4`. It lives on the PBX rail, under the Telephony group: Endpoints, routing and everything a call touches while it is alive.\n\n## Configuration\n\n### Ring strategy\n\nHow a waiting call is offered to the members of this queue.\n\n- **strategy** (`q_strategy`) — a select control, default `ringall`, choices `ringall`, `leastrecent`, `fewestcalls`, `random`, `rrmemory`, `linear`, `wrandom`. ringall rings every free agent at once. leastrecent picks whoever has gone longest without a call. Pick ringall if you are not sure.\n  - *What it is:* How a waiting call is offered to the members of the queue.\n  - *Why it exists:* It decides whether callers wait less or agents share work evenly. You cannot optimise both.\n  - *Choosing a value:* ringall rings every free agent and answers fastest. leastrecent picks whoever has gone longest without a call. fewestcalls balances totals. rrmemory is round robin that remembers its place. linear follows the member order exactly.\n  - *Gotcha:* ringall on a large queue rings a lot of phones for every call, which staff find exhausting. Above about eight agents, move to rrmemory or leastrecent.\n- **Ring each agent for** (`q_timeout`) — a slider control, default `15`.\n- **wrapuptime** (`q_wrapup`) — a slider control, default `15`. Breathing room after a call ends before that agent may be rung again.\n  - *What it is:* How long after a call ends before this agent may be offered another.\n  - *Why it exists:* Agents need to finish notes. Without it the next call lands mid-sentence.\n  - *Choosing a value:* 15 to 30 seconds suits most support desks. 0 for a high-volume queue where notes are not taken.\n  - *Gotcha:* It applies per member, not per queue, so an agent in three queues is unavailable in all of them during wrap-up.\n- **Retry gap** (`q_retry`) — a slider control, default `5`.\n- **ringinuse** (`q_ringinuse`) — a switch control, default `false`.\n  - *What it is:* Whether members already on a call should still be rung.\n  - *Why it exists:* Some phones can hold a second call; most staff cannot.\n  - *Choosing a value:* no in almost every case.\n  - *Gotcha:* Turning it on makes queue statistics misleading, because calls appear offered to people who could never have taken them.\n- **autopause** (`q_autopause`) — a segmented control, default `no`, choices `no`, `yes`, `all`.\n\n### Capacity & announcements\n\nWhat callers hear and when the queue turns them away.\n\n- **Maximum callers** (`q_maxlen`) — a stepper control, default `25`.\n- **servicelevel** (`q_service`) — a slider control, default `60`.\n  - *What it is:* The answer target used to calculate the service level percentage.\n  - *Why it exists:* It is the number a manager reports on.\n  - *Choosing a value:* 60 seconds is the industry convention.\n  - *Gotcha:* Changing it rewrites the meaning of every historical report; the stored data is raw wait times, but the percentage is computed against whatever this says today.\n- **joinempty** (`q_joinempty`) — a chips control, default `paused`, `invalid`, choices `paused`, `inuse`, `invalid`, `unavailable`, `ringing`.\n  - *What it is:* Under which member states a caller is still allowed to enter the queue.\n  - *Why it exists:* It stops callers waiting in a line nobody is standing behind.\n  - *Choosing a value:* A list of states: paused, inuse, invalid, unavailable, ringing.\n  - *Gotcha:* The semantics are inverted from what most people expect: these are the states that still count as \"somebody is there\".\n- **leavewhenempty** (`q_leave`) — a chips control, default `inuse`, choices `paused`, `inuse`, `invalid`, `unavailable`, `ringing`.\n- **Periodic announcement every** (`q_periodic`) — a slider control, default `60`.\n- **Announce position in queue** (`q_position`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery row reflects a real object in queues.conf; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen. ringall on a large queue rings a lot of phones for every call, which staff find exhausting. Above about eight agents, move to rrmemory or leastrecent. It applies per member, not per queue, so an agent in three queues is unavailable in all of them during wrap-up. Turning it on makes queue statistics misleading, because calls appear offered to people who could never have taken them. Changing it rewrites the meaning of every historical report; the stored data is raw wait times, but the percentage is computed against whatever this says today.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in queues.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Dialplan canvas](canvas.md), [IVR menus](ivr.md), and [Music on hold](../media/moh.md).\n"
+    },
+    {
+      "id": "pbx/README",
+      "category": "pbx",
+      "title": "PBX",
+      "headings": [],
+      "links": [
+        "dash.md",
+        "live.md",
+        "endpoints.md",
+        "trunks.md",
+        "trunkauth.md",
+        "canvas.md",
+        "ivr.md",
+        "queues.md"
+      ],
+      "body": "# PBX\n\nTelephony: endpoints, routing and everything a call touches while it is alive.\n\n- [Dashboard](dash.md)\n- [Live channels](live.md)\n- [Endpoints](endpoints.md)\n- [Trunks](trunks.md)\n- [Trunk authentication](trunkauth.md)\n- [Dialplan canvas](canvas.md)\n- [IVR menus](ivr.md)\n- [Queues & agents](queues.md)\n"
+    },
+    {
+      "id": "pbx/trunkauth",
+      "category": "pbx",
+      "title": "Trunk authentication",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "trunks.md",
+        "../system/security.md",
+        "../app/history.md"
+      ],
+      "body": "# Trunk authentication\n\n## Behavior\n\nWhen a trunk partner asks to change something on the shared link — a new source address, a codec, a higher call cap — the request lands here and you answer yes or no. Nothing takes effect until you do. It is backed by `pjsip.conf · partner requests`. The rail badge on this destination currently reads `2`. It lives on the PBX rail, under the Telephony group: Endpoints, routing and everything a call touches while it is alive.\n\n## Configuration\n\n### Answering policy\n\nHow requests arrive and what may be answered without you.\n\n- **Auto-approve low-risk requests** (`ta_auto`) — a switch control, default `false`. Low risk means a codec addition or a health-check interval. Address changes and call caps are never auto-approved.\n- **Requests expire after** (`ta_expire`) — a slider control, default `48`.\n- **Notify on new request** (`ta_notify`) — a switch control, default `true`.\n- **Require mutual confirmation** (`ta_mutual`) — a switch control, default `true`. Both sides must answer yes. A one-sided yes stays pending, which is what stops a partner quietly widening the link.\n- **Sign my answers** (`ta_sign`) — a switch control, default `true`.\n- **Keep the answer history forever** (`ta_log`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery control here maps to a real key in pjsip.conf · partner requests; an unreachable configuration store is shown as unreachable, never backfilled with placeholder values.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in pjsip.conf · partner requests, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm every default shown here matches what a fresh install actually ships, and that changing a value here is reflected the next time this screen loads.\n\n## Suggested articles\n\n[Trunks](trunks.md), [Security](../system/security.md), and [History & git](../app/history.md).\n"
+    },
+    {
+      "id": "pbx/trunks",
+      "category": "pbx",
+      "title": "Trunks & registrations",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "trunkauth.md",
+        "endpoints.md",
+        "../system/security.md"
+      ],
+      "body": "# Trunks & registrations\n\n## Behavior\n\nOutbound carriers and inbound identifies. Registration state is polled live; credentials live in the secret intake, never on this screen. It is backed by `pjsip.conf`. The rail badge on this destination currently reads `3`. It lives on the PBX rail, under the Telephony group: Endpoints, routing and everything a call touches while it is alive.\n\n## Configuration\n\n### Failover\n\nWhat happens when the primary carrier stops answering.\n\n- **Retry interval** (`t_retry`) — a slider control, default `60`.\n- **Forbidden retry** (`t_forbidden`) — a slider control, default `300`.\n- **Fatal retry attempts** (`t_fatal`) — a stepper control, default `5`.\n- **Failover order** (`t_order`) — a order control, default `carrier-primary`, `carrier-backup`, `branch-iax`.\n\n### Outbound identity\n\nHow your calls appear to the carrier.\n\n- **From domain source** (`t_from`) — a segmented control, default `Trunk`, choices `Trunk`, `Endpoint`, `Global`.\n- **Send P-Asserted-Identity** (`t_pai`) — a switch control, default `true`.\n- **Privacy header** (`t_privacy`) — a segmented control, default `none`, choices `none`, `id`, `header`, `critical`.\n- **100rel** (`t_100rel`) — a segmented control, default `yes`, choices `no`, `required`, `yes`.\n\n## Failure modes and security\n\nEvery row reflects a real object in pjsip.conf; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in pjsip.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Trunk authentication](trunkauth.md), [Endpoints](endpoints.md), and [Security](../system/security.md).\n"
+    },
+    {
+      "id": "platform/accessibility",
+      "category": "platform",
+      "title": "Accessibility",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "responsive-sizing.md",
+        "material-appearance.md",
+        "../system/security.md",
+        "README.md"
+      ],
+      "body": "# Accessibility\n\nKeyboard reachability, visible focus, correct semantic roles, sufficient contrast, and screen-reader-sensible structure across the whole product.\n\n## Behavior\n\nEvery interactive element is meant to be reachable by keyboard, carry a visible focus indicator, expose the correct accessible role, name, and state, hold sufficient contrast, and respect a reduced-motion preference.\n\n## Configuration\n\nThis is treated as a completion blocker rather than later polish: a control that looks interactive but cannot be reached or announced correctly is considered unfinished, not merely rough.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application's rendered interface currently contains no accessibility attributes at all — no ARIA roles, no accessible names distinct from visible labels, and no verified keyboard focus order. There are also no automated tests covering the desktop application's generic feature surface. This is stated directly rather than left for a reader to assume.\n\n**Documentation website:** Partial. The documentation website has some baseline structure — heading hierarchy, a skip-to-content link, and semantic landmarks — but has not been audited for contrast, full keyboard operability, or screen-reader correctness across every page.\n\n## Failure modes\n\nA control that cannot currently be reached by keyboard or announced correctly to a screen reader is, today, a real and known gap rather than a hypothetical failure mode; closing it is unstarted work on the desktop application and partial work on the site.\n\n## Accessibility and localization\n\nThe desktop application's interface currently contains no accessibility attributes at all, and there are no automated tests covering the desktop application's generic feature surface. This is stated here directly so a reader does not have to assume it. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Responsive and high-scale sizing](responsive-sizing.md), [Material appearance system](material-appearance.md), [Security](../system/security.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/app-display-name",
+      "category": "platform",
+      "title": "Renameable app display name",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "app-logo-customization.md",
+        "../app/about.md",
+        "README.md"
+      ],
+      "body": "# Renameable app display name\n\nLets a user rename what the application calls itself in its own title bar and About screen, without touching its install identity.\n\n## Behavior\n\nA settings field is meant to let a user set a custom display name shown in the title bar, notifications, and About screen, persisted across restarts and resettable to the shipped name in one action.\n\n## Configuration\n\nRenaming would change display only — the application's data directory, package identifiers, and update feed stay fixed to the shipped constant regardless of what the user renames it to.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application shows a fixed title-bar name with no rename control anywhere in settings.\n\n**Documentation website:** Not implemented. The documentation website is not an installed application with a title bar identity of this kind.\n\n## Failure modes\n\nA rename that accidentally altered the application's data-directory path rather than only its display label is the specific failure this feature is designed to prevent by deriving the two from separate constants; there is no rename control yet to exercise that separation.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[App logo customization](app-logo-customization.md), [About and policy](../app/about.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/app-logo-customization",
+      "category": "platform",
+      "title": "App logo customization",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "material-appearance.md",
+        "app-display-name.md",
+        "../app/appearance.md",
+        "README.md"
+      ],
+      "body": "# App logo customization\n\nLets a user replace the application's displayed mark with a shipped preset or their own local image.\n\n## Behavior\n\nA logo customization surface is meant to offer several presets plus a local image upload, processed entirely on-device with cropping, fit, and background controls, then applied live wherever the mark is shown.\n\n## Configuration\n\nProcessing would be bounded and safe — validated file types, no network upload — with conversion failures leaving the previous valid logo in place.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application shows a fixed application mark with no customization surface.\n\n**Documentation website:** Partial. The site's settings page includes a placeholder entry for logo customization; no preset picker, no upload control, and no on-device processing exist behind it yet.\n\n## Failure modes\n\nA malformed or oversized uploaded image is meant to be rejected before it becomes the active mark, with the previous logo staying in place; nothing implements the upload path today, so nothing enforces that yet.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Material appearance system](material-appearance.md), [Renameable app display name](app-display-name.md), [Appearance](../app/appearance.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/attention-modes",
+      "category": "platform",
+      "title": "Attention-support modes",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "accessibility.md",
+        "non-blocking-notifications.md",
+        "README.md"
+      ],
+      "body": "# Attention-support modes\n\nA set of independently toggleable, off-by-default interface modes — focus, low stimulation, time awareness, one-thing-at-a-time, and momentum — aimed at attention difficulties.\n\n## Behavior\n\nEach mode is meant to be a separate switch: focus dims everything but the active item without hiding it, low stimulation reduces motion and non-essential notifications, time awareness shows elapsed session time, one-thing-at-a-time pins a single chosen next action, and momentum gently and dismissibly flags long-untouched work.\n\n## Configuration\n\nCopy in these modes would stay plain and factual, never gamified or judgmental, presented as interface accommodations rather than anything medical or diagnostic.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has none of these modes; there is no focus dimming, no stimulation reduction toggle, no elapsed-time indicator, and no momentum prompt.\n\n**Documentation website:** Partial. The site's settings page includes placeholder entries naming these modes; none of the five behaviors are actually wired to change the rendered page yet.\n\n## Failure modes\n\nNone of these modes currently changes anything a user can see; the placeholder settings entries are labels only, so there is no interaction to fail yet.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Accessibility](accessibility.md), [Non-blocking notifications](non-blocking-notifications.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/automatic-updates",
+      "category": "platform",
+      "title": "Automatic updates",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "status-hub.md",
+        "../app/about.md",
+        "README.md"
+      ],
+      "body": "# Automatic updates\n\nChrome-style unsigned update checking that downloads, validates, and stages a new version in the background, then offers a non-blocking restart prompt.\n\n## Behavior\n\nThe application is meant to check for updates on startup and on a bounded schedule, validate the unsigned update package by hash over HTTPS, stage it locally, and show a persistent non-blocking ready banner naming the version and offering restart-now or later.\n\n## Configuration\n\nBecause code signing is permanently out of scope for this product, every update surface would say plainly that the package is unsigned and may trigger an operating-system warning.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has no automatic-update mechanism; new versions must be installed manually from a downloaded installer, and there is no update-check, staging, or ready-to-restart banner.\n\n**Documentation website:** Not implemented. The documentation website has no installable update cycle of this kind; it is redeployed directly rather than updated on a user's machine.\n\n## Failure modes\n\nA downloaded update package whose hash does not match its published manifest is meant to be discarded without staging or offering to restart into it; there is no updater yet to enforce that check.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Status hub](status-hub.md), [About and policy](../app/about.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/bounded-overlays",
+      "category": "platform",
+      "title": "Bounded, self-painting overlays",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "material-appearance.md",
+        "command-palette.md",
+        "README.md"
+      ],
+      "body": "# Bounded, self-painting overlays\n\nEvery popover, menu, and tooltip paints its own background and elevation and stays fully inside the viewport, scrolling internally rather than clipping content.\n\n## Behavior\n\nOverlays are meant to never render transparent over whatever sits behind them, and to bound their height to the available space, scrolling their own content rather than silently truncating it.\n\n## Configuration\n\nAn overlay would never cover the control that opened it and would remain reachable and legible at every supported display scale.\n\n## Current status\n\n**Desktop application:** Partial. The desktop application's menus and popovers generally paint an opaque background and stay within the window, but have not been systematically verified against the viewport-bounding and internal-scroll requirements at every scale.\n\n**Documentation website:** Partial. The site has a small number of overlay elements, such as the command-palette filter overlay, that paint an opaque surface and stay within the viewport in ordinary use, but have not been stress-tested at extreme viewport sizes.\n\n## Failure modes\n\nAn overlay taller than the available viewport is meant to scroll its own content rather than clip the bottom entries silently out of view; this has not been verified as the actual behavior on either surface at extreme sizes.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Material appearance system](material-appearance.md), [Command palette](command-palette.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/browser-extension-download-surfaces",
+      "category": "platform",
+      "title": "Browser-extension download capture surfaces",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "long-operation-progress.md",
+        "README.md"
+      ],
+      "body": "# Browser-extension download capture surfaces\n\nA companion browser extension's Start-download and in-progress-download dialogs, giving a real confirm/cancel decision and live transfer progress.\n\n## Behavior\n\nA Start-download dialog is meant to name the proposed file, source, and destination before anything transfers; a separate always-on-top Downloading dialog would show live progress, rate, and pause/resume/cancel controls for the real transfer underway.\n\n## Configuration\n\nBoth dialogs would reflect the actual queued and in-flight transfer rather than a simulated progress value.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application is not a browser and has no browser-extension download surface of this kind.\n\n**Documentation website:** Not implemented. The documentation website is not a browser extension and has no download-capture flow of this kind.\n\n## Failure modes\n\nN/A — with no extension or capture flow implemented, there is no failure path to describe.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Long-operation progress reporting](long-operation-progress.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/browser-style-tabs",
+      "category": "platform",
+      "title": "Browser-style tabbed navigation",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "tab-groups-and-searches.md",
+        "command-palette.md",
+        "material-appearance.md",
+        "../app/appearance.md",
+        "README.md"
+      ],
+      "body": "# Browser-style tabbed navigation\n\nPresents application and settings content as discrete, navigable tabs rather than one long scrolling page.\n\n## Behavior\n\nEvery major surface, including settings, is meant to use a persistent tab strip, dockable to any screen edge, with overflow handling, reordering, and pinning, rather than a single scrolling column.\n\n## Configuration\n\nTabs would support keyboard navigation with correct roles and states, and the strip would collapse gracefully at narrow widths without clipping labels.\n\n## Current status\n\n**Desktop application:** Partial. A left navigation rail separates the app's screens, which gives some of the navigational benefit of tabs, but there is no true tab strip with overflow handling, reordering, pinning, or edge-docking choice.\n\n**Documentation website:** Not implemented. Articles are presented as a navigable list with in-page section anchors rather than a browser-style tab strip.\n\n## Failure modes\n\nWhen more tabs are open than the strip can show, the intended behavior is an overflow menu listing the rest rather than silently clipping the last tab off-screen; there is no tab strip yet to overflow.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Tab groups and tab search](tab-groups-and-searches.md), [Command palette](command-palette.md), [Material appearance system](material-appearance.md), [Appearance](../app/appearance.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/built-in-authenticator",
+      "category": "platform",
+      "title": "Built-in authenticator",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "per-element-toy-locks.md",
+        "unlock-ladder.md",
+        "../agent/secrets.md",
+        "README.md"
+      ],
+      "body": "# Built-in authenticator\n\nAn in-app TOTP authenticator for arbitrary accounts, including QR-code pairing, so a user does not need a separate phone app.\n\n## Behavior\n\nA dedicated authenticator surface is meant to accept pairing by QR code, pasted `otpauth://` URI, or manual entry, then show live rotating codes for every registered account, entirely offline and locally stored.\n\n## Configuration\n\nA new pairing would be confirmed by entering one live code back before the entry is considered armed, so a mis-scanned secret is caught immediately rather than at the next login.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has no authenticator surface of any kind.\n\n**Documentation website:** Not implemented. The documentation website has no accounts of its own for an authenticator to pair with.\n\n## Failure modes\n\nA clock skewed far enough that generated codes would be rejected everywhere is meant to be reported to the user in plain words; there is no authenticator yet to encounter that condition.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Per-element toy locks](per-element-toy-locks.md), [Unlock ladder](unlock-ladder.md), [Secrets](../agent/secrets.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/bulk-actions",
+      "category": "platform",
+      "title": "Bulk actions",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "complete-exports.md",
+        "destructive-action-confirmation.md",
+        "README.md"
+      ],
+      "body": "# Bulk actions\n\nMulti-select and batch operations across every list, table, and collection in the product, with an honest preview before anything irreversible runs.\n\n## Behavior\n\nEvery list is meant to support multi-select (click, shift-click ranges, and a keyboard equivalent), an honestly scoped select-all, and the same actions available singly — delete, export, move, tag, and so on — offered in bulk with a reviewable count and preview.\n\n## Configuration\n\nA bulk action would be undoable through local version history where the underlying action normally is, and would never silently skip an item without reporting it.\n\n## Current status\n\n**Desktop application:** Not implemented. Every list in the desktop application (servers, recordings, and similar) is single-selection only, with no multi-select, select-all, or batch action available.\n\n**Documentation website:** Not implemented. The documentation website has no user-owned lists to act on in bulk.\n\n## Failure modes\n\nIf an item in a bulk batch cannot complete the action (a locked record, a permission error), the intended behavior is to report that item as skipped in the result summary rather than silently omit it; there is no bulk mechanism yet to test this against.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Complete data export](complete-exports.md), [Destructive-action super confirmation](destructive-action-confirmation.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/changelog-viewer",
+      "category": "platform",
+      "title": "In-app changelog viewer",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "local-version-history.md",
+        "status-hub.md",
+        "../app/history.md",
+        "README.md"
+      ],
+      "body": "# In-app changelog viewer\n\nA browsable record of every released version, filterable by date and searchable by text, with export and per-entry commit links.\n\n## Behavior\n\nThe viewer is meant to list every released version with categorized changes, a calendar-based date filter, a text search wired to the regex builder, and export to a durable text format, with each entry linked to the exact commit that made the change.\n\n## Configuration\n\nIts tone would follow the funny-level and language settings while every version number, date, and commit link stays exact regardless of tone.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has no in-app changelog viewer; release history is not browsable from within the application.\n\n**Documentation website:** Not implemented. The documentation website links out to release notes rather than hosting an in-app browsable, filterable, searchable changelog view.\n\n## Failure modes\n\nA referenced commit that no longer exists in the repository is meant to be caught and reported before publishing, not linked as a dead reference; there is no changelog viewer yet to enforce that.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Local version history](local-version-history.md), [Status hub](status-hub.md), [History and git](../app/history.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/collapsible-filters",
+      "category": "platform",
+      "title": "Collapsible filters and statistics",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "regex-builder.md",
+        "README.md"
+      ],
+      "body": "# Collapsible filters and statistics\n\nSearch bars, filter rows, and statistics panels that describe rather than change the current view start collapsed and can be reopened.\n\n## Behavior\n\nPurely descriptive controls, such as filter summaries and statistics panels, are meant to collapse by default, persist that collapsed state, and clearly indicate when a collapsed filter is still actively excluding results.\n\n## Configuration\n\nThe collapsed toggle would be keyboard-operable with a visible focus ring and be announced alongside its expanded or collapsed state.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application's filter and statistics areas, where present, are always expanded; there is no collapse control.\n\n**Documentation website:** Partial. The site's article list has no filter or statistics row to collapse; the underlying collapse behavior exists in the settings-page overlay controls but has not been extended to a filter or statistics panel.\n\n## Failure modes\n\nA collapsed filter that is still silently excluding results without any visible indicator is the specific failure this feature exists to prevent; there is no filter panel on either surface yet to check that against.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Regex builder](regex-builder.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/command-palette",
+      "category": "platform",
+      "title": "Command palette",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "regex-builder.md",
+        "browser-style-tabs.md",
+        "README.md"
+      ],
+      "body": "# Command palette\n\nA `Ctrl+Shift+F`-activated global search that jumps directly to any command, setting, or destination in the product.\n\n## Behavior\n\nThe palette is meant to list every command, feature page, destination, and setting, and to teleport the user to the exact matching control rather than only its containing page.\n\n## Configuration\n\nResults would render as rich, interactive rows — a settings row with its actual live control inline — rather than plain text, in either a compact or a full-window view.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has no command palette or global keyboard-activated search of any kind.\n\n**Documentation website:** Partial. The site responds to `Ctrl+Shift+F` with a basic overlay that filters the article title list by substring; it does not index individual settings or in-page destinations, and results are plain text links rather than rich interactive rows.\n\n## Failure modes\n\nIf the underlying index were incomplete, the intended behavior is to show fewer results rather than a broken or unresponsive palette; the current site overlay degrades this way already, since it only ever indexes titles.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Regex builder](regex-builder.md), [Browser-style tabbed navigation](browser-style-tabs.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/complete-exports",
+      "category": "platform",
+      "title": "Complete data export",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "bulk-actions.md",
+        "local-version-history.md",
+        "README.md"
+      ],
+      "body": "# Complete data export\n\nEvery record, list, and view the product owns can be exported, in whichever format can faithfully carry that data.\n\n## Behavior\n\nEvery list, document, log, and setting is meant to be exportable in an appropriate format — JSON, CSV, Markdown, and others depending on the data's shape — stating encoding and any fields a format cannot carry before the export runs.\n\n## Configuration\n\nExports would be complete and, where the shape allows it, re-importable, rather than a partial dump of only the currently visible rows.\n\n## Current status\n\n**Desktop application:** Not implemented. No list, record, or setting anywhere in the desktop application can currently be exported to a file.\n\n**Documentation website:** Partial. The site's settings page includes a placeholder export button that is not wired to produce a file yet.\n\n## Failure modes\n\nWhere a chosen format cannot carry every field of a record, the intended behavior is to say so before the export runs rather than truncate silently afterward; the placeholder export button does not yet reach this decision point.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Bulk actions](bulk-actions.md), [Local version history](local-version-history.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/context-menu-shortcuts",
+      "category": "platform",
+      "title": "Right-click menus show keyboard shortcuts",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "command-palette.md",
+        "README.md"
+      ],
+      "body": "# Right-click menus show keyboard shortcuts\n\nEvery context-menu item that has a keyboard shortcut displays it, right-aligned, in the platform's own notation.\n\n## Behavior\n\nA context menu is meant to show each item's real, currently-working keyboard shortcut beside its label, derived from the same source that registers the binding, never a guessed or stale one.\n\n## Configuration\n\nShortcuts would be exposed to assistive technology as shortcuts, not as decorative trailing text.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application's right-click menus, where they exist, do not display keyboard shortcuts beside their items.\n\n**Documentation website:** Not implemented. The documentation website has no right-click context menus of its own.\n\n## Failure modes\n\nA displayed shortcut that no longer matches the actual binding (because the binding changed and the label did not) is the specific failure this feature exists to prevent by deriving both from one source; there is nothing implemented yet to exercise that guarantee.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Command palette](command-palette.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/destructive-action-confirmation",
+      "category": "platform",
+      "title": "Destructive-action super confirmation",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "local-version-history.md",
+        "bulk-actions.md",
+        "../system/security.md",
+        "README.md"
+      ],
+      "body": "# Destructive-action super confirmation\n\nA deliberately hard-to-trigger-by-accident confirmation gate for irreversible actions, requiring two independent keys plus a full-range slider.\n\n## Behavior\n\nBefore an irreversible action proceeds, the gate is meant to name the exact affected data, require two independently operated key controls, and only then allow a full-range confirmation slider, with an always-available emergency exit.\n\n## Configuration\n\nThe gate would anchor beside the triggering control where the layout allows it and remain fully keyboard-operable.\n\n## Current status\n\n**Desktop application:** Partial. Destructive actions use a single confirmation step (click or checkbox), not the two-key-plus-slider gate, and there is no dedicated emergency-exit control.\n\n**Documentation website:** Not implemented. The documentation website performs no destructive actions of its own.\n\n## Failure modes\n\nCancelling at any point (including through the emergency exit) is meant to leave the target data completely untouched; the existing single-step confirmation on the desktop app does support a plain cancel today, which is the one part of this contract already met.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Local version history](local-version-history.md), [Bulk actions](bulk-actions.md), [Security](../system/security.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/dialog-emojis",
+      "category": "platform",
+      "title": "Dialog emoji toggle",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "non-blocking-notifications.md",
+        "README.md"
+      ],
+      "body": "# Dialog emoji toggle\n\nA persisted on/off switch controlling whether dialogs and message boxes show a decorative emoji alongside their factual text.\n\n## Behavior\n\nWhen enabled, dialogs are meant to get a relevant, non-semantic emoji; when disabled, the same factual copy is meant to appear with no emoji. The toggle would never add emoji to buttons, field labels, or other control text — only to descriptive dialog copy.\n\n## Configuration\n\nA single switch in application settings, reachable by keyboard, is meant to control this for every dialog at once.\n\n## Current status\n\n**Desktop application:** Not implemented. No toggle exists and no dialog in the product currently carries an emoji.\n\n**Documentation website:** Not implemented. The site has no application-style message boxes to decorate.\n\n## Failure modes\n\nN/A — a switch with no dialogs to affect has no meaningful failure mode of its own; failure would only arise once dialogs exist to decorate.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Non-blocking notifications](non-blocking-notifications.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/dim-sum-surprise",
+      "category": "platform",
+      "title": "Dim sum surprise",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "school-mode.md",
+        "README.md"
+      ],
+      "body": "# Dim sum surprise\n\nA small, un-opt-outable 10% chance at each startup of showing a randomly chosen dim sum dish's name and picture.\n\n## Behavior\n\nOn roughly one in ten launches, a bundled local image of a dim sum dish is meant to appear briefly with its name in both English and Chinese, then dismiss itself automatically without blocking the interface from becoming usable.\n\n## Configuration\n\nThere is deliberately no setting to turn this off; the only configurable aspect is that School mode, once it exists, would suppress it along with every other optional capability.\n\n## Current status\n\n**Desktop application:** Not implemented. No such surprise, no bundled dish imagery, and no random-draw logic exist in the product.\n\n**Documentation website:** Not implemented. A static documentation site has no startup event to attach this to.\n\n## Failure modes\n\nIf the bundled image set were ever missing an entry, the intended behavior is to skip that draw rather than show a broken image; nothing implements the draw today.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[School mode](school-mode.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/external-editor-handoff",
+      "category": "platform",
+      "title": "External editor handoff",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "complete-exports.md",
+        "../agent/ops.md",
+        "README.md"
+      ],
+      "body": "# External editor handoff\n\nA one-click action to open the current project, file, or export directly in an installed code editor.\n\n## Behavior\n\nThe product is meant to detect installed editors and offer opening the current folder or a selected or exported file directly in one, with the choice persisted.\n\n## Configuration\n\nOpening a folder would open it as a workspace root rather than a single unrooted file, so surrounding project context is usable immediately.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has no external editor detection or handoff action anywhere in its interface.\n\n**Documentation website:** Not implemented. The documentation website has no local files of the user's own to hand off to an editor.\n\n## Failure modes\n\nWhen no supported editor is installed, the intended behavior is a clear message naming that and an offer to get one, rather than a silently disabled or missing button; there is no handoff action yet to fail this way.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Complete data export](complete-exports.md), [Operations](../agent/ops.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/external-settings-sources",
+      "category": "platform",
+      "title": "External settings sources",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "scheduled-settings.md",
+        "README.md"
+      ],
+      "body": "# External settings sources\n\nLets a scheduled setting take its value from a remote source — an HTTPS API or a home-automation boolean — instead of only from a fixed local schedule.\n\n## Behavior\n\nA scheduled rule is meant to be able to source its active or inactive value from a validated versioned HTTPS endpoint or a linked home-automation boolean entity, refreshing on a bounded interval.\n\n## Configuration\n\nThe source would be selected per rule alongside the local schedule fields, with the access token for a remote source kept in the operating system credential store rather than in a settings file.\n\n## Current status\n\n**Desktop application:** Not implemented. No external source integration exists; scheduled settings themselves are also not implemented, so there is nothing yet for a remote source to feed.\n\n**Documentation website:** Not implemented. No remote settings source exists on the site.\n\n## Failure modes\n\nOn a network failure, timeout, or malformed response, the intended behavior is to keep the last valid local value and surface a recovery notification rather than silently applying whatever the failed response contained; nothing implements that path today.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Scheduled settings](scheduled-settings.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/forge-publishing",
+      "category": "platform",
+      "title": "Forge publishing",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "external-editor-handoff.md",
+        "../agent/ops.md",
+        "README.md"
+      ],
+      "body": "# Forge publishing\n\nLets a user publish a repository to a chosen account or organization, with a non-forking fallback for providers that cannot fork.\n\n## Behavior\n\nA publish flow is meant to let the user choose the target account or organization from a real signed-in account list, and to offer copy-and-push as an alternative when the target provider cannot fork.\n\n## Configuration\n\nThe account list would be searchable and support adding further signed-in accounts through the same sign-in flow used for the first one.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application administers a telephony exchange and has no source-repository publishing feature.\n\n**Documentation website:** Not implemented. The documentation website has no repository-publishing feature of its own.\n\n## Failure modes\n\nN/A — with no publishing flow implemented, there is no failure path to describe.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[External editor handoff](external-editor-handoff.md), [Operations](../agent/ops.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/funny-levels",
+      "category": "platform",
+      "title": "Funny-level sliders",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "language-modes.md",
+        "README.md"
+      ],
+      "body": "# Funny-level sliders\n\nTwo independent sliders, one per language, that control how playful the product's own copy sounds — from fully serious to maximum playfulness.\n\n## Behavior\n\nTwo sliders, English and Cantonese, are meant to each range from level 1 (fully professional wording) to level 5 (maximum playfulness), restyling every message category including warnings and errors without changing the underlying facts they carry.\n\n## Configuration\n\nSliders would live in settings, default to level 5 for both languages, and be changeable and resettable independently of each other.\n\n## Current status\n\n**Desktop application:** Not implemented. No slider exists and all product copy is written at a single fixed tone.\n\n**Documentation website:** Partial. A settings page draft includes slider controls, but changing them does not yet restyle any rendered page copy.\n\n## Failure modes\n\nA message's facts (file names, error causes, irreversible-action warnings) are meant to stay exact at every level regardless of tone; if a restyled string ever disagreed with the underlying fact, that would be treated as a defect in the styling layer, not an acceptable trade-off.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Language modes](language-modes.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/guided-forms",
+      "category": "platform",
+      "title": "Guided forms",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "destructive-action-confirmation.md",
+        "README.md"
+      ],
+      "body": "# Guided forms\n\nFields populated from real data wherever possible, sensible defaults, plain-language inline validation, and named reasons on every disabled control.\n\n## Behavior\n\nWherever a value can be enumerated or defaulted, the form is meant to do so — pickers over blank text boxes, a suggested default instead of an empty field, and inline validation that says what to type rather than only showing a red border.\n\n## Configuration\n\nEvery disabled control would state, in its own tooltip or adjacent text, exactly which condition is unmet and how to satisfy it.\n\n## Current status\n\n**Desktop application:** Partial. The desktop application's server and deployment forms mix real pickers for some fields with free-text entry for others; validation messages exist for some fields but not consistently, and not every disabled control names its exact blocking condition.\n\n**Documentation website:** Partial. The site's forms, such as the settings placeholders, are minimal and mostly unvalidated; inline validation guidance is largely absent.\n\n## Failure modes\n\nA field left blank or filled incorrectly is meant to be caught inline, in plain words, before submission is attempted; several forms on both surfaces still rely on submission itself, or a generic error, to reveal that a field was wrong.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Destructive-action super confirmation](destructive-action-confirmation.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/in-context-recovery",
+      "category": "platform",
+      "title": "In-context failure recovery",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "long-operation-progress.md",
+        "README.md"
+      ],
+      "body": "# In-context failure recovery\n\nWhen an operation fails for a reason the user cannot diagnose alone, the recovery action is offered right at the control that failed, not buried in a menu.\n\n## Behavior\n\nA failed operation is meant to surface its recovery route — retry, re-authenticate, or an equivalent next step — directly beside the control that failed, naming the real cause rather than a generic error.\n\n## Configuration\n\nWhere the underlying cause is a refused credential or missing permission, the recovery route would offer re-authentication directly rather than sending the user hunting for a sign-in screen.\n\n## Current status\n\n**Desktop application:** Partial. The desktop application shows error messages for failed actions but does not consistently offer an inline recovery action at the point of failure; some errors require navigating elsewhere to retry.\n\n**Documentation website:** Not implemented. The documentation website performs no operations that can fail in this sense.\n\n## Failure modes\n\nAn error shown without a concrete next step is exactly the gap this feature exists to close; it is the current state for at least some failures on the desktop application today.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Long-operation progress reporting](long-operation-progress.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/language-modes",
+      "category": "platform",
+      "title": "Language modes",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "funny-levels.md",
+        "school-mode.md",
+        "../app/customise.md",
+        "README.md"
+      ],
+      "body": "# Language modes\n\nLets a person pick English, playful Cantonese, or a bilingual view of every label the product shows.\n\n## Behavior\n\nA language mode setting is meant to control which language every user-facing string renders in, independent of the operating system's own locale, with three choices: English only, a playful Cantonese variant, and a bilingual mode showing both languages together without crowding the layout.\n\n## Configuration\n\nThe choice would live in application or site settings, persist across sessions, and apply to every screen at once rather than page by page.\n\n## Current status\n\n**Desktop application:** Not implemented. No language selector exists anywhere in the interface; every label is a fixed English string with no translation table behind it.\n\n**Documentation website:** Partial. A mode selector exists in site settings and changes visible copy on a handful of pages, not every string across the site.\n\n## Failure modes\n\nWhere a translation is missing for a chosen mode, the intended behavior is to fall back to English for that string rather than showing a blank or broken label; today there is nothing to fall back from, since no second language exists yet.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Funny-level sliders](funny-levels.md), [School mode](school-mode.md), [Customise everything](../app/customise.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/local-version-history",
+      "category": "platform",
+      "title": "Local version history",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "changelog-viewer.md",
+        "destructive-action-confirmation.md",
+        "../app/history.md",
+        "README.md"
+      ],
+      "body": "# Local version history\n\nA Git-backed, browsable, restorable history of every user-managed record — documents, settings, accounts — kept locally and privately.\n\n## Behavior\n\nEvery creation, edit, and deletion of a user-owned record is meant to be recorded as a commit in a local, isolated repository, with a browsing panel offering filtering, diffing, labeling, and non-destructive restore.\n\n## Configuration\n\nRestoring would itself be recorded as a new revision rather than rewriting history, so a restore could itself be undone.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application keeps no local version history of any kind; settings and records are overwritten in place with no way to browse or restore a prior state.\n\n**Documentation website:** Not implemented. The documentation website has no user-managed records of its own to version.\n\n## Failure modes\n\nIf the local history repository became unreadable, the intended behavior is to keep the live data intact and report the history failure separately rather than blocking the operation that triggered it; nothing implements the repository today.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[In-app changelog viewer](changelog-viewer.md), [Destructive-action super confirmation](destructive-action-confirmation.md), [History and git](../app/history.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/long-operation-progress",
+      "category": "platform",
+      "title": "Long-operation progress reporting",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "browser-extension-download-surfaces.md",
+        "README.md"
+      ],
+      "body": "# Long-operation progress reporting\n\nA dialog that starts a slow operation shows that operation's real progress inline, with the triggering control disabled against duplicate submission.\n\n## Behavior\n\nLong-running actions, such as provisioning a server, are meant to show real progress inside the originating dialog rather than a bare spinner, and to disable both the visible submit control and the underlying handler against a second, duplicate trigger.\n\n## Configuration\n\nWhere an operation includes a slow optional phase, the user would be able to decline it and be told plainly what declining leaves undone.\n\n## Current status\n\n**Desktop application:** Partial. Long actions show a generic busy indicator rather than real progress, and only the visible button — not confirmed keyboard re-entry — is guarded against duplicate submission.\n\n**Documentation website:** Not implemented. The documentation website triggers no long-running operations of its own.\n\n## Failure modes\n\nA second, keyboard-triggered submission arriving while an operation is already in flight is meant to be refused by the handler itself, not only by the disabled button; this has not been verified as blocked on the desktop application.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Browser-extension download capture surfaces](browser-extension-download-surfaces.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/material-appearance",
+      "category": "platform",
+      "title": "Material appearance system",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "app-logo-customization.md",
+        "browser-style-tabs.md",
+        "../app/appearance.md",
+        "README.md"
+      ],
+      "body": "# Material appearance system\n\nRuntime theme, density, accent color, and typography controls, so a user can restyle the interface without editing any file.\n\n## Behavior\n\nA conformant visual system is meant to expose theme (light and dark), density, accent or seed color, and full font customization at runtime with a live preview, plus a per-element appearance editor reachable from any control's context menu.\n\n## Configuration\n\nColors would be chosen through a continuous picker with bidirectional conversion between common color notations rather than a fixed swatch grid; presets would be exportable and importable as files.\n\n## Current status\n\n**Desktop application:** Partial. A dark/light theme toggle exists in settings, but accent color, density, typography customization, the continuous color picker, and the per-element appearance editor are all absent.\n\n**Documentation website:** Partial. The site ships a fixed dark theme with no live theme switch, no accent picker, no density control, and no per-element editor.\n\n## Failure modes\n\nAn appearance change that fails to persist (for example, a write to a locked settings file) is meant to notify the user and keep the prior appearance in effect rather than silently reverting after the fact; there is little to test that against today, since most controls do not exist yet.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[App logo customization](app-logo-customization.md), [Browser-style tabbed navigation](browser-style-tabs.md), [Appearance](../app/appearance.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/narration",
+      "category": "platform",
+      "title": "Spoken narration",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "language-modes.md",
+        "README.md"
+      ],
+      "body": "# Spoken narration\n\nAn optional, off-by-default text-to-speech narrator that reads app events aloud in a user-chosen language and voice.\n\n## Behavior\n\nA narrator is meant to speak application events using platform or bundled natural-sounding voices, in English, Cantonese, or both in sequence, with independently selectable voice, rate, and pitch per language, staying off until the user turns it on.\n\n## Configuration\n\nVoice, rate, pitch, and narrated language would each be independent settings; narration would be rate-limited so lines never overlap.\n\n## Current status\n\n**Desktop application:** Not implemented. No narrator, no voice picker, and no narration queue exist in the product.\n\n**Documentation website:** Not implemented. A static documentation site has no application events of the kind this feature narrates.\n\n## Failure modes\n\nIf narration ever failed mid-line (missing voice, synthesis error), the intended behavior is to drop that one line silently rather than block the interface; there is nothing to fail today because there is no narrator.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Language modes](language-modes.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/non-blocking-notifications",
+      "category": "platform",
+      "title": "Non-blocking notifications",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "dialog-emojis.md",
+        "status-hub.md",
+        "../app/notifications.md",
+        "README.md"
+      ],
+      "body": "# Non-blocking notifications\n\nToast-style status messages anchored in a screen corner, used for anything that only informs rather than something the user must decide on.\n\n## Behavior\n\nInformational, success, progress, and non-decision error messages are meant to appear as auto-dismissing (persistent for warnings and errors) toasts anchored to a screen corner, stacking without overlapping, reserving blocking dialogs strictly for confirmations and destructive-action gates.\n\n## Configuration\n\nNotifications would carry an optional title, body, and action links, and remain reviewable afterward in a notification history rather than vanishing without a trace.\n\n## Current status\n\n**Desktop application:** Partial. The desktop application shows a small number of transient status messages during build and deployment actions, but they are not consistently corner-anchored, do not stack predictably, and there is no notification history panel to review a dismissed one.\n\n**Documentation website:** Implemented. The documentation website surfaces confirmation and copy-to-clipboard toasts as non-blocking corner notifications with auto-dismiss timing.\n\n## Failure modes\n\nA notification that fails to render (for example, a missing template) is meant to fall back to a plain-text toast rather than silently drop; there is still no reviewable notification history on either surface to check that against.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Dialog emoji toggle](dialog-emojis.md), [Status hub](status-hub.md), [Notifications](../app/notifications.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/offline-documentation-browser",
+      "category": "platform",
+      "title": "Offline documentation browser",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "command-palette.md",
+        "README.md"
+      ],
+      "body": "# Offline documentation browser\n\nA fully offline, in-app documentation browser bundling every feature article, with internal links and a search bar, independent of the public documentation website.\n\n## Behavior\n\nEvery article is meant to be bundled into the application at build time, rendered through one shared markdown renderer, with article-to-article links resolving inside the browser and a search bar covering both titles and article bodies.\n\n## Configuration\n\nA completeness guard would fail the build if any article file present in the source tree were missing from the bundle.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has no in-app documentation browser; it links out to the public documentation website instead of bundling articles for offline use.\n\n**Documentation website:** Partial. The documentation website itself hosts and renders these same articles online, with in-page section navigation and inter-article links, but it depends on network access and is not the bundled in-app offline browser this feature describes; there is also no full-text search across article bodies yet, only the article list.\n\n## Failure modes\n\nAn article present in the source tree but missing from a build's bundle is meant to fail that build outright; the site's own build script instead simply reflects whatever exists on disk, which is a different and looser guarantee than this feature calls for.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Command palette](command-palette.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/per-element-toy-locks",
+      "category": "platform",
+      "title": "Per-element toy locks",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "support-tickets.md",
+        "unlock-ladder.md",
+        "built-in-authenticator.md",
+        "../system/security.md",
+        "README.md"
+      ],
+      "body": "# Per-element toy locks\n\nA self-imposed, for-fun password or one-time-code lock a user can put on any individual control or setting, purely as a personal speed bump.\n\n## Behavior\n\nAny rendered element is meant to be lockable behind a password or a TOTP code entered independently for that one element, with its own credential, unlock duration, and recovery path.\n\n## Configuration\n\nThis is explicitly a user-experience convenience, not a security boundary: it would never claim to protect data from anyone else with access to the device, and recovery is by deleting the application's local data folder.\n\n## Current status\n\n**Desktop application:** Partial. A single application-wide password lock exists on launch, which is a coarser mechanism than a per-element lock; there is no per-control locking, no independent per-element credentials, and no lock context-menu entry anywhere.\n\n**Documentation website:** Not implemented. The documentation website has no user-editable elements to lock.\n\n## Failure modes\n\nA forgotten per-element credential is meant to be recoverable only by deleting the local application-data folder, never by a support process; the existing whole-application launch lock does not yet document or implement that specific recovery path either.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Support Tickets recovery flow](support-tickets.md), [Unlock ladder](unlock-ladder.md), [Built-in authenticator](built-in-authenticator.md), [Security](../system/security.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/personal-vocabulary-upload",
+      "category": "platform",
+      "title": "Personal vocabulary upload",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "language-modes.md",
+        "README.md"
+      ],
+      "body": "# Personal vocabulary upload\n\nLets a user supply a local JSON file that remaps specific words in the interface to their own preferred terms, with no data leaving the device.\n\n## Behavior\n\nA file-upload control is meant to accept a bounded, versioned local JSON file of word replacements, apply it to user-facing text only, and clear back to original wording when the file is removed.\n\n## Configuration\n\nValidation would bound file size, nesting depth, and entry count, and make no network request of any kind when loading, applying, or clearing the file.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has no personal-vocabulary upload control anywhere in its settings.\n\n**Documentation website:** Partial. The site's settings page includes a placeholder upload control; no file validation, no applied replacement, and no clear/reset behavior are wired up behind it yet.\n\n## Failure modes\n\nA malformed or oversized uploaded file is meant to be rejected with the exact reason shown inline, and the previous vocabulary state left untouched; the placeholder control does not yet reach this validation step.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Language modes](language-modes.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/provider-markup-rendering",
+      "category": "platform",
+      "title": "Provider-authored markup rendering",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "changelog-viewer.md",
+        "offline-documentation-browser.md",
+        "README.md"
+      ],
+      "body": "# Provider-authored markup rendering\n\nText authored elsewhere — release notes, imported documents — is rendered as real formatted markup rather than printed as raw source characters.\n\n## Behavior\n\nProvider-authored markdown-like text is meant to be rendered through one shared, isolated renderer producing real headings, links, and lists, rather than showing literal hash marks and brackets to the reader.\n\n## Configuration\n\nThe renderer would keep an honest empty state when no content is provided, rather than presenting a blank area that looks like a loading failure.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application does not currently render externally authored markup text in this sense.\n\n**Documentation website:** Implemented. The documentation website's own articles are authored in markdown and rendered through one shared renderer, producing real headings, links, lists, and section navigation rather than raw markdown characters. This is the website's own authored content rather than third-party provider text, but the rendering mechanism itself is the one this feature describes.\n\n## Failure modes\n\nMalformed markdown in a source article is meant to degrade to plain paragraphs rather than break the page layout; the site's renderer has not been separately stress-tested against adversarial input.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[In-app changelog viewer](changelog-viewer.md), [Offline documentation browser](offline-documentation-browser.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/README",
+      "category": "platform",
+      "title": "Platform feature contracts",
+      "headings": [
+        {
+          "title": "Exemptions",
+          "id": "exemptions"
+        }
+      ],
+      "links": [
+        "language-modes.md",
+        "funny-levels.md",
+        "dialog-emojis.md",
+        "school-mode.md",
+        "narration.md",
+        "scheduled-settings.md",
+        "external-settings-sources.md",
+        "dim-sum-surprise.md",
+        "regex-builder.md",
+        "non-blocking-notifications.md",
+        "status-hub.md",
+        "material-appearance.md",
+        "app-logo-customization.md",
+        "browser-style-tabs.md",
+        "tab-groups-and-searches.md",
+        "command-palette.md",
+        "destructive-action-confirmation.md",
+        "local-version-history.md",
+        "changelog-viewer.md",
+        "external-editor-handoff.md",
+        "complete-exports.md",
+        "bulk-actions.md",
+        "accessibility.md",
+        "responsive-sizing.md",
+        "personal-vocabulary-upload.md",
+        "per-element-toy-locks.md",
+        "support-tickets.md",
+        "unlock-ladder.md",
+        "built-in-authenticator.md",
+        "attention-modes.md",
+        "browser-extension-download-surfaces.md",
+        "offline-documentation-browser.md",
+        "app-display-name.md",
+        "guided-forms.md",
+        "bounded-overlays.md",
+        "context-menu-shortcuts.md",
+        "long-operation-progress.md",
+        "in-context-recovery.md",
+        "provider-markup-rendering.md",
+        "forge-publishing.md",
+        "collapsible-filters.md",
+        "automatic-updates.md"
+      ],
+      "body": "# Platform feature contracts\n\nThis category documents the canonical platform feature contracts this product is expected to implement, and states plainly, per surface, which of them are actually built today.\n\nThe two surfaces referenced throughout are the desktop application (the installed Windows console) and the documentation website (this published site).\n\n- [Language modes](language-modes.md)\n- [Funny-level sliders](funny-levels.md)\n- [Dialog emoji toggle](dialog-emojis.md)\n- [School mode](school-mode.md)\n- [Spoken narration](narration.md)\n- [Scheduled settings](scheduled-settings.md)\n- [External settings sources](external-settings-sources.md)\n- [Dim sum surprise](dim-sum-surprise.md)\n- [Regex builder](regex-builder.md)\n- [Non-blocking notifications](non-blocking-notifications.md)\n- [Status hub](status-hub.md)\n- [Material appearance system](material-appearance.md)\n- [App logo customization](app-logo-customization.md)\n- [Browser-style tabbed navigation](browser-style-tabs.md)\n- [Tab groups and tab search](tab-groups-and-searches.md)\n- [Command palette](command-palette.md)\n- [Destructive-action super confirmation](destructive-action-confirmation.md)\n- [Local version history](local-version-history.md)\n- [In-app changelog viewer](changelog-viewer.md)\n- [External editor handoff](external-editor-handoff.md)\n- [Complete data export](complete-exports.md)\n- [Bulk actions](bulk-actions.md)\n- [Accessibility](accessibility.md)\n- [Responsive and high-scale sizing](responsive-sizing.md)\n- [Personal vocabulary upload](personal-vocabulary-upload.md)\n- [Per-element toy locks](per-element-toy-locks.md)\n- [Support Tickets recovery flow](support-tickets.md)\n- [Unlock ladder](unlock-ladder.md)\n- [Built-in authenticator](built-in-authenticator.md)\n- [Attention-support modes](attention-modes.md)\n- [Browser-extension download capture surfaces](browser-extension-download-surfaces.md)\n- [Offline documentation browser](offline-documentation-browser.md)\n- [Renameable app display name](app-display-name.md)\n- [Guided forms](guided-forms.md)\n- [Bounded, self-painting overlays](bounded-overlays.md)\n- [Right-click menus show keyboard shortcuts](context-menu-shortcuts.md)\n- [Long-operation progress reporting](long-operation-progress.md)\n- [In-context failure recovery](in-context-recovery.md)\n- [Provider-authored markup rendering](provider-markup-rendering.md)\n- [Forge publishing](forge-publishing.md)\n- [Collapsible filters and statistics](collapsible-filters.md)\n- [Automatic updates](automatic-updates.md)\n\n## Exemptions\n\nTwo further canonical features were considered for this product and deliberately excluded by the owner rather than left unbuilt by omission: an Ollama model-manager suite and a general local file converter. Neither shares a data path, a target, or a control surface with the rest of this console. The recorded reason for each exclusion lives in `console/inventories/exemptions.json`, not repeated here, so there is exactly one place that reason can drift out of date.\n\n"
+    },
+    {
+      "id": "platform/regex-builder",
+      "category": "platform",
+      "title": "Regex builder",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "command-palette.md",
+        "tab-groups-and-searches.md",
+        "collapsible-filters.md",
+        "README.md"
+      ],
+      "body": "# Regex builder\n\nA guided pattern-building tool attached to every search field, letting a user construct a regular expression without knowing the syntax by heart.\n\n## Behavior\n\nEvery search bar, dropdown filter field, and context-menu filter is meant to carry an adjacent, anchored regex builder offering guided construction, a raw pattern editor, sample text, and live match feedback, with plain text staying the default search mode.\n\n## Configuration\n\nQuery, pattern, flags, and mode would stay synchronized bidirectionally between the search field and its builder popover; pattern and sample size would be bounded to protect against runaway evaluation.\n\n## Current status\n\n**Desktop application:** Partial. The desktop application's filter fields accept plain-text substring queries and have no adjacent builder affordance, raw pattern editor, or guided construction controls.\n\n**Documentation website:** Partial. The site's search input is plain-text only with no builder affordance, guided construction, or pattern/flags UI.\n\n## Failure modes\n\nA pathological pattern is meant to be time- and step-bounded so it cannot hang the evaluating process; today there is no evaluator to bound, since there is no regex mode on either surface.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Command palette](command-palette.md), [Tab groups and tab search](tab-groups-and-searches.md), [Collapsible filters and statistics](collapsible-filters.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/responsive-sizing",
+      "category": "platform",
+      "title": "Responsive and high-scale sizing",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "accessibility.md",
+        "material-appearance.md",
+        "README.md"
+      ],
+      "body": "# Responsive and high-scale sizing\n\nNo clipped, truncated, or overlapping text or controls at narrow window widths, high display scales, or with the longest localized strings.\n\n## Behavior\n\nLayouts are meant to hold correctly at supported window widths and at 100/125/150/200% display scale, including the longest strings a bilingual mode would produce.\n\n## Configuration\n\nThis would be verified against the real built interface at each scale and width rather than assumed from a design file.\n\n## Current status\n\n**Desktop application:** Not implemented (unverified). The desktop application has not been verified across the full display-scale range; behavior at 150% and 200% scale, and at the narrowest supported window width, is unconfirmed.\n\n**Documentation website:** Partial. The site is responsive down to roughly phone width using relative units and wrapping containers, but has not been verified at every display scale or against long bilingual strings, since bilingual mode does not yet exist.\n\n## Failure modes\n\nClipped or overlapping text at an unverified scale is the specific failure this feature exists to prevent; until verification happens on the desktop application, that failure mode should be assumed possible rather than assumed absent.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Accessibility](accessibility.md), [Material appearance system](material-appearance.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/scheduled-settings",
+      "category": "platform",
+      "title": "Scheduled settings",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "external-settings-sources.md",
+        "README.md"
+      ],
+      "body": "# Scheduled settings\n\nLets a user schedule when a setting — language, theme, density, and the like — takes effect, by date, time, and weekday.\n\n## Behavior\n\nA schedule editor is meant to let a rule pick an optional start and end date, a start and end time, and either every day or specific weekdays, then apply a chosen setting value only during that window, respecting the user's local timezone including daylight-saving behavior.\n\n## Configuration\n\nRules would be stored with stable identifiers and deterministic precedence for when more than one rule could apply at the same moment.\n\n## Current status\n\n**Desktop application:** Not implemented. No schedule editor and no scheduled-value application logic exist anywhere in the product.\n\n**Documentation website:** Not implemented. No scheduling surface exists on the site.\n\n## Failure modes\n\nAn invalid or overlapping schedule is meant to be rejected with a specific inline reason rather than silently applied; there is nothing to validate today because no schedule editor exists.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[External settings sources](external-settings-sources.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/school-mode",
+      "category": "platform",
+      "title": "School mode",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "language-modes.md",
+        "funny-levels.md",
+        "dim-sum-surprise.md",
+        "../app/customise.md",
+        "README.md"
+      ],
+      "body": "# School mode\n\nA single, renamable, shared switch that forces plain English presentation and hides playful or optional capabilities across every installed surface at once.\n\n## Behavior\n\nOne shared on/off state, stored outside any individual application, is meant to be read live by every surface: turning it on anywhere would turn it on everywhere without a restart, forcing English presentation and making every optional or playful capability behave as though uninstalled.\n\n## Configuration\n\nTurning the mode back off is meant to require a locally verified credential; the mode's own label is renamable, and every surface would respect the chosen name rather than the shipped default.\n\n## Current status\n\n**Desktop application:** Not implemented. No shared switch, no rename path, and no unlock credential exist anywhere in the product.\n\n**Documentation website:** Not implemented. No shared switch exists on the site either.\n\n## Failure modes\n\nIf the shared state store were unreachable, the intended behavior is to leave the previous known mode in effect and say so, rather than silently defaulting to unlocked; nothing currently implements that fallback because nothing implements the mode.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Language modes](language-modes.md), [Funny-level sliders](funny-levels.md), [Dim sum surprise](dim-sum-surprise.md), [Customise everything](../app/customise.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/status-hub",
+      "category": "platform",
+      "title": "Status hub",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "non-blocking-notifications.md",
+        "changelog-viewer.md",
+        "../agent/hub.md",
+        "README.md"
+      ],
+      "body": "# Status hub\n\nA shared, live status page reporting what the product's own maintenance work is currently doing — what is running, what has landed, and what is blocked.\n\n## Behavior\n\nA status surface is meant to show real-time build, verification, and release state with evidence behind every claim, distinct from the product's own PBX operational dashboards.\n\n## Configuration\n\nIt would update one page in place rather than mint a new page per update, and carry emoji-coded states that never claim a check passed before it has actually run.\n\n## Current status\n\n**Desktop application:** Not implemented. No such development-status page exists for this product on the desktop application.\n\n**Documentation website:** Not implemented. No such development-status page exists on the site either.\n\n## Failure modes\n\nIf the underlying build or release data were unreachable, the intended behavior is to say so on the page rather than show a stale state as current; nothing implements that today.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Non-blocking notifications](non-blocking-notifications.md), [In-app changelog viewer](changelog-viewer.md), [Agent hub](../agent/hub.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/support-tickets",
+      "category": "platform",
+      "title": "Support Tickets recovery flow",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "per-element-toy-locks.md",
+        "README.md"
+      ],
+      "body": "# Support Tickets recovery flow\n\nA playful, entirely local, fake support-desk flow that helps a user recover from forgetting a toy-lock credential by pointing them at their own local data folder.\n\n## Behavior\n\nA mock ticket form is meant to lead, after a canned first response, to opening the application's local data folder in the file manager so the user can delete it themselves — nothing sent anywhere and no real ticket created.\n\n## Configuration\n\nOne unmissable, unstyled line would state plainly that nothing leaves the device and nobody is reading the ticket, regardless of the active funny level.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has no such recovery flow; there is no per-element locking for it to recover from, and no mock support surface exists.\n\n**Documentation website:** Not implemented. The documentation website has no locks for this recovery flow to serve.\n\n## Failure modes\n\nIf the file manager cannot be launched on a given machine, the intended behavior is to show the exact folder path as text so the user can navigate there manually; nothing implements the flow yet to hit that fallback.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Per-element toy locks](per-element-toy-locks.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/tab-groups-and-searches",
+      "category": "platform",
+      "title": "Tab groups and tab search",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "browser-style-tabs.md",
+        "regex-builder.md",
+        "README.md"
+      ],
+      "body": "# Tab groups and tab search\n\nLets a user organize open tabs into named, colored groups and search across them from four distinct entry points.\n\n## Behavior\n\nTabs are meant to support pinning and named or colored grouping, plus four separate searches: the current strip, inside one group, across group names, and a master search spanning every open tab.\n\n## Configuration\n\nEach search would carry its own adjacent regex builder and reveal a match inside a collapsed group without permanently expanding it.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has no concept of multiple open tabs to group or search across.\n\n**Documentation website:** Not implemented. The site has no open-tab concept either.\n\n## Failure modes\n\nN/A — with no tab or group model implemented on either surface, there is no failure path to describe yet.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Browser-style tabbed navigation](browser-style-tabs.md), [Regex builder](regex-builder.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/unlock-ladder",
+      "category": "platform",
+      "title": "Unlock ladder",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "per-element-toy-locks.md",
+        "built-in-authenticator.md",
+        "../system/security.md",
+        "README.md"
+      ],
+      "body": "# Unlock ladder\n\nA small set of optional games — dim sum trivia, arithmetic, whack-a-mole — a locked-out user can play to shorten a wait, never to bypass the credential itself.\n\n## Behavior\n\nWinning a rung is meant to clear only the current lockout wait, never the credential requirement itself, with a capped, server-graded budget of skippable waits so the ladder cannot be scripted into a bypass.\n\n## Configuration\n\nEvery answer would be generated and graded independently of the browser, using a single-use token, so a client-side script cannot forge a win.\n\n## Current status\n\n**Desktop application:** Partial. A lockout timer exists after repeated wrong password attempts on the desktop application's launch gate, but there are no unlock-ladder games, no attempt-budget mechanic, and no server-side challenge grading.\n\n**Documentation website:** Not implemented. The documentation website has no lockable credential for a ladder to apply to.\n\n## Failure modes\n\nA ladder submission that arrives before its round's own minimum duration has elapsed, or that replays an already-consumed challenge token, is meant to be rejected outright; there is no ladder implementation yet to enforce either check.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Per-element toy locks](per-element-toy-locks.md), [Built-in authenticator](built-in-authenticator.md), [Security](../system/security.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "README",
+      "category": "README.md",
+      "title": "Ding PBX Console documentation",
+      "headings": [
+        {
+          "title": "Rails",
+          "id": "rails"
+        },
+        {
+          "title": "Shared behavior",
+          "id": "shared-behavior"
+        }
+      ],
+      "links": [
+        "pbx/README.md",
+        "media/README.md",
+        "data/README.md",
+        "system/README.md",
+        "agent/README.md",
+        "app/README.md",
+        "app/history.md",
+        "app/arcade.md"
+      ],
+      "body": "# Ding PBX Console documentation\n\nDing PBX Console is a Windows desktop administration experience for Asterisk. The renderer is compiled directly from the design's navigation model, so this documentation follows the same structure: six rails and 32 destinations, one article per destination, grouped and ordered exactly as the app presents them.\n\nThe documentation map contains 32 destinations in six rails. Every article covers behavior, configuration, failure modes and security, verification, and suggested reading.\n\n## Rails\n\n- [PBX](pbx/README.md) — Telephony: endpoints, routing and everything a call touches while it is alive.\n- [Media](media/README.md) — Media & voice: codecs, RTP, recordings, prompts and conferencing.\n- [Data](data/README.md) — Records & APIs: call records, event logging and the machine interfaces.\n- [System](system/README.md) — Runtime & security: modules, logging, certificates and the CLI.\n- [Agent](agent/README.md) — Agent global memory: memory, sync, skills, hub sessions and the emission guard.\n- [App](app/README.md) — Deploy & application: stand up a new server, then appearance, updates and the console itself.\n\n## Shared behavior\n\nConfiguration controls are pickers, switches, sliders and steppers wired to real keys in the owning Asterisk configuration file — never free-text fields that could drift from what Asterisk actually does. Where an article shows a default value or an option list, it is the same default the design and the renderer ship with; nothing here is a simulated call, a sample statistic, or an invented extension. Destructive actions run the full confirmation ceremony described in [History & git](app/history.md) and [Arcade](app/arcade.md).\n"
+    },
+    {
+      "id": "system/cli",
+      "category": "system",
+      "title": "CLI builder",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "modules.md",
+        "logger.md",
+        "security.md"
+      ],
+      "body": "# CLI builder\n\n## Behavior\n\nBuild a real Asterisk CLI command by choosing its parts. The raw console beside it is read-only output, shown only in expert mode. It is backed by `asterisk -rx`. It lives on the System rail, under the Runtime & security group: Modules, logging, certificates and the CLI.\n\n## Configuration\n\nThere is no settings form here. Commands are assembled from pickers that mirror the real `asterisk -rx` command grammar, so what you build is exactly what will run, never free text.\n\n## Failure modes and security\n\nA command built from invalid picker combinations is rejected before it reaches Asterisk, rather than sent and left to fail on the far side.\n\n## Verification\n\nConfirm every picker combination produces the exact command that would be typed by hand, and that the raw console only appears in expert mode.\n\n## Suggested articles\n\n[Modules](modules.md), [Logger](logger.md), and [Security](security.md).\n"
+    },
+    {
+      "id": "system/logger",
+      "category": "system",
+      "title": "Logging",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "modules.md",
+        "cli.md",
+        "../app/history.md"
+      ],
+      "body": "# Logging\n\n## Behavior\n\nSeverity per destination as a matrix of switches. Rotation is a picker, retention is a slider. It is backed by `logger.conf`. It lives on the System rail, under the Runtime & security group: Modules, logging, certificates and the CLI.\n\n## Configuration\n\n### Console\n\nWhat the attached console prints.\n\n- **Console levels** (`g_console`) — a chips control, default `notice`, `warning`, `error`, choices `debug`, `trace`, `notice`, `warning`, `error`, `verbose`, `dtmf`, `fax`, `security`.\n- **Verbosity** (`g_verbose`) — a slider control, default `3`.\n- **Colourise output** (`g_colour`) — a switch control, default `true`.\n\n### Files & rotation\n\nDisk logging.\n\n- **File levels** (`g_file`) — a chips control, default `notice`, `warning`, `error`, `verbose`, choices `debug`, `trace`, `notice`, `warning`, `error`, `verbose`, `dtmf`, `fax`, `security`.\n- **Rotation strategy** (`g_rotate`) — a segmented control, default `rotate`, choices `sequential`, `rotate`, `timestamp`, `none`.\n  - *What it is:* How log files are rotated when they reach the size limit.\n  - *Why it exists:* Unrotated logs fill the disk, and a full disk stops Asterisk.\n  - *Choosing a value:* rotate renames sequentially, timestamp appends the date, sequential numbers forever, none disables it.\n  - *Gotcha:* If an external logrotate is also configured, both will fight and you will lose log lines at the boundary.\n- **Keep files** (`g_count`) — a stepper control, default `10`.\n- **Rotate at** (`g_size`) — a slider control, default `50`.\n- **Queue log** (`g_queue`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery control here maps to a real key in logger.conf; an unreachable configuration store is shown as unreachable, never backfilled with placeholder values. If an external logrotate is also configured, both will fight and you will lose log lines at the boundary.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in logger.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm every default shown here matches what a fresh install actually ships, and that changing a value here is reflected the next time this screen loads.\n\n## Suggested articles\n\n[Modules](modules.md), [CLI builder](cli.md), and [History & git](../app/history.md).\n"
+    },
+    {
+      "id": "system/modules",
+      "category": "system",
+      "title": "Modules",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "logger.md",
+        "security.md",
+        "cli.md"
+      ],
+      "body": "# Modules\n\n## Behavior\n\nEvery loadable module with its live state. Loading and unloading are real actions and run the full confirmation ceremony. It is backed by `modules.conf`. The rail badge on this destination currently reads `214`. It lives on the System rail, under the Runtime & security group: Modules, logging, certificates and the CLI.\n\n## Configuration\n\n### Load policy\n\nWhat Asterisk does with modules it was not explicitly told about.\n\n- **autoload** (`mo_auto`) — a switch control, default `true`.\n  - *What it is:* Whether Asterisk loads every module it finds at startup.\n  - *Why it exists:* Convenient, but it means an unused module with a vulnerability is loaded anyway.\n  - *Choosing a value:* On for a lab. Off with an explicit load list for a hardened deployment.\n  - *Gotcha:* Turning it off without listing what you actually need produces a PBX that starts cleanly and does nothing.\n- **Preload** (`mo_preload`) — a chips control, default `res_odbc.so`, `res_config_odbc.so`, choices `res_odbc.so`, `res_config_odbc.so`, `res_curl.so`, `res_crypto.so`.\n- **Never load** (`mo_noload`) — a chips control, default `chan_sip.so`, choices `chan_sip.so`, `chan_mobile.so`, `app_meetme.so`, `res_snmp.so`.\n- **Fail startup on missing module** (`mo_require`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery row reflects a real object in modules.conf; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen. Turning it off without listing what you actually need produces a PBX that starts cleanly and does nothing.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in modules.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Logger](logger.md), [Security](security.md), and [CLI builder](cli.md).\n"
+    },
+    {
+      "id": "system/README",
+      "category": "system",
+      "title": "System",
+      "headings": [],
+      "links": [
+        "modules.md",
+        "logger.md",
+        "security.md",
+        "cli.md"
+      ],
+      "body": "# System\n\nRuntime & security: modules, logging, certificates and the CLI.\n\n- [Modules](modules.md)\n- [Logger](logger.md)\n- [Security](security.md)\n- [CLI builder](cli.md)\n"
+    },
+    {
+      "id": "system/security",
+      "category": "system",
+      "title": "Security",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "../pbx/endpoints.md",
+        "../pbx/trunkauth.md",
+        "../data/ami.md"
+      ],
+      "body": "# Security\n\n## Behavior\n\nAccess control, transport certificates and caller-ID attestation. Certificates are chosen from the machine store — no path is ever typed. It is backed by `acl.conf · stir_shaken.conf`. The rail badge on this destination currently reads `!`. It lives on the System rail, under the Runtime & security group: Modules, logging, certificates and the CLI.\n\n## Configuration\n\n### Access control\n\nNamed ACLs applied to transports and endpoints.\n\n- **Active ACL** (`s_acl`) — a select control, default `trusted-nets`, choices `trusted-nets`, `branch-offices`, `carrier-only`, `deny-all`.\n- **Permitted networks** (`s_permit`) — a chips control, default `10.20.0.0/16`, `198.51.100.0/24`, choices `10.20.0.0/16`, `198.51.100.0/24`, `192.0.2.0/24`, `0.0.0.0/0`.\n- **Auto-ban after failures** (`s_failban`) — a stepper control, default `5`.\n- **Ban duration** (`s_bantime`) — a slider control, default `600`.\n- **Allow guest calls** (`s_guest`) — a switch control, default `false`. Off. Always off, unless you run a public conference bridge and know exactly why you turned it on.\n  - *What it is:* Whether calls from unauthenticated sources are accepted.\n  - *Why it exists:* It is the setting that decides whether strangers can use your phone system.\n  - *Choosing a value:* Off. Always off, unless you are running a public conference bridge and know exactly why.\n  - *Gotcha:* Combined with a permissive context this is how a PBX ends up dialling premium numbers overnight.\n\n### TLS\n\nCertificates come from the system store.\n\n- **Server certificate** (`s_cert`) — a select control, default `pbx.example.com`, choices `pbx.example.com`, `wildcard.example.com`, `internal-ca-issued`.\n- **TLS method** (`s_method`) — a segmented control, default `tlsv1_3`, choices `tlsv1_2`, `tlsv1_3`.\n- **Verify client certificates** (`s_verify`) — a switch control, default `false`.\n- **Cipher policy** (`s_ciphers`) — a segmented control, default `Modern`, choices `Modern`, `Intermediate`, `Legacy`.\n\n### STIR/SHAKEN\n\nSigned caller identity for outbound calls.\n\n- **Attestation enabled** (`s_stir`) — a switch control, default `true`.\n  - *What it is:* Whether outbound calls are signed with a STIR/SHAKEN identity token.\n  - *Why it exists:* Carriers increasingly downgrade or label unsigned calls, and regulators increasingly require it.\n  - *Choosing a value:* On for anything reaching the public network.\n  - *Gotcha:* Signing requires a certificate from an authorised provider. Enabling it without one produces calls that fail to sign and log an error per call.\n- **Attestation level** (`s_level`) — a segmented control, default `A`, choices `A`, `B`, `C`. A means you know the caller and their right to that number. C means the call just passed through you.\n  - *What it is:* The attestation level asserted on signed calls.\n  - *Why it exists:* It tells the far end how confident you are that the caller may use that number.\n  - *Choosing a value:* A means you know the caller and their right to the number. B means you know the caller but not the number. C means the call merely passed through you.\n  - *Gotcha:* Claiming A when you cannot prove it is worse than honestly claiming C — it is the specific thing enforcement looks for.\n- **Verify inbound identity** (`s_verifyin`) — a switch control, default `true`.\n- **On verification failure** (`s_failaction`) — a segmented control, default `Continue`, choices `Continue`, `Tag`, `Reject`.\n\n## Failure modes and security\n\nEvery control here maps to a real key in acl.conf · stir_shaken.conf; an unreachable configuration store is shown as unreachable, never backfilled with placeholder values. Combined with a permissive context this is how a PBX ends up dialling premium numbers overnight. Signing requires a certificate from an authorised provider. Enabling it without one produces calls that fail to sign and log an error per call. Claiming A when you cannot prove it is worse than honestly claiming C — it is the specific thing enforcement looks for.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in acl.conf · stir_shaken.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm every default shown here matches what a fresh install actually ships, and that changing a value here is reflected the next time this screen loads.\n\n## Suggested articles\n\n[Endpoints](../pbx/endpoints.md), [Trunk authentication](../pbx/trunkauth.md), and [AMI & ARI](../data/ami.md).\n"
+    }
+  ]
+} as const;

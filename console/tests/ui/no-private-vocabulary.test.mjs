@@ -37,6 +37,13 @@ const SCANNED = [
   'console/site',
   'console/shared',
   'console/control-plane',
+  /* The documentation was the blind spot. It is rendered straight onto the public
+   * website, so it was every bit as published as the pages themselves — and it was not
+   * scanned, so two terms sat in it and shipped. What surfaced them was bundling the
+   * docs into the application, which brought them into a directory that WAS scanned.
+   * A guard is only as good as the list of places it looks, and a list that omits a
+   * published surface reports clean while that surface leaks. */
+  'console/docs',
 ];
 
 const TEXT = new Set(['.ts', '.tsx', '.js', '.mjs', '.css', '.html', '.json', '.md']);
@@ -65,10 +72,10 @@ export function scanForPrivateVocabulary(files, read = (path) => readFileSync(pa
 
 test('no shipped or published surface contains a private vocabulary term', () => {
   const files = SCANNED.flatMap((relative) => walk(resolve(root, relative)));
-  /* Tripwire, not a target. The five scanned trees hold 41 text files today; if a walk
+  /* Tripwire, not a target. The six scanned trees hold well over a hundred text files today; if a walk
    * silently stops descending, the scan would pass by looking at almost nothing, which
    * is the failure mode this whole check exists to avoid. */
-  assert.ok(files.length >= 35, `the walk collapsed: expected to scan the whole tree, scanned only ${files.length}`);
+  assert.ok(files.length >= 110, `the walk collapsed: expected to scan the whole tree, scanned only ${files.length}`);
   const hits = scanForPrivateVocabulary(files);
   assert.deepEqual(hits, [], `private vocabulary reached a shipped surface:\n  ${hits.join('\n  ')}`);
 });

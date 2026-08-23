@@ -10,10 +10,10 @@ This is the main road: press the big button and a working PBX exists in about se
 
 How this console reaches Asterisk. Everything below reshapes itself around this answer.
 
-- **Connection type** (`sv_kind`) — a segmented control, default `Local`, choices `Local`, `Local Yere Dow`, `SSH`, `SSH Yere Dow`. Local is the same machine. Local Yere Dow is a container here. SSH is another machine. SSH Yere Dow is a container on another machine, reached over SSH and then into the container.
+- **Connection type** (`sv_kind`) — a segmented control, default `Local`, choices `Local`, `Local Docker`, `SSH`, `SSH Docker`. Local is the same machine. Local Docker is a container here. SSH is another machine. SSH Docker is a container on another machine, reached over SSH and then into the container.
   - *What it is:* How this console reaches Asterisk: locally, into a container, over SSH, or over SSH and then into a container.
   - *Why it exists:* Everything else on the screen reshapes around this answer, including how configuration files are written.
-  - *Choosing a value:* Local for the same machine, Local Yere Dow for a container here, SSH for another machine, SSH Yere Dow for a container elsewhere.
+  - *Choosing a value:* Local for the same machine, Local Docker for a container here, SSH for another machine, SSH Docker for a container elsewhere.
   - *Gotcha:* Over SSH the manager port is forwarded through the tunnel, so it never crosses the network unprotected — but only if tunnel forwarding stays enabled.
 - **Host** (`sv_host`) — a select control, default `pbx-hq.internal`, choices `localhost`, `pbx-hq.internal`, `pbx-branch.internal`, `10.20.4.10`.
 - **Container** (`sv_container`) — a select control, default `asterisk-prod`, choices `asterisk-prod`, `asterisk-lab`, `asterisk-edge`.
