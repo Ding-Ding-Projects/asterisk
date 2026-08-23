@@ -94,12 +94,17 @@ Everything below is on the default branch. To pick this up elsewhere:
 | `899a3c3ecf` | Removed private vocabulary from every shipped and published surface, with a guard |
 | `7e8adb70ce` | Created and managed the console's own WSL distribution from the packaged payload |
 | `87cead7124` | Made the confirmation flow actually run the command it guarded |
+| `bc1b43acc8` | Implemented the configuration transport the transaction engine had been waiting for |
 
 ### Verification at close
 
 - Local suite: **144 test cases green, exit 0** — 12 design/leak, 49 renderer, 83 control-plane, plus the static-site and inventory checks. Every negative regression was observed red on a deliberate break and green on restoration.
 - Remote CI was verified green at `23bd12e797`, which published release `ding-pbx-console-v0.0.7-r1` (non-draft, exact target, six assets). Runs for `899a3c3ecf`, `7e8adb70ce` and `87cead7124` were still in flight at close and their verdicts are **not** recorded here, because a predicted verdict is not a verdict.
 - Release `ding-pbx-console-v0.0.5-r1` was independently verified: `RELEASES` and `SHA256SUMS.txt` were downloaded and read back, and the size `RELEASES` records for the full package matches the published asset exactly.
+
+### Repository state at close
+
+One branch on the remote (`master`), one local branch, one checkout, no linked worktrees, no stashes, clean tree. The four feature branches were already removed when they merged, so no cleanup pass was required and none was staged. `StructuredConfigPlanner` and `ConfigTransaction` — 270 lines of backup, stage, validate, apply, post-read and reverse-order rollback — had never executed once, because nothing implemented the transport they call; that transport now exists and is covered end to end, including a target that silently never changed being caught by the post-read and rolled back rather than reported as applied.
 
 ### The state a next owner most needs to know
 

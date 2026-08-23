@@ -46,7 +46,10 @@
 
 Measured position: **7 of 32 destinations are backed by live control-plane data**; 3 of 9 declared actions are implemented.
 
-- [ ] Implement `pbx.apply`, `history.list` and `history.restore` so the 21 configuration-editor screens can stage and commit, or relabel those screens read-only until they can. They are complete, responsive forms today that persist nothing.
+- [x] Implement the configuration transport `ConfigTransaction` and `StructuredConfigPlanner` require. Ten allowlisted absolute resource paths, content on standard input rather than in an argument, ordered entries so repeated keys survive a round trip, and a post-read mismatch that rolls back instead of reporting success.
+- [ ] Wire `pbx.plan` and `pbx.apply` actions onto that transport and connect the 21 configuration-editor screens to them, so a change previews as a real diff and commits through the existing backup/stage/validate/apply/post-read path. The engine and its transport are both ready; only the action wiring and the screen bindings remain.
+- [ ] Exercise an approved write plan against the managed WSL distribution before describing any configuration mutation as verified against a real target. Nothing in this project has yet written to a live Asterisk.
+- [ ] Implement `history.list` and `history.restore` against the same backups the transport already takes.
 - [ ] Give the permanently empty table destinations (`ivr`, `voicemail`, `confbridge`, `moh`, `ami`, `sync`, `skills`, `hub`, `vocab`, `ops`, `secrets`, `notifications`) either a real reader or an empty state that distinguishes "not wired yet" from "connected and genuinely zero rows".
 - [ ] Remove or gate `server.connect`, which is implemented in the main process and never called from the interface.
 - [ ] Decide whether the pre-scrub installers published before `899a3c3ecf` should be superseded or removed; their binaries carry private wording and cannot be edited. Every release from `899a3c3ecf` onward is clean.
