@@ -41,11 +41,11 @@ test('contains exactly 32 destination definitions in six declared groups', () =>
     'arcade','notifications','history','customise','appearance','about',
   ]);
 });
-test('provides 32 complete categorized articles with valid local links', async () => {
-  const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app'];
+test('provides 74 complete categorized articles with valid local links', async () => {
+  const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app','platform'];
   const articles=[];
   for(const category of categories)for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')articles.push(join(docsRoot,category,name));
-  assert.equal(articles.length,32);
+  assert.equal(articles.length,74); // 32 destination articles (pbx/media/data/system/agent/app) plus 42 platform articles
   for(const article of articles){const content=await readFile(article,'utf8');for(const heading of ['## Behavior','## Configuration','## Failure modes','## Verification','## Suggested articles'])assert.match(content,new RegExp(heading));for(const match of content.matchAll(/\]\(([^)]+\.md)\)/g)){const target=resolve(dirname(article),match[1]);assert.ok((await stat(target)).isFile(),`${article} -> ${match[1]}`)}}
 });
 test('exposes keyboard, tab, regex, and local settings interactions', () => {
@@ -70,11 +70,12 @@ test('build composes deterministic local output without fetches', async () => {
   execFileSync(process.execPath, [join(root, 'build.mjs')], { cwd: repo, stdio: 'pipe' });
   const manifest = JSON.parse(await readFile(join(root, 'dist', 'build-manifest.json'), 'utf8'));
   assert.equal(manifest.networkFetches, 0);
-  // 48 pages, documents and the social preview, plus the 51 vendored font files
+  // 48 pages, documents and the social preview, plus the 51 vendored font files, plus the
   // (49 faces, fonts.css and manifest.json) now copied in so the published pages can
-  // actually reach them. An exact count is the point: this is the determinism check,
+  // 43 platform contract articles and their index. An exact count is the point: this is
+  // the determinism check,
   // so a number that drifts should fail and be explained rather than quietly widened.
-  assert.equal(manifest.outputFiles.length, 99);
+  assert.equal(manifest.outputFiles.length, 142);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');
