@@ -228,3 +228,42 @@ test("guard: proving it actually guards — break it, watch it go red, restore, 
   assert.equal(state["server-a"], undefined);
 });
 
+
+test('an answer is filed where the caller asked, not where the guard assumed', () => {
+  /* The regression this exists for: the guard filed every answer under the server it came
+   * from, and the console reads its readings back by screen. The keys never matched, so
+   * every table rendered empty for want of data that had arrived and been stored one key
+   * away. The guard reported success each time, because storing it was all it had been
+   * asked to confirm. */
+  const guard = new ResponseRoutingGuard();
+  const slot: Record<string, string> = {};
+  const token = guard.begin('server-a');
+
+  assert.equal(applyIfCurrent(guard, token, 'server-a', slot, 'the answer', 'endpoints'), true);
+  assert.equal(slot.endpoints, 'the answer', 'the answer was not filed under the key the caller named');
+  assert.equal(slot['server-a'], undefined, 'it was also filed under the server id, which nobody reads back');
+});
+
+test('naming a key does not weaken the routing checks it exists for', () => {
+  const guard = new ResponseRoutingGuard();
+  const slot: Record<string, string> = {};
+
+  /* Still refused when the answer is for a different server than the one on screen. */
+  const forA = guard.begin('server-a');
+  assert.equal(applyIfCurrent(guard, forA, 'server-b', slot, 'wrong server', 'endpoints'), false);
+  assert.equal(slot.endpoints, undefined);
+
+  /* And still refused once a newer request for the same server has superseded it. */
+  const stale = guard.begin('server-a');
+  guard.begin('server-a');
+  assert.equal(applyIfCurrent(guard, stale, 'server-a', slot, 'stale', 'endpoints'), false);
+  assert.equal(slot.endpoints, undefined);
+});
+
+test('omitting the key keeps the original per-server behaviour', () => {
+  const guard = new ResponseRoutingGuard();
+  const slot: Record<string, string> = {};
+  const token = guard.begin('server-a');
+  assert.equal(applyIfCurrent(guard, token, 'server-a', slot, 'per-server'), true);
+  assert.equal(slot['server-a'], 'per-server');
+});

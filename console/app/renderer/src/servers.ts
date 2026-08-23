@@ -55,8 +55,8 @@ export class ServerSwitcher {
   }
 
   /** See the guard's own documentation in `control-plane/server-inventory.ts`. */
-  applyReading<T>(token: RequestToken, expectedServerId: string, slot: Record<string, T>, data: T): boolean {
-    return applyIfCurrent(this.guard, token, expectedServerId, slot, data);
+  applyReading<T>(token: RequestToken, expectedServerId: string, slot: Record<string, T>, data: T, key?: string): boolean {
+    return applyIfCurrent(this.guard, token, expectedServerId, slot, data, key);
   }
 
   async load(): Promise<ServerListState> {

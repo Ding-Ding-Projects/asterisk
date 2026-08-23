@@ -578,7 +578,10 @@ It is shown once. The phone needs it to register.`);
      * from under this in-flight request (`this.target.id` may no longer equal
      * `serverId` by the time this answer lands). Either way the screen keeps waiting
      * for a current answer instead of showing a stale or misrouted one. */
-    if (!this.servers.applyReading(token, this.target.id, this.readings as Record<string, ViewReadings>, data)) return;
+    /* Keyed by screen, which is how it is read back. Without the key the guard files the
+     * answer under the server id instead and every table renders empty while reporting
+     * nothing wrong. */
+    if (!this.servers.applyReading(token, this.target.id, this.readings as Record<string, ViewReadings>, data, screen)) return;
     this.forceUpdate();
   };
 

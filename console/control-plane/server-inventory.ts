@@ -309,9 +309,23 @@ export function applyIfCurrent<T>(
   expectedServerId: string,
   target: Record<string, T>,
   data: T,
+  /**
+   * Where in `target` the answer belongs.
+   *
+   * Defaults to the server it came from, which is right when the slot holds one entry
+   * per server. It is wrong when the caller's slot is keyed by something else, and that
+   * went unnoticed: the console keys its readings by screen, so every answer was filed
+   * under a server id nobody ever read back and every table stayed empty. The guard
+   * reported success each time, because storing the answer was all it had been asked to
+   * confirm.
+   *
+   * Naming the key explicitly keeps the routing check — is this answer still current, and
+   * is it for the server we are looking at — separate from where the answer is filed.
+   */
+  key: string = token.serverId,
 ): boolean {
   if (token.serverId !== expectedServerId) return false;
   if (!guard.isCurrent(token)) return false;
-  target[token.serverId] = data;
+  target[key] = data;
   return true;
 }
