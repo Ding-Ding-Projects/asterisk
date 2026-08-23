@@ -10,6 +10,7 @@ import {
 } from '../../app/renderer/src/pbx-admin-screens';
 
 const appUrl = new URL('../../app/renderer/src/PbxAdminApp.tsx', import.meta.url);
+const integratedUrl = new URL('../../app/renderer/src/PbxAdminIntegratedApp.tsx', import.meta.url);
 const mainUrl = new URL('../../app/renderer/src/main.tsx', import.meta.url);
 
 registerPbxAdminScreens();
@@ -24,6 +25,15 @@ test('every PBX catalogue feature is a real generic screen in the compiled conso
     assert.ok(ORDER.includes(id), `${id} is missing from console order / command palette`);
     assert.equal(screens[id]?.rail, PBX_ADMIN_RAIL, `${id} is not on the PBX Admin rail`);
     assert.equal(screens[id]?.kind, 'generic', `${id} must use the compiled generic/M3Control screen path`);
+  }
+});
+
+test('every live-module alias points to an existing Ding destination', () => {
+  const screens = SCREENS as unknown as Record<string, { rail?: string }>;
+  for (const feature of PBX_FEATURES.filter((candidate) => candidate.delegateScreen)) {
+    const target = screens[feature.delegateScreen!];
+    assert.ok(target, `${feature.label} delegates to missing screen ${feature.delegateScreen}`);
+    assert.ok(target.rail, `${feature.delegateScreen} has no navigation rail`);
   }
 });
 
@@ -52,9 +62,22 @@ test('PBX Admin uses bounded desktop actions and never exposes a raw command or 
   assert.match(source, /this\.areYouSure/u, 'destructive / live writes must pass through the existing confirmation dialog');
 });
 
+test('live/report standard modules route through existing Ding screens instead of cloning UI', async () => {
+  const source = await readFile(integratedUrl, 'utf8');
+  assert.match(source, /featureForAdvancedScreen/u);
+  assert.match(source, /delegateScreen/u);
+  assert.match(source, /this\.setState\(\{ screen: delegate, railId: target\.rail \}/u);
+  assert.doesNotMatch(source, /createRoot|document\.createElement|position:\s*fixed|backdrop-filter/u);
+});
+
 test('there is one application shell root; PBX Admin is not a floating or parallel workspace', async () => {
-  const [appSource, mainSource] = await Promise.all([readFile(appUrl, 'utf8'), readFile(mainUrl, 'utf8')]);
+  const [appSource, integratedSource, mainSource] = await Promise.all([
+    readFile(appUrl, 'utf8'),
+    readFile(integratedUrl, 'utf8'),
+    readFile(mainUrl, 'utf8'),
+  ]);
   assert.doesNotMatch(appSource, /createRoot|position:\s*fixed|backdrop-filter/u);
-  assert.match(mainSource, /createRoot\(document\.getElementById\('root'\)!\)\.render\(<React\.StrictMode><PbxAdminApp/u);
+  assert.doesNotMatch(integratedSource, /createRoot|position:\s*fixed|backdrop-filter/u);
+  assert.match(mainSource, /createRoot\(document\.getElementById\('root'\)!\)\.render\(<React\.StrictMode><PbxAdminIntegratedApp/u);
   assert.doesNotMatch(mainSource, /PbxAdminWorkspace|pbx-admin-workspace-host/u);
 });
