@@ -5062,7 +5062,13 @@ class ConsoleShell extends DCLogic {
       wizardCtls:cur.ctls.map(this.buildCtl),
       wizardPreview:this.wizardPreview(),
       wizardNextLabel:last ? 'Apply with confirmation' : 'Next',
-      wizardNext:() => { if (last) { this.setState({ wizardOpen:false }); this.ceremony('Apply guided configuration', this.state.screen === 'servers' ? 'connect ' + (this.val({ id:'sv_kind', value:'Local' })) : 'pjsip reload'); } else this.setState(st => ({ wizardStep:Math.min(flow.length - 1, st.wizardStep + 1) })); },
+      // Finishing the wizard used to run `pjsip reload` and nothing else: it collected
+      // every answer and then reloaded a file it had never written to, reporting success.
+      // A screen that can actually create the thing it asked about supplies its own
+      // handler, the way the servers screen already does.
+      wizardNext:() => { if (last) { this.setState({ wizardOpen:false });
+        if (this.state.screen === 'endpoints' && this.onCreateEndpoint) { this.onCreateEndpoint(); return; }
+        this.ceremony('Apply guided configuration', this.state.screen === 'servers' ? 'connect ' + (this.val({ id:'sv_kind', value:'Local' })) : 'pjsip reload'); } else this.setState(st => ({ wizardStep:Math.min(flow.length - 1, st.wizardStep + 1) })); },
       wizardBack:() => this.setState(st => ({ wizardStep:Math.max(0, st.wizardStep - 1) })),
       closeWizard:() => this.setState({ wizardOpen:false, wizardCtl:null }),
 
