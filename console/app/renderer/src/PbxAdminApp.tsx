@@ -78,14 +78,17 @@ function fileControl(id: string, label: string): AdminControl {
  * only form-control renderer. This subclass supplies live data and side effects for the
  * PBX Admin screens registered in `pbx-admin-screens.ts`; it never mounts a parallel UI,
  * never invokes a shell, and never accepts a resource path that did not come from the
- * checked-in feature catalogue / 41-resource allowlist.
+ * checked-in feature catalogue / 47-resource allowlist.
  */
 export class PbxAdminApp extends App {
-  private readonly appControlAction = this.onControlAction;
-  private readonly appFilePicked = this.onFilePicked;
-  private readonly appFileCleared = this.onFileCleared;
-  private readonly appFileControlName = this.fileControlName;
-  private readonly appFileControlHasFile = this.fileControlHasFile;
+  /* Base App installs these handlers as instance fields before derived fields run. Cast
+   * through the base type so TypeScript does not mistake these captures for reads of the
+   * derived overrides declared later in this class. */
+  private readonly appControlAction = (this as App).onControlAction;
+  private readonly appFilePicked = (this as App).onFilePicked;
+  private readonly appFileCleared = (this as App).onFileCleared;
+  private readonly appFileControlName = (this as App).fileControlName;
+  private readonly appFileControlHasFile = (this as App).fileControlHasFile;
 
   private adminTargets: string[] = [];
   private adminTargetId = '';
@@ -466,11 +469,11 @@ export class PbxAdminApp extends App {
     return entries[index >= 0 ? index : 0];
   }
 
-  renderVals() {
+  renderVals(): ReturnType<App['renderVals']> {
     const screen = this.stateValues().screen;
     const feature = featureForAdvancedScreen(screen);
     if (feature) this.prepareAdminScreen(screen, feature);
-    const values = super.renderVals() as Record<string, unknown>;
+    const values = super.renderVals();
     if (!feature) return values;
     const status = this.adminStatus.get(screen) ?? 'Nothing has been changed.';
     return {
@@ -529,11 +532,18 @@ export class PbxAdminApp extends App {
       this.fire('Nothing to apply', 'The preview found no live difference.');
       return;
     }
+    const confirmed = {
+      screen: context.screen,
+      target: context.target,
+      resource: context.resource,
+      value: context.value,
+      key: context.key,
+    };
     this.areYouSure(
       `Apply ${basename(context.resource)}`,
       'The control plane will back up, stage, validate, apply, post-read and compare this resource. A post-read mismatch triggers rollback.',
       3,
-      () => { void this.applyAdminConfirmed(context); },
+      () => { void this.applyAdminConfirmed(confirmed); },
     );
   };
 
@@ -731,7 +741,7 @@ export class PbxAdminApp extends App {
     await this.loadAdminMedia(screen, true);
   };
 
-  onControlAction = (action: string, _control?: { id?: string }, _selected?: string): void => {
+  onControlAction = (action: string, _control?: { id?: string }, selected?: string): void => {
     const context = this.currentAdminContext();
     if (!context) {
       this.appControlAction(action);
@@ -739,16 +749,26 @@ export class PbxAdminApp extends App {
     }
     switch (action) {
       case 'pbxadmin-discover': void this.discoverAdminTargets(); return;
-      case 'pbxadmin-target':
-        this.adminTargetId = this.selectedTarget(context.screen);
-        this.adminStatus.set(context.screen, `PBX target changed to ${this.adminTargetId || 'none'}.`);
-        void this.refreshAdminScreen(context.screen, context.feature);
+      case 'pbxadmin-target': {
+        if (!selected || !this.adminTargets.includes(selected)) return;
+        this.adminTargetId = selected;
+        const state = this.stateValues();
+        this.setState({ values: { ...state.values, [this.targetControlId(context.screen)]: selected } } as never, () => {
+          this.adminStatus.set(context.screen, `PBX target changed to ${selected}.`);
+          void this.refreshAdminScreen(context.screen, context.feature);
+        });
         return;
-      case 'pbxadmin-resource':
-        this.clearAdminEditorValues(context.screen);
-        void this.loadAdminConfig(context.screen, context.feature, true);
-        void this.loadAdminHistory(context.screen, context.feature, true);
+      }
+      case 'pbxadmin-resource': {
+        if (!selected) return;
+        const state = this.stateValues();
+        this.setState({ values: { ...state.values, [this.resourceControlId(context.screen)]: selected } } as never, () => {
+          this.clearAdminEditorValues(context.screen);
+          void this.loadAdminConfig(context.screen, context.feature, true);
+          void this.loadAdminHistory(context.screen, context.feature, true);
+        });
         return;
+      }
       case 'pbxadmin-read': void this.loadAdminConfig(context.screen, context.feature, true); return;
       case 'pbxadmin-preview': void this.previewAdmin(); return;
       case 'pbxadmin-apply': void this.applyAdmin(); return;
@@ -763,10 +783,17 @@ export class PbxAdminApp extends App {
       case 'pbxadmin-select-setting':
       case 'pbxadmin-select-history':
       case 'pbxadmin-select-media':
-        this.forceUpdate(); return;
+        return;
       case 'pbxadmin-history-refresh': void this.loadAdminHistory(context.screen, context.feature, true); return;
       case 'pbxadmin-restore': void this.restoreAdmin(); return;
-      case 'pbxadmin-media-root': void this.loadAdminMedia(context.screen, true); return;
+      case 'pbxadmin-media-root': {
+        if (!selected) return;
+        const state = this.stateValues();
+        this.setState({ values: { ...state.values, [this.mediaRootControlId(context.screen)]: selected } } as never, () => {
+          void this.loadAdminMedia(context.screen, true);
+        });
+        return;
+      }
       case 'pbxadmin-media-refresh': void this.loadAdminMedia(context.screen, true); return;
       case 'pbxadmin-media-remove': void this.removeAdminMedia(); return;
       default: this.appControlAction(action);
