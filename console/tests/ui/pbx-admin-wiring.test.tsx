@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { ORDER, RAIL, SCREENS } from '../../app/renderer/src/generated/console';
 import { PBX_FEATURES } from '../../app/renderer/src/pbx-admin-model';
+import { PBX_RAIL_IDS, railForFeature } from '../../app/renderer/src/pbx-rail-mapping';
 import {
   PBX_ADMIN_RAIL,
   advancedScreenId,
@@ -15,22 +16,41 @@ const mainUrl = new URL('../../app/renderer/src/main.tsx', import.meta.url);
 
 registerPbxAdminScreens();
 
-test('every PBX catalogue feature is a real generic screen in the compiled console shell', () => {
-  const screens = SCREENS as unknown as Record<string, { rail?: string; kind?: string; groups?: unknown[] }>;
-  const rails = RAIL as unknown as Array<{ id?: string }>;
-  assert.ok(rails.some((rail) => rail.id === PBX_ADMIN_RAIL), 'PBX Admin rail is missing');
+const merged = PBX_FEATURES.filter((feature) => feature.delegateScreen);
+const unmerged = PBX_FEATURES.filter((feature) => !feature.delegateScreen);
 
-  for (const feature of PBX_FEATURES) {
+test('there is no catalogue-only PBX Admin rail: every feature is merged into a real destination or routed to a real rail', () => {
+  const rails = RAIL as unknown as Array<{ id?: string }>;
+  assert.ok(
+    !rails.some((rail) => rail.id === PBX_ADMIN_RAIL),
+    'PBX_ADMIN_RAIL is registered — some feature was not routed to a real rail; check railForFeature coverage',
+  );
+});
+
+test('a feature with a real destination is not also registered as a second screen', () => {
+  const screens = SCREENS as unknown as Record<string, unknown>;
+  for (const feature of merged) {
+    const id = advancedScreenId(feature);
+    assert.equal(screens[id], undefined, `${feature.label} has both a delegate (${feature.delegateScreen}) and its own screen ${id} — duplicate destination`);
+    assert.ok(!ORDER.includes(id), `${id} should not appear in console order; it delegates to ${feature.delegateScreen}`);
+  }
+});
+
+test('every non-delegate feature is a real generic screen on a real console rail, never PBX_ADMIN_RAIL', () => {
+  const screens = SCREENS as unknown as Record<string, { rail?: string; kind?: string; groups?: unknown[] }>;
+  for (const feature of unmerged) {
     const id = advancedScreenId(feature);
     assert.ok(ORDER.includes(id), `${id} is missing from console order / command palette`);
-    assert.equal(screens[id]?.rail, PBX_ADMIN_RAIL, `${id} is not on the PBX Admin rail`);
+    const rail = screens[id]?.rail;
+    assert.ok(rail && (PBX_RAIL_IDS as readonly string[]).includes(rail), `${id} is not on a real rail (got ${rail})`);
+    assert.equal(rail, railForFeature(feature), `${id} rail does not match the documented mapping`);
     assert.equal(screens[id]?.kind, 'generic', `${id} must use the compiled generic/M3Control screen path`);
   }
 });
 
 test('every live-module alias points to an existing Ding destination', () => {
   const screens = SCREENS as unknown as Record<string, { rail?: string }>;
-  for (const feature of PBX_FEATURES.filter((candidate) => candidate.delegateScreen)) {
+  for (const feature of merged) {
     const target = screens[feature.delegateScreen!];
     assert.ok(target, `${feature.label} delegates to missing screen ${feature.delegateScreen}`);
     assert.ok(target.rail, `${feature.delegateScreen} has no navigation rail`);
@@ -59,6 +79,7 @@ test('PBX Admin uses bounded desktop actions and never exposes a raw command or 
   assert.match(source, /kind: 'select'/u, 'selection must use the design-system select control');
   assert.match(source, /kind: 'segmented'/u, 'actions must use the design-system segmented control');
   assert.match(source, /kind: 'file'/u, 'media upload must use the design-system file control');
+  assert.match(source, /kind: 'switch'/u, 'a yes/no Asterisk value must use the design-system switch control, not free text');
   assert.match(source, /this\.areYouSure/u, 'destructive / live writes must pass through the existing confirmation dialog');
 });
 

@@ -59,6 +59,33 @@ function textControl(id: string, label: string, value: string, info?: string): A
   return { id, label, kind: 'text', value, ...(info ? { info } : {}) };
 }
 
+/**
+ * Asterisk's own boolean spelling is exactly `yes`/`no` throughout these sample
+ * files (see `control-keys.ts`'s own `YES_VALUES`/`NO_VALUES` for the same
+ * convention used by the typed screens). Restricting the heuristic to that exact
+ * pair — rather than also accepting `1`/`0`/`true`/`false`, which are legitimate
+ * *numeric* or free-text values elsewhere in these configs — means a value is only
+ * ever classified as boolean when it unambiguously already is one. Nothing is
+ * guessed: the control kind is derived from the literal text actually read from the
+ * target, never invented.
+ */
+function isAsteriskBoolean(value: string): boolean {
+  const v = value.trim().toLowerCase();
+  return v === 'yes' || v === 'no';
+}
+
+function parseAsteriskBoolean(value: string): boolean {
+  return value.trim().toLowerCase() === 'yes';
+}
+
+function formatAsteriskBoolean(value: boolean): string {
+  return value ? 'yes' : 'no';
+}
+
+function switchControl(id: string, label: string, value: boolean, info?: string): AdminControl {
+  return { id, label, kind: 'switch', value, ...(info ? { info } : {}) };
+}
+
 function selectControl(id: string, label: string, value: string, options: ReadonlyArray<string>, action?: string): AdminControl {
   return { id, label, kind: 'select', value, options: [...options], ...(action ? { action } : {}) };
 }
@@ -186,10 +213,15 @@ export class PbxAdminApp extends App {
     const values = this.stateValues().values;
     return seed.map((section, sectionIndex) => ({
       name: section.name,
-      entries: section.entries.map((entry, entryIndex) => ({
-        key: entry.key,
-        value: String(values[this.entryValueControlId(screen, sectionIndex, entryIndex)] ?? entry.value),
-      })),
+      entries: section.entries.map((entry, entryIndex) => {
+        const id = this.entryValueControlId(screen, sectionIndex, entryIndex);
+        const raw = values[id];
+        if (isAsteriskBoolean(entry.value)) {
+          const current = typeof raw === 'boolean' ? raw : parseAsteriskBoolean(entry.value);
+          return { key: entry.key, value: formatAsteriskBoolean(current) };
+        }
+        return { key: entry.key, value: String(raw ?? entry.value) };
+      }),
     }));
   }
 
@@ -356,12 +388,20 @@ export class PbxAdminApp extends App {
 
     if (draft) {
       draft.forEach((section, sectionIndex) => {
-        const ctls = section.entries.map((entry, entryIndex) => textControl(
-          this.entryValueControlId(screen, sectionIndex, entryIndex),
-          entry.key || '(blank setting name)',
-          entry.value,
-          `${resource} · [${section.name || 'global'}] · occurrence ${entryIndex + 1}`,
-        ));
+        const ctls = section.entries.map((entry, entryIndex) => {
+          const id = this.entryValueControlId(screen, sectionIndex, entryIndex);
+          const label = entry.key || '(blank setting name)';
+          const info = `${resource} · [${section.name || 'global'}] · occurrence ${entryIndex + 1}`;
+          // Asterisk's own yes/no spelling is an unambiguous boolean — render it as a
+          // real switch instead of a free-text box for "yes"/"no". Every other value
+          // stays text: this editor has no per-key field model, so anything without a
+          // literal boolean value it can verify is left as free text rather than
+          // guessing at a select/stepper range that was never actually read.
+          if (isAsteriskBoolean(entry.value)) {
+            return switchControl(id, label, parseAsteriskBoolean(entry.value), info);
+          }
+          return textControl(id, label, entry.value, info);
+        });
         groups.push({
           title: section.name ? `[${section.name}]` : 'Global settings',
           desc: `${section.entries.length} setting${section.entries.length === 1 ? '' : 's'} read in file order. Repeated keys stay repeated and ordered.`,
