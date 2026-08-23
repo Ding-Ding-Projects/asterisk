@@ -50,6 +50,7 @@ const transientStates = [
   'appearOpen','ceremonyOpen','ctxOpen','infoOpen','lockOpen','onboardOpen','paletteOpen','regexOpen',
   'renameOpen','subOpen','sureOpen','tabColourOpen','tabFilterOpen','toastOpen','tourOpen','unlockOpen','wizardOpen',
 ];
+const parityStatuses = ['verified', 'compiled', 'unverified'];
 const exactRails = { pbx: 8, media: 4, data: 2, system: 4, agent: 7, app: 7 };
 const exactBindings = {
   total: 265, click: 212, change: 10, input: 10, contextmenu: 9,
@@ -76,8 +77,19 @@ export function validateParityInventory(data, { allowUnverified = false } = {}) 
   for (const destination of data.destinations) {
     exactSet(Object.keys(destination), ['rail', 'id', 'status'], `destination ${destination.id} fields`);
     if (!(destination.rail in exactRails)) throw new Error(`destination ${destination.id}: invalid rail '${destination.rail}'`);
-    if (!['verified', 'unverified'].includes(destination.status)) throw new Error(`destination ${destination.id}: invalid status`);
-    if (!allowUnverified && destination.status !== 'verified') throw new Error(`destination ${destination.id}: evidence remains unverified`);
+    if (!parityStatuses.includes(destination.status)) throw new Error(`destination ${destination.id}: invalid status`);
+    if (!allowUnverified && destination.status !== 'verified') throw new Error(`destination ${destination.id}: evidence remains ${destination.status}`);
+  }
+  // `compiled` is a weaker claim than `verified`: the destination was rendered from the
+  // compiled design source and asserted, but no reference/built capture diff exists yet.
+  if (data.destinations.some((destination) => destination.status === 'compiled')) {
+    const evidence = data.compiledEvidence;
+    if (typeof evidence?.test !== 'string' || !evidence.test.endsWith('.test.tsx')) {
+      throw new Error('design parity inventory: a compiled destination requires compiledEvidence.test naming the rendering test');
+    }
+    if (typeof evidence.method !== 'string' || !evidence.method.includes('compile-design.mjs')) {
+      throw new Error('design parity inventory: compiledEvidence.method must name the design compiler');
+    }
   }
   for (const [rail, expected] of Object.entries(exactRails)) {
     const actual = data.destinations.filter((destination) => destination.rail === rail).length;

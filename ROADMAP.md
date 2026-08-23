@@ -9,6 +9,25 @@
 - [x] Add unique release tags, workflow timing, SHA-256 records, safe failure artifacts, and runner fallback.
 - [x] Add a reproducible committed line counter with project, generated, and inherited-source attribution.
 
+## Design parity
+
+- [x] Compile the checked-in design reference into the renderer instead of hand-writing an approximation of it.
+- [x] Guard the compiled output against drift with a byte-identical recompile check.
+- [x] Reproduce every audited declarative binding in the compiled renderer.
+- [x] Bundle the design's type and icon families locally so the renderer fetches nothing at runtime.
+- [x] Derive the navigation catalogue, the documentation set, and the static site catalogue from the design rather than from three divergent hand-written lists.
+- [ ] Add reference-versus-built captures and visual diffs, so destinations can move from `compiled` to `verified`.
+
+## Real readings, no sample data
+
+- [x] Read live channels, endpoints, contacts, registrations, queues, modules and uptime from allowlisted read-only Asterisk CLI commands.
+- [x] Draw the dialplan canvas from the target's own `dialplan show` output.
+- [x] Remove the design's sample rows, dashboard tiles, health bars, nav badges, history, agent-rail and trunk-authentication content from the running app.
+- [x] State the exact reason a surface is empty instead of showing an invented value.
+- [ ] Read per-endpoint transport and codecs, so those columns stop reading `—`.
+- [ ] Wire real sources for the history, agent and trunk-authentication surfaces.
+- [ ] Verify every reading against a live Asterisk target.
+
 ## Evidence and completeness
 
 - [x] Record the independent design audit's source hash and exact aggregate counts.

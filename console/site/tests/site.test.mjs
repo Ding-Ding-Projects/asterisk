@@ -9,6 +9,10 @@ const repo = resolve(root, '..', '..');
 const html = await readFile(join(root, 'index.html'), 'utf8');
 const css = await readFile(join(root, 'styles.css'), 'utf8');
 const js = await readFile(join(root, 'app.js'), 'utf8');
+const pages = Object.fromEntries(await Promise.all(
+  ['index', 'product', 'documentation', 'downloads', 'status', 'settings'].map(
+    async name => [name, await readFile(join(root, name + '.html'), 'utf8')])));
+const everyPage = Object.values(pages).join();
 
 const tests = [];
 function test(name, fn) { tests.push([name, fn]); }
@@ -21,35 +25,36 @@ test('declares responsive and Open Graph metadata', () => {
 test('states the static site boundary and honest unavailable installer', () => {
   assert.match(html, /not the installed desktop application/i);
   assert.match(html, /not a PBX runtime/i);
-  assert.match(html, /Windows installer unavailable/);
-  assert.match(html, /No verified release manifest exists yet/);
+  assert.match(pages.downloads, /Not published/);
+  assert.doesNotMatch(everyPage, /href="https?:[^"]*Setup.exe/i);
+  assert.match(pages.downloads, /No verified release manifest exists yet/);
 });
 test('contains exactly 32 destination definitions in six declared groups', () => {
   const block = js.match(/const DESTINATIONS = \[([\s\S]*?)\n  \];/)[1];
   assert.equal((block.match(/\{id:/g) || []).length, 32);
   const counts = [...block.matchAll(/group:'([^']+)'/g)].reduce((map, match) => map.set(match[1], (map.get(match[1]) || 0) + 1), new Map());
-  assert.deepEqual([...counts.values()], [8,4,2,4,7,7]);
+  assert.deepEqual([...counts.values()], [7,8,4,2,4,7]);
   assert.deepEqual([...block.matchAll(/\{id:'([^']+)'/g)].map(match => match[1]), [
-    'dash','live','endpoints','trunks','trunkauth','canvas','ivr','queues',
+    'servers','dash','live','endpoints','trunks','trunkauth','canvas','ivr','queues',
     'voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli',
     'memory','sync','skills','hub','vocab','ops','secrets',
-    'servers','arcade','notifications','history','customise','appearance','about',
+    'arcade','notifications','history','customise','appearance','about',
   ]);
 });
 test('provides 32 complete categorized articles with valid local links', async () => {
-  const docsRoot=resolve(root,'..','docs'), categories=['overview','people-devices','connectivity','call-flow','team-calling','manage'];
+  const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app'];
   const articles=[];
   for(const category of categories)for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')articles.push(join(docsRoot,category,name));
   assert.equal(articles.length,32);
   for(const article of articles){const content=await readFile(article,'utf8');for(const heading of ['## Behavior','## Configuration','## Failure modes','## Verification','## Suggested articles'])assert.match(content,new RegExp(heading));for(const match of content.matchAll(/\]\(([^)]+\.md)\)/g)){const target=resolve(dirname(article),match[1]);assert.ok((await stat(target)).isFile(),`${article} -> ${match[1]}`)}}
 });
 test('exposes keyboard, tab, regex, and local settings interactions', () => {
-  assert.match(html, /role="tablist"/); assert.match(html, /id="command-palette"/); assert.match(js, /e\.ctrlKey&&e\.shiftKey/);
-  assert.ok((html.match(/class="regex-trigger"/g) || []).length >= 10);
-  for (const id of ['language-mode','english-funny','cantonese-funny','vocabulary-file','attention-settings','schedule-enabled','logo-file','notification-history']) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(everyPage, /class="local-tabs" aria-label=/); assert.match(everyPage, /id="command-palette"/); assert.match(js, /ctrlKey&&event.shiftKey/);
+  assert.ok((everyPage.match(/class="regex-trigger"/g) || []).length >= 8);
+  for (const id of ['language-mode','english-funny','cantonese-funny','vocabulary-file','attention-settings','schedule-enabled','logo-file','notification-history']) assert.match(everyPage, new RegExp(`id="${id}"`));
 });
 test('has accessible names and reduced motion support', () => {
-  assert.match(html, /class="skip-link"/); assert.match(html, /aria-live="polite"/); assert.match(html, /aria-label="Notifications"/);
+  assert.match(everyPage, /class="skip-link"/); assert.match(everyPage, /aria-live="polite"/); assert.match(everyPage, /aria-label="Open notification history"/);
   assert.match(css, /prefers-reduced-motion:reduce/); assert.match(css, /min-width:320px/); assert.match(css, /:focus-visible/);
 });
 test('uses no runtime CDN, analytics, or remote script and stylesheet assets', () => {
@@ -59,17 +64,17 @@ test('uses no runtime CDN, analytics, or remote script and stylesheet assets', (
 });
 test('documents local-only validation and redacted export boundaries', () => {
   assert.match(js, /file\.size>65536/); assert.match(js, /parsed\.version!==1/); assert.match(js, /Duplicate keys are not accepted/);
-  assert.match(js, /personalVocabulary:'omitted'/); assert.match(html, /No data leaves this browser/);
+  assert.match(js, /personalVocabulary:'omitted'/); assert.match(everyPage, /No data leaves this browser/);
 });
 test('build composes deterministic local output without fetches', async () => {
   execFileSync(process.execPath, [join(root, 'build.mjs')], { cwd: repo, stdio: 'pipe' });
   const manifest = JSON.parse(await readFile(join(root, 'dist', 'build-manifest.json'), 'utf8'));
-  assert.equal(manifest.networkFetches, 0); assert.equal(manifest.outputFiles.length, 43);
+  assert.equal(manifest.networkFetches, 0); assert.equal(manifest.outputFiles.length, 48);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');
   assert.doesNotMatch(built, /\.\.\/docs\//); assert.match(built, /href="docs\/README\.html"/);
-  const article=await readFile(join(root,'dist','docs','overview','dashboard.html'),'utf8');assert.match(article,/<h1>Dashboard<\/h1>/);assert.doesNotMatch(article,/\.md"/);
+  const article=await readFile(join(root,'dist','docs','pbx','dash.html'),'utf8');assert.match(article,/<h1>Dashboard<\/h1>/);assert.doesNotMatch(article,/\.md"/);
 });
 
 let passed = 0;

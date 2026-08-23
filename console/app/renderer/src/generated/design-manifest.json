@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "console/scripts/compile-design.mjs",
+  "sources": [
+    "design/Asterisk Console M3.dc.html",
+    "design/M3 Control.dc.html"
+  ],
+  "sanitization": [
+    "product branding replaced",
+    "runtime font CDN links replaced with bundled families"
+  ],
+  "hoverRules": 45
+}

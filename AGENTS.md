@@ -8,6 +8,8 @@ This file is a public-safe repository mirror. The canonical shared instructions 
 - Preserve the inherited Asterisk source unless the current task explicitly requires a telephony-core change.
 - Keep user-facing implementation aligned with Material Design 3, accessibility, local-first privacy, responsive layouts, complete localization, and documented failure states.
 - Do not edit any checked-in original design-reference source. Render it as data through the dedicated design-reference evidence path.
+- The renderer is compiled from that design reference, not hand-written. `console/scripts/compile-design.mjs` produces `console/app/renderer/src/generated/`; never hand-edit those files. To change the interface, change the design and recompile — `npm run build` does this, and the drift guard fails if the shipped output is not byte-identical to a fresh compile.
+- Sample, demo and simulated content must never reach a user-facing surface, including when labelled as simulated. Show only values actually read, and when there is no reading leave the surface empty and state the exact reason. A cell that was not read is `—`, never a stand-in value.
 
 ## Build and release discipline
 

@@ -1,121 +1,332 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { destinations, rails, rowsByDestination, type Destination, type RailId } from './catalog';
+import type { Component } from 'react';
+import ConsoleShell, { ORDER, SCREENS } from './generated/console';
+import {
+  badgeFor, dashboardStats, formatDuration, healthBars, isReadable, reasonFor, regexMatchLabel, rowsFor, valueOf,
+  type ViewReadings,
+} from './readings';
+import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
+import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
 
-type Overlay = 'none'|'palette'|'regex'|'wizard'|'onboarding'|'appearance'|'lock'|'confirm'|'notifications'|'master-search';
-type Notice = { id:number; title:string; body:string; kind:'info'|'success'|'warning' };
+/**
+ * The interface is the compiled design reference. This subclass supplies what a static
+ * design cannot: the real frameless-window controls, and real readings in place of the
+ * design's sample content. No screen ever shows a value the console has not read.
+ */
+type Target = { id: string; label: string; detail: string; connected: boolean };
 
-const defaultTabs = ['dash','endpoints','canvas'];
-const onboarding = [
-  ['Welcome','Ding PBX Console turns PBX configuration into guided, reviewable controls.'],
-  ['Choose a goal','Start with an existing server or prepare a new installation.'],
-  ['Select a target','Connection details stay local and are handled by the control-plane integration.'],
-  ['Review safety','Every write is previewed. Destructive changes require a deliberate confirmation.'],
-  ['Ready','The interface is ready. Simulated data remains labeled until a server is connected.'],
-];
+const NO_TARGET: Target = { id: '', label: 'no target', detail: 'nothing discovered yet', connected: false };
 
-function useStored<T>(key:string, initial:T): [T,(value:T)=>void] {
-  const [value,setValue] = useState<T>(() => { try { const found=localStorage.getItem(key); return found ? JSON.parse(found) : initial; } catch { return initial; } });
-  const update=(next:T)=>{ setValue(next); localStorage.setItem(key,JSON.stringify(next)); };
-  return [value,update];
+const BOUNDARY =
+  'This console reads a PBX only through the local desktop control plane, using read-only Asterisk ' +
+  'CLI commands from a fixed allowlist. Until a target is discovered there is nothing to read, so the ' +
+  'screens stay empty rather than showing invented values. Discover one from App > Deploy & servers.';
+
+const BOUNDARY_PLAIN =
+  'The app is not talking to a phone system yet. Screens stay empty on purpose — an empty table is ' +
+  'honest, a made-up one is not. Find a server first and the rows fill in.';
+
+const NO_READER = 'This screen has no live reading wired yet, so it stays empty.';
+
+const NO_HISTORY =
+  'No configuration change has been written this session. The console only reads a PBX right now — it has ' +
+  'no wired path that stages, applies or commits a change — so there is nothing yet for this screen to show.';
+
+const NO_MEMORY =
+  'This console has no local agent-memory store wired in. There is no memory corpus to search, sync, or ' +
+  'attest, so this screen stays empty rather than showing invented records.';
+
+const NO_AUTH_REQUESTS =
+  'There is no partner-request channel wired into this console. No trunk partner can reach it to ask for a ' +
+  'change, so there is nothing pending or answered to show.';
+
+/** Table screens whose design sample rows must never render. */
+const TABLE_SCREENS = Object.entries(SCREENS as Record<string, { table?: { rows: string[][] } }>)
+  .filter(([, screen]) => Array.isArray(screen.table?.rows))
+  .map(([id]) => id);
+
+/** The generated shell is untyped; this is the surface the console builds on. */
+interface Shell {
+  renderVals(): Record<string, unknown>;
+  componentDidMount?(): void;
+  showInfo(title: string, body: string, plain: string, x: string, y: string): void;
+  ceremony(title: string, command: string): void;
+  set(key: string, value: unknown): void;
+  setState(update: Record<string, unknown>): void;
+  moveNode(id: string, dx: number, dy: number): void;
+  addEdgeFrom(): void;
+  toast(message: string): void;
+  areYouSure(title: string, body: string, seconds: number, onConfirm: () => void): void;
+  fire(title: string, body: string): void;
 }
 
-function match(text:string, query:string, regex:boolean, flags='i') {
-  if (!query) return true;
-  if (!regex) return text.toLocaleLowerCase().includes(query.toLocaleLowerCase());
-  try { return new RegExp(query, flags).test(text); } catch { return false; }
+const Base = ConsoleShell as unknown as new (props: Record<string, never>) => Component<Record<string, never>> & Shell;
+
+export class App extends Base {
+  private target: Target = NO_TARGET;
+  private readings: Partial<Record<string, ViewReadings>> = {};
+  private pending = '';
+  private canvasReadings: CanvasReadings | undefined;
+  private canvasPending = false;
+
+  private bridge() {
+    return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
+  }
+
+  componentDidMount() {
+    super.componentDidMount?.();
+    void this.discover();
+  }
+
+  componentDidUpdate() {
+    void this.refresh();
+  }
+
+  private async request(action: string, extra: Record<string, unknown> = {}): Promise<ControlPlaneResponse | undefined> {
+    const bridge = this.bridge();
+    if (!bridge) return undefined;
+    return await bridge.controlPlane.request({ requestId: crypto.randomUUID(), action, ...extra } as never);
+  }
+
+  /** Bounded, allowlisted discovery through the preload bridge. Never a shell command. */
+  private discover = async () => {
+    const bridge = this.bridge();
+    if (!bridge) {
+      this.target = { ...NO_TARGET, label: 'bridge unavailable', detail: 'desktop preload not loaded' };
+      this.forceUpdate();
+      return;
+    }
+    this.target = { ...NO_TARGET, label: 'discovering…', detail: 'reading local targets' };
+    this.forceUpdate();
+    const response = await this.request('server.list');
+    if (!response?.ok) {
+      this.target = { ...NO_TARGET, detail: response?.message ?? 'the control plane did not answer' };
+      this.forceUpdate();
+      return;
+    }
+    const data = response.data as { wsl?: string[] | { unavailable: string } };
+    const distributions = Array.isArray(data.wsl) ? data.wsl : [];
+    if (!distributions.length) {
+      const detail = Array.isArray(data.wsl) ? 'no WSL distribution discovered' : data.wsl?.unavailable ?? 'no local target discovered';
+      this.target = { ...NO_TARGET, detail };
+      this.forceUpdate();
+      return;
+    }
+    this.target = { id: distributions[0], label: distributions[0], detail: `${distributions.length} local target(s)`, connected: true };
+    this.readings = {};
+    this.canvasReadings = undefined;
+    this.forceUpdate();
+  };
+
+  /** Reads the screen currently on top, once per screen change. */
+  private refresh = async () => {
+    const screen = (this.state as { screen: string }).screen;
+    if (!this.target.connected) return;
+    if (screen === 'canvas') {
+      if (this.canvasReadings || this.canvasPending) return;
+      this.canvasPending = true;
+      const response = await this.request('pbx.read', { serverId: this.target.id, view: 'canvas' as PbxReadView });
+      this.canvasPending = false;
+      this.canvasReadings = response?.ok
+        ? (response.data as CanvasReadings)
+        : { dialplan: { command: 'pbx.read', result: { state: 'unavailable', observedAt: new Date().toISOString(), reason: response?.message ?? 'the control plane did not answer' } } };
+      this.forceUpdate();
+      return;
+    }
+    if (!isReadable(screen)) return;
+    if (this.readings[screen] || this.pending === screen) return;
+    this.pending = screen;
+    const response = await this.request('pbx.read', { serverId: this.target.id, view: screen as PbxReadView });
+    this.pending = '';
+    this.readings[screen] = response?.ok
+      ? (response.data as ViewReadings)
+      : { channels: { command: 'pbx.read', result: { state: 'unavailable', observedAt: new Date().toISOString(), reason: response?.message ?? 'the control plane did not answer' } } };
+    this.forceUpdate();
+  };
+
+  /** The design's sample rows are replaced before it builds the table, so selection,
+   *  filtering, chips and the row context menu keep working against real rows. */
+  private applyRows(screen: string): void {
+    const screens = SCREENS as Record<string, { table?: { rows: string[][] } }>;
+    for (const id of TABLE_SCREENS) {
+      const table = screens[id].table;
+      if (table) table.rows = id === screen ? rowsFor(screen, this.readings[screen]) : [];
+    }
+  }
+
+  private note(screen: string): string {
+    if (screen === 'history') return NO_HISTORY;
+    if (screen === 'memory') return NO_MEMORY;
+    if (screen === 'trunkauth') return NO_AUTH_REQUESTS;
+    if (!this.target.connected) return `No target is connected — ${this.target.detail}.`;
+    if (screen === 'canvas') {
+      if (!this.canvasReadings) return 'Reading…';
+      return canvasReason(this.canvasReadings);
+    }
+    if (!isReadable(screen)) return NO_READER;
+    const readings = this.readings[screen];
+    if (!readings) return 'Reading…';
+    return reasonFor(readings, ['channels', 'endpoints', 'contacts', 'registrations', 'queues', 'modules', 'uptime']);
+  }
+
+  /** Real dialplan nodes/edges in the design's canvas shapes, with a bezier path per edge
+   *  computed the same way the design computes it for its own sample graph. */
+  private canvasVals(designVals: Record<string, unknown>): Record<string, unknown> {
+    const graph = canvasValueOf(this.canvasReadings?.dialplan);
+    if (!graph) return { nodes: [], edges: [], nodeCtls: [], nodeTitle: '', nodeApp: '' };
+
+    const nodePos = ((this.state as { nodePos?: Record<string, { x: number; y: number }> }).nodePos) ?? {};
+    const selected = (this.state as { nodeId?: string }).nodeId;
+    const laidOut = layoutNodes(graph);
+    const byId = new Map(laidOut.map((node) => [node.id, node]));
+
+    const NW = 196;
+    const NH = 68;
+    const edges = edgePairs(graph).map(([from, to]) => {
+      const a = byId.get(from);
+      const b = byId.get(to);
+      if (!a || !b) return { d: '', stroke: 'transparent', w: 0 };
+      const ap = nodePos[from] || a;
+      const bp = nodePos[to] || b;
+      const sel = selected === from || selected === to;
+      let d: string;
+      if (bp.x > ap.x + 40) {
+        const x1 = ap.x + NW, y1 = ap.y + NH / 2, x2 = bp.x, y2 = bp.y + NH / 2;
+        const m = (x1 + x2) / 2;
+        d = `M${x1} ${y1} C${m} ${y1} ${m} ${y2} ${x2} ${y2}`;
+      } else {
+        const x1 = ap.x + NW / 2, y1 = ap.y + NH, x2 = bp.x + NW / 2, y2 = bp.y;
+        const m = (y1 + y2) / 2;
+        d = `M${x1} ${y1} C${x1} ${m} ${x2} ${m} ${x2} ${y2}`;
+      }
+      return { d, stroke: sel ? '#82D9A5' : '#37483D', w: sel ? 2.5 : 1.8 };
+    });
+
+    const nodes = laidOut.map((node) => {
+      const pos = nodePos[node.id] || node;
+      const on = node.id === selected;
+      return {
+        x: `${pos.x}px`, y: `${pos.y}px`, icon: node.icon, title: node.title, detail: node.detail,
+        border: on ? '#82D9A5' : '#333B34', selected: on, unselected: !on,
+        pick: () => this.set('nodeId', node.id),
+        onDragStart: (e: DragEvent) => {
+          const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          this.setState({ nodeId: node.id, nodeDrag: { id: node.id, dx: e.clientX - r.left, dy: e.clientY - r.top } });
+        },
+        onDragEnd: () => this.set('nodeDrag', null),
+        nudge: (dx: number, dy: number) => this.moveNode(node.id, dx, dy),
+        left: () => this.moveNode(node.id, -20, 0), right: () => this.moveNode(node.id, 20, 0),
+        up: () => this.moveNode(node.id, 0, -20), down: () => this.moveNode(node.id, 0, 20),
+        connect: () => this.addEdgeFrom(),
+        ctx: (e: MouseEvent) => { e.preventDefault(); this.setState({ nodeId: node.id, ctxOpen: true, ctxX: `${e.clientX}px`, ctxY: `${e.clientY}px`, ctxTarget: node.title, ctxKind: 'node' }); },
+        dup: () => this.toast(`${node.title} duplicated on the canvas`),
+        del: () => this.areYouSure(`Delete ${node.title}`, 'The step and every connection into or out of it are removed from the dialplan.', 3, () => this.fire('Step deleted', `${node.title} is gone.`)),
+      };
+    });
+
+    const source = graph.nodes.find((node) => node.id === selected) ?? graph.nodes[0];
+    const nodeCtls = source
+      ? source.steps.map((step) => ({
+          id: `${source.id}-${step.priority}`,
+          label: `Priority ${step.priority}`,
+          rawKey: `${source.id}-${step.priority}`,
+          showKey: false,
+          kind: 'text',
+          value: `${step.app}(${step.data})`,
+          display: `${step.app}(${step.data})`,
+          narrow: true,
+          onInfo: () => {},
+          onWizard: () => {},
+        }))
+      : [];
+
+    return {
+      nodes,
+      edges,
+      nodeCtls,
+      nodeTitle: source ? `${source.context} · ${source.extension}` : (designVals.nodeTitle as string),
+      nodeApp: source && source.steps[0] ? `${source.steps[0].app}(${source.steps[0].data})` : '',
+    };
+  }
+
+  renderVals() {
+    const screen = (this.state as { screen: string }).screen;
+    this.applyRows(screen);
+    const values = super.renderVals() as Record<string, unknown>;
+    const bridge = this.bridge();
+    const readings = this.readings[screen];
+    const note = this.note(screen);
+
+    return {
+      ...values,
+      __window: {
+        minimize: () => bridge?.window.minimize(),
+        toggleMaximize: () => bridge?.window.toggleMaximize(),
+        close: () => bridge?.window.close(),
+      },
+      connLabel: this.target.label,
+      connUptime: this.target.detail,
+      openConnection: () => this.showInfo('Connection', BOUNDARY, BOUNDARY_PLAIN, '38%', '70px'),
+      screenSub: note ? `${values.screenSub as string}\n\n${note}` : values.screenSub,
+
+      // Dashboard tiles, live rows and health bars come only from observed readings.
+      stats: dashboardStats(readings),
+      liveCalls: (valueOf(readings?.channels) ?? []).map((channel) => ({
+        chan: channel.name,
+        peer: channel.callerNumber || channel.extension || '—',
+        dur: formatDuration(channel.durationSeconds),
+        spy: () => this.ceremony('Listen to a live call', `channel spy ${channel.name}`),
+        rec: () => this.ceremony('Start recording a live call', `mixmonitor start ${channel.name}`),
+        kill: () => this.ceremony('Hang up a live call', `channel request hangup ${channel.name}`),
+      })),
+      health: healthBars(readings),
+
+      // The dialplan canvas draws only the real graph read from `dialplan show`; when
+      // there is no reading it stays empty rather than falling back to design samples.
+      ...(screen === 'canvas' ? this.canvasVals(values) : {}),
+      cliLog: [{ text: note || 'Run a command to see its output here.', color: '#8FA394' }],
+
+      // Discovery replaces the design's simulated provisioning run.
+      oneClickButton: this.target.connected ? 'Re-run discovery' : 'Discover local targets',
+      oneClickRunning: false,
+      oneClickLog: [],
+      runOneClick: this.discover,
+
+      // Nav-rail badges: only a count this session actually read, never the design's
+      // invented per-destination numbers.
+      sections: this.badges(values.sections as Array<Record<string, unknown>>),
+
+      // History & git has no real source: nothing in this app stages, applies or commits
+      // a configuration change yet, so the screen never shows the design's invented commits.
+      ...(screen === 'history' ? {
+        commits: [], commitRows: [], diffLines: [], diffFile: 'no commit selected', blameRows: [],
+        branches: [], branchName: '', commitCount: '0 commits',
+        compareLabel: NO_HISTORY,
+      } : {}),
+
+      // The agent rail has no local memory store wired in, so its rows and metrics stay empty.
+      ...(screen === 'memory' ? {
+        memRows: [], memPanels: [],
+        // Memory records are always empty (no local memory store), so the regex builder
+        // never has a corpus to search.
+        regexMatches: regexMatchLabel(values.regexValue as string, []),
+      } : {}),
+
+      // Trunk authentication has no partner-request channel wired in.
+      ...(screen === 'trunkauth' ? { authRequests: [], authHistory: [] } : {}),
+    };
+  }
+
+  /** Replaces the design's constant per-destination badge with a real row count where
+   *  this session has actually read one, and empties every other badge. */
+  private badges(sections: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
+    const screen = (this.state as { railId: string }).railId;
+    const ids = ORDER.filter((id) => (SCREENS as Record<string, { rail: string }>)[id].rail === screen);
+    return sections.map((section, i) => ({ ...section, badge: badgeFor(ids[i], this.readings) }));
+  }
 }
 
-function SearchBox({value,onChange,onRegex,label='Search',onEnter}:{value:string;onChange:(v:string)=>void;onRegex:()=>void;label?:string;onEnter?:()=>void}) {
-  return <div className="search-box"><span aria-hidden>⌕</span><input aria-label={label} value={value} onChange={e=>onChange(e.target.value)} onKeyDown={e=>e.key==='Enter'&&onEnter?.()} placeholder={label}/><button className="icon-button small" aria-label={`Open regex builder for ${label}`} onClick={onRegex}>.*</button></div>;
-}
-
-function OverlayCard({title,onClose,children,wide=false}:{title:string;onClose:()=>void;children:React.ReactNode;wide?:boolean}) {
-  const card=useRef<HTMLDivElement>(null); const drag=useRef({x:0,y:0,left:0,top:0});
-  const start=(e:React.PointerEvent)=>{ if(!card.current)return; const r=card.current.getBoundingClientRect(); drag.current={x:e.clientX,y:e.clientY,left:r.left,top:r.top}; card.current.setPointerCapture(e.pointerId); };
-  const move=(e:React.PointerEvent)=>{ if(!card.current||!card.current.hasPointerCapture(e.pointerId))return; card.current.style.left=`${Math.max(8,drag.current.left+e.clientX-drag.current.x)}px`;card.current.style.top=`${Math.max(44,drag.current.top+e.clientY-drag.current.y)}px`;card.current.style.transform='none';};
-  return <div className="scrim" role="presentation" onMouseDown={e=>e.target===e.currentTarget&&onClose()}><div ref={card} className={`overlay-card ${wide?'wide':''}`} role="dialog" aria-modal="true" aria-label={title}>
-    <header onPointerDown={start} onPointerMove={move}><div><span className="eyebrow">Move or resize</span><h2>{title}</h2></div><button className="icon-button" onClick={onClose} aria-label={`Close ${title}`}>×</button></header>{children}
-  </div></div>;
-}
-
-function RegexBuilder({query,setQuery,enabled,setEnabled,flags,setFlags,onClose}:{query:string;setQuery:(s:string)=>void;enabled:boolean;setEnabled:(v:boolean)=>void;flags:string;setFlags:(s:string)=>void;onClose:()=>void}) {
-  const [sample,setSample]=useState('Endpoint 1001 is available\nEndpoint 1003 is unavailable');
-  let feedback='Plain-text matching active'; let matches:string[]=[];
-  if(enabled){try{const r=new RegExp(query,flags.includes('g')?flags:`${flags}g`);matches=[...sample.matchAll(r)].map(m=>m[0]);feedback=`Valid JavaScript regular expression · ${matches.length} matches`;}catch(e){feedback=`Invalid pattern · ${(e as Error).message}`;}}
-  const add=(part:string)=>setQuery(query+part);
-  return <OverlayCard title="Regex builder" onClose={onClose}><div className="overlay-body stack">
-    <label className="switch-row"><span><b>Use regular expressions</b><small>Plain text remains the default.</small></span><input type="checkbox" checked={enabled} onChange={e=>setEnabled(e.target.checked)}/></label>
-    <label>Pattern<input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Type a pattern"/></label>
-    <div className="chip-row" aria-label="Pattern building tools">{[['^','Start'],['$','End'],['.','Any'],['[A-Z]','Class'],['( )','Group'],['|','Or'],['+','One+'],['?','Optional']].map(([p,n])=><button key={n} className="chip" onClick={()=>add(p.replace(' ',''))}>{n}</button>)}</div>
-    <fieldset><legend>Flags</legend>{['i','m','s','u'].map(f=><label className="check" key={f}><input type="checkbox" checked={flags.includes(f)} onChange={e=>setFlags(e.target.checked?flags+f:flags.replace(f,''))}/>{f}</label>)}</fieldset>
-    <label>Sample text<textarea value={sample} onChange={e=>setSample(e.target.value)}/></label>
-    <div className={feedback.startsWith('Invalid')?'feedback error':'feedback'}>{feedback}</div>
-    {matches.length>0&&<div className="match-list">{matches.map((m,i)=><code key={`${m}-${i}`}>{i+1}: {m || '(zero-width match)'}</code>)}</div>}
-    <div className="actions"><button className="tonal" onClick={()=>navigator.clipboard?.writeText(`/${query}/${flags}`)}>Copy pattern</button><button className="primary" onClick={onClose}>Apply to search</button></div>
-  </div></OverlayCard>;
-}
-
-function ContextMenu({x,y,target,onClose,onAction}:{x:number;y:number;target:string;onClose:()=>void;onAction:(a:string)=>void}) {
-  const [q,setQ]=useState(''); const [regex,setRegex]=useState(false); const items=[['Open in new tab','Enter'],['Pin or unpin','Ctrl+P'],['Move into group…','Ctrl+M'],['Edit appearance…','Shift+F2'],['Lock this element…','Ctrl+L'],['Close tab','Ctrl+W']];
-  return <div className="context-menu" style={{left:Math.min(x,innerWidth-310),top:Math.min(y,innerHeight-410)}} role="menu" aria-label={`Actions for ${target}`}>
-    <SearchBox value={q} onChange={setQ} label="Filter menu" onRegex={()=>setRegex(!regex)}/>
-    {items.filter(([n])=>match(n,q,regex)).map(([name,key])=><button role="menuitem" key={name} onClick={()=>{onAction(name);onClose()}}><span>{name}</span><kbd>{key}</kbd></button>)}
-    {!items.some(([n])=>match(n,q,regex))&&<p className="empty">No matching actions</p>}
-  </div>;
-}
-
-function DestinationContent({screen,onNotice,onWizard,onConfirm}:{screen:Destination;onNotice:(n:Omit<Notice,'id'>)=>void;onWizard:()=>void;onConfirm:()=>void}) {
-  const [targetState,setTargetState]=useState('Discovery has not run.');
-  const rows=rowsByDestination[screen.id]??[[screen.label,'Local simulation','Not connected','—','Preview']];
-  if(screen.id==='servers') return <div className="data-card"><div className="table-toolbar"><span><b>Local target discovery</b><small>Reads WSL distributions and project-owned local containers through the bounded desktop control plane.</small></span><button className="primary" onClick={async()=>{setTargetState('Discovering…');const response=await window.dingDesktop?.controlPlane.request({requestId:crypto.randomUUID(),action:'server.list'});setTargetState(response?.ok?JSON.stringify(response.data,null,2):response?.message??'Desktop control plane is unavailable.')}}>Discover local targets</button></div><pre className="target-discovery" aria-live="polite">{targetState}</pre></div>;
-  if(screen.kind==='dashboard') return <div className="dashboard-grid">{[['Active channels','4'],['Registered endpoints','11 / 12'],['Queues waiting','2'],['Service state','Simulation']].map(([a,b])=><article className="metric" key={a}><span>{a}</span><strong>{b}</strong><small>Simulated until control-plane connection</small></article>)}</div>;
-  if(screen.kind==='canvas') return <div className="canvas" aria-label="Dialplan canvas simulation">{['Incoming call','Business hours','Play greeting','Queue support','Voicemail','Hang up'].map((n,i)=><button key={n} style={{left:60+(i%3)*230,top:45+Math.floor(i/3)*160}} onClick={onWizard}><b>{i+1}</b>{n}</button>)}</div>;
-  if(screen.kind==='builder') return <div className="builder"><div className="builder-path"><select aria-label="Command family"><option>core show</option><option>pjsip show</option><option>queue show</option></select><select aria-label="Command target"><option>channels</option><option>endpoints</option><option>registrations</option></select><button className="primary" onClick={onConfirm}>Review command</button></div><pre>$ asterisk -rx "core show channels"{`\n`}Control plane not connected. This command has not run.</pre></div>;
-  if(screen.kind==='settings') return <div className="settings-grid">{['Enabled','Safe default','Background refresh','Keep local history','Require confirmation','Show status details'].map((n,i)=><label className="setting" key={n}><span><b>{n}</b><small>{i%2?'Stored in this local console profile.':'Change applies after explicit confirmation.'}</small></span>{i===1?<select aria-label={n}><option>Recommended</option><option>Custom</option></select>:<input aria-label={n} type="checkbox" defaultChecked={i<4}/>}</label>)}</div>;
-  return <div className="data-card"><div className="table-toolbar"><span><b>{rows.length} visible records</b><small>Simulated data — no live PBX is connected.</small></span><button className="tonal" onClick={onWizard}>Guided wizard</button><button className="primary" onClick={()=>onNotice({title:'Draft created',body:'A local simulated draft was added. No PBX was changed.',kind:'success'})}>＋ New</button></div><div className="table" role="table">{rows.map((r,i)=><button role="row" key={i} onClick={onWizard}>{r.map((c,j)=><span role="cell" key={j}>{c}</span>)}</button>)}</div></div>;
-}
-
-export function App() {
-  const [rail,setRail]=useStored<RailId>('ding.rail','pbx'); const [screenId,setScreenId]=useStored('ding.screen','dash');
-  const [tabs,setTabs]=useStored<string[]>('ding.tabs',defaultTabs); const [pinned,setPinned]=useStored<string[]>('ding.pinned',['dash']);
-  const [overlay,setOverlay]=useState<Overlay>('onboarding'); const [query,setQuery]=useState(''); const [regex,setRegex]=useState(false); const [flags,setFlags]=useState('i');
-  const [tabQuery,setTabQuery]=useState(''); const [groupQuery,setGroupQuery]=useState(''); const [menu,setMenu]=useState<{x:number;y:number;target:string}|null>(null);
-  const [step,setStep]=useState(0); const [wizardStep,setWizardStep]=useState(0); const [theme,setTheme]=useStored<'dark'|'light'|'contrast'>('ding.theme','dark');
-  const [density,setDensity]=useStored<'comfortable'|'compact'>('ding.density','comfortable'); const [accent,setAccent]=useStored('ding.accent','#82d9a5');
-  const [notices,setNotices]=useState<Notice[]>([{id:1,title:'Simulation mode',body:'No control plane is connected. Data and changes are local simulations.',kind:'warning'}]);
-  const [locked,setLocked]=useStored<string[]>('ding.locks',[]); const [lockTarget,setLockTarget]=useState(''); const [confirmKeys,setConfirmKeys]=useState([false,false]); const [confirmSlide,setConfirmSlide]=useState(0);
-  const screen=destinations.find(d=>d.id===screenId)??destinations[0];
-  const filtered=useMemo(()=>destinations.filter(d=>d.rail===rail&&match(`${d.label} ${d.description}`,query,regex,flags)),[rail,query,regex,flags]);
-  const open=(id:string)=>{const target=destinations.find(d=>d.id===id);if(!target)return;if(locked.includes(id)){setLockTarget(id);setOverlay('lock');return;}setScreenId(id);setRail(target.rail);if(!tabs.includes(id))setTabs([...tabs,id]);};
-  const notify=(n:Omit<Notice,'id'>)=>setNotices(v=>[...v,{...n,id:Date.now()}]);
-  const closeOverlay=()=>setOverlay('none');
-  useEffect(()=>{document.documentElement.dataset.theme=theme;document.documentElement.dataset.density=density;document.documentElement.style.setProperty('--accent',accent)},[theme,density,accent]);
-  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='f'){e.preventDefault();setOverlay('palette')}if(e.key==='Escape'){setMenu(null);setOverlay('none')}};addEventListener('keydown',key);return()=>removeEventListener('keydown',key)},[]);
-  const contextAction=(action:string)=>{if(action.startsWith('Open'))open(screenId);if(action.startsWith('Pin'))setPinned(pinned.includes(screenId)?pinned.filter(x=>x!==screenId):[...pinned,screenId]);if(action.startsWith('Edit'))setOverlay('appearance');if(action.startsWith('Lock')){setLockTarget(screenId);setOverlay('lock')}if(action.startsWith('Close')){setTabs(tabs.filter(x=>x!==screenId));open(tabs.find(x=>x!==screenId)??'dash')}if(action.startsWith('Move'))notify({title:'Tab moved',body:'The tab was assigned to the Operations group.',kind:'success'})};
-
-  return <div className="app-shell" onContextMenu={e=>{e.preventDefault();setMenu({x:e.clientX,y:e.clientY,target:screen.label})}}>
-    <header className="titlebar"><div className="brand"><span className="logo">D</span><b>Ding PBX Console</b><span className="status-dot">● Simulation</span></div><div className="drag-region"/><button onClick={()=>setOverlay('palette')} aria-label="Open command palette">⌕</button><button onClick={()=>setOverlay('notifications')} aria-label={`Open notifications, ${notices.length} items`}>●<span className="badge">{notices.length}</span></button><button onClick={()=>window.dingDesktop?.window.minimize()} aria-label="Minimize">—</button><button onClick={()=>window.dingDesktop?.window.toggleMaximize()} aria-label="Maximize">□</button><button className="close" onClick={()=>window.dingDesktop?.window.close()} aria-label="Close">×</button></header>
-    <div className="tabs" role="tablist" aria-label="Open destinations"><button className="new-tab" onClick={()=>setOverlay('master-search')} aria-label="Open destination">＋</button>{tabs.filter(id=>match(destinations.find(d=>d.id===id)?.label??'',tabQuery,regex,flags)).sort((a,b)=>Number(pinned.includes(b))-Number(pinned.includes(a))).map(id=>{const d=destinations.find(x=>x.id===id)!;return <button role="tab" aria-selected={id===screenId} className={id===screenId?'active':''} key={id} onClick={()=>open(id)} onContextMenu={e=>{e.stopPropagation();e.preventDefault();setMenu({x:e.clientX,y:e.clientY,target:d.label})}}>{pinned.includes(id)&&<span aria-label="Pinned">◆</span>}{d.icon} {d.label}<span onClick={e=>{e.stopPropagation();setTabs(tabs.filter(x=>x!==id))}} aria-label={`Close ${d.label}`}>×</span></button>})}<div className="tab-search"><SearchBox value={tabQuery} onChange={setTabQuery} label="Search current tab strip" onRegex={()=>setOverlay('regex')}/></div></div>
-    <div className="workspace">
-      <nav className="rail" aria-label="Primary areas">{rails.map(r=><button key={r.id} className={rail===r.id?'selected':''} onClick={()=>{setRail(r.id);const first=destinations.find(d=>d.rail===r.id);if(first)open(first.id)}} aria-label={`${r.label}: ${r.description}`}><span>{r.icon}</span><small>{r.label}</small></button>)}</nav>
-      <aside className="side-nav"><div className="side-heading"><span className="eyebrow">{rails.find(r=>r.id===rail)?.description}</span><h2>{rails.find(r=>r.id===rail)?.label}</h2></div><SearchBox value={query} onChange={setQuery} label="Search destinations" onRegex={()=>setOverlay('regex')}/><div className="group-search"><SearchBox value={groupQuery} onChange={setGroupQuery} label="Search tab groups" onRegex={()=>setOverlay('regex')}/></div><div className="dest-list">{filtered.map(d=><button className={d.id===screenId?'selected':''} onClick={()=>open(d.id)} key={d.id}><span>{d.icon}</span><div><b>{d.label}</b><small>{d.source}</small></div>{locked.includes(d.id)&&<span aria-label="Locked">◆</span>}</button>)}{filtered.length===0&&<p className="empty">No matching destinations</p>}</div><button className="guided" onClick={()=>{setWizardStep(0);setOverlay('wizard')}}>✦ Guided wizard</button></aside>
-      <main><div className="content-title"><div><span className="eyebrow">{screen.source}</span><h1>{screen.title}</h1><p>{screen.description}</p></div><div className="content-actions"><button className="tonal" onClick={()=>setOverlay('appearance')}>Edit appearance</button><button className="primary" onClick={()=>{setWizardStep(0);setOverlay('wizard')}}>Guided wizard</button></div></div><div className="simulation-banner"><b>{screen.id==='servers'?'Read-only control plane':'Local simulation'}</b><span>{screen.id==='servers'?'WSL and project-owned container discovery is live. Configuration writes still require a reviewed target-specific plan.':'No configuration write can reach a PBX until a reviewed target-specific plan is connected.'}</span></div><DestinationContent screen={screen} onNotice={notify} onWizard={()=>{setWizardStep(0);setOverlay('wizard')}} onConfirm={()=>setOverlay('confirm')}/></main>
-    </div>
-    <div className="toast-stack" aria-live="polite">{notices.slice(-3).map(n=><button key={n.id} className={`toast ${n.kind}`} onClick={()=>setNotices(notices.filter(x=>x.id!==n.id))}><b>{n.title}</b><span>{n.body}</span><small>Dismiss</small></button>)}</div>
-    {menu&&<ContextMenu {...menu} onClose={()=>setMenu(null)} onAction={contextAction}/>}
-    {overlay==='regex'&&<RegexBuilder query={query} setQuery={setQuery} enabled={regex} setEnabled={setRegex} flags={flags} setFlags={setFlags} onClose={closeOverlay}/>}
-    {overlay==='palette'&&<OverlayCard title="Command palette" onClose={closeOverlay} wide><Palette query={query} setQuery={setQuery} open={id=>{open(id);closeOverlay()}} onRegex={()=>setOverlay('regex')} theme={theme} setTheme={setTheme}/></OverlayCard>}
-    {overlay==='master-search'&&<OverlayCard title="Search every destination" onClose={closeOverlay} wide><div className="overlay-body"><SearchBox value={query} onChange={setQuery} label="Master destination search" onRegex={()=>setOverlay('regex')}/><div className="palette-results">{destinations.filter(d=>match(d.label,query,regex,flags)).map(d=><button key={d.id} onClick={()=>{open(d.id);closeOverlay()}}><span>{d.icon}</span><div><b>{d.label}</b><small>{rails.find(r=>r.id===d.rail)?.label} · {d.source}</small></div></button>)}</div></div></OverlayCard>}
-    {overlay==='wizard'&&<OverlayCard title={`Guided wizard · ${screen.label}`} onClose={closeOverlay}><div className="overlay-body stack"><div className="stepper">{[0,1,2,3].map(n=><button className={n<=wizardStep?'done':''} onClick={()=>setWizardStep(n)} key={n}>{n+1}</button>)}</div><span className="eyebrow">Step {wizardStep+1} of 4</span><h3>{['Choose the intent','Pick a safe value','Review the effect','Confirm the draft'][wizardStep]}</h3><p>{['Tell the console what outcome you need. The next step offers only applicable choices.','Recommended values are selected from the current local profile.','Review which file and runtime area would change. Existing calls remain unaffected.','A local draft is created first. A connected control plane must validate and apply it.'][wizardStep]}</p><label>Configuration choice<select><option>Recommended</option><option>Keep existing value</option><option>Custom guided choice</option></select></label><div className="preview"><b>Preview</b><code>[{screen.source}] simulated_option = recommended</code></div><div className="actions"><button className="tonal" disabled={wizardStep===0} onClick={()=>setWizardStep(Math.max(0,wizardStep-1))}>Back</button><button className="primary" onClick={()=>wizardStep===3?(closeOverlay(),notify({title:'Draft ready',body:'The simulated draft is ready for a future control-plane review.',kind:'success'})):setWizardStep(wizardStep+1)}>{wizardStep===3?'Create local draft':'Next'}</button></div></div></OverlayCard>}
-    {overlay==='onboarding'&&<OverlayCard title="Set up Ding PBX Console" onClose={closeOverlay} wide><div className="overlay-body onboarding"><div className="stepper">{onboarding.map((_,i)=><button key={i} className={i<=step?'done':''} onClick={()=>setStep(i)}>{i+1}</button>)}</div><div className="onboarding-hero"><span className="hero-logo">D</span><div><span className="eyebrow">Step {step+1} of 5</span><h1>{onboarding[step][0]}</h1><p>{onboarding[step][1]}</p></div></div>{step===2&&<label>Connection target<select><option>Explore with simulated data</option><option disabled>Local service — control plane required</option><option disabled>Remote service — control plane required</option></select></label>}<div className="actions"><button className="text" onClick={closeOverlay}>Skip for now</button><button className="tonal" disabled={step===0} onClick={()=>setStep(step-1)}>Back</button><button className="primary" onClick={()=>step===4?closeOverlay():setStep(step+1)}>{step===4?'Open console':'Next'}</button></div></div></OverlayCard>}
-    {overlay==='appearance'&&<OverlayCard title="Appearance editor" onClose={closeOverlay}><div className="overlay-body stack"><label>Theme<select value={theme} onChange={e=>setTheme(e.target.value as typeof theme)}><option value="dark">Dark</option><option value="light">Light</option><option value="contrast">High contrast</option></select></label><label>Density<select value={density} onChange={e=>setDensity(e.target.value as typeof density)}><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label><label>Accent color<input type="color" value={accent} onChange={e=>setAccent(e.target.value)}/></label><label>Interface font<select><option>System UI</option><option>Segoe UI</option><option>Arial</option></select></label><label>Font size<input type="range" min="12" max="20" defaultValue="14"/></label><label>Corner radius<input type="range" min="0" max="28" defaultValue="16"/></label><div className="actions"><button className="tonal" onClick={()=>{setTheme('dark');setDensity('comfortable');setAccent('#82d9a5')}}>Reset</button><button className="primary" onClick={closeOverlay}>Done</button></div></div></OverlayCard>}
-    {overlay==='lock'&&<OverlayCard title={`Lock ${destinations.find(d=>d.id===lockTarget)?.label??'element'}`} onClose={closeOverlay}><div className="overlay-body stack"><div className="feedback warning"><b>For-fun lock only.</b> This is not encryption and does not protect PBX data. Clear the local console profile to reset it.</div><label>Lock method<select><option>Local PIN</option><option disabled>One-time code — control plane required</option></select></label><label>PIN<input type="password" inputMode="numeric" autoComplete="new-password" placeholder="Enter a local PIN"/></label><label>Unlock duration<select><option>This surface only</option><option>15 minutes</option><option>Until the console closes</option></select></label><div className="actions"><button className="tonal" onClick={closeOverlay}>Cancel</button><button className="primary" onClick={()=>{setLocked(locked.includes(lockTarget)?locked.filter(x=>x!==lockTarget):[...locked,lockTarget]);closeOverlay();notify({title:'Lock state changed',body:'The local for-fun lock state was updated.',kind:'success'})}}>Save lock</button></div></div></OverlayCard>}
-    {overlay==='confirm'&&<OverlayCard title="Review consequential action" onClose={closeOverlay}><div className="overlay-body stack"><div className="feedback warning"><b>Command preview only.</b> The control plane is disconnected, so this action cannot reach a PBX.</div>{['I reviewed the exact command','I understand the target is production-like'].map((n,i)=><label className="switch-row" key={n}><span><b>{n}</b></span><input type="checkbox" checked={confirmKeys[i]} onChange={e=>setConfirmKeys(confirmKeys.map((v,j)=>j===i?e.target.checked:v))}/></label>)}<label>Confirmation slider · {confirmSlide}%<input type="range" min="0" max="100" value={confirmSlide} disabled={!confirmKeys.every(Boolean)} onChange={e=>setConfirmSlide(Number(e.target.value))}/></label><div className="actions"><button className="tonal" onClick={closeOverlay}>Emergency exit</button><button className="primary" disabled={confirmSlide!==100} onClick={()=>{closeOverlay();notify({title:'Preview confirmed',body:'The local preview completed. No command was sent.',kind:'success'})}}>Confirm local preview</button></div></div></OverlayCard>}
-    {overlay==='notifications'&&<OverlayCard title="Notification centre" onClose={closeOverlay} wide><div className="overlay-body"><SearchBox value={query} onChange={setQuery} label="Search notifications" onRegex={()=>setOverlay('regex')}/><div className="notification-list">{notices.filter(n=>match(`${n.title} ${n.body}`,query,regex,flags)).map(n=><label key={n.id}><input type="checkbox"/><span><b>{n.title}</b><small>{n.body}</small></span><button onClick={()=>setNotices(notices.filter(x=>x.id!==n.id))}>Dismiss</button></label>)}{notices.length===0&&<p className="empty">No notifications</p>}</div><div className="actions"><button className="tonal" onClick={()=>setNotices([])}>Dismiss all</button><button className="primary" onClick={()=>notify({title:'Export prepared',body:'A redacted local notification export was prepared.',kind:'success'})}>Export visible</button></div></div></OverlayCard>}
-  </div>;
-}
-
-function Palette({query,setQuery,open,onRegex,theme,setTheme}:{query:string;setQuery:(s:string)=>void;open:(id:string)=>void;onRegex:()=>void;theme:string;setTheme:(t:'dark'|'light'|'contrast')=>void}) {
-  const results=destinations.filter(d=>match(`${d.label} ${d.description}`,query,false));
-  return <div className="overlay-body"><SearchBox value={query} onChange={setQuery} label="Search commands, destinations, and settings" onRegex={onRegex}/><div className="palette-hint"><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd> · Use arrows and Enter</div><div className="palette-results"><label className="palette-control"><span>◐</span><div><b>Theme</b><small>Appearance setting</small></div><select value={theme} onChange={e=>setTheme(e.target.value as 'dark'|'light'|'contrast')}><option value="dark">Dark</option><option value="light">Light</option><option value="contrast">High contrast</option></select></label>{results.map(d=><button key={d.id} onClick={()=>open(d.id)}><span>{d.icon}</span><div><b>{d.label}</b><small>{d.description}</small></div><kbd>Enter</kbd></button>)}</div></div>;
+interface DesktopBridge {
+  platform: string;
+  window: { minimize: () => void; toggleMaximize: () => void; close: () => void };
+  controlPlane: { request: (request: Record<string, unknown>) => Promise<ControlPlaneResponse | undefined> };
 }

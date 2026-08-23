@@ -2,52 +2,51 @@
   'use strict';
 
   const DESTINATIONS = [
-    {id:'dash',name:'Dashboard',icon:'⌂',group:'PBX',article:'overview/dashboard',description:'System summary, alerts, recent activity, and guided next actions.'},
-    {id:'live',name:'Live channels',icon:'◉',group:'PBX',article:'overview/live-calls',description:'Documented real-time call state, channels, bridges, and privacy boundaries.'},
-    {id:'endpoints',name:'PJSIP endpoints',icon:'▣',group:'PBX',article:'people-devices/devices',description:'Phones and applications registered with the PBX.'},
-    {id:'trunks',name:'Trunks & registrations',icon:'⇄',group:'PBX',article:'connectivity/trunks',description:'Provider connections, transports, registrations, and failover.'},
-    {id:'trunkauth',name:'Trunk authentication',icon:'◇',group:'PBX',article:'team-calling/security',description:'Authentication policy for incoming partner requests.'},
-    {id:'canvas',name:'Dialplan canvas',icon:'⌁',group:'PBX',article:'call-flow/call-flow',description:'Visual call-path composition with validation and reversible publishing.'},
-    {id:'ivr',name:'IVR menus',icon:'⌘',group:'PBX',article:'call-flow/ivr',description:'Menus, prompts, timeouts, invalid choices, accessibility, and testing.'},
-    {id:'queues',name:'Queues & agents',icon:'☷',group:'PBX',article:'team-calling/queues',description:'Agents, distribution strategies, wait states, announcements, and reporting.'},
-    {id:'voicemail',name:'Voicemail boxes',icon:'▻',group:'Media',article:'people-devices/voicemail',description:'Mailboxes, greetings, delivery, retention, access, and recovery.'},
-    {id:'confbridge',name:'ConfBridge rooms',icon:'◌',group:'Media',article:'team-calling/conferences',description:'Rooms, moderators, access, prompts, recording, and capacity.'},
-    {id:'moh',name:'Music on hold',icon:'♬',group:'Media',article:'team-calling/announcements',description:'Local media classes, ordering, volume, and fallback behavior.'},
-    {id:'codecs',name:'Codecs & RTP',icon:'≋',group:'Media',article:'connectivity/extensions',description:'Codec preferences, media transport, port policy, and compatibility.'},
-    {id:'cdr',name:'Call records',icon:'≡',group:'Data',article:'overview/cdr',description:'Searchable call records, filters, privacy controls, and redacted export guidance.'},
-    {id:'ami',name:'Manager & REST interfaces',icon:'⌁',group:'Data',article:'manage/automation',description:'AMI, ARI, and HTTP capabilities with bounded access guidance.'},
-    {id:'modules',name:'Modules',icon:'⬡',group:'System',article:'overview/system-health',description:'Loaded runtime modules, dependencies, and use counts.'},
-    {id:'logger',name:'Logging',icon:'▤',group:'System',article:'overview/logs',description:'Search, filtering, severity, retention, and diagnostic export guidance.'},
-    {id:'security',name:'Security',icon:'◇',group:'System',article:'team-calling/security',description:'Transport protection, credentials, access rules, auditing, and recovery.'},
-    {id:'cli',name:'CLI builder',icon:'⌨',group:'System',article:'overview/status',description:'Guided allowlisted diagnostic command construction.'},
-    {id:'memory',name:'Memory console',icon:'▣',group:'Agent',article:'manage/backups',description:'Local records, append-only history, and recovery boundaries.'},
-    {id:'sync',name:'Sync & attestation',icon:'↻',group:'Agent',article:'manage/updates',description:'Local synchronization history and factual verification state.'},
-    {id:'skills',name:'Skills registry',icon:'✣',group:'Agent',article:'manage/automation',description:'Installed local capability packages and their evidence.'},
-    {id:'hub',name:'Status hub sessions',icon:'◆',group:'Agent',article:'overview/status',description:'Active work sessions and factual current states.'},
-    {id:'vocab',name:'Vocabulary settings',icon:'▰',group:'Agent',article:'manage/settings',description:'Private local wording configuration without bundled personal mappings.'},
-    {id:'ops',name:'Operations & releases',icon:'▲',group:'Agent',article:'overview/reports',description:'Version, artifact, duration, and release evidence.'},
-    {id:'secrets',name:'Secret intake',icon:'◆',group:'Agent',article:'team-calling/security',description:'One-time local intake guidance; values are never displayed.'},
-    {id:'servers',name:'Deploy a server',icon:'▣',group:'App',article:'manage/automation',description:'Guided WSL, local container, and approved remote Linux provisioning.'},
-    {id:'arcade',name:'Confirmation credits',icon:'◈',group:'App',article:'manage/accessibility',description:'Optional local activities that reduce repetitive confirmation steps.'},
-    {id:'notifications',name:'Notification centre',icon:'●',group:'App',article:'overview/status',description:'Reviewable local notifications, filtering, dismissal, and export.'},
-    {id:'history',name:'History',icon:'↶',group:'App',article:'manage/backups',description:'Append-only local configuration revisions, comparison, and restore.'},
-    {id:'customise',name:'Customise everything',icon:'✦',group:'App',article:'manage/appearance',description:'Element-level appearance, layout, behavior, and local reset.'},
-    {id:'appearance',name:'Appearance',icon:'◐',group:'App',article:'manage/appearance',description:'Theme, density, typography, accent, logo, and element editors.'},
-    {id:'about',name:'About',icon:'ⓘ',group:'App',article:'overview/documentation',description:'Version, integration boundaries, project status, and documentation.'}
+    {id:'servers',name:'Deploy a server',icon:'▣',group:'App',article:'app/servers',description:'Guided WSL, local container, and approved remote Linux provisioning.'},
+    {id:'dash',name:'Dashboard',icon:'⌂',group:'PBX',article:'pbx/dash',description:'System summary, alerts, recent activity, and guided next actions.'},
+    {id:'live',name:'Live channels',icon:'◉',group:'PBX',article:'pbx/live',description:'Documented real-time call state, channels, bridges, and privacy boundaries.'},
+    {id:'endpoints',name:'PJSIP endpoints',icon:'▣',group:'PBX',article:'pbx/endpoints',description:'Phones and applications registered with the PBX.'},
+    {id:'trunks',name:'Trunks & registrations',icon:'⇄',group:'PBX',article:'pbx/trunks',description:'Provider connections, transports, registrations, and failover.'},
+    {id:'trunkauth',name:'Trunk authentication',icon:'◇',group:'PBX',article:'pbx/trunkauth',description:'Authentication policy for incoming partner requests.'},
+    {id:'canvas',name:'Dialplan canvas',icon:'⌁',group:'PBX',article:'pbx/canvas',description:'Visual call-path composition with validation and reversible publishing.'},
+    {id:'ivr',name:'IVR menus',icon:'⌘',group:'PBX',article:'pbx/ivr',description:'Menus, prompts, timeouts, invalid choices, accessibility, and testing.'},
+    {id:'queues',name:'Queues & agents',icon:'☷',group:'PBX',article:'pbx/queues',description:'Agents, distribution strategies, wait states, announcements, and reporting.'},
+
+    {id:'voicemail',name:'Voicemail boxes',icon:'▻',group:'Media',article:'media/voicemail',description:'Mailboxes, greetings, delivery, retention, access, and recovery.'},
+    {id:'confbridge',name:'ConfBridge rooms',icon:'◌',group:'Media',article:'media/confbridge',description:'Rooms, moderators, access, prompts, recording, and capacity.'},
+    {id:'moh',name:'Music on hold',icon:'♬',group:'Media',article:'media/moh',description:'Local media classes, ordering, volume, and fallback behavior.'},
+    {id:'codecs',name:'Codecs & RTP',icon:'≋',group:'Media',article:'media/codecs',description:'Codec preferences, media transport, port policy, and compatibility.'},
+
+    {id:'cdr',name:'Call records',icon:'≡',group:'Data',article:'data/cdr',description:'Searchable call records, filters, privacy controls, and redacted export guidance.'},
+    {id:'ami',name:'Manager & REST interfaces',icon:'⌁',group:'Data',article:'data/ami',description:'AMI, ARI, and HTTP capabilities with bounded access guidance.'},
+
+    {id:'modules',name:'Modules',icon:'⬡',group:'System',article:'system/modules',description:'Loaded runtime modules, dependencies, and use counts.'},
+    {id:'logger',name:'Logging',icon:'▤',group:'System',article:'system/logger',description:'Search, filtering, severity, retention, and diagnostic export guidance.'},
+    {id:'security',name:'Security',icon:'◇',group:'System',article:'system/security',description:'Transport protection, credentials, access rules, auditing, and recovery.'},
+    {id:'cli',name:'CLI builder',icon:'⌨',group:'System',article:'system/cli',description:'Guided allowlisted diagnostic command construction.'},
+
+    {id:'memory',name:'Memory console',icon:'▣',group:'Agent',article:'agent/memory',description:'Local records, append-only history, and recovery boundaries.'},
+    {id:'sync',name:'Sync & attestation',icon:'↻',group:'Agent',article:'agent/sync',description:'Local synchronization history and factual verification state.'},
+    {id:'skills',name:'Skills registry',icon:'✣',group:'Agent',article:'agent/skills',description:'Installed local capability packages and their evidence.'},
+    {id:'hub',name:'Status hub sessions',icon:'◆',group:'Agent',article:'agent/hub',description:'Active work sessions and factual current states.'},
+    {id:'vocab',name:'Vocabulary & emission guard',icon:'▰',group:'Agent',article:'agent/vocab',description:'Private local wording configuration without bundled personal mappings.'},
+    {id:'ops',name:'Operations & releases',icon:'▲',group:'Agent',article:'agent/ops',description:'Version, artifact, duration, and release evidence.'},
+    {id:'secrets',name:'Secret intake',icon:'◆',group:'Agent',article:'agent/secrets',description:'One-time local intake guidance; values are never displayed.'},
+
+    {id:'arcade',name:'Confirmation credits',icon:'◈',group:'App',article:'app/arcade',description:'Optional local activities that reduce repetitive confirmation steps.'},
+    {id:'notifications',name:'Notification centre',icon:'●',group:'App',article:'app/notifications',description:'Reviewable local notifications, filtering, dismissal, and export.'},
+    {id:'history',name:'History',icon:'↶',group:'App',article:'app/history',description:'Append-only local configuration revisions, comparison, and restore.'},
+    {id:'customise',name:'Customise everything',icon:'✦',group:'App',article:'app/customise',description:'Element-level appearance, layout, behavior, and local reset.'},
+    {id:'appearance',name:'Appearance',icon:'◐',group:'App',article:'app/appearance',description:'Theme, density, typography, accent, logo, and element editors.'},
+    {id:'about',name:'About',icon:'ⓘ',group:'App',article:'app/about',description:'Version, integration boundaries, project status, and documentation.'}
   ];
 
   const BASE = document.documentElement.dataset.base || './';
   const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#8b7cff',fontScale:100,lowMotion:false,notifications:[]};
   const STORAGE_KEY = 'ding-pbx-pages-v2';
   const regexState = new Map();
-  let regexTarget = '';
-  let demoIndex = -1;
-  let destinationPage = 0;
-  const DEMOS = [
-    {calls:12,endpoints:'47 / 52',wait:'0:34',points:[140,130,138,105,116,82,98,70,84,42,65,54,75,46,64,32,48]},
-    {calls:7,endpoints:'49 / 52',wait:'0:18',points:[148,144,126,133,112,121,96,108,82,94,76,57,68,43,55,39,50]},
-    {calls:19,endpoints:'46 / 52',wait:'1:08',points:[151,122,134,99,112,67,86,48,72,35,58,28,52,31,43,24,37]}
-  ];
+  let regexTarget = '';
+  let destinationPage = 0;
 
   const $ = id => document.getElementById(id);
   const all = selector => [...document.querySelectorAll(selector)];
@@ -79,7 +78,6 @@
   function applyRegex(){const config=regexConfig();try{new RegExp(config.pattern,config.flags)}catch{return}regexState.set(regexTarget,{...config,enabled:Boolean(config.pattern)});$('regex-dialog').close();$(regexTarget)?.dispatchEvent(new Event('input'));notify('Regular expression applied',`${regexTarget} now uses the local JavaScript regular expression engine.`)}
   function initRegex(){if(!$('regex-dialog'))return;$('regex-pattern').addEventListener('input',previewRegex);$('regex-apply').onclick=applyRegex;all('[data-insert]').forEach(button=>button.onclick=()=>{const input=$('regex-pattern'),start=input.selectionStart;input.value=`${input.value.slice(0,start)}${button.dataset.insert}${input.value.slice(input.selectionEnd)}`;input.focus();input.setSelectionRange(start+button.dataset.insert.length,start+button.dataset.insert.length);previewRegex()})}
 
-  function runDemo(index){if(!$('demo-active'))return;demoIndex=Number.isInteger(index)?index:(demoIndex+1)%DEMOS.length;const demo=DEMOS[demoIndex];$('demo-active').textContent=demo.calls;$('demo-endpoints').textContent=demo.endpoints;$('demo-wait').textContent=demo.wait;const line=demo.points.map((y,i)=>`${i?'L':'M'}${i*40} ${y}`).join(' ');$('chart-line').setAttribute('d',line);$('chart-area').setAttribute('d',`M0 160 ${line} L640 160 Z`);$('demo-range').textContent=`Scenario ${demoIndex+1} of ${DEMOS.length} · deterministic demo data`;if(!reduceMotion()){$('chart-line').style.animation='none';requestAnimationFrame(()=>$('chart-line').style.animation='')}}
 
   function renderPalette(query=''){const list=$('palette-results');if(!list)return;const pages=[['Home','index.html'],['Product','product.html'],['Documentation','documentation.html'],['Downloads','downloads.html'],['Status','status.html'],['Settings','settings.html']],items=[...pages,...DESTINATIONS.map(item=>[item.name,`documentation.html#destination-${item.id}`])].filter(([name])=>matchText(name,query,'palette-search'));list.innerHTML=items.length?items.map(([name,path])=>`<a class="palette-result" role="option" href="${BASE}${path}"><strong>${escapeHtml(name)}</strong><span>Open destination</span></a>`).join(''):'<p>No matching commands.</p>'}
   function openPalette(){const dialog=$('command-palette');if(!dialog)return;dialog.showModal();$('palette-search').value='';renderPalette();setTimeout(()=>$('palette-search').focus(),0)}
@@ -87,10 +85,10 @@
   function renderNotifications(){if($('notification-count'))$('notification-count').textContent=state.notifications.length;if(!$('notification-history'))return;$('notification-history').innerHTML=state.notifications.length?state.notifications.map(item=>`<article class="notice"><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.body)}</p><small>${new Date(item.time).toLocaleString()}</small></article>`).join(''):'<p>No local notifications.</p>'}
 
   function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);$('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);$('settings-reset').onclick=()=>{Object.assign(state,DEFAULTS);save();applyState();notify('Settings reset','The local page settings returned to their shipped values.')};$('settings-export').onclick=()=>download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state},null,2));$('vocabulary-file').onchange=loadVocabulary;$('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');$('vocabulary-file').value='';$('vocabulary-status').textContent='No file loaded; original wording is active.'}}
-  async function loadVocabulary(event){const file=event.target.files[0];if(!file)return;if(file.size>65536){$('vocabulary-status').textContent='Rejected: file exceeds 64 KiB.';return}try{const parsed=JSON.parse(await file.text());if(parsed.version!==1||!Array.isArray(parsed.replacements)||parsed.replacements.length>256)throw new Error('Expected version 1 and no more than 256 replacements.');if(parsed.replacements.some(item=>!item||typeof item.from!=='string'||typeof item.to!=='string'||item.from.length>128||item.to.length>256))throw new Error('Every replacement needs bounded from and to strings.');localStorage.setItem('ding-pbx-vocabulary-cache',JSON.stringify(parsed));$('vocabulary-status').textContent=`Loaded ${parsed.replacements.length} local replacement${parsed.replacements.length===1?'':'s'}. No data was transmitted.`}catch(error){$('vocabulary-status').textContent=`Rejected: ${error.message}`}}
+  async function loadVocabulary(event){const file=event.target.files[0];if(!file)return;if(file.size>65536){$('vocabulary-status').textContent='Rejected: file exceeds 64 KiB.';return}try{const parsed=JSON.parse(await file.text());if(parsed.version!==1||!Array.isArray(parsed.replacements)||parsed.replacements.length>256)throw new Error('Expected version 1 and no more than 256 replacements.');if(parsed.replacements.some(item=>!item||typeof item.from!=='string'||typeof item.to!=='string'||item.from.length>128||item.to.length>256))throw new Error('Every replacement needs bounded from and to strings.');const keys=parsed.replacements.map(item=>item.from);if(new Set(keys).size!==keys.length)throw new Error('Duplicate keys are not accepted; each from value must appear once.');localStorage.setItem('ding-pbx-vocabulary-cache',JSON.stringify(parsed));$('vocabulary-status').textContent=`Loaded ${parsed.replacements.length} local replacement${parsed.replacements.length===1?'':'s'}. No data was transmitted.`}catch(error){$('vocabulary-status').textContent=`Rejected: ${error.message}`}}
   function download(name,text){const link=document.createElement('a'),url=URL.createObjectURL(new Blob([text],{type:'application/json'}));link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
   function reduceMotion(){return matchMedia('(prefers-reduced-motion: reduce)').matches||state.lowMotion}
 
-  function init(){applyState();initNavigation();renderDestinations();initSearch();initRegex();initSettings();renderNotifications();initReveals();runDemo(0);$('demo-rerun')?.addEventListener('click',()=>runDemo());$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>renderPalette(event.target.value));$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications()});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];save();renderNotifications()})}
+  function init(){applyState();initNavigation();renderDestinations();initSearch();initRegex();initSettings();renderNotifications();initReveals();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>renderPalette(event.target.value));$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications()});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];save();renderNotifications()})}
   init();
 })();
