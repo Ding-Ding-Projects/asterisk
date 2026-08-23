@@ -2,19 +2,19 @@
 
 ## Behavior
 
-One infinite canvas for dialplan, IVR and queue routing. Drop a step, wire it to the next, and the console writes the priorities for you. The inspector on the right edits whichever step is selected. It is backed by `extensions.conf`. The rail badge on this destination currently reads `∞`. It lives on the PBX rail, under the Telephony group: Endpoints, routing and everything a call touches while it is alive.
+One infinite canvas for the live dialplan, IVR and queue routing graph. Nodes and edges are parsed from the target's `dialplan show` output, and the layout can be moved locally for inspection. The inspector is read-only because this surface has no dialplan write path. The rail badge on this destination is empty until a live graph is read. It lives on the PBX rail, under the Telephony group: Endpoints, routing and everything a call touches while it is alive.
 
 ## Configuration
 
-There is no settings form here. Every node dropped on the canvas becomes a step in extensions.conf, wired to the next node with a connector; the console generates the dialplan priorities so nothing needs to be numbered by hand.
+There is no settings form here. Adding, deleting, duplicating, or rewiring a node reports that the canvas is read-only rather than claiming a write occurred. An unread or unavailable target produces an empty canvas with the control-plane reason.
 
 ## Failure modes and security
 
-A node that references a destination that no longer exists is flagged on the canvas rather than silently dropped from extensions.conf.
+A node that references a destination that no longer exists is omitted by the parser and the source reading reports the exact parse or target failure. Local layout changes never alter the target.
 
 ## Verification
 
-Confirm dragging, connecting and deleting a node updates extensions.conf correctly, and that an orphaned reference is surfaced rather than silently dropped.
+Confirm the graph contains only nodes and edges from a successful live reading, that local dragging changes layout only, and that every attempted write action reports the read-only boundary without changing the target.
 
 ## Suggested articles
 

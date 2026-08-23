@@ -1,5 +1,5 @@
 import type { Component } from 'react';
-import ConsoleShell, { ORDER, ONBOARD, SCREENS } from './generated/console';
+import ConsoleShell, { ORDER, SCREENS } from './generated/console';
 import {
   badgeFor, dashboardStats, formatDuration, healthBars, isReadable, reasonFor, regexMatchLabel, rowsFor, serverRows, valueOf,
   type ViewReadings,
@@ -11,7 +11,6 @@ import { readControlValues, unmappedControls } from './control-keys';
 import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
 import { ServerSwitcher } from './servers';
-import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
 import {
   clearVocabulary, createMemoryStorage, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
 } from './personal-vocabulary';
@@ -22,6 +21,30 @@ import {
  * design's sample content. No screen ever shows a value the console has not read.
  */
 type Target = { id: string; label: string; detail: string; connected: boolean };
+
+type ConnectionObservation = { state?: string; reason?: string };
+
+/** `server.connect` can accept the discovered distribution while reporting an
+ * unavailable operating-system or Asterisk observation in its data payload. The
+ * renderer must require both observations before it treats the target as connected. */
+function connectionVerified(response: ControlPlaneResponse | undefined): boolean {
+  if (!response?.ok) return false;
+  const data = response.data as { operatingSystem?: ConnectionObservation; asterisk?: ConnectionObservation };
+  return data.operatingSystem?.state === 'available' && data.asterisk?.state === 'available';
+}
+
+function connectionFailureReason(response: ControlPlaneResponse | undefined): string {
+  if (!response) return 'The desktop control plane did not answer the connection check.';
+  if (!response.ok) return response.message;
+  const data = response.data as { operatingSystem?: ConnectionObservation; asterisk?: ConnectionObservation };
+  const unavailable = [
+    ['operating system', data.operatingSystem],
+    ['Asterisk', data.asterisk],
+  ]
+    .filter(([, observation]) => observation?.state !== 'available')
+    .map(([label, observation]) => `${label}: ${observation?.reason || 'observation unavailable'}`);
+  return unavailable.join('; ') || 'The target did not provide both required connection observations.';
+}
 
 const NO_TARGET: Target = { id: '', label: 'no target', detail: 'nothing discovered yet', connected: false };
 
@@ -57,6 +80,7 @@ const TABLE_SCREENS = Object.entries(SCREENS as Record<string, { table?: { rows:
 interface Shell {
   renderVals(): Record<string, unknown>;
   componentDidMount?(): void;
+  componentWillUnmount?(): void;
   showInfo(title: string, body: string, plain: string, x: string, y: string): void;
   ceremony(title: string, command: string): void;
   set(key: string, value: unknown): void;
@@ -89,6 +113,15 @@ export class App extends Base {
   private seeded = new Set<string>();
   /** What the console's own Asterisk runtime can do right now. */
   private runtime: RuntimeStatus | undefined;
+  /** Discovery and refresh are real operations, so the shell can show their current
+   * state instead of leaving the generated setup card in its design-only idle state. */
+  private discoveryPending = false;
+  private oneClickRunning = false;
+  private oneClickStage = '';
+  private oneClickPct = '0%';
+  private oneClickLog: Array<{ text: string; color: string; icon: string; ms: string }> = [];
+  private refreshTimer: ReturnType<typeof setInterval> | undefined;
+  private readStartedAt = new Map<string, number>();
   /** Local storage for the personal-vocabulary loader. `window.localStorage` on a real
    *  desktop build; falls back to an in-memory stub so the control still works (for the
    *  session) on a host with no persistent store rather than throwing. */
@@ -111,6 +144,18 @@ export class App extends Base {
      * target, so it is loaded independently of it. */
     void this.servers.load().then(() => this.forceUpdate());
     void this.discover();
+    this.refreshTimer = setInterval(() => {
+      if (this.target.connected) {
+        void this.refresh();
+        void this.refreshDaemonStatus();
+      }
+    }, 1000);
+  }
+
+  componentWillUnmount() {
+    super.componentWillUnmount?.();
+    if (this.refreshTimer) clearInterval(this.refreshTimer);
+    this.refreshTimer = undefined;
   }
 
   componentDidUpdate() {
@@ -125,6 +170,14 @@ export class App extends Base {
 
   /** Bounded, allowlisted discovery through the preload bridge. Never a shell command. */
   private discover = async () => {
+    if (this.discoveryPending) return;
+    this.discoveryPending = true;
+    this.oneClickRunning = true;
+    this.oneClickStage = 'Reading local targets';
+    this.oneClickPct = '15%';
+    this.oneClickLog = [{ icon: 'search', text: 'Reading the local target inventory', color: '#9FF7C4', ms: 'now' }];
+    this.forceUpdate();
+    try {
     const bridge = this.bridge();
     if (!bridge) {
       this.target = { ...NO_TARGET, label: 'bridge unavailable', detail: 'desktop preload not loaded' };
@@ -150,14 +203,60 @@ export class App extends Base {
       const runtime = await this.request('runtime.status');
       this.runtime = runtime?.ok ? (runtime.data as RuntimeStatus) : undefined;
       this.target = { ...NO_TARGET, detail: `${detail}${runtimeHint(this.runtime)}` };
+      this.oneClickStage = 'No local target is available';
+      this.oneClickPct = '100%';
+      this.oneClickLog = [{ icon: 'warning', text: this.target.detail, color: '#FFD68A', ms: 'done' }];
       this.forceUpdate();
       return;
     }
-    this.target = { id: distributions[0], label: distributions[0], detail: `${distributions.length} local target(s)`, connected: true };
+    const distribution = distributions[0]!;
+    this.target = { id: distribution, label: distribution, detail: 'connecting to the discovered target', connected: false };
+    this.oneClickStage = 'Connecting to the discovered target';
+    this.oneClickPct = '55%';
+    this.oneClickLog = [
+      { icon: 'search', text: `${distributions.length} local target${distributions.length === 1 ? '' : 's'} discovered`, color: '#9FF7C4', ms: 'read' },
+      { icon: 'link', text: `Verifying ${distribution} through the control plane`, color: '#9FF7C4', ms: 'now' },
+    ];
+    this.forceUpdate();
+
+    /* Discovery only finds a name. It is not proof that the target is reachable. Ask
+     * the real connection action before marking the target connected. If the daemon is
+     * merely stopped, start it through the existing lifecycle path and retry once. */
+    let connected = await this.request('server.connect', { serverId: distribution });
+    let connectionReason = connectionFailureReason(connected);
+    if (!connectionVerified(connected)) {
+      await this.ensureDaemon();
+      connected = await this.request('server.connect', { serverId: distribution });
+      connectionReason = connectionFailureReason(connected);
+    }
+    if (!connectionVerified(connected)) {
+      const reason = connectionReason;
+      this.target = { id: distribution, label: distribution, detail: reason, connected: false };
+      this.oneClickStage = 'Target connection unavailable';
+      this.oneClickPct = '100%';
+      this.oneClickLog = [
+        { icon: 'search', text: `${distributions.length} local target${distributions.length === 1 ? '' : 's'} discovered`, color: '#9FF7C4', ms: 'read' },
+        { icon: 'error', text: reason, color: '#FFB4AB', ms: 'failed' },
+      ];
+      this.forceUpdate();
+      return;
+    }
+    this.target = { id: distribution, label: distribution, detail: `${distributions.length} local target(s), connection verified`, connected: true };
+    this.oneClickStage = 'Connection verified';
+    this.oneClickPct = '100%';
+    this.oneClickLog = [
+      { icon: 'search', text: `${distributions.length} local target${distributions.length === 1 ? '' : 's'} discovered`, color: '#9FF7C4', ms: 'read' },
+      { icon: 'verified', text: `${distribution} answered the connection check`, color: '#9FF7C4', ms: 'done' },
+    ];
     void this.ensureDaemon();
     this.readings = {};
     this.canvasReadings = undefined;
     this.forceUpdate();
+    } finally {
+      this.discoveryPending = false;
+      this.oneClickRunning = false;
+      this.forceUpdate();
+    }
   };
 
   /**
@@ -322,154 +421,20 @@ export class App extends Base {
     else this.fire('Not removed', 'The control plane did not accept that removal.');
   };
 
-  // ---------------------------------------------------------------- onboarding wizard
-
-  /** True while a real deploy or connect from the wizard is in flight, so the button
-   *  cannot be pressed twice and start two transactions against the same target. */
-  private onboardBusy = false;
-
-  private onboardAnswers(): OnboardAnswers {
-    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
-    const intent = values.ob_intent === 'Connect to an existing one' ? 'Connect to an existing one' : 'Deploy a new server';
-    return {
-      intent,
-      phones: Number(values.ob_phones ?? 8),
-      menu: values.ob_menu !== false,
-      tls: values.ob_tls !== false,
-      // The wizard never asked a separate "harden" question; the only affordance for
-      // it is the confirmation-gate choice on the Safety step. Any gate stronger than
-      // the loosest one counts as asking for hardening, so "Credits allowed" (the
-      // weakest) is the one case that does not imply it.
-      hardened: String(values.ob_gates ?? 'All four gates') !== 'Credits allowed',
-    };
-  }
-
-  /** Reads the three files the deploy touches, in parallel, tolerating an absent file
-   *  (an empty section list) the same way the rest of the console already does. */
-  private async readOnboardInputs(serverId: string): Promise<OnboardPlanInputs> {
-    const read = async (resource: string): Promise<ConfigValue> => {
-      const response = await this.request('pbx.config', { serverId, payload: { resource } });
-      const value = (response as { data?: { value?: ConfigValue } } | undefined)?.data?.value;
-      return Array.isArray(value) ? value : [];
-    };
-    const [pjsip, extensions, http] = await Promise.all([
-      read('/etc/asterisk/pjsip.conf'),
-      read('/etc/asterisk/extensions.conf'),
-      read('/etc/asterisk/http.conf'),
-    ]);
-    return { pjsip, extensions, http };
-  }
-
-  /** The "connect to an existing one" half of the wizard's first question. Reuses the
-   *  exact server-add path the Deploy & servers screen already uses for real, rather
-   *  than a second implementation that could drift from it. */
-  private async onboardConnect(): Promise<void> {
-    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
-    const whereLabel = String(values.ob_where ?? 'This machine');
-    const whereMap: Record<string, string> = { 'This machine': 'local', 'Local Docker': 'local-docker', SSH: 'ssh', 'SSH Docker': 'ssh-docker' };
-    const connectionKind = whereMap[whereLabel] ?? 'local';
-    const host = String(values.ob_host ?? '');
-    const input: { name: string; connectionKind: string; host?: string } = {
-      name: host || `connection-${this.servers.servers.length + 1}`,
-      connectionKind,
-    };
-    if (connectionKind !== 'local') input.host = host;
-    const created = await this.servers.add(input as never);
-    this.forceUpdate();
-    if (created) {
-      this.fire('Connected', `${created.name} was added to the server list and is available on Deploy & servers.`);
-      void this.discover();
-      this.set('onboardOpen', false);
-      this.set('screen', 'servers');
-      this.set('railId', 'app');
-    } else {
-      this.fire('Not connected', 'The control plane did not accept that connection. Nothing was written.');
-    }
-  }
-
-  /** The "deploy a new server" half. Ensures a target exists (provisioning the local
-   *  runtime if the console has none yet), reads what is really on it, builds the plan
-   *  with `buildOnboardPlan`, previews it through the same confirmation gate every
-   *  other write in the app uses, and — only on confirmation — applies it and reports
-   *  exactly what happened, per resource. */
-  private async onboardDeploy(): Promise<void> {
-    if (!this.target.connected) {
-      if (!canProvision(this.runtime)) {
-        this.fire('No target', `Nothing is connected and a runtime cannot be created here: ${runtimeLabel(this.runtime)}`);
-        return;
-      }
-      this.toast('Creating the Asterisk runtime for the wizard — this takes a while.');
-      const provisioned = await this.request('runtime.provision');
-      if (!provisioned?.ok) {
-        this.fire('Not created', provisioned?.message ?? 'Creating the runtime did not succeed, so there is nothing to deploy to.');
-        return;
-      }
-      await this.discover();
-      if (!this.target.connected) {
-        this.fire('No target', 'The runtime was created but nothing is connected yet — open Deploy & servers to finish connecting, then try the wizard again.');
-        return;
-      }
-    }
-
-    const answers = this.onboardAnswers();
-    const inputs = await this.readOnboardInputs(this.target.id);
-    const plan = buildOnboardPlan(answers, inputs);
-
-    const summaryLines = [
-      `Target: ${this.target.label}`,
-      ...plan.summary.map((line) => `• ${line}`),
-      ...plan.skipped.map((line) => `• ${line}`),
-      answers.hardened ? '' : '',
-      `Business hours: ${ONBOARD_HOURS_NOTE}`,
-      '',
-      'Every file is backed up before it is touched, and this is recorded in local history so it can be restored.',
-    ].filter((line, i, arr) => line !== '' || arr[i - 1] !== '');
-
-    if (plan.summary.length === 0) {
-      this.fire('Nothing to change', 'The target already matches what the wizard would have written, so nothing was touched.');
-      this.set('onboardOpen', false);
-      this.set('screen', 'servers');
-      this.set('railId', 'app');
-      return;
-    }
-
-    this.areYouSure('Apply the deploy plan?', summaryLines.join('\n'), 3, () => {
-      if (this.onboardBusy) return;
-      this.onboardBusy = true;
-      void (async () => {
-        try {
-          const response = await this.request('pbx.apply', { serverId: this.target.id, payload: { documents: plan.documents } });
-          const result = (response as { data?: { result?: { status: string; message?: string } }; message?: string } | undefined);
-          if (!response?.ok) {
-            this.fire('Deploy not applied', `${response?.message ?? result?.data?.result?.message ?? 'The target refused the change.'}`);
-            return;
-          }
-          const secretLines = plan.newExtensions.map((e) => `${e.id}: ${e.secret}`).join('\n');
-          this.fire(
-            'Deployed',
-            [
-              `Applied: ${plan.summary.join('; ')}.`,
-              plan.newExtensions.length > 0 ? `New extension secrets (shown once — write these down):\n${secretLines}` : '',
-              plan.skipped.length > 0 ? `Not applied: ${plan.skipped.join(' ')}` : '',
-              'Every changed file was backed up first and is in local history if you need to undo this.',
-            ].filter(Boolean).join('\n\n'),
-          );
-          this.set('onboardOpen', false);
-          this.set('screen', 'servers');
-          this.set('railId', 'app');
-        } finally {
-          this.onboardBusy = false;
-        }
-      })();
-    });
-  }
-
   /** Reads the screen currently on top, once per screen change. */
   private refresh = async () => {
     const screen = (this.state as { screen: string }).screen;
     if (!this.target.connected) return;
+    const now = Date.now();
+    const mayStartRead = (key: string): boolean => {
+      const previous = this.readStartedAt.get(key) ?? 0;
+      if (now - previous < 1000) return false;
+      this.readStartedAt.set(key, now);
+      return true;
+    };
     if (screen === 'canvas') {
-      if (this.canvasReadings || this.canvasPending) return;
+      const canvasAvailable = this.canvasReadings?.dialplan?.result.state === 'available';
+      if (canvasAvailable || this.canvasPending || !mayStartRead('canvas')) return;
       this.canvasPending = true;
       const response = await this.request('pbx.read', { serverId: this.target.id, view: 'canvas' as PbxReadView });
       this.canvasPending = false;
@@ -483,7 +448,7 @@ export class App extends Base {
      * the screen can show what the machine actually has, instead of standing there
      * displaying the design's own defaults as though they were settings in force. */
     const resource = resourceForFile((SCREENS as Record<string, { file?: unknown }>)[screen]?.file);
-    if (resource && !this.configs[screen] && this.configPending !== screen) {
+    if (resource && (!this.configs[screen] || this.configs[screen]?.state === 'unavailable') && this.configPending !== screen && mayStartRead(`config:${screen}`)) {
       this.configPending = screen;
       const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
       this.configPending = '';
@@ -511,7 +476,9 @@ export class App extends Base {
     }
 
     if (!isReadable(screen)) return;
-    if (this.readings[screen] || this.pending === screen) return;
+    const existing = this.readings[screen];
+    const hasUnavailableReading = existing && Object.values(existing).some((reading) => reading?.result.state === 'unavailable');
+    if ((existing && !hasUnavailableReading) || this.pending === screen || !mayStartRead(screen)) return;
     this.pending = screen;
     const serverId = this.target.id;
     const token = this.servers.begin(serverId);
@@ -581,8 +548,15 @@ export class App extends Base {
   /** Real dialplan nodes/edges in the design's canvas shapes, with a bezier path per edge
    *  computed the same way the design computes it for its own sample graph. */
   private canvasVals(designVals: Record<string, unknown>): Record<string, unknown> {
+    const readOnlyCanvas = () => this.fire(
+      'Dialplan canvas is read-only',
+      'This graph is read from the live target. Adding, deleting, duplicating, or rewiring a step needs a configuration-write path that this console does not provide.',
+    );
     const graph = canvasValueOf(this.canvasReadings?.dialplan);
-    if (!graph) return { nodes: [], edges: [], nodeCtls: [], nodeTitle: '', nodeApp: '' };
+    if (!graph) return {
+      nodes: [], edges: [], nodeCtls: [], edgeRows: [], nodeTitle: '', nodeApp: '',
+      addEdge: readOnlyCanvas, paletteNodes: [], canvasBgClick: () => this.set('nodeId', ''),
+    };
 
     const nodePos = ((this.state as { nodePos?: Record<string, { x: number; y: number }> }).nodePos) ?? {};
     const selected = (this.state as { nodeId?: string }).nodeId;
@@ -626,10 +600,10 @@ export class App extends Base {
         nudge: (dx: number, dy: number) => this.moveNode(node.id, dx, dy),
         left: () => this.moveNode(node.id, -20, 0), right: () => this.moveNode(node.id, 20, 0),
         up: () => this.moveNode(node.id, 0, -20), down: () => this.moveNode(node.id, 0, 20),
-        connect: () => this.addEdgeFrom(),
+        connect: readOnlyCanvas,
         ctx: (e: MouseEvent) => { e.preventDefault(); this.setState({ nodeId: node.id, ctxOpen: true, ctxX: `${e.clientX}px`, ctxY: `${e.clientY}px`, ctxTarget: node.title, ctxKind: 'node' }); },
-        dup: () => this.toast(`${node.title} duplicated on the canvas`),
-        del: () => this.areYouSure(`Delete ${node.title}`, 'The step and every connection into or out of it are removed from the dialplan.', 3, () => this.fire('Step deleted', `${node.title} is gone.`)),
+        dup: readOnlyCanvas,
+        del: readOnlyCanvas,
       };
     });
 
@@ -644,17 +618,51 @@ export class App extends Base {
           value: `${step.app}(${step.data})`,
           display: `${step.app}(${step.data})`,
           narrow: true,
-          onInfo: () => {},
-          onWizard: () => {},
+          onInfo: () => this.showInfo(
+            'Read-only dialplan step',
+            `Priority ${step.priority} is an observed ${step.app}(${step.data}) step from the live target. The inspector does not write dialplan changes.`,
+            'This step is read-only because the console has no dialplan write path.',
+            '46%',
+            '150px',
+          ),
+          onWizard: readOnlyCanvas,
         }))
       : [];
+
+    const nodeById = new Map(graph.nodes.map((candidate) => [candidate.id, candidate]));
+    const edgeRows = graph.edges.map(([from, to]) => ({
+      from: nodeById.get(from) ? `${nodeById.get(from)!.context} · ${nodeById.get(from)!.extension}` : from,
+      to: nodeById.get(to) ? `${nodeById.get(to)!.context} · ${nodeById.get(to)!.extension}` : to,
+      toOpts: [],
+      del: readOnlyCanvas,
+    }));
+    const canvasContextItems = (this.state as { ctxKind?: string }).ctxKind === 'node'
+      ? [
+          { icon: 'info', label: 'Inspect observed step', hint: '', act: () => { this.set('ctxOpen', false); this.showInfo('Read-only dialplan step', 'This menu item describes the selected step from the live target. The canvas has no dialplan write path.', 'This step is read-only.', '46%', '150px'); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'timeline', label: 'Connect to…', hint: 'C', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'content_copy', label: 'Duplicate step', hint: '⌃D', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'call_split', label: 'Insert condition before', hint: '', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'delete', label: 'Delete step', hint: '⌦', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
+        ]
+      : undefined;
 
     return {
       nodes,
       edges,
       nodeCtls,
+      edgeRows,
       nodeTitle: source ? `${source.context} · ${source.extension}` : (designVals.nodeTitle as string),
       nodeApp: source && source.steps[0] ? `${source.steps[0].app}(${source.steps[0].data})` : '',
+      addEdge: readOnlyCanvas,
+      paletteNodes: [
+        { icon: 'add_call', label: 'Dial' },
+        { icon: 'dialpad', label: 'Menu' },
+        { icon: 'groups', label: 'Queue' },
+        { icon: 'call_split', label: 'Condition' },
+        { icon: 'voicemail', label: 'Voicemail' },
+      ].map((item) => ({ ...item, add: readOnlyCanvas })),
+      canvasBgClick: () => this.set('nodeId', ''),
+      ...(canvasContextItems ? { ctxItems: canvasContextItems } : {}),
     };
   }
 
@@ -742,32 +750,6 @@ export class App extends Base {
         });
       },
 
-      /**
-       * The onboarding wizard used to be a demo: five screens of questions that ended
-       * by setting a few `ob_*` values nothing else read, closing itself, and switching
-       * to the servers screen having written nothing anywhere. These three bindings
-       * replace that with the real thing — a plan built from what the target actually
-       * has, shown for confirmation, applied through the same transaction path (backup,
-       * stage, validate, apply, read-back) every other write in the console uses, and
-       * reported per resource rather than with one success word.
-       */
-      superEasy: () => {
-        this.setState((st: { values: Record<string, unknown> }) => ({
-          values: { ...st.values, ob_intent: 'Deploy a new server', ob_ease: 'Super easy', ob_phones: 8, ob_menu: true, ob_hours: true, ob_tls: true },
-        }));
-        void this.onboardDeploy();
-      },
-      onboardNext: () => {
-        const step = (this.state as { onboardStep: number }).onboardStep;
-        if (step < ONBOARD.length - 1) {
-          this.setState((st: { onboardStep: number }) => ({ onboardStep: st.onboardStep + 1 }));
-          return;
-        }
-        const answers = this.onboardAnswers();
-        if (answers.intent === 'Connect to an existing one') void this.onboardConnect();
-        else void this.onboardDeploy();
-      },
-
       connLabel: this.target.label,
       connUptime: this.target.detail,
       openConnection: () => this.showInfo('Connection', BOUNDARY, BOUNDARY_PLAIN, '38%', '70px'),
@@ -792,8 +774,10 @@ export class App extends Base {
 
       // Discovery replaces the design's simulated provisioning run.
       oneClickButton: this.target.connected ? 'Re-run discovery' : 'Discover local targets',
-      oneClickRunning: false,
-      oneClickLog: [],
+      oneClickRunning: this.oneClickRunning,
+      oneClickStage: this.oneClickStage,
+      oneClickPct: this.oneClickPct,
+      oneClickLog: this.oneClickLog,
       runOneClick: this.discover,
 
       // Nav-rail badges: only a count this session actually read, never the design's
