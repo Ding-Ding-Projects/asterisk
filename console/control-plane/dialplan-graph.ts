@@ -1,0 +1,271 @@
+/**
+ * Reads `dialplan show` from a target and turns it into a graph of dialplan steps.
+ * `dialplan show` is already in `READ_ONLY_COMMANDS` (see ./asterisk-readings.ts); this
+ * module only parses its output and resolves control-flow edges between extensions.
+ *
+ * Output format is taken from this repository's `main/pbx.c`:
+ *   show_dialplan_helper()                       context header, include lines
+ *   show_dialplan_helper_extension_output()       one printed extension-priority line
+ *   print_ext()                                   the "N. App(data)" / "hint: App" text
+ */
+import type { CapabilityResult, TargetProfile } from "./contracts.js";
+import type { CommandResult, ProcessExecutor } from "./executor.js";
+
+export interface DialplanStep {
+  priority: number;
+  app: string;
+  data: string;
+}
+
+export interface DialplanNode {
+  id: string;
+  context: string;
+  extension: string;
+  steps: DialplanStep[];
+  registrar?: { file: string; line: number } | { name: string };
+}
+
+export type DialplanEdge = [string, string];
+
+export interface DialplanGraph {
+  nodes: DialplanNode[];
+  edges: DialplanEdge[];
+}
+
+export interface DialplanReading<T> {
+  command: "dialplan show";
+  result: CapabilityResult<T>;
+}
+
+/** Runs one allowlisted CLI command against a target — the same shape as AsteriskCliGateway. */
+export interface DialplanGateway {
+  run(target: TargetProfile, command: "dialplan show", signal?: AbortSignal): Promise<CommandResult>;
+}
+
+export class DialplanReadings {
+  readonly #gateway: DialplanGateway;
+  readonly #now: () => Date;
+
+  constructor(gateway: DialplanGateway, now: () => Date = () => new Date()) {
+    this.#gateway = gateway;
+    this.#now = now;
+  }
+
+  async graph(target: TargetProfile, signal?: AbortSignal): Promise<DialplanReading<DialplanGraph>> {
+    const observedAt = this.#now().toISOString();
+    let result: CommandResult;
+    try {
+      result = await this.#gateway.run(target, "dialplan show", signal);
+    } catch (error) {
+      return { command: "dialplan show", result: { state: "unavailable", observedAt, reason: reason(error) } };
+    }
+    if (result.status !== "succeeded") {
+      const detail = result.stderr.trim() || result.stdout.trim();
+      return {
+        command: "dialplan show",
+        result: {
+          state: "unavailable",
+          observedAt,
+          reason: `\`asterisk -rx "dialplan show"\` ${result.status}${detail ? `: ${firstLine(detail)}` : ""}`,
+        },
+      };
+    }
+    if (/No such command|Unable to connect to remote asterisk/iu.test(result.stdout)) {
+      return { command: "dialplan show", result: { state: "unavailable", observedAt, reason: firstLine(result.stdout.trim()) } };
+    }
+    try {
+      const graph = parseDialplanGraph(result.stdout);
+      return { command: "dialplan show", result: { state: "available", observedAt, value: graph } };
+    } catch (error) {
+      return {
+        command: "dialplan show",
+        result: { state: "unavailable", observedAt, reason: `Could not read the output of \`dialplan show\`: ${reason(error)}` },
+      };
+    }
+  }
+}
+
+// ---------------------------------------------------------------- parsers
+
+/**
+ * `show_dialplan_helper()` in main/pbx.c prints, for each context with no exten filter:
+ *   "[ Context '%s' created by '%s' ]\n"
+ * (or "[ Included context '%s' created by '%s' ]\n" when reached through an include with
+ * an exten filter — this console always reads the unfiltered form).
+ */
+const CONTEXT_HEADER = /^\[\s*(?:Included\s+)?[Cc]ontext\s+'([^']*)'\s+created by\s+'([^']*)'\s*\]\s*$/u;
+
+/**
+ * `show_dialplan_helper()` builds the first column of the first-priority line as
+ *   "'<exten>' =>" (or "'<exten>' (CID match '<cid>') =>" — not matched here, no CID
+ * console reading exists), then `show_dialplan_helper_extension_output()` prints it as
+ *   "  %-17s %-45s [%s:%d]\n"   (registrar has a file)
+ *   "  %-17s %-45s [%s]\n"     (registrar has no file, just a name)
+ * and `print_ext()` fills the second column as "%d. %s(%s)" (or "hint: %s" for hints,
+ * which this parser skips — a hint is not a dialable extension step).
+ */
+const FIRST_PRIORITY =
+  /^ {2}'([^']*)'\s*=>\s*(\d+)\.\s+(\S+)\((.*)\)\s+\[([^:\]]+)(?::(\d+))?\]\s*$/u;
+
+/**
+ * Subsequent priorities of the same extension: `show_dialplan_helper()` builds the first
+ * column as "   [%s]" when the priority has a label, or an empty string otherwise, printed
+ * through the same "  %-17s %-45s [...]" line as the first priority.
+ */
+const NEXT_PRIORITY =
+  /^ {2}(?:\s*\[[^\]]*\])?\s*(\d+)\.\s+(\S+)\((.*)\)\s+\[([^:\]]+)(?::(\d+))?\]\s*$/u;
+
+/**
+ * `show_dialplan_helper()` prints includes (no exten filter) as
+ *   "  Include =>        %-45s [%s]\n"
+ * with the padded field itself being "'<context>'".
+ */
+const INCLUDE_LINE = /^ {2}Include\s*=>\s*'([^']*)'\s*\[[^\]]*\]\s*$/u;
+
+/** `show_dialplan_helper()`: `ast_cli(fd, "Autohints support enabled\n")`. */
+const AUTOHINTS_LINE = /^Autohints support enabled\s*$/u;
+
+interface ParsedExtension {
+  context: string;
+  extension: string;
+  steps: DialplanStep[];
+  registrar?: { file: string; line: number } | { name: string };
+}
+
+/** Parses `dialplan show` output into contexts/extensions/steps, ignoring hints and includes. */
+export function parseDialplanExtensions(stdout: string): ParsedExtension[] {
+  const extensions: ParsedExtension[] = [];
+  let context = "";
+  let current: ParsedExtension | undefined;
+
+  for (const raw of stdout.split(/\r?\n/u)) {
+    const line = raw.replace(/\s+$/u, "");
+    if (!line) continue;
+    if (AUTOHINTS_LINE.test(line)) continue;
+    if (INCLUDE_LINE.test(line)) continue;
+
+    const header = CONTEXT_HEADER.exec(line);
+    if (header) {
+      context = header[1];
+      current = undefined;
+      continue;
+    }
+
+    const first = FIRST_PRIORITY.exec(line);
+    if (first) {
+      current = {
+        context,
+        extension: first[1],
+        steps: [{ priority: Number(first[2]), app: first[3], data: first[4] }],
+        registrar: first[6] ? { file: first[5], line: Number(first[6]) } : { name: first[5] },
+      };
+      extensions.push(current);
+      continue;
+    }
+
+    const next = current && NEXT_PRIORITY.exec(line);
+    if (next) {
+      current!.steps.push({ priority: Number(next[1]), app: next[2], data: next[3] });
+      continue;
+    }
+  }
+
+  return extensions;
+}
+
+const nodeId = (context: string, extension: string): string => `${context}/${extension}`;
+
+/**
+ * Resolves control flow between parsed extensions: `Goto`/`GotoIf`/`GotoIfTime` target
+ * arguments, and the extension a `Dial`/`Queue`/`VoiceMail` step names when that target is
+ * itself one of the parsed extensions. An edge is only ever emitted when the destination
+ * actually resolves to a parsed node.
+ */
+export function buildDialplanGraph(extensions: ParsedExtension[]): DialplanGraph {
+  const nodes: DialplanNode[] = extensions.map((extension) => ({
+    id: nodeId(extension.context, extension.extension),
+    context: extension.context,
+    extension: extension.extension,
+    steps: extension.steps,
+    registrar: extension.registrar,
+  }));
+
+  const byContextExten = new Map<string, DialplanNode>();
+  for (const node of nodes) byContextExten.set(nodeId(node.context, node.extension), node);
+  const byExtenOnly = new Map<string, DialplanNode[]>();
+  for (const node of nodes) {
+    const list = byExtenOnly.get(node.extension) ?? [];
+    list.push(node);
+    byExtenOnly.set(node.extension, list);
+  }
+
+  const resolve = (fromContext: string, target: string): DialplanNode | undefined => {
+    const parts = target.split(",").map((part) => part.trim()).filter(Boolean);
+    if (!parts.length) return undefined;
+    let ctx = fromContext;
+    let exten: string;
+    if (parts.length >= 3) {
+      [ctx, exten] = parts;
+    } else if (parts.length === 2) {
+      [exten] = parts;
+    } else {
+      exten = parts[0];
+    }
+    const direct = byContextExten.get(nodeId(ctx, exten));
+    if (direct) return direct;
+    if (parts.length === 1) {
+      const candidates = byExtenOnly.get(exten);
+      if (candidates && candidates.length === 1) return candidates[0];
+    }
+    return undefined;
+  };
+
+  const edges: DialplanEdge[] = [];
+  const seen = new Set<string>();
+  for (const extension of extensions) {
+    const fromId = nodeId(extension.context, extension.extension);
+    for (const step of extension.steps) {
+      const app = step.app.toUpperCase();
+      let target: string | undefined;
+      if (app === "GOTO" || app === "GOTOIF" || app === "GOTOIFTIME") {
+        target = extractGotoTarget(app, step.data);
+      } else if (app === "DIAL" || app === "QUEUE" || app === "VOICEMAIL") {
+        target = step.data.split(",")[0]?.trim();
+      }
+      if (!target) continue;
+      const dest = resolve(extension.context, target);
+      if (!dest) continue;
+      const edgeKey = `${fromId}->${dest.id}`;
+      if (dest.id === fromId || seen.has(edgeKey)) continue;
+      seen.add(edgeKey);
+      edges.push([fromId, dest.id]);
+    }
+  }
+
+  return { nodes, edges };
+}
+
+/** `Goto(...)`/`GotoIf(...)`/`GotoIfTime(...)` — extract the trailing `[[context,]exten,]priority` target. */
+function extractGotoTarget(app: string, data: string): string | undefined {
+  if (app === "GOTO") return data.trim() || undefined;
+  // GotoIf(cond?dest1:dest2) / GotoIfTime(times?dest1:dest2) — take the true-branch destination.
+  const question = data.indexOf("?");
+  if (question < 0) return undefined;
+  const branches = data.slice(question + 1);
+  const [first] = branches.split(":");
+  return first?.trim() || undefined;
+}
+
+export function parseDialplanGraph(stdout: string): DialplanGraph {
+  return buildDialplanGraph(parseDialplanExtensions(stdout));
+}
+
+// ---------------------------------------------------------------- helpers
+
+function firstLine(text: string): string {
+  return text.split(/\r?\n/u)[0] ?? text;
+}
+
+function reason(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}

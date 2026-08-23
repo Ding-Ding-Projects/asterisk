@@ -1,0 +1,3 @@
+# The design compiler writes LF. Pin these paths so a checkout stays byte-identical to a
+# fresh compile on every platform, which is what tests/ui/design-drift.test.mjs asserts.
+* text eol=lf

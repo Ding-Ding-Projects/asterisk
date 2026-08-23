@@ -23,5 +23,8 @@ mustFail('change one rail count', (data) => { data.auditBaseline.railCounts.pbx 
 mustFail('remove one binding event', (data) => { delete data.auditBaseline.declarativeBindings.mouseup; });
 mustFail('remove one transient-state family', (data) => { data.transientStateFamilies.pop(); });
 mustFail('remove one visual evidence template', (data) => { delete data.evidenceTemplates.visualDiff; });
+mustFail('claim a compiled destination without naming the rendering test', (data) => { delete data.compiledEvidence.test; });
+mustFail('claim a compiled destination without naming the design compiler', (data) => { data.compiledEvidence.method = 'hand matched by eye'; });
+mustFail('use a status the validator does not define', (data) => { data.destinations[0].status = 'looks-right'; });
 validateParityInventory(source, { allowUnverified: true });
 console.log('GREEN: restored design parity inventory passed exact-boundary validation.');

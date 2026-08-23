@@ -28,16 +28,16 @@ test('contains exactly 32 destination definitions in six declared groups', () =>
   const block = js.match(/const DESTINATIONS = \[([\s\S]*?)\n  \];/)[1];
   assert.equal((block.match(/\{id:/g) || []).length, 32);
   const counts = [...block.matchAll(/group:'([^']+)'/g)].reduce((map, match) => map.set(match[1], (map.get(match[1]) || 0) + 1), new Map());
-  assert.deepEqual([...counts.values()], [8,4,2,4,7,7]);
+  assert.deepEqual([...counts.values()], [7,8,4,2,4,7]);
   assert.deepEqual([...block.matchAll(/\{id:'([^']+)'/g)].map(match => match[1]), [
-    'dash','live','endpoints','trunks','trunkauth','canvas','ivr','queues',
+    'servers','dash','live','endpoints','trunks','trunkauth','canvas','ivr','queues',
     'voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli',
     'memory','sync','skills','hub','vocab','ops','secrets',
-    'servers','arcade','notifications','history','customise','appearance','about',
+    'arcade','notifications','history','customise','appearance','about',
   ]);
 });
 test('provides 32 complete categorized articles with valid local links', async () => {
-  const docsRoot=resolve(root,'..','docs'), categories=['overview','people-devices','connectivity','call-flow','team-calling','manage'];
+  const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app'];
   const articles=[];
   for(const category of categories)for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')articles.push(join(docsRoot,category,name));
   assert.equal(articles.length,32);
@@ -69,7 +69,7 @@ test('build composes deterministic local output without fetches', async () => {
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');
   assert.doesNotMatch(built, /\.\.\/docs\//); assert.match(built, /href="docs\/README\.html"/);
-  const article=await readFile(join(root,'dist','docs','overview','dashboard.html'),'utf8');assert.match(article,/<h1>Dashboard<\/h1>/);assert.doesNotMatch(article,/\.md"/);
+  const article=await readFile(join(root,'dist','docs','pbx','dash.html'),'utf8');assert.match(article,/<h1>Dashboard<\/h1>/);assert.doesNotMatch(article,/\.md"/);
 });
 
 let passed = 0;

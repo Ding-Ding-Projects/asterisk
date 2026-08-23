@@ -35,13 +35,18 @@
     "visualDiff": "console/release/evidence/parity/{id}-diff.json",
     "materialAudit": "console/release/evidence/parity/{id}-material.json"
   },
+  "compiledEvidence": {
+    "method": "compile-then-render: console/scripts/compile-design.mjs compiles design/Asterisk Console M3.dc.html and design/M3 Control.dc.html into app/renderer/src/generated/{console.tsx,m3-control.tsx,design-styles.css,design-manifest.json}, which console/app/renderer/src/App.tsx subclasses directly rather than a hand-matched reimplementation.",
+    "test": "console/tests/ui/design-parity.test.tsx",
+    "coverage": "Renders all 32 destinations from the generated design model and asserts each one's design title, description, owning source file (Expert mode), its control groups (including the design M3 control's slider/stepper/order affordances), Beginner-mode plain wording, and all 17 transient-state overlay families."
+  },
   "destinations": [
-    {"rail":"pbx","id":"dash","status":"unverified"},{"rail":"pbx","id":"live","status":"unverified"},{"rail":"pbx","id":"endpoints","status":"unverified"},{"rail":"pbx","id":"trunks","status":"unverified"},{"rail":"pbx","id":"trunkauth","status":"unverified"},{"rail":"pbx","id":"canvas","status":"unverified"},{"rail":"pbx","id":"ivr","status":"unverified"},{"rail":"pbx","id":"queues","status":"unverified"},
-    {"rail":"media","id":"voicemail","status":"unverified"},{"rail":"media","id":"confbridge","status":"unverified"},{"rail":"media","id":"moh","status":"unverified"},{"rail":"media","id":"codecs","status":"unverified"},
-    {"rail":"data","id":"cdr","status":"unverified"},{"rail":"data","id":"ami","status":"unverified"},
-    {"rail":"system","id":"modules","status":"unverified"},{"rail":"system","id":"logger","status":"unverified"},{"rail":"system","id":"security","status":"unverified"},{"rail":"system","id":"cli","status":"unverified"},
-    {"rail":"agent","id":"memory","status":"unverified"},{"rail":"agent","id":"sync","status":"unverified"},{"rail":"agent","id":"skills","status":"unverified"},{"rail":"agent","id":"hub","status":"unverified"},{"rail":"agent","id":"vocab","status":"unverified"},{"rail":"agent","id":"ops","status":"unverified"},{"rail":"agent","id":"secrets","status":"unverified"},
-    {"rail":"app","id":"servers","status":"unverified"},{"rail":"app","id":"arcade","status":"unverified"},{"rail":"app","id":"notifications","status":"unverified"},{"rail":"app","id":"history","status":"unverified"},{"rail":"app","id":"customise","status":"unverified"},{"rail":"app","id":"appearance","status":"unverified"},{"rail":"app","id":"about","status":"unverified"}
+    {"rail":"pbx","id":"dash","status":"compiled"},{"rail":"pbx","id":"live","status":"compiled"},{"rail":"pbx","id":"endpoints","status":"compiled"},{"rail":"pbx","id":"trunks","status":"compiled"},{"rail":"pbx","id":"trunkauth","status":"compiled"},{"rail":"pbx","id":"canvas","status":"compiled"},{"rail":"pbx","id":"ivr","status":"compiled"},{"rail":"pbx","id":"queues","status":"compiled"},
+    {"rail":"media","id":"voicemail","status":"compiled"},{"rail":"media","id":"confbridge","status":"compiled"},{"rail":"media","id":"moh","status":"compiled"},{"rail":"media","id":"codecs","status":"compiled"},
+    {"rail":"data","id":"cdr","status":"compiled"},{"rail":"data","id":"ami","status":"compiled"},
+    {"rail":"system","id":"modules","status":"compiled"},{"rail":"system","id":"logger","status":"compiled"},{"rail":"system","id":"security","status":"compiled"},{"rail":"system","id":"cli","status":"compiled"},
+    {"rail":"agent","id":"memory","status":"compiled"},{"rail":"agent","id":"sync","status":"compiled"},{"rail":"agent","id":"skills","status":"compiled"},{"rail":"agent","id":"hub","status":"compiled"},{"rail":"agent","id":"vocab","status":"compiled"},{"rail":"agent","id":"ops","status":"compiled"},{"rail":"agent","id":"secrets","status":"compiled"},
+    {"rail":"app","id":"servers","status":"compiled"},{"rail":"app","id":"arcade","status":"compiled"},{"rail":"app","id":"notifications","status":"compiled"},{"rail":"app","id":"history","status":"compiled"},{"rail":"app","id":"customise","status":"compiled"},{"rail":"app","id":"appearance","status":"compiled"},{"rail":"app","id":"about","status":"compiled"}
   ],
   "transientStateFamilies": [
     "appearOpen","ceremonyOpen","ctxOpen","infoOpen","lockOpen","onboardOpen","paletteOpen","regexOpen","renameOpen","subOpen","sureOpen","tabColourOpen","tabFilterOpen","toastOpen","tourOpen","unlockOpen","wizardOpen"

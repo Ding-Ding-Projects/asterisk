@@ -1,12 +1,43 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { NodeProcessExecutor, TargetDiscovery } from '../../control-plane/index.js';
-import type { ControlPlaneRequest, ControlPlaneResponse } from '../../shared/control-plane.js';
+import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, TargetDiscovery } from '../../control-plane/index.js';
+import type { TargetProfile } from '../../control-plane/index.js';
+import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../../shared/control-plane.js';
 
 let mainWindow: BrowserWindow | null = null;
 const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
 const targetDiscovery = new TargetDiscovery(processExecutor);
+const cliGateway = new LocalAsteriskCliGateway(processExecutor);
+const readings = new AsteriskReadings(cliGateway);
+const dialplanReadings = new DialplanReadings(cliGateway);
+
+/** A read only ever runs against a distribution that the current discovery result contains. */
+async function resolveTarget(serverId: string | undefined): Promise<TargetProfile> {
+  const distribution = serverId?.trim();
+  if (!distribution) throw new Error('Select a discovered WSL distribution first.');
+  const discovered = await targetDiscovery.discoverWslDistributions();
+  if (!discovered.includes(distribution)) throw new Error('The WSL distribution is not in the current discovery result.');
+  return { id: distribution, displayName: distribution, connectionKind: 'wsl', wslDistribution: distribution };
+}
+
+async function readView(target: TargetProfile, view: PbxReadView) {
+  if (view === 'dash') {
+    const [channels, endpoints, queues, uptime] = await Promise.all([
+      readings.channels(target), readings.endpoints(target), readings.queues(target), readings.uptimeSeconds(target),
+    ]);
+    return { channels, endpoints, queues, uptime };
+  }
+  if (view === 'live') return { channels: await readings.channels(target) };
+  if (view === 'endpoints') {
+    const [endpoints, contacts] = await Promise.all([readings.endpoints(target), readings.contacts(target)]);
+    return { endpoints, contacts };
+  }
+  if (view === 'trunks') return { registrations: await readings.registrations(target) };
+  if (view === 'queues') return { queues: await readings.queues(target) };
+  if (view === 'canvas') return { dialplan: await dialplanReadings.graph(target) };
+  return { modules: await readings.modules(target) };
+}
 
 function bundledAsteriskRuntime() {
   const root = join(process.resourcesPath, 'asterisk');
@@ -44,6 +75,11 @@ async function controlPlaneRequest(request: ControlPlaneRequest): Promise<Contro
         operatingSystem: os.status === 'succeeded' ? targetDiscovery.parseDebianOperatingSystem(os.stdout) : { state: 'unavailable', reason: os.stderr, observedAt: new Date().toISOString() },
         asterisk: asterisk.status === 'succeeded' ? { state: 'available', value: asterisk.stdout.trim(), observedAt: new Date().toISOString() } : { state: 'unavailable', reason: asterisk.stderr || 'Asterisk is not installed or not running.', observedAt: new Date().toISOString() },
       } };
+    }
+    if (request.action === 'pbx.read') {
+      if (!request.view) return { ok: false, requestId: request.requestId, code: 'VIEW_REQUIRED', message: 'A read must name the screen it is for.' };
+      const target = await resolveTarget(request.serverId);
+      return { ok: true, requestId: request.requestId, data: await readView(target, request.view) };
     }
     return { ok: false, requestId: request.requestId, code: 'ACTION_NOT_AVAILABLE', message: 'This operation is unavailable until a reviewed target-specific plan is connected.' };
   } catch (error) {

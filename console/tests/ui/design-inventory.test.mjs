@@ -39,18 +39,32 @@ test('negative regression: a changed audit baseline turns the inventory check re
   assert.throws(() => validateInventory(inventory));
 });
 
-test('renderer implements navigation, overlays, and the missing palette shortcut', async () => {
-  const source = await read('app/renderer/src/App.tsx');
+test('the renderer is the compiled design output, and App.tsx does not reintroduce a hand-written substitute', async () => {
+  const generated = await read('app/renderer/src/generated/console.tsx');
   for (const exact of [
-    "e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='f'",
-    'Search current tab strip', 'Search tab groups', 'Master destination search',
-    'Regex builder', 'Guided wizard', 'Appearance editor', 'Lock this element…',
-    'Review consequential action', 'Notification centre',
-  ]) assert.ok(source.includes(exact), `missing exact implementation marker: ${exact}`);
+    'Guided wizard', 'Regex builder', 'Lock this element', 'Notification centre',
+    'Jump to any screen, setting, or command', 'Vocabulary & guard', 'Arcade',
+  ]) assert.ok(generated.includes(exact), `generated design output missing exact surface marker: ${exact}`);
+
+  const manifest = JSON.parse(await read('app/renderer/src/generated/design-manifest.json'));
+  assert.equal(manifest.generatedBy, 'console/scripts/compile-design.mjs');
+  assert.deepEqual(manifest.sources, ['design/Asterisk Console M3.dc.html', 'design/M3 Control.dc.html']);
+
+  // App.tsx supplies real control-plane readings on top of the compiled shell; it must not
+  // hand-roll its own copies of the design's navigation/overlay surfaces.
+  const app = await read('app/renderer/src/App.tsx');
+  assert.match(app, /from '\.\/generated\/console'/, 'App.tsx must subclass the compiled design shell');
+  for (const substitute of ['Search current tab strip', 'Master destination search', 'Appearance editor', 'Review consequential action']) {
+    assert.equal(app.includes(substitute), false, `App.tsx reintroduced a hand-written substitute: ${substitute}`);
+  }
 });
 
 test('public source contains no runtime CDN or private source branding', async () => {
-  const files = ['app/renderer/src/App.tsx','app/renderer/src/catalog.ts','app/renderer/src/styles.css','app/renderer/index.html'];
+  const files = [
+    'app/renderer/src/App.tsx', 'app/renderer/src/catalog.ts', 'app/renderer/src/styles.css', 'app/renderer/index.html',
+    'app/renderer/src/generated/console.tsx', 'app/renderer/src/generated/m3-control.tsx',
+    'app/renderer/src/generated/design-styles.css',
+  ];
   const text = (await Promise.all(files.map(read))).join('\n');
   for (const forbidden of ['fonts.googleapis.com','fonts.gstatic.com','unpkg.com','Asterisk Console','support.js']) {
     assert.equal(text.includes(forbidden), false, `public renderer leaked forbidden source text: ${forbidden}`);

@@ -2,43 +2,43 @@
   'use strict';
 
   const DESTINATIONS = [
-    {id:'dash',name:'Dashboard',icon:'⌂',group:'PBX',article:'overview/dashboard',description:'System summary, alerts, recent activity, and guided next actions.'},
-    {id:'live',name:'Live channels',icon:'◉',group:'PBX',article:'overview/live-calls',description:'Documented real-time call state, channels, bridges, and privacy boundaries.'},
-    {id:'endpoints',name:'PJSIP endpoints',icon:'▣',group:'PBX',article:'people-devices/devices',description:'Phones and applications registered with the PBX.'},
-    {id:'trunks',name:'Trunks & registrations',icon:'⇄',group:'PBX',article:'connectivity/trunks',description:'Provider connections, transports, registrations, and failover.'},
-    {id:'trunkauth',name:'Trunk authentication',icon:'◇',group:'PBX',article:'team-calling/security',description:'Authentication policy for incoming partner requests.'},
-    {id:'canvas',name:'Dialplan canvas',icon:'⌁',group:'PBX',article:'call-flow/call-flow',description:'Visual call-path composition with validation and reversible publishing.'},
-    {id:'ivr',name:'IVR menus',icon:'⌘',group:'PBX',article:'call-flow/ivr',description:'Menus, prompts, timeouts, invalid choices, accessibility, and testing.'},
-    {id:'queues',name:'Queues & agents',icon:'☷',group:'PBX',article:'team-calling/queues',description:'Agents, distribution strategies, wait states, announcements, and reporting.'},
+    {id:'servers',name:'Deploy a server',icon:'▣',group:'App',article:'app/servers',description:'Guided WSL, local container, and approved remote Linux provisioning.'},
+    {id:'dash',name:'Dashboard',icon:'⌂',group:'PBX',article:'pbx/dash',description:'System summary, alerts, recent activity, and guided next actions.'},
+    {id:'live',name:'Live channels',icon:'◉',group:'PBX',article:'pbx/live',description:'Documented real-time call state, channels, bridges, and privacy boundaries.'},
+    {id:'endpoints',name:'PJSIP endpoints',icon:'▣',group:'PBX',article:'pbx/endpoints',description:'Phones and applications registered with the PBX.'},
+    {id:'trunks',name:'Trunks & registrations',icon:'⇄',group:'PBX',article:'pbx/trunks',description:'Provider connections, transports, registrations, and failover.'},
+    {id:'trunkauth',name:'Trunk authentication',icon:'◇',group:'PBX',article:'pbx/trunkauth',description:'Authentication policy for incoming partner requests.'},
+    {id:'canvas',name:'Dialplan canvas',icon:'⌁',group:'PBX',article:'pbx/canvas',description:'Visual call-path composition with validation and reversible publishing.'},
+    {id:'ivr',name:'IVR menus',icon:'⌘',group:'PBX',article:'pbx/ivr',description:'Menus, prompts, timeouts, invalid choices, accessibility, and testing.'},
+    {id:'queues',name:'Queues & agents',icon:'☷',group:'PBX',article:'pbx/queues',description:'Agents, distribution strategies, wait states, announcements, and reporting.'},
 
-    {id:'voicemail',name:'Voicemail boxes',icon:'▻',group:'Media',article:'people-devices/voicemail',description:'Mailboxes, greetings, delivery, retention, access, and recovery.'},
-    {id:'confbridge',name:'ConfBridge rooms',icon:'◌',group:'Media',article:'team-calling/conferences',description:'Rooms, moderators, access, prompts, recording, and capacity.'},
-    {id:'moh',name:'Music on hold',icon:'♬',group:'Media',article:'team-calling/announcements',description:'Local media classes, ordering, volume, and fallback behavior.'},
-    {id:'codecs',name:'Codecs & RTP',icon:'≋',group:'Media',article:'connectivity/extensions',description:'Codec preferences, media transport, port policy, and compatibility.'},
+    {id:'voicemail',name:'Voicemail boxes',icon:'▻',group:'Media',article:'media/voicemail',description:'Mailboxes, greetings, delivery, retention, access, and recovery.'},
+    {id:'confbridge',name:'ConfBridge rooms',icon:'◌',group:'Media',article:'media/confbridge',description:'Rooms, moderators, access, prompts, recording, and capacity.'},
+    {id:'moh',name:'Music on hold',icon:'♬',group:'Media',article:'media/moh',description:'Local media classes, ordering, volume, and fallback behavior.'},
+    {id:'codecs',name:'Codecs & RTP',icon:'≋',group:'Media',article:'media/codecs',description:'Codec preferences, media transport, port policy, and compatibility.'},
 
-    {id:'cdr',name:'Call records',icon:'≡',group:'Data',article:'overview/cdr',description:'Searchable call records, filters, privacy controls, and redacted export guidance.'},
-    {id:'ami',name:'Manager & REST interfaces',icon:'⌁',group:'Data',article:'manage/automation',description:'AMI, ARI, and HTTP capabilities with bounded access guidance.'},
+    {id:'cdr',name:'Call records',icon:'≡',group:'Data',article:'data/cdr',description:'Searchable call records, filters, privacy controls, and redacted export guidance.'},
+    {id:'ami',name:'Manager & REST interfaces',icon:'⌁',group:'Data',article:'data/ami',description:'AMI, ARI, and HTTP capabilities with bounded access guidance.'},
 
-    {id:'modules',name:'Modules',icon:'⬡',group:'System',article:'overview/system-health',description:'Loaded runtime modules, dependencies, and use counts.'},
-    {id:'logger',name:'Logging',icon:'▤',group:'System',article:'overview/logs',description:'Search, filtering, severity, retention, and diagnostic export guidance.'},
-    {id:'security',name:'Security',icon:'◇',group:'System',article:'team-calling/security',description:'Transport protection, credentials, access rules, auditing, and recovery.'},
-    {id:'cli',name:'CLI builder',icon:'⌨',group:'System',article:'overview/status',description:'Guided allowlisted diagnostic command construction.'},
+    {id:'modules',name:'Modules',icon:'⬡',group:'System',article:'system/modules',description:'Loaded runtime modules, dependencies, and use counts.'},
+    {id:'logger',name:'Logging',icon:'▤',group:'System',article:'system/logger',description:'Search, filtering, severity, retention, and diagnostic export guidance.'},
+    {id:'security',name:'Security',icon:'◇',group:'System',article:'system/security',description:'Transport protection, credentials, access rules, auditing, and recovery.'},
+    {id:'cli',name:'CLI builder',icon:'⌨',group:'System',article:'system/cli',description:'Guided allowlisted diagnostic command construction.'},
 
-    {id:'memory',name:'Memory console',icon:'▣',group:'Agent',article:'manage/backups',description:'Local records, append-only history, and recovery boundaries.'},
-    {id:'sync',name:'Sync & attestation',icon:'↻',group:'Agent',article:'manage/updates',description:'Local synchronization history and factual verification state.'},
-    {id:'skills',name:'Skills registry',icon:'✣',group:'Agent',article:'manage/automation',description:'Installed local capability packages and their evidence.'},
-    {id:'hub',name:'Status hub sessions',icon:'◆',group:'Agent',article:'overview/status',description:'Active work sessions and factual current states.'},
-    {id:'vocab',name:'Vocabulary settings',icon:'▰',group:'Agent',article:'manage/settings',description:'Private local wording configuration without bundled personal mappings.'},
-    {id:'ops',name:'Operations & releases',icon:'▲',group:'Agent',article:'overview/reports',description:'Version, artifact, duration, and release evidence.'},
-    {id:'secrets',name:'Secret intake',icon:'◆',group:'Agent',article:'team-calling/security',description:'One-time local intake guidance; values are never displayed.'},
+    {id:'memory',name:'Memory console',icon:'▣',group:'Agent',article:'agent/memory',description:'Local records, append-only history, and recovery boundaries.'},
+    {id:'sync',name:'Sync & attestation',icon:'↻',group:'Agent',article:'agent/sync',description:'Local synchronization history and factual verification state.'},
+    {id:'skills',name:'Skills registry',icon:'✣',group:'Agent',article:'agent/skills',description:'Installed local capability packages and their evidence.'},
+    {id:'hub',name:'Status hub sessions',icon:'◆',group:'Agent',article:'agent/hub',description:'Active work sessions and factual current states.'},
+    {id:'vocab',name:'Vocabulary & emission guard',icon:'▰',group:'Agent',article:'agent/vocab',description:'Private local wording configuration without bundled personal mappings.'},
+    {id:'ops',name:'Operations & releases',icon:'▲',group:'Agent',article:'agent/ops',description:'Version, artifact, duration, and release evidence.'},
+    {id:'secrets',name:'Secret intake',icon:'◆',group:'Agent',article:'agent/secrets',description:'One-time local intake guidance; values are never displayed.'},
 
-    {id:'servers',name:'Deploy a server',icon:'▣',group:'App',article:'manage/automation',description:'Guided WSL, local container, and approved remote Linux provisioning.'},
-    {id:'arcade',name:'Confirmation credits',icon:'◈',group:'App',article:'manage/accessibility',description:'Optional local activities that reduce repetitive confirmation steps.'},
-    {id:'notifications',name:'Notification centre',icon:'●',group:'App',article:'overview/status',description:'Reviewable local notifications, filtering, dismissal, and export.'},
-    {id:'history',name:'History',icon:'↶',group:'App',article:'manage/backups',description:'Append-only local configuration revisions, comparison, and restore.'},
-    {id:'customise',name:'Customise everything',icon:'✦',group:'App',article:'manage/appearance',description:'Element-level appearance, layout, behavior, and local reset.'},
-    {id:'appearance',name:'Appearance',icon:'◐',group:'App',article:'manage/appearance',description:'Theme, density, typography, accent, logo, and element editors.'},
-    {id:'about',name:'About',icon:'ⓘ',group:'App',article:'overview/documentation',description:'Version, integration boundaries, project status, and documentation.'}
+    {id:'arcade',name:'Confirmation credits',icon:'◈',group:'App',article:'app/arcade',description:'Optional local activities that reduce repetitive confirmation steps.'},
+    {id:'notifications',name:'Notification centre',icon:'●',group:'App',article:'app/notifications',description:'Reviewable local notifications, filtering, dismissal, and export.'},
+    {id:'history',name:'History',icon:'↶',group:'App',article:'app/history',description:'Append-only local configuration revisions, comparison, and restore.'},
+    {id:'customise',name:'Customise everything',icon:'✦',group:'App',article:'app/customise',description:'Element-level appearance, layout, behavior, and local reset.'},
+    {id:'appearance',name:'Appearance',icon:'◐',group:'App',article:'app/appearance',description:'Theme, density, typography, accent, logo, and element editors.'},
+    {id:'about',name:'About',icon:'ⓘ',group:'App',article:'app/about',description:'Version, integration boundaries, project status, and documentation.'}
   ];
 
   const CONVERTERS = [
@@ -75,7 +75,7 @@
   function articlePath(item){ return `../docs/${item.article}.md`; }
 
   function init(){
-    applyState(); renderTabs(); renderDestinations(); renderConverters(); renderAttention(); renderTickets(); renderNotifications(); renderPalette(''); enhanceDropdowns(); bindEvents(); initReveals(); runDemoScenario(0); updateTimeAwareness(); setInterval(updateTimeAwareness, 60000);
+    applyState(); renderTabs(); renderDestinations(); renderCatalogueSummary(); renderConverters(); renderAttention(); renderTickets(); renderNotifications(); renderPalette(''); enhanceDropdowns(); bindEvents(); initReveals(); updateTimeAwareness(); setInterval(updateTimeAwareness, 60000);
   }
   function applyState(){
     document.documentElement.dataset.theme=state.theme; document.documentElement.dataset.density=state.density; document.documentElement.dataset.dock=state.dock;
@@ -111,6 +111,13 @@
     $('destination-grid').innerHTML=DESTINATIONS.map(item=>`<article class="destination-card reveal" id="destination-${item.id}" tabindex="-1" data-search="${escapeHtml(`${item.name} ${item.group} ${item.description}`)}"><span class="destination-icon" aria-hidden="true">${item.icon}</span><span class="card-kicker">${escapeHtml(item.group)}</span><h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(item.description)}</p><a class="text-button" href="${articlePath(item)}">Read article <span aria-hidden="true">→</span></a></article>`).join('');
   }
   function renderConverters(){ $('converter-catalog').innerHTML=CONVERTERS.map(([name,formats,status,reason])=>`<article class="catalog-card" data-search="${escapeHtml([name,formats,status,reason].join(' '))}"><span class="status-chip">${escapeHtml(status)}</span><h3>${escapeHtml(name)}</h3><p>${escapeHtml(formats)}</p><small>${escapeHtml(reason)}</small></article>`).join(''); }
+  function renderCatalogueSummary(){
+    const target=$('catalogue-summary'); if(!target)return;
+    const groupOrder=[]; const counts=new Map();
+    DESTINATIONS.forEach(item=>{ if(!counts.has(item.group)){counts.set(item.group,0);groupOrder.push(item.group)} counts.set(item.group,counts.get(item.group)+1); });
+    const stats=[['Destinations documented',String(DESTINATIONS.length),'Counted from this page’s own catalogue'],['Product groups',String(groupOrder.length),groupOrder.join(', ')],['Largest group',`${groupOrder.reduce((a,b)=>counts.get(b)>counts.get(a)?b:a)} · ${Math.max(...counts.values())}`,'Destinations in that group']];
+    target.innerHTML=stats.map(([label,value,trend])=>`<article class="preview-stat"><small>${escapeHtml(label)}</small><strong>${escapeHtml(value)}</strong><span class="trend">${escapeHtml(trend)}</span></article>`).join('');
+  }
   function renderAttention(){
     const modes=[['focus','Focus','Bring the current surface forward without hiding the rest.'],['low','Low stimulation','Reduce non-essential motion and visual intensity.'],['time','Time awareness','Show exact elapsed time without nagging.'],['one','One thing at a time','De-emphasize destinations beyond the chosen next action.'],['momentum','Momentum','Allow gentle, dismissible inactivity prompts.']];
     $('attention-settings').innerHTML=modes.map(([id,label,desc])=>`<div class="setting-row" data-search="${label} ${desc}"><div><h3>${label}</h3><p>${desc}</p></div><input type="checkbox" data-attention="${id}" ${state.attention[id]?'checked':''} aria-label="${label}"></div>`).join('');
@@ -155,7 +162,7 @@
   }
 
   function bindEvents(){
-    $('rail-toggle').onclick=()=>setRail(!$('rail').classList.contains('open')); $('rail-close').onclick=()=>setRail(false); $('explore-button').onclick=()=>{document.querySelector('#destinations').scrollIntoView({behavior:reduceMotion()?'auto':'smooth'});setTimeout(()=>$('feature-search').focus(),reduceMotion()?0:500)}; $('demo-rerun').onclick=()=>runDemoScenario(); $('palette-open').onclick=openPalette; $('notification-open').onclick=()=>{$('notifications-dialog').showModal();renderNotifications()}; $('tab-manager-open').onclick=()=>{$('tab-manager').showModal();renderManagedTabs()};
+    $('rail-toggle').onclick=()=>setRail(!$('rail').classList.contains('open')); $('rail-close').onclick=()=>setRail(false); $('explore-button').onclick=()=>{document.querySelector('#destinations').scrollIntoView({behavior:reduceMotion()?'auto':'smooth'});setTimeout(()=>$('feature-search').focus(),reduceMotion()?0:500)}; $('palette-open').onclick=openPalette; $('notification-open').onclick=()=>{$('notifications-dialog').showModal();renderNotifications()}; $('tab-manager-open').onclick=()=>{$('tab-manager').showModal();renderManagedTabs()};
     document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='f'){e.preventDefault();openPalette()} if(e.key==='Escape'){$('context-menu').hidden=true;$('rail').classList.remove('open')}});
     $('tab-search').oninput=e=>filterElements('.tab',e.target.value,'tab-search'); $('feature-search').oninput=e=>{filterElements('.destination-card',e.target.value,'feature-search');const shown=[...document.querySelectorAll('.destination-card')].filter(card=>!card.hidden).length;$('destination-count').textContent=`${shown} destination${shown===1?'':'s'} shown`}; $('converter-search').oninput=e=>filterElements('.catalog-card',e.target.value,'converter-search'); $('settings-search').oninput=e=>filterElements('.setting-row',e.target.value,'settings-search');
     $('palette-search').oninput=e=>renderPalette(e.target.value); $('notification-search').oninput=e=>renderNotifications(e.target.value); $('master-tab-search').oninput=e=>renderManagedTabs(e.target.value);
@@ -188,20 +195,6 @@
     const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{rootMargin:'0px 0px -8% 0px',threshold:.08});
     items.forEach(item=>observer.observe(item));
   }
-  const DEMO_SCENARIOS=[
-    {calls:12,endpoints:'47<span>/52</span>',wait:'0:34',points:[140,130,138,105,116,82,98,70,84,42,65,54,75,46,64,32,48]},
-    {calls:7,endpoints:'49<span>/52</span>',wait:'0:18',points:[148,144,126,133,112,121,96,108,82,94,76,57,68,43,55,39,50]},
-    {calls:19,endpoints:'46<span>/52</span>',wait:'1:08',points:[151,122,134,99,112,67,86,48,72,35,58,28,52,31,43,24,37]}
-  ];
-  let demoIndex=-1;
-  function runDemoScenario(index){
-    demoIndex=Number.isInteger(index)?index:(demoIndex+1)%DEMO_SCENARIOS.length;const scenario=DEMO_SCENARIOS[demoIndex];
-    $('demo-active').textContent=String(scenario.calls);$('demo-endpoints').innerHTML=scenario.endpoints;$('demo-wait').textContent=scenario.wait;
-    const line=scenario.points.map((y,i)=>`${i?'L':'M'}${i*40} ${y}`).join(' '),area=`M0 160 ${line} L640 160 Z`;
-    $('chart-line').setAttribute('d',line);$('chart-area').setAttribute('d',area);$('chart-line').style.animation='none';requestAnimationFrame(()=>{$('chart-line').style.animation=reduceMotion()?'none':''});
-    $('demo-range').textContent=`Scenario ${demoIndex+1} of ${DEMO_SCENARIOS.length} · deterministic demo data`;
-  }
-
   function openRegex(target){ regexTarget=target; const saved=regexState.get(target)||{pattern:'',flags:'iu'}; $('regex-target-label').textContent=`Attached to: ${target}`;$('regex-pattern').value=saved.pattern;$('regex-i').checked=saved.flags.includes('i');$('regex-m').checked=saved.flags.includes('m');$('regex-u').checked=saved.flags.includes('u');$('regex-dialog').showModal();previewRegex();setTimeout(()=>$('regex-pattern').focus(),0) }
   function insertRegex(value){const input=$('regex-pattern'),start=input.selectionStart,end=input.selectionEnd;input.value=input.value.slice(0,start)+value+input.value.slice(end);input.focus();input.setSelectionRange(start+value.length,start+value.length);previewRegex()}
   function regexConfig(){return{pattern:$('regex-pattern').value.slice(0,256),flags:`${$('regex-i').checked?'i':''}${$('regex-m').checked?'m':''}${$('regex-u').checked?'u':''}`}}
