@@ -5,3 +5,5 @@ This change adds a real History & git migration surface to the desktop console. 
 Verification for this lane is limited to design compilation, documentation bundling, diff checks, and narrow TypeScript syntax parsing. No built-artifact UI capture exists yet. Packaged import, a real backup restore, and actual remote mutation remain runtime evidence for the integrated task.
 
 Commit link: [`c086ecca12`](https://github.com/Ding-Ding-Projects/asterisk/commit/c086ecca12), the implementation commit for this lane. The default branch integration may add a later merge commit.
+
+Safety repair link: [`9c99388ceb`](https://github.com/Ding-Ding-Projects/asterisk/commit/9c99388ceb), covering protected destinations, journaled swap recovery, strict records, detached-head bundle proof, and focused contract Chuts.
