@@ -6,9 +6,10 @@
  * history, exports, or diagnostics.
  */
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { basename, dirname, isAbsolute, join, parse, resolve } from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { basename, dirname, isAbsolute, join, parse, resolve, sep } from 'node:path';
+import { createHash, randomUUID } from 'node:crypto';
 import {
+  LOGO_MAX_OUTPUT_BYTES,
   LOGO_PACKAGE_IDENTITY,
   LOGO_SCHEMA_VERSION,
   inspectLogoBytes,
@@ -68,6 +69,21 @@ function targetKey(asset: LogoEncodedAsset): string {
   return `${asset.target.format}-${asset.target.width}x${asset.target.height}-${asset.target.alpha ? 'alpha' : 'opaque'}-${asset.receipt.sha256.slice(0, 16)}`.toLowerCase();
 }
 
+function digest(bytes: Uint8Array): string {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+function validAssetBytes(bytes: Uint8Array, metadata: LogoCacheAssetMetadata): boolean {
+  if (bytes.byteLength !== metadata.receipt.bytes || bytes.byteLength > LOGO_MAX_OUTPUT_BYTES || digest(bytes) !== metadata.receipt.sha256) return false;
+  const inspection = inspectLogoBytes(bytes, { declaredExtension: metadata.receipt.target.format });
+  return inspection.ok
+    && inspection.inspection.format === metadata.receipt.target.format
+    && inspection.inspection.width === metadata.receipt.width
+    && inspection.inspection.height === metadata.receipt.height
+    && inspection.inspection.alpha === metadata.receipt.alpha
+    && inspection.inspection.signature === metadata.receipt.signature;
+}
+
 function assetMetadata(asset: LogoEncodedAsset): LogoCacheAssetMetadata {
   return {
     filename: `${targetKey(asset)}.${asset.target.format}`,
@@ -113,9 +129,7 @@ export class LogoStore {
     for (const asset of parsed.assets) {
       try {
         const bytes = new Uint8Array(await readFile(this.assetPath(asset.filename)));
-        if (bytes.byteLength !== asset.receipt.bytes || !/^[0-9a-f]{64}$/iu.test(asset.receipt.sha256)) return undefined;
-        const inspection = inspectLogoBytes(bytes, { declaredExtension: asset.receipt.target.format });
-        if (!inspection.ok || inspection.inspection.width !== asset.receipt.width || inspection.inspection.height !== asset.receipt.height || inspection.inspection.alpha !== asset.receipt.alpha || inspection.inspection.signature !== asset.receipt.signature) return undefined;
+        if (!validAssetBytes(bytes, asset)) return undefined;
       } catch {
         return undefined;
       }
@@ -128,8 +142,7 @@ export class LogoStore {
     if (!metadata) return undefined;
     try {
       const bytes = new Uint8Array(await readFile(this.assetPath(filename)));
-      const inspection = inspectLogoBytes(bytes, { declaredExtension: metadata.receipt.target.format });
-      if (!inspection.ok || inspection.inspection.width !== metadata.receipt.width || inspection.inspection.height !== metadata.receipt.height || inspection.inspection.alpha !== metadata.receipt.alpha) return undefined;
+      if (!validAssetBytes(bytes, metadata)) return undefined;
       return bytes;
     } catch {
       return undefined;
@@ -139,6 +152,10 @@ export class LogoStore {
   async write(request: LogoCacheWriteRequest): Promise<LogoCacheRecord> {
     const result = request.result;
     if (!result.ok) throw new Error('A failed logo conversion cannot replace the active logo.');
+    for (const asset of result.outputs) {
+      const metadata = assetMetadata(asset);
+      if (!validAssetBytes(asset.bytes, metadata)) throw new Error('Logo cache refused an output that failed independent receipt validation.');
+    }
     const assets = result.outputs.map(assetMetadata);
     if (new Set(assets.map((asset) => asset.filename)).size !== assets.length) throw new Error('Logo cache output names must be unique.');
     const record: LogoCacheRecord = {
