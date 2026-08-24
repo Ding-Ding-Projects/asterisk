@@ -14,7 +14,7 @@ Both dialogs would reflect the actual queued and in-flight transfer rather than 
 
 **Desktop application:** Not implemented. The desktop application is not a browser and has no browser-extension download surface of this kind.
 
-**Documentation website:** Not implemented. The documentation website is not a browser extension and has no download-capture flow of this kind.
+**Documentation website:** Implemented as a browser handoff equivalent at `history.html`. A real local file is offered to the browser download manager, while Start, browser-owned progress, cancellation, and user-confirmed completion remain separate truthful states.
 
 ## Failure modes
 

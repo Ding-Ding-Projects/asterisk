@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(fileURLToPath(import.meta.url));
 const docs = resolve(root, '..', 'docs');
 const output = join(root, 'dist');
-const assets = ['index.html', 'product.html', 'documentation.html', 'downloads.html', 'status.html', 'settings.html', 'styles.css', 'app.js'];
+const assets = ['index.html', 'product.html', 'documentation.html', 'downloads.html', 'status.html', 'settings.html', 'history.html', 'styles.css', 'app.js', 'history-delivery.js'];
 const socialPreview = resolve(root, '..', '..', 'social-preview.png');
 
 if (process.argv.includes('--clean')) {
@@ -81,6 +81,25 @@ async function composeDocs(sourceRelative='') {
   }
 }
 await composeDocs();
+
+// Every generated documentation page keeps the same local delivery, history,
+// recovery, and browser-handoff surface as the primary pages.
+async function wireGeneratedDelivery(relative) {
+  const file = join(output, relative);
+  const depth = relative.split(/[\\/]/).length;
+  const back = '../'.repeat(depth);
+  const source = await readFile(file, 'utf8');
+  if (source.includes('history-delivery.js')) return;
+  await writeFile(file, source.replace('</body></html>', `<script src="${back}history-delivery.js" defer></script></body></html>`), 'utf8');
+}
+async function wireGeneratedTree(relative = '') {
+  for (const entry of await readdir(join(output, relative), { withFileTypes: true })) {
+    const child = join(relative, entry.name);
+    if (entry.isDirectory()) await wireGeneratedTree(child);
+    else if (entry.name.endsWith('.html') && relative.replaceAll('\\', '/').startsWith('docs')) await wireGeneratedDelivery(child);
+  }
+}
+await wireGeneratedTree();
 
 const files = [];
 async function record(relative) {

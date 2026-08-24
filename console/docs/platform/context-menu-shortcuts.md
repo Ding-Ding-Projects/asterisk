@@ -14,7 +14,7 @@ Shortcuts would be exposed to assistive technology as shortcuts, not as decorati
 
 **Desktop application:** Not implemented. The desktop application's right-click menus, where they exist, do not display keyboard shortcuts beside their items.
 
-**Documentation website:** Not implemented. The documentation website has no right-click context menus of its own.
+**Documentation website:** Implemented on the delivery rail. Its context menu has a local filter field and labels the actual Ctrl+Shift+F, Ctrl+Enter, and Escape shortcuts beside their actions.
 
 ## Failure modes
 

@@ -4,6 +4,12 @@
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.
 
+## Site history and delivery lane
+
+The isolated `codex/site-history-delivery` lane added `console/site/history-delivery.js` and `console/site/history.html`. The shared `console/site/app.js` now registers the module on each primary page, and `console/site/build.mjs` copies it into deterministic output and wires it into generated documentation pages. The module supplies local append-only visitor history with bounded browser storage, date/action/regex filtering, restore-as-new-event, redacted JSON/Markdown export, a dated changelog with full commit links, safe provider Markdown preview, browser-mediated editor and forge handoffs, a truthful browser-owned download state machine, cancellable long-operation progress, in-context recovery, context-menu shortcut filtering, and a static-page update check/reload equivalent. It never stores credentials, private vocabulary, local paths, or file contents, and it never claims that a browser handoff installed, published, or completed something the browser did not report.
+
+The source documentation is `console/docs/platform/site-history-and-delivery.md`, indexed by `console/docs/platform/README.md`. This lane did not run tests, lint, builds, browser interaction, captures, hosting, releases, or dews by assignment. The next owner should run the site's existing validation and inspect the built route before publication.
+
 ## Implemented
 
 - Pinned Node.js `22.23.2` for Windows x64 from the official Node.js release service with SHA-256 `1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97`.

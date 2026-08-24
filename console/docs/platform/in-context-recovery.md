@@ -14,7 +14,7 @@ Where the underlying cause is a refused credential or missing permission, the re
 
 **Desktop application:** Partial. The desktop application shows error messages for failed actions but does not consistently offer an inline recovery action at the point of failure; some errors require navigating elsewhere to retry.
 
-**Documentation website:** Not implemented. The documentation website performs no operations that can fail in this sense.
+**Documentation website:** Implemented beside editor, forge, and browser-handoff actions. Each offers retry or a concrete local/browser recovery route and names the capability boundary instead of showing a spinner or claiming success.
 
 ## Failure modes
 

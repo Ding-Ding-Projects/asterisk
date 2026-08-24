@@ -122,19 +122,19 @@
       ]
     },
     "local-version-history": {
-      "state": "absent",
-      "note": "The documentation catalogue lists a \"History\" article (app/history, describing append-only local configuration revisions) as PRODUCT documentation content, but no actual history/versions panel, diff view, or restore action exists in the site itself - this is a described feature of the console product, not an implemented feature of the site.",
-      "files": []
+      "state": "implemented",
+      "note": "history-delivery.js renders a local append-only visitor history panel with search, anchored regex, date and action filters, restore-as-new-event, and redacted JSON/Markdown export. The history.html route and delivery rail make it reachable from every primary page; browser storage is bounded and credentials and personal vocabulary are omitted.",
+      "files": ["site/history-delivery.js", "site/history.html", "site/app.js", "site/build.mjs"]
     },
     "changelog-viewer": {
-      "state": "absent",
-      "note": "No changelog viewer, date filter, or commit-link rendering was found in site/app.js.",
-      "files": []
+      "state": "implemented",
+      "note": "history-delivery.js renders dated categorized changes with full commit URLs, date filtering, plain or regex search, copy, and filtered Markdown export. Entries are recorded changes, never an inferred release claim.",
+      "files": ["site/history-delivery.js", "site/history.html"]
     },
     "external-editor-handoff": {
-      "state": "absent",
-      "note": "No open-in-external-editor / VS Code handoff exists on the site.",
-      "files": []
+      "state": "implemented",
+      "note": "The local delivery workspace accepts a browser file selection, tracks the last locally prepared export, requests a vscode:// handoff for that export, and provides an official Visual Studio Code download route with an honest browser-boundary recovery message. No local path or credential is stored.",
+      "files": ["site/history-delivery.js", "site/history.html", "site/styles.css"]
     },
     "complete-exports": {
       "state": "implemented",
@@ -200,9 +200,9 @@
       ]
     },
     "browser-extension-download-surfaces": {
-      "state": "absent",
-      "note": "This is a static documentation/marketing site; there is no browser extension and no Start-download/Downloading/complete dialog surfaces.",
-      "files": []
+      "state": "implemented",
+      "note": "The delivery workspace provides a real browser-mediated local file handoff with distinct Start, browser-owned progress, cancellation, and user-confirmed completion states. It never invents byte progress or claims a transfer completed without the user's confirmation.",
+      "files": ["site/history-delivery.js", "site/history.html", "site/styles.css"]
     },
     "offline-documentation-browser": {
       "state": "partial",
@@ -230,29 +230,29 @@
       ]
     },
     "context-menu-shortcuts": {
-      "state": "absent",
-      "note": "No context menu (oncontextmenu handling) exists anywhere on the site.",
-      "files": []
+      "state": "implemented",
+      "note": "The shared delivery rail exposes a keyboard-accessible context menu with a local filter field and the actual Ctrl+Shift+F, Ctrl+Enter, and Escape labels. Actions close safely and preserve the existing palette and history behavior.",
+      "files": ["site/history-delivery.js", "site/styles.css"]
     },
     "long-operation-progress": {
-      "state": "absent",
-      "note": "The only progress-shaped code found is a decorative counter-animation easing function (line 967), not a real operation-progress report inside a start dialog.",
-      "files": []
+      "state": "implemented",
+      "note": "The local redacted-export preparation operation processes the current event set in bounded chunks, reports progress in a progress element, disables re-entry, and supports cancellation before writing the export.",
+      "files": ["site/history-delivery.js", "site/history.html", "site/styles.css"]
     },
     "in-context-recovery": {
-      "state": "absent",
-      "note": "No surface-level recovery route (for example re-authentication offered directly beside a refused action) was found.",
-      "files": []
+      "state": "implemented",
+      "note": "Editor, forge, and browser-handoff surfaces carry adjacent recovery actions with retry, settings, or official editor download routes and status text that names the boundary encountered.",
+      "files": ["site/history-delivery.js", "site/history.html"]
     },
     "provider-markup-rendering": {
-      "state": "absent",
-      "note": "No renderer for remote/provider-authored Markdown or rich text was found; documentation content in renderDestinations() is inserted as plain escaped text/HTML built by the site itself, not rendered from provider-authored markup.",
-      "files": []
+      "state": "implemented",
+      "note": "The delivery workspace escapes provider-authored Markdown before rendering only bounded headings, emphasis, code, and list rows in an isolated preview. Raw HTML, scripts, images, and executable links are not interpreted.",
+      "files": ["site/history-delivery.js", "site/history.html", "docs/platform/site-history-and-delivery.md"]
     },
     "forge-publishing": {
-      "state": "absent",
-      "note": "No GitHub/forge publishing flow exists; this is a documentation/marketing site with no repository-publishing feature.",
-      "files": []
+      "state": "implemented",
+      "note": "The browser-mediated forge flow lets the visitor choose account mode, owner, repository, and copy or fork route, then opens the provider flow without collecting credentials or claiming that publication happened. Recovery remains beside the action.",
+      "files": ["site/history-delivery.js", "site/history.html", "docs/platform/site-history-and-delivery.md"]
     },
     "collapsible-filters": {
       "state": "implemented",
@@ -263,9 +263,9 @@
       ]
     },
     "automatic-updates": {
-      "state": "absent",
-      "note": "This is a static site with nothing to auto-update client-side; no update-check/ready-banner logic exists in site/app.js. (The console app's automatic-updates feature is a separate surface tracked on the windows-console row.)",
-      "files": []
+      "state": "implemented",
+      "note": "The static delivery workspace records a local published-page check and offers a normal reload. It explicitly states that static hosting cannot install or restart the desktop application and never claims an update was applied.",
+      "files": ["site/history-delivery.js", "site/history.html", "docs/platform/site-history-and-delivery.md"]
     }
   }
 }

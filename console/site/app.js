@@ -1053,5 +1053,11 @@
   }
 
   function init(){ensureAttentionUI();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
+  window.__dingSiteReady=true;
+  document.dispatchEvent(new CustomEvent('site:ready'));
+  const deliveryScript=document.createElement('script');
+  deliveryScript.src=new URL('history-delivery.js',document.currentScript?.src||location.href).href;
+  deliveryScript.defer=true;
+  document.head.append(deliveryScript);
   init();
 })();
