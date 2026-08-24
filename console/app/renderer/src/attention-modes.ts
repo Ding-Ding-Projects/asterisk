@@ -50,12 +50,34 @@ export const NEXT_ACTION_MAX_LENGTH = 140;
  * key, the writer, and the live consumer that must remain present together. */
 export const ATTENTION_WIRING = [
   { control: 'att_focus', storageKey: 'console.attention.focus', writer: 'generated setVal -> onUserMutation -> App.attentionWrite', consumer: 'App.attentionRender -> data-attention-inactive' },
-  { control: 'att_low', storageKey: 'console.attention.lowStimulation', writer: 'generated setVal -> onUserMutation -> App.attentionWrite', consumer: 'App.toast/App.fire explicit severity -> body.attention-low-stimulation' },
+  { control: 'att_low', storageKey: 'console.attention.lowStimulation', writer: 'generated setVal -> onUserMutation -> App.attentionWrite', consumer: 'App.toast/App.fire explicit severity -> attention-low-stimulation' },
   { control: 'att_time', storageKey: 'console.attention.timeAwareness', writer: 'generated setVal -> onUserMutation -> App.attentionWrite', consumer: 'App.attentionRender -> data-attention-meta' },
   { control: 'att_one', storageKey: 'console.attention.oneThing', writer: 'generated setVal -> onUserMutation -> App.attentionWrite', consumer: 'App.attentionRender -> data-attention-next' },
   { control: 'att_momentum', storageKey: 'console.attention.momentum', writer: 'generated setVal -> onUserMutation -> App.attentionWrite', consumer: 'App.attentionRender -> momentumPrompt and attentionSnooze' },
   { control: 'att_next', storageKey: 'console.attention.nextAction', writer: 'generated setVal -> onUserMutation; App.languageAwareSetVal -> setNextAction plus attentionWrite', consumer: 'App.attentionRender -> data-attention-next' },
 ] as const;
+
+/** Executable wiring Chut for the handwritten inventory. A missing row, duplicate
+ * control, control absent from the design, or consumer absent from the runtime fails
+ * closed. Callers provide the checked-in source text, so a negative regression can
+ * remove one exact assertion and observe the Chut turn red. */
+export function verifyAttentionWiring(sources: { design: string; app: string; generated: string }): void {
+  if (ATTENTION_WIRING.length !== ATTENTION_MODES.length + 1) throw new Error('Attention wiring inventory must contain exactly six rows.');
+  const controls = new Set<string>();
+  for (const row of ATTENTION_WIRING) {
+    if (controls.has(row.control)) throw new Error(`Duplicate attention control: ${row.control}`);
+    controls.add(row.control);
+    const controlBoundary = new RegExp(`\\b${row.control}\\b`);
+    if (!controlBoundary.test(sources.design)) throw new Error(`Missing design control: ${row.control}`);
+    if (!sources.app.includes(row.storageKey)) throw new Error(`Missing durable key: ${row.storageKey}`);
+    const writerSource = `${sources.app}\n${sources.generated}`;
+    if (!writerSource.includes('onUserMutation')) throw new Error(`Missing mutation writer for ${row.control}`);
+    const consumer = row.consumer.split(' -> ').at(-1) ?? row.consumer;
+    const consumerTokens = consumer.split(/\s+(?:plus|and)\s+/).filter(Boolean);
+    if (consumerTokens.some((token) => !sources.app.includes(token))) throw new Error(`Missing exact consumer for ${row.control}`);
+  }
+  if (controls.size !== 6) throw new Error('Attention wiring controls are incomplete.');
+}
 
 export interface ModeStorage {
   getItem(key: string): string | null | undefined;

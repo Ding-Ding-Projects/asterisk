@@ -5358,8 +5358,8 @@ class ConsoleShell extends DCLogic {
             { icon:'content_copy', label:'Duplicate tab', hint:'⌃D', run:() => { close(); this.setState({ tabs:s.tabs.concat([k]) }); this.onUserMutation('tabs:duplicate'); } },
             { icon:'close', label:'Close tab', hint:'⌃W', run:() => { close(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:t[0] || 'dash' }); this.onUserMutation('tabs:close'); } },
             { icon:'save', label:'Export & import', hint:'▸', sub:'tabexport' },
-            { icon:'folder', label:'Group tabs by area', hint:'', run:() => { close(); this.toast('Tabs grouped by rail area'); } },
-            { icon:'open_in_new', label:'Move to new window', hint:'', run:() => { close(); this.toast('Tab detached to its own window'); } },
+            { icon:'folder', label:'Group tabs by area', hint:'', run:() => { close(); const byRail = {}; s.tabs.forEach(t => { const rail = (SCREENS[t] || {}).rail || 'app'; (byRail[rail] || (byRail[rail] = [])).push(t); }); const groups = Object.entries(byRail).map(([rail, tabs], i) => ({ id:'area-' + rail, name:(RAIL.find(r => r.id === rail) || {}).label || rail, colour:['#82D9A5', '#FFD68A', '#8AB4F8', '#D8A9F0'][i % 4], collapsed:false, tabs })); this.setState({ groups }); this.onUserMutation('tabs:group-by-area'); this.fire('Tabs grouped', 'Open tabs are grouped by their console area.'); } },
+            { icon:'open_in_new', label:'Move to new window (unavailable)', hint:'', run:() => { close(); this.toast('Moving a tab to a new window is unavailable in this build.', 'warning'); } },
             { icon:'dock_to_right', label:'Dock this tab right', hint:'', run:() => { close(); this.set('dock', 'right'); } },
             { icon:'lock', label:'Lock this tab…', hint:'⌃L', run:common[0].run }
           ]);

@@ -230,11 +230,19 @@ export class App extends Base {
   private attentionPendingWrites = new Map<string, { value: string | null; generation: number }>();
   private attentionWriteGenerations = new Map<string, number>();
   private attentionNoticeHistory: Array<{ severity: 'warning' | 'error'; title: string; body: string }> = [];
+  private attentionHistoryQuery = '';
 
   /** Single generated-renderer mutation callback. Direct App-owned mutation paths
    * call this too, so the last-change clock has one source rather than a scattered
    * collection of timestamp writes. */
   onUserMutation = (_source = 'unknown'): void => this.attentionSetLastChanged();
+
+  notifyInfo = (message: string): void => this.toast(message, 'info');
+  notifyWarning = (message: string): void => this.toast(message, 'warning');
+  notifyError = (message: string): void => this.toast(message, 'error');
+  notifyInfoEvent = (title: string, body: string): void => this.fire(title, body, 'info');
+  notifyWarningEvent = (title: string, body: string): void => this.fire(title, body, 'warning');
+  notifyErrorEvent = (title: string, body: string): void => this.fire(title, body, 'error');
 
   constructor(props: Record<string, never>) {
     super(props);
@@ -299,8 +307,26 @@ export class App extends Base {
   }
 
   private attentionRecordNotice(severity: 'warning' | 'error', title: string, body: string): void {
-    this.attentionNoticeHistory = [{ severity, title, body }, ...this.attentionNoticeHistory].slice(0, 20);
+    this.attentionNoticeHistory = [{ severity, title, body }, ...this.attentionNoticeHistory];
     this.attentionRender();
+  }
+
+  private attentionClearHistory(): void {
+    this.attentionNoticeHistory = [];
+    this.attentionHistoryQuery = '';
+    this.onUserMutation('attention-history-clear');
+    this.attentionRender();
+  }
+
+  private attentionExportHistory(): void {
+    const rows = this.attentionNoticeHistory.map((entry) => ({ severity: entry.severity, title: entry.title, body: entry.body }));
+    const blob = new Blob([JSON.stringify({ schemaVersion: 1, personalVocabulary: 'omitted', notifications: rows }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'attention-notification-history.json';
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   private attentionPersistenceNotice(): string {
@@ -499,11 +525,38 @@ export class App extends Base {
       }
     }
     if (this.attentionNoticeHistory.length > 0) {
+      const search = document.createElement('input');
+      search.type = 'search';
+      search.placeholder = 'Search warnings and errors';
+      search.setAttribute('aria-label', 'Search warnings and errors');
+      search.value = this.attentionHistoryQuery;
+      search.addEventListener('input', () => {
+        this.attentionHistoryQuery = search.value;
+        this.attentionRender();
+      });
+      status.append(search);
+      const actions = document.createElement('div');
+      actions.style.display = 'flex';
+      actions.style.gap = '6px';
+      const clear = document.createElement('button');
+      clear.type = 'button';
+      clear.textContent = 'Clear history';
+      clear.addEventListener('click', () => this.attentionClearHistory(), { once: true });
+      const exportButton = document.createElement('button');
+      exportButton.type = 'button';
+      exportButton.textContent = 'Export history';
+      exportButton.addEventListener('click', () => this.attentionExportHistory(), { once: true });
+      actions.append(clear, exportButton);
+      status.append(actions);
       const history = document.createElement('div');
       history.dataset.attentionMeta = 'true';
-      history.textContent = `Recent warnings and errors retained: ${this.attentionNoticeHistory.length}.`;
+      const query = this.attentionHistoryQuery.trim().toLowerCase();
+      const entries = query
+        ? this.attentionNoticeHistory.filter((item) => `${item.severity} ${item.title} ${item.body}`.toLowerCase().includes(query))
+        : this.attentionNoticeHistory;
+      history.textContent = `${entries.length} of ${this.attentionNoticeHistory.length} warnings and errors shown.`;
       status.append(history);
-      for (const item of this.attentionNoticeHistory.slice(0, 3)) {
+      for (const item of entries) {
         const entry = document.createElement('div');
         entry.textContent = `${item.severity}: ${item.title} ${item.body}`;
         status.append(entry);
@@ -2067,8 +2120,10 @@ It is shown once. The phone needs it to register.`);
           connected: this.target.connected,
           serverId: this.target.id,
           request: (action, extra) => this.request(action, extra) as Promise<CeremonyResponse | undefined>,
-          toast: (message, severity) => this.toast(message, severity),
-          fire: (title, body, severity) => this.fire(title, body, severity),
+          toast: (message, severity = 'info') => severity === 'error'
+            ? this.notifyError(message) : severity === 'warning' ? this.notifyWarning(message) : this.notifyInfo(message),
+          fire: (title, body, severity = 'info') => severity === 'error'
+            ? this.notifyErrorEvent(title, body) : severity === 'warning' ? this.notifyWarningEvent(title, body) : this.notifyInfoEvent(title, body),
         });
       },
       /* The real file, for the screens that edit one. A screen showing the target's own

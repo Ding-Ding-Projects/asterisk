@@ -20,6 +20,10 @@ The five switches use the keys `console.attention.focus`, `console.attention.low
 
 The executable handwritten inventory is `ATTENTION_WIRING` in `app/renderer/src/attention-modes.ts`. It contains exactly six rows, one for each attention control, with the storage key, writer chain, and live consumer. The application registry mirrors those rows for review.
 
+The handwritten notification producer inventory is in the same registry. `notifyInfo`, `notifyWarning`, `notifyError`, and their event variants are the typed producer helpers, while `runCeremonyCommand` passes an explicit severity argument through them.
+
+`verifyAttentionWiring` is the executable Chut. It consumes the checked-in design source, App source, and generated renderer source, then rejects duplicate or missing controls, missing design bindings, missing durable keys, missing mutation writers, and missing exact consumers. Its negative cases are intended to remove one exact row or source token, observe a red result, then restore it.
+
 `SNOOZE_MS` is 30 minutes and `IDLE_THRESHOLD_MS` is 20 minutes in `app/renderer/src/attention-modes.ts`. Invalid stored values fall back to the off or empty state. A session timer starts at application mount, while the last-change timestamp can survive a relaunch so an untouched work area does not silently reset its factual duration. A restored snooze is accepted only within the declared 30-minute interval, with a small migration tolerance for older stored timestamps.
 
 ## Current status
@@ -30,7 +34,7 @@ The executable handwritten inventory is `ATTENTION_WIRING` in `app/renderer/src/
 
 ## Failure modes
 
-If durable storage cannot be read, the desktop controls stay off and the action stays empty. If an attention write is pending, refused, or has only session scope because the bridge is unavailable, the work-region card says so and exposes a retry for refused writes. The runtime still behaves for the current process, but a session-only setting cannot be restored on the next launch. A missing or invalid last-change timestamp starts the factual duration at mount. Reduced-motion preference changes are applied live when the platform exposes a media-query change event. Under Low stimulation, informational notifications are suppressed, while warnings and errors remain visible and are retained in the reviewable attention history.
+If durable storage cannot be read, the desktop controls stay off and the action stays empty. The host settings writer returns a typed failure after its bounded Windows-safe atomic rename retry, so a refused write is not reported as durable. If an attention write is pending, refused, or has only session scope because the bridge is unavailable, the work-region card says so and exposes a retry for refused writes. The runtime still behaves for the current process, but a session-only setting cannot be restored on the next launch. A missing or invalid last-change timestamp starts the factual duration at mount. Reduced-motion preference changes are applied live when the platform exposes a media-query change event. Under Low stimulation, informational notifications are suppressed, while warnings and errors remain visible and are retained in the searchable, clearable, exportable attention history.
 
 ## Accessibility and localization
 

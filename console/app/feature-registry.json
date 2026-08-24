@@ -247,6 +247,9 @@
         "app/renderer/src/ceremony.ts",
         "app/renderer/src/durable-storage.ts",
         "app/renderer/src/locale-yue.ts",
+        "control-plane/settings-store.ts",
+        "control-plane/atomic-file.ts",
+        "control-plane/dispatch.ts",
         "design/Asterisk Console M3.dc.html",
         "app/renderer/src/generated/console.tsx",
         "docs/platform/attention-modes.md",
@@ -254,11 +257,21 @@
       ],
       "wiring": [
         { "control": "att_focus", "storageKey": "console.attention.focus", "writer": "generated setVal -> onUserMutation -> App.attentionWrite", "consumer": "App.attentionRender -> [data-attention-inactive=\"true\"]" },
-        { "control": "att_low", "storageKey": "console.attention.lowStimulation", "writer": "generated setVal -> onUserMutation -> App.attentionWrite", "consumer": "App.toast/App.fire explicit severity plus body.attention-low-stimulation" },
+        { "control": "att_low", "storageKey": "console.attention.lowStimulation", "writer": "generated setVal -> onUserMutation -> App.attentionWrite", "consumer": "App.toast/App.fire explicit severity plus attention-low-stimulation" },
         { "control": "att_time", "storageKey": "console.attention.timeAwareness", "writer": "generated setVal -> onUserMutation -> App.attentionWrite", "consumer": "App.attentionRender -> data-attention-meta status card" },
         { "control": "att_one", "storageKey": "console.attention.oneThing", "writer": "generated setVal -> onUserMutation -> App.attentionWrite", "consumer": "App.attentionRender -> data-attention-next status card" },
         { "control": "att_momentum", "storageKey": "console.attention.momentum", "writer": "generated setVal -> onUserMutation -> App.attentionWrite", "consumer": "App.attentionRender -> momentumPrompt plus attentionSnooze" },
         { "control": "att_next", "storageKey": "console.attention.nextAction", "writer": "generated setVal -> onUserMutation; App.languageAwareSetVal -> setNextAction plus attentionWrite", "consumer": "App.attentionRender -> data-attention-next status card" }
+      ],
+      "wiringChut": "app/renderer/src/attention-modes.ts:verifyAttentionWiring",
+      "notificationProducers": [
+        { "producer": "App.notifyInfo", "severity": "info", "consumer": "App.toast" },
+        { "producer": "App.notifyWarning", "severity": "warning", "consumer": "App.toast" },
+        { "producer": "App.notifyError", "severity": "error", "consumer": "App.toast" },
+        { "producer": "App.notifyInfoEvent", "severity": "info", "consumer": "App.fire" },
+        { "producer": "App.notifyWarningEvent", "severity": "warning", "consumer": "App.fire" },
+        { "producer": "App.notifyErrorEvent", "severity": "error", "consumer": "App.fire" },
+        { "producer": "ceremony.runCeremonyCommand", "severity": "explicit NoticeSeverity argument", "consumer": "App.notifyInfo/Warning/Error" }
       ],
       "mutationPaths": [
         "App.languageAwareSetVal",
