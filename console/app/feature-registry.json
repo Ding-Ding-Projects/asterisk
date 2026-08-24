@@ -272,7 +272,13 @@
         { "producer": "App.notifyInfoEvent", "severity": "info", "consumer": "App.fire" },
         { "producer": "App.notifyWarningEvent", "severity": "warning", "consumer": "App.fire" },
         { "producer": "App.notifyErrorEvent", "severity": "error", "consumer": "App.fire" },
-        { "producer": "ceremony.runCeremonyCommand", "severity": "explicit NoticeSeverity argument", "consumer": "App.notifyInfo/Warning/Error" }
+        { "producer": "ceremony.runCeremonyCommand", "severity": "explicit NoticeSeverity argument", "consumer": "App.notifyInfo/Warning/Error" },
+        { "producer": "generated game wrong tone", "severity": "warning", "consumer": "generated notifyWarning" },
+        { "producer": "generated codec order not quite", "severity": "warning", "consumer": "generated notifyWarning" },
+        { "producer": "generated match not a pair", "severity": "warning", "consumer": "generated notifyWarning" },
+        { "producer": "generated no credits", "severity": "warning", "consumer": "generated notifyWarning" },
+        { "producer": "generated credential prerequisites", "severity": "warning", "consumer": "generated notifyWarning" },
+        { "producer": "generated unavailable new window", "severity": "warning", "consumer": "generated notifyWarning" }
       ],
       "notificationHistory": {
         "key": "console.attention.noticeHistory",

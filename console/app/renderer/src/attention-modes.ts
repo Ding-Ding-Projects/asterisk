@@ -86,6 +86,28 @@ export const ATTENTION_MUTATION_ACTIONS = [
   { action: 'set', key: 'sortList', state: 'sortList' },
 ] as const;
 
+export const ATTENTION_SEVERITY_PRODUCERS = [
+  { id: 'app-start-failure', severity: 'error', source: 'The phone system did not start', helper: 'notifyEvent' },
+  { id: 'app-vocabulary-rejected', severity: 'error', source: 'Vocabulary file rejected', helper: 'notifyEvent' },
+  { id: 'app-no-target', severity: 'warning', source: 'No target connected', helper: 'notifyEvent' },
+  { id: 'app-command-failure', severity: 'error', source: 'Not done', helper: 'notifyEvent' },
+  { id: 'app-ticket-failure', severity: 'error', source: 'That ticket will not file', helper: 'notifyEvent' },
+  { id: 'app-server-failure', severity: 'error', source: 'Not added', helper: 'notifyEvent' },
+  { id: 'app-onboarding-not-created', severity: 'error', source: 'Not created', helper: 'notifyEvent' },
+  { id: 'app-deploy-failure', severity: 'error', source: 'Deploy not applied', helper: 'notifyEvent' },
+  { id: 'app-reading-unavailable', severity: 'warning', source: 'Not loaded', helper: 'notifyEvent' },
+  { id: 'app-pin-prerequisite', severity: 'warning', source: 'Set at least a four-digit PIN first', helper: 'notifyWarning' },
+  { id: 'app-authenticator-prerequisite', severity: 'warning', source: 'Pair the built-in authenticator first', helper: 'notifyWarning' },
+  { id: 'app-runtime-not-run', severity: 'error', source: 'The desktop bridge is unavailable, so nothing was created.', helper: 'notifyEvent' },
+  { id: 'generated-security-off', severity: 'warning', source: 'real reduction in security', helper: 'notifyWarning' },
+  { id: 'generated-wrong-tone', severity: 'warning', source: 'Wrong tone — sequence restarts', helper: 'notifyWarning' },
+  { id: 'generated-not-quite', severity: 'warning', source: 'Not quite — g729 is the smallest', helper: 'notifyWarning' },
+  { id: 'generated-not-pair', severity: 'warning', source: 'Not a pair', helper: 'notifyWarning' },
+  { id: 'generated-no-credits', severity: 'warning', source: 'No credits — win some in the arcade', helper: 'notifyWarning' },
+  { id: 'generated-new-window-unavailable', severity: 'warning', source: 'Moving a tab to a new window is unavailable', helper: 'notifyWarning' },
+  { id: 'app-clipboard-failure', severity: 'error', source: 'Could not reach the clipboard', helper: 'notifyError' },
+] as const;
+
 export interface RedactedNotice {
   severity: 'warning' | 'error';
   title: string;
@@ -94,6 +116,8 @@ export interface RedactedNotice {
 
 export function redactNoticeText(value: string): string {
   return value
+    .replace(/(["'])(?:(?:[A-Za-z]:\\|\\\\|\/(?:etc|var|home|tmp|opt|srv|mnt|usr)\/|\.{1,2}[\\/])[^"']*?)\1/g, '$1[path omitted]$1')
+    .replace(/(?:[A-Za-z]:\\|\\\\|\/(?:etc|var|home|tmp|opt|srv|mnt|usr)\/|\.{1,2}[\\/])[^"'`\r\n]*?\.(?:conf|json|txt|pem|key|log|yaml|yml|toml|ini)\b/gi, '[path omitted]')
     .replace(/(?:[A-Za-z]:\\|\\\\)[^\s)]+/g, '[path omitted]')
     .replace(/(^|[\s("'`])(?:\.{1,2}[\\/][^\s)"'`]+|\/(?:etc|var|home|tmp|opt|srv|mnt|usr)\/[^\s)"'`]+|(?:pjsip|extensions|queues|http|acl|asterisk|modules|logger|rtp|cdr|cel|features|musiconhold|voicemail)\.conf\b)/gm, '$1[path omitted]')
     .replace(/\b(?:https?|file):\/\/[^\s]+/gi, '[url omitted]')
@@ -129,6 +153,18 @@ export function verifyAttentionWiring(sources: { design: string; app: string; ge
     if (!sources.generated.includes(`action:'${action.action}'`) || !sources.generated.includes(`key:'${action.key}'`)) {
       throw new Error(`Missing exact mutation action: ${action.action}:${action.key}`);
     }
+  }
+}
+
+export function verifyAttentionSeverityProducers(sources: { app: string; generated: string }): void {
+  const combined = `${sources.app}\n${sources.generated}`;
+  for (const producer of ATTENTION_SEVERITY_PRODUCERS) {
+    const index = combined.indexOf(producer.source);
+    if (index < 0) throw new Error(`Missing severity producer source: ${producer.id}`);
+    const window = combined.slice(Math.max(0, index - 80), index + producer.source.length + 140);
+    if (!window.includes(producer.helper)) throw new Error(`Severity producer ${producer.id} bypasses ${producer.helper}.`);
+    if (producer.severity === 'error' && !window.includes("'error'") && producer.helper !== 'notifyError') throw new Error(`Error producer ${producer.id} lacks explicit error severity.`);
+    if (producer.severity === 'warning' && producer.helper === 'notifyEvent' && !window.includes("'warning'")) throw new Error(`Warning producer ${producer.id} lacks explicit warning severity.`);
   }
 }
 

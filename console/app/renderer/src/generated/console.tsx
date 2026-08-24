@@ -5124,7 +5124,7 @@ class ConsoleShell extends DCLogic {
         if (s.dtmfShow) return;
         const inp = s.dtmfIn.concat([k]);
         const ok = s.dtmfSeq[inp.length - 1] === k;
-        if (!ok) { this.setState({ dtmfIn:[], gameScore:Math.max(0, s.gameScore - 5) }); return this.notifyInfo('Wrong tone — sequence restarts'); }
+        if (!ok) { this.setState({ dtmfIn:[], gameScore:Math.max(0, s.gameScore - 5) }); return this.notifyWarning('Wrong tone — sequence restarts'); }
         if (inp.length === s.dtmfSeq.length) { const nxt = s.dtmfSeq.concat([String(Math.floor(Math.random() * 9) + 1)]); this.setState({ gameScore:s.gameScore + 15, dtmfSeq:nxt, dtmfIn:[], dtmfShow:true }); this.notifyInfoEvent('Correct', 'Longer sequence incoming.'); setTimeout(() => this.setState({ dtmfShow:false }), 1400); }
         else this.setState({ dtmfIn:inp });
       } })),
@@ -5135,7 +5135,7 @@ class ConsoleShell extends DCLogic {
       sortCheck:() => {
         const right = s.sortList.every((x, i) => x === CODEC_ORDER[i]);
         if (right) { this.setState({ gameScore:s.gameScore + 40, sortList:CODEC_ORDER.slice().sort(() => Math.random() - 0.5) }); this.notifyInfoEvent('Perfect order', '+40 points. Have another.'); }
-        else this.notifyInfo('Not quite — g729 is the smallest, opus the largest');
+        else this.notifyWarning('Not quite — g729 is the smallest, opus the largest');
       },
       matchTiles:(() => {
         const tiles = [];
@@ -5157,7 +5157,7 @@ class ConsoleShell extends DCLogic {
                 const d = s.matchDone.concat([t.pair]);
                 this.setState({ matchDone:d, matchSel:'', gameScore:s.gameScore + 20 });
                 if (d.length === MATCH_PAIRS.length) this.notifyInfoEvent('All six matched', 'You actually know what these do.');
-              } else { this.setState({ matchSel:'', gameScore:Math.max(0, s.gameScore - 3) }); this.notifyInfo('Not a pair'); }
+              } else { this.setState({ matchSel:'', gameScore:Math.max(0, s.gameScore - 3) }); this.notifyWarning('Not a pair'); }
             } };
         });
       })(),
@@ -5185,7 +5185,7 @@ class ConsoleShell extends DCLogic {
         }, 900);
       },
       stopGame:() => this.stopGameNow(),
-      spendCredit:() => { if (s.credits < 1) return this.notifyInfo('No credits — win some in the arcade'); this.setState({ credits:s.credits - 1 }); this.notifyInfoEvent('Ceremony skipped', 'One credit spent. ' + (s.credits - 1) + ' left.'); },
+      spendCredit:() => { if (s.credits < 1) return this.notifyWarning('No credits — win some in the arcade'); this.setState({ credits:s.credits - 1 }); this.notifyInfoEvent('Ceremony skipped', 'One credit spent. ' + (s.credits - 1) + ' left.'); },
       oneClickPitch:s.oneClickMode === 'Funny'
         ? 'Press it. Walk away. Come back to a phone system that works, plus roughly forty jokes you did not ask for. It sets up the server, the phones, the queue, the certificates and the hardening, and it explains each step like you are five and slightly suspicious.'
         : 'Provisions the server, installs Asterisk, creates four extensions, one queue, TLS transports and a hardened access policy. Roughly seven seconds of work, then a production-shaped PBX.',
@@ -5484,8 +5484,8 @@ class ConsoleShell extends DCLogic {
         if (s.lockStep < 3) return this.set('lockStep', s.lockStep + 1);
         const needsPin = s.lockMethod.indexOf('PIN') >= 0;
         const needsPw = s.lockMethod.indexOf('Password') >= 0;
-        if (needsPin && s.pin.length < 4) return this.notifyInfo('Set at least a four-digit PIN first');
-        if (needsPw && (s.password || '').length < 4) return this.notifyInfo('Set a passphrase first');
+        if (needsPin && s.pin.length < 4) return this.notifyWarning('Set at least a four-digit PIN first');
+        if (needsPw && (s.password || '').length < 4) return this.notifyWarning('Set a passphrase first');
         const L = Object.assign({}, s.locks);
         L[s.lockKey] = { method:s.lockMethod, pin:s.pin, password:s.password, target:s.lockTarget };
         this.setState({ locks:L, lockOpen:false });

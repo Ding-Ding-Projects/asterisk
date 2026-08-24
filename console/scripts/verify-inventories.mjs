@@ -13,7 +13,7 @@ function verifyAttentionWiring() {
   const source = `
     import { readFileSync } from 'node:fs';
     import { resolve } from 'node:path';
-    import { ATTENTION_WIRING, verifyAttentionWiring } from './console/app/renderer/src/attention-modes.ts';
+    import { ATTENTION_WIRING, verifyAttentionSeverityProducers, verifyAttentionWiring } from './console/app/renderer/src/attention-modes.ts';
     const root = resolve(${JSON.stringify(root)});
     const sources = {
       design: readFileSync(resolve(root, 'design/Asterisk Console M3.dc.html'), 'utf8'),
@@ -22,6 +22,7 @@ function verifyAttentionWiring() {
       module: readFileSync(resolve(root, 'console/app/renderer/src/attention-modes.ts'), 'utf8'),
     };
     verifyAttentionWiring(sources);
+    verifyAttentionSeverityProducers(sources);
     for (const row of ATTENTION_WIRING) {
       const broken = { ...sources, design: sources.design.replace(new RegExp('\\\\b' + row.control + '\\\\b'), row.control + '_removed') };
       let turnedRed = false;
@@ -29,7 +30,12 @@ function verifyAttentionWiring() {
       if (!turnedRed) throw new Error('Attention wiring negative fixture stayed green for ' + row.control + '.');
     }
     verifyAttentionWiring(sources);
-    console.log('PASS: attention wiring Chut green, deliberate red fixture rejected, restored fixture green.');
+    const severityBroken = { ...sources, generated: sources.generated.replace("notifyWarning('Wrong tone", "notifyInfo('Wrong tone") };
+    let severityTurnedRed = false;
+    try { verifyAttentionSeverityProducers(severityBroken); } catch { severityTurnedRed = true; }
+    if (!severityTurnedRed) throw new Error('Severity negative fixture stayed green.');
+    verifyAttentionSeverityProducers(sources);
+    console.log('PASS: attention wiring and severity Chuts green, deliberate red fixtures rejected, restored fixtures green.');
   `;
   const output = execFileSync(process.execPath, ['--experimental-strip-types', '--input-type=module', '-e', source], {
     cwd: root,

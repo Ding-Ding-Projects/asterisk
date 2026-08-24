@@ -1412,9 +1412,9 @@ ${resolution.disclosure}`);
     const needsPin = s.lockMethod.indexOf('PIN') >= 0;
     const needsPw = s.lockMethod.indexOf('Password') >= 0;
     const needsTotp = s.lockMethod.indexOf('TOTP') >= 0;
-    if (needsPin && s.pin.length < 4) { this.notifyMessage('Set at least a four-digit PIN first'); return; }
-    if (needsPw && (s.password || '').length < 4) { this.notifyMessage('Set a passphrase first'); return; }
-    if (needsTotp && !s.totpPendingSecret) { this.notifyMessage('Pair the built-in authenticator first'); return; }
+    if (needsPin && s.pin.length < 4) { this.notifyWarning('Set at least a four-digit PIN first'); return; }
+    if (needsPw && (s.password || '').length < 4) { this.notifyWarning('Set a passphrase first'); return; }
+    if (needsTotp && !s.totpPendingSecret) { this.notifyWarning('Pair the built-in authenticator first'); return; }
     const L = { ...s.locks };
     L[s.lockKey] = {
       method: s.lockMethod, pin: s.pin, password: s.password, target: s.lockTarget,
@@ -1501,7 +1501,7 @@ ${resolution.disclosure}`);
     const next = this.ladder.issue(lockKey);
     if (next.rung === 'clock' || next.rung === 'moles') {
       this.setState({ ladderActive: false, ladderChallenge: null } as never);
-      this.notifyMessage(next.rung === 'clock'
+      this.notifyWarning(next.rung === 'clock'
         ? `Wrong. ${next.reason}`
         : 'Wrong. The next challenge needs a visual board this build cannot show yet.');
       return;
