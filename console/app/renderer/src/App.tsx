@@ -312,7 +312,8 @@ export class App extends Base {
       this.externalEditorStatus = await bridge.externalEditor.detect();
       this.forceUpdate();
     } catch (error) {
-      this.externalEditorStatus = { editors: [], noEditorMessage: '', detectionError: error instanceof Error ? error.message : 'Editor detection is unavailable.', persistenceState: 'invalid' };
+      const diagnostic = error instanceof Error ? error.message : (typeof error === 'string' && error.trim() ? error : undefined);
+      this.externalEditorStatus = { editors: [], noEditorMessage: '', detectionError: diagnostic ?? localizeText('Editor detection unavailable'), persistenceState: 'invalid' };
       this.forceUpdate();
     }
   }
