@@ -397,6 +397,14 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const destination = typeof request.payload?.destination === 'string' ? request.payload.destination : undefined;
         return { ok: true, requestId: request.requestId, data: await migration.exportMigration(destination) };
       }
+      if (request.action === 'migration.export.start') {
+        const destination = typeof request.payload?.destination === 'string' ? request.payload.destination : undefined;
+        return { ok: true, requestId: request.requestId, data: migration.startExport(destination) };
+      }
+      if (request.action === 'migration.operation.status') {
+        const operationId = typeof request.payload?.operationId === 'string' ? request.payload.operationId : '';
+        return { ok: true, requestId: request.requestId, data: migration.operationStatus(operationId) };
+      }
       if (request.action === 'migration.validate') {
         const source = typeof request.payload?.source === 'string' ? request.payload.source : '';
         if (!source) return { ok: false, requestId: request.requestId, code: 'MIGRATION_SOURCE_REQUIRED', message: 'Choose a migration manifest or export directory first.' };
@@ -417,6 +425,9 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'backup.create') {
         const result = await migration.createBackup();
         return { ok: result.operation.state === 'succeeded', requestId: request.requestId, code: result.operation.state === 'succeeded' ? undefined : 'BACKUP_FAILED', message: result.operation.detail, data: result } as ControlPlaneResponse;
+      }
+      if (request.action === 'backup.start') {
+        return { ok: true, requestId: request.requestId, data: migration.startBackup() };
       }
       if (request.action === 'backup.list') {
         return { ok: true, requestId: request.requestId, data: { backups: await migration.listBackups() } };

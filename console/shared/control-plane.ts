@@ -28,9 +28,9 @@ export type ControlPlaneAction =
    * only for a `file://` origin and never survives a relaunch. */
   | 'settings.snapshot' | 'settings.write' | 'settings.remove'
   /* The desktop's complete local migration and Git history surface. */
-  | 'migration.export' | 'migration.validate' | 'migration.import'
+  | 'migration.export' | 'migration.export.start' | 'migration.operation.status' | 'migration.validate' | 'migration.import'
   | 'migration.cancel'
-  | 'backup.create' | 'backup.list'
+  | 'backup.create' | 'backup.start' | 'backup.list'
   | 'backup.prune'
   | 'git.history.status' | 'git.remote.set' | 'git.remote.remove'
   | 'git.remote.fetch' | 'git.remote.push';

@@ -537,9 +537,16 @@ function Template(v: any) {
                   )
                 ),
                 h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;`) },
-                  A(v.backupRows).map(($b, $b$i) => R($b$i, h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:${S($b.color)}; background:#141A15; border-radius:8px; padding:5px 8px;`) },
+                  A(v.backupRows).map(($b, $b$i) => R($b$i, h("button", { onClick: fn($b.pick), style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:${S($b.color)}; background:#141A15; border:1px solid #333B34; border-radius:8px; padding:8px 9px; min-height:44px; cursor:pointer;`) },
                       S($b.label)
-                    )))
+                    ))),
+                  h("label", { style: sty(`display:flex; align-items:center; gap:7px; min-height:44px; color:#C4CBC2; font-size:11px;`) },
+                    "Keep verified ",
+                    h("input", { value: v.retentionText, onInput: fn(v.retentionInput), "aria-label": `Backup retention count`, inputMode: `numeric`, style: sty(`width:64px; min-height:36px; background:#141A15; border:1px solid #414942; border-radius:8px; padding:6px 8px; color:#DFE4DC; font-family:'Roboto Mono',monospace;`) })
+                  ),
+                  h("button", { onClick: fn(v.pruneBackups), style: sty(`min-height:44px; background:transparent; border:1px solid #FFB4AB; border-radius:10px; padding:8px 12px; color:#FFB4AB; font:inherit; cursor:pointer;`) },
+                    "Preview prune"
+                  )
                 ),
                 h("div", { style: sty(`font-size:11px; color:#778078; margin-top:10px;`) },
                   S(v.migrationOmissions)
@@ -565,8 +572,15 @@ function Template(v: any) {
                   h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                     "link"
                   ),
+                  A(v.remoteOptions).map(($r, $r$i) => R($r$i, h("button", { onClick: fn($r.pick), style: sty(`min-height:44px; background:${S($r.bg)}; border:1px solid ${S($r.border)}; border-radius:10px; padding:8px 11px; color:${S($r.fg)}; font:inherit; font-family:'Roboto Mono',monospace; cursor:pointer;`) },
+                      S($r.label)
+                    ))),
+                  A(v.branchOptions).map(($b, $b$i) => R($b$i, h("button", { onClick: fn($b.pick), style: sty(`min-height:44px; background:${S($b.bg)}; border:1px solid ${S($b.border)}; border-radius:10px; padding:8px 11px; color:${S($b.fg)}; font:inherit; font-family:'Roboto Mono',monospace; cursor:pointer;`) },
+                      S($b.label)
+                    ))),
                   h("input", { value: v.remoteNameText, onInput: fn(v.remoteNameInput), "aria-label": `Remote name`, placeholder: `origin`, style: sty(`width:120px; min-height:44px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:8px 10px; color:#DFE4DC; font:inherit; font-family:'Roboto Mono',monospace;`) }),
                   h("input", { value: v.remoteUrlText, onInput: fn(v.remoteUrlInput), "aria-label": `Remote URL`, placeholder: `https:// or ssh:// or local bare path`, style: sty(`flex:1; min-width:220px; min-height:44px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:8px 10px; color:#DFE4DC; font:inherit; font-family:'Roboto Mono',monospace;`) }),
+                  h("input", { value: v.pushUrlText, onInput: fn(v.pushUrlInput), "aria-label": `Push URL`, placeholder: `optional push URL`, style: sty(`flex:1; min-width:220px; min-height:44px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:8px 10px; color:#DFE4DC; font:inherit; font-family:'Roboto Mono',monospace;`) }),
                   h("label", { style: sty(`display:flex; align-items:center; min-height:44px; background:transparent; border:1px solid #414942; border-radius:10px; padding:8px 12px; color:#C4CBC2; font:inherit; cursor:pointer;`) },
                     "Browse local bare repo ",
                     h("input", { type: `file`, webkitdirectory: ``, onChange: fn(v.remoteDirectoryInput), "aria-label": `Browse for a local bare repository`, style: sty(`position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;`) })
