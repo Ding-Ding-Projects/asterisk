@@ -169,7 +169,16 @@ test('the trunk-authentication settings are kept, since no file holds them', () 
   for (const id of ['ta_auto', 'ta_expire', 'ta_notify', 'ta_mutual', 'ta_sign', 'ta_log']) {
     assert.ok(app.includes(`'${id}'`), `${id} is not named in App, so nothing keeps it`);
   }
-  assert.match(app, /PARTNER_PREFIX \+ control\.id/, 'nothing writes them');
+  assert.match(app, /CONSOLE_SETTING_PREFIX/, 'nothing writes them');
+  /* And the two security settings, which are the same kind of thing: neither failban nor
+   * bantime appears in any Asterisk sample file, because banning a repeat offender is this
+   * console behaviour and not Asterisk configuration. */
+  for (const id of ['s_failban', 's_bantime']) {
+    assert.ok(app.includes(String.fromCharCode(39) + id + String.fromCharCode(39)), id + ' is not named in App');
+  }
+  /* One registry rather than a list per subject, so a third group is an entry and not
+   * another branch. */
+  assert.match(app, /CONSOLE_SETTINGS: Readonly<Record<string, readonly string\[\]>>/, 'the groups are not a registry');
   assert.match(app, /private restorePartnerSettings\(\)/, 'nothing reads them back');
   assert.match(app, /this\.restorePartnerSettings\(\);/, 'the restore is never called');
   /* Falling through rather than returning, so the control shows what was chosen -- the same

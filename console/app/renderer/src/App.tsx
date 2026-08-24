@@ -335,11 +335,32 @@ export class App extends Base {
    * second half is not a file. Quoted for the same reason as the attention ids above: the
    * wiring contract greps for each id as a literal.
    */
-  private static readonly PARTNER_CONTROLS: readonly string[] = [
-    'ta_auto', 'ta_expire', 'ta_notify', 'ta_mutual', 'ta_sign', 'ta_log',
-  ];
+  /**
+   * Settings that belong to this console rather than to Asterisk, grouped by subject.
+   *
+   * Each group gets its own storage prefix so one subject cannot overwrite another, and a
+   * third group is an entry here rather than another branch below.
+   *
+   * The security pair is the same kind of thing as the partner ones: neither failban nor
+   * bantime nor autoban nor banduration appears in ANY Asterisk sample file, because banning
+   * a repeat offender is this console's behaviour. They were counted as unbound
+   * configuration, which was the wrong diagnosis rather than missing work.
+   *
+   * Keeping a value is not the same as acting on it. Nothing here yet counts failures or
+   * enforces a ban; these persist a stated intention, and saying so matters because
+   * "persisted" reads like "implemented" to somebody skimming.
+   */
+  private static readonly CONSOLE_SETTINGS: Readonly<Record<string, readonly string[]>> = {
+    partner: ['ta_auto', 'ta_expire', 'ta_notify', 'ta_mutual', 'ta_sign', 'ta_log'],
+    security: ['s_failban', 's_bantime'],
+  };
 
-  private static readonly PARTNER_PREFIX = 'console.partner.';
+  private static readonly CONSOLE_SETTING_PREFIX = 'console.setting.';
+
+  /** The group a control belongs to, or undefined when it is not a console setting. */
+  private static consoleSettingGroup(id: string): string | undefined {
+    return Object.keys(App.CONSOLE_SETTINGS).find((group) => App.CONSOLE_SETTINGS[group].includes(id));
+  }
 
   /** The shell's own `setVal`, captured so the override below can delegate to it.
    *  It is a class property rather than a prototype method, so `super.setVal` does not
@@ -1127,13 +1148,15 @@ What you can do: ${offered}.` : ''}`);
    */
   private restorePartnerSettings(): void {
     const restored: Record<string, unknown> = {};
-    for (const id of App.PARTNER_CONTROLS) {
-      const raw = this.durableStorage.storage.getItem(App.PARTNER_PREFIX + id);
-      if (typeof raw !== 'string' || raw === '') continue;
-      try {
-        restored[id] = JSON.parse(raw);
-      } catch {
-        /* Left out entirely, so the shipped default stands. */
+    for (const [group, ids] of Object.entries(App.CONSOLE_SETTINGS)) {
+      for (const id of ids) {
+        const raw = this.durableStorage.storage.getItem(`${App.CONSOLE_SETTING_PREFIX}${group}.${id}`);
+        if (typeof raw !== 'string' || raw === '') continue;
+        try {
+          restored[id] = JSON.parse(raw);
+        } catch {
+          /* Left out entirely, so the shipped default stands. */
+        }
       }
     }
     if (Object.keys(restored).length === 0) return;
@@ -1564,9 +1587,11 @@ What you can do: ${offered}.` : ''}`);
       const language: CopyLanguage = control.id === 'fun_level_yue' ? 'yue' : 'en';
       if (isFunnyLevel(value)) setFunnyLevel(this.durableStorage.storage, language, value);
     }
-    if (control?.id !== undefined && App.PARTNER_CONTROLS.includes(control.id)) {
+    const settingGroup = control?.id === undefined ? undefined : App.consoleSettingGroup(control.id);
+    if (settingGroup !== undefined && control?.id !== undefined) {
       /* Falls through to baseSetVal afterwards, so the control shows what was chosen. */
-      this.durableStorage.storage.setItem(App.PARTNER_PREFIX + control.id, JSON.stringify(value));
+      this.durableStorage.storage.setItem(
+        `${App.CONSOLE_SETTING_PREFIX}${settingGroup}.${control.id}`, JSON.stringify(value));
     }
     if (control?.id === 'dp_go' && value === true) {
       void this.deployConsole();
