@@ -158,3 +158,22 @@ test('no control id is defined twice on one screen', () => {
     assert.ok((counts.get(id) ?? 0) > 1, `${id} is listed as deliberately shared but is no longer duplicated`);
   }
 });
+
+test('the trunk-authentication settings are kept, since no file holds them', () => {
+  /* These looked like configuration and were counted as unbound for it. They are not
+   * Asterisk settings at all -- there is no pjsip.conf key for "auto-approve a low-risk
+   * partner request" -- so they belong where the console's other preferences live. The
+   * screen's own file field admits it: "pjsip.conf · partner requests", and the second half
+   * of that is not a file. */
+  const app = readFileSync(new URL('../../app/renderer/src/App.tsx', import.meta.url), 'utf8');
+  for (const id of ['ta_auto', 'ta_expire', 'ta_notify', 'ta_mutual', 'ta_sign', 'ta_log']) {
+    assert.ok(app.includes(`'${id}'`), `${id} is not named in App, so nothing keeps it`);
+  }
+  assert.match(app, /PARTNER_PREFIX \+ control\.id/, 'nothing writes them');
+  assert.match(app, /private restorePartnerSettings\(\)/, 'nothing reads them back');
+  assert.match(app, /this\.restorePartnerSettings\(\);/, 'the restore is never called');
+  /* Falling through rather than returning, so the control shows what was chosen -- the same
+   * defect that made the narration switch look stuck. */
+  const branch = app.slice(app.indexOf('App.PARTNER_CONTROLS.includes'), app.indexOf("if (control?.id === 'dp_go'"));
+  assert.doesNotMatch(branch, /^\s*return;/m, 'the branch returns, so the control will not move');
+});

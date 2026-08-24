@@ -27,7 +27,10 @@ const app = read('../../app/renderer/src/App.tsx') + read('../../app/renderer/sr
 /**
  * The count on 2026-08-24, measured rather than chosen.
  *
- * Lowered from 364 the same day, by the twenty-one http.conf and features.conf bindings that
+ * Lowered to 343 by the http.conf and features.conf bindings, then to 318 by the IAX peers
+ * screen and the six partner-request settings. Each time this check is what forced it.
+ *
+ * Originally 364, and lowered by the twenty-one http.conf and features.conf bindings that
  * brought two whole screens into the table for the first time. The check below is what forced
  * that: it fails when the real figure falls well under the ceiling, so the ratchet tightens
  * instead of drifting into permitting a hundred new orphans in silence.
@@ -35,7 +38,7 @@ const app = read('../../app/renderer/src/App.tsx') + read('../../app/renderer/sr
  * It only ever goes down. If a change makes it rise, that change is adding a control nobody
  * reads, and the honest options are to wire it or to leave it out.
  */
-const ORPHAN_CEILING = 343;
+const ORPHAN_CEILING = 318;
 const TOTAL_CONTROLS = 599;
 
 function classify() {

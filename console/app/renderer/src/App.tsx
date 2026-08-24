@@ -325,6 +325,22 @@ export class App extends Base {
     'att_momentum': 'momentum',
   };
 
+  /**
+   * The trunk-authentication screen's own settings, which are the console's and not
+   * Asterisk's.
+   *
+   * They looked like configuration and were counted as unbound for it, but there is no key
+   * in pjsip.conf for "auto-approve a low-risk partner request" -- that is this console's
+   * workflow, and the screen's file field says so: "pjsip.conf · partner requests", where the
+   * second half is not a file. Quoted for the same reason as the attention ids above: the
+   * wiring contract greps for each id as a literal.
+   */
+  private static readonly PARTNER_CONTROLS: readonly string[] = [
+    'ta_auto', 'ta_expire', 'ta_notify', 'ta_mutual', 'ta_sign', 'ta_log',
+  ];
+
+  private static readonly PARTNER_PREFIX = 'console.partner.';
+
   /** The shell's own `setVal`, captured so the override below can delegate to it.
    *  It is a class property rather than a prototype method, so `super.setVal` does not
    *  exist and the only way to wrap it is to take a copy before replacing it. That has
@@ -388,6 +404,7 @@ export class App extends Base {
       this.startScheduler();
       this.startSourcePolling();
       this.restoreNarration();
+      this.restorePartnerSettings();
       this.refreshLogoStatus();
       this.refreshSchoolStatus();
       this.restoreAppearance();
@@ -1101,6 +1118,28 @@ What you can do: ${offered}.` : ''}`);
     return h('div', { class: 'app-root' }, super.render(), this.paletteOverlay());
   }
 
+  /**
+   * Puts the partner-request settings back after a relaunch.
+   *
+   * A value that cannot be read is left at the design's own default rather than guessed at:
+   * these decide whether a change to a live trunk is approved without anybody looking, and a
+   * corrupt profile is not a reason to start approving things.
+   */
+  private restorePartnerSettings(): void {
+    const restored: Record<string, unknown> = {};
+    for (const id of App.PARTNER_CONTROLS) {
+      const raw = this.durableStorage.storage.getItem(App.PARTNER_PREFIX + id);
+      if (typeof raw !== 'string' || raw === '') continue;
+      try {
+        restored[id] = JSON.parse(raw);
+      } catch {
+        /* Left out entirely, so the shipped default stands. */
+      }
+    }
+    if (Object.keys(restored).length === 0) return;
+    this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, ...restored } }));
+  }
+
   // ---------------------------------------------------------------- hosting it elsewhere
 
   /* Its own field, not the provisioning one above. Both are step progress and both arrive on
@@ -1524,6 +1563,10 @@ What you can do: ${offered}.` : ''}`);
     if ((control?.id === 'fun_level' || control?.id === 'fun_level_yue') && typeof value === 'number') {
       const language: CopyLanguage = control.id === 'fun_level_yue' ? 'yue' : 'en';
       if (isFunnyLevel(value)) setFunnyLevel(this.durableStorage.storage, language, value);
+    }
+    if (control?.id !== undefined && App.PARTNER_CONTROLS.includes(control.id)) {
+      /* Falls through to baseSetVal afterwards, so the control shows what was chosen. */
+      this.durableStorage.storage.setItem(App.PARTNER_PREFIX + control.id, JSON.stringify(value));
     }
     if (control?.id === 'dp_go' && value === true) {
       void this.deployConsole();
