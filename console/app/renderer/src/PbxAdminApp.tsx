@@ -146,6 +146,9 @@ export class PbxAdminApp extends App {
   }
 
   private publishDraftCount(currentKey?: string, currentValue?: ConfigValue): void {
+    if (currentKey && currentValue && this.adminLoaded.has(currentKey)) {
+      this.adminDrafts.set(currentKey, currentValue);
+    }
     let count = 0;
     for (const [key, draft] of this.adminDrafts) {
       const loaded = this.adminLoaded.get(key);

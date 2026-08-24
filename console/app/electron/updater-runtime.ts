@@ -101,7 +101,7 @@ export async function downloadAsset(asset: ReleaseAsset, fetchImpl: typeof fetch
   if (!Number.isSafeInteger(asset.size) || asset.size <= 0 || asset.size > MAX_INSTALLER_BYTES) throw new Error('The release installer size is outside the safe limit.');
   if (basename(asset.name) !== asset.name || asset.name.length > 160) throw new Error('The release installer name is unsafe.');
   const directory = await mkdtemp(join(tmpdir(), TEMP_PREFIX));
-    const path = join(directory, asset.name);
+  const path = join(directory, asset.name);
   try {
     const response = await fetchBounded(fetchImpl, asset.browserDownloadUrl, {}, MAX_INSTALLER_BYTES, 'Setup.exe download');
     if (!response.body) throw new Error('Setup.exe download had no body.');
