@@ -737,7 +737,7 @@ function Template(v: any) {
                   h("button", { disabled: v.forgeHostedUnavailable, onClick: fn(v.forgeAdd), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:8px 14px; color:#C4CBC2; font:inherit; cursor:pointer;`) },
                     "Add account"
                   ),
-                  h("button", { disabled: v.forgeHostedUnavailable, onClick: fn(v.forgeReauth), style: sty(`background:transparent; border:1px solid #6B5A36; border-radius:999px; padding:8px 14px; color:#FFD68A; font:inherit; cursor:pointer;`) },
+                  h("button", { disabled: v.forgeHostedUnavailable || forgeReauthDisabled, title: v.forgeReauthDisabled ? 'All discovered accounts already have proven keyring storage; refresh an account or add another account instead.' : 'Re-authenticate an account whose secure keyring state is not proven.', onClick: fn(v.forgeReauth), style: sty(`background:transparent; border:1px solid #6B5A36; border-radius:999px; padding:8px 14px; color:#FFD68A; font:inherit; cursor:pointer;`) },
                     "Re-authenticate"
                   ),
                   h("button", { disabled: v.forgeHostedUnavailable, onClick: fn(v.forgeCancel), style: sty(`background:transparent; border:1px solid #6B3A36; border-radius:999px; padding:8px 14px; color:#FFB4AB; font:inherit; cursor:pointer;`) },

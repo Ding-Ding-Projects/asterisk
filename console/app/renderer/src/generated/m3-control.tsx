@@ -285,4 +285,3 @@ class M3Control extends DCLogic {
 M3Control.prototype.template = Template;
 export default M3Control;
 
-

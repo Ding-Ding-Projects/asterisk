@@ -361,7 +361,7 @@ export class App extends Base {
       const login = String(account.login ?? '');
       const active = id === this.forgeActiveAccountId;
       const storage = String(account.credentialStorage ?? 'unknown');
-      return { id, login, state: storage === 'keyring' ? String(account.state ?? 'unknown') : 're-auth required: secure keyring not proven', tokenRef: typeof account.tokenRef === 'string' ? account.tokenRef : 'Provider vault reference unavailable', active, activeLabel: active ? 'Active' : 'Use this', activeBg: active ? '#005230' : '#1B211C' };
+      return { id, login, state: storage === 'keyring' ? String(account.state ?? 'unknown') : 're-auth required: secure keyring not proven', credentialStorage: storage, tokenRef: typeof account.tokenRef === 'string' ? account.tokenRef : 'Provider vault reference unavailable', active, activeLabel: active ? 'Active' : 'Use this', activeBg: active ? '#005230' : '#1B211C' };
     });
     this.forgeReceipts = (data?.receipts ?? []).map((receipt) => ({ status: String(receipt.status ?? 'unknown'), message: String(receipt.message ?? ''), when: String(receipt.observedAt ?? '') })).slice(0, 12);
     if (data?.operation) this.forgeOperation = { id: String(data.operation.id ?? 'idle'), status: String(data.operation.status ?? 'idle'), progress: Number(data.operation.progress ?? 0), message: String(data.operation.message ?? ''), cancellable: Boolean(data.operation.cancellable) };
@@ -2113,8 +2113,9 @@ It is shown once. The phone needs it to register.`);
         forgeCancel: () => void this.forgeCancel(),
         forgeResetCorruption: () => void this.forgeResetCorruption(),
         forgeLoad: () => void this.forgeLoad(),
-        forgeAdd: () => void this.forgeAdd(),
-        forgeReauth: () => void this.forgeAdd(),
+         forgeAdd: () => void this.forgeAdd(),
+         forgeReauthDisabled: bridge?.platform === 'web' || (this.forgeAccounts.length > 0 && this.forgeAccounts.every((account) => String(account.credentialStorage) === 'keyring' && String(account.state) === 'available')),
+         forgeReauth: () => void this.forgeAdd(),
         forgeOwnersLoad: () => void this.forgeLoadOwners(),
         forgeFork: () => void this.forgePublish('fork'),
         forgeCopyPush: () => void this.forgePublish('copy-and-push'),

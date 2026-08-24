@@ -81,30 +81,40 @@ function Write-State([object]$State, [switch]$SingleOwner) {
 }
 
 function Retire-Terminal-State {
-    $prior = Read-State
-    if (-not $prior) { return }
-    if (@('pending','starting') -contains [string]$prior.status) { throw 'A prior ConPTY device session is still pending.' }
-    if ($prior.pid -and $prior.pidStartTicks -and (Test-ProcessIdentity ([int]$prior.pid) ([long]$prior.pidStartTicks))) { throw 'The prior ConPTY helper still has its recorded process identity.' }
-    $retired = "$StatePath.retired.$([string]$prior.sessionId).$([string]$prior.revision).json"
-    for ($attempt = 1; $attempt -le 8; $attempt++) {
-        try {
-            $redacted = @{
-                status = [string]$prior.status
-                sessionId = [string]$prior.sessionId
-                operationId = [string]$prior.operationId
-                revision = [long]$prior.revision
-                exitCode = if ($null -ne $prior.exitCode) { [int]$prior.exitCode } else { $null }
-                corruption = if ($prior.corruption) { [string]$prior.corruption } else { $null }
-                retiredAt = [DateTimeOffset]::UtcNow.ToString('o')
-                message = 'Terminal ConPTY state retained in redacted form.'
+    $mutexName = 'Local\DingForgeState-' + (([BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash([Text.Encoding]::UTF8.GetBytes($StatePath)))).Replace('-', '').ToLowerInvariant())
+    $mutex = [Threading.Mutex]::new($false, $mutexName)
+    $held = $false
+    try {
+        $held = $mutex.WaitOne(5000)
+        if (-not $held) { throw 'The ConPTY state CAS lock could not be acquired for terminal retirement.' }
+        $prior = Read-State
+        if (-not $prior) { return }
+        if (@('pending','starting') -contains [string]$prior.status) { throw 'A prior ConPTY device session is still pending.' }
+        if ($prior.pid -and $prior.pidStartTicks -and (Test-ProcessIdentity ([int]$prior.pid) ([long]$prior.pidStartTicks))) { throw 'The prior ConPTY helper still has its recorded process identity.' }
+        $retired = "$StatePath.retired.$([string]$prior.sessionId).$([string]$prior.revision).json"
+        for ($attempt = 1; $attempt -le 8; $attempt++) {
+            try {
+                $redacted = @{
+                    status = [string]$prior.status
+                    sessionId = [string]$prior.sessionId
+                    operationId = [string]$prior.operationId
+                    revision = [long]$prior.revision
+                    exitCode = if ($null -ne $prior.exitCode) { [int]$prior.exitCode } else { $null }
+                    corruption = if ($prior.corruption) { [string]$prior.corruption } else { $null }
+                    retiredAt = [DateTimeOffset]::UtcNow.ToString('o')
+                    message = 'Terminal ConPTY state retained in redacted form.'
+                }
+                [IO.File]::WriteAllText($retired, (($redacted | ConvertTo-Json -Depth 4) + "`n"), [Text.UTF8Encoding]::new($false))
+                Remove-Item -LiteralPath $StatePath -Force
+                $retiredFiles = @(Get-ChildItem -LiteralPath (Split-Path -Parent $StatePath) -Filter ((Split-Path -Leaf $StatePath) + '.retired.*.json') -File | Sort-Object LastWriteTime -Descending)
+                foreach ($old in ($retiredFiles | Select-Object -Skip 3)) { Remove-Item -LiteralPath $old.FullName -Force -ErrorAction SilentlyContinue }
+                return
             }
-            [IO.File]::WriteAllText($retired, (($redacted | ConvertTo-Json -Depth 4) + "`n"), [Text.UTF8Encoding]::new($false))
-            Remove-Item -LiteralPath $StatePath -Force
-            $retiredFiles = @(Get-ChildItem -LiteralPath (Split-Path -Parent $StatePath) -Filter ((Split-Path -Leaf $StatePath) + '.retired.*.json') -File | Sort-Object LastWriteTime -Descending)
-            foreach ($old in ($retiredFiles | Select-Object -Skip 3)) { Remove-Item -LiteralPath $old.FullName -Force -ErrorAction SilentlyContinue }
-            return
+            catch { if ($attempt -eq 8) { throw }; Start-Sleep -Milliseconds 40 }
         }
-        catch { if ($attempt -eq 8) { throw }; Start-Sleep -Milliseconds 40 }
+    } finally {
+        if ($held) { $mutex.ReleaseMutex() }
+        $mutex.Dispose()
     }
 }
 
