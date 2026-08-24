@@ -34,4 +34,4 @@ This lane intentionally did not run tests, lint, type checks, builds, packaging,
 
 ## Suggested articles
 
-[Update evidence](automatic-updates-evidence.md), [In-context recovery](in-context-recovery.md), [Non-blocking notifications](non-blocking-notifications.md), [App display name](app-display-name.md), [Platform feature index](README.md).
+[Update evidence](../evidence/automatic-updates.md), [In-context recovery](in-context-recovery.md), [Non-blocking notifications](non-blocking-notifications.md), [App display name](app-display-name.md), [Platform feature index](README.md).

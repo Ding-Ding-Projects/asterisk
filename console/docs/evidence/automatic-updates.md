@@ -12,8 +12,8 @@ The repaired release used for the update-ready capture was source commit `870be4
 
 | State | Source and release | Dimensions | SHA-256 | Evidence |
 | --- | --- | ---: | --- | --- |
-| Update ready from the old installed baseline | `745d7425df791646aef4a6972c96dcf279a6004a`, installed `0.1.0`, candidate `870be47d6708b32f7fed154abf0ca3779f1fe3bb`, release `0.1.84`, tag `ding-pbx-console-v0.0.84-r1` | 1456 x 928 | `3a92900f8fd19a722ece3175567df346d8f272ee24d7ac47e3681b1db5216d99` | ![Update ready banner in the old installed baseline](captures/automatic-updates/baseline-update-ready.png) |
-| Installed `0.1.84` with two PBX drafts blocking restart | `870be47d6708b32f7fed154abf0ca3779f1fe3bb`, installed `0.1.84`, candidate `b29850dd1ae63553dc6c60ecdedc60adb6707a77`, release `0.1.85`, tag `ding-pbx-console-v0.0.85-r1` | 1456 x 928 | `79d4257a806ef31aea22cef34ce490cc980fdd527ce84a5adfe60e6bd197b751` | ![Restart disabled while two PBX drafts need review, apply, or discard](captures/automatic-updates/installed84-draft-blocked.png) |
+| Update ready from the old installed baseline | `745d7425df791646aef4a6972c96dcf279a6004a`, installed `0.1.0`, candidate `870be47d6708b32f7fed154abf0ca3779f1fe3bb`, release `0.1.84`, tag `ding-pbx-console-v0.0.84-r1` | 1456 x 928 | `3a92900f8fd19a722ece3175567df346d8f272ee24d7ac47e3681b1db5216d99` | ![Update ready banner in the old installed baseline](../platform/captures/automatic-updates/baseline-update-ready.png) |
+| Installed `0.1.84` with two PBX drafts blocking restart | `870be47d6708b32f7fed154abf0ca3779f1fe3bb`, installed `0.1.84`, candidate `b29850dd1ae63553dc6c60ecdedc60adb6707a77`, release `0.1.85`, tag `ding-pbx-console-v0.0.85-r1` | 1456 x 928 | `79d4257a806ef31aea22cef34ce490cc980fdd527ce84a5adfe60e6bd197b751` | ![Restart disabled while two PBX drafts need review, apply, or discard](../platform/captures/automatic-updates/installed84-draft-blocked.png) |
 
 ## Capture method and interaction evidence
 
@@ -29,4 +29,4 @@ These records prove the named built-artifact states and the exact capture method
 
 ## Suggested articles
 
-[Automatic updates](automatic-updates.md), [In-context recovery](in-context-recovery.md), [Non-blocking notifications](non-blocking-notifications.md), [Platform feature index](README.md).
+[Automatic updates](../platform/automatic-updates.md), [In-context recovery](../platform/in-context-recovery.md), [Non-blocking notifications](../platform/non-blocking-notifications.md), [Platform feature index](../platform/README.md).

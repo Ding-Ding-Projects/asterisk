@@ -41,11 +41,34 @@ test('contains exactly 32 destination definitions in six declared groups', () =>
     'arcade','notifications','history','customise','appearance','about',
   ]);
 });
-test('provides 74 complete categorized articles with valid local links', async () => {
+test('provides 74 complete feature articles plus checked evidence records', async () => {
   const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app','platform'];
   const articles=[];
   for(const category of categories)for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')articles.push(join(docsRoot,category,name));
   assert.equal(articles.length,74); // 32 destination articles (pbx/media/data/system/agent/app) plus 42 platform articles
+  // An evidence record is a different genre from a feature article: it says what was
+  // captured, from which commit, and by what method, and forcing "## Behavior" onto it
+  // would distort a document that is doing its job. So it lives in its own category --
+  // following docs/changelog, which is outside this list for the same reason -- and gets
+  // its OWN required sections rather than none. A genre nobody checks is how an evidence
+  // file quietly becomes a paragraph asserting that something was verified.
+  const evidenceRoot=join(docsRoot,'evidence');
+  const evidence=(await readdir(evidenceRoot)).filter(name=>name.endsWith('.md')&&name!=='README.md');
+  assert.ok(evidence.length>0,'the evidence category exists and is empty, which proves nothing');
+  for(const name of evidence){
+    const content=await readFile(join(evidenceRoot,name),'utf8');
+    for(const heading of ['## Capture records','## Capture method','## Verification boundary','## Suggested articles'])assert.match(content,new RegExp(heading),`${name} has no ${heading}`);
+    // The whole value of an evidence record is that a reader can go back to the exact
+    // source a capture came from. A capture with no commit is a screenshot.
+    //
+    // Per ROW, not per file: "this document mentions a commit somewhere" passes while any
+    // individual row quietly loses its own, which was exactly what the first version of
+    // this check did when it was broken on purpose.
+    const rows=[...content.matchAll(/^\|(?!\s*(?:---|\s*State))(.+)\|\s*$/gm)].map(match=>match[1]);
+    assert.ok(rows.length>0,`${name} has a capture-records section with no rows in it`);
+    for(const row of rows)assert.match(row,/[0-9a-f]{40}/,`a capture row in ${name} names no source commit: ${row.slice(0,60)}`);
+    for(const match of content.matchAll(/\]\(([^)]+\.(?:md|png))\)/g)){const target=resolve(evidenceRoot,match[1]);assert.ok((await stat(target)).isFile(),`${name} -> ${match[1]}`)}
+  }
   for(const article of articles){const content=await readFile(article,'utf8');for(const heading of ['## Behavior','## Configuration','## Failure modes','## Verification','## Suggested articles'])assert.match(content,new RegExp(heading));for(const match of content.matchAll(/\]\(([^)]+\.md)\)/g)){const target=resolve(dirname(article),match[1]);assert.ok((await stat(target)).isFile(),`${article} -> ${match[1]}`)}}
 });
 test('exposes keyboard, tab, regex, and local settings interactions', () => {
@@ -70,12 +93,15 @@ test('build composes deterministic local output without fetches', async () => {
   execFileSync(process.execPath, [join(root, 'build.mjs')], { cwd: repo, stdio: 'pipe' });
   const manifest = JSON.parse(await readFile(join(root, 'dist', 'build-manifest.json'), 'utf8'));
   assert.equal(manifest.networkFetches, 0);
-  // 48 pages, documents and the social preview, plus the 51 vendored font files, plus the
-  // (49 faces, fonts.css and manifest.json) now copied in so the published pages can
-  // 43 platform contract articles and their index. An exact count is the point: this is
-  // the determinism check,
-  // so a number that drifts should fail and be explained rather than quietly widened.
-  assert.equal(manifest.outputFiles.length, 143);
+  // 91 pages, the remaining documents and the social preview, plus the 51 vendored font
+  // files (49 faces, fonts.css and manifest.json) copied in so the published pages reach
+  // them without a request to anybody.
+  //
+  // An exact count is the point: this is the determinism check, so a number that drifts
+  // fails and gets explained rather than quietly widened. It last moved on 2026-08-24, by
+  // two, for two articles that had been committed without it: the updater capture evidence
+  // and the updater reliability changelog entry. Each contributes one page.
+  assert.equal(manifest.outputFiles.length, 145);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');
