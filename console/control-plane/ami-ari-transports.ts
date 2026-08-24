@@ -273,16 +273,31 @@ export class AriTransport {
     }
   }
 
-  async discoverResources(signal?: AbortSignal): Promise<{ state: TransportState; names: ReadonlyArray<string>; reason?: string }> {
+  async discoverResources(signal?: AbortSignal): Promise<{ state: TransportState; names: ReadonlyArray<string>; attempted: number; failed: number; complete: boolean; reason?: string }> {
+    const operations = (Object.keys(ARI_OPERATIONS) as AriOperationName[]).filter((operation) => ARI_OPERATIONS[operation].method === "GET" || ARI_OPERATIONS[operation].method === "HEAD");
     const names: string[] = [];
-    for (const operation of Object.keys(ARI_OPERATIONS) as AriOperationName[]) {
-      const spec = ARI_OPERATIONS[operation];
-      if (spec.method !== "GET" && spec.method !== "HEAD") continue;
-      const receipt = await this.execute(operation, signal);
-      if (receipt.state === "cancelled" || receipt.state === "timedOut") return { state: receipt.state, names, reason: receipt.reason };
-      if (receipt.state === "available") names.push(spec.path);
+    let failed = 0;
+    let cancelled = false;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), Math.min(this.#options.timeoutMs * 2, 30_000));
+    const abort = () => controller.abort();
+    signal?.addEventListener("abort", abort, { once: true });
+    try {
+      for (let index = 0; index < operations.length && !controller.signal.aborted; index += 4) {
+        const batch = operations.slice(index, index + 4);
+        const receipts = await Promise.all(batch.map((operation) => this.execute(operation, controller.signal)));
+        for (let offset = 0; offset < receipts.length; offset += 1) {
+          const receipt = receipts[offset]!;
+          if (receipt.state === "available") names.push(ARI_OPERATIONS[batch[offset]!]!.path);
+          else failed += 1;
+        }
+      }
+      cancelled = controller.signal.aborted;
+      return { state: cancelled ? "timedOut" : names.length > 0 ? "available" : "unavailable", names, attempted: operations.length, failed, complete: !cancelled && failed === 0, reason: cancelled ? "ARI resource discovery exceeded its overall bound." : names.length > 0 ? undefined : "No ARI resource operation returned an available response." };
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
     }
-    return { state: names.length > 0 ? "available" : "unavailable", names, reason: names.length > 0 ? undefined : "No ARI resource operation returned an available response." };
   }
 }
 

@@ -72,7 +72,7 @@ export function validateAsteriskCatalog(catalog, inventory, files = new Set()) {
     if (!reconciliationSource.includes(needle)) throw new Error(`Asterisk catalogue boundary is not implemented: ${boundary}`);
   }
   const actionEvidence = JSON.parse(readText('console/inventories/asterisk-actions-evidence.json'));
-  if (actionEvidence.status !== 'implemented-unverified' || !Array.isArray(actionEvidence.actions) || actionEvidence.actions.length !== 17) throw new Error('Asterisk action evidence inventory is incomplete');
+  if (actionEvidence.status !== 'implemented-unverified' || !Array.isArray(actionEvidence.actions) || actionEvidence.actions.length !== 19) throw new Error('Asterisk action evidence inventory is incomplete');
   const actionCatalogSource = readText('console/control-plane/asterisk-action-catalog.ts');
   for (const path of ['console/docs/system/asterisk-capability-catalog.md', 'console/site/asterisk-action-registry.json', 'console/inventories/asterisk-actions-evidence.json', 'local-history.record', 'catalogue-record-search', 'command-palette-action-result', 'bulk-action-preview', 'catalogue-export', 'native-labelled-control']) {
     if (!actionCatalogSource.includes(path)) throw new Error(`Asterisk action surface mapping is missing: ${path}`);

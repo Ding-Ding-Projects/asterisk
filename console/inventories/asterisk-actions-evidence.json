@@ -19,7 +19,9 @@
     "call.record.stop",
     "routing.read",
     "security.read",
-    "reporting.read"
+    "reporting.read",
+    "reporting.ami-events",
+    "reporting.ari-events"
   ],
   "runtimeEvidence": "No runtime exchange or built desktop evidence was run in this source-only lane."
 }

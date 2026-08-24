@@ -47,12 +47,14 @@ export const ASTERISK_ACTION_CATALOG: ReadonlyArray<AsteriskActionDefinition> = 
   { id: "routing.read", family: "routing", label: "Read routes and endpoints", state: "supported", destructive: false, confirmation: "not-required", transport: "control-plane" },
   { id: "security.read", family: "security", label: "Read ACL and security state", state: "supported", destructive: false, confirmation: "not-required", transport: "control-plane" },
   { id: "reporting.read", family: "reporting", label: "Read call and event reports", state: "supported", destructive: false, confirmation: "not-required", transport: "control-plane" },
+  { id: "reporting.ami-events", family: "reporting", label: "Stream AMI events", state: "implemented-unverified", destructive: false, confirmation: "not-required", transport: "ami", unavailableReason: "A live AMI event credential and target are required before streaming can run." },
+  { id: "reporting.ari-events", family: "reporting", label: "Stream ARI events", state: "implemented-unverified", destructive: false, confirmation: "not-required", transport: "ari", unavailableReason: "A privileged WebSocket factory, live ARI credential, and target are required before streaming can run." },
 ];
 
 export const ASTERISK_ACTION_SURFACE_MAP: Readonly<Record<string, AsteriskActionSurfaceContract>> = Object.fromEntries(
   ASTERISK_ACTION_CATALOG.map((action) => [action.id, {
     rendererRoute: ({ module: "modules", call: "live", configuration: "modules", dialplan: "canvas", media: "moh", routing: "endpoints", security: "security", reporting: "cdr" } as Record<string, string>)[action.family] ?? "modules",
-    dispatcherAction: action.id === "configuration.plan" ? "pbx.plan" : action.id === "configuration.apply" ? "pbx.apply" : action.id === "configuration.restore" ? "history.restore" : action.id === "dialplan.read" ? "pbx.read" : action.id.startsWith("media.") ? `media.${action.id.split(".")[1]}` : action.transport === "ami" ? "ami.action" : action.transport === "ari" ? "ari.operation" : action.id,
+    dispatcherAction: action.id === "configuration.plan" ? "pbx.plan" : action.id === "configuration.apply" ? "pbx.apply" : action.id === "configuration.restore" ? "history.restore" : action.id === "dialplan.read" ? "pbx.read" : action.id === "reporting.ami-events" ? "ami.events" : action.id === "reporting.ari-events" ? "ari.events" : action.id.startsWith("media.") ? `media.${action.id.split(".")[1]}` : action.transport === "ami" ? "ami.action" : action.transport === "ari" ? "ari.operation" : action.id,
     localizationKey: `asterisk.action.${action.id}`,
     confirmation: action.confirmation,
     readback: action.transport === "control-plane" ? "typed-control-plane-receipt" : "transport-receipt-and-reread",

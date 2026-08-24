@@ -17,7 +17,7 @@ export type ControlPlaneAction =
    * someone ran `asterisk -F` by hand. See `control-plane/asterisk-service.ts`.
    */
   | 'daemon.status' | 'daemon.start' | 'daemon.stop' | 'daemon.restart'
-  | 'pbx.read' | 'pbx.catalog' | 'pbx.command' | 'pbx.module' | 'ami.action' | 'ari.operation' | 'pbx.config' | 'pbx.plan'
+  | 'pbx.read' | 'pbx.catalog' | 'pbx.command' | 'pbx.module.prepare' | 'pbx.module' | 'ami.action' | 'ami.events' | 'ari.operation' | 'ari.events' | 'pbx.config' | 'pbx.plan'
   | 'history.list' | 'history.restore'
   /* Prompts and music-on-hold media on the target, so a "custom" choice can be given a file. */
   | 'media.list' | 'media.upload' | 'media.remove'

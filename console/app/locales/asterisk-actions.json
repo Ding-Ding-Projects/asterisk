@@ -20,6 +20,8 @@
     "asterisk.action.call.record.stop",
     "asterisk.action.routing.read",
     "asterisk.action.security.read",
-    "asterisk.action.reporting.read"
+    "asterisk.action.reporting.read",
+    "asterisk.action.reporting.ami-events",
+    "asterisk.action.reporting.ari-events"
   ]
 }

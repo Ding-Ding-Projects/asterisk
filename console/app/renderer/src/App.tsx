@@ -625,10 +625,20 @@ ${resolution.disclosure}`);
         void this.runModuleLifecycle(operation, module, record.id, catalog.catalogRevision, crypto.randomUUID());
       });
     }
+    if (action === 'ami-events' || action === 'ari-events') {
+      const operation: 'ami.events' | 'ari.events' = action === 'ami-events' ? 'ami.events' : 'ari.events';
+      void this.request(operation, { serverId: this.target.id }).then((response) => {
+        if (!response?.ok) this.fire('Event stream unavailable', response?.message ?? 'The control plane did not answer.');
+        else this.fire('Event stream complete', `${((response.data as { events?: unknown[] }).events ?? []).length} bounded event records were received.`);
+      });
+    }
   };
 
   private async runModuleLifecycle(operation: string, module: string, catalogId: string, catalogRevision: string, confirmationId: string): Promise<void> {
-    const response = await this.request('pbx.module', { serverId: this.target.id, payload: { operation, module, catalogId, catalogRevision, confirmed: true, confirmationId } });
+    const prepared = await this.request('pbx.module.prepare', { serverId: this.target.id, payload: { operation, module, catalogId, catalogRevision } });
+    if (!prepared?.ok) { this.fire('Module action refused', prepared?.message ?? 'The control plane did not issue a confirmation nonce.'); return; }
+    const issued = String((prepared.data as { confirmationId?: string }).confirmationId ?? confirmationId);
+    const response = await this.request('pbx.module', { serverId: this.target.id, payload: { operation, module, catalogId, catalogRevision, confirmed: true, confirmationId: issued } });
     if (!response?.ok) { this.fire('Module action refused', response?.message ?? 'The control plane did not answer.'); return; }
     const data = response.data as { receipt?: { output?: string; status?: string } };
     this.fire('Module action complete', data.receipt?.output || `The module action ended with ${data.receipt?.status ?? 'an unknown status'}.`);
@@ -1906,6 +1916,7 @@ It is shown once. The phone needs it to register.`);
       ...(screen === 'modules' && moduleCatalog ? {
         groups: catalogModuleGroups(values.groups, moduleCatalog.records.filter((record) => record.kind === 'module' || record.kind === 'runtime-module').map((record) => record.name).sort()),
       } : {}),
+      ...(screen === 'ami' && moduleCatalog ? { groups: catalogEventGroups(values.groups) } : {}),
 
       // Discovery replaces the design's simulated provisioning run.
       oneClickButton: this.target.connected ? 'Re-run discovery' : 'Discover local targets',
@@ -2326,6 +2337,16 @@ function catalogModuleGroups(base: unknown, modules: ReadonlyArray<string>): unk
         return { ...(control as Record<string, unknown>), value: modules[0] ?? '', options: [...modules] };
       }), ...(index === 0 ? [{ id: 'wm_execute', label: 'Apply module action', kind: 'segmented', value: 'Apply', options: ['Apply'], action: 'module-lifecycle' }] : [])],
     };
+  });
+}
+
+function catalogEventGroups(base: unknown): unknown {
+  if (!Array.isArray(base)) return base;
+  return base.map((group, index) => {
+    if (index !== 0 || !group || typeof group !== 'object') return group;
+    const value = group as { ctls?: unknown[] };
+    const ctls = Array.isArray(value.ctls) ? value.ctls : [];
+    return { ...value, ctls: [...ctls, { id: 'ami_events', label: 'Start AMI event stream', kind: 'segmented', value: 'Start', options: ['Start'], action: 'ami-events' }, { id: 'ari_events', label: 'Start ARI event stream', kind: 'segmented', value: 'Start', options: ['Start'], action: 'ari-events' }] };
   });
 }
 

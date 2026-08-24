@@ -16,6 +16,7 @@
   ],
   "requiredRuntimeActions": [
     "pbx.catalog",
+    "pbx.module.prepare",
     "pbx.module"
   ],
   "requiredRuntimeCommands": [

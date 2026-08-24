@@ -18,6 +18,8 @@ export interface RuntimeCatalogInput {
   amiCredentialReason?: string;
   ariCredentialState?: RuntimeCatalogState;
   ariCredentialReason?: string;
+  ariDiscoveryComplete?: boolean;
+  ariDiscoveryFailed?: number;
 }
 
 export interface RuntimeCatalogRecord {
@@ -198,7 +200,7 @@ export function reconcileAsteriskCatalog(input: RuntimeCatalogInput): RuntimeCat
       "manager show commands": observation(input.amiActions),
       "AMI transport": { state: input.amiCredentialState ?? "unknown", reason: input.amiCredentialReason },
       "ari show apps": observation(input.ariResources),
-      "ARI transport": { state: input.ariCredentialState ?? "unknown", reason: input.ariCredentialReason },
+      "ARI transport": { state: input.ariCredentialState ?? "unknown", count: input.ariDiscoveryFailed, reason: input.ariCredentialReason ?? (input.ariDiscoveryComplete === false ? "ARI discovery was partial." : undefined) },
       "target config inventory": input.configResources === undefined
         ? { state: "unknown", reason: input.configInventoryReason ?? "The target configuration inventory was not available." }
         : { state: input.configInventoryComplete === false ? "unknown" : "available", count: input.configResources.length, reason: input.configInventoryComplete === false ? input.configInventoryReason : undefined },
