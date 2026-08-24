@@ -10,7 +10,7 @@
   const CANONICAL_STATE_KEY = 'ding-pbx-site-global-settings-v1';
   const MIRROR_STATE_KEY = 'ding-pbx-pages-v2';
   const STORAGE_KEY = CANONICAL_STATE_KEY;
-  const OWNED_STATE_KEYS = [CANONICAL_STATE_KEY, MIRROR_STATE_KEY, 'ding-pbx-dimsum-image-cache-v2', 'ding-pbx-vocabulary-cache', 'ding-pbx-logo-cache'];
+  const OWNED_STATE_KEYS = [CANONICAL_STATE_KEY, 'ding-pbx-dimsum-image-cache-v2', 'ding-pbx-vocabulary-cache', 'ding-pbx-logo-cache'];
   const SETTINGS_SCHEMA_VERSION = 2;
   const MAX_RULES = 32;
   const MAX_STATE_BYTES = 131072;
@@ -18,6 +18,7 @@
   const MAX_ENDPOINT_DEPTH = 4;
   const MAX_ENDPOINT_FIELDS = 24;
   const APPROVED_EXTERNAL_HOSTS = new Set(['api.github.com', 'localhost', '127.0.0.1']);
+  const APPROVED_HOME_ASSISTANT_HOSTS = new Set(['homeassistant.local', 'localhost', '127.0.0.1']);
   const NARRATION_COOLDOWN_MS = 2500;
   const NARRATION_DEBOUNCE_MS = 250;
   const SCHOOL_SUPPRESSION_INVENTORY = [
@@ -178,13 +179,14 @@
 
   function save() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    let legacy = {};
-    try { legacy = parseUniqueJson(localStorage.getItem(MIRROR_STATE_KEY) || '{}'); } catch { legacy = {}; }
-    legacy.language = state.language;
-    legacy.englishFunny = state.englishFunny;
-    legacy.cantoneseFunny = state.cantoneseFunny;
-    localStorage.setItem(MIRROR_STATE_KEY, JSON.stringify(legacy));
+    let legacy;
+    try { legacy = parseUniqueJson(localStorage.getItem(MIRROR_STATE_KEY) || '{}'); } catch { legacy = undefined; }
+    if (legacy && typeof legacy === 'object' && !Array.isArray(legacy)) { legacy.language = state.language; legacy.englishFunny = state.englishFunny; legacy.cantoneseFunny = state.cantoneseFunny; localStorage.setItem(MIRROR_STATE_KEY, JSON.stringify(legacy)); }
     window.dispatchEvent(new CustomEvent('ding-global-settings-change', { detail: { language: state.language, englishFunny: state.englishFunny, cantoneseFunny: state.cantoneseFunny } }));
+  }
+  function purgeOwnedState() {
+    OWNED_STATE_KEYS.forEach((key) => localStorage.removeItem(key));
+    try { const mirror = parseUniqueJson(localStorage.getItem(MIRROR_STATE_KEY) || '{}'); delete mirror.language; delete mirror.englishFunny; delete mirror.cantoneseFunny; localStorage.setItem(MIRROR_STATE_KEY, JSON.stringify(mirror)); } catch { /* keep an unreadable compatibility mirror untouched */ }
   }
   function parseUniqueJson(raw) {
     let index = 0;
@@ -223,11 +225,17 @@
       for (const dish of DISHES) { const local = cached?.entries?.find((entry) => entry.id === dish.id && entry.sha256 === dish.sha256 && entry.releaseTag === dish.releaseTag && entry.catalogRevision === dish.catalogRevision && typeof entry.dataUrl === 'string'); if (local && await sha256Hex(Uint8Array.from(atob(local.dataUrl.split(',')[1] || ''), (char) => char.charCodeAt(0))) === dish.sha256 && await decodeImage(local.dataUrl)) usable.push({ ...dish, dataUrl: local.dataUrl }); }
       if (usable.length) { DISHES = usable; return true; }
       localStorage.removeItem(DIM_SUM_IMAGE_CACHE_KEY);
-      const first = DISHES[0]; if (!first) return false;
-      const imageResponse = await fetchWithDeadline(first.imageUrl, { cache: 'force-cache', credentials: 'omit', redirect: 'error', referrerPolicy: 'no-referrer' }); if (!imageResponse.ok || !imageResponse.body) return false;
-      const reader = imageResponse.body.getReader(); const chunks = []; let total = 0; while (true) { const part = await withDeadline(reader.read()); if (part.done) break; total += part.value.byteLength; if (total > 1048576) { await reader.cancel(); return false; } chunks.push(part.value); }
-      const bytes = new Uint8Array(total); let offset = 0; chunks.forEach((chunk) => { bytes.set(chunk, offset); offset += chunk.byteLength; }); const digestValue = await sha256Hex(bytes); if (digestValue !== first.sha256) return false;
-      const dataUrl = `data:image/png;base64,${bytesToBase64(bytes)}`; if (!await decodeImage(dataUrl)) return false; localStorage.setItem(DIM_SUM_IMAGE_CACHE_KEY, JSON.stringify({ schemaVersion: 1, sourceUrl: DIM_SUM_CACHE.sourceUrl, catalogRevision: DIM_SUM_CACHE.releaseNamespace, entries: [{ id: first.id, sha256: first.sha256, releaseTag: first.releaseTag, catalogRevision: first.catalogRevision, dataUrl }] })); DISHES = [{ ...first, dataUrl }]; return true;
+      const candidates = [...DISHES].sort(() => Math.random() - 0.5).slice(0, 3);
+      for (const candidate of candidates) {
+        try {
+          const imageResponse = await fetchWithDeadline(candidate.imageUrl, { cache: 'force-cache', credentials: 'omit', redirect: 'error', referrerPolicy: 'no-referrer' }); if (!imageResponse.ok || !imageResponse.body) continue;
+          const reader = imageResponse.body.getReader(); const chunks = []; let total = 0; while (true) { const part = await withDeadline(reader.read()); if (part.done) break; total += part.value.byteLength; if (total > 1048576) { await reader.cancel(); total = 0; break; } chunks.push(part.value); }
+          if (!total) continue;
+          const bytes = new Uint8Array(total); let offset = 0; chunks.forEach((chunk) => { bytes.set(chunk, offset); offset += chunk.byteLength; }); const digestValue = await sha256Hex(bytes); if (digestValue !== candidate.sha256) continue;
+          const dataUrl = `data:image/png;base64,${bytesToBase64(bytes)}`; if (!await decodeImage(dataUrl)) continue; localStorage.setItem(DIM_SUM_IMAGE_CACHE_KEY, JSON.stringify({ schemaVersion: 1, sourceUrl: DIM_SUM_CACHE.sourceUrl, catalogRevision: DIM_SUM_CACHE.releaseNamespace, entries: [{ id: candidate.id, sha256: candidate.sha256, releaseTag: candidate.releaseTag, catalogRevision: candidate.catalogRevision, dataUrl }] })); DISHES = [{ ...candidate, dataUrl }]; return true;
+        } catch { /* try the next bounded candidate */ }
+      }
+      return false;
     } catch { DISHES = []; return false; }
   }
   function applyPanelCopy() {
@@ -264,7 +272,9 @@
     const titleNode = document.createElement('strong'); if (state.dialogEmoji) { const icon = document.createElement('span'); icon.setAttribute('aria-hidden', 'true'); icon.textContent = '◈ '; titleNode.append(icon); } const titleParts = state.language === 'both' ? title.split(' / ') : [title]; titleParts.forEach((part, index) => { if (index) titleNode.append(document.createTextNode(' / ')); const segment = document.createElement('span'); segment.className = index ? 'copy-segment copy-segment-zh' : 'copy-segment copy-segment-en'; segment.lang = index ? 'yue-HK' : 'en'; segment.textContent = part; titleNode.append(segment); });
     const bodyNode = document.createElement('span'); const bodyParts = state.language === 'both' ? body.split(' / ') : [body]; bodyParts.forEach((part, index) => { if (index) bodyNode.append(document.createTextNode(' / ')); const segment = document.createElement('span'); segment.className = index ? 'copy-segment copy-segment-zh' : 'copy-segment copy-segment-en'; segment.lang = index ? 'yue-HK' : 'en'; segment.textContent = part; bodyNode.append(segment); }); toast.append(titleNode, bodyNode);
     region.append(toast);
-    announce(title, body, 'global-notification');
+    const split = (value) => { const parts = String(value).split(' / '); return { en: parts[0], zh: parts[1] || parts[0] }; };
+    const eventTitleParts = split(title); const eventBodyParts = split(body);
+    announce(`${eventTitleParts.en}. ${eventBodyParts.en}`, `${eventTitleParts.zh}。${eventBodyParts.zh}`, 'global-notification');
     window.setTimeout(() => toast.remove(), 6000);
   }
   function setText(id, en, zh) {
@@ -528,7 +538,7 @@
       state.schedule.rules = state.schedule.rules.filter((rule) => rule.id !== confirmScheduleId);
       state.schedule.lastAppliedRule = '';
     } else if (confirmAction === 'full-reset') {
-      OWNED_STATE_KEYS.forEach((key) => localStorage.removeItem(key)); window.location.reload(); return;
+      purgeOwnedState(); window.location.reload(); return;
     }
     save(); applyState(); notify(copy('Local action completed', '本地操作完成', 'en'), copy('The page returned to its truthful local state.', '頁面已返回真實嘅本地狀態。', 'en')); closeConfirmation();
   }
@@ -707,13 +717,21 @@
   function applyExternalSetting(body, active) {
     if (!active) return;
     const target = String(body?.target || '');
-    if (!SCHEDULE_TARGETS.some(([id]) => id === target) || body.value === undefined) return;
+    if (!SCHEDULE_TARGETS.some(([id]) => id === target) || body.value === undefined || !validateTargetValue(target, body.value)) return;
     effectiveSettings[target] = target === 'narratorEnabled' ? body.value === true || body.value === 'true' : String(body.value).slice(0, 120);
     if (target === 'language') state.language = effectiveSettings.language;
     if (target === 'narratorEnabled') state.narratorEnabled = effectiveSettings.narratorEnabled;
     if (target === 'displayName') state.displayName = effectiveSettings.displayName;
     if (target === 'theme' || target === 'density') document.documentElement.dataset[target] = effectiveSettings[target];
     applyLanguageValue(); applyDisplayName(); applyPanelCopy();
+  }
+  function validateTargetValue(target, value) {
+    if (target === 'language') return ['en', 'zh', 'both'].includes(value);
+    if (target === 'theme') return ['light', 'dark', 'contrast'].includes(value);
+    if (target === 'density') return ['compact', 'comfortable', 'spacious'].includes(value);
+    if (target === 'narratorEnabled') return typeof value === 'boolean' || value === 'true' || value === 'false';
+    if (target === 'displayName') return typeof value === 'string' && value.trim().length > 0 && value.length <= 80;
+    return false;
   }
   function renderScheduleRules() {
     const node = $('global-schedule-rules');
@@ -731,6 +749,7 @@
     if (source === 'https' && privateHost) throw new Error('Production HTTPS sources may not use loopback, link-local, or private-address hosts.');
     if (source === 'https' && !APPROVED_EXTERNAL_HOSTS.has(host)) throw new Error(`HTTPS source host is not on the approved host allowlist: ${[...APPROVED_EXTERNAL_HOSTS].join(', ')}.`);
     if (source === 'home-assistant' && !privateHost && url.protocol !== 'https:') throw new Error('Home Assistant requires HTTPS, loopback, or an explicitly local private host.');
+    if (source === 'home-assistant' && !privateHost && !APPROVED_HOME_ASSISTANT_HOSTS.has(host)) throw new Error(`Home Assistant host is not approved: ${[...APPROVED_HOME_ASSISTANT_HOSTS].join(', ')} or an explicitly local private host.`);
     return url;
   }
   function validateExternalPayload(value, depth = 0, fields = 0) {
@@ -768,6 +787,7 @@
     if (!allDay && (!startTime || !endTime)) { $('global-schedule-status').textContent = 'Schedule not saved: choose both a start and end time, or use a local all-day rule.'; return; }
     const rule = { id: `rule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, target: $('global-schedule-target').value, value: $('global-schedule-value').value.slice(0, 120), startDate, endDate, startTime: allDay ? '' : startTime, endTime: allDay ? '' : endTime, allDay, weekdays: all('[data-global-weekday]:checked').map((node) => node.dataset.globalWeekday), everyDay: $('global-schedule-every-day').checked, timezone, precedence: Math.min(100, Math.max(0, Number($('global-schedule-precedence').value) || 0)), source, endpoint, entity: $('global-schedule-entity').value.trim().slice(0, 128) };
     if (!rule.value) { $('global-schedule-status').textContent = 'Schedule not saved: choose a target value.'; return; }
+    if (!validateTargetValue(rule.target, rule.value)) { $('global-schedule-status').textContent = 'Schedule not saved: the value does not match the selected target setting.'; return; }
     if (!rule.everyDay && !rule.weekdays.length) { $('global-schedule-status').textContent = 'Schedule not saved: choose weekdays or Every day.'; return; }
     if (source === 'home-assistant' && !/^\b(?:binary_sensor|input_boolean)\.[a-z0-9_]+$/i.test(rule.entity)) { $('global-schedule-status').textContent = 'Schedule not saved: use a boolean Home Assistant entity such as input_boolean.example.'; return; }
     state.schedule.rules = [...state.schedule.rules, rule].slice(-MAX_RULES); state.schedule.lastAppliedRule = ''; save(); applyState(); $('global-schedule-status').textContent = copy('Versioned schedule rule saved locally. It applies by precedence when its date, time, weekday, and timezone window matches.', '版本化排程規則已保存喺本地，日期、時間、星期同時區符合時會按優先次序套用。', 'en'); notify(copy('Schedule saved', '排程已保存', 'en'), copy('The local rule is ready.', '本地規則準備好喇。', 'en'));
@@ -807,8 +827,10 @@
   function scheduleNextBoundary() {
     if (scheduleBoundaryTimer) clearTimeout(scheduleBoundaryTimer);
     const now = new Date();
-    const milliseconds = (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 25;
-    scheduleBoundaryTimer = setTimeout(refreshScheduledState, Math.max(100, milliseconds));
+    let previous = state.schedule.rules.some((rule) => !state.schedule.paused && rule.source === 'local' && scheduleRuleMatches(rule, now));
+    let next = new Date(now.getTime() + 60 * 1000);
+    for (let minute = 1; minute <= 10080; minute += 1) { const candidate = new Date(now.getTime() + minute * 60000); const active = state.schedule.rules.some((rule) => !state.schedule.paused && rule.source === 'local' && scheduleRuleMatches(rule, candidate)); if (active !== previous) { next = candidate; break; } previous = active; }
+    scheduleBoundaryTimer = setTimeout(refreshScheduledState, Math.max(100, next.getTime() - Date.now() + 25));
   }
   function init() {
     if (window.__dingPbxGlobalSettingsInitialized) return;
@@ -822,9 +844,9 @@
     if ($('palette-results')) paletteObserver.observe($('palette-results'), { childList: true });
     augmentPalette();
     if (speechSynthesisAvailable()) { voiceListener = () => { refreshVoices(); }; speechSynthesis.addEventListener('voiceschanged', voiceListener); refreshVoices(); }
-    pageEventListener = (event) => { if (event.detail?.title && event.detail?.body) announce(String(event.detail.title), String(event.detail.body), String(event.detail.category || 'page-event')); };
+    pageEventListener = (event) => { const detail = event.detail; if (detail?.eventId && detail?.enTitle && detail?.zhTitle && detail?.enBody && detail?.zhBody) announce(`${String(detail.enTitle)}. ${String(detail.enBody)}`, `${String(detail.zhTitle)}。${String(detail.zhBody)}`, String(detail.category || 'page-event')); };
     window.addEventListener('ding-page-event', pageEventListener);
-    pageStateListener = (event) => { if (!event.detail) return; if (['en', 'zh', 'both'].includes(event.detail.language)) state.language = event.detail.language; if (Number.isFinite(event.detail.englishFunny)) state.englishFunny = Math.min(5, Math.max(1, Number(event.detail.englishFunny))); if (Number.isFinite(event.detail.cantoneseFunny)) state.cantoneseFunny = Math.min(5, Math.max(1, Number(event.detail.cantoneseFunny))); save(); applyState(); };
+    pageStateListener = (event) => { if (!event.detail) return; if (['en', 'zh', 'both'].includes(event.detail.language)) { state.language = event.detail.language; baseSettings.language = state.language; } if (Number.isFinite(event.detail.englishFunny)) state.englishFunny = Math.min(5, Math.max(1, Number(event.detail.englishFunny))); if (Number.isFinite(event.detail.cantoneseFunny)) state.cantoneseFunny = Math.min(5, Math.max(1, Number(event.detail.cantoneseFunny))); if (['light', 'dark', 'contrast'].includes(event.detail.theme)) baseSettings.theme = event.detail.theme; if (['compact', 'comfortable', 'spacious'].includes(event.detail.density)) baseSettings.density = event.detail.density; save(); applyState(); };
     window.addEventListener('ding-page-state-change', pageStateListener);
     save();
     applyState();

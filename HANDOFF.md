@@ -454,7 +454,7 @@ unknown fields. Home Assistant accepts only an explicit on or off state shape an
 browser credential limitation. Narration keeps missing voice identities visible, restricts
 Cantonese voices to yue-HK, and applies debounce, category cooldown, quiet, reduced-sound, and
 screen-reader suppression. The dim-sum cache records its authoritative catalog URL and revision,
-uses a local CSS plate image equivalent, and suppresses first-visit, School, quiet, error, update,
+uses a verified local application-data image, and suppresses first-visit, School, quiet, error, update,
 active-work, hidden-page, and screen-reader states. Every dropdown receives its own filter and
 anchored regex builder, and the settings tabs support arrow, Home, End, and focus return.
 
@@ -469,8 +469,9 @@ Generated article markup now receives a direct `data-global-settings` script mar
 module has a one-load window sentinel, so an article that also loads the shared page script does
 not initialize two narrator queues or two observers. The dim-sum cache now records five actual
 published public catalog image assets, immutable release tags, catalog revisions, URLs, and
-SHA-256 values. The surprise consumer renders the matching remote catalog image and bilingual alt
-text, with the former CSS plate removed.
+SHA-256 values. The surprise consumer verifies and caches the matching catalog image locally,
+then renders only the local data URL with bilingual alt text. First use remains partial until the
+bounded fetch succeeds.
 
 The schedule layer now separates base settings from effective values, consumes theme and density
 through root data attributes, resolves rule dates, weekdays, and times in each rule's timezone,
@@ -513,7 +514,7 @@ only the verified local image data.
 Scheduled effective state is computed before controls render. The next minute boundary has an
 exact timeout with a recurring fallback and visibility refresh. Invalid IANA timezones remain
 visible and their rules do not apply. Pausing preserves rules. Full reset clears the canonical
-state, compatibility mirror, vocabulary and logo caches, and dim-sum image cache. The external
+state, global-owned compatibility fields, vocabulary and logo caches, and dim-sum image cache. The external
 source path retains a strict host allowlist and bounded deadline.
 
 Panel and notice copy now render independent English and Cantonese segments in bilingual mode.
@@ -521,6 +522,32 @@ The existing page runtime receives global language and funny-level changes throu
 event bridge, and ordinary global notices reach the bounded narrator path. The main regex builder
 keeps plain query and regex pattern, flags, and mode separate while staying attached to its
 originating field with focus return.
+
+Verification remained limited to `node --check` for the changed JavaScript files and
+`git diff --check`; no tests, lint, build, browser, UI, captures, hosting, deployment, push,
+release, or cleanup work ran.
+
+## Pages global settings fifth refutation repair, 2026-08-24
+
+The navigation keyboard listener now registers before the navigation element early return, so
+`Ctrl+Shift+F` works on generated articles and other pages without a navigation rail. Generated
+article base URLs are computed before the existing palette runtime starts, and settings-owned
+regex controls are explicitly excluded from the older broad handler.
+
+The page event bridge now emits a neutral event id plus separate English and Cantonese title and
+body fields. The bounded narrator consumes those separate tracks rather than a combined display
+string. The canonical settings state remains the only authority, with the older page record used
+only as a compatibility mirror for its owned language and funny-level fields. Full reset preserves
+unrelated mirror fields while clearing all global-owned state and caches.
+
+Dim-sum metadata now accepts only `catalog-v1` image authority. The former desktop release tags
+were removed. First use tries a bounded shuffled candidate set, verifies the image digest and
+decode, caches the verified local image with full source identity, and stays partial when the
+first-use network fetch cannot complete. Each launch consumes one draw, including a miss, and
+later offline launches use only the verified local image data. Schedule matching computes the
+next real transition by timezone, retains paused rules, validates target-specific values, and
+reports invalid timezones. Home Assistant now has an explicit host allowlist or local private-host
+policy.
 
 Verification remained limited to `node --check` for the changed JavaScript files and
 `git diff --check`; no tests, lint, build, browser, UI, captures, hosting, deployment, push,

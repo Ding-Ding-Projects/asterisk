@@ -52,7 +52,7 @@
     },
     "dim-sum-surprise": {
       "state": "partial",
-      "note": "global-settings.js consumes the versioned dim-sum-cache.json records, including authoritative bilingual names, immutable catalog release tags, public image URLs, and SHA-256 values. It performs a fresh ten-percent later-visit draw, one draw per launch, with first-visit, School, quiet, error, update, active-work, hidden-page, and screen-reader suppression. The rendered card uses a verified locally cached sanctioned catalog image and accessible bilingual alt text, with no CSS substitute or opt-out. First use remains partial because it requires a bounded network fetch to populate the local image cache.",
+      "note": "global-settings.js consumes the versioned dim-sum-cache.json records, including authoritative bilingual names, immutable catalog-v1 release tags, public image URLs, and SHA-256 values. It performs a fresh ten-percent later-visit draw, one draw per launch, with first-visit, School, quiet, error, update, active-work, hidden-page, and screen-reader suppression. The rendered card uses a verified locally cached sanctioned catalog image and accessible bilingual alt text, with no CSS substitute or opt-out. First use remains partial because it requires a bounded network fetch to populate the local image cache, and the candidate set is bounded and shuffled rather than fixed to one record.",
       "files": ["site/global-settings.js", "site/dim-sum-cache.json", "docs/app/site-global-settings.md"]
     },
     "regex-builder": {
