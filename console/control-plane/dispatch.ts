@@ -47,8 +47,6 @@ export interface ControlPlaneDispatcherOptions {
   /** True when running under the hosted HTTP server rather than the desktop app. Gates
    *  the WSL-only actions above with an honest, named refusal instead of a stack trace. */
   hosted: boolean;
-  /** Public GitHub OAuth client id used only for the device flow. Never a credential. */
-  forgeDeviceClientId?: string;
 }
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
@@ -283,7 +281,6 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       executor: processExecutor,
       store: new FileForgeStateStore(join(userDataPath, 'forge-publishing.json')),
       history,
-      deviceClientId: options.forgeDeviceClientId,
       conptyHelperPath: join(resourcesPath, 'forge', 'forge-device-signin.ps1'),
       conptyStatePath: join(userDataPath, 'forge-device-state.json'),
       bundledGhPath: join(resourcesPath, 'forge', 'gh.exe'),
@@ -468,7 +465,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           if (requestedOperationId && requestedOperationId !== forge.state().operation.id) {
             return { ok: false, requestId: request.requestId, code: 'FORGE_STALE_OPERATION', message: 'The requested forge operation id is stale; the current operation was not returned.' } as ControlPlaneResponse;
           }
-          return { ok: true, requestId: request.requestId, data: { operation: forge.state().operation } };
+          return { ok: true, requestId: request.requestId, data: { operation: forge.state().operation, device: forge.state().device } };
         }
         if (request.action === 'forge.state.reset-corruption') {
           const result = forge.resetCorruption();

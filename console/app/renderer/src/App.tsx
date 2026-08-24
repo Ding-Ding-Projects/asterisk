@@ -324,6 +324,17 @@ export class App extends Base {
         label: String(provider.displayName ?? provider.provider ?? ''),
         state: provider.apiState === 'available' ? 'Fork and copy and push available' : `Unavailable: ${String(provider.reason ?? 'No adapter configured')}`,
       }));
+    } else {
+      this.forgeCapabilities = [];
+      this.forgeAccounts = [];
+      this.forgeOwners = [];
+      this.forgeActiveAccountId = '';
+      this.forgeOwnerId = '';
+      this.forgeOperation = { id: 'idle', status: 'idle', progress: 0, message: capabilityResponse?.message ?? 'Forge publishing is unavailable on this surface.', cancellable: false };
+      this.forgeDevice = { status: 'idle', operationId: 'idle', sessionId: '', revision: '0', message: capabilityResponse?.message ?? 'Forge publishing is unavailable on this surface.' };
+      this.forgeStatus = capabilityResponse?.message ?? 'Forge publishing is unavailable on this surface.';
+      this.forceUpdate();
+      return;
     }
     const response = await this.request('forge.accounts.list');
     const data = response?.data as { accounts?: Array<Record<string, unknown>>; activeAccountId?: string; receipts?: Array<Record<string, unknown>>; operation?: Record<string, unknown>; device?: Record<string, unknown>; corruption?: string; reauthAction?: string } | undefined;
@@ -338,7 +349,7 @@ export class App extends Base {
     });
     this.forgeReceipts = (data?.receipts ?? []).map((receipt) => ({ status: String(receipt.status ?? 'unknown'), message: String(receipt.message ?? ''), when: String(receipt.observedAt ?? '') })).slice(0, 12);
     if (data?.operation) this.forgeOperation = { id: String(data.operation.id ?? 'idle'), status: String(data.operation.status ?? 'idle'), progress: Number(data.operation.progress ?? 0), message: String(data.operation.message ?? ''), cancellable: Boolean(data.operation.cancellable) };
-    if (data?.device) this.forgeDevice = { status: String(data.device.status ?? 'idle'), operationId: String(data.device.operationId ?? 'idle'), sessionId: String(data.device.sessionId ?? ''), revision: String(data.device.revision ?? '0'), userCode: String(data.device.userCode ?? ''), verificationUri: String(data.device.verificationUri ?? ''), expiresAt: String(data.device.expiresAt ?? ''), message: String(data.device.message ?? '') };
+    if (data?.device) this.forgeDevice = { status: String(data.device.status ?? 'idle'), operationId: String(data.device.operationId ?? 'idle'), sessionId: String(data.device.sessionId ?? ''), revision: String(data.device.revision ?? '0'), exitCode: String(data.device.exitCode ?? ''), userCode: String(data.device.userCode ?? ''), verificationUri: String(data.device.verificationUri ?? ''), expiresAt: String(data.device.expiresAt ?? ''), message: String(data.device.message ?? '') };
     if (data?.corruption) this.forgeStatus = data.corruption;
     if (!response?.ok) {
       this.forgeStatus = data?.corruption ? `${data.corruption} ${response?.message ?? ''}`.trim() : (response?.message ?? 'The forge bridge did not answer.');
@@ -362,6 +373,8 @@ export class App extends Base {
     const response = await this.request('forge.operation.status', { payload: { operationId: expectedOperationId } });
     if (!response?.ok) return;
     const operation = (response.data as { operation?: Record<string, unknown> }).operation;
+    const device = (response.data as { device?: Record<string, unknown> }).device;
+    if (device) this.forgeDevice = { status: String(device.status ?? 'idle'), operationId: String(device.operationId ?? expectedOperationId), sessionId: String(device.sessionId ?? ''), revision: String(device.revision ?? '0'), exitCode: String(device.exitCode ?? ''), userCode: String(device.userCode ?? ''), verificationUri: String(device.verificationUri ?? ''), expiresAt: String(device.expiresAt ?? ''), message: String(device.message ?? '') };
     if (!operation) return;
     const operationId = String(operation.id ?? 'idle');
     if (expectedOperationId !== 'idle' && operationId !== expectedOperationId) return;

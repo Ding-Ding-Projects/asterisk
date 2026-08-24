@@ -33,29 +33,53 @@ function Read-State {
 function Write-State([object]$State) {
     $parent = Split-Path -Parent $StatePath
     New-Item -ItemType Directory -Force -Path $parent | Out-Null
-    $existing = Read-State
-    if ($existing -and $existing.status -eq 'corrupt') { throw [string]$existing.corruption }
-    $incomingSessionId = if ($State -is [hashtable]) { $State['sessionId'] } else { $State.sessionId }
-    if ($existing -and $incomingSessionId -and $existing.sessionId -and [string]$existing.sessionId -ne [string]$incomingSessionId) { throw 'The ConPTY state belongs to a different session.' }
-    $merged = @{}
-    if ($existing) { foreach ($property in $existing.PSObject.Properties) { $merged[$property.Name] = $property.Value } }
-    if ($State -is [hashtable]) { foreach ($key in $State.Keys) { $merged[$key] = $State[$key] } }
-    else { foreach ($property in $State.PSObject.Properties) { $merged[$property.Name] = $property.Value } }
-    if (-not $merged.ContainsKey('sessionId') -and $SessionId) { $merged.sessionId = $SessionId }
-    if ($OperationId -and -not $merged.operationId) { $merged.operationId = $OperationId }
-    if ($ExpiresAt -and -not $merged.expiresAt) { $merged.expiresAt = $ExpiresAt }
-    $oldRevision = 0L
-    if ($merged.revision -as [long]) { $oldRevision = [long]$merged.revision }
-    $merged.revision = $oldRevision + 1
-    $tmp = "$StatePath.$PID.$([Guid]::NewGuid().ToString('N')).tmp"
+    $mutexName = 'Local\DingForgeState-' + (([BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash([Text.Encoding]::UTF8.GetBytes($StatePath)))).Replace('-', '').ToLowerInvariant())
+    $mutex = [Threading.Mutex]::new($false, $mutexName)
+    $held = $false
     try {
-        [IO.File]::WriteAllText($tmp, (($merged | ConvertTo-Json -Depth 6) + "`n"), [Text.UTF8Encoding]::new($false))
-        for ($attempt = 1; $attempt -le 8; $attempt++) {
-            try { Move-Item -LiteralPath $tmp -Destination $StatePath -Force; return }
-            catch { if ($attempt -eq 8) { throw }; Start-Sleep -Milliseconds 40 }
+        $held = $mutex.WaitOne(5000)
+        if (-not $held) { throw 'The ConPTY state CAS lock could not be acquired.' }
+        try {
+            $existing = Read-State
+            if ($existing -and $existing.status -eq 'corrupt') { throw [string]$existing.corruption }
+            $incomingSessionId = if ($State -is [hashtable]) { $State['sessionId'] } else { $State.sessionId }
+            if ($existing -and $incomingSessionId -and $existing.sessionId -and [string]$existing.sessionId -ne [string]$incomingSessionId) { throw 'The ConPTY state belongs to a different session.' }
+            $merged = @{}
+            if ($existing) { foreach ($property in $existing.PSObject.Properties) { $merged[$property.Name] = $property.Value } }
+            if ($State -is [hashtable]) { foreach ($key in $State.Keys) { $merged[$key] = $State[$key] } }
+            else { foreach ($property in $State.PSObject.Properties) { $merged[$property.Name] = $property.Value } }
+            if (-not $merged.ContainsKey('sessionId') -and $SessionId) { $merged.sessionId = $SessionId }
+            if ($OperationId -and -not $merged.operationId) { $merged.operationId = $OperationId }
+            if ($ExpiresAt -and -not $merged.expiresAt) { $merged.expiresAt = $ExpiresAt }
+            $oldRevision = 0L
+            if ($merged.revision -as [long]) { $oldRevision = [long]$merged.revision }
+            $merged.revision = $oldRevision + 1
+            $tmp = "$StatePath.$PID.$([Guid]::NewGuid().ToString('N')).tmp"
+            try {
+                [IO.File]::WriteAllText($tmp, (($merged | ConvertTo-Json -Depth 6) + "`n"), [Text.UTF8Encoding]::new($false))
+                for ($attempt = 1; $attempt -le 8; $attempt++) {
+                    try { Move-Item -LiteralPath $tmp -Destination $StatePath -Force; return }
+                    catch { if ($attempt -eq 8) { throw }; Start-Sleep -Milliseconds 40 }
+                }
+            } finally {
+                if (Test-Path -LiteralPath $tmp -PathType Leaf) { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
+            }
+        } finally {
+            if ($held) { $mutex.ReleaseMutex() }
         }
     } finally {
-        if (Test-Path -LiteralPath $tmp -PathType Leaf) { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
+        $mutex.Dispose()
+    }
+}
+
+function Retire-Terminal-State {
+    $prior = Read-State
+    if (-not $prior) { return }
+    if (@('pending','starting') -contains [string]$prior.status) { throw 'A prior ConPTY device session is still pending.' }
+    $retired = "$StatePath.retired.$([string]$prior.sessionId).$([string]$prior.revision).json"
+    for ($attempt = 1; $attempt -le 8; $attempt++) {
+        try { Move-Item -LiteralPath $StatePath -Destination $retired -Force; return }
+        catch { if ($attempt -eq 8) { throw }; Start-Sleep -Milliseconds 40 }
     }
 }
 
@@ -181,6 +205,7 @@ if ($Mode -eq 'validate') { Assert-Tooling; Ensure-ConPtyType; Write-Output 'for
 Assert-Tooling
 if ($Mode -eq 'start') {
     $SessionId=[Guid]::NewGuid().ToString('N')
+    Retire-Terminal-State
     Write-State @{status='starting'; message='Starting gh device sign-in through ConPTY.'; sessionId=$SessionId; operationId=$OperationId; expiresAt=$ExpiresAt}
     $args=@('-NoLogo','-NoProfile','-ExecutionPolicy','Bypass','-File',$PSCommandPath,'-Mode','run','-StatePath',$StatePath,'-GhPath',$GhPath,'-SessionId',$SessionId,'-OperationId',$OperationId,'-ExpiresAt',$ExpiresAt)
     $child=Start-Process -FilePath 'powershell.exe' -ArgumentList $args -WindowStyle Hidden -PassThru
@@ -215,6 +240,7 @@ $reader={
 try {
   $exit=[DingForge.ConPty]::Run($GhPath,'auth login --web --hostname github.com --git-protocol https',$PWD.Path,$reader,$cancelled)
   $current=Read-State
+  $current.exitCode=$exit
   if($exit -eq 0){$current.status='completed';$current.message='gh device sign-in completed. Read gh auth status to prove keyring storage.'}elseif($exit -eq 130){$current.status='cancelled';$current.message='Device sign-in cancelled.'}elseif($exit -eq 124){$current.status='unknown-side-effect';$current.message='The ConPTY device flow exceeded its deadline before the external outcome was known.'}else{$current.status='failed';$current.message="gh device sign-in ended with exit code $exit."}
   Write-State ([hashtable]$current)
 } catch { Write-State @{status='failed'; message=$_.Exception.Message; sessionId=$SessionId; operationId=$OperationId; expiresAt=$ExpiresAt} }
