@@ -45,6 +45,16 @@ function Has-DockerLabel($Container, [string]$Name, [string]$Value) {
     $labels = @([string]$Container.Labels -split ',')
     return @($labels | Where-Object { $_ -eq "$Name=$Value" }).Count -eq 1
 }
+
+function Get-AvailableStorageBytes($Facts) {
+    foreach ($fact in @($Facts)) {
+        foreach ($name in @('AvailableBytes', 'FreeBytes', 'Available', 'Free')) {
+            $property = $fact.PSObject.Properties[$name]
+            if ($null -ne $property -and [long]::TryParse([string]$property.Value, [ref]$value) -and $value -ge 0) { return [long]$value }
+        }
+    }
+    return $null
+}
 function Test-WorkloadRecord($Container) {
     return $null -ne $Container.ID -and $null -ne $Container.Names -and $null -ne $Container.Image -and $null -ne $Container.State -and $null -ne $Container.Labels
 }
@@ -114,7 +124,8 @@ if ($Mode -in @('docker', 'all')) {
     } else { Add-Check $result 'docker-info-readable' $false 'Docker info was not valid JSON.' }
     $portConflict = @(Get-NetTCPConnection -State Listen -LocalPort $RequiredPort -ErrorAction SilentlyContinue)
     Add-Check $result 'local-port-available' ($portConflict.Count -eq 0) "Port $RequiredPort listeners=$($portConflict.Count)"
-    Add-Check $result 'local-storage-threshold' ($storageFacts.valid -and $storageFacts.items.Count -gt 0) "Docker engine storage facts are present; required minimum=$MinimumStorageBytes bytes"
+    $availableStorageBytes = Get-AvailableStorageBytes $storageFacts.items
+    Add-Check $result 'local-storage-threshold' ($storageFacts.valid -and $null -ne $availableStorageBytes -and $availableStorageBytes -ge $MinimumStorageBytes) "AvailableBytes=$availableStorageBytes required=$MinimumStorageBytes"
     $workloadOutput = $dockerProbe[2].output
     Add-Check $result 'local-workload-inventory-readable' ($dockerProbe[2].exitCode -eq 0) 'Every local container was enumerated.'
     $workloads = Convert-JsonLines $workloadOutput

@@ -3,6 +3,7 @@ function Assert-ProvenanceRecord {
         [Parameter(Mandatory)] $Record,
         [Parameter(Mandatory)] [string]$ExpectedCommit,
         [Parameter(Mandatory)] [string]$ExpectedVersion,
+        [Parameter(Mandatory)] [string]$ExpectedSourceTreeSha256,
         [Parameter(Mandatory)] [string]$ExpectedDockerfileSha256,
         [Parameter(Mandatory)] [string]$ExpectedConsoleLockSha256,
         [Parameter(Mandatory)] [string]$ExpectedInputManifestSha256
@@ -23,6 +24,7 @@ function Assert-ProvenanceRecord {
     }
     if ($Record.ubuntuSnapshot -notmatch '^[0-9]{8}T[0-9]{6}Z$') { throw 'Provenance Ubuntu snapshot is invalid.' }
     if ($Record.ubuntuSnapshot -ne $ExpectedUbuntuSnapshot -or $Record.baseImages.runtime -ne $ExpectedRuntimeBaseImage -or $Record.baseImages.nodeBuild -ne $ExpectedNodeBuildBaseImage) { throw 'Provenance base image or snapshot does not match the external identity.' }
+    if ($Record.sourceTreeSha256 -ne $ExpectedSourceTreeSha256 -or $Record.dockerfileSha256 -ne $ExpectedDockerfileSha256 -or $Record.consoleLockSha256 -ne $ExpectedConsoleLockSha256 -or $Record.inputManifestSha256 -ne $ExpectedInputManifestSha256) { throw 'Provenance source or input digests do not match the external identity.' }
     if ($Record.aptSbomSha256 -notmatch '^[0-9a-f]{64}$') { throw 'Provenance apt SBOM digest is invalid.' }
     if ((@($Record.sbom) -join '|') -ne (@('sbom-apt.txt', 'sbom-apt.sha256', 'node-runtime-version.txt') -join '|')) { throw 'Provenance does not name the exact complete SBOM records.' }
     return $true

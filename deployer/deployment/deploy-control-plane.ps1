@@ -148,7 +148,7 @@ function Read-Provenance([string]$Reference, [bool]$InspectEmbedded, $ExpectedMa
         if ($LASTEXITCODE -ne 0) { throw 'The image has no embedded provenance.json.' }
         if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $ExpectedManifest.provenanceSha256) { throw 'Embedded provenance SHA-256 does not match the external deployment manifest.' }
         $record = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
-        Assert-ProvenanceRecord -Record $record -ExpectedCommit $ExpectedManifest.sourceCommit -ExpectedVersion $ExpectedManifest.version -ExpectedDockerfileSha256 $ExpectedManifest.dockerfileSha256 -ExpectedConsoleLockSha256 $ExpectedManifest.consoleLockSha256 -ExpectedInputManifestSha256 $ExpectedManifest.inputManifestSha256 -ExpectedUbuntuSnapshot $ExpectedManifest.ubuntuSnapshot -ExpectedRuntimeBaseImage $ExpectedManifest.runtimeBaseImage -ExpectedNodeBuildBaseImage $ExpectedManifest.nodeBuildBaseImage | Out-Null
+        Assert-ProvenanceRecord -Record $record -ExpectedCommit $ExpectedManifest.sourceCommit -ExpectedVersion $ExpectedManifest.version -ExpectedSourceTreeSha256 $ExpectedManifest.sourceTreeSha256 -ExpectedDockerfileSha256 $ExpectedManifest.dockerfileSha256 -ExpectedConsoleLockSha256 $ExpectedManifest.consoleLockSha256 -ExpectedInputManifestSha256 $ExpectedManifest.inputManifestSha256 -ExpectedUbuntuSnapshot $ExpectedManifest.ubuntuSnapshot -ExpectedRuntimeBaseImage $ExpectedManifest.runtimeBaseImage -ExpectedNodeBuildBaseImage $ExpectedManifest.nodeBuildBaseImage | Out-Null
         if ($record.aptSbomSha256 -ne $ExpectedManifest.aptSbomSha256) { throw 'Embedded apt SBOM digest does not match the external deployment manifest.' }
         $sbomPath = Join-Path ([System.IO.Path]::GetTempPath()) "$container-sbom.txt"
         try {
@@ -279,7 +279,7 @@ function Register-PlaintextPath([string]$Path, [string]$State) {
     $temporary = "$journalPath.$([guid]::NewGuid().ToString('N')).tmp"; [System.IO.File]::WriteAllText($temporary, ($journal | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false)); Move-Item -LiteralPath $temporary -Destination $journalPath -Force
 }
 function Recover-PlaintextPaths {
-    $journalPath=Join-Path $SnapshotDirectory 'plaintext-recovery-journal.json'; if(-not (Test-Path -LiteralPath $journalPath)){return}; $journal=Get-Content -Raw -LiteralPath $journalPath|ConvertFrom-Json; foreach($entry in @($journal.paths|Where-Object state -in @('planned','created'))){ if(Test-Path -LiteralPath $entry.path -PathType Leaf){$item=Get-Item -LiteralPath $entry.path;if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){throw "Plaintext recovery path is a reparse point: $($entry.path)"};Remove-Item -LiteralPath $entry.path -Force}; Register-PlaintextPath $entry.path 'erased' }
+    $journalPath=Join-Path $SnapshotDirectory 'plaintext-recovery-journal.json'; if(-not (Test-Path -LiteralPath $journalPath)){return}; $journal=Get-Content -Raw -LiteralPath $journalPath|ConvertFrom-Json; $root=[System.IO.Path]::GetFullPath($SnapshotDirectory).TrimEnd('\')+'\'; foreach($entry in @($journal.paths|Where-Object state -in @('planned','created'))){ $full=[System.IO.Path]::GetFullPath([string]$entry.path); if(-not $full.StartsWith($root,[StringComparison]::OrdinalIgnoreCase) -or [System.IO.Path]::GetFileName($full) -notmatch '^snapshot-decrypted\.[0-9a-f-]+\.tar$'){throw "Plaintext recovery path is outside the owned snapshot pattern: $($entry.path)"}; if(Test-Path -LiteralPath $full -PathType Leaf){$item=Get-Item -LiteralPath $full;if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){throw "Plaintext recovery path is a reparse point: $full"};Remove-Item -LiteralPath $full -Force}; Register-PlaintextPath $full 'erased' }
 }
 
 function Get-SnapshotEncryptionKeys {
@@ -423,7 +423,7 @@ function Snapshot-Volumes {
             Register-PlaintextPath $destination 'created'
             $protected = Protect-SnapshotArchive $destination
             Register-PlaintextPath $destination 'erased'
-            $journal.volumeResults += [ordered]@{ volume = $volume; archive = [System.IO.Path]::GetFileName($protected.path); bytes = $archive.bytes; sha256 = $archive.sha256; encryptedBytes = $protected.bytes; encryptedSha256 = $protected.sha256; encryption = $protected.algorithm; formatVersion = $protected.formatVersion; keyDerivation = $protected.keyDerivation; entries = $archive.entries; state = 'complete' }
+            $journal.volumeResults += [ordered]@{ volume = $volume; helperId = $helperId; archive = [System.IO.Path]::GetFileName($protected.path); bytes = $archive.bytes; sha256 = $archive.sha256; encryptedBytes = $protected.bytes; encryptedSha256 = $protected.sha256; encryption = $protected.algorithm; formatVersion = $protected.formatVersion; keyDerivation = $protected.keyDerivation; entries = $archive.entries; state = 'complete' }
             $journal.state = 'in-progress'
             Write-SnapshotJournal $journal
         } catch {

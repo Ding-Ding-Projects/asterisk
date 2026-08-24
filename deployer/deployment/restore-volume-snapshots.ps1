@@ -24,11 +24,22 @@ function Assert-OperationDeadline { if ($OperationTimeoutMinutes -lt 1 -or [Date
 $MaxEncryptedArchiveBytes = 4GB
 $MaxPlainArchiveBytes = 4GB
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
+
+function Assert-ProtectedExternalPath([string]$Path, [string]$Kind) {
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not [System.IO.Path]::IsPathRooted($Path)) { throw "$Kind path must be absolute and outside the repository." }
+    $full = [System.IO.Path]::GetFullPath($Path)
+    $rootWithSeparator = $repoRoot.TrimEnd('\') + '\'
+    if ($full.StartsWith($rootWithSeparator, [StringComparison]::OrdinalIgnoreCase) -or $full.Equals($repoRoot, [StringComparison]::OrdinalIgnoreCase)) { throw "$Kind path must be outside the repository." }
+    $cursor = $full
+    while ($cursor -and $cursor -ne [System.IO.Path]::GetPathRoot($cursor)) {
+        if (Test-Path -LiteralPath $cursor) { if ((Get-Item -LiteralPath $cursor).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "$Kind path cannot traverse a link or reparse point." } }
+        $cursor = [System.IO.Path]::GetDirectoryName($cursor)
+    }
+    return $full
+}
+
+$snapshotPath = Assert-ProtectedExternalPath $SnapshotDirectory 'Snapshot directory'
 if (-not [System.IO.Path]::IsPathRooted($SnapshotDirectory)) { throw 'SnapshotDirectory must be an absolute path.' }
-$snapshotPath = [System.IO.Path]::GetFullPath($SnapshotDirectory)
-if ($snapshotPath.StartsWith($repoRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase) -or $snapshotPath.Equals($repoRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'SnapshotDirectory must be outside the repository.' }
-$cursor = $snapshotPath
-while ($cursor -and $cursor -ne [System.IO.Path]::GetPathRoot($cursor)) { if ((Test-Path -LiteralPath $cursor) -and ((Get-Item -LiteralPath $cursor).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'SnapshotDirectory cannot traverse a link or reparse point.' }; $cursor = [System.IO.Path]::GetDirectoryName($cursor) }
 $recordPath = Join-Path $snapshotPath 'snapshot-record.json'
 if (-not (Test-Path -LiteralPath $recordPath -PathType Leaf)) { throw 'Snapshot record is missing.' }
 $record = Get-Content -Raw -LiteralPath $recordPath | ConvertFrom-Json
@@ -40,9 +51,7 @@ if ($Execute -and ([string]::IsNullOrWhiteSpace($TlsCertFile) -or [string]::IsNu
 if ([string]::IsNullOrWhiteSpace($SnapshotEncryptionKeyFile)) { throw 'SnapshotEncryptionKeyFile is required to validate encrypted snapshot archives.' }
 if ($Execute) {
     Recover-PlaintextPaths
-    foreach ($path in @($ManifestPath, $PreflightEvidencePath, $SnapshotEncryptionKeyFile, $SessionCookieFile)) {
-        if (-not [System.IO.Path]::IsPathRooted($path) -or [System.IO.Path]::GetFullPath($path).StartsWith($repoRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Restore input paths must be absolute and outside the repository.' }
-    }
+    foreach ($pathInfo in @(@($ManifestPath, 'Manifest'), @($PreflightEvidencePath, 'Preflight evidence'), @($SnapshotEncryptionKeyFile, 'Snapshot encryption key'), @($SessionCookieFile, 'Session credential'), @($TlsCertFile, 'TLS certificate'), @($TlsKeyFile, 'TLS private key'))) { Assert-ProtectedExternalPath ([string]$pathInfo[0]) ([string]$pathInfo[1]) | Out-Null }
     if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf) -or -not (Test-Path -LiteralPath $PreflightEvidencePath -PathType Leaf) -or -not (Test-Path -LiteralPath $SnapshotEncryptionKeyFile -PathType Leaf) -or -not (Test-Path -LiteralPath $SessionCookieFile -PathType Leaf)) { throw 'Restore inputs are incomplete.' }
     $keyItem = Get-Item -LiteralPath $SnapshotEncryptionKeyFile
     if ($keyItem.Length -lt 16 -or $keyItem.Length -gt 128) { throw 'Snapshot encryption key file must contain between 16 and 128 bytes.' }
@@ -69,7 +78,7 @@ function Assert-ReadinessCredential {
     return $cookie
 }
 function Register-PlaintextPath([string]$Path, [string]$State) { $journalPath=Join-Path $snapshotPath 'plaintext-recovery-journal.json';$journal=if(Test-Path -LiteralPath $journalPath){Get-Content -Raw -LiteralPath $journalPath|ConvertFrom-Json}else{[pscustomobject]@{schemaVersion=1;paths=@()}};$journal.paths=@($journal.paths|Where-Object path -ne $Path)+@([pscustomobject]@{path=$Path;state=$State;recordedAt=[DateTimeOffset]::UtcNow.ToString('o')});$tmp="$journalPath.$([guid]::NewGuid().ToString('N')).tmp";[IO.File]::WriteAllText($tmp,($journal|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false));Move-Item -LiteralPath $tmp -Destination $journalPath -Force }
-function Recover-PlaintextPaths { $journalPath=Join-Path $snapshotPath 'plaintext-recovery-journal.json';if(-not(Test-Path -LiteralPath $journalPath)){return};$journal=Get-Content -Raw -LiteralPath $journalPath|ConvertFrom-Json;foreach($entry in @($journal.paths|Where-Object state -in @('planned','created'))){if(Test-Path -LiteralPath $entry.path -PathType Leaf){$item=Get-Item -LiteralPath $entry.path;if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){throw "Plaintext recovery path is a reparse point: $($entry.path)"};Remove-Item -LiteralPath $entry.path -Force};Register-PlaintextPath $entry.path 'erased'}}
+function Recover-PlaintextPaths { $journalPath=Join-Path $snapshotPath 'plaintext-recovery-journal.json';if(-not(Test-Path -LiteralPath $journalPath)){return};$journal=Get-Content -Raw -LiteralPath $journalPath|ConvertFrom-Json;$root=[System.IO.Path]::GetFullPath($snapshotPath).TrimEnd('\')+'\';foreach($entry in @($journal.paths|Where-Object state -in @('planned','created'))){$full=[System.IO.Path]::GetFullPath([string]$entry.path);if(-not $full.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)-or [System.IO.Path]::GetFileName($full)-notmatch '^snapshot-decrypted\.[0-9a-f-]+\.tar$'){throw "Plaintext recovery path is outside the owned snapshot pattern: $($entry.path)"};if(Test-Path -LiteralPath $full -PathType Leaf){$item=Get-Item -LiteralPath $full;if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){throw "Plaintext recovery path is a reparse point: $full"};Remove-Item -LiteralPath $full -Force};Register-PlaintextPath $full 'erased'}}
 function Invoke-AuthenticatedReadiness {
     $cookie = Assert-ReadinessCredential
     $handler = [System.Net.Http.HttpClientHandler]::new()
@@ -121,7 +130,7 @@ Assert-ExternalDeploymentManifest -Manifest $manifest -ManifestPath $ManifestPat
 if ($manifest.image -ne $ImageRef -or $manifest.sourceCommit -ne $record.sourceCommit -or [int]$manifest.adminPort -ne $AdminPort -or $manifest.volumeSchemaVersion -ne $record.volumeSchemaVersion -or $manifest.mountProfile -ne $record.mountProfile -or $manifest.sourceTreeSha256 -ne $record.sourceTreeSha256 -or $manifest.dockerfileSha256 -ne $record.dockerfileSha256 -or $manifest.consoleLockSha256 -ne $record.consoleLockSha256 -or $manifest.inputManifestSha256 -ne $record.inputManifestSha256 -or $manifest.aptSbomSha256 -ne $record.aptSbomSha256 -or $manifest.ubuntuSnapshot -ne $record.ubuntuSnapshot -or $manifest.runtimeBaseImage -ne $record.runtimeBaseImage -or $manifest.nodeBuildBaseImage -ne $record.nodeBuildBaseImage) { throw 'Restore image is not the snapshot source or a manifest-declared compatible image.' }
 if ($manifest.preflightEvidencePath -ne $PreflightEvidencePath -or (Get-FileHash -LiteralPath $PreflightEvidencePath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $manifest.preflightEvidenceSha256) { throw 'Restore preflight evidence does not match the external deployment manifest.' }
 $evidence = Get-Content -Raw -LiteralPath $PreflightEvidencePath | ConvertFrom-Json
-if ([DateTimeOffset]::Parse([string]$evidence.expiresAt) -le [DateTimeOffset]::UtcNow -or $evidence.bindAddress -ne $BindAddress -or $evidence.projectName -ne $ProjectName -or [int]$evidence.requiredPort -ne $AdminPort -or @($evidence.checks | Where-Object { -not $_.ok }).Count -gt 0) { throw 'Restore requires fresh successful preflight evidence matching the reviewed target and bind endpoint.' }
+if ([DateTimeOffset]::Parse([string]$evidence.expiresAt) -le [DateTimeOffset]::UtcNow -or $evidence.bindAddress -ne $BindAddress -or $evidence.projectName -ne $ProjectName -or [int]$evidence.requiredPort -ne $AdminPort -or $evidence.target -ne $manifest.target -or $evidence.targetHost -ne $manifest.targetHost -or $evidence.targetUser -ne $manifest.targetUser -or [int]$evidence.targetSshPort -ne [int]$manifest.targetSshPort -or $evidence.inventoryPath -ne $manifest.inventoryPath -or @($evidence.checks | Where-Object { -not $_.ok }).Count -gt 0) { throw 'Restore requires fresh successful preflight evidence matching the reviewed target and bind endpoint.' }
 $existingId = (& docker compose --project-name $ProjectName --file $ComposeFile ps -q control-plane 2>$null).Trim()
 if ($existingId) {
     if ($existingId -notmatch '^[0-9a-f]{12,64}$') { throw 'The existing restore project container id is invalid.' }
@@ -153,7 +162,7 @@ try { foreach ($archive in @($record.archives)) { Assert-OperationDeadline
         if ($helperId -and $helperId -match '^[0-9a-f]{12,64}$') { $owned = (& docker inspect --format '{{index .Config.Labels "io.ding.pbx.snapshot-restore"}}' $helperId 2>$null).Trim(); if ($owned -eq [string]$record.snapshotId) { & docker rm --force $helperId | Out-Null } }
         if (Test-Path -LiteralPath $plainPath) { Remove-Item -LiteralPath $plainPath -Force }
     }
-    $restoreJournal.volumeResults += [ordered]@{ volume = $archive.volume; archive = $archive.archive; state = 'complete' }
+    $restoreJournal.volumeResults += [ordered]@{ volume = $archive.volume; helperId = $helperId; archive = $archive.archive; state = 'complete' }
     [System.IO.File]::WriteAllText($restoreJournalPath, ($restoreJournal | ConvertTo-Json -Depth 8), [System.Text.UTF8Encoding]::new($false))
 } } catch {
     $restoreJournal.state = 'failed'; $restoreJournal.failure = $_.Exception.Message

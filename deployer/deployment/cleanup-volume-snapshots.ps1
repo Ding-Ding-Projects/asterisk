@@ -8,6 +8,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'provenance.ps1')
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 if ($RetentionDays -lt 1) { throw 'RetentionDays must be positive.' }
 if (-not [System.IO.Path]::IsPathRooted($SnapshotParent)) { throw 'SnapshotParent must be an absolute path.' }
@@ -17,8 +18,15 @@ $cursor = $parent
 while ($cursor -and $cursor -ne [System.IO.Path]::GetPathRoot($cursor)) { if ((Test-Path -LiteralPath $cursor) -and ((Get-Item -LiteralPath $cursor).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'SnapshotParent cannot traverse a link or reparse point.' }; $cursor = [System.IO.Path]::GetDirectoryName($cursor) }
 if (-not (Test-Path -LiteralPath $parent -PathType Container)) { throw 'SnapshotParent does not exist.' }
 if (-not [System.IO.Path]::IsPathRooted($SnapshotEncryptionKeyFile) -or [System.IO.Path]::GetFullPath($SnapshotEncryptionKeyFile).StartsWith($repoRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $SnapshotEncryptionKeyFile -PathType Leaf)) { throw 'SnapshotEncryptionKeyFile must be an existing protected file outside the repository.' }
-if (-not (Test-Path -LiteralPath $TaskManifestPath -PathType Leaf)) { throw 'TaskManifestPath must name the explicit task-owned deployment manifest.' }
-$taskManifest = Get-Content -Raw -LiteralPath $TaskManifestPath | ConvertFrom-Json
+if (-not [System.IO.Path]::IsPathRooted($TaskManifestPath)) { throw 'TaskManifestPath must be absolute and outside the repository.' }
+$manifestFull = [System.IO.Path]::GetFullPath($TaskManifestPath)
+if ($manifestFull.StartsWith($repoRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase) -or $manifestFull.Equals($repoRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'TaskManifestPath must be outside the repository.' }
+if (-not (Test-Path -LiteralPath $manifestFull -PathType Leaf)) { throw 'TaskManifestPath must name the explicit task-owned deployment manifest.' }
+$manifestCursor = $manifestFull
+while ($manifestCursor -and $manifestCursor -ne [System.IO.Path]::GetPathRoot($manifestCursor)) { if ((Get-Item -LiteralPath $manifestCursor).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'TaskManifestPath cannot traverse a link or reparse point.' }; $manifestCursor = [System.IO.Path]::GetDirectoryName($manifestCursor) }
+$taskManifest = Get-Content -Raw -LiteralPath $manifestFull | ConvertFrom-Json
+$manifestSchema = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'deployment-manifest.schema.json') | ConvertFrom-Json
+Assert-DeploymentManifestSchemaPowerShell -Value $taskManifest -Rule $manifestSchema | Out-Null
 $keyItem = Get-Item -LiteralPath $SnapshotEncryptionKeyFile
 if ($keyItem.Length -lt 16 -or $keyItem.Length -gt 128) { throw 'SnapshotEncryptionKeyFile has an invalid size.' }
 $keyAcl = Get-Acl -LiteralPath $SnapshotEncryptionKeyFile
@@ -43,7 +51,7 @@ foreach ($directory in @(Get-ChildItem -LiteralPath $parent -Directory -Filter '
         if ([long]$archiveItem.Length -ne [long]$archive.encryptedBytes -or $archiveDigest -ne [string]$archive.encryptedSha256) { $archivesValid = $false; break }
     }
     $expectedVolumes = @('ding-pbx-control-plane-data', 'ding-pbx-control-plane-asterisk-etc', 'ding-pbx-control-plane-asterisk-lib', 'ding-pbx-control-plane-asterisk-log', 'ding-pbx-control-plane-asterisk-spool')
-    if ($record.schemaVersion -ne 1 -or $record.snapshotId -notmatch '^[0-9a-f]{32}$' -or $journal.snapshotId -ne $record.snapshotId -or $record.sourceImage -ne $taskManifest.image -or $record.sourceCommit -ne $taskManifest.sourceCommit -or $record.volumeSchemaVersion -ne $taskManifest.volumeSchemaVersion -or $record.mountProfile -ne 'five-volumes-plus-run-tmpfs' -or (@($record.volumes) -join '|') -ne ($expectedVolumes -join '|') -or $journal.schemaVersion -ne 1 -or $journal.state -ne 'complete' -or $journal.recoverability -ne 'verified' -or $transaction.state -ne 'complete' -or -not $archivesValid -or $recordItem.LastWriteTimeUtc -gt $cutoff) { continue }
+    if ($record.schemaVersion -ne 1 -or $record.snapshotId -notmatch '^[0-9a-f]{32}$' -or $journal.snapshotId -ne $record.snapshotId -or $record.sourceImage -ne $taskManifest.image -or $record.sourceCommit -ne $taskManifest.sourceCommit -or $record.sourceTreeSha256 -ne $taskManifest.sourceTreeSha256 -or $record.dockerfileSha256 -ne $taskManifest.dockerfileSha256 -or $record.consoleLockSha256 -ne $taskManifest.consoleLockSha256 -or $record.inputManifestSha256 -ne $taskManifest.inputManifestSha256 -or $record.aptSbomSha256 -ne $taskManifest.aptSbomSha256 -or $record.volumeSchemaVersion -ne $taskManifest.volumeSchemaVersion -or $record.mountProfile -ne 'five-volumes-plus-run-tmpfs' -or (@($record.volumes) -join '|') -ne ($expectedVolumes -join '|') -or $journal.schemaVersion -ne 1 -or $journal.state -ne 'complete' -or $journal.recoverability -ne 'verified' -or $transaction.state -ne 'complete' -or -not $archivesValid -or $recordItem.LastWriteTimeUtc -gt $cutoff) { continue }
     $probe = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'restore-volume-snapshots.ps1') -SnapshotDirectory $directory.FullName -SnapshotEncryptionKeyFile $SnapshotEncryptionKeyFile 2>&1
     if ($LASTEXITCODE -ne 0) { continue }
     $candidates += $directory
