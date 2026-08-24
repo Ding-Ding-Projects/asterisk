@@ -14,6 +14,7 @@ struct NativeIoStatusBlock { union { NTSTATUS Status; PVOID Pointer; }; ULONG_PT
 struct NativeFileId128 { BYTE Identifier[16]; };
 struct NativeFileIdInfo { ULONGLONG VolumeSerialNumber; NativeFileId128 FileId; };
 constexpr FILE_INFO_BY_HANDLE_CLASS kFileIdInfo = static_cast<FILE_INFO_BY_HANDLE_CLASS>(18);
+enum class PublishIdentity { Failed, Verified, Ambiguous };
 
 using NativeNtCreateFile = NTSTATUS (NTAPI*)(PHANDLE, ACCESS_MASK, NativeObjectAttributes*, NativeIoStatusBlock*, PLARGE_INTEGER, ULONG, ULONG, ULONG, ULONG, PVOID, ULONG);
 using NativeNtSetInformationFile = NTSTATUS (NTAPI*)(HANDLE, NativeIoStatusBlock*, PVOID, ULONG, ULONG);
@@ -50,9 +51,9 @@ std::string sha256(HANDLE file, std::uint64_t& bytes) {
   return out.str();
 }
 
-bool publishRelative(HANDLE parent, HANDLE child, const std::wstring& destination, NativeFileIdInfo& before, NativeFileIdInfo& after) {
+PublishIdentity publishRelative(HANDLE parent, HANDLE child, const std::wstring& destination, NativeFileIdInfo& before, NativeFileIdInfo& after) {
   auto* setInformation = reinterpret_cast<NativeNtSetInformationFile>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtSetInformationFile"));
-  if (!setInformation || destination.empty() || destination.find_first_of(L"\\/") != std::wstring::npos) return false;
+  if (!setInformation || destination.empty() || destination.find_first_of(L"\\/") != std::wstring::npos) return PublishIdentity::Failed;
   const ULONG bytes = static_cast<ULONG>(sizeof(NativeFileRenameInformation) + (destination.size() - 1) * sizeof(wchar_t));
   std::vector<std::byte> storage(bytes);
   auto* rename = reinterpret_cast<NativeFileRenameInformation*>(storage.data());
@@ -61,17 +62,21 @@ bool publishRelative(HANDLE parent, HANDLE child, const std::wstring& destinatio
   rename->FileNameLength = static_cast<ULONG>(destination.size() * sizeof(wchar_t));
   std::copy(destination.begin(), destination.end(), rename->FileName);
   NativeIoStatusBlock status{};
-  if (setInformation(child, &status, rename, bytes, 10) != 0) return false;
-  if (!GetFileInformationByHandleEx(child, kFileIdInfo, &after, sizeof(after))) return false;
-  if (before.VolumeSerialNumber != after.VolumeSerialNumber || std::memcmp(before.FileId.Identifier, after.FileId.Identifier, sizeof(before.FileId.Identifier)) != 0) return false;
+  if (setInformation(child, &status, rename, bytes, 10) != 0) return PublishIdentity::Failed;
+  if (!GetFileInformationByHandleEx(child, kFileIdInfo, &after, sizeof(after))) return PublishIdentity::Ambiguous;
+  if (before.VolumeSerialNumber != after.VolumeSerialNumber || std::memcmp(before.FileId.Identifier, after.FileId.Identifier, sizeof(before.FileId.Identifier)) != 0) return PublishIdentity::Ambiguous;
+  return PublishIdentity::Verified;
+}
+
+bool verifyDestinationAfterClose(HANDLE parent, const std::wstring& destination, const NativeFileIdInfo& expected) {
   const HANDLE destinationHandle = CreateRelativeNoFollow(parent, destination.c_str(), true, false);
   if (destinationHandle == INVALID_HANDLE_VALUE) return false;
   NativeFileIdInfo destinationId{};
-  const bool destinationMatches = GetFileInformationByHandleEx(destinationHandle, kFileIdInfo, &destinationId, sizeof(destinationId))
-      && destinationId.VolumeSerialNumber == after.VolumeSerialNumber
-      && std::memcmp(destinationId.FileId.Identifier, after.FileId.Identifier, sizeof(destinationId.FileId.Identifier)) == 0;
+  const bool matches = GetFileInformationByHandleEx(destinationHandle, kFileIdInfo, &destinationId, sizeof(destinationId))
+      && destinationId.VolumeSerialNumber == expected.VolumeSerialNumber
+      && std::memcmp(destinationId.FileId.Identifier, expected.FileId.Identifier, sizeof(destinationId.FileId.Identifier)) == 0;
   CloseHandle(destinationHandle);
-  return destinationMatches;
+  return matches;
 }
 
 HANDLE CreateRelativeNoFollow(HANDLE parent, const wchar_t* childName, bool resume, bool publishMode) {
@@ -147,9 +152,14 @@ int main(int argc, char** argv) {
       return 1;
     }
     NativeFileIdInfo after{};
-    const bool published = publishRelative(parent, child, destinationName, before, after);
-    CloseHandle(child); CloseHandle(parent);
-    if (!published) { std::cout << R"({"accepted":false,"code":"SECURE_TEMP_PUBLISH_FAILED"})" << std::endl; return 1; }
+    PublishIdentity identity = publishRelative(parent, child, destinationName, before, after);
+    if (identity == PublishIdentity::Ambiguous) {
+      CloseHandle(child);
+      identity = verifyDestinationAfterClose(parent, destinationName, before) ? PublishIdentity::Verified : PublishIdentity::Ambiguous;
+    } else CloseHandle(child);
+    CloseHandle(parent);
+    if (identity == PublishIdentity::Ambiguous) { std::cout << R"({"accepted":false,"code":"SECURE_TEMP_PUBLISH_AMBIGUOUS"})" << std::endl; return 1; }
+    if (identity != PublishIdentity::Verified) { std::cout << R"({"accepted":false,"code":"SECURE_TEMP_PUBLISH_FAILED"})" << std::endl; return 1; }
     std::cout << R"({"accepted":true,"code":"SECURE_TEMP_PUBLISHED","bytes":)" << actualBytes << R"(,"sha256":")" << actualDigest << R"(","destination":")" << std::string(argv[4]) << R"("})" << std::endl;
     return 0;
   }

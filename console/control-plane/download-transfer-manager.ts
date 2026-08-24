@@ -321,7 +321,7 @@ export class DownloadTransferManager implements DownloadTransferClient {
     child.stdout.on('data', (value: string) => { output += value; });
     const finished = new Promise<void>((resolveFinished, rejectFinished) => {
       child.once('error', rejectFinished);
-      child.once('close', (code) => code === 0 ? resolveFinished() : rejectFinished(new Error(`SECURE_TEMP_PUBLISH_FAILED: Native publication exited with ${code ?? 'unknown'}, ${output || 'no typed receipt'}.`)));
+      child.once('close', (code) => code === 0 ? resolveFinished() : rejectFinished(new Error(output.includes('SECURE_TEMP_PUBLISH_AMBIGUOUS') ? 'PUBLISH_AMBIGUOUS: Native publication could not prove the destination file identity after the handle-relative rename.' : `SECURE_TEMP_PUBLISH_FAILED: Native publication exited with ${code ?? 'unknown'}, ${output || 'no typed receipt'}.`)));
     });
     task.helperClose = finished;
     const abort = () => { if (!child.killed) child.kill(); };
@@ -330,6 +330,7 @@ export class DownloadTransferManager implements DownloadTransferClient {
       await finished;
       if (signal.aborted) throw new Error('SECURE_TEMP_PUBLISH_CANCELLED: Native publication was cancelled while the helper was closing.');
       const receipt = JSON.parse(output.trim()) as { accepted?: unknown; code?: unknown; bytes?: unknown; sha256?: unknown; destination?: unknown };
+      if (receipt.code === 'SECURE_TEMP_PUBLISH_AMBIGUOUS') throw new Error('PUBLISH_AMBIGUOUS: Native publication could not prove the destination file identity after the handle-relative rename.');
       if (receipt.accepted !== true || receipt.code !== 'SECURE_TEMP_PUBLISHED' || receipt.bytes !== expectedSize || typeof receipt.sha256 !== 'string' || (expectedSha256 && receipt.sha256.toLowerCase() !== expectedSha256.toLowerCase()) || receipt.destination !== basename(destinationPath)) throw new Error(`SECURE_TEMP_PUBLISH_FAILED: The native publication receipt did not match the recorded complete file, code=${String(receipt.code ?? 'unknown')}.`);
       return { size: expectedSize, sha256: receipt.sha256, destination: receipt.destination };
     } finally {
@@ -441,6 +442,10 @@ export class DownloadTransferManager implements DownloadTransferClient {
     } catch (error) {
       const latest = this.snapshots.get(transferId);
       if (latest?.status === 'cancelled') return this.receipt('retry', snapshot.handoffId, false, at, existsSync(snapshot.destinationPath) ? 'DOWNLOAD_LATE_PUBLICATION_CONFLICT' : 'DOWNLOAD_CANCELLED', existsSync(snapshot.destinationPath) ? 'The destination appeared after publication cancellation and requires review.' : 'Publication retry was cancelled.', transferId);
+      if (error instanceof Error && error.message.startsWith('PUBLISH_AMBIGUOUS')) {
+        this.emit({ ...snapshot, status: 'failed', bodyComplete: true, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: false, observedAt: at, error: { code: 'PUBLISH_AMBIGUOUS', message: existsSync(snapshot.destinationPath) ? 'The destination exists, but the native publication could not prove that it owns the original temporary file identity. Automatic retry is disabled and review is required.' : error.message, retryable: false, observedAt: at }, partial: undefined });
+        return this.receipt('retry', snapshot.handoffId, false, at, 'DOWNLOAD_PUBLISH_AMBIGUOUS', 'The destination identity could not be proven after publication. Review is required before any retry.', transferId);
+      }
       const integrity = error instanceof Error && error.message.startsWith('PUBLISH_INTEGRITY_FAILED');
       const integrityRead = error instanceof IntegrityReadError;
       const cleanup: { cleanupCompleted?: boolean; cleanupError?: DownloadTransferSnapshot['error'] } = integrity ? await this.cleanTemp(tempPath) : {};
@@ -526,6 +531,10 @@ export class DownloadTransferManager implements DownloadTransferClient {
       }
       if (error instanceof IntegrityReadError) {
         this.emit({ ...latest, status: 'failed', bodyComplete: true, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: true, observedAt: observedAt(), error: { code: error.code, message: error.message, retryable: true, observedAt: observedAt() } });
+        return;
+      }
+      if (error instanceof Error && error.message.startsWith('PUBLISH_AMBIGUOUS')) {
+        this.emit({ ...latest, status: 'failed', bodyComplete: true, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: false, observedAt: observedAt(), error: { code: 'PUBLISH_AMBIGUOUS', message: existsSync(latest.destinationPath) ? 'The destination exists, but the native publication could not prove that it owns the original temporary file identity. Automatic retry is disabled and review is required.' : error.message, retryable: false, observedAt: observedAt() }, partial: undefined });
         return;
       }
       if (error instanceof Error && error.message.startsWith('PUBLISH_INTEGRITY_FAILED')) {
