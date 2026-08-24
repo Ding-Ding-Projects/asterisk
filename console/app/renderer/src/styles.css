@@ -50,6 +50,11 @@ body,
  * preference instead of replacing it. */
 html.attention-focus #root > * { filter: saturate(.82); }
 html.attention-focus #root > *:focus-within { filter: none; }
+/* Focus mode follows the active tabpanel, not merely the root shell. The active
+ * surface stays readable while sibling content remains available and recoverable. */
+html.attention-focus #root [data-focus-surface] > * { filter: saturate(.72) brightness(.78); }
+html.attention-focus #root [data-focus-surface] > *:focus-within,
+html.attention-focus #root [data-focus-surface] [data-focus-active] { filter: none; }
 html.attention-low-stimulation *,
 html.attention-reduced-motion * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
 html.attention-low-stimulation .toast-region,

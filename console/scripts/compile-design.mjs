@@ -227,6 +227,16 @@ function emitChildren(node, scope, hovers, indent) {
   return parts;
 }
 
+function firstHeading(node) {
+  if (!node?.children) return null;
+  for (const child of node.children) {
+    if (child.tag && /^(?:h1|h2|h3)$/u.test(child.tag)) return child;
+    const nested = firstHeading(child);
+    if (nested) return nested;
+  }
+  return null;
+}
+
 function emit(node, scope, hovers, indent) {
   if (node.text !== undefined) {
     const text = node.text;
@@ -256,7 +266,17 @@ function emit(node, scope, hovers, indent) {
     node.attrs['data-overlay-key'] = overlayKey;
     if (!scrim) {
       node.attrs.role = node.attrs.role || 'dialog';
-      node.attrs['aria-label'] = node.attrs['aria-label'] || `Overlay panel ${overlayKey}`;
+      /* An implementation key is not a usable accessible name. Prefer the
+       * design's explicit labelled heading and otherwise use a stable role
+       * description, never exposing generated serial numbers to a user. */
+      if (!node.attrs['aria-label'] && !node.attrs['aria-labelledby']) {
+        const heading = firstHeading(node);
+        if (heading) {
+          heading.attrs = heading.attrs || {};
+          heading.attrs.id = heading.attrs.id || `overlay-title-${overlaySerial}`;
+          node.attrs['aria-labelledby'] = heading.attrs.id;
+        } else node.attrs['aria-label'] = 'Dialog';
+      }
       node.attrs.tabindex = node.attrs.tabindex || '-1';
       node.attrs.onKeyDown = node.attrs.onKeyDown || '{{ overlayKeyDown }}';
     }
@@ -362,9 +382,18 @@ function attachWindowChrome(nodes) {
     }
     const icon = soleIconName(node);
     if (node.tag === 'div' && icon && WINDOW_BUTTONS[icon] && !node.attrs.onClick) {
+      /* Title-bar controls are controls, not clickable decoration. Convert the
+       * icon wrapper itself so keyboard and screen-reader users receive the
+       * same action as pointer users, with a real 44px target. */
+      node.tag = 'button';
       node.attrs.onClick = `{{ __window?.${WINDOW_BUTTONS[icon].action} }}`;
       node.attrs['data-window-button'] = '';
       node.attrs.title = WINDOW_BUTTONS[icon].title;
+      node.attrs['aria-label'] = WINDOW_BUTTONS[icon].title;
+      node.attrs.style = `${node.attrs.style || ''}`
+        .replace(/width:\d+px/iu, 'width:44px')
+        .replace(/height:\d+px/iu, 'height:44px')
+        + '; min-width:44px; min-height:44px; border:0; background:transparent; cursor:pointer;';
       buttons += 1;
     }
     node.children.forEach(visit);
@@ -464,6 +493,8 @@ const baseCss = [
   '/* The window is frameless, so the design title bar drags it and its controls do not. */',
   '[data-window-drag] { -webkit-app-region: drag; }',
   '[data-window-drag] button, [data-window-drag] input, [data-window-drag] [data-window-button] { -webkit-app-region: no-drag; cursor: pointer; }',
+  'button, input, select, textarea, [role="button"] { min-height:44px; }',
+  '[data-window-button], [data-overlay] button, [role="tablist"] [role="tab"] { min-width:44px; min-height:44px; }',
   '',
   '/* style-hover and style-active from the design reference. */',
   control.hoverCss,

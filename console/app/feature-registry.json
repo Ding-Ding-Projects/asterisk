@@ -282,23 +282,23 @@
       ]
     },
     "bounded-overlays": {
-      "state": "implemented",
-      "note": "The checked-in design source now mounts a shared data-overlay primitive with painted surfaces, viewport bounds, internal scrolling, resize affordance, Escape handling, keyboard movement, collision rules at narrow widths, and unique overlay keys. App delegates geometry and reset persistence through DurableStorageHandle in one bounded versioned snapshot. Shared focus-visible styling and 44px minimum targets cover keyboard and scale consumers.",
+      "state": "implemented-unverified",
+      "note": "The checked-in design source mounts a shared data-overlay primitive with painted surfaces, viewport bounds, internal scrolling, resize affordance, an explicit active-overlay stack, one close path, Escape and scrim handling, opener restoration, collision rules at narrow widths, and unique overlay keys. App delegates geometry and reset persistence through DurableStorageHandle in one deeply validated versioned snapshot. Narrow compile and parse checks ran in this lane; runtime interaction and broad checks remain unverified.",
       "files": ["design/Asterisk Console M3.dc.html", "app/renderer/src/App.tsx", "app/renderer/src/durable-storage.ts", "app/renderer/src/styles.css", "app/renderer/src/generated/console.tsx", "app/renderer/src/generated/design-styles.css"]
     },
     "context-menu-shortcuts": {
-      "state": "implemented",
-      "note": "Context menus and submenus retain their declared shortcut hints in an aligned shortcut column and each owns a keyboard-focusable plain-text-first search field plus an adjacent anchored regex builder with sample, match, capture, copy, and export behavior. Arrow keys move through menuitems, Escape closes the menu, invalid patterns produce no matches, result counts are announced, and filtering preserves action handlers.",
+      "state": "implemented-unverified",
+      "note": "Context menus and submenus retain declared shortcut hints in an aligned shortcut column and each owns a keyboard-focusable plain-text-first search field plus an adjacent anchored regex builder with isolated query, pattern, flags, sample, match, capture, copy, and export state. Arrow keys traverse only menuitems with setsize and posinset counts, Escape closes through the shared overlay path, invalid patterns produce no matches, and filtering preserves action handlers. Narrow compile and parse checks ran in this lane; runtime interaction remains unverified.",
       "files": ["design/Asterisk Console M3.dc.html", "design/M3 Control.dc.html", "scripts/compile-design.mjs", "app/renderer/src/generated/console.tsx", "app/renderer/src/generated/m3-control.tsx"]
     },
     "long-operation-progress": {
-      "state": "implemented",
-      "note": "The one-click deployment dialog reports the current stage, semantic progressbar value, completed log entries, and a settled status that remains visible after completion or cancellation. A generation plus AbortController races the actual bridge promise, invalidates stale replies, checks after every await, and blocks stale side effects. The UI states the exact pending bridge boundary when cancellation cannot terminate the underlying request. Re-entry is refused and cancellation preserves the completed observation count.",
+      "state": "implemented-unverified",
+      "note": "The one-click deployment dialog reports the current stage, semantic progressbar value, completed log entries, and a settled status that remains visible after completion or cancellation. A generation plus AbortController races the actual bridge promise and calls the optional request-id cancellation route when available; stale replies are rejected after every await. The UI states the exact pending bridge boundary when cancellation cannot terminate the underlying request. Narrow compile and parse checks ran in this lane; runtime interaction remains unverified.",
       "files": ["design/Asterisk Console M3.dc.html", "app/renderer/src/App.tsx", "app/renderer/src/generated/console.tsx"]
     },
     "in-context-recovery": {
-      "state": "implemented",
-      "note": "Every shared context-menu target, including live canvas, group, and tab targets, exposes Recover or re-authenticate. A bounded exact failed-action descriptor records target, kind, action, source, and screen. The anchored recovery panel names that descriptor, routes Retry to the exact recorded reading, and routes Re-authenticate to the local discovery path, with live status that does not display credentials or claim completion.",
+      "state": "implemented-unverified",
+      "note": "Every shared context-menu target, including live canvas, group, and tab targets, exposes Recover or re-authenticate. A bounded exact failed-action descriptor records target, kind, action, source, screen, and view/resource where needed. Retry accepts only a safe recorded action and never substitutes a generic pbx.read; Re-authenticate refreshes the local discovery path, with live status that does not display credentials or claim completion. Narrow compile and parse checks ran in this lane; runtime interaction remains unverified.",
       "files": ["design/Asterisk Console M3.dc.html", "app/renderer/src/App.tsx", "app/renderer/src/generated/console.tsx"]
     },
     "provider-markup-rendering": {
@@ -315,8 +315,8 @@
       "files": []
     },
     "collapsible-filters": {
-      "state": "implemented",
-      "note": "Every table-like screen now has a session-state filter disclosure button. Collapsing the row retains an active-filter warning, so filtered results are never silently presented as complete.",
+      "state": "implemented-unverified",
+      "note": "Every table-like screen has a session-state filter disclosure button. Collapsing the row retains an active-filter warning, and bulk tab-close confirmation freezes the exact planned labels and rejects stale plans when the tab list changes. Narrow compile and parse checks ran in this lane; runtime interaction remains unverified.",
       "files": ["design/Asterisk Console M3.dc.html", "app/renderer/src/generated/console.tsx"]
     },
     "automatic-updates": {

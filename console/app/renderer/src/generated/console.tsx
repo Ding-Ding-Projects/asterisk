@@ -72,17 +72,17 @@ function Template(v: any) {
             S(v.durableStatus)
           ),
           h("div", { style: sty(`display:flex;`) },
-            h("div", { style: sty(`width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;`), onClick: fn(v.__window?.minimize), "data-window-button": ``, title: `Minimize`, className: "k-h1" },
+            h("button", { style: sty(`width:44px; height:44px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;; min-width:44px; min-height:44px; border:0; background:transparent; cursor:pointer;`), onClick: fn(v.__window?.minimize), "data-window-button": ``, title: `Minimize`, "aria-label": `Minimize`, className: "k-h1" },
               h("span", { style: sty(`font-size:17px;`), className: "msym" },
                 "remove"
               )
             ),
-            h("div", { style: sty(`width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;`), onClick: fn(v.__window?.toggleMaximize), "data-window-button": ``, title: `Maximize`, className: "k-h1" },
+            h("button", { style: sty(`width:44px; height:44px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;; min-width:44px; min-height:44px; border:0; background:transparent; cursor:pointer;`), onClick: fn(v.__window?.toggleMaximize), "data-window-button": ``, title: `Maximize`, "aria-label": `Maximize`, className: "k-h1" },
               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                 "crop_square"
               )
             ),
-            h("div", { style: sty(`width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;`), onClick: fn(v.__window?.close), "data-window-button": ``, title: `Close`, className: "k-h5" },
+            h("button", { style: sty(`width:44px; height:44px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;; min-width:44px; min-height:44px; border:0; background:transparent; cursor:pointer;`), onClick: fn(v.__window?.close), "data-window-button": ``, title: `Close`, "aria-label": `Close`, className: "k-h5" },
               h("span", { style: sty(`font-size:17px;`), className: "msym" },
                 "close"
               )
@@ -277,7 +277,7 @@ function Template(v: any) {
               )
             )
           ),
-          h("div", { id: `panel-${S(v.screenKey)}`, role: `tabpanel`, "aria-labelledby": `tab-${S(v.screenKey)}`, onContextMenu: fn(v.ctxScreen), key: v.screenKey, style: sty(`flex:1; overflow-y:auto; padding:0 26px 80px; position:relative; animation:screenIn .3s cubic-bezier(.2,0,0,1);`) },
+          h("div", { id: `panel-${S(v.tabPanelKey)}`, role: `tabpanel`, "aria-labelledby": `tab-${S(v.tabPanelKey)}`, "data-focus-surface": v.tabPanelKey, onContextMenu: fn(v.ctxScreen), key: v.screenKey, style: sty(`flex:1; overflow-y:auto; padding:0 26px 80px; position:relative; animation:screenIn .3s cubic-bezier(.2,0,0,1);`) },
             (v.beginner ? h("div", { style: sty(`display:flex; align-items:center; gap:13px; background:#1B4D33; border-radius:16px; padding:14px 18px; margin-bottom:12px; animation:m3Slide .3s cubic-bezier(.2,0,0,1);`) },
                 h("span", { style: sty(`font-size:24px; color:#9FF7C4; flex:0 0 auto;`), className: "msym" },
                   "school"
@@ -1642,7 +1642,7 @@ function Template(v: any) {
       ),
       (v.infoOpen ? F(
         h("div", { onClick: fn(v.closeInfo), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.32); z-index:60;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-60-0` }),
-        h("div", { style: sty(`position:absolute; ${S(v.infoChrome)} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;`), "data-overlay": `panel`, "data-overlay-key": `overlay-61-1`, role: `dialog`, "aria-label": `Overlay panel overlay-61-1`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+        h("div", { style: sty(`position:absolute; ${S(v.infoChrome)} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;`), "data-overlay": `panel`, "data-overlay-key": `overlay-61-1`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { onMouseDown: fn(v.dragInfo), style: sty(`display:flex; align-items:center; gap:8px; margin:-18px -20px 10px; padding:14px 16px 8px; cursor:grab; min-width:0;`) },
             h("span", { style: sty(`font-size:16px; color:#778078; flex:0 0 auto;`), className: "msym" },
               "drag_indicator"
@@ -1782,7 +1782,7 @@ function Template(v: any) {
           )
         )
       ) : null),
-      (v.wizardOpen ? h("div", { style: sty(`position:absolute; ${S(v.wizardChrome)} max-height:100vh; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:55; display:flex; flex-direction:column;`), "data-overlay": `panel`, "data-overlay-key": `overlay-55-2`, role: `dialog`, "aria-label": `Overlay panel overlay-55-2`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.wizardOpen ? h("div", { style: sty(`position:absolute; ${S(v.wizardChrome)} max-height:100vh; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:55; display:flex; flex-direction:column;`), "data-overlay": `panel`, "data-overlay-key": `overlay-55-2`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { onMouseDown: fn(v.dragWizard), style: sty(`padding:16px 20px 12px; display:flex; align-items:flex-start; gap:10px; cursor:grab;`) },
             h("span", { style: sty(`font-size:18px; color:#778078; margin-top:4px;`), className: "msym" },
               "drag_indicator"
@@ -1940,7 +1940,7 @@ function Template(v: any) {
         )
       ) : null),
       (v.ceremonyOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:80; display:flex; align-items:center; justify-content:center;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80-4` },
-          h("div", { style: sty(`width:660px; max-height:88vh; overflow-y:auto; background:#252B25; border-radius:28px; padding:26px 28px; box-shadow:0 16px 48px rgba(0,0,0,.7); animation:dlgCeremony .3s cubic-bezier(.2,0,0,1);`) },
+          h("div", { style: sty(`width:660px; max-height:88vh; overflow-y:auto; background:#252B25; border-radius:28px; padding:26px 28px; box-shadow:0 16px 48px rgba(0,0,0,.7); animation:dlgCeremony .3s cubic-bezier(.2,0,0,1);`), className: "overlay-ceremony-card" },
             h("div", { style: sty(`display:flex; align-items:center; gap:12px;`) },
               h("span", { style: sty(`font-size:26px; color:#FFB4AB;`), className: "msym" },
                 "gpp_maybe"
@@ -2074,7 +2074,7 @@ function Template(v: any) {
               ) : null)
           )
         ) : null),
-      (v.onboardOpen ? h("div", { style: sty(`position:absolute; inset:0; background:#0B0F0C; z-index:90; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:28px 32px 40px; overflow-y:auto; animation:dlgOnboard .4s ease-out;`), "data-overlay": `panel`, "data-overlay-key": `overlay-90-5`, role: `dialog`, "aria-label": `Overlay panel overlay-90-5`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.onboardOpen ? h("div", { style: sty(`position:absolute; inset:0; background:#0B0F0C; z-index:90; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:28px 32px 40px; overflow-y:auto; animation:dlgOnboard .4s ease-out;`), "data-overlay": `panel`, "data-overlay-key": `overlay-90-5`, role: `dialog`, "aria-labelledby": `overlay-title-6`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`width:760px; max-width:100%; margin:auto 0;`) },
             h("div", { style: sty(`display:flex; gap:8px; margin-bottom:26px;`) },
               A(v.onboardSteps).map(($s, $s$i) => R($s$i, h("div", { style: sty(`flex:1; display:flex; flex-direction:column; gap:7px;`) },
@@ -2113,7 +2113,7 @@ function Template(v: any) {
               h("span", { style: sty(`font-size:30px; color:#82D9A5; animation:m3Bounce .5s cubic-bezier(.2,1.4,.4,1);`), className: "msym" },
                 S(v.onboardIcon)
               ),
-              h("h2", { style: sty(`margin:0; font-size:30px; font-weight:400;`) },
+              h("h2", { style: sty(`margin:0; font-size:30px; font-weight:400;`), id: `overlay-title-6` },
                 S(v.onboardTitle)
               )
             ),
@@ -2153,7 +2153,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.tourOpen ? h("div", { style: sty(`position:absolute; left:${S(v.tourX)}; top:${S(v.tourY)}; width:320px; background:#005230; border-radius:16px; padding:16px 18px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:75; animation:dlgSure .3s cubic-bezier(.2,1.2,.3,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-75-6`, role: `dialog`, "aria-label": `Overlay panel overlay-75-6`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.tourOpen ? h("div", { style: sty(`position:absolute; left:${S(v.tourX)}; top:${S(v.tourY)}; width:320px; background:#005230; border-radius:16px; padding:16px 18px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:75; animation:dlgSure .3s cubic-bezier(.2,1.2,.3,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-75-6`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#9FF7C4;`) },
             S(v.tourCount)
           ),
@@ -2175,7 +2175,7 @@ function Template(v: any) {
         ) : null),
       (v.regexOpen ? F(
         h("div", { onClick: fn(v.closeRegex), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.3); z-index:96;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-96-7` }),
-        h("div", { style: sty(`position:absolute; ${S(v.regexChrome)} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;`), "data-overlay": `panel`, "data-overlay-key": `overlay-97-8`, role: `dialog`, "aria-label": `Overlay panel overlay-97-8`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+        h("div", { style: sty(`position:absolute; ${S(v.regexChrome)} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;`), "data-overlay": `panel`, "data-overlay-key": `overlay-97-8`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { onMouseDown: fn(v.dragRegex), style: sty(`display:flex; align-items:center; gap:9px; margin:-18px -20px 4px; padding:16px 20px 10px; cursor:grab;`) },
             h("span", { style: sty(`font-size:18px; color:#778078;`), className: "msym" },
               "drag_indicator"
@@ -2339,7 +2339,7 @@ function Template(v: any) {
           h("div", { role: `status`, "aria-live": `polite`, style: sty(`padding:0 8px 6px; color:#9AA39B; font-size:10px;`) },
             S(v.ctxResultLabel)
           ),
-          A(v.ctxItems).map(($i, $i$i) => R($i$i, h("button", { role: `menuitem`, onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
+          A(v.ctxItems).map(($i, $i$i) => R($i$i, h("button", { role: `menuitem`, "aria-setsize": v.ctxItemCount, "aria-posinset": $i.position, onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
               h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                 S($i.icon)
               ),
@@ -2360,7 +2360,7 @@ function Template(v: any) {
                 )
               )
             ),
-            A(v.subItems).map(($i, $i$i) => R($i$i, h("button", { role: `menuitem`, onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
+            A(v.subItems).map(($i, $i$i) => R($i$i, h("button", { role: `menuitem`, "aria-setsize": v.subItemCount, "aria-posinset": $i.position, onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
                 h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                   S($i.icon)
                 ),
@@ -2407,7 +2407,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.lockOpen ? h("div", { style: sty(`position:absolute; ${S(v.lockChrome)} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;`), "data-overlay": `panel`, "data-overlay-key": `overlay-82-10`, role: `dialog`, "aria-label": `Overlay panel overlay-82-10`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.lockOpen ? h("div", { style: sty(`position:absolute; ${S(v.lockChrome)} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;`), "data-overlay": `panel`, "data-overlay-key": `overlay-82-10`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { onMouseDown: fn(v.dragLock), style: sty(`display:flex; align-items:center; gap:9px; cursor:grab; margin:-18px -20px 0; padding:16px 20px 8px;`) },
             h("span", { style: sty(`font-size:18px; color:#778078;`), className: "msym" },
               "drag_indicator"
@@ -2628,7 +2628,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.appearOpen ? h("div", { style: sty(`position:absolute; right:0; top:40px; bottom:0; width:468px; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:84; display:flex; flex-direction:column; animation:dlgAppear .28s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-84-12`, role: `dialog`, "aria-label": `Overlay panel overlay-84-12`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.appearOpen ? h("div", { style: sty(`position:absolute; right:0; top:40px; bottom:0; width:468px; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:84; display:flex; flex-direction:column; animation:dlgAppear .28s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-84-12`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`padding:16px 20px 10px; display:flex; align-items:flex-start; gap:12px;`) },
             h("div", { style: sty(`flex:1;`) },
               h("div", { style: sty(`font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#8FA394;`) },
@@ -2725,7 +2725,7 @@ function Template(v: any) {
           )
         ) : null),
       (v.sureOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:86; display:flex; align-items:center; justify-content:center;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-86-13` },
-          h("div", { style: sty(`width:520px; background:#252B25; border-radius:28px; padding:22px 26px; animation:dlgSure .34s cubic-bezier(.2,1.2,.3,1);`) },
+          h("div", { style: sty(`width:520px; background:#252B25; border-radius:28px; padding:22px 26px; animation:dlgSure .34s cubic-bezier(.2,1.2,.3,1);`), className: "overlay-confirmation-card" },
             h("div", { style: sty(`display:flex; align-items:center; gap:12px;`) },
               h("span", { style: sty(`font-size:26px; color:#FFD68A;`), className: "msym" },
                 "help_center"
@@ -2790,7 +2790,7 @@ function Template(v: any) {
         ) : null),
       (v.tabFilterOpen ? F(
         h("div", { onClick: fn(v.closeTabFilter), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80-14` }),
-        h("div", { style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81-15`, role: `dialog`, "aria-label": `Overlay panel overlay-81-15`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+        h("div", { style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81-15`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
             h("span", { style: sty(`font-size:21px; color:#82D9A5;`), className: "msym" },
               "filter_alt"
@@ -2866,7 +2866,7 @@ function Template(v: any) {
       ) : null),
       (v.tabColourOpen ? F(
         h("div", { onClick: fn(v.closeTabColour), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80-16` }),
-        h("div", { style: sty(`position:absolute; left:50%; top:110px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgColour .3s cubic-bezier(.2,1.3,.3,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81-17`, role: `dialog`, "aria-label": `Overlay panel overlay-81-17`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+        h("div", { style: sty(`position:absolute; left:50%; top:110px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgColour .3s cubic-bezier(.2,1.3,.3,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81-17`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
             h("span", { style: sty(`font-size:20px; color:#82D9A5;`), className: "msym" },
               "colorize"
@@ -2924,7 +2924,7 @@ function Template(v: any) {
       ) : null),
       (v.renameOpen ? F(
         h("div", { onClick: fn(v.cancelRename), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80-18` }),
-        h("div", { style: sty(`position:absolute; left:50%; top:120px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgRename .22s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81-19`, role: `dialog`, "aria-label": `Overlay panel overlay-81-19`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+        h("div", { style: sty(`position:absolute; left:50%; top:120px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgRename .22s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81-19`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`font-size:16px; font-weight:500; margin-bottom:12px;`) },
             "Rename tab"
           ),
@@ -2944,7 +2944,7 @@ function Template(v: any) {
           )
         )
       ) : null),
-      (v.celebrate ? h("div", { style: sty(`position:absolute; inset:0; z-index:88; pointer-events:none; overflow:hidden; background:radial-gradient(ellipse at 50% 34%, rgba(27,77,51,.55), rgba(0,0,0,0) 62%);`), "data-overlay": `panel`, "data-overlay-key": `overlay-88-20`, role: `dialog`, "aria-label": `Overlay panel overlay-88-20`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.celebrate ? h("div", { style: sty(`position:absolute; inset:0; z-index:88; pointer-events:none; overflow:hidden; background:radial-gradient(ellipse at 50% 34%, rgba(27,77,51,.55), rgba(0,0,0,0) 62%);`), "data-overlay": `panel`, "data-overlay-key": `overlay-88-20`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           A(v.confetti).map(($c, $c$i) => R($c$i, h("div", { style: sty(`position:absolute; left:${S($c.x)}; top:-40px; width:${S($c.size)}; height:${S($c.size)}; background:${S($c.color)}; border-radius:${S($c.radius)}; box-shadow:0 0 10px rgba(0,0,0,.35); animation:m3Fall ${S($c.dur)} cubic-bezier(.2,.6,.4,1) ${S($c.delay)} forwards;`) }))),
           h("div", { style: sty(`position:absolute; left:50%; top:34%; transform:translate(-50%,-50%); text-align:center;`) },
             h("div", { style: sty(`width:132px; height:132px; margin:0 auto 18px; border-radius:50%; background:rgba(159,247,196,.14); display:flex; align-items:center; justify-content:center; animation:m3Glow 1.1s ease-out infinite;`) },
@@ -3036,7 +3036,7 @@ function pjsipCtls() {
       ctl('e_mailboxes','mailboxes','text','',{ info:'Comma-separated mailbox@context pairs, e.g. 6001@default. Asterisk NOTIFYs this endpoint whenever any of them changes.' }),
       ctl('e_voicemail_ext','voicemail_extension','text','',{ info:'The extension sent in the NOTIFY Message-Account header. Leave blank to use the global default_voicemail_extension.' })
     ]}
-  ];
+         ];
 }
 
 const SCREENS = {
@@ -3621,7 +3621,17 @@ const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes'
 /* Handwritten command-palette inventory. A palette route disappearing from ORDER
  * must fail review here instead of silently disappearing from the user's search. */
 const PALETTE_INVENTORY = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','httpd','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
-const PALETTE_CONTROL_INVENTORY = ['lang_mode','school_mode','fun_english','fun_cantonese','nar_enabled','mo_reduce','att_focus','att_low','att_time','att_one','att_momentum','nt_toast','nt_quiet','id_name','ed_choice','ap_family','ap_size','cp_hue','cp_rainbow'];
+const PALETTE_CONTROL_INVENTORY = ['lang_mode','school_mode','fun_english','fun_cantonese','nar_enabled','mo_reduce','p_motion','att_focus','att_low','att_time','att_one','att_momentum','nt_toast','nt_quiet','id_name','ed_choice','ap_family','ap_weight','ap_size','cp_hue','cp_sat','cp_light','cp_rainbow','cp_speed','cp_ease','cp_dir'];
+/* Fail-closed inventories for the universal command and appearance contracts.
+ * A new setting or action must be named here before it can claim palette or
+ * context-menu coverage. */
+const APPEARANCE_PROPERTY_INVENTORY = ['colour','fontFamily','fontWeight','fontSize','hue','saturation','lightness','rainbow','cycleSpeed','easing','direction','radius','elevation','density','motion'];
+const TAB_ACTION_INVENTORY = ['rename','colour','appearance','close-containing','close-not-containing','pin','unpin','duplicate','move','group','export','import','dock'];
+const GROUP_ACTION_INVENTORY = ['rename','colour','behaviour','tabs','save-restore','collapse','ungroup','close','appearance','lock'];
+const COMMAND_INVENTORY = ['open-palette','open-notifications','open-settings','open-docs','open-changelog','open-history','open-regex-builder','close-containing-tabs','close-not-containing-tabs','reset-tabs'];
+for (const [name, list] of Object.entries({ PALETTE_CONTROL_INVENTORY, APPEARANCE_PROPERTY_INVENTORY, TAB_ACTION_INVENTORY, GROUP_ACTION_INVENTORY, COMMAND_INVENTORY })) {
+  if (!list.length || new Set(list).size !== list.length) throw new Error(name + ' must be a non-empty exact inventory without duplicates');
+}
 const PALETTE_DOC_INVENTORY = ['e_transport','e_context','e_direct','e_symmetric','e_forcerport','e_rewrite','e_encryption','e_dtmf','e_maxcontacts','e_qualify','q_strategy','q_wrapup','q_ringinuse','q_joinempty','q_service','v_delete','v_maxsecs','s_guest','s_stir','s_level','k_order','r_start','d_backend','a_read','mo_auto','g_rotate','sv_kind','sv_hostkey','hi_commit','fun_random','fun_level'];
 
 const GAMES = [
@@ -4098,6 +4108,10 @@ class ConsoleShell extends DCLogic {
     cli:{ verb:'pjsip', obj:'show', target:'endpoints' },
     regex:['^memory/', 'projects', '\\.md$'],
     patterns:{ nav:[], table:[], memory:['^memory/', 'projects'], palette:[], ctx:[], sub:[] },
+    /* Each search field owns its complete editing tuple. The legacy maps above
+     * remain as a migration shape, but no field reads another field's query,
+     * pattern, flags, or sample. */
+    regexFields:{ nav:{ query:'', pattern:[], flags:['i'], sample:'' }, table:{ query:'', pattern:[], flags:['i'], sample:'' }, memory:{ query:'', pattern:[], flags:['i'], sample:'' }, palette:{ query:'', pattern:[], flags:['i'], sample:'' }, ctx:{ query:'', pattern:[], flags:['i'], sample:'' }, sub:{ query:'', pattern:[], flags:['i'], sample:'' } },
     regexOpen:false, regexTarget:'nav', regexX:'300px', regexY:'120px', regexFlags:['i'], regexSamples:{},
     ctxOpen:false, ctxX:'0px', ctxY:'0px', ctxTarget:'', ctxKind:'screen', ctxReturnFocus:null, ctxFilter:'', ctxRegexOn:false, subFilter:'', subRegexOn:false, recoveryOpen:false, recoveryAction:null, recoveryTitle:'', recoveryBody:'', recoveryStatus:'No retry or re-authentication has run yet.',
     locks:{}, lockOpen:false, lockTarget:'', lockKey:'', lockStep:0, lockMethod:'PIN', pin:'', password:'', pinReveal:false, lockX:'40%', lockY:'22%',
@@ -4125,7 +4139,7 @@ class ConsoleShell extends DCLogic {
     unlockOpen:false, unlockKey:'', unlockPin:'', unlockPw:'',
     appearOpen:false, appearTarget:'', appearState:'Default',
     oneClickMode:'Funny', oneClickRunning:false, oneClickStep:0, oneClickStatus:'Working. The completed steps remain recorded; later steps have not run.',
-    celebrate:false, celebrateTitle:'', celebrateSub:'', notifications:[]
+    celebrate:false, celebrateTitle:'', celebrateSub:'', notifications:[], activeOverlayStack:[]
   };
 
   fire = (title, sub) => {
@@ -4168,8 +4182,17 @@ class ConsoleShell extends DCLogic {
     this.persistDesktopState?.();
     const flags = { info:this.state.infoOpen, wizard:this.state.wizardOpen, palette:this.state.paletteOpen, ceremony:this.state.ceremonyOpen, regex:this.state.regexOpen, ctx:this.state.ctxOpen, lock:this.state.lockOpen, unlock:this.state.unlockOpen, appear:this.state.appearOpen, sure:this.state.sureOpen, tabFilter:this.state.tabFilterOpen, tabColour:this.state.tabColourOpen, rename:this.state.renameOpen, onboard:this.state.onboardOpen, tour:this.state.tourOpen, recovery:this.state.recoveryOpen };
     this._overlayOrigins = this._overlayOrigins || {};
-    Object.keys(flags).forEach(key => { if (flags[key] && !this._overlayFlags?.[key]) this._overlayOrigins[key] = document.activeElement; });
+    this._overlayStack = this._overlayStack || [];
+    Object.keys(flags).forEach(key => {
+      if (flags[key] && !this._overlayFlags?.[key]) {
+        const origin = this.state.ctxReturnFocus || document.activeElement;
+        this._overlayOrigins[key] = origin;
+        this._overlayStack = this._overlayStack.filter(entry => entry.key !== key).concat([{ key, origin }]);
+      }
+      if (!flags[key] && this._overlayFlags?.[key]) this._overlayStack = this._overlayStack.filter(entry => entry.key !== key);
+    });
     this._overlayFlags = flags;
+    this.state.activeOverlayStack = (this._overlayStack || []).slice();
     if (this.state.ctxOpen && !this._ctxWasOpen) setTimeout(() => document.querySelector('[role="menu"] input')?.focus(), 0);
     if (this.state.recoveryOpen && !this._recoveryWasOpen) setTimeout(() => document.querySelector('[data-overlay="recovery"] button')?.focus(), 0);
     this._ctxWasOpen = this.state.ctxOpen;
@@ -4191,9 +4214,16 @@ class ConsoleShell extends DCLogic {
     try { const re = new RegExp(query, 'i'); return all.filter(item => re.test(item.label) || re.test(item.hint)); }
     catch (error) { return []; }
   };
+  regexField = (target) => {
+    const legacyQuery = target === 'palette' ? this.state.paletteQuery : (target === 'ctx' ? this.state.ctxFilter : (target === 'sub' ? this.state.subFilter : (target === 'nav' ? this.state.tabFilterText : '')));
+    const legacyPattern = (this.state.patterns && this.state.patterns[target]) || [];
+    const stored = (this.state.regexFields && this.state.regexFields[target]) || {};
+    return { query:stored.query !== undefined ? stored.query : (legacyQuery || ''), pattern:Array.isArray(stored.pattern) && stored.pattern.length ? stored.pattern : legacyPattern, flags:Array.isArray(stored.flags) && stored.flags.length ? stored.flags : ['i'], sample:typeof stored.sample === 'string' ? stored.sample : '' };
+  };
+  setRegexField = (target, patch) => this.setState(st => ({ regexFields:Object.assign({}, st.regexFields, { [target]:Object.assign({}, this.regexField(target), patch) }) }));
   openPalette = () => { this.paletteReturnFocus = document.activeElement; this.setState({ paletteOpen:true, paletteCursor:0 }); setTimeout(() => document.getElementById('palette-search')?.focus(), 0); };
-  closePalette = () => { this.closeOverlay('palette'); setTimeout(() => { if (this.paletteReturnFocus && this.paletteReturnFocus.focus) this.paletteReturnFocus.focus(); }, 0); };
-  activatePaletteItem = (item) => { this.setState({ paletteOpen:false }); this.openScreen(item.key); setTimeout(() => { if (item.kind !== 'setting') return; const target = Array.from(document.querySelectorAll('[aria-label]')).find(node => node.getAttribute('aria-label') === item.label); target?.focus?.(); }, 0); };
+  closePalette = () => this.closeOverlay('palette');
+  activatePaletteItem = (item) => { this.closeOverlay('palette'); this.openScreen(item.key); setTimeout(() => { const target = item.controlId ? document.querySelector('[data-control-id="' + item.controlId + '"]') : null; target?.focus?.(); }, 0); };
   activatePaletteCursor = () => { const item = this.filteredPalette(this.state)[this.state.paletteCursor]; if (item) this.activatePaletteItem(item); };
   persistNotifications = (items) => { this.persistDesktopState?.({ notifications:items.slice(0, 200) }); };
   updateNotifications = (update) => { const next = update(this.state.notifications || []); this.persistNotifications(next); this.setState({ notifications:next }); };
@@ -4203,15 +4233,22 @@ class ConsoleShell extends DCLogic {
     const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'notification-history.json'; link.click(); URL.revokeObjectURL(url);
   };
   resetOverlay = (key) => {
-    const canonical = /overlay-61-/.test(key) ? 'info' : (/overlay-82-/.test(key) ? 'lock' : (/overlay-97-/.test(key) ? 'regex' : (/overlay-84-/.test(key) ? 'appear' : (/overlay-55-/.test(key) ? 'wizard' : (/overlay-81-/.test(key) ? 'filter' : key)))));
+     const canonical = /overlay-61-/.test(key) ? 'info' : (/overlay-82-/.test(key) ? 'lock' : (/overlay-97-/.test(key) ? 'regex' : (/overlay-84-/.test(key) ? 'appear' : (/overlay-55-/.test(key) ? 'wizard' : (/overlay-81-/.test(key) ? 'tabFilter' : key)))));
     key = canonical;
     const dlgPos = Object.assign({}, this.state.dlgPos); const dlgSize = Object.assign({}, this.state.dlgSize); const dlgDock = Object.assign({}, this.state.dlgDock);
     delete dlgPos[key]; delete dlgSize[key]; delete dlgDock[key];
     this.setState({ dlgPos, dlgSize, dlgDock });
   };
   resetTabs = () => this.setState({ tabs:['dash', 'endpoints', 'canvas'], pinned:['dash'], groups:[], tabNames:{}, tabColours:{}, dock:'left' });
-  closeOverlay = (key, patch = {}) => { this.setState({ ...patch, [key + 'Open']:false }); const origin = this._overlayOrigins?.[key]; setTimeout(() => origin?.focus?.(), 0); };
-  closeActiveOverlay = () => { const key = Object.keys(this._overlayFlags || {}).find(candidate => this._overlayFlags[candidate]); if (key) this.closeOverlay(key); };
+  closeOverlay = (key, patch = {}) => {
+    const entry = (this._overlayStack || []).slice().reverse().find(candidate => candidate.key === key) || (this._overlayStack || []).slice(-1)[0];
+    const actualKey = entry?.key || key;
+    this.setState({ ...patch, [actualKey + 'Open']:false });
+    const origin = entry?.origin || this._overlayOrigins?.[actualKey];
+    this._overlayStack = (this._overlayStack || []).filter(candidate => candidate.key !== actualKey);
+    setTimeout(() => origin?.focus?.(), 0);
+  };
+  closeActiveOverlay = () => { const entry = (this._overlayStack || []).slice(-1)[0]; if (entry) this.closeOverlay(entry.key); };
 
   set = (k, v) => this.setState(s => ({ [k]:v }));
   val = (c) => (this.state.values[c.id] !== undefined ? this.state.values[c.id] : c.value);
@@ -4765,6 +4802,8 @@ class ConsoleShell extends DCLogic {
       dirtyLabel:'all changes applied',
 
       screenKey:s.screen + ':' + s.railId + ':' + s.mode,
+      tabPanelKey:s.screen,
+      canonicalInventories:{ controls:PALETTE_CONTROL_INVENTORY, appearance:APPEARANCE_PROPERTY_INVENTORY, tabActions:TAB_ACTION_INVENTORY, groupActions:GROUP_ACTION_INVENTORY, commands:COMMAND_INVENTORY, articles:PALETTE_DOC_INVENTORY },
       beginner:s.mode === 'Beginner', expertMode:s.mode === 'Expert',
       expertLine:'edits ' + (sc.file || 'the console profile') + ' · branch ' + s.branch + ' · commit on write ' + (this.v('hi_commit', true) ? 'on' : 'off'),
       expertCount:(() => { let n = 0; (sc.groups || []).forEach(g => { n += g.ctls.length; }); return n + ' options'; })(),
@@ -5145,8 +5184,15 @@ class ConsoleShell extends DCLogic {
         const keep = tabClosePlan.keep;
         const count = s.tabs.length - keep.length;
         if (count < 1) return this.toast('No unprotected tabs match this filter. Nothing closed.');
-        this.areYouSure('Close matching tabs', count + ' tab(s) will close. Pinned, locked, and unsaved tabs are excluded.', 3, () => {
-          this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false });
+         const plannedTabs = s.tabs.slice();
+         const plannedLabels = tabClosePlan.rows.filter(r => r.close).map(r => r.label);
+         this.areYouSure('Close matching tabs', count + ' tab(s) will close: ' + plannedLabels.join(', ') + '. Pinned, locked, and unsaved tabs are excluded.', 3, () => {
+           const currentTabs = this.state.tabs || [];
+           if (JSON.stringify(currentTabs) !== JSON.stringify(plannedTabs)) {
+             this.toast('The tab-close plan is stale because the tab list changed. Review it again.');
+             return;
+           }
+           this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false });
           this.toast(count + ' tab(s) closed. Protected tabs stayed open.');
         });
       },
@@ -5173,11 +5219,12 @@ class ConsoleShell extends DCLogic {
             const a = s.tabs.slice(); const [m] = a.splice(from, 1); a.splice(i, 0, m);
             return this.setState({ tabs:a, tabDrag:-1, tabOver:-1 });
           }
-          const dragged = s.tabs[from], target = k;
-          const existing = s.groups.find(g => g.tabs.indexOf(target) >= 0);
-          let groups;
-          if (existing) groups = s.groups.map(g => g === existing ? Object.assign({}, g, { tabs:g.tabs.concat([dragged]) }) : g);
-          else groups = s.groups.concat([{ id:'g' + Date.now(), name:'New group', colour:s.tabColours[target] || '#8AB4F8', collapsed:false, tabs:[target, dragged] }]);
+           const dragged = s.tabs[from], target = k;
+           const existing = s.groups.find(g => g.tabs.indexOf(target) >= 0);
+           const unowned = s.groups.map(g => Object.assign({}, g, { tabs:g.tabs.filter(tab => tab !== dragged) }));
+           let groups;
+           if (existing) groups = unowned.map(g => g.id === existing.id ? Object.assign({}, g, { tabs:Array.from(new Set(g.tabs.concat([dragged]))) }) : g);
+           else groups = unowned.concat([{ id:'g' + Date.now(), name:'New group', colour:s.tabColours[target] || '#8AB4F8', collapsed:false, hidden:false, tabs:[target, dragged] }]);
           this.setState({ groups, tabDrag:-1, tabOver:-1 });
           this.fire('Grouped', dragged + ' and ' + target + ' are now one tab group.');
         },
@@ -5185,7 +5232,7 @@ class ConsoleShell extends DCLogic {
         tabIndex:k === s.screen ? 0 : -1,
         keyDown:(e) => {
           const visible = s.tabs.filter(tab => { const group = s.groups.find(g => g.tabs.indexOf(tab) >= 0); return !(group && (group.collapsed || group.hidden)); });
-          const current = visible.indexOf(k); const vertical = s.dock === 'top' || s.dock === 'bottom'; const delta = vertical ? ((e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0)) : ((e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0));
+          const current = visible.indexOf(k); const vertical = s.dock === 'left' || s.dock === 'right'; const delta = vertical ? ((e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0)) : ((e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0));
           if (!delta) return; e.preventDefault(); const next = visible[(current + delta + visible.length) % visible.length]; if (next) this.setState({ screen:next, railId:SCREENS[next] ? SCREENS[next].rail : s.railId });
         },
         go:() => this.setState({ screen:k, railId:SCREENS[k] ? SCREENS[k].rail : s.railId }),
@@ -5193,7 +5240,7 @@ class ConsoleShell extends DCLogic {
         ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxTabKey:k, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'tab · ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)), ctxKind:'tab' }); }
         };
       }),
-      tabOrientation:s.dock === 'top' || s.dock === 'bottom' ? 'vertical' : 'horizontal',
+      tabOrientation:s.dock === 'left' || s.dock === 'right' ? 'vertical' : 'horizontal',
       newTab:() => { const next = ORDER.find(k => s.tabs.indexOf(k) < 0) || 'dash'; this.setState({ tabs:s.tabs.concat([next]), screen:next, railId:SCREENS[next].rail }); },
       dockOpts:[
         { label:'Rail on the left', icon:'dock_to_right', v:'left' },
@@ -5479,9 +5526,9 @@ class ConsoleShell extends DCLogic {
       regexValue:(s.patterns[s.regexTarget] || []).join('') || '(everything)',
       regexChips:(s.patterns[s.regexTarget] || []).map((t, i) => ({ label:t, remove:() => { const p = Object.assign({}, s.patterns); p[s.regexTarget] = p[s.regexTarget].filter((_, j) => j !== i); this.setState({ patterns:p }); } })),
       regexGroups:REGEX_GROUPS.map(g => ({ title:g.title, items:g.items.map(([token, label]) => ({ token, label, add:() => { const p = Object.assign({}, s.patterns); p[s.regexTarget] = (p[s.regexTarget] || []).concat([token]); this.setState({ patterns:p }); } })) })),
-      regexFlags:[['i', 'ignore case'], ['g', 'all matches'], ['m', 'multiline'], ['s', 'dot matches newline']].map(([f, l]) => ({ label:f + ' · ' + l, on:s.regexFlags.indexOf(f) >= 0, off:s.regexFlags.indexOf(f) < 0, toggle:() => this.set('regexFlags', s.regexFlags.indexOf(f) >= 0 ? s.regexFlags.filter(x => x !== f) : s.regexFlags.concat([f])) })),
-      regexSample:s.regexSamples[s.regexTarget] || '',
-      onRegexSample:(e) => { const samples = Object.assign({}, s.regexSamples, { [s.regexTarget]:String(e.target.value).slice(0, 2000) }); this.setState({ regexSamples:samples }); },
+      regexFlags:[['i', 'ignore case'], ['g', 'all matches'], ['m', 'multiline'], ['s', 'dot matches newline']].map(([f, l]) => { const flags = this.regexField(s.regexTarget).flags; return { label:f + ' · ' + l, on:flags.indexOf(f) >= 0, off:flags.indexOf(f) < 0, toggle:() => this.setRegexField(s.regexTarget, { flags:flags.indexOf(f) >= 0 ? flags.filter(x => x !== f) : flags.concat([f]) }) }; }),
+      regexSample:this.regexField(s.regexTarget).sample,
+      onRegexSample:(e) => { const sample = String(e.target.value).slice(0, 2000); const samples = Object.assign({}, s.regexSamples, { [s.regexTarget]:sample }); this.setState({ regexSamples:samples }); this.setRegexField(s.regexTarget, { sample }); },
       regexMatchesLabel:(() => { const sample = s.regexSamples[s.regexTarget] || ''; const pattern = (s.patterns[s.regexTarget] || []).join(''); if (!pattern) return 'No pattern. Plain text remains the default in the originating field.'; try { const re = new RegExp(pattern, s.regexFlags.filter(f => f !== 'g').join('')); const matches = sample ? Array.from(sample.matchAll(new RegExp(pattern, s.regexFlags.includes('g') ? s.regexFlags.join('') : s.regexFlags.concat(['g']).join('')))).length : 0; return `Pattern valid. ${matches} match(es) in the sample.`; } catch (e) { return 'Pattern invalid. No matches are applied.'; } })(),
       regexCaptures:(() => { const sample = s.regexSamples[s.regexTarget] || ''; const pattern = (s.patterns[s.regexTarget] || []).join(''); if (!sample || !pattern) return []; try { const re = new RegExp(pattern, s.regexFlags.filter(f => f !== 'g').join('')); const match = re.exec(sample); return match ? match.slice(1, 9).map((value, i) => ({ label:'$' + (i + 1), value:value === undefined ? 'not captured' : value })) : []; } catch (e) { return []; } })(),
       copyRegex:() => { void navigator.clipboard?.writeText((s.patterns[s.regexTarget] || []).join('')).then(() => this.toast('Pattern copied'), () => this.toast('Pattern could not be copied')); },
@@ -5504,19 +5551,19 @@ class ConsoleShell extends DCLogic {
       ctxOpen:s.ctxOpen, ctxX:s.ctxX, ctxY:s.ctxY, ctxTarget:s.ctxTarget,
       subOpen:!!s.ctxSub,
       subItems:(() => {
-        const close = () => this.setState({ ctxOpen:false, ctxSub:'' });
+         const close = () => this.closeOverlay('ctx', { ctxSub:'' });
         const filterSub = (list) => {
           const q = String(s.subFilter || '').trim();
-          if (!q) { this._subItems = list; return list; }
+           if (!q) { const positioned = list.map((item, index) => Object.assign({}, item, { position:index + 1 })); this._subItems = positioned; return positioned; }
           let re = null; if (s.subRegexOn) { try { re = new RegExp(q, 'i'); } catch (e) { this._subItems = []; return []; } }
-          const filtered = list.filter(i => re ? re.test(i.label) : String(i.label).toLowerCase().includes(q.toLowerCase()));
-          this._subItems = filtered;
-          return filtered;
+           const filtered = list.filter(i => re ? re.test(i.label) : String(i.label).toLowerCase().includes(q.toLowerCase())).map((item, index) => Object.assign({}, item, { position:index + 1 }));
+           this._subItems = filtered;
+           return filtered;
         };
         const g = s.groups.find(x => x.id === s.ctxGroupId) || { id:'', tabs:[], name:'', colour:'#82D9A5' };
         const upd = (patch) => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, patch) : x), ctxOpen:false, ctxSub:'' });
         if (s.ctxSub === 'gcolour') return filterSub([{ icon:'colorize', label:'Open colour picker…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabColourOpen:true, renameKey:'group:' + g.id }) }]
-          .concat(['#82D9A5', '#FFD68A', '#FFB4AB', '#8AB4F8', '#D8A9F0', '#DFE4DC'].map(c => ({ icon:'circle', label:c, run:() => upd({ colour:c }) })));
+          .concat(['#82D9A5', '#FFD68A', '#FFB4AB', '#8AB4F8', '#D8A9F0', '#DFE4DC'].map(c => ({ icon:'circle', label:c, run:() => upd({ colour:c }) }))));
         if (s.ctxSub === 'gbehave') return filterSub([
           { icon:'unfold_less', label:g.collapsed ? 'Expand' : 'Collapse', run:() => upd({ collapsed:!g.collapsed }) },
           { icon:'compress', label:'Auto-collapse when inactive', run:() => upd({ auto:true }) },
@@ -5548,8 +5595,8 @@ class ConsoleShell extends DCLogic {
           { icon:'search_off', label:'Not containing…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabFilterOpen:true, tabFilterMode:'not', tabFilterText:'' }) },
           { icon:'format_color_fill', label:'By colour…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabFilterOpen:true, tabFilterMode:'colour', tabFilterText:'' }) },
           { icon:'label_off', label:'All uncoloured', run:() => { close(); this.setState({ tabs:s.tabs.filter(t => s.tabColours[t] || t === k) }); } },
-          { icon:'push_pin', label:'All unpinned', run:() => { close(); this.setState({ tabs:s.tabs.filter(t => s.pinned.indexOf(t) >= 0 || t === k) }); } }
-        ];
+           { icon:'push_pin', label:'All unpinned', run:() => { close(); this.setState({ tabs:s.tabs.filter(t => s.pinned.indexOf(t) >= 0 || t === k) }); } }
+         ]);
       })(),
       subX:(parseInt(s.ctxX, 10) + 266) + 'px',
       subY:(parseInt(s.ctxY, 10) + 84) + 'px',
@@ -5557,7 +5604,7 @@ class ConsoleShell extends DCLogic {
       ctxSearch:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxReturnFocus:e.currentTarget, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'search field', ctxKind:'search' }); },
       closeCtx:(e) => { if (e && e.preventDefault) e.preventDefault(); this.closeOverlay('ctx', { ctxSub:'', ctxReturnFocus:null }); },
       ctxItems:(() => {
-        const close = () => this.setState({ ctxOpen:false, ctxSub:'' });
+         const close = () => this.closeOverlay('ctx', { ctxSub:'' });
         const decorate = (list) => {
           const decorated = list.map(it => Object.assign({}, it, {
           bg:it.sub && s.ctxSub === it.sub ? '#333B34' : 'transparent',
@@ -5565,9 +5612,9 @@ class ConsoleShell extends DCLogic {
           act:it.sub ? (() => this.set('ctxSub', it.sub)) : it.run
           }));
           const q = String(s.ctxFilter || '').trim();
-          if (!q) { this._ctxItems = decorated; return decorated; }
+           if (!q) { const positioned = decorated.map((item, index) => Object.assign({}, item, { position:index + 1 })); this._ctxItems = positioned; return positioned; }
           let re = null; if (s.ctxRegexOn) { try { re = new RegExp(q, 'i'); } catch (e) { this._ctxItems = []; return []; } }
-          const filtered = decorated.filter(i => re ? re.test(i.label) : String(i.label).toLowerCase().includes(q.toLowerCase()));
+           const filtered = decorated.filter(i => re ? re.test(i.label) : String(i.label).toLowerCase().includes(q.toLowerCase())).map((item, index) => Object.assign({}, item, { position:index + 1 }));
           this._ctxItems = filtered;
           return filtered;
         };
@@ -5576,7 +5623,7 @@ class ConsoleShell extends DCLogic {
           { icon:'lock', label:'Lock this element…', hint:'⌃L', run:() => this.setState({ ctxOpen:false, lockOpen:true, lockTarget:s.ctxTarget, lockKey:s.screen, lockStep:0, pin:'', password:'', lockX:s.ctxX, lockY:s.ctxY }) },
           { icon:'brush', label:'Edit appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:s.ctxTarget }) },
           { icon:'help', label:'Explain this…', hint:'F1', run:() => { close(); this.showInfo(s.ctxTarget, sc.sub, null, s.ctxX, s.ctxY); } },
-          { icon:'key', label:'Recover or re-authenticate…', hint:'', run:() => this.setState({ ctxOpen:false, recoveryOpen:true, recoveryAction:{ target:String(s.ctxTarget).slice(0, 128), kind:String(s.ctxKind).slice(0, 32), action:'retry-current-reading', source:String(sc.file || 'console').slice(0, 128), screen:s.screen }, recoveryTitle:'Recovery for ' + s.ctxTarget, recoveryBody:'The failed action stays unchanged. Choose Retry to run it again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus:'No retry or re-authentication has run yet.' }) }
+          { icon:'key', label:'Recover or re-authenticate…', hint:'', run:() => this.setState({ ctxOpen:false, recoveryOpen:true, recoveryAction:{ target:String(s.ctxTarget).slice(0, 128), kind:String(s.ctxKind).slice(0, 32), action:'pbx.read', view:s.screen, source:String(sc.file || 'console').slice(0, 128), screen:s.screen }, recoveryTitle:'Recovery for ' + s.ctxTarget, recoveryBody:'The failed action stays unchanged. Choose Retry to run the recorded screen reading again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus:'No retry or re-authentication has run yet.' }) }
         ];
         if (s.ctxKind === 'group') {
           const g = s.groups.find(x => x.id === s.ctxGroupId) || { tabs:[], name:'' };
@@ -5658,15 +5705,17 @@ class ConsoleShell extends DCLogic {
         ].concat(common));
       })(),
       ctxFilter:s.ctxFilter,
-      ctxResultLabel:s.ctxFilter ? 'Filtered actions. Arrow keys move through the remaining results.' : 'Actions available. Arrow keys move through results.',
+      ctxResultLabel:s.ctxFilter ? ((this._ctxItems || []).length + ' matching menu item(s). Arrow keys move through the remaining results.') : ((this._ctxItems || []).length + ' available menu item(s). Arrow keys move through results.'),
+      ctxItemCount:(this._ctxItems || []).length,
+      subItemCount:(this._subItems || []).length,
       subFilter:s.subFilter,
-      onCtxFilter:(e) => this.setState({ ctxFilter:e.target.value, ctxRegexOn:false }),
-      onSubFilter:(e) => this.setState({ subFilter:e.target.value, subRegexOn:false }),
+      onCtxFilter:(e) => { const query = String(e.target.value); this.setState({ ctxFilter:query, ctxRegexOn:false }); this.setRegexField('ctx', { query }); },
+      onSubFilter:(e) => { const query = String(e.target.value); this.setState({ subFilter:query, subRegexOn:false }); this.setRegexField('sub', { query }); },
       menuKeyDown:(e) => {
-        if (e.key === 'Escape') { e.preventDefault(); this.setState({ ctxOpen:false, ctxSub:'' }); return; }
+         if (e.key === 'Escape') { e.preventDefault(); this.closeOverlay('ctx', { ctxSub:'' }); return; }
         if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
         e.preventDefault();
-        const items = Array.from(e.currentTarget.querySelectorAll('button'));
+        const items = Array.from(e.currentTarget.querySelectorAll('[role="menuitem"]'));
         const current = items.indexOf(document.activeElement);
         const next = items[(current + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length];
         if (next && next.focus) next.focus();
@@ -5689,7 +5738,7 @@ class ConsoleShell extends DCLogic {
       recoveryOpen:s.recoveryOpen,
       recoveryTitle:s.recoveryTitle,
       recoveryBody:s.recoveryBody,
-      recoveryDescriptor:s.recoveryAction ? [s.recoveryAction.kind, s.recoveryAction.target, s.recoveryAction.action].join(' · ') : 'No failed action recorded',
+      recoveryDescriptor:s.recoveryAction ? [s.recoveryAction.kind, s.recoveryAction.target, s.recoveryAction.action, s.recoveryAction.view || s.recoveryAction.resource || ''].filter(Boolean).join(' · ') : 'No failed action recorded',
       recoveryStatus:s.recoveryStatus,
       closeRecovery:() => this.closeOverlay('recovery'),
       recoveryRetry:() => this.setState({ recoveryStatus:'Retry requested. The action remains pending until the control plane confirms it.' }),
@@ -5815,7 +5864,7 @@ class ConsoleShell extends DCLogic {
       docWhy:(s.infoDoc ? (s.infoDoc.why || s.infoDoc.whenToChange) : ''),
       docValues:(s.infoDoc ? (s.infoDoc.valuesText || 'The accepted values are listed in the reference above.') : ''),
       docGotcha:(s.infoDoc ? (s.infoDoc.gotcha || 'Nothing surprising. Change it, watch one call, change it back if it was wrong.') : ''),
-      docWizard:() => { const c = s.infoDoc; this.setState({ infoOpen:false }); if (this._lastCtl) this.openCtlWizard(this._lastCtl); },
+       docWizard:() => { const c = s.infoDoc; this.closeOverlay('info'); if (this._lastCtl) this.openCtlWizard(this._lastCtl); },
       infoOpen:s.infoOpen, infoTitle:s.infoTitle, infoBody:s.infoBody, infoPlain:s.infoPlain,
       infoX:s.infoX, infoY:s.infoY, infoDiagram:'diagram slot — drop a real screenshot or schematic here',
       closeInfo:() => this.closeOverlay('info'),
@@ -5851,7 +5900,7 @@ class ConsoleShell extends DCLogic {
       paletteOpen:s.paletteOpen,
       paletteQuery:s.paletteQuery || '',
       paletteResultLabel:this.filteredPalette(s).length + ' result(s). Use Up and Down to move, Enter to teleport.',
-      onPaletteQuery:(e) => this.setState({ paletteQuery:e.target.value, paletteRegexOn:false, paletteCursor:0 }),
+      onPaletteQuery:(e) => { const query = String(e.target.value); this.setState({ paletteQuery:query, paletteRegexOn:false, paletteCursor:0 }); this.setRegexField('palette', { query }); },
       paletteKeyDown:(e) => {
         if (e.key === 'ArrowDown') { e.preventDefault(); this.setState(st => ({ paletteCursor:Math.min(this.paletteCount(st), st.paletteCursor + 1) })); }
         else if (e.key === 'ArrowUp') { e.preventDefault(); this.setState(st => ({ paletteCursor:Math.max(0, st.paletteCursor - 1) })); }
@@ -5859,7 +5908,7 @@ class ConsoleShell extends DCLogic {
         else if (e.key === 'Escape') { e.preventDefault(); this.closePalette(); }
       },
       openPaletteRegex:() => this.setState({ regexOpen:true, regexTarget:'palette', regexX:'34%', regexY:'150px' }),
-      paletteItems:this.filteredPalette(s).map((item, index) => ({ icon:item.icon, label:item.label, hint:item.hint, selected:index === s.paletteCursor, tabIndex:index === s.paletteCursor ? 0 : -1, bg:index === s.paletteCursor ? '#1B4D33' : 'transparent', go:() => this.activatePaletteItem(item), keyDown:(e) => { if (e.key === 'Enter') { e.preventDefault(); this.activatePaletteItem(item); } } })),
+       paletteItems:this.filteredPalette(s).map((item, index) => ({ icon:item.icon, label:item.label, hint:item.hint, kind:item.kind, isSetting:!!item.isSetting, inline:item.inline, controlId:item.controlId, selected:index === s.paletteCursor, tabIndex:index === s.paletteCursor ? 0 : -1, bg:index === s.paletteCursor ? '#1B4D33' : 'transparent', go:() => this.activatePaletteItem(item), keyDown:(e) => { if (e.key === 'Enter') { e.preventDefault(); this.activatePaletteItem(item); } } })),
 
       ceremonyOpen:s.ceremonyOpen, ceremonyTitle:s.ceremonyTitle, ceremonyCmd:s.ceremonyCmd,
       ceremonySteps:['Operator key', 'Arming switch', 'Slide to commit', 'Attention check'].map((l, i) => ({ label:l, bg:i <= s.cStep ? '#82D9A5' : '#333B34', fg:i <= s.cStep ? '#9FF7C4' : '#778078' })),
@@ -5885,10 +5934,10 @@ class ConsoleShell extends DCLogic {
       closeSure:() => this.closeOverlay('sure', { sureHits:0, sureCell:-1 }),
       sureYes:() => { const act = this.state.sureAction; this.closeOverlay('sure', { sureHits:0, sureCell:-1 }); if (act) act(); },
       canSkip:s.credits > 0 && s.cStep < 4 && this.v('cr_enable', true),
-      skipCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.setState({ credits:s.credits - 1, ceremonyOpen:false }); this.fire('Skipped', s.ceremonyCmd + ' ran on a credit. ' + (s.credits - 1) + ' left.'); },
+       skipCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.closeOverlay('ceremony', { credits:s.credits - 1 }); this.fire('Skipped', s.ceremonyCmd + ' ran on a credit. ' + (s.credits - 1) + ' left.'); },
       goArcade:() => this.setState({ railId:'app', screen:'arcade' }),
       cancelCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.closeOverlay('ceremony'); },
-      executeCeremony:() => { clearInterval(this._mole); this.setState({ ceremonyOpen:false }); this.toast(s.ceremonyCmd + ' executed and attested'); },
+       executeCeremony:() => { clearInterval(this._mole); this.closeOverlay('ceremony'); this.toast(s.ceremonyCmd + ' executed and attested'); },
 
       onboardFirst:s.onboardStep === 0,
       onboardOpen:s.onboardOpen, onboardIcon:ob.icon, onboardTitle:ob.t, onboardBody:ob.b,

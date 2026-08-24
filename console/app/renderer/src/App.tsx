@@ -174,6 +174,7 @@ export class App extends Base {
   private oneClickCancelled = false;
   private oneClickGeneration = 0;
   private oneClickAbort: AbortController | undefined;
+  private attentionFocusHandler: (() => void) | undefined;
   private refreshTimer: ReturnType<typeof setInterval> | undefined;
   private readStartedAt = new Map<string, number>();
   /** Durable storage for everything that must survive a relaunch (the
@@ -205,6 +206,7 @@ export class App extends Base {
     'att_time': 'timeAwareness',
     'att_one': 'oneThing',
     'att_momentum': 'momentum',
+    'p_motion': 'reducedMotion',
   };
 
   /** The shell's own `setVal`, captured so the override below can delegate to it.
@@ -254,6 +256,110 @@ export class App extends Base {
   private universalStateQueuedPatch: Record<string, unknown> = {};
   private universalPersistenceStatus = 'Durable UI state is waiting for bootstrap.';
 
+  private readonly universalDockValues = new Set(['left', 'right', 'top', 'bottom', 'compact']);
+  private readonly universalDialogDockValues = new Set(['float', 'left', 'right', 'top', 'bottom', 'centre']);
+  private readonly universalOverlayKeys = new Set(['info', 'wizard', 'palette', 'ceremony', 'regex', 'ctx', 'recovery', 'lock', 'unlock', 'appear', 'sure', 'tabFilter', 'tabColour', 'rename', 'onboard', 'tour', 'toast']);
+
+  private universalGeometryValue(value: unknown): number | undefined {
+    const number = typeof value === 'number' ? value : (typeof value === 'string' && /^-?\d{1,4}(?:\.\d{1,2})?px$/u.test(value) ? Number.parseFloat(value) : NaN);
+    return Number.isFinite(number) && number >= -4096 && number <= 4096 ? number : undefined;
+  }
+
+  private universalGeometryMap(candidate: unknown): Record<string, { x: number; y: number }> {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return {};
+    const result: Record<string, { x: number; y: number }> = {};
+    for (const [key, raw] of Object.entries(candidate as Record<string, unknown>).slice(0, 32)) {
+      if (!(this.universalOverlayKeys.has(key) || /^overlay-(?:55|60|61|70|71|75|78|79|80|81|82|83|84|85|86|88|90|96|97)-\d{1,4}$/u.test(key))) continue;
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+      const row = raw as Record<string, unknown>;
+      const x = this.universalGeometryValue(row.x);
+      const y = this.universalGeometryValue(row.y);
+      if (x !== undefined && y !== undefined) result[key] = { x, y };
+    }
+    return result;
+  }
+
+  private universalStringMap(candidate: unknown, maxValue: number, knownKeys?: Set<string>): Record<string, string> {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return {};
+    const result: Record<string, string> = {};
+    for (const [key, value] of Object.entries(candidate as Record<string, unknown>).slice(0, 64)) {
+      if (key.length > 64 || (knownKeys && !knownKeys.has(key)) || typeof value !== 'string' || value.length > maxValue) continue;
+      result[key] = value;
+    }
+    return result;
+  }
+
+  private universalColour(value: unknown): string | undefined {
+    return typeof value === 'string' && /^(?:#[0-9a-f]{6,8}|(?:rgb|hsl)a?\([^)]{1,80}\))$/iu.test(value) ? value : undefined;
+  }
+
+  private validateUniversalSnapshot(value: unknown): Record<string, unknown> | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+    const candidate = value as Record<string, unknown>;
+    if (candidate.schemaVersion !== 1) return undefined;
+    const knownTabs = new Set(ORDER as readonly string[]);
+    const listOfTabs = (input: unknown): string[] | undefined => {
+      if (!Array.isArray(input) || input.length > 64) return undefined;
+      const out: string[] = [];
+      for (const tab of input) {
+        if (typeof tab !== 'string' || !knownTabs.has(tab) || out.includes(tab)) return undefined;
+        out.push(tab);
+      }
+      return out;
+    };
+    const tabs = listOfTabs(candidate.tabs);
+    const pinned = listOfTabs(candidate.pinned);
+    if (!tabs || !pinned || pinned.some((tab) => !tabs.includes(tab))) return undefined;
+    if (!this.universalDockValues.has(typeof candidate.dock === 'string' ? candidate.dock : '')) return undefined;
+    if (!Array.isArray(candidate.notifications) || candidate.notifications.length > 200) return undefined;
+    const notifications = candidate.notifications.map((item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return undefined;
+      const row = item as Record<string, unknown>;
+      const id = row.id;
+      const source = row.source;
+      const message = row.message;
+      const when = row.when;
+      const state = row.state;
+      if (typeof id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/u.test(id)) return undefined;
+      if (typeof source !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/u.test(source)) return undefined;
+      if (typeof message !== 'string' || message.length > 512 || typeof when !== 'string' || when.length > 64) return undefined;
+      if (state !== 'Unread' && state !== 'Read') return undefined;
+      return { id, source, message, when, state };
+    });
+    if (notifications.some((row) => !row)) return undefined;
+    const groups = candidate.groups;
+    if (!Array.isArray(groups) || groups.length > 64) return undefined;
+    const ownedTabs = new Set<string>();
+    const safeGroups = groups.map((item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return undefined;
+      const group = item as Record<string, unknown>;
+      if (typeof group.id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/u.test(group.id)) return undefined;
+      if (typeof group.name !== 'string' || group.name.length > 128 || !Array.isArray(group.tabs) || group.tabs.length > 64) return undefined;
+      const groupTabs = listOfTabs(group.tabs);
+      const colour = this.universalColour(group.colour);
+      if (!groupTabs || !colour || groupTabs.some((tab) => !tabs.includes(tab) || ownedTabs.has(tab))) return undefined;
+      groupTabs.forEach((tab) => ownedTabs.add(tab));
+      return { id: group.id, name: group.name, colour, collapsed: group.collapsed === true, hidden: group.hidden === true, tabs: groupTabs };
+    });
+    if (safeGroups.some((group) => !group)) return undefined;
+    const dlgDock = this.universalStringMap(candidate.dlgDock, 16, this.universalOverlayKeys);
+    if (Object.values(dlgDock).some((dock) => !this.universalDialogDockValues.has(dock))) return undefined;
+    const safe = {
+      schemaVersion: 1,
+      notifications,
+      dlgPos: this.universalGeometryMap(candidate.dlgPos),
+      dlgSize: this.universalGeometryMap(candidate.dlgSize),
+      dlgDock,
+      tabs,
+      pinned,
+      groups: safeGroups,
+      tabNames: this.universalStringMap(candidate.tabNames, 128, knownTabs),
+      tabColours: this.universalStringMap(candidate.tabColours, 128, knownTabs),
+      dock: candidate.dock,
+    };
+    return safe as unknown as Record<string, unknown>;
+  }
+
   private universalSnapshot(patch: Record<string, unknown> = {}): Record<string, unknown> {
     const state = this.state as unknown as Record<string, unknown>;
     const notifications = Array.isArray(patch.notifications ?? state.notifications) ? (patch.notifications ?? state.notifications) : [];
@@ -263,21 +369,21 @@ export class App extends Base {
     const knownTabs = new Set(ORDER as readonly string[]);
     const safeNotifications = (notifications as unknown[]).filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && ['id', 'source', 'message', 'when', 'state'].every((key) => typeof (item as Record<string, unknown>)[key] === 'string' && String((item as Record<string, unknown>)[key]).length <= 512) && ((item as Record<string, unknown>).state === 'Unread' || (item as Record<string, unknown>).state === 'Read')).slice(0, 200);
     const safeTabs = (tabs as unknown[]).filter((item): item is string => typeof item === 'string' && knownTabs.has(item)).slice(0, 64);
-    const safePinned = (pinned as unknown[]).filter((item): item is string => typeof item === 'string' && knownTabs.has(item)).slice(0, 64);
-    const safeGroups = (groups as unknown[]).filter((item): item is Record<string, unknown> => !!item && typeof item === 'object').slice(0, 64).map((group) => ({ ...group, tabs: Array.isArray(group.tabs) ? (group.tabs as unknown[]).filter((tab): tab is string => typeof tab === 'string' && knownTabs.has(tab)).slice(0, 64) : [] }));
-    const safeMap = (candidate: unknown): Record<string, unknown> => !candidate || typeof candidate !== 'object' ? {} : Object.fromEntries(Object.entries(candidate as Record<string, unknown>).slice(0, 32).filter(([key, item]) => key.length <= 64 && (typeof item === 'number' || (typeof item === 'string' && item.length <= 128))));
+    const safePinned = (pinned as unknown[]).filter((item): item is string => typeof item === 'string' && knownTabs.has(item) && safeTabs.includes(item)).slice(0, 64);
+    const safeGroups = (groups as unknown[]).filter((item): item is Record<string, unknown> => !!item && typeof item === 'object').slice(0, 64).map((group) => ({ id: String(group.id || '').slice(0, 64), name: String(group.name || '').slice(0, 128), colour: this.universalColour(group.colour) || '#82D9A5', collapsed: group.collapsed === true, hidden: group.hidden === true, tabs: Array.isArray(group.tabs) ? (group.tabs as unknown[]).filter((tab): tab is string => typeof tab === 'string' && knownTabs.has(tab) && safeTabs.includes(tab)).slice(0, 64) : [] }));
+    const safeDock = this.universalDockValues.has(String(patch.dock ?? state.dock ?? 'left')) ? String(patch.dock ?? state.dock ?? 'left') : 'left';
     return {
       schemaVersion: 1,
       notifications: safeNotifications,
-      dlgPos: safeMap(patch.dlgPos ?? state.dlgPos ?? {}),
-      dlgSize: safeMap(patch.dlgSize ?? state.dlgSize ?? {}),
-      dlgDock: safeMap(patch.dlgDock ?? state.dlgDock ?? {}),
+      dlgPos: this.universalGeometryMap(patch.dlgPos ?? state.dlgPos ?? {}),
+      dlgSize: this.universalGeometryMap(patch.dlgSize ?? state.dlgSize ?? {}),
+      dlgDock: Object.fromEntries(Object.entries(this.universalStringMap(patch.dlgDock ?? state.dlgDock ?? {}, 16, this.universalOverlayKeys)).filter(([, dock]) => this.universalDialogDockValues.has(dock))),
       tabs: safeTabs,
       pinned: safePinned,
       groups: safeGroups,
-      tabNames: safeMap(patch.tabNames ?? state.tabNames ?? {}),
-      tabColours: safeMap(patch.tabColours ?? state.tabColours ?? {}),
-      dock: String(patch.dock ?? state.dock ?? 'left').slice(0, 16),
+      tabNames: this.universalStringMap(patch.tabNames ?? state.tabNames ?? {}, 128, knownTabs),
+      tabColours: this.universalStringMap(patch.tabColours ?? state.tabColours ?? {}, 128, knownTabs),
+      dock: safeDock,
     };
   }
 
@@ -287,39 +393,14 @@ export class App extends Base {
     if (!raw) return;
     try {
       const value = JSON.parse(raw) as Record<string, unknown>;
-      if (value.schemaVersion !== 1) return;
-      this.universalStateLastSerialized = raw;
-      const notifications = Array.isArray(value.notifications)
-        ? value.notifications.filter((item): item is Record<string, unknown> => {
-          if (!item || typeof item !== 'object') return false;
-          const row = item as Record<string, unknown>;
-          return ['id', 'source', 'message', 'when', 'state'].every((key) => typeof row[key] === 'string' && String(row[key]).length <= 512) && (row.state === 'Unread' || row.state === 'Read');
-        }).slice(0, 200)
-        : [];
-      const knownTabs = new Set(ORDER as readonly string[]);
-      const tabs = Array.isArray(value.tabs) ? value.tabs.filter((item): item is string => typeof item === 'string' && knownTabs.has(item)).slice(0, 64) : [];
-      const pinned = Array.isArray(value.pinned) ? value.pinned.filter((item): item is string => typeof item === 'string' && knownTabs.has(item)).slice(0, 64) : [];
-      const groups = Array.isArray(value.groups) ? value.groups.filter((item): item is Record<string, unknown> => {
-        if (!item || typeof item !== 'object') return false;
-        const group = item as Record<string, unknown>;
-        return typeof group.id === 'string' && group.id.length <= 64 && typeof group.name === 'string' && group.name.length <= 128 && Array.isArray(group.tabs) && group.tabs.length <= 64;
-      }).map((group) => ({ ...group, tabs: (group.tabs as unknown[]).filter((tab): tab is string => typeof tab === 'string' && tab.length <= 64 && knownTabs.has(tab)).slice(0, 64), colour: typeof group.colour === 'string' && /^(?:#[0-9a-f]{6,8}|(?:rgb|hsl)a?\([^)]{1,80}\))$/iu.test(group.colour) ? group.colour : '#82D9A5', collapsed: group.collapsed === true, hidden: group.hidden === true })).slice(0, 64) : [];
-      const boundedObject = (candidate: unknown): Record<string, unknown> => {
-        if (!candidate || typeof candidate !== 'object') return {};
-        return Object.fromEntries(Object.entries(candidate as Record<string, unknown>).slice(0, 32).filter(([key, item]) => key.length <= 64 && (typeof item === 'string' ? item.length <= 64 : typeof item === 'number')));
-      };
-      const tabNames = Object.fromEntries(Object.entries(boundedObject(value.tabNames)).filter(([key, item]) => knownTabs.has(key) && typeof item === 'string' && item.length <= 128));
-      const tabColours = Object.fromEntries(Object.entries(boundedObject(value.tabColours)).filter(([key, item]) => knownTabs.has(key) && typeof item === 'string' && /^(?:#[0-9a-f]{6,8}|(?:rgb|hsl)a?\([^)]{1,80}\))$/iu.test(item)));
-      this.setState({
-        notifications,
-        dlgPos: boundedObject(value.dlgPos),
-        dlgSize: boundedObject(value.dlgSize),
-        dlgDock: boundedObject(value.dlgDock),
-        tabNames,
-        tabColours,
-        ...(tabs.length > 0 ? { tabs, pinned, groups } : {}),
-        ...(typeof value.dock === 'string' ? { dock: value.dock } : {}),
-      } as never);
+      const validated = this.validateUniversalSnapshot(value);
+      if (!validated) {
+        this.durableStorage.storage.removeItem(this.UNIVERSAL_STATE_KEY);
+        this.universalPersistenceStatus = 'Durable UI state was refused because its schema was invalid.';
+        return;
+      }
+      this.universalStateLastSerialized = JSON.stringify(validated);
+      this.setState(validated as never);
     } catch {
       this.durableStorage.storage.removeItem(this.UNIVERSAL_STATE_KEY);
     }
@@ -356,6 +437,8 @@ export class App extends Base {
      * else on mount does not depend on it and proceeds immediately. */
     setCatalog(CANTONESE);
     this.applyAttentionPresentation();
+    this.attentionFocusHandler = () => this.applyAttentionPresentation();
+    document.addEventListener('focusin', this.attentionFocusHandler);
     /* Until this runs the boundary applies language only. Wiring it here rather than
      * at construction keeps the uploaded file and the rendered text reading from one
      * storage handle instead of two that can disagree. */
@@ -390,24 +473,40 @@ export class App extends Base {
 
   componentWillUnmount() {
     super.componentWillUnmount?.();
+    if (this.attentionFocusHandler) document.removeEventListener('focusin', this.attentionFocusHandler);
+    this.attentionFocusHandler = undefined;
     if (this.refreshTimer) clearInterval(this.refreshTimer);
     this.refreshTimer = undefined;
   }
 
   componentDidUpdate() {
+    super.componentDidUpdate?.();
     void this.refresh();
   }
 
   private async request(action: string, extra: Record<string, unknown> = {}, signal?: AbortSignal): Promise<ControlPlaneResponse | undefined> {
     const bridge = this.bridge();
     if (!bridge) return undefined;
-    const pending = bridge.controlPlane.request({ requestId: crypto.randomUUID(), action, ...extra } as never);
+    const requestId = crypto.randomUUID();
+    const pending = bridge.controlPlane.request({ requestId, action, ...extra } as never);
     if (!signal) return await pending;
     if (signal.aborted) return undefined;
-    return await Promise.race([
-      pending,
-      new Promise<undefined>((resolve) => signal.addEventListener('abort', () => resolve(undefined), { once: true })),
-    ]);
+    let abortHandler: (() => void) | undefined;
+    const cancelled = new Promise<undefined>((resolve) => {
+      abortHandler = () => {
+        /* Newer preload bridges can cancel by the same request id. Older ones
+         * cannot, so the UI keeps the pending boundary honest and only drops
+         * stale results locally. */
+        void bridge.controlPlane.cancel?.(requestId);
+        resolve(undefined);
+      };
+      signal.addEventListener('abort', abortHandler, { once: true });
+    });
+    try {
+      return await Promise.race([pending, cancelled]);
+    } finally {
+      if (abortHandler) signal.removeEventListener('abort', abortHandler);
+    }
   }
 
   /** Bounded, allowlisted discovery through the preload bridge. Never a shell command. */
@@ -520,30 +619,40 @@ export class App extends Base {
 
   private cancelOneClick = (): void => {
     if (!this.discoveryPending) return;
-    this.oneClickGeneration += 1;
     this.oneClickAbort?.abort();
     this.oneClickAbort = undefined;
-    this.discoveryPending = false;
-    this.oneClickRunning = false;
     this.oneClickCancelled = true;
-    this.oneClickStatus = 'Cancellation requested. The current bounded control-plane request will settle before the UI closes the operation.';
+    this.oneClickStatus = 'Cancellation requested. The current bounded control-plane request is still settling; completed observations remain visible.';
     this.forceUpdate();
   };
 
   private retryFailedAction = async (): Promise<void> => {
-    const action = (this.state as { recoveryAction?: { screen?: string; target?: string; action?: string } }).recoveryAction;
+    const action = (this.state as { recoveryAction?: { screen?: string; target?: string; action?: string; view?: string; resource?: string } }).recoveryAction;
     const screen = action?.screen || (this.state as { screen: string }).screen;
     if (!this.target.id) {
       this.setState({ recoveryStatus: 'Retry refused because the exact target is no longer connected.' } as never);
       return;
     }
     this.setState({ recoveryStatus: `Retrying ${action?.action || 'the recorded reading'} for ${action?.target || screen}.` } as never);
-    const response = await this.request('pbx.read', { serverId: this.target.id, view: screen as PbxReadView });
+    const recordedAction = action?.action;
+    if (!recordedAction || recordedAction === 'legacy-retry') {
+      this.setState({ recoveryStatus: 'Retry refused because the failed action was not recorded as an allowlisted operation.' } as never);
+      return;
+    }
+    const safeRecoveryActions = new Set(['pbx.read', 'pbx.config', 'server.list', 'runtime.status', 'server.connect', 'daemon.status']);
+    if (!safeRecoveryActions.has(recordedAction)) {
+      this.setState({ recoveryStatus: `Retry refused because ${recordedAction} is not a safe recorded action.` } as never);
+      return;
+    }
+    const extra: Record<string, unknown> = {};
+    if (recordedAction === 'pbx.read') extra.view = action?.view || screen as PbxReadView;
+    if (recordedAction === 'pbx.config') extra.payload = { resource: action?.resource };
+    const response = await this.request(recordedAction, { serverId: this.target.id, ...extra });
     if (!response?.ok) {
       this.setState({ recoveryStatus: `Retry refused by the control plane: ${response?.message || 'no response'}.` } as never);
       return;
     }
-    this.readings[screen] = response.data as ViewReadings;
+    if (recordedAction === 'pbx.read') this.readings[screen] = response.data as ViewReadings;
     this.setState({ recoveryStatus: `Retry completed for ${action?.target || screen}. The fresh reading is now on screen.` } as never);
     this.forceUpdate();
   };
@@ -750,9 +859,12 @@ ${resolution.disclosure}`);
       this.fileSupportTicket();
       return;
     }
-    if (control?.id?.startsWith('att_') && typeof value === 'boolean') {
+    if ((control?.id?.startsWith('att_') || control?.id === 'p_motion') && typeof value === 'boolean') {
       const mode = App.ATTENTION_CONTROLS[control.id];
-      if (isAttentionMode(mode)) {
+      if (mode === 'reducedMotion') {
+        this.durableStorage.storage.setItem('console.attention.reducedMotion', value ? 'on' : 'off');
+        this.applyAttentionPresentation();
+      } else if (isAttentionMode(mode)) {
         setModeEnabled(this.durableStorage.storage, mode, value);
         this.applyAttentionPresentation();
       }
@@ -849,11 +961,15 @@ ${resolution.disclosure}`);
     const root = document.documentElement;
     const low = this.durableStorage.storage.getItem('console.attention.lowStimulation') === 'on';
     const focus = this.durableStorage.storage.getItem('console.attention.focus') === 'on';
+    const userReduced = this.durableStorage.storage.getItem('console.attention.reducedMotion') === 'on';
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
     root.classList.toggle('attention-low-stimulation', low);
     root.classList.toggle('attention-focus', focus);
-    root.classList.toggle('attention-reduced-motion', low || reduced);
-    root.dataset.attentionMotion = low || reduced ? 'reduced' : 'full';
+    root.classList.toggle('attention-reduced-motion', low || userReduced || reduced);
+    root.dataset.attentionMotion = low || userReduced || reduced ? 'reduced' : 'full';
+    const active = document.activeElement?.closest?.('[role="tabpanel"], [data-focus-surface]');
+    document.querySelectorAll('[data-focus-active]').forEach((node) => node.removeAttribute('data-focus-active'));
+    if (active instanceof HTMLElement) active.setAttribute('data-focus-active', 'true');
   }
 
   /** Reads the three files the deploy touches, in parallel, tolerating an absent file
@@ -1541,7 +1657,7 @@ It is shown once. The phone needs it to register.`);
           { icon: 'content_copy', label: 'Duplicate step', hint: '⌃D', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
           { icon: 'call_split', label: 'Insert condition before', hint: '', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
           { icon: 'delete', label: 'Delete step', hint: '⌦', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
-          { icon: 'key', label: 'Recover or re-authenticate…', hint: '', act: () => { const state = this.state as { ctxTarget?: string; ctxKind?: string }; this.setState({ ctxOpen: false, recoveryOpen: true, recoveryAction: { target: String(state.ctxTarget || 'observed step').slice(0, 128), kind: String(state.ctxKind || 'node').slice(0, 32), action: 'retry-current-reading', source: 'dialplan canvas', screen: 'canvas' }, recoveryTitle: `Recovery for ${state.ctxTarget || 'observed step'}`, recoveryBody: 'The failed action stays unchanged. Choose Retry to run it again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus: 'No retry or re-authentication has run yet.' } as never); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'key', label: 'Recover or re-authenticate…', hint: '', act: () => { const state = this.state as { ctxTarget?: string; ctxKind?: string }; this.setState({ ctxOpen: false, recoveryOpen: true, recoveryAction: { target: String(state.ctxTarget || 'observed step').slice(0, 128), kind: String(state.ctxKind || 'node').slice(0, 32), action: 'pbx.read', view: 'canvas', source: 'dialplan canvas', screen: 'canvas' }, recoveryTitle: `Recovery for ${state.ctxTarget || 'observed step'}`, recoveryBody: 'The failed action stays unchanged. Choose Retry to run the recorded screen reading again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus: 'No retry or re-authentication has run yet.' } as never); }, hover: () => {}, bg: '#1B211C' },
         ]
       : undefined;
 
@@ -2448,5 +2564,8 @@ It is shown once. The phone needs it to register.`);
 interface DesktopBridge {
   platform: string;
   window: { minimize: () => void; toggleMaximize: () => void; close: () => void };
-  controlPlane: { request: (request: Record<string, unknown>) => Promise<ControlPlaneResponse | undefined> };
+  controlPlane: {
+    request: (request: Record<string, unknown>) => Promise<ControlPlaneResponse | undefined>;
+    cancel?: (requestId: string) => Promise<void> | void;
+  };
 }
