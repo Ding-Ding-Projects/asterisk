@@ -13,7 +13,8 @@ const api = Object.freeze({
   updater: Object.freeze({
     getStatus: () => ipcRenderer.invoke('updater:get-status'),
     checkNow: () => ipcRenderer.invoke('updater:check-now'),
-    restartToInstall: () => ipcRenderer.send('updater:restart-to-install'),
+    restartToInstall: () => ipcRenderer.invoke('updater:restart-to-install'),
+    setUnsavedDraftCount: count => ipcRenderer.send('updater:set-draft-count', count),
     dismiss: () => ipcRenderer.send('updater:dismiss'),
     onStatus: listener => {
       const handler = (_event, status) => listener(status);

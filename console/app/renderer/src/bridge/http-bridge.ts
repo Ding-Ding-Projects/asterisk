@@ -105,9 +105,18 @@ export function installHttpBridge(): void {
     },
     auth,
     updater: {
-      async getStatus() { return { state: 'idle' as const }; },
-      async checkNow() { return { state: 'idle' as const }; },
-      restartToInstall: () => {},
+      // Server mode does not self-update the way the desktop installer does — the
+      // operator updates the VM's package the way they update any other server
+      // software. Reporting a fixed "idle" state is honest: there is never anything to
+      // check for from inside the running process.
+      async getStatus() {
+        return { state: 'idle' as const, unsavedDraftCount: 0, restartPending: false, revision: 0 };
+      },
+      async checkNow() {
+        return { state: 'idle' as const, unsavedDraftCount: 0, restartPending: false, revision: 0 };
+      },
+      restartToInstall: async () => ({ ok: false, reason: 'Hosted server mode does not install desktop updates.' }),
+      setUnsavedDraftCount: (_count: number) => {},
       dismiss: () => {},
       onStatus: () => () => {},
     },

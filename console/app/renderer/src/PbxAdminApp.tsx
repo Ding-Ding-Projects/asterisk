@@ -132,6 +132,7 @@ export class PbxAdminApp extends App {
   private adminMedia = new Map<string, MediaFile[]>();
   private adminStatus = new Map<string, string>();
   private adminPickedFileNames = new Map<string, string>();
+  private publishedDraftCount = -1;
 
   private adminRequest = async (action: string, extra: Record<string, unknown> = {}): Promise<ControlPlaneResponse | undefined> => {
     const bridge = window.dingDesktop;
@@ -142,6 +143,22 @@ export class PbxAdminApp extends App {
   private stateValues(): StateValues {
     const state = this.state as unknown as Partial<StateValues>;
     return { screen: state.screen ?? '', values: state.values ?? {} };
+  }
+
+  private publishDraftCount(currentKey?: string, currentValue?: ConfigValue): void {
+    if (currentKey && currentValue && this.adminLoaded.has(currentKey)) {
+      this.adminDrafts.set(currentKey, currentValue);
+    }
+    let count = 0;
+    for (const [key, draft] of this.adminDrafts) {
+      const loaded = this.adminLoaded.get(key);
+      if (!loaded) continue;
+      const value = key === currentKey && currentValue ? currentValue : draft;
+      if (JSON.stringify(value) !== JSON.stringify(loaded)) count += 1;
+    }
+    if (count === this.publishedDraftCount) return;
+    this.publishedDraftCount = count;
+    window.dingDesktop?.updater.setUnsavedDraftCount(count);
   }
 
   private featureResources(feature: PbxFeatureDefinition): ReadonlyArray<string> {
@@ -451,7 +468,8 @@ export class PbxAdminApp extends App {
         ctls: structureCtls,
       });
 
-      const changed = key && this.adminLoaded.has(key) && JSON.stringify(draft) !== JSON.stringify(this.adminLoaded.get(key));
+      const changed = Boolean(key && draft && this.adminLoaded.has(key) && JSON.stringify(draft) !== JSON.stringify(this.adminLoaded.get(key)));
+      this.publishDraftCount(typeof key === 'string' ? key : undefined, draft);
       const planDiffs = plan?.diffs?.length ?? 0;
       groups.push({
         title: 'Review & apply',

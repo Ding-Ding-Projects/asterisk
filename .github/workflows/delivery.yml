@@ -100,6 +100,10 @@ jobs:
     name: Build unsigned Squirrel.Windows package
     needs: [resolve-runner, build-asterisk-runtime]
     runs-on: ${{ fromJSON(needs.resolve-runner.outputs.runner) }}
+    env:
+      DING_PBX_VERSION: 0.1.${{ github.run_number }}
+      DING_PBX_CANDIDATE_COMMIT: ${{ github.sha }}
+      DING_PBX_RELEASE_TAG: ding-pbx-console-v0.0.${{ github.run_number }}-r${{ github.run_attempt }}
     steps:
       - name: Check out the exact source commit
         uses: actions/checkout@v4
@@ -133,7 +137,8 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path release-staging,evidence | Out-Null
           Copy-Item console/dist/squirrel-windows/squirrel-windows/* -Destination release-staging -Force
-          Get-ChildItem release-staging -File | Sort-Object Name | ForEach-Object {
+          Copy-Item console/resources/update-manifest.json -Destination release-staging/update-manifest.json -Force
+          Get-ChildItem release-staging -File | Where-Object Name -ne 'SHA256SUMS.txt' | Sort-Object Name | ForEach-Object {
             "{0}  {1}" -f (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant(), $_.Name
           } | Set-Content -Encoding ascii release-staging/SHA256SUMS.txt
           Copy-Item console/release/line-count.md,console/release/line-count.json -Destination release-staging
@@ -164,6 +169,10 @@ jobs:
     name: Publish unique console release
     needs: [resolve-runner, build-package]
     runs-on: windows-2025
+    env:
+      DING_PBX_VERSION: 0.1.${{ github.run_number }}
+      DING_PBX_CANDIDATE_COMMIT: ${{ github.sha }}
+      DING_PBX_RELEASE_TAG: ding-pbx-console-v0.0.${{ github.run_number }}-r${{ github.run_attempt }}
     steps:
       - name: Check out release records
         uses: actions/checkout@v4
@@ -183,14 +192,19 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $tag = 'ding-pbx-console-v0.0.${{ github.run_number }}-r${{ github.run_attempt }}'
+          $tag = $env:DING_PBX_RELEASE_TAG
           $staging = Resolve-Path 'downloaded/release-staging'
-          $required = @(
-            Get-ChildItem $staging -File -Filter '*Setup.exe'
-            Get-ChildItem $staging -File -Filter 'RELEASES'
-            Get-ChildItem $staging -File -Filter '*-full.nupkg'
-          )
-          if ($required.Count -lt 3) { throw 'Required Squirrel.Windows release assets are incomplete.' }
+          $setup = @(Get-ChildItem $staging -File -Filter '*Setup.exe')
+          $releases = @(Get-ChildItem $staging -File -Filter 'RELEASES')
+          $full = @(Get-ChildItem $staging -File -Filter '*-full.nupkg')
+          $identity = @(Get-ChildItem $staging -File -Filter 'release-identity.json')
+          $sums = @(Get-ChildItem $staging -File -Filter 'SHA256SUMS.txt')
+          if ($setup.Count -ne 1 -or $releases.Count -ne 1 -or $full.Count -lt 1 -or $identity.Count -ne 1 -or $sums.Count -ne 1) { throw 'Required Squirrel.Windows release identity assets are incomplete.' }
+          $identityRecord = Get-Content -Raw $identity[0].FullName | ConvertFrom-Json
+          if ($identityRecord.schemaVersion -ne 1 -or $identityRecord.product -ne 'ding-pbx-console' -or $identityRecord.version -ne $env:DING_PBX_VERSION -or $identityRecord.candidateCommit -ne $env:DING_PBX_CANDIDATE_COMMIT -or $identityRecord.tag -ne $tag) { throw 'Packaged release identity does not match the exact candidate, version, and tag.' }
+          if ($identityRecord.published -ne $true) { throw 'Published release identity must be marked published.' }
+          $releaseText = Get-Content -Raw $releases[0].FullName
+          foreach ($package in $full) { if ($releaseText -notmatch [regex]::Escape($package.Name)) { throw "RELEASES does not reference $($package.Name)." } }
           $previousPreference = $ErrorActionPreference
           try {
             $ErrorActionPreference = 'Continue'
