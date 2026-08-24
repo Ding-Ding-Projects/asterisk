@@ -1,5 +1,6 @@
 import catalogJson from '../../../catalog/freepbx-module-catalog.json';
 import { boundedRegexTest, compileBoundedRegex } from './bounded-regex';
+import { evaluateBoundedRegexInWorker } from './bounded-regex-worker';
 
 export type FreePbxAvailabilityState = 'metadata-only' | 'unavailable';
 export type FreePbxEntitlementClass = 'open' | 'commercial' | 'unknown';
@@ -120,4 +121,11 @@ export function searchableFreePbxModules(query: string, regex = false, flags = '
     try { return boundedRegexTest(compiled.matcher, `${module.moduleId} ${module.name} ${module.category} ${module.description}`); }
     catch { return false; }
   });
+}
+
+export async function searchableFreePbxModulesInWorker(query: string, regex = false, flags = 'i'): Promise<FreePbxModuleCatalogEntry[]> {
+  const modules = FREEPBX_MODULE_CATALOG.modules;
+  if (!query.trim()) return [...modules];
+  const matches = await evaluateBoundedRegexInWorker({ query, regex, flags, texts: modules.map((module) => `${module.moduleId} ${module.name} ${module.category} ${module.description}`) });
+  return modules.filter((_, index) => matches[index] === true);
 }

@@ -14,7 +14,7 @@ import {
 } from './pbx-admin-model';
 import { featureForAdvancedScreen, registerPbxAdminScreens } from './pbx-admin-screens';
 import { lookupFieldControl } from '../../../control-plane/field-control-catalog';
-import { FREEPBX_MODULE_CATALOG, searchableFreePbxModules, type FreePbxModuleCatalogEntry } from './freepbx-module-catalog';
+import { FREEPBX_MODULE_CATALOG, searchableFreePbxModules, searchableFreePbxModulesInWorker, type FreePbxModuleCatalogEntry } from './freepbx-module-catalog';
 import { buildFreePbxModuleForm } from './freepbx-module-form';
 import { moduleAdapterFor } from './freepbx-module-adapters';
 import type { FreePbxBackupJob, FreePbxBackupReceipt, FreePbxHandshake, FreePbxRuntimeModule } from '../../../control-plane/freepbx-runtime';
@@ -38,6 +38,7 @@ type StateValues = { screen: string; values: Record<string, unknown> };
 type FreePbxCatalogHistoryEntry = { observedAt: string; moduleId: string; action: string; status: string; message: string };
 
 const AUDIO_ACCEPT = '.wav,.gsm,.ulaw,.alaw,.g722,.sln,.sln16,.ogg,.opus';
+const FREEPBX_FAMILY_ACTIONS = ['freepbx.family.schema', 'freepbx.family.read', 'freepbx.family.plan', 'freepbx.family.apply'] as const;
 
 function basename(resource: string): string {
   return resource.slice(resource.lastIndexOf('/') + 1);
@@ -150,6 +151,10 @@ export class PbxAdminApp extends App {
   private freePbxBackupReceipt: FreePbxBackupReceipt | undefined;
   private freePbxBackupJobId = 'freepbx-catalog:backup-job';
   private freePbxFamilySchemas = new Map<string, { backend: string; fields: Array<{ key: string; source: string; kind: string }>; unavailableReason?: string }>();
+  private freePbxFamilyValues = new Map<string, Record<string, ConfigValue>>();
+  private freePbxWorkerSearchKey = '';
+  private freePbxWorkerMatchIds = new Set<string>();
+  private freePbxWorkerPending = false;
 
   private adminRequest = async (action: string, extra: Record<string, unknown> = {}): Promise<ControlPlaneResponse | undefined> => {
     const bridge = window.dingDesktop;
@@ -231,6 +236,27 @@ export class PbxAdminApp extends App {
   private newSettingValueControlId(screen: string) { return `pbxadm:${screen}:new-value`; }
   private entryValueControlId(screen: string, sectionIndex: number, entryIndex: number) {
     return `pbxadm:${screen}:value:${sectionIndex}:${entryIndex}`;
+  }
+
+  private freePbxFamilySchemaKey(moduleId: string, target: string): string {
+    const revision = FREEPBX_MODULE_CATALOG.modules.find((module) => module.moduleId === moduleId)?.source.revision ?? '';
+    return `${target}\u0000${moduleId}\u0000${revision}`;
+  }
+
+  private freePbxFamilyCurrentValue(moduleId: string, target: string, key: string): string {
+    const values = this.freePbxFamilyValues.get(this.freePbxFamilySchemaKey(moduleId, target));
+    for (const resource of Object.values(values ?? {})) for (const section of resource) for (const entry of section.entries) if (entry.key === key) return entry.value;
+    return '';
+  }
+
+  private freePbxFamilyFieldControl(moduleId: string, target: string, field: { key: string; label?: string; source: string; kind: string }, reason: string): AdminControl {
+    const id = `freepbx-family:${moduleId}:${field.key}`;
+    const value = this.freePbxFamilyCurrentValue(moduleId, target, field.key);
+    const info = `${field.source}; target-backed value. ${reason}`;
+    const label = field.label ?? field.key;
+    if (field.kind === 'switch') return { ...switchControl(id, label, value.toLowerCase() === 'yes', info), readOnly: true };
+    if (field.kind === 'select') return { ...selectControl(id, label, value, value ? [value] : ['No verified target value'], undefined), readOnly: true };
+    return textControl(id, label, value, info, true);
   }
   private freePbxCatalogQueryId = 'freepbx-catalog:query';
   private freePbxCatalogRegexId = 'freepbx-catalog:regex';
@@ -398,7 +424,9 @@ export class PbxAdminApp extends App {
     const installedOnly = values[this.freePbxCatalogInstalledId] === true;
     const commercialOnly = values[this.freePbxCatalogCommercialId] === true;
     const includeExclusions = values[this.freePbxCatalogExclusionsId] === true;
-    const modules = searchableFreePbxModules(query, regex).filter((module) => {
+    const workerKey = `${query}\u0000${regex ? 'regex' : 'text'}`;
+    const searchModules = this.freePbxWorkerSearchKey === workerKey ? FREEPBX_MODULE_CATALOG.modules.filter((module) => this.freePbxWorkerMatchIds.has(module.moduleId)) : searchableFreePbxModules(query, regex);
+    const modules = searchModules.filter((module) => {
       if (installedOnly && !this.freePbxRuntimeModules.get(module.moduleId)?.installed) return false;
       if (commercialOnly && module.entitlementClass !== 'commercial') return false;
       return true;
@@ -410,6 +438,20 @@ export class PbxAdminApp extends App {
       .map((entry) => ({ id: entry.recordId, moduleId: entry.moduleId, label: `[excluded] ${entry.moduleId} · ${entry.reason}`, excluded: true }));
     return [...modules, ...exclusions];
   }
+
+  private refreshFreePbxWorkerSearch = async (): Promise<void> => {
+    const values = this.stateValues().values;
+    const query = String(values[this.freePbxCatalogQueryId] ?? '');
+    const regex = values[this.freePbxCatalogRegexId] === true;
+    const key = `${query}\u0000${regex ? 'regex' : 'text'}`;
+    if (this.freePbxWorkerPending || this.freePbxWorkerSearchKey === key) return;
+    this.freePbxWorkerPending = true;
+    const modules = await searchableFreePbxModulesInWorker(query, regex);
+    this.freePbxWorkerMatchIds = new Set(modules.map((module) => module.moduleId));
+    this.freePbxWorkerSearchKey = key;
+    this.freePbxWorkerPending = false;
+    this.forceUpdate();
+  };
 
   private refreshFreePbxCatalog = async (): Promise<void> => {
     const screen = this.stateValues().screen;
@@ -456,11 +498,18 @@ export class PbxAdminApp extends App {
     this.forceUpdate();
   };
 
-  private loadFreePbxFamilySchema = async (feature: PbxFeatureDefinition, target: string): Promise<void> => {
-    const module = this.freePbxModuleForFeature(feature);
-    if (!module || this.freePbxFamilySchemas.has(module.moduleId)) return;
+  private loadFreePbxFamilySchema = async (feature: PbxFeatureDefinition, target: string, selectedModule?: FreePbxModuleCatalogEntry): Promise<void> => {
+    const module = selectedModule ?? this.freePbxModuleForFeature(feature);
+    if (!module || this.freePbxFamilySchemas.has(this.freePbxFamilySchemaKey(module.moduleId, target))) return;
     const response = await this.adminRequest('freepbx.family.schema', { serverId: target, payload: { moduleId: module.moduleId } });
-    if (response?.ok) this.freePbxFamilySchemas.set(module.moduleId, response.data as { backend: string; fields: Array<{ key: string; source: string; kind: string }>; unavailableReason?: string });
+    if (response?.ok) {
+      const schema = response.data as { backend: string; fields: Array<{ key: string; source: string; kind: string }>; unavailableReason?: string };
+      this.freePbxFamilySchemas.set(this.freePbxFamilySchemaKey(module.moduleId, target), schema);
+      if (schema.backend === 'config-transaction') {
+        const values = await this.adminRequest('freepbx.family.read', { serverId: target, payload: { moduleId: module.moduleId } });
+        if (values?.ok) this.freePbxFamilyValues.set(this.freePbxFamilySchemaKey(module.moduleId, target), (values.data as { values?: Record<string, ConfigValue> }).values ?? {});
+      }
+    }
   };
 
   private createFreePbxBackup = async (): Promise<void> => {
@@ -555,8 +604,12 @@ export class PbxAdminApp extends App {
       await this.loadAdminHistory(screen, feature);
     }
     if (feature.tools?.includes('media')) await this.loadAdminMedia(screen);
-    if (feature.id !== 'freepbx-catalog' && this.adminTargets[0]) await this.loadFreePbxFamilySchema(feature, this.selectedTarget(screen));
+    if (this.adminTargets[0]) {
+      const selectedCatalogModule = feature.id === 'freepbx-catalog' ? this.selectedFreePbxCatalogRecord()?.module : undefined;
+      await this.loadFreePbxFamilySchema(feature, this.selectedTarget(screen), selectedCatalogModule);
+    }
     if (feature.id === 'freepbx-catalog' && this.freePbxRuntimeModules.size === 0) await this.refreshFreePbxCatalog();
+    if (feature.id === 'freepbx-catalog') void this.refreshFreePbxWorkerSearch();
   };
 
   componentDidUpdate() {
@@ -639,18 +692,30 @@ export class PbxAdminApp extends App {
           title: 'Family form schema',
           desc: adapter.unavailableReason,
           ctls: adapter.adapter.fields.length > 0
-            ? adapter.adapter.fields.map((field) => textControl(`freepbx-family:${selectedModule.moduleId}:${field.key}`, field.label, '', `${field.source}; ${field.required ? 'Required' : 'Optional'}. ${adapter.unavailableReason}`, true))
+            ? adapter.adapter.fields.map((field) => this.freePbxFamilyFieldControl(selectedModule.moduleId, target, field, `${field.required ? 'Required' : 'Optional'}. ${adapter.unavailableReason}`))
             : [actionControl(`freepbx-family:${selectedModule.moduleId}:unavailable`, 'No executable family fields', 'freepbx-family-unavailable', adapter.unavailableReason)],
         });
+        const catalogFamilySchema = this.freePbxFamilySchemas.get(this.freePbxFamilySchemaKey(selectedModule.moduleId, target));
+        if (catalogFamilySchema) {
+          groups.push({
+            title: 'Selected family operations',
+            desc: catalogFamilySchema.unavailableReason ?? `Backend ${catalogFamilySchema.backend} is selected.`,
+            ctls: [
+              actionControl(`freepbx-family:${selectedModule.moduleId}:read`, 'Read family values', 'freepbx-family-read', 'Reads target-backed values for this selected module.'),
+              actionControl(`freepbx-family:${selectedModule.moduleId}:plan`, 'Preview family change', 'freepbx-family-plan', 'Plans against the target before a write.'),
+              actionControl(`freepbx-family:${selectedModule.moduleId}:apply`, 'Apply family change', 'freepbx-family-apply', 'Requires handshake, backup receipt, confirmation, and readback.'),
+            ],
+          });
+        }
       }
     }
 
     if (freePbxModule) {
       const moduleForm = buildFreePbxModuleForm(freePbxModule.moduleId, feature, resources, liveValuesByResource);
       const actionInfo = freePbxModule.availability.reason;
-      const familySchema = this.freePbxFamilySchemas.get(freePbxModule.moduleId);
-      groups.push({
-        title: 'FreePBX module metadata',
+      const familySchema = this.freePbxFamilySchemas.get(this.freePbxFamilySchemaKey(freePbxModule.moduleId, target));
+        groups.push({
+          title: 'FreePBX module metadata',
         desc: `${freePbxModule.name} ${freePbxModule.version} · ${freePbxModule.license}. ${familySchema ? `Backend ${familySchema.backend}, ${familySchema.fields.length} module-specific schema fields. ${familySchema.unavailableReason ?? ''}` : ''} ${actionInfo}`,
         ctls: [
           actionControl(`freepbx:${freePbxModule.moduleId}:install`, 'Install module', 'freepbx-module-install', actionInfo),
@@ -659,9 +724,20 @@ export class PbxAdminApp extends App {
           actionControl(`freepbx:${freePbxModule.moduleId}:update`, 'Update module', 'freepbx-module-update', actionInfo),
           actionControl(`freepbx:${freePbxModule.moduleId}:remove`, 'Remove module', 'freepbx-module-remove', actionInfo),
           actionControl(`freepbx:${freePbxModule.moduleId}:catalog`, `${moduleForm?.fields.length ?? 0} target-backed fields`, 'freepbx-module-catalog', 'The field count is derived from the selected target read; no sample values are inserted.'),
-        ],
-      });
-    }
+          ],
+        });
+        if (familySchema) {
+          groups.push({
+            title: 'Family operations',
+            desc: familySchema.unavailableReason ?? `The ${familySchema.backend} schema is target-backed and must be read before planning.`,
+            ctls: [
+              actionControl(`freepbx-family:${freePbxModule.moduleId}:read`, 'Read family values', 'freepbx-family-read', 'Reads the selected family through its typed target route.'),
+              actionControl(`freepbx-family:${freePbxModule.moduleId}:plan`, 'Preview family change', 'freepbx-family-plan', 'Plans against the current target values before a write.'),
+              actionControl(`freepbx-family:${freePbxModule.moduleId}:apply`, 'Apply family change', 'freepbx-family-apply', 'Requires the capability handshake, official backup receipt, confirmation, and post-read verification.'),
+            ],
+          });
+        }
+      }
 
     if (resources.length > 0) {
       const resourceOptions = resources.map(basename);
@@ -1130,6 +1206,40 @@ export class PbxAdminApp extends App {
     void execute(false);
   };
 
+  private runFreePbxFamilyAction = (moduleId: string, action: 'read' | 'plan' | 'apply', target: string): void => {
+    const schema = this.freePbxFamilySchemas.get(this.freePbxFamilySchemaKey(moduleId, target));
+    if (!schema || schema.backend !== 'config-transaction') {
+      this.fire('FreePBX family action unavailable', schema?.unavailableReason ?? 'This family has no executable configuration backend.');
+      return;
+    }
+    const execute = async (): Promise<void> => {
+      const module = FREEPBX_MODULE_CATALOG.modules.find((candidate) => candidate.moduleId === moduleId);
+      const storedValues = this.freePbxFamilyValues.get(this.freePbxFamilySchemaKey(moduleId, target)) ?? {};
+      const values = Object.fromEntries((module?.configurationResources ?? Object.keys(storedValues)).map((resource) => [resource, this.adminDrafts.get(configKey(target, resource)) ?? storedValues[resource] ?? []]));
+      const documents = Object.entries(values).map(([resource, value]) => ({ resource, value }));
+      let backup: FreePbxBackupReceipt | undefined;
+      if (action === 'apply') {
+        const jobId = String(this.stateValues().values[this.freePbxBackupJobId] ?? '').split(' · ')[0]!.trim();
+        if (!module || !jobId) { this.fire('FreePBX family apply unavailable', 'Select an official backup job before a family mutation.'); return; }
+        const backupResponse = await this.adminRequest('freepbx.backup', { serverId: target, payload: { jobId, moduleId, action: 'update', catalogRevision: module.source.revision } });
+        if (!backupResponse?.ok) { this.fire('FreePBX family apply unavailable', backupResponse?.message ?? 'The official backup did not return a receipt.'); return; }
+        backup = backupResponse.data as FreePbxBackupReceipt;
+      }
+      if (action === 'read') {
+        const response = await this.adminRequest('freepbx.family.read', { serverId: target, payload: { moduleId } });
+        if (response?.ok) { this.freePbxFamilyValues.set(this.freePbxFamilySchemaKey(moduleId, target), (response.data as { values?: Record<string, ConfigValue> }).values ?? {}); this.forceUpdate(); }
+        else this.fire('FreePBX family read unavailable', response?.message ?? 'The family target read did not answer.');
+        return;
+      }
+      const route = action === 'read' ? FREEPBX_FAMILY_ACTIONS[1] : action === 'plan' ? FREEPBX_FAMILY_ACTIONS[2] : FREEPBX_FAMILY_ACTIONS[3];
+      const response = await this.adminRequest(route, { serverId: target, payload: { moduleId, documents, backup } });
+      if (!response?.ok) this.fire(`FreePBX family ${action} unavailable`, response?.message ?? 'The family route refused the request.');
+      else this.fire(`FreePBX family ${action}`, 'The target returned a structured family result.');
+    };
+    if (action === 'apply') this.areYouSure(`Apply ${moduleId} family changes`, 'The target must pass its FreePBX handshake and one-time backup receipt before a family mutation is sent.', 3, () => { void execute(); });
+    else void execute();
+  };
+
   onControlAction = (action: string, _control?: { id?: string }, selected?: string): void => {
     const context = this.currentAdminContext();
     if (!context) {
@@ -1160,6 +1270,16 @@ export class PbxAdminApp extends App {
       const selected = this.selectedFreePbxCatalogRecord();
       if (match && selected && !selected.excluded) { this.runFreePbxModuleAction(selected.moduleId, match[1] as 'install' | 'enable' | 'disable' | 'update' | 'remove'); return; }
       if (selected?.excluded) { this.fire('FreePBX module action unavailable', 'Excluded catalog records are non-actionable dispositions.'); return; }
+    }
+    if (action.startsWith('freepbx-family-')) {
+      const match = /^freepbx-family-(read|plan|apply)$/u.exec(action);
+      const feature = context.feature;
+      const selectedCatalog = feature.id === 'freepbx-catalog' ? this.selectedFreePbxCatalogRecord() : undefined;
+      const module = selectedCatalog && !selectedCatalog.excluded ? selectedCatalog.module : this.freePbxModuleForFeature(feature);
+      const target = this.selectedTarget(context.screen);
+      if (match && module && target) { void this.runFreePbxFamilyAction(module.moduleId, match[1] as 'read' | 'plan' | 'apply', target); return; }
+      this.fire('FreePBX family action unavailable', 'Select a mapped module and a registered target first.');
+      return;
     }
     if (action.startsWith('freepbx-module-')) {
       const module = this.freePbxModuleForFeature(context.feature);

@@ -88,14 +88,23 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
   const { userDataPath, resourcesPath, hosted } = options;
   const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker', 'git'] });
   const freePbxReceipts = new Map<string, FreePbxBackupReceipt>();
+  const freePbxReceiptPath = join(userDataPath, 'freepbx-receipts.json');
+  try {
+    const saved = JSON.parse(readFileSync(freePbxReceiptPath, 'utf8')) as unknown;
+    if (Array.isArray(saved)) for (const receipt of saved) if (receipt && typeof receipt === 'object' && typeof (receipt as Record<string, unknown>).nonce === 'string') freePbxReceipts.set((receipt as Record<string, unknown>).nonce as string, receipt as FreePbxBackupReceipt);
+  } catch { /* First run or a corrupt receipt cache starts empty and safely refuses old actions. */ }
+  const persistFreePbxReceipts = (): void => {
+    mkdirSync(dirname(freePbxReceiptPath), { recursive: true });
+    writeFileSync(freePbxReceiptPath, `${JSON.stringify([...freePbxReceipts.values()], null, 2)}\n`);
+  };
   const receiptStore: FreePbxBackupReceiptStore = {
-    issue(receipt) { freePbxReceipts.set(receipt.nonce, receipt); },
+    issue(receipt) { freePbxReceipts.set(receipt.nonce, receipt); persistFreePbxReceipts(); },
     consume(binding) {
       const receipt = freePbxReceipts.get(binding.nonce);
       if (!receipt) return undefined;
+      if (Date.parse(receipt.expiresAt) < Date.now() || receipt.targetId !== binding.targetId || receipt.jobId !== binding.jobId || receipt.moduleId !== binding.moduleId || receipt.action !== binding.action || receipt.catalogRevision !== binding.catalogRevision) return undefined;
       freePbxReceipts.delete(binding.nonce);
-      if (Date.parse(receipt.expiresAt) < Date.now()) return undefined;
-      if (receipt.targetId !== binding.targetId || receipt.jobId !== binding.jobId || receipt.moduleId !== binding.moduleId || receipt.action !== binding.action || receipt.catalogRevision !== binding.catalogRevision) return undefined;
+      persistFreePbxReceipts();
       return receipt;
     },
   };
@@ -498,17 +507,29 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       }
       if (request.action === 'freepbx.family.schema' || request.action === 'freepbx.family.read' || request.action === 'freepbx.family.plan' || request.action === 'freepbx.family.apply') {
         const target = await resolveTarget(request.serverId);
-        if (target.connectionKind !== 'wsl' || !target.wslDistribution) return { ok: false, requestId: request.requestId, code: 'FREEPBX_FAMILY_TRANSPORT_UNSUPPORTED', message: 'This family backend currently supports only a discovered WSL target. The selected container or remote transport has no approved configuration transaction route.' };
+        if (target.connectionKind !== 'wsl' && target.connectionKind !== 'localDocker') return { ok: false, requestId: request.requestId, code: 'FREEPBX_FAMILY_TRANSPORT_UNSUPPORTED', message: 'This family backend supports only a discovered WSL or local Docker target. The selected remote transport has no approved configuration transaction route.' };
         const moduleId = typeof request.payload?.moduleId === 'string' ? request.payload.moduleId.trim() : '';
         if (!moduleId) return { ok: false, requestId: request.requestId, code: 'FREEPBX_MODULE_REQUIRED', message: 'A catalog module ID is required.' };
-        const runtime = new FreePbxFamilyRuntime({ executor: processExecutor, distribution: target.wslDistribution, catalog: freePbxFamilyEntries() });
+        const familyCatalog = freePbxCatalogEntries().find((module) => module.moduleId === moduleId);
+        if (!familyCatalog || familyCatalog.entitlementClass !== 'open') return { ok: false, requestId: request.requestId, code: 'FREEPBX_ENTITLEMENT_UNAVAILABLE', message: 'The selected family has no verified open entitlement, so the family route is non-actionable.' };
+        const capability = await new FreePbxRuntimeAdapter({ executor: processExecutor, target, catalog: freePbxCatalogEntries(), receipts: receiptStore }).handshake();
+        if (capability.moduleAdmin !== 'available' || capability.database !== 'available' || capability.webService !== 'available' || capability.backup !== 'available') return { ok: false, requestId: request.requestId, code: 'FREEPBX_CAPABILITY_UNKNOWN', message: `The family route requires known capabilities. moduleAdmin=${capability.moduleAdmin}, database=${capability.database}, webService=${capability.webService}, backup=${capability.backup}.` };
+        const runtime = new FreePbxFamilyRuntime({ executor: processExecutor, target, catalog: freePbxFamilyEntries() });
         if (request.action === 'freepbx.family.schema') return { ok: true, requestId: request.requestId, data: runtime.schema(moduleId) };
         if (request.action === 'freepbx.family.read') return { ok: true, requestId: request.requestId, data: await runtime.read(moduleId) };
         const documents = Array.isArray(request.payload?.documents) ? request.payload.documents as Array<{ resource: string; value: never }> : [];
         if (documents.length === 0) return { ok: false, requestId: request.requestId, code: 'FREEPBX_DOCUMENTS_REQUIRED', message: 'A family write must include the target-backed configuration documents.' };
+        if (request.action === 'freepbx.family.apply') {
+          const backup = request.payload?.backup;
+          const typedBackup = backup && typeof backup === 'object' && (backup as Record<string, unknown>).source === 'official-freepbx-backup' && typeof (backup as Record<string, unknown>).jobId === 'string' && typeof (backup as Record<string, unknown>).nonce === 'string' ? backup as { jobId: string; nonce: string; catalogRevision: string | null } : undefined;
+          if (!typedBackup || !receiptStore.consume({ targetId: target.id, jobId: typedBackup.jobId, moduleId, action: 'update', catalogRevision: typedBackup.catalogRevision, nonce: typedBackup.nonce })) return { ok: false, requestId: request.requestId, code: 'FREEPBX_BACKUP_RECEIPT_REQUIRED', message: 'A one-time target-bound backup receipt is required before the family mutation.' };
+        }
         const result = request.action === 'freepbx.family.plan'
           ? await runtime.plan(moduleId, target.id, documents)
           : await runtime.apply(moduleId, target.id, documents);
+        if (request.action === 'freepbx.family.apply') {
+          try { await recordFreePbxActionHistory(moduleId, 'family-apply', result); } catch { /* the result remains honest and the history failure is surfaced by the next local-history read */ }
+        }
         return { ok: true, requestId: request.requestId, data: result };
       }
       if (request.action === 'freepbx.modules') {

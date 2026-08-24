@@ -20,6 +20,7 @@
  */
 import type { ProcessExecutor } from "./executor.js";
 import type { ConfigDocument, ConfigTransport } from "./config-transaction.js";
+import type { TargetProfile } from "./contracts.js";
 
 const CONFIG_DIRECTORY = "/etc/asterisk";
 
@@ -239,7 +240,8 @@ export function renderConfig(value: ConfigValue): string {
 
 export interface WslConfigTransportOptions {
   executor: ProcessExecutor;
-  distribution: string;
+  distribution?: string;
+  target?: Pick<TargetProfile, "connectionKind" | "wslDistribution" | "dockerContext">;
   now?: () => Date;
 }
 
@@ -250,14 +252,17 @@ function looksAbsent(error: unknown): boolean {
 
 export class WslConfigTransport implements ConfigTransport {
   readonly #executor: ProcessExecutor;
-  readonly #distribution: string;
+  readonly #target: Pick<TargetProfile, "connectionKind" | "wslDistribution" | "dockerContext">;
   readonly #now: () => Date;
   /** Maps a staged path back to the resource it belongs to, so apply cannot be misaimed. */
   readonly #staged = new Map<string, ConfigurableResource>();
 
   constructor(options: WslConfigTransportOptions) {
     this.#executor = options.executor;
-    this.#distribution = options.distribution;
+    this.#target = options.target ?? { connectionKind: "wsl", wslDistribution: options.distribution };
+    if (this.#target.connectionKind === "wsl" && !this.#target.wslDistribution?.trim()) throw new Error("A WSL distribution is required.");
+    if (this.#target.connectionKind === "localDocker" && !this.#target.dockerContext?.trim()) throw new Error("A local Docker target requires a discovered container id.");
+    if (this.#target.connectionKind !== "wsl" && this.#target.connectionKind !== "localDocker") throw new Error("This configuration transport supports WSL and local Docker only.");
     this.#now = options.now ?? (() => new Date());
   }
 
@@ -267,9 +272,12 @@ export class WslConfigTransport implements ConfigTransport {
   }
 
   async #run(args: ReadonlyArray<string>, input?: string, timeoutMs = 30_000) {
+    const command = this.#target.connectionKind === "wsl"
+      ? { executable: "wsl.exe", args: ["-d", this.#target.wslDistribution!, "--", ...args] }
+      : { executable: "docker", args: ["exec", this.#target.dockerContext!, ...args] };
     const result = await this.#executor.execute({
-      executable: "wsl.exe",
-      args: ["-d", this.#distribution, "--", ...args],
+      executable: command.executable,
+      args: command.args,
       input,
       timeoutMs,
       maxOutputBytes: 4 * 1024 * 1024,

@@ -2,6 +2,7 @@ import type { ConfigValue } from './config-transaction.js';
 import { ConfigTransaction, StructuredConfigPlanner } from './config-transaction.js';
 import { WslConfigTransport, assertConfigurable } from './wsl-config-transport.js';
 import type { ProcessExecutor } from './executor.js';
+import type { TargetProfile } from './contracts.js';
 
 export interface FreePbxFamilyCatalogModule {
   moduleId: string;
@@ -28,7 +29,7 @@ export interface FreePbxFamilySchema {
 
 export interface FreePbxFamilyRuntimeOptions {
   executor: ProcessExecutor;
-  distribution: string;
+  target: Pick<TargetProfile, 'id' | 'connectionKind' | 'wslDistribution' | 'dockerContext'>;
   catalog: ReadonlyArray<FreePbxFamilyCatalogModule>;
 }
 
@@ -81,13 +82,12 @@ const FAMILY_BACKENDS: Readonly<Record<string, { backend: FreePbxFamilySchema['b
 
 export class FreePbxFamilyRuntime {
   readonly #executor: ProcessExecutor;
-  readonly #distribution: string;
+  readonly #target: FreePbxFamilyRuntimeOptions['target'];
   readonly #catalog: ReadonlyArray<FreePbxFamilyCatalogModule>;
 
   constructor(options: FreePbxFamilyRuntimeOptions) {
-    if (!options.distribution.trim()) throw new Error('A WSL distribution is required.');
     this.#executor = options.executor;
-    this.#distribution = options.distribution.trim();
+    this.#target = options.target;
     this.#catalog = options.catalog;
   }
 
@@ -99,13 +99,14 @@ export class FreePbxFamilyRuntime {
     if (!policy) return { moduleId, familyId, title: module.name, resources: module.configurationResources, backend: 'metadata-only', fields: [], readback: 'metadata-only', unavailableReason: 'This module family has no bounded entity or published API backend.' };
     if (policy.backend === 'published-api' && module.apiCapabilities.length === 0) return { moduleId, familyId, title: module.name, resources: module.configurationResources, backend: 'metadata-only', fields: policy.fields, readback: 'metadata-only', unavailableReason: 'The family requires a published API, but this module publishes no API capability.' };
     if (policy.backend === 'published-api') return { moduleId, familyId, title: module.name, resources: module.configurationResources, backend: 'published-api', fields: policy.fields, readback: policy.readback, unavailableReason: 'The module publishes an API capability label, but no endpoint, method, and authentication contract is present in the official metadata. No invented API request is enabled.' };
+    if (policy.fields.some((field) => field.source !== 'target-config')) return { moduleId, familyId, title: module.name, resources: module.configurationResources, backend: 'metadata-only', fields: policy.fields, readback: 'metadata-only', unavailableReason: 'This family mixes entity fields with configuration fields, but no approved entity route is available. The fields are shown for provenance and remain non-actionable.' };
     return { moduleId, familyId, title: module.name, resources: module.configurationResources, backend: policy.backend, fields: policy.fields, readback: policy.readback };
   }
 
   async read(moduleId: string): Promise<{ schema: FreePbxFamilySchema; values: Record<string, ConfigValue>; observedAt: string }> {
     const schema = this.schema(moduleId);
     if (schema.backend !== 'config-transaction') return { schema, values: {}, observedAt: new Date().toISOString() };
-    const transport = new WslConfigTransport({ executor: this.#executor, distribution: this.#distribution });
+    const transport = new WslConfigTransport({ executor: this.#executor, target: this.#target });
     const values: Record<string, ConfigValue> = {};
     for (const resource of schema.resources) values[resource] = await transport.read(assertConfigurable(resource));
     return { schema, values, observedAt: new Date().toISOString() };
@@ -114,7 +115,7 @@ export class FreePbxFamilyRuntime {
   async plan(moduleId: string, targetId: string, documents: ReadonlyArray<{ resource: string; value: ConfigValue }>): Promise<unknown> {
     const schema = this.schema(moduleId);
     if (schema.backend !== 'config-transaction') throw new Error(schema.unavailableReason ?? 'This family has no configuration transaction backend.');
-    const transport = new WslConfigTransport({ executor: this.#executor, distribution: this.#distribution });
+    const transport = new WslConfigTransport({ executor: this.#executor, target: this.#target });
     const checked = documents.map((document) => ({ resource: assertConfigurable(document.resource), value: document.value }));
     return new StructuredConfigPlanner().createPlan(`freepbx-family-${moduleId}-${Date.now()}`, targetId, checked, transport);
   }
@@ -122,7 +123,7 @@ export class FreePbxFamilyRuntime {
   async apply(moduleId: string, targetId: string, documents: ReadonlyArray<{ resource: string; value: ConfigValue }>): Promise<unknown> {
     const schema = this.schema(moduleId);
     if (schema.backend !== 'config-transaction') throw new Error(schema.unavailableReason ?? 'This family has no configuration transaction backend.');
-    const transport = new WslConfigTransport({ executor: this.#executor, distribution: this.#distribution });
+    const transport = new WslConfigTransport({ executor: this.#executor, target: this.#target });
     const checked = documents.map((document) => ({ resource: assertConfigurable(document.resource), value: document.value }));
     const plan = await new StructuredConfigPlanner().createPlan(`freepbx-family-${moduleId}-${Date.now()}`, targetId, checked, transport);
     return new ConfigTransaction(transport).apply(plan);
