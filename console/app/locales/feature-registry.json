@@ -98,13 +98,32 @@
       "note": "Every listed label has a Cantonese entry."
     },
     "external-settings-sources": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [],
-      "localizedLabels": [],
+      "labels": [
+        "Settings sources",
+        "Source URL",
+        "Source kind",
+        "Home Assistant entity",
+        "Settings this source may set",
+        "Credential vault key",
+        "Add this source",
+        "Remove every source",
+        "Sources in effect"
+      ],
+      "localizedLabels": [
+        "Settings sources",
+        "Source URL",
+        "Source kind",
+        "Home Assistant entity",
+        "Settings this source may set",
+        "Credential vault key",
+        "Add this source",
+        "Remove every source",
+        "Sources in effect"
+      ],
       "untranslatedLabels": [],
-      "note": "Implemented as partial and contributing no design label, because it has no control: the module validates and decides, and nothing fetches yet, so a source list would validate and never fetch. The labels arrive with the privileged fetch.",
-      "blockedBy": "no-label-surface"
+      "note": "Every listed label has a Cantonese entry."
     },
     "dim-sum-surprise": {
       "state": "not-localized",

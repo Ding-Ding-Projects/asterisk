@@ -2543,6 +2543,16 @@ const SCREENS = {
     { title:'Readability', desc:'Whether the colour you have chosen can actually be read against the console’s own surface. Measured, not guessed: this is the WCAG contrast ratio for the current accent, and it changes as you move the colour.', ctls:[
       ctl('ap_contrast','Contrast of the current accent','text','Not measured yet.',{ action:'contrast-status', info:'The ratio and the level it reaches. AA needs 4.5 for ordinary text and 3 for large text; AAA needs 7 and 4.5. A colour that fails is still yours to keep -- this reports, it does not refuse.' })
     ]},
+    { title:'Settings sources', desc:'Let a setting take its value from somewhere else -- an HTTPS API you run, or a Home Assistant boolean. The value is an override for as long as the source says so; your own setting is what returns when it stops, and a source going offline never resets anything.', ctls:[
+      ctl('src_url','Source URL','text','',{ placeholder:'https://settings.example.net/console', info:'HTTPS only, except loopback while developing. Credentials cannot go in the URL -- a URL reaches logs and error messages. The host must also be on the allowed list, so a tampered settings file cannot repoint this at an internal address.' }),
+      ctl('src_kind','Source kind','segmented','https-api',{ options:['https-api','home-assistant'] }),
+      ctl('src_entity','Home Assistant entity','text','',{ placeholder:'input_boolean.quiet_hours', info:'The boolean entity whose state drives this source. Off is an ordinary state, not a failure: it means the source simply does not apply and your own values stay in effect.' }),
+      ctl('src_keys','Settings this source may set','text','',{ placeholder:'lang_mode, fun_level', info:'Comma separated. A key not listed here is ignored however it arrives, because what a response is permitted to change is decided here and not there.' }),
+      ctl('src_credential','Credential vault key','text','',{ placeholder:'ding-pbx-console/source/1', info:'Names where the token lives. The token itself never passes through this console’s own state, and is sent as a header by the privileged process rather than by this screen.' }),
+      ctl('src_add','Add this source','switch',false),
+      ctl('src_clear','Remove every source','switch',false,{ info:'Your own settings are unaffected -- a source only ever overrode them.' }),
+      ctl('src_status','Sources in effect','text','No sources configured.',{ action:'source-status', info:'What each source last answered, and when. A source that has stopped working says so rather than quietly ceasing to track.' })
+    ]},
     { title:'Scheduled settings', desc:'Settings that change themselves at a time you choose, and change back when the window ends. A scheduled change goes through exactly the same path as one you make by hand, so it is validated and recorded the same way.', ctls:[
       ctl('sch_status','What is in force now','text','No schedule is in force; your own settings are in effect.',{ action:'schedule-status', info:'Names the rules currently applying and the settings they are overriding. Your own values are never overwritten -- they are put back when the window ends, including if you delete the rule while it is running.' })
     ]},

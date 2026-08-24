@@ -33,6 +33,8 @@ const WIRED = [
   { id: 'school_credential', acts: 'consumeCredential(' },
   { id: 'fun_level', acts: 'setFunnyLevel(' },
   { id: 'fun_level_yue', acts: 'setFunnyLevel(' },
+  { id: 'src_add', acts: 'buildSource(' },
+  { id: 'src_clear', acts: 'saveSources(' },
 ];
 
 test('every wired control exists in the compiled design', () => {

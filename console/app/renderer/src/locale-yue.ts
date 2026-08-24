@@ -204,6 +204,17 @@ export const CANTONESE: Catalog = {
   'CLI builder': '指令產生器',
   'Arcade': '遊戲機',
 
+  /* Settings sources. */
+  'Settings sources': '設定來源',
+  'Source URL': '來源網址',
+  'Source kind': '來源種類',
+  'Home Assistant entity': 'Home Assistant 實體',
+  'Settings this source may set': '呢個來源可以改嘅設定',
+  'Credential vault key': '密碼庫鎖匙',
+  'Add this source': '加入呢個來源',
+  'Remove every source': '移除所有來源',
+  'Sources in effect': '生效緊嘅來源',
+
   /* Funny levels. */
   'Fun level (English)': '搞笑程度(英文)',
   'Fun level (廣東話)': '搞笑程度(廣東話)',

@@ -41,6 +41,11 @@ import {
 import { attemptMessage, consumeCredential } from './credential-field';
 import { isFunnyLevel, setFunnyLevel, type CopyLanguage } from './funny-levels';
 import { recoveryFor, type FailureKind } from './in-context-recovery';
+import { applyResponse, isRejected, MIN_REFRESH_MS } from './external-settings-sources';
+import {
+  buildSource, loadSources, saveSources, sourcesStatusLine,
+  type SourceDraft, type SourceReport,
+} from './source-store';
 import {
   AA_LARGE_TEXT_RATIO, AA_NORMAL_TEXT_RATIO, contrastLevel, contrastRatioFromHex,
 } from './accessibility-contract';
@@ -206,6 +211,21 @@ export class App extends Base {
    *  this, which is close enough for a setting and cheap enough to run forever. */
   private static readonly SCHEDULE_TICK_MS = 30_000;
 
+  /** Sources are polled on their own timer, floored by the module rather than here
+   *  so a faster interval cannot be set by editing this one number. */
+  private static readonly SOURCE_POLL_MS = MIN_REFRESH_MS;
+
+  private sourceReports: SourceReport[] = [];
+
+  /** Read by the compiled `text`-kind control marked `action:'source-status'`. */
+  private sourceStatusLine = 'No sources configured.';
+
+  private sourceTimer: ReturnType<typeof setInterval> | undefined;
+
+  /** One generation per poll round. An answer carrying an older one is dropped by
+   *  applyResponse, so a slow reply cannot land after a fast one. */
+  private sourceGeneration = 0;
+
   /** Read by the compiled `text`-kind control marked `action:'school-status'`. */
   private schoolStatusLine = 'Off.';
 
@@ -311,6 +331,7 @@ export class App extends Base {
       this.restoreLanguageMode();
       this.restoreDisplayName();
       this.startScheduler();
+      this.startSourcePolling();
       this.refreshSchoolStatus();
       this.restoreAppearance();
       this.forceUpdate();
@@ -339,6 +360,8 @@ export class App extends Base {
     this.refreshTimer = undefined;
     if (this.scheduleTimer) clearInterval(this.scheduleTimer);
     this.scheduleTimer = undefined;
+    if (this.sourceTimer) clearInterval(this.sourceTimer);
+    this.sourceTimer = undefined;
     /* Torn down with the unsubscribe the bridge returns. A listener that outlives the
      * component fires into a dead tree on the next reload. */
     this.stopProvisionListener?.();
@@ -740,6 +763,101 @@ What you can do: ${offered}.` : ''}`);
     this.forceUpdate();
   }
 
+  // ---------------------------------------------------------------- settings sources
+
+  /** Adds what is currently typed, or says every reason it cannot be added. */
+  private addSettingsSource(): void {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const draft: SourceDraft = {
+      url: String(values.src_url ?? ''),
+      kind: values.src_kind === 'home-assistant' ? 'home-assistant' : 'https-api',
+      entityId: String(values.src_entity ?? ''),
+      allowedKeys: String(values.src_keys ?? ''),
+      credentialKey: String(values.src_credential ?? ''),
+    };
+    const existing = loadSources(this.durableStorage.storage);
+    const built = buildSource(draft, `src-${existing.length + 1}-${Date.now()}`);
+    if ('problems' in built) {
+      this.fire('That source will not work', built.problems.map((problem) => problem.message).join(' '));
+      return;
+    }
+    saveSources(this.durableStorage.storage, [...existing, built]);
+    this.refreshSourceStatus();
+    this.toast(`Source added. It may set ${built.allowedKeys.join(', ')} and nothing else.`);
+  }
+
+  private startSourcePolling(): void {
+    void this.pollSettingsSources();
+    this.sourceTimer = setInterval(() => { void this.pollSettingsSources(); }, App.SOURCE_POLL_MS);
+  }
+
+  /**
+   * Asks the privileged process for each source, and hands what comes back to the
+   * renderer's own allowlist.
+   *
+   * The renderer never makes the request itself -- it would need the token, and a renderer
+   * holding a token is what every credential rule here exists to prevent. What it does
+   * own is the decision about what an answer may change.
+   */
+  private async pollSettingsSources(): Promise<void> {
+    const sources = loadSources(this.durableStorage.storage);
+    if (sources.length === 0) {
+      if (this.sourceReports.length > 0) { this.sourceReports = []; this.refreshSourceStatus(); }
+      return;
+    }
+    this.sourceGeneration += 1;
+    const generation = this.sourceGeneration;
+    const reports: SourceReport[] = [];
+    const applied: Record<string, string> = {};
+
+    for (const source of sources) {
+      /* Nested under `payload`, which is what the dispatch action reads. Spreading these
+       * at the top level would put them on the request object where nothing looks. */
+      const response = await this.request('settings.source.fetch', {
+        payload: { url: source.url, credentialKey: source.credentialKey },
+      });
+      const at = new Date().toISOString();
+      if (!response) {
+        /* No bridge at all -- the hosted surface. Recorded rather than silently skipped,
+         * so the status says why nothing is tracking. */
+        reports.push({ sourceId: source.id, at, ok: false, detail: 'No privileged process to fetch through.' });
+        continue;
+      }
+      if (!response.ok) {
+        /* A source that has stopped working is recorded rather than skipped: silently
+         * ceasing to track is the failure this whole feature exists to avoid. */
+        reports.push({ sourceId: source.id, at, ok: false, detail: response.message });
+        continue;
+      }
+      const raw = response.data as {
+        status: number; body: string; byteLength: number; redirected: boolean;
+      };
+      const outcome = applyResponse(source, { ...raw, generation }, this.sourceGeneration);
+      if (isRejected(outcome)) {
+        reports.push({ sourceId: source.id, at, ok: false, detail: outcome.rejected });
+        continue;
+      }
+      Object.assign(applied, outcome.applied);
+      reports.push({ sourceId: source.id, at, ok: true, detail: 'answering' });
+    }
+
+    this.sourceReports = reports;
+    /* Applied through the same path a person's own edit takes, so a sourced value is
+     * validated and noticed exactly as a manual one is. */
+    for (const [key, value] of Object.entries(applied)) {
+      this.baseSetVal({ id: key, label: key, kind: 'text' }, value);
+    }
+    this.refreshSourceStatus();
+  }
+
+  private refreshSourceStatus(): void {
+    this.sourceStatusLine = sourcesStatusLine(
+      loadSources(this.durableStorage.storage),
+      this.sourceReports,
+    );
+    this.forceUpdate();
+  }
+
   // ---------------------------------------------------------------- scheduled settings
 
   /** Starts the schedule tick and runs one immediately, so a window already in force at
@@ -833,6 +951,17 @@ What you can do: ${offered}.` : ''}`);
       const language: CopyLanguage = control.id === 'fun_level_yue' ? 'yue' : 'en';
       if (isFunnyLevel(value)) setFunnyLevel(this.durableStorage.storage, language, value);
     }
+    if (control?.id === 'src_add' && value === true) {
+      this.addSettingsSource();
+      return;
+    }
+    if (control?.id === 'src_clear' && value === true) {
+      saveSources(this.durableStorage.storage, []);
+      this.sourceReports = [];
+      this.refreshSourceStatus();
+      this.toast('Every settings source removed. Your own settings are unaffected.');
+      return;
+    }
     if (control?.id === 'school_mode' && typeof value === 'boolean') {
       this.setSchoolMode(value);
       return;
@@ -889,6 +1018,7 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'school-status') return this.schoolStatusLine;
     if (action === 'contrast-status') return this.contrastStatus();
     if (action === 'deploy-progress') return this.deployProgressLine;
+    if (action === 'source-status') return this.sourceStatusLine;
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
     return '';
   };
