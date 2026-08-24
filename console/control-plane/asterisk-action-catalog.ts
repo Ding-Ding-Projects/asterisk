@@ -11,6 +11,23 @@ export interface AsteriskActionDefinition {
   unavailableReason?: string;
 }
 
+export interface AsteriskActionSurfaceContract {
+  rendererRoute: string;
+  dispatcherAction: string;
+  localizationKey: string;
+  confirmation: "required" | "not-required" | "unavailable";
+  readback: string;
+  history: string;
+  docs: string;
+  site: string;
+  search: string;
+  palette: string;
+  bulk: string;
+  export: string;
+  accessibility: string;
+  evidence: string;
+}
+
 /** Hand-written action boundary. The renderer can show every action without inventing a handler. */
 export const ASTERISK_ACTION_CATALOG: ReadonlyArray<AsteriskActionDefinition> = [
   { id: "module.load", family: "module", label: "Load module", state: "implemented-unverified", destructive: false, confirmation: "required", transport: "control-plane" },
@@ -32,6 +49,25 @@ export const ASTERISK_ACTION_CATALOG: ReadonlyArray<AsteriskActionDefinition> = 
   { id: "reporting.read", family: "reporting", label: "Read call and event reports", state: "supported", destructive: false, confirmation: "not-required", transport: "control-plane" },
 ];
 
+export const ASTERISK_ACTION_SURFACE_MAP: Readonly<Record<string, AsteriskActionSurfaceContract>> = Object.fromEntries(
+  ASTERISK_ACTION_CATALOG.map((action) => [action.id, {
+    rendererRoute: action.family === "module" ? "modules" : action.family,
+    dispatcherAction: action.transport === "ami" ? "ami.action" : action.transport === "ari" ? "ari.operation" : action.id,
+    localizationKey: `asterisk.action.${action.id}`,
+    confirmation: action.confirmation,
+    readback: action.transport === "control-plane" ? "typed-control-plane-receipt" : "transport-receipt-and-reread",
+    history: "local-history.record",
+    docs: `console/docs/platform/${action.family}-actions.md`,
+    site: `console/site/documentation.html#${action.family}-actions`,
+    search: "catalogue-record-search",
+    palette: "command-palette-action-result",
+    bulk: "bulk-action-preview",
+    export: "catalogue-export",
+    accessibility: "native-labelled-control",
+    evidence: `console/release/evidence/windows-console/${action.id}.json`,
+  } satisfies AsteriskActionSurfaceContract]),
+);
+
 export type AsteriskActionId = (typeof ASTERISK_ACTION_CATALOG)[number]["id"];
 
 export interface AsteriskActionReceipt {
@@ -45,3 +81,5 @@ export interface AsteriskActionReceipt {
 export function actionDefinition(id: string): AsteriskActionDefinition | undefined {
   return ASTERISK_ACTION_CATALOG.find((action) => action.id === id);
 }
+
+export function actionSurface(id: string): AsteriskActionSurfaceContract | undefined { return ASTERISK_ACTION_SURFACE_MAP[id]; }

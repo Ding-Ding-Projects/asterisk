@@ -17,7 +17,7 @@ import {
   parseTranslations, parseAclRules, parseManagerSettings, parseManagerUsers, parseAriApps,
   parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime,
 } from './asterisk-parsers.js';
-import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory, AsteriskConfigInventory, AmiTransport, AriTransport, AMI_ACTIONS, ARI_OPERATIONS, actionDefinition } from './index.js';
+import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory, AsteriskConfigInventory, AmiTransport, AriTransport, AMI_ACTIONS, ARI_OPERATIONS, actionDefinition, actionSurface } from './index.js';
 import { ServerInventory, SettingsRegistry } from './index.js';
 import type { ServerInventoryStore, ServerRecord, SettingsSnapshotStore } from './index.js';
 import { atomicWriteFileSync } from './atomic-file.js';
@@ -61,6 +61,17 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
   const readings = new AsteriskReadings(cliGateway);
   const configInventory = new AsteriskConfigInventory(processExecutor);
   const dialplanReadings = new DialplanReadings(cliGateway);
+  const consumedConfirmations = new Set<string>();
+
+  async function recordActionHistory(subject: string, payload: Record<string, unknown>): Promise<void> {
+    try {
+      const history = new LocalHistory({ executor: processExecutor, repositoryPath: join(userDataPath, 'history') });
+      await history.initialize();
+      await history.record({ action: 'updated', subject, payload });
+    } catch {
+      /* The action receipt remains authoritative. History failure is surfaced by its own surface. */
+    }
+  }
 
   async function resolveTarget(serverId: string | undefined): Promise<TargetProfile> {
     const requested = serverId?.trim();
@@ -430,11 +441,17 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'pbx.command') {
         const command = typeof request.payload?.command === 'string' ? request.payload.command.trim() : '';
         if (!command) return { ok: false, requestId: request.requestId, code: 'COMMAND_REQUIRED', message: 'No command was supplied.' };
-        if (!(READ_ONLY_COMMANDS as ReadonlyArray<string>).includes(command)) {
-          return { ok: false, requestId: request.requestId, code: 'COMMAND_NOT_ALLOWLISTED', message: `"${command}" is not in the read-only command allowlist, so it was not run.` };
-        }
         const target = await resolveTarget(request.serverId);
-        const result = await cliGateway.run(target, command as ReadOnlyCommand);
+        const staticAllowed = (READ_ONLY_COMMANDS as ReadonlyArray<string>).includes(command);
+        let result;
+        if (staticAllowed) {
+          result = await cliGateway.run(target, command as ReadOnlyCommand);
+        } else {
+          if (request.payload?.catalogRevision !== ASTERISK_CATALOG.catalogRevision) return { ok: false, requestId: request.requestId, code: 'COMMAND_CATALOG_STALE', message: 'Refresh the live CLI catalogue before running this command.' };
+          const help = await readings.raw(target, 'core show help');
+          if (help.result.state !== 'available' || !extractCliEntries(String(help.result.value ?? '')).includes(command)) return { ok: false, requestId: request.requestId, code: 'COMMAND_NOT_IN_LIVE_CATALOG', message: 'The exact command was not present in the latest target core show help response.' };
+          result = await cliGateway.runObservedCommand(target, command);
+        }
         if (result.status !== 'succeeded') {
           return { ok: false, requestId: request.requestId, code: 'COMMAND_FAILED', message: result.stderr.trim() || `The command exited with ${result.exitCode}.` };
         }
@@ -545,6 +562,8 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       }
       if (request.action === 'pbx.catalog') {
         const target = await resolveTarget(request.serverId);
+        let credentialAvailable = false;
+        try { credentialAvailable = Boolean(target.credentialKey && await credentialVault.read(target.credentialKey)); } catch { credentialAvailable = false; }
         const [modules, cli, ami, ari, configs, ariHttp] = await Promise.all([
           readings.modules(target),
           readings.raw(target, 'core show help'),
@@ -556,7 +575,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const observedAt = new Date().toISOString();
         const rawValues = (reading: { result: { state: string; value?: string } }): ReadonlyArray<string> | undefined =>
           reading.result.state === 'available' ? String(reading.result.value ?? '').split(/\r?\n/u).map((line) => line.trim()).filter(Boolean) : undefined;
-        const cliEntries = rawValues(cli)?.map((line) => line.split(/\s{2,}|\t/u)[0]?.trim() ?? '').filter((line) => line.includes(' '));
+        const cliEntries = rawValues(cli) ? extractCliEntries(rawValues(cli)?.join('\n') ?? '') : undefined;
         return {
           ok: true,
           requestId: request.requestId,
@@ -567,6 +586,10 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
             amiActions: rawValues(ami),
             ariResources: rawValues(ari),
             ariHttpResources: ariHttp.state === 'available' ? ariHttp.names : undefined,
+            amiCredentialState: credentialAvailable ? 'unknown' : 'unavailable',
+            amiCredentialReason: credentialAvailable ? 'AMI credential is available, but action-level probes are not run during catalogue discovery.' : 'AMI credential is unavailable in the OS vault.',
+            ariCredentialState: credentialAvailable ? (ariHttp.state === 'available' ? 'available' : 'unavailable') : 'unavailable',
+            ariCredentialReason: credentialAvailable ? ariHttp.reason : 'ARI credential is unavailable in the OS vault.',
             configResources: configs.state === 'available' ? configs.files : undefined,
             configInventoryComplete: configs.complete,
             configInventoryReason: configs.reason,
@@ -579,38 +602,48 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const catalogId = request.payload?.catalogId;
         const catalogRevision = request.payload?.catalogRevision;
         const confirmed = request.payload?.confirmed === true;
+        const confirmationId = request.payload?.confirmationId;
         if (typeof operation !== 'string' || !MODULE_LIFECYCLE_OPERATIONS.includes(operation as ModuleLifecycleOperation)) return { ok: false, requestId: request.requestId, code: 'MODULE_OPERATION_NOT_ALLOWLISTED', message: 'Choose load, unload, or reload.' };
         if (typeof module !== 'string' || !/^[A-Za-z0-9_.-]+\.so$/u.test(module)) return { ok: false, requestId: request.requestId, code: 'MODULE_NAME_INVALID', message: 'Choose a bare .so module name from the live catalogue.' };
         if (typeof catalogId !== 'string' || typeof catalogRevision !== 'string' || catalogRevision !== ASTERISK_CATALOG.catalogRevision) return { ok: false, requestId: request.requestId, code: 'MODULE_CATALOG_STALE', message: 'Refresh the module catalogue before changing a module.' };
-        if (!confirmed) return { ok: false, requestId: request.requestId, code: 'MODULE_CONFIRMATION_REQUIRED', message: 'Confirm the module lifecycle action before it is sent to Asterisk.' };
+        if (!confirmed || typeof confirmationId !== 'string' || !/^[0-9a-f-]{36}$/iu.test(confirmationId) || consumedConfirmations.has(confirmationId)) return { ok: false, requestId: request.requestId, code: 'MODULE_CONFIRMATION_REQUIRED', message: 'Confirm the module lifecycle action with a fresh single-use confirmation.' };
         const action = actionDefinition(`module.${operation}`);
-        if (!action || action.state === 'unavailable') return { ok: false, requestId: request.requestId, code: 'MODULE_ACTION_UNAVAILABLE', message: action?.unavailableReason ?? 'The module action is unavailable.' };
+        if (!action || !actionSurface(`module.${operation}`) || action.state === 'unavailable') return { ok: false, requestId: request.requestId, code: 'MODULE_ACTION_UNAVAILABLE', message: action?.unavailableReason ?? 'The module action is unavailable.' };
         const target = await resolveTarget(request.serverId);
         const source = ASTERISK_CATALOG.modules.find((entry) => entry.id === catalogId && entry.name === module);
         if (!source) return { ok: false, requestId: request.requestId, code: 'MODULE_NOT_IN_CATALOG', message: 'The requested module is not a source record in the current catalogue.' };
         const before = await readings.modules(target);
         if (before.result.state !== 'available' || !before.result.value?.some((entry) => entry.name === module)) return { ok: false, requestId: request.requestId, code: 'MODULE_NOT_LIVE', message: 'The module was not present in the latest live module inventory.' };
+        consumedConfirmations.add(confirmationId);
         const receipt = await cliGateway.runModuleLifecycle(target, operation as ModuleLifecycleOperation, module);
         const after = await readings.modules(target);
+        await recordActionHistory(`Module ${operation} ${module}`, { action: `module.${operation}`, module, catalogId: source.id, catalogRevision, status: receipt.status });
         return { ok: receipt.status === 'succeeded', requestId: request.requestId, code: receipt.status === 'succeeded' ? undefined : 'MODULE_OPERATION_FAILED', message: receipt.status === 'succeeded' ? undefined : receipt.output || `Module ${operation} did not complete.`, data: { receipt, before, after, catalogId: source.id, catalogRevision } } as ControlPlaneResponse;
       }
       if (request.action === 'ami.action') {
         const operation = request.payload?.operation;
         if (typeof operation !== 'string' || !(operation in AMI_ACTIONS)) return { ok: false, requestId: request.requestId, code: 'AMI_OPERATION_NOT_ALLOWLISTED', message: 'Choose an operation from the typed AMI catalogue.' };
+        if (!['ping', 'coreStatus', 'commandCatalog', 'moduleList'].includes(operation) && request.payload?.confirmed !== true) return { ok: false, requestId: request.requestId, code: 'AMI_CONFIRMATION_REQUIRED', message: 'Confirm the AMI action before it is sent to Asterisk.' };
         const target = await resolveTarget(request.serverId);
-        const transport = new AmiTransport({ host: target.host ?? '127.0.0.1', port: target.port ?? 5038, credentialKey: target.credentialKey ?? '', vault: credentialVault });
+        const amiHost = target.host ?? '127.0.0.1';
+        const transport = new AmiTransport({ host: amiHost, port: target.port ?? 5038, tls: !['localhost', '127.0.0.1', '::1'].includes(amiHost), credentialKey: target.credentialKey ?? '', vault: credentialVault });
         const receipt = await transport.execute(operation as keyof typeof AMI_ACTIONS, (request.payload?.fields ?? {}) as Record<string, string>);
+        await recordActionHistory(`AMI ${operation}`, { action: 'ami.action', operation, state: receipt.state });
         return { ok: receipt.state === 'available', requestId: request.requestId, code: receipt.state === 'available' ? undefined : 'AMI_ACTION_FAILED', message: receipt.reason, data: receipt } as ControlPlaneResponse;
       }
       if (request.action === 'ari.operation') {
         const operation = request.payload?.operation;
         if (typeof operation !== 'string' || !(operation in ARI_OPERATIONS)) return { ok: false, requestId: request.requestId, code: 'ARI_OPERATION_NOT_ALLOWLISTED', message: 'Choose an operation from the typed ARI catalogue.' };
+        const spec = ARI_OPERATIONS[operation];
+        if (spec.method !== 'GET' && request.payload?.confirmed !== true) return { ok: false, requestId: request.requestId, code: 'ARI_CONFIRMATION_REQUIRED', message: 'Confirm the mutating ARI operation before it is sent to Asterisk.' };
         const target = await resolveTarget(request.serverId);
         const host = target.host ?? '127.0.0.1';
         const port = target.port ?? 8088;
-        const baseUrl = `http://${host}:${port}/ari/`;
+        const loopback = ['localhost', '127.0.0.1', '::1'].includes(host.replace(/^\[|\]$/gu, '').toLowerCase());
+        const baseUrl = `${loopback ? 'http' : 'https'}://${host}:${port}/ari/`;
         const transport = new AriTransport({ baseUrl, credentialKey: target.credentialKey ?? '', vault: credentialVault });
         const receipt = await transport.execute(operation as keyof typeof ARI_OPERATIONS);
+        await recordActionHistory(`ARI ${operation}`, { action: 'ari.operation', operation, state: receipt.state });
         return { ok: receipt.state === 'available', requestId: request.requestId, code: receipt.state === 'available' ? undefined : 'ARI_OPERATION_FAILED', message: receipt.reason, data: receipt } as ControlPlaneResponse;
       }
       return { ok: false, requestId: request.requestId, code: 'ACTION_NOT_AVAILABLE', message: 'This operation is unavailable until a reviewed target-specific plan is connected.' };
@@ -623,3 +656,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
 }
 
 export type ControlPlaneDispatcher = ReturnType<typeof createControlPlaneDispatcher>;
+
+function extractCliEntries(output: string): string[] {
+  return output.split(/\r?\n/u).map((line) => line.trim().split(/\s{2,}|\t/u)[0]?.trim() ?? '').filter((line) => line.includes(' '));
+}

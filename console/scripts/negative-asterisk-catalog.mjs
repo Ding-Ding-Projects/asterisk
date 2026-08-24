@@ -35,4 +35,6 @@ mustReject('removed runtime action', () => {}, { ...inventory, requiredRuntimeAc
 mustReject('removed implementation binding', () => {}, inventory, new Set([...files].filter((path) => path !== 'console/control-plane/asterisk-runtime-catalog.ts')));
 mustReject('removed localization boundary', () => {}, inventory, new Set([...files].filter((path) => path !== 'console/app/locales/feature-registry.json')));
 mustReject('removed built evidence bundle', () => {}, inventory, new Set([...files].filter((path) => path !== 'console/app/renderer/src/generated/docs-bundle.ts')));
+mustReject('removed action localization mapping', () => {}, inventory, new Set([...files].filter((path) => path !== 'console/app/locales/asterisk-actions.json')));
+mustReject('removed site action mapping', () => {}, inventory, new Set([...files].filter((path) => path !== 'console/site/asterisk-action-registry.json')));
 console.log('PASS: Asterisk catalogue negative regressions turned red for every deliberate deletion and restored green.');

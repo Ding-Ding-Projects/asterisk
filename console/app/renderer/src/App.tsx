@@ -12,7 +12,7 @@ import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, t
 import { readControlValues, unmappedControls } from './control-keys';
 import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
-import { ASTERISK_ACTION_CATALOG } from '../../../control-plane/asterisk-action-catalog';
+import { ASTERISK_ACTION_CATALOG, ASTERISK_ACTION_SURFACE_MAP } from '../../../control-plane/asterisk-action-catalog';
 import { ServerSwitcher } from './servers';
 import { buildEndpointDraft, endpointDocument, PJSIP_RESOURCE, WIZARD_CONTROLS } from './endpoint-create';
 import {
@@ -622,13 +622,13 @@ ${resolution.disclosure}`);
       const record = catalog?.records.find((entry) => (entry.kind === 'module' || entry.kind === 'runtime-module') && entry.name === module);
       if (!operation || !record || record.kind === 'runtime-module') { this.fire('Module action unavailable', 'Choose a source-backed module from the live catalogue before requesting a lifecycle change.'); return; }
       this.areYouSure(`Confirm ${operation} ${module}`, `The target will receive a typed ${operation} request for ${module}. The live module inventory will be read again after the operation.`, 3, () => {
-        void this.runModuleLifecycle(operation, module, record.id, catalog.catalogRevision);
+        void this.runModuleLifecycle(operation, module, record.id, catalog.catalogRevision, crypto.randomUUID());
       });
     }
   };
 
-  private async runModuleLifecycle(operation: string, module: string, catalogId: string, catalogRevision: string): Promise<void> {
-    const response = await this.request('pbx.module', { serverId: this.target.id, payload: { operation, module, catalogId, catalogRevision, confirmed: true } });
+  private async runModuleLifecycle(operation: string, module: string, catalogId: string, catalogRevision: string, confirmationId: string): Promise<void> {
+    const response = await this.request('pbx.module', { serverId: this.target.id, payload: { operation, module, catalogId, catalogRevision, confirmed: true, confirmationId } });
     if (!response?.ok) { this.fire('Module action refused', response?.message ?? 'The control plane did not answer.'); return; }
     const data = response.data as { receipt?: { output?: string; status?: string } };
     this.fire('Module action complete', data.receipt?.output || `The module action ended with ${data.receipt?.status ?? 'an unknown status'}.`);
@@ -1749,6 +1749,15 @@ It is shown once. The phone needs it to register.`);
     this.toast('Appearance exported as JSON');
   }
 
+  private runCatalogCli(command: string, catalogRevision: string): void {
+    this.areYouSure('Run live catalogue command', `The exact command "${command}" was read from the target catalogue. It will run through the bounded control plane and return its real output.`, 3, () => {
+      void this.request('pbx.command', { serverId: this.target.id, payload: { command, catalogRevision } }).then((response) => {
+        if (!response?.ok) this.fire('CLI command refused', response?.message ?? 'The control plane did not answer.');
+        else this.fire('CLI command complete', String((response.data as { output?: string }).output ?? 'No output returned by the target.'));
+      });
+    });
+  }
+
   renderVals() {
     const screen = (this.state as { screen: string }).screen;
     this.applyRows(screen);
@@ -1892,7 +1901,7 @@ It is shown once. The phone needs it to register.`);
       ...(screen === 'cli' && dynamicCliCommands.length > 0 ? {
         cliSteps: catalogCliSteps(values.cliSteps, dynamicCliCommands, selectedCliCommand),
         cliCmd: selectedCliCommand,
-        runCli: () => this.ceremony('Run a catalogued CLI command', selectedCliCommand),
+        runCli: () => this.runCatalogCli(selectedCliCommand, moduleCatalog.catalogRevision),
       } : {}),
       ...(screen === 'modules' && moduleCatalog ? {
         groups: catalogModuleGroups(values.groups, moduleCatalog.records.filter((record) => record.kind === 'module' || record.kind === 'runtime-module').map((record) => record.name).sort()),
@@ -2327,7 +2336,7 @@ function catalogReadings(catalog: AsteriskCatalogResult): ViewReadings {
     .map((record) => ({ name: record.name, description: record.reason ?? record.kind, useCount: 0, status: record.state }));
   return {
     modules: { command: 'module show', result: moduleObservation.state === 'available' ? { state: 'available', observedAt: catalog.observedAt, value: modules } : { state: 'unavailable', observedAt: catalog.observedAt, reason: moduleObservation.reason ?? 'The target module inventory is not available.' } },
-    catalog: { command: 'pbx.catalog', result: { state: 'available', observedAt: catalog.observedAt, value: { ...catalog, actions: ASTERISK_ACTION_CATALOG } } },
+    catalog: { command: 'pbx.catalog', result: { state: 'available', observedAt: catalog.observedAt, value: { ...catalog, actions: ASTERISK_ACTION_CATALOG, surfaceMappings: ASTERISK_ACTION_SURFACE_MAP } } },
   };
 }
 

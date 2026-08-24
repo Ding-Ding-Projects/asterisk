@@ -16,6 +16,7 @@ const families = ['addons', 'apps', 'bridges', 'cdr', 'cel', 'channels', 'codecs
 const sourceExtensions = new Set(['.c', '.cc', '.cpp', '.cxx']);
 const outputJson = resolve(root, 'console', 'control-plane', 'generated', 'asterisk-catalog.json');
 const outputTs = resolve(root, 'console', 'control-plane', 'generated', 'asterisk-catalog.ts');
+const outputRegistryTs = resolve(root, 'console', 'control-plane', 'generated', 'ami-ari-registry.ts');
 
 async function walk(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -423,12 +424,40 @@ async function main() {
     apiResources,
   };
   catalog.catalogRevision = sha256(JSON.stringify(catalog));
+  const amiActions = modules.flatMap((module) => module.registrations.amiActions.map((registration) => ({
+    id: `${module.id}.ami.action.${slug(registration.name)}`,
+    name: registration.name,
+    moduleId: module.id,
+    source: module.source,
+    description: registration.description,
+  })));
+  const amiEvents = modules.flatMap((module) => module.registrations.amiEvents.map((registration) => ({
+    id: `${module.id}.ami.event.${slug(registration.name)}`,
+    name: registration.name,
+    moduleId: module.id,
+    source: module.source,
+    description: registration.description,
+  })));
+  const ariOperations = apiResources.flatMap((resource) => resource.apiOperations.map((operation) => ({
+    id: operation.id,
+    resourceId: resource.id,
+    method: operation.method,
+    path: operation.path,
+    nickname: operation.nickname,
+    summary: operation.summary,
+    responseClass: operation.responseClass,
+    source: resource.source,
+  })));
   await mkdir(dirname(outputJson), { recursive: true });
   await writeFile(outputJson, `${JSON.stringify(catalog, null, 2)}\n`, 'utf8');
   const header = `// GENERATED FILE - do not edit by hand.\n// Produced by console/scripts/generate-asterisk-catalog.mjs.\n\nexport const ASTERISK_CATALOG = `;
   await writeFile(outputTs, `${header}${JSON.stringify(catalog, null, 2)} as const;\n`, 'utf8');
-  console.log(`asterisk-catalog: ${modules.length} modules, ${resources.length} resources, ${catalog.counts.total} records`);
+  const registryHeader = `// GENERATED FILE - do not edit by hand.\n// Produced by console/scripts/generate-asterisk-catalog.mjs.\n\n`;
+  await writeFile(outputRegistryTs, `${registryHeader}export const AMI_ACTION_REGISTRY = ${JSON.stringify(amiActions, null, 2)} as const;\nexport const AMI_EVENT_REGISTRY = ${JSON.stringify(amiEvents, null, 2)} as const;\nexport const ARI_OPERATION_REGISTRY = ${JSON.stringify(ariOperations, null, 2)} as const;\n`, 'utf8');
+  console.log(`asterisk-catalog: ${modules.length} modules, ${resources.length} resources, ${apiResources.length} ARI resources, ${amiActions.length} AMI actions, ${amiEvents.length} AMI events, ${ariOperations.length} ARI operations, ${catalog.counts.total} records`);
 }
+
+function slug(value) { return String(value).replace(/[^A-Za-z0-9]+/gu, '.').replace(/^\.|\.$/gu, '').toLowerCase() || 'unnamed'; }
 
 main().catch((error) => {
   console.error(error instanceof Error ? error.message : error);

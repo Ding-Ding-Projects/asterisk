@@ -1,4 +1,5 @@
 import { ASTERISK_CATALOG } from "./generated/asterisk-catalog.js";
+import { AMI_ACTION_REGISTRY, AMI_EVENT_REGISTRY, ARI_OPERATION_REGISTRY } from "./generated/ami-ari-registry.js";
 import type { ModuleSummary } from "./asterisk-readings.js";
 
 export type RuntimeCatalogState = "available" | "unavailable" | "unknown";
@@ -13,11 +14,15 @@ export interface RuntimeCatalogInput {
   configResources?: ReadonlyArray<string>;
   configInventoryComplete?: boolean;
   configInventoryReason?: string;
+  amiCredentialState?: RuntimeCatalogState;
+  amiCredentialReason?: string;
+  ariCredentialState?: RuntimeCatalogState;
+  ariCredentialReason?: string;
 }
 
 export interface RuntimeCatalogRecord {
   id: string;
-  kind: "module" | "config" | "api" | "runtime-module";
+  kind: "module" | "config" | "api" | "ami-action" | "ami-event" | "ari-operation" | "runtime-module";
   family: string;
   name: string;
   source?: string;
@@ -35,7 +40,7 @@ export interface RuntimeCatalogResult {
   catalogRevision: string;
   observedAt: string;
   observations: Readonly<Record<string, RuntimeObservation>>;
-  surfaceEntries: Readonly<{ cli: ReadonlyArray<string>; amiActions: ReadonlyArray<string>; ariResources: ReadonlyArray<string>; configResources: ReadonlyArray<string> }>;
+  surfaceEntries: Readonly<{ cli: ReadonlyArray<string>; amiActions: ReadonlyArray<string>; amiEvents: ReadonlyArray<string>; ariResources: ReadonlyArray<string>; ariOperations: ReadonlyArray<string>; configResources: ReadonlyArray<string> }>;
   records: ReadonlyArray<RuntimeCatalogRecord>;
   counts: {
     sourceRecords: number;
@@ -157,6 +162,18 @@ export function reconcileAsteriskCatalog(input: RuntimeCatalogInput): RuntimeCat
     });
   }
 
+  const amiState = input.amiCredentialState ?? "unknown";
+  for (const action of AMI_ACTION_REGISTRY) records.push(operationRecord(action.id, "ami-action", "ami", action.name, action.source, amiState, input.amiCredentialReason ?? "The AMI action was not independently probed.", input.observedAt));
+  for (const event of AMI_EVENT_REGISTRY) records.push(operationRecord(event.id, "ami-event", "ami", event.name, event.source, amiState, input.amiCredentialReason ?? "The AMI event capability was not independently probed.", input.observedAt));
+  const ariState = input.ariCredentialState ?? "unknown";
+  for (const operation of ARI_OPERATION_REGISTRY) {
+    const live = input.ariHttpResources?.some((name) => normalize(name) === normalize(operation.path));
+    const state: RuntimeCatalogState = input.ariHttpResources === undefined
+      ? ariState
+      : operation.method === "GET" ? live ? "available" : "unavailable" : "unknown";
+    records.push(operationRecord(operation.id, "ari-operation", "ari", `${operation.method} ${operation.path}`, operation.source, state, input.ariCredentialReason ?? (operation.method === "GET" ? "The ARI operation was not independently probed." : "Mutating ARI operations require an explicit action and are not probed during catalogue discovery."), input.observedAt));
+  }
+
   // Keep runtime surface sets in the result as explicit synthetic records. A
   // command not present in the target is unavailable, while an unqueried
   // surface remains unknown, which prevents a blank panel from looking healthy.
@@ -179,7 +196,9 @@ export function reconcileAsteriskCatalog(input: RuntimeCatalogInput): RuntimeCat
       "module show": observation(modules),
       "core show help": observation(input.cliCommands),
       "manager show commands": observation(input.amiActions),
+      "AMI transport": { state: input.amiCredentialState ?? "unknown", reason: input.amiCredentialReason },
       "ari show apps": observation(input.ariResources),
+      "ARI transport": { state: input.ariCredentialState ?? "unknown", reason: input.ariCredentialReason },
       "target config inventory": input.configResources === undefined
         ? { state: "unknown", reason: input.configInventoryReason ?? "The target configuration inventory was not available." }
         : { state: input.configInventoryComplete === false ? "unknown" : "available", count: input.configResources.length, reason: input.configInventoryComplete === false ? input.configInventoryReason : undefined },
@@ -187,11 +206,30 @@ export function reconcileAsteriskCatalog(input: RuntimeCatalogInput): RuntimeCat
     surfaceEntries: {
       cli: input.cliCommands ?? [],
       amiActions: input.amiActions ?? [],
+      amiEvents: AMI_EVENT_REGISTRY.map((entry) => entry.name),
       ariResources: input.ariHttpResources ?? input.ariResources ?? [],
+      ariOperations: ARI_OPERATION_REGISTRY.map((entry) => entry.id),
       configResources: input.configResources ?? [],
     },
     records,
     counts,
+  };
+}
+
+function operationRecord(id: string, kind: RuntimeCatalogRecord["kind"], family: string, name: string, source: string, state: RuntimeCatalogState, reason: string, observedAt: string): RuntimeCatalogRecord {
+  return {
+    id,
+    kind: kind as "ami-action" | "ami-event" | "ari-operation",
+    family,
+    name,
+    source,
+    description: `${family.toUpperCase()} capability ${name}.`,
+    state,
+    observedAt,
+    reason: state === "available" ? undefined : reason,
+    actionBoundary: state === "available" ? "supported" : "unavailable",
+    sourceSurfaces: [family],
+    registrations: { cli: [], amiActions: [], amiEvents: [], ari: [], agi: [], applications: [], functions: [], codecs: [], formats: [], bridges: [], channels: [] },
   };
 }
 

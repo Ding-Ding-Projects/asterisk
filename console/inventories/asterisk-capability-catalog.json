@@ -39,7 +39,8 @@
     "console/app/renderer/src/readings.ts"
   ],
   "requiredLocalizationFiles": [
-    "console/app/locales/feature-registry.json"
+    "console/app/locales/feature-registry.json",
+    "console/app/locales/asterisk-actions.json"
   ],
   "requiredActionFiles": [
     "console/shared/control-plane.ts",
@@ -48,16 +49,23 @@
     "console/control-plane/ami-ari-transports.ts"
   ],
   "requiredEvidenceFiles": [
-    "console/app/renderer/src/generated/docs-bundle.ts"
+    "console/app/renderer/src/generated/docs-bundle.ts",
+    "console/site/asterisk-action-registry.json"
   ],
   "requiredGeneratedFiles": [
     "console/control-plane/generated/asterisk-catalog.json",
-    "console/control-plane/generated/asterisk-catalog.ts"
+    "console/control-plane/generated/asterisk-catalog.ts",
+    "console/control-plane/generated/ami-ari-registry.ts"
   ],
   "expectedCounts": {
     "modules": 387,
     "resources": 119,
     "apiResources": 11
+  },
+  "expectedRegistrations": {
+    "amiActions": 122,
+    "amiEvents": 11,
+    "ariOperations": 109
   },
   "requiredBoundaries": [
     "unknown when a live surface was not read",

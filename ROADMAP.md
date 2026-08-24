@@ -51,6 +51,8 @@
 - [x] Record SHA-256 source provenance and hashed build-graph evidence for every generated record, rejecting empty source files.
 - [x] Reconcile source records with live `module show`, `core show help`, `manager show commands`, `ari show apps`, and target configuration filename observations through `pbx.catalog`; retain installed modules absent from source as unverified records with actions outside the supported boundary.
 - [x] Add bounded typed AMI and ARI transports with OS-vault credential lookup, named operations, response limits, cancellation, timeouts, and redacted receipts.
+- [x] Generate stable typed registries for all 122 AMI actions, 11 AMI events, and 109 ARI operations, with operation-level runtime reconciliation and independent credential states.
+- [x] Require a current catalogue revision, source-backed live module record, single-use confirmation, and post-action reread for module lifecycle operations.
 - [x] Add a hand-written catalogue inventory and negative regression that turns red when a family, record, documentation article, runtime command, action binding, or unverified boundary is removed.
 - [ ] Run the catalogue against a final live WSL or container target and promote runtime states from unverified to evidence-backed.
 

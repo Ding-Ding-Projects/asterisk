@@ -1,5 +1,7 @@
 import { createConnection, type Socket } from "node:net";
+import { connect as tlsConnect } from "node:tls";
 import type { IncomingHttpHeaders } from "node:http";
+import { AMI_ACTION_REGISTRY, ARI_OPERATION_REGISTRY } from "./generated/ami-ari-registry.js";
 
 export interface VaultCredential {
   username: string;
@@ -27,14 +29,16 @@ export interface AmiReceipt {
   reason?: string;
 }
 
-export const AMI_ACTIONS = {
+export const AMI_ACTIONS: Record<string, { action: string; required: ReadonlyArray<string> }> = {
   ping: { action: "Ping", required: [] },
   coreStatus: { action: "CoreStatus", required: [] },
   commandCatalog: { action: "ListCommands", required: [] },
   moduleList: { action: "ModuleCheck", required: ["Module"] },
 } as const;
 
-export type AmiActionName = keyof typeof AMI_ACTIONS;
+for (const action of AMI_ACTION_REGISTRY) AMI_ACTIONS[action.id] = { action: action.name, required: [] };
+
+export type AmiActionName = string;
 
 export interface AmiTransportOptions {
   host: string;
@@ -42,6 +46,7 @@ export interface AmiTransportOptions {
   credentialKey: string;
   vault: CredentialVault;
   timeoutMs?: number;
+  tls?: boolean;
   now?: () => Date;
 }
 
@@ -56,6 +61,7 @@ export class AmiTransport {
   constructor(options: AmiTransportOptions) {
     if (!Number.isInteger(options.port) || options.port < 1 || options.port > 65535) throw new Error("AMI port must be 1-65535");
     if (!options.host.trim() || /[\r\n]/u.test(options.host)) throw new Error("AMI host is invalid");
+    if (options.tls !== true && !isLoopback(options.host)) throw new Error("Plain AMI is permitted only on loopback; enable TLS for a remote target.");
     this.#options = { ...options, timeoutMs: options.timeoutMs ?? 10_000, now: options.now ?? (() => new Date()) };
   }
 
@@ -97,7 +103,9 @@ export class AmiTransport {
       const abort = () => finish(new Error("AMI exchange cancelled"));
       if (signal?.aborted) return abort();
       signal?.addEventListener("abort", abort, { once: true });
-      socket = createConnection({ host: this.#options.host, port: this.#options.port });
+      socket = this.#options.tls === true
+        ? tlsConnect({ host: this.#options.host, port: this.#options.port, rejectUnauthorized: true })
+        : createConnection({ host: this.#options.host, port: this.#options.port });
       socket.setTimeout(this.#options.timeoutMs, () => finish(new Error("AMI exchange timed out")));
       socket.setEncoding("utf8");
       socket.on("data", (chunk: string) => {
@@ -114,7 +122,7 @@ export class AmiTransport {
   private unavailable(action: AmiActionName, reason: string): AmiReceipt { return { state: "unavailable", observedAt: this.#optionsNow(), action, reason }; }
 }
 
-export const ARI_OPERATIONS = {
+export const ARI_OPERATIONS: Record<string, { method: string; path: string }> = {
   asteriskInfo: { method: "GET", path: "/ari/asterisk/info" },
   listChannels: { method: "GET", path: "/ari/channels" },
   listBridges: { method: "GET", path: "/ari/bridges" },
@@ -122,7 +130,9 @@ export const ARI_OPERATIONS = {
   listApplications: { method: "GET", path: "/ari/applications" },
 } as const;
 
-export type AriOperationName = keyof typeof ARI_OPERATIONS;
+for (const operation of ARI_OPERATION_REGISTRY) ARI_OPERATIONS[operation.id] = { method: operation.method, path: operation.path };
+
+export type AriOperationName = string;
 
 export interface AriReceipt<T = unknown> {
   state: TransportState;
@@ -149,7 +159,7 @@ export class AriTransport {
 
   constructor(options: AriTransportOptions) {
     const url = new URL(options.baseUrl);
-    if (!/^https?:$/u.test(url.protocol) || url.username || url.password || url.hash) throw new Error("ARI base URL must be an HTTP(S) URL without credentials or fragments");
+    if (!/^https?:$/u.test(url.protocol) || url.username || url.password || url.hash || (url.protocol === "http:" && !isLoopback(url.hostname))) throw new Error("ARI base URL must use HTTPS, or HTTP on loopback, without credentials or fragments");
     this.#options = { ...options, timeoutMs: options.timeoutMs ?? 10_000, maxResponseBytes: options.maxResponseBytes ?? 2 * 1024 * 1024, now: options.now ?? (() => new Date()) };
   }
 
@@ -164,7 +174,7 @@ export class AriTransport {
     try {
       const spec = ARI_OPERATIONS[operation];
       const url = new URL(spec.path, this.#options.baseUrl);
-      const response = await fetch(url, { method: spec.method, signal: controller.signal, headers: { Accept: "application/json", Authorization: `Basic ${Buffer.from(`${credential.username}:${credential.secret}`).toString("base64")}` } });
+      const response = await fetch(url, { method: spec.method, redirect: "error", signal: controller.signal, headers: { Accept: "application/json", Authorization: `Basic ${Buffer.from(`${credential.username}:${credential.secret}`).toString("base64")}` } });
       const text = await boundedText(response, this.#options.maxResponseBytes);
       let value: T | undefined;
       if (text.trim()) {
@@ -185,6 +195,7 @@ export class AriTransport {
     const names: string[] = [];
     for (const operation of Object.keys(ARI_OPERATIONS) as AriOperationName[]) {
       const spec = ARI_OPERATIONS[operation];
+      if (spec.method !== "GET" && spec.method !== "HEAD") continue;
       const receipt = await this.execute(operation, signal);
       if (receipt.state === "cancelled" || receipt.state === "timedOut") return { state: receipt.state, names, reason: receipt.reason };
       if (receipt.state === "available") names.push(spec.path);
@@ -223,4 +234,9 @@ function parseAmiHeaders(raw: string): { response?: string; message?: string; fi
 function safeHeader(value: string): string {
   if (/[\r\n]/u.test(value)) throw new Error("AMI field contains a line break");
   return value.slice(0, 4096);
+}
+
+function isLoopback(host: string): boolean {
+  const value = host.trim().toLowerCase().replace(/^\[|\]$/gu, "");
+  return value === "localhost" || value === "127.0.0.1" || value === "::1";
 }

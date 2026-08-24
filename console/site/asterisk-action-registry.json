@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "source": "../control-plane/asterisk-action-catalog.ts",
+  "status": "implemented-unverified",
+  "route": "documentation.html",
+  "anchorPrefix": "asterisk-action-",
+  "note": "The site renders the same action identifiers and explicit unavailable boundaries as the desktop catalogue. Runtime actions remain unverified until a target-backed evidence record exists."
+}

@@ -157,6 +157,7 @@ export interface ModuleSummary {
 /** Runs one allowlisted CLI command against a target. */
 export interface AsteriskCliGateway {
   run(target: TargetProfile, command: ReadOnlyCommand, signal?: AbortSignal): Promise<CommandResult>;
+  runObservedCommand(target: TargetProfile, command: string, signal?: AbortSignal): Promise<CommandResult>;
   runModuleLifecycle(target: TargetProfile, operation: ModuleLifecycleOperation, module: string, signal?: AbortSignal): Promise<ModuleLifecycleReceipt>;
 }
 
@@ -180,6 +181,11 @@ export class LocalAsteriskCliGateway implements AsteriskCliGateway {
     const invocation = this.#invocation(target, `module ${operation} ${module}`);
     const result = await this.#executor.execute({ ...invocation, signal, timeoutMs: 15_000, maxOutputBytes: 256 * 1024 });
     return { operation, module, status: result.status, exitCode: result.exitCode, output: `${result.stdout}${result.stderr}`.trim(), observedAt: new Date().toISOString() };
+  }
+
+  async runObservedCommand(target: TargetProfile, command: string, signal?: AbortSignal): Promise<CommandResult> {
+    if (!/^[A-Za-z0-9_.?*{}|+\-/\[\] ]{1,240}$/u.test(command) || /[\r\n]/u.test(command)) throw new Error('Observed CLI command contains an unsupported character');
+    return this.#executor.execute({ ...this.#invocation(target, command), signal, timeoutMs: 15_000, maxOutputBytes: 2 * 1024 * 1024 });
   }
 
   #invocation(target: TargetProfile, command: string): { executable: string; args: ReadonlyArray<string> } {

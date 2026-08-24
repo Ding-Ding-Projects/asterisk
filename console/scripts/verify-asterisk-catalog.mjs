@@ -18,6 +18,9 @@ export function validateAsteriskCatalog(catalog, inventory, files = new Set()) {
   if (new Set(ids).size !== ids.length) throw new Error('Asterisk catalogue identifiers must be unique');
   const operationIds = catalog.apiResources.flatMap((entry) => entry.apiOperations ?? []).map((operation) => operation.id);
   if (operationIds.some((id) => typeof id !== 'string' || id.length === 0) || new Set(operationIds).size !== operationIds.length) throw new Error('Asterisk ARI operation identifiers must be unique and nonempty');
+  const amiActionCount = catalog.modules.reduce((count, entry) => count + entry.registrations.amiActions.length, 0);
+  const amiEventCount = catalog.modules.reduce((count, entry) => count + entry.registrations.amiEvents.length, 0);
+  if (amiActionCount !== inventory.expectedRegistrations?.amiActions || amiEventCount !== inventory.expectedRegistrations?.amiEvents || operationIds.length !== inventory.expectedRegistrations?.ariOperations) throw new Error('Asterisk AMI or ARI registration counts drift');
   if (catalog.counts?.modules !== catalog.modules.length || catalog.counts?.resources !== catalog.resources.length || catalog.counts?.apiResources !== catalog.apiResources.length) throw new Error('Asterisk catalogue counts drift');
   if (catalog.counts.modules !== inventory.expectedCounts?.modules || catalog.counts.resources !== inventory.expectedCounts?.resources || catalog.counts.apiResources !== inventory.expectedCounts?.apiResources) throw new Error('Asterisk catalogue hand-written expected counts drift');
   const configSources = walkFiles(resolve(root, 'configs')).map((path) => relative(root, path).replaceAll('\\', '/')).filter((path) => !path.endsWith('/README'));

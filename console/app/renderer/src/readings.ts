@@ -36,6 +36,7 @@ export interface AsteriskCatalogResult {
   surfaceEntries: { cli: string[]; amiActions: string[]; ariResources: string[]; configResources: string[] };
   records: AsteriskCatalogRecord[];
   actions?: ReadonlyArray<{ id: string; family: string; label: string; state: string; destructive: boolean; confirmation: string; transport: string; unavailableReason?: string }>;
+  surfaceMappings?: Readonly<Record<string, { rendererRoute: string; dispatcherAction: string; localizationKey: string; confirmation: string; readback: string; history: string; docs: string; site: string; search: string; palette: string; bulk: string; export: string; accessibility: string; evidence: string }>>;
   counts: { sourceRecords: number; available: number; unavailable: number; unknown: number; discoveredOutsideSource: number };
 }
 

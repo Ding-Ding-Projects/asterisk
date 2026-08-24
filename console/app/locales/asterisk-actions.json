@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "source": "console/control-plane/asterisk-action-catalog.ts",
+  "status": "implemented-unverified",
+  "fallback": "Original shipped wording remains active until the action surface is translated.",
+  "keys": [
+    "asterisk.action.module.load",
+    "asterisk.action.module.unload",
+    "asterisk.action.module.reload",
+    "asterisk.action.configuration.plan",
+    "asterisk.action.configuration.apply",
+    "asterisk.action.configuration.restore",
+    "asterisk.action.dialplan.read",
+    "asterisk.action.media.list",
+    "asterisk.action.media.upload",
+    "asterisk.action.media.remove",
+    "asterisk.action.call.hangup",
+    "asterisk.action.call.supervise",
+    "asterisk.action.call.record.start",
+    "asterisk.action.call.record.stop",
+    "asterisk.action.routing.read",
+    "asterisk.action.security.read",
+    "asterisk.action.reporting.read"
+  ]
+}
