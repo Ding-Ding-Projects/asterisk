@@ -319,7 +319,8 @@ function emit(node, scope, hovers, indent) {
   } else if (node.tag === 'div' && node.attrs?.onClick && node.attrs?.['data-overlay'] !== 'scrim') {
     node.attrs.role = node.attrs.role || 'group';
     node.attrs.tabindex = node.attrs.tabindex || '0';
-    node.attrs['aria-label'] = node.attrs['aria-label'] || 'Interactive region';
+    /* The design source must provide the real accessible label for composite
+     * surfaces. Do not invent a generic name here. */
     node.attrs.onKeyDown = node.attrs.onKeyDown || '{{ activateClickableRegion }}';
   }
 

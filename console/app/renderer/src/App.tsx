@@ -529,6 +529,7 @@ export class App extends Base {
 
   componentDidUpdate() {
     super.componentDidUpdate?.();
+    this.applyAttentionPresentation();
     void this.refresh();
   }
 
@@ -1042,7 +1043,9 @@ ${resolution.disclosure}`);
     root.classList.toggle('attention-focus', focus);
     root.classList.toggle('attention-reduced-motion', low || userReduced || reduced);
     root.dataset.attentionMotion = low || userReduced || reduced ? 'reduced' : 'full';
-    const active = document.activeElement?.closest?.('[role="tabpanel"], [data-focus-surface]');
+    const selectedScreen = String((this.state as { screen?: string }).screen || 'dash').replace(/[^A-Za-z0-9_-]/g, '');
+    const active = document.activeElement?.closest?.('[role="tabpanel"], [data-focus-surface]')
+      || document.querySelector(`[data-focus-surface="${selectedScreen}"]`);
     document.querySelectorAll('[data-focus-active]').forEach((node) => node.removeAttribute('data-focus-active'));
     if (active instanceof HTMLElement) active.setAttribute('data-focus-active', 'true');
   }
@@ -1732,13 +1735,13 @@ It is shown once. The phone needs it to register.`);
     }));
     const canvasContextItems = (this.state as { ctxKind?: string }).ctxKind === 'node'
       ? [
-          { icon: 'info', label: 'Inspect observed step', hint: '', act: () => { this.set('ctxOpen', false); this.showInfo('Read-only dialplan step', 'This menu item describes the selected step from the live target. The canvas has no dialplan write path.', 'This step is read-only.', '46%', '150px'); }, hover: () => {}, bg: '#1B211C' },
-          { icon: 'timeline', label: 'Connect to…', hint: 'C', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
-          { icon: 'content_copy', label: 'Duplicate step', hint: '⌃D', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
-          { icon: 'call_split', label: 'Insert condition before', hint: '', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
-          { icon: 'delete', label: 'Delete step', hint: '⌦', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'info', label: 'Inspect observed step', hint: '', act: () => { this.closeOverlay('ctx'); this.showInfo('Read-only dialplan step', 'This menu item describes the selected step from the live target. The canvas has no dialplan write path.', 'This step is read-only.', '46%', '150px'); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'timeline', label: 'Connect to…', hint: 'C', act: () => { this.closeOverlay('ctx'); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'content_copy', label: 'Duplicate step', hint: '⌃D', act: () => { this.closeOverlay('ctx'); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'call_split', label: 'Insert condition before', hint: '', act: () => { this.closeOverlay('ctx'); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'delete', label: 'Delete step', hint: '⌦', act: () => { this.closeOverlay('ctx'); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
           { icon: 'refresh', label: 'Refresh', hint: '', act: () => { this.closeOverlay('ctx'); void this.refresh(); }, hover: () => {}, bg: '#1B211C' },
-        ]
+        ].map((item, index, list) => ({ ...item, position: index + 1, count: list.length }))
       : undefined;
 
     return {
@@ -1758,6 +1761,7 @@ It is shown once. The phone needs it to register.`);
       ].map((item) => ({ ...item, add: readOnlyCanvas })),
       canvasBgClick: () => this.set('nodeId', ''),
       ...(canvasContextItems ? { ctxItems: canvasContextItems } : {}),
+      ...(canvasContextItems ? { ctxItemCount: canvasContextItems.length, ctxResultLabel: `${canvasContextItems.length} available menu item(s). Arrow keys move through results.` } : {}),
     };
   }
 

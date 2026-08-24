@@ -104,7 +104,7 @@ function Template(v: any) {
             )
           ))),
         A(v.tabs).map(($t, $t$i) => R($t$i, F(
-          ($t.on ? h("div", { role: `tab`, "data-tab-id": $t.key, "aria-selected": `true`, "aria-controls": `panel-${S($t.key)}`, tabIndex: $t.tabIndex, draggable: `true`, onKeyDown: fn($t.keyDown), onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), id: `tab-${S($t.key)}`, "aria-label": `Interactive region` },
+          ($t.on ? h("div", { id: `tab-${S($t.key)}`, role: `tab`, "data-tab-id": $t.key, "aria-selected": `true`, "aria-controls": `panel-${S($t.key)}`, tabIndex: $t.tabIndex, draggable: `true`, onKeyDown: fn($t.keyDown), onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`) },
               ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
               h("span", { style: sty(`width:7px; height:7px; border-radius:50%; background:${S($t.colour)}; flex:0 0 auto;`) }),
               h("span", { style: sty(`font-size:16px; color:#82D9A5; flex:0 0 auto;`), className: "msym" },
@@ -122,7 +122,7 @@ function Template(v: any) {
                 )
               )
             ) : null),
-          ($t.off ? h("div", { role: `tab`, "data-tab-id": $t.key, "aria-selected": `false`, "aria-controls": `panel-${S($t.key)}`, tabIndex: $t.tabIndex, draggable: `true`, onKeyDown: fn($t.keyDown), onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), id: `tab-${S($t.key)}`, "aria-label": `Interactive region`, className: "k-h7" },
+          ($t.off ? h("div", { id: `tab-${S($t.key)}`, role: `tab`, "data-tab-id": $t.key, "aria-selected": `false`, tabIndex: $t.tabIndex, draggable: `true`, onKeyDown: fn($t.keyDown), onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), className: "k-h7" },
               ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
               h("span", { style: sty(`font-size:16px; color:#8FA394; flex:0 0 auto;`), className: "msym" },
                 S($t.icon)
@@ -540,7 +540,7 @@ function Template(v: any) {
                     )))
                   ),
                   h("div", { style: sty(`max-height:460px; overflow-y:auto;`) },
-                    A(v.commitRows).map(($c, $c$i) => R($c$i, h("div", { onClick: fn($c.pick), onContextMenu: fn($c.ctx), style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), role: `group`, tabIndex: `0`, "aria-label": `Interactive region`, onKeyDown: fn(v.activateClickableRegion), className: "k-h16" },
+                    A(v.commitRows).map(($c, $c$i) => R($c$i, h("div", { onClick: fn($c.pick), onContextMenu: fn($c.ctx), "aria-label": `${S($c.file)} ${S($c.sha)}`, style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), role: `group`, tabIndex: `0`, onKeyDown: fn(v.activateClickableRegion), className: "k-h16" },
                         h("div", { style: sty(`display:flex; flex-direction:column; align-items:center; padding-top:3px; flex:0 0 auto;`) },
                           h("span", { style: sty(`width:11px; height:11px; border-radius:50%; background:${S($c.dot)}; border:2px solid #0F1510;`) }),
                           h("span", { style: sty(`width:2px; flex:1; min-height:22px; background:#333B34;`) })
@@ -989,7 +989,7 @@ function Template(v: any) {
                   )
                 ),
                 h("div", { style: sty(`flex:1; display:grid; grid-template-columns:1fr 300px; gap:10px; min-height:0;`) },
-                  h("div", { onClick: fn(v.canvasBgClick), onDragOver: fn(v.canvasDragOver), onDrop: fn(v.canvasDrop), style: sty(`position:relative; border-radius:12px; background-color:#0C110D; background-image:radial-gradient(#222A23 1px, transparent 1px); background-size:22px 22px; overflow:hidden;`), role: `group`, tabIndex: `0`, "aria-label": `Interactive region`, onKeyDown: fn(v.activateClickableRegion) },
+                  h("div", { onClick: fn(v.canvasBgClick), onDragOver: fn(v.canvasDragOver), onDrop: fn(v.canvasDrop), "aria-label": `Dialplan canvas`, style: sty(`position:relative; border-radius:12px; background-color:#0C110D; background-image:radial-gradient(#222A23 1px, transparent 1px); background-size:22px 22px; overflow:hidden;`), role: `group`, tabIndex: `0`, onKeyDown: fn(v.activateClickableRegion) },
                     h("div", { style: sty(`position:absolute; left:10px; top:10px; z-index:3; display:flex; gap:5px; background:rgba(20,26,21,.9); border-radius:999px; padding:4px;`) },
                       A(v.canvasLayers).map(($l, $l$i) => R($l$i, F(
                         ($l.on ? h("button", { onClick: fn($l.pick), style: sty(`background:#005230; border:0; border-radius:999px; padding:5px 12px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;`) },
@@ -1010,7 +1010,7 @@ function Template(v: any) {
                     h("svg", { viewBox: `0 0 760 420`, preserveAspectRatio: `none`, style: sty(`position:absolute; left:0; top:0; width:760px; height:420px; pointer-events:none;`) },
                       A(v.edges).map(($e, $e$i) => R($e$i, h("path", { d: $e.d, fill: `none`, stroke: $e.stroke, strokeWidth: $e.w })))
                     ),
-                    A(v.nodes).map(($n, $n$i) => R($n$i, h("div", { draggable: `true`, onDragStart: fn($n.onDragStart), onDragEnd: fn($n.onDragEnd), onClick: fn($n.pick), onContextMenu: fn($n.ctx), style: sty(`position:absolute; left:${S($n.x)}; top:${S($n.y)}; width:196px; border-radius:14px; background:#1B211C; border:2px solid ${S($n.border)}; padding:11px 13px; cursor:grab; box-shadow:0 4px 12px rgba(0,0,0,.45); transition:left .26s cubic-bezier(.2,0,0,1), top .26s cubic-bezier(.2,0,0,1), border-color .2s ease, box-shadow .2s ease;`), role: `group`, tabIndex: `0`, "aria-label": `Interactive region`, onKeyDown: fn(v.activateClickableRegion) },
+                    A(v.nodes).map(($n, $n$i) => R($n$i, h("div", { draggable: `true`, onDragStart: fn($n.onDragStart), onDragEnd: fn($n.onDragEnd), onClick: fn($n.pick), onContextMenu: fn($n.ctx), "aria-label": $n.title, style: sty(`position:absolute; left:${S($n.x)}; top:${S($n.y)}; width:196px; border-radius:14px; background:#1B211C; border:2px solid ${S($n.border)}; padding:11px 13px; cursor:grab; box-shadow:0 4px 12px rgba(0,0,0,.45); transition:left .26s cubic-bezier(.2,0,0,1), top .26s cubic-bezier(.2,0,0,1), border-color .2s ease, box-shadow .2s ease;`), role: `group`, tabIndex: `0`, onKeyDown: fn(v.activateClickableRegion) },
                         h("div", { style: sty(`display:flex; align-items:center; gap:8px;`) },
                           h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                             S($n.icon)
@@ -4153,7 +4153,7 @@ class ConsoleShell extends DCLogic {
     sortList:['ulaw · 64 kbps','opus · 128 kbps','g729 · 8 kbps','g722 · 64 kbps','gsm · 13 kbps'],
     matchSel:'', matchDone:[], spotFound:-1, reflexNum:'1004', selected:[], authAnswers:{},
     sureOpen:false, sureTitle:'', sureBody:'', sureHits:0, sureNeed:3, sureCell:-1, sureAction:null,
-    tabs:['dash', 'endpoints', 'canvas'], pinned:['dash'], dock:'left', paletteRevealTab:'',
+    tabs:['dash', 'endpoints', 'canvas'], pinned:['dash'], dock:'left', paletteRevealTab:'', paletteRevealGroup:'',
     tabUnsaved:{},
     nodePos:{}, edgeList:EDGES.map(e => e.slice()), nodeDrag:null, fullscreen:false,
     canvasTool:'select', grid:true, snap:true, guides:true, minimap:true, layer:'Dialplan',
@@ -4223,7 +4223,7 @@ class ConsoleShell extends DCLogic {
         this._overlayStack = this._overlayStack.filter(entry => entry.key !== key).concat([{ key, origin }]);
       }
       if (!flags[key] && this._overlayFlags?.[key]) this._overlayStack = this._overlayStack.filter(entry => entry.key !== key);
-      if (flags[key] && !this._overlayFlags?.[key]) setTimeout(() => document.querySelector('[data-overlay="' + key + '"][role="dialog"], [data-overlay="' + key + '"] [role="dialog"]')?.focus?.(), 0);
+      if (flags[key] && !this._overlayFlags?.[key]) setTimeout(() => { const dialogs = Array.from(document.querySelectorAll('[role="dialog"]')); dialogs[dialogs.length - 1]?.focus?.(); }, 0);
     });
     this._overlayFlags = flags;
     this.state.activeOverlayStack = (this._overlayStack || []).slice();
@@ -4246,7 +4246,7 @@ class ConsoleShell extends DCLogic {
       .concat(typeof this.paletteArticleInventory === 'function' ? this.paletteArticleInventory(state) : []);
     if (!query) return all;
     if (!state.paletteRegexOn) return all.filter(item => item.label.toLowerCase().includes(query.toLowerCase()) || item.hint.toLowerCase().includes(query.toLowerCase()));
-    try { const re = new RegExp(query, 'i'); return all.filter(item => re.test(item.label) || re.test(item.hint)); }
+    try { const re = new RegExp(query, this.regexField('palette').flags.filter(f => f !== 'g').join('')); return all.filter(item => re.test(item.label) || re.test(item.hint)); }
     catch (error) { return []; }
   };
   regexField = (target) => {
@@ -4259,15 +4259,18 @@ class ConsoleShell extends DCLogic {
   activatePaletteItem = (item) => {
     this.closeOverlay('palette');
     if (item.kind === 'article') this.setState({ docsSelectedId:item.articleId });
-    if (item.kind === 'group') this.setState({ ctxGroupId:item.groupId });
-    if (item.kind === 'tab') this.setState({ paletteRevealTab:item.tabId });
+    if (item.kind === 'group') this.setState({ ctxGroupId:item.groupId, paletteRevealGroup:item.groupId });
+    if (item.kind === 'tab') {
+      const group = (this.state.groups || []).find(candidate => candidate.tabs.indexOf(item.tabId) >= 0);
+      this.setState({ paletteRevealTab:item.tabId, paletteRevealGroup:group ? group.id : '' });
+    }
     this.openScreen(item.kind === 'article' ? 'docs' : item.key);
     setTimeout(() => {
       const target = item.kind === 'setting' && item.controlId
         ? document.querySelector('[data-control-id="' + item.controlId + '"]')
         : (item.kind === 'tab' ? document.querySelector('[data-tab-id="' + item.tabId + '"]') : (item.kind === 'group' ? document.querySelector('[data-group-id="' + item.groupId + '"]') : null));
       target?.focus?.();
-      if (item.kind === 'tab') this.setState({ paletteRevealTab:'' });
+      if (item.kind === 'tab' || item.kind === 'group') this.setState({ paletteRevealTab:'', paletteRevealGroup:'' });
     }, 0);
   };
   activatePaletteCursor = () => { const item = this.filteredPalette(this.state)[this.state.paletteCursor]; if (item) this.activatePaletteItem(item); };
@@ -5241,9 +5244,19 @@ class ConsoleShell extends DCLogic {
              this.toast('The tab-close plan is stale because its predicate inputs changed. Review it again.');
              return;
            }
-           this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash') });
+           const latestExcluded = currentTabs.filter(tab => s.pinned.indexOf(tab) >= 0 || !!s.locks[tab] || !!s.tabUnsaved[tab]);
+           const latestQuery = String(this.regexField('nav').query || s.tabFilterText || '').trim();
+           let latestPattern = null;
+           if (s.tabFilterRegexOn) { try { latestPattern = new RegExp(latestQuery, this.regexField('nav').flags.filter(f => f !== 'g').join('')); } catch { this.toast('The tab-close pattern became invalid. Review it again.'); return; } }
+           const latestClose = currentTabs.filter(tab => {
+             const label = this.state.tabNames[tab] || (SCREENS[tab] ? SCREENS[tab].title : tab);
+             const hit = s.tabFilterMode === 'colour' ? (this.state.tabColours[tab] || 'none') === this.state.tabFilterColour : (latestPattern ? latestPattern.test(label) : label.toLowerCase().includes(latestQuery.toLowerCase()));
+             return (s.tabFilterMode === 'not' ? !hit : hit) && latestExcluded.indexOf(tab) < 0;
+           });
+           const latestKeep = currentTabs.filter(tab => latestClose.indexOf(tab) < 0);
+           this.setState({ tabs:latestKeep.length ? latestKeep : ['dash'], screen:latestKeep.indexOf(s.screen) >= 0 ? s.screen : (latestKeep[0] || 'dash') });
            this.closeOverlay('tabFilter');
-          this.toast(count + ' tab(s) closed. Protected tabs stayed open.');
+           this.toast(latestClose.length + ' tab(s) closed. Protected tabs stayed open.');
         });
       },
       closeTabFilter:() => this.closeOverlay('tabFilter'),
@@ -5545,8 +5558,8 @@ class ConsoleShell extends DCLogic {
       rxText:this.regexField(s.regexTarget).query,
       onRxText:(e) => { const v = String(e.target.value); this.setRegexField(s.regexTarget, { query:v, pattern:v ? [v] : [] }); },
       regexFlagStr:this.regexField(s.regexTarget).flags.join(''),
-      regexValid:(() => { const v = this.regexField(s.regexTarget).query; if (!v) return 'empty'; try { new RegExp(v); return 'valid'; } catch (e) { return 'invalid'; } })(),
-      regexValidColor:(() => { const v = this.regexField(s.regexTarget).query; if (!v) return '#8FA394'; try { new RegExp(v); return '#82D9A5'; } catch (e) { return '#FFB4AB'; } })(),
+      regexValid:(() => { const field = this.regexField(s.regexTarget); if (!field.query) return 'empty'; try { new RegExp(field.query, field.flags.filter(f => f !== 'g').join('')); return 'valid'; } catch (e) { return 'invalid'; } })(),
+      regexValidColor:(() => { const field = this.regexField(s.regexTarget); if (!field.query) return '#8FA394'; try { new RegExp(field.query, field.flags.filter(f => f !== 'g').join('')); return '#82D9A5'; } catch (e) { return '#FFB4AB'; } })(),
       regexExplain:(() => {
         const v = this.regexField(s.regexTarget).query;
         if (!v) return 'No pattern yet, so everything matches.';
@@ -5583,7 +5596,7 @@ class ConsoleShell extends DCLogic {
       regexCaptures:(() => { const field = this.regexField(s.regexTarget); const sample = field.sample; const pattern = field.pattern.join(''); if (!sample || !pattern) return []; try { const re = new RegExp(pattern, field.flags.filter(f => f !== 'g').join('')); const match = re.exec(sample); return match ? match.slice(1, 9).map((value, i) => ({ label:'$' + (i + 1), value:value === undefined ? 'not captured' : value })) : []; } catch (e) { return []; } })(),
       copyRegex:() => { void navigator.clipboard?.writeText(this.regexField(s.regexTarget).pattern.join('')).then(() => this.toast('Pattern copied'), () => this.toast('Pattern could not be copied')); },
       exportRegex:() => { const field = this.regexField(s.regexTarget); const pattern = field.pattern.join(''); const sample = field.sample; let captures = []; try { const match = pattern && sample ? new RegExp(pattern, field.flags.filter(f => f !== 'g').join('')).exec(sample) : null; captures = match ? match.slice(1, 9) : []; } catch (e) {} const blob = new Blob([JSON.stringify({ schemaVersion:1, target:s.regexTarget, query:field.query, pattern, flags:field.flags, sample, captures }, null, 2)], { type:'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'regex-result.json'; link.click(); URL.revokeObjectURL(url); },
-      regexCount:(() => { const pat = this.regexField(s.regexTarget).pattern.join(''); if (!pat) return 'no filter'; try { new RegExp(pat); return 'valid pattern'; } catch (e) { return 'invalid pattern'; } })(),
+      regexCount:(() => { const field = this.regexField(s.regexTarget); const pat = field.pattern.join(''); if (!pat) return 'no filter'; try { new RegExp(pat, field.flags.filter(f => f !== 'g').join('')); return 'valid pattern'; } catch (e) { return 'invalid pattern'; } })(),
       regexPreview:(() => {
         const pat = this.regexField(s.regexTarget).pattern.join('');
         const pool = s.regexTarget === 'nav' ? ORDER.map(k => SCREENS[k].label) : (s.regexTarget === 'palette' ? PALETTE_INVENTORY.map(k => SCREENS[k].title) : (s.regexTarget === 'ctx' ? (this._ctxItems || []).map(i => i.label) : (s.regexTarget === 'sub' ? (this._subItems || []).map(i => i.label) : (sc.table ? sc.table.rows.map(r => r[0]) : ORDER.map(k => SCREENS[k].label)))));
@@ -5605,7 +5618,7 @@ class ConsoleShell extends DCLogic {
         const filterSub = (list) => {
           const q = String(s.subFilter || '').trim();
            if (!q) { const positioned = list.map((item, index) => Object.assign({}, item, { position:index + 1 })); this._subItems = positioned; return positioned; }
-          let re = null; if (s.subRegexOn) { try { re = new RegExp(q, 'i'); } catch (e) { this._subItems = []; return []; } }
+          let re = null; if (s.subRegexOn) { try { re = new RegExp(q, this.regexField('sub').flags.filter(f => f !== 'g').join('')); } catch (e) { this._subItems = []; return []; } }
            const filtered = list.filter(i => re ? re.test(i.label) : String(i.label).toLowerCase().includes(q.toLowerCase())).map((item, index) => Object.assign({}, item, { position:index + 1 }));
            this._subItems = filtered;
            return filtered;
@@ -5663,7 +5676,7 @@ class ConsoleShell extends DCLogic {
           }));
           const q = String(s.ctxFilter || '').trim();
            if (!q) { const positioned = decorated.map((item, index) => Object.assign({}, item, { position:index + 1 })); this._ctxItems = positioned; return positioned; }
-          let re = null; if (s.ctxRegexOn) { try { re = new RegExp(q, 'i'); } catch (e) { this._ctxItems = []; return []; } }
+          let re = null; if (s.ctxRegexOn) { try { re = new RegExp(q, this.regexField('ctx').flags.filter(f => f !== 'g').join('')); } catch (e) { this._ctxItems = []; return []; } }
            const filtered = decorated.filter(i => re ? re.test(i.label) : String(i.label).toLowerCase().includes(q.toLowerCase())).map((item, index) => Object.assign({}, item, { position:index + 1 }));
           this._ctxItems = filtered;
           return filtered;
