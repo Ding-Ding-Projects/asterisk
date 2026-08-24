@@ -798,7 +798,7 @@
     },
     "status-hub": {
       "status": "partial",
-      "note": "site/status.html exposes a local user-declared Status Hub projection with a session label, state, optional HTTP(S) evidence reference, persistence, and explicit no-hosted-service boundaries. It displays Verified only when the current composed build and release receipt validates the exact evidence URL. Live hosted sessions, question delivery, and remote updates remain absent.",
+      "note": "site/status.html exposes a local user-declared Status Hub projection with a session label, state, optional HTTP(S) evidence reference, persistence, and explicit no-hosted-service boundaries. The static surface has no trusted receipt signature verifier, so pasted public commit, tag, URL, and hash values remain user-declared and unverified. Live hosted sessions, question delivery, and remote updates remain absent.",
       "implementation": {
         "paths": ["console/site/status.html", "console/site/app.js"],
         "symbols": [{"path": "console/site/app.js", "name": "initStatusHub", "kind": "function"}]
