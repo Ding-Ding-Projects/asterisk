@@ -4,7 +4,13 @@
 
 This linked checkout adds the privileged seams only. `shared/control-plane.ts` now names the logo and external-settings actions. `control-plane/dispatch.ts` registers local logo inspection/cache lifecycle and the bounded external source store. `app/electron/main.ts` and both preload bridges expose the local logo picker without returning a source path. `app/renderer/src/logo-runtime.ts` and `external-settings-runtime.ts` provide live lifecycle clients without inventing success.
 
-The logo decoder is deliberately not registered because no bundled isolated decoder exists in this checkout. Conversion therefore returns an unavailable result and leaves the previous mark active. The Home Assistant path carries only `vaultAccountKey`; the desktop dispatcher has no OS-vault reader yet, so that source returns a typed unavailable state. No tests, lint, type checks, build, package, UI interaction, capture, or release work was run in this lane. The feature registries and three platform articles record these exact boundaries.
+The logo decoder is deliberately not registered because no bundled isolated decoder exists in this checkout. Conversion therefore returns an unavailable result and leaves the previous mark active. The Home Assistant path carries only `vaultAccountKey`; the desktop dispatcher now injects an OS-backed `safeStorage` reader, while missing or undecryptable references remain typed unavailable. The settings route is mounted and hydrated, but no tests, lint, type checks, build, package, UI interaction, capture, or release work was run in this lane. The feature registries and three platform articles record these exact boundaries.
+
+### Refuter repairs
+
+The repair commit mounts `#surface=settings` from `surface-mounts.tsx`, hydrates and subscribes `RendererSettingsRuntime`, `LogoRuntime`, and `ExternalSettingsRuntime`, and provides a rule editor with local, HTTPS, and Home Assistant source fields. The desktop dispatcher now injects a `safeStorage`-backed vault reader and resolves external hostnames before connect, refusing private, link-local, multicast, unspecified, documentation, loopback, and mapped IPv4 destinations. External wire state requires an explicit rule id and strict fields before it hydrates the renderer map.
+
+Logo cache writes now reject unknown fields and duplicate manifest keys, bound manifest bytes, validate complete targets, receipts, crop, package identity, digests, exact byte counts, output count, and aggregate output bytes before replacing the active cache. A decoder interface must reopen every output through its isolated boundary. No bundled decoder is declared, so the settings route visibly disables custom-logo conversion and the registry remains partial. No checks, builds, packaging, UI runs, captures, pushes, or cleanup were performed.
 
 ## Surface mount integration, 2026-08-23
 

@@ -67,6 +67,12 @@ export class LogoRuntime {
 
   getState(): LogoRuntimeState { return this.state; }
 
+  selectPreset(presetId: string): LogoRuntimeState {
+    if (!LOGO_PRESETS.some((preset) => preset.id === presetId)) return this.state;
+    this.publish({ status: 'active', detail: 'The selected shipped logo preset is active.', active: { kind: 'shipped-preset', presetId, crop: DEFAULT_LOGO_CROP, assets: new Map() } });
+    return this.state;
+  }
+
   subscribe(listener: (state: LogoRuntimeState) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

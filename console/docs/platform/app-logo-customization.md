@@ -8,11 +8,11 @@ The shared logo contract defines three shipped presets, a local picker, crop, fi
 
 ## Configuration
 
-`shared/logo.ts` validates PNG, JPEG, WebP, and static SVG signatures, dimensions, animation, SVG safety, crop ratios, output targets, and byte budgets before conversion. `control-plane/logo-store.ts` persists only independently inspected output bytes and redacted receipts below the private per-installation cache. No logo action accepts a URL. The privileged dispatcher currently registers no image decoder, so conversion reports `DECODER_UNAVAILABLE` rather than claiming success; a future decoder must be isolated and round-trip verified before registration.
+`shared/logo.ts` validates PNG, JPEG, WebP, and static SVG signatures, dimensions, animation, SVG safety, crop ratios, output targets, and byte budgets before conversion. `control-plane/logo-store.ts` persists only independently inspected output bytes and redacted receipts below the private per-installation cache, with strict manifest keys, duplicate-key rejection, bounded manifest bytes, digest checks, and exact receipt relationships. No logo action accepts a URL. No declared bundled isolated image decoder exists in this checkout, so the picker is visibly disabled and conversion reports `DECODER_UNAVAILABLE` rather than claiming success.
 
 ## Current status
 
-**Desktop application:** Privileged logo inspection, conversion, cache read/write/asset-read/clear actions, and a desktop local-file picker are wired. `renderer/src/logo-runtime.ts` supplies the live application lifecycle. The UI mount and a verified decoder remain separate follow-up work; conversion is explicitly unavailable until a bundled decoder is proven.
+**Desktop application:** Privileged logo inspection, conversion, cache read/write/asset-read/clear actions, desktop local-file picker, `LogoRuntime`, and the reachable `#surface=settings` route are wired. `LogoSurface` visibly explains that conversion is unavailable until a bundled isolated decoder exists. Any future decoder must reopen every output through its isolated boundary before a cache write can occur.
 
 **Documentation website:** Partial. Every page exposes three presets, contain/fill choice, and local PNG/JPEG upload. The loader verifies the byte signature, bounds encoded bytes and decoded pixels, revalidates the cache, applies the mark live, and retains the prior valid mark after rejection. Crop, focal point, background treatment, and multi-size output remain incomplete.
 

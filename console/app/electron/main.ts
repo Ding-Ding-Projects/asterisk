@@ -1,9 +1,10 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, safeStorage } from 'electron';
 import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
 import type { ControlPlaneRequest, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
+import type { VaultReferenceReader } from '../../control-plane/external-settings-client.js';
 import {
   parseVersion, resolveLatestUpdate, validateReleaseIdentity, initialUpdaterState, beganChecking, checkSucceeded,
   updateFailed, beganDownloading, downloadReady, dismissedForNow, verifyDownload, findDigestForAsset,
@@ -16,7 +17,30 @@ import {
 } from './updater-runtime.js';
 
 let mainWindow: BrowserWindow | null = null;
-const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false });
+
+/**
+ * Reads only encrypted values placed by the local credential enrollment flow.
+ * `safeStorage` keeps the encryption key in the operating-system credential
+ * facility. The renderer receives neither this path nor the decrypted value.
+ */
+function externalSettingsVault(): VaultReferenceReader {
+  return {
+    async read(reference: string): Promise<string | undefined> {
+      if (!safeStorage.isEncryptionAvailable() || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/u.test(reference)) return undefined;
+      try {
+        const encrypted = await readFile(join(app.getPath('userData'), 'credentials', `${reference}.enc`), 'utf8');
+        const bytes = Buffer.from(encrypted.trim(), 'base64');
+        if (bytes.byteLength === 0 || bytes.byteLength > 64 * 1024) return undefined;
+        const value = safeStorage.decryptString(bytes);
+        return value.length <= 4096 ? value : undefined;
+      } catch {
+        return undefined;
+      }
+    },
+  };
+}
+
+const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false, externalSettingsVault: externalSettingsVault() });
 const { controlPlaneRequest } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let updateCheckInFlight: Promise<void> | undefined;

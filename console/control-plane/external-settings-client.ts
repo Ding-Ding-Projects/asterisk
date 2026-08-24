@@ -10,6 +10,8 @@ import {
   MAX_EXTERNAL_RESPONSE_BYTES,
   parseHomeAssistantBooleanResponse,
   parseHttpsApiResponse,
+  isBlockedResolvedAddress,
+  isLoopbackResolvedAddress,
   validateExternalSource,
 } from "../shared/external-settings.js";
 import type {
@@ -74,6 +76,10 @@ export interface ExternalSettingsHandlerOptions {
   readonly vault?: VaultReferenceReader;
   readonly now?: () => Date;
   readonly timeoutMs?: number;
+  /** Resolves the validated hostname in the privileged process before connect. */
+  readonly resolveHost?: (hostname: string) => Promise<readonly string[]>;
+  /** Optional explicit host allowlist, applied before DNS resolution. */
+  readonly allowedHosts?: readonly string[];
 }
 
 class ExpectedReadFailure extends Error {
@@ -198,10 +204,23 @@ async function fetchJson(
   fetcher: ExternalSettingsFetch,
   signal: AbortSignal | undefined,
   timeoutMs: number,
+  resolveHost: ((hostname: string) => Promise<readonly string[]>) | undefined,
+  allowedHosts: ReadonlySet<string> | undefined,
 ): Promise<{ readonly response: ExternalSettingsFetchResponse; readonly body: string }> {
   const bounded = withDeadline(signal, timeoutMs);
   try {
     throwIfAborted(bounded.signal);
+    const parsedUrl = new URL(url);
+    if (allowedHosts && !allowedHosts.has(parsedUrl.hostname.toLowerCase())) {
+      throw new ExpectedReadFailure('blocked', 'The external settings host is not on the configured allowlist');
+    }
+    if (resolveHost) {
+      const addresses = await resolveHost(parsedUrl.hostname);
+      const loopbackDevelopment = parsedUrl.protocol === 'http:' && (parsedUrl.hostname === 'localhost' || /^127(?:\.\d{1,3}){3}$/u.test(parsedUrl.hostname) || parsedUrl.hostname === '[::1]' || parsedUrl.hostname === '::1');
+      if (addresses.length === 0 || addresses.some((address) => isBlockedResolvedAddress(address) && !(loopbackDevelopment && isLoopbackResolvedAddress(address)))) {
+        throw new ExpectedReadFailure('blocked', 'The external settings host resolved to a private or reserved address');
+      }
+    }
     const response = await fetcher(url, { method: 'GET', headers, redirect: 'error', signal: bounded.signal });
     const responseUrl = response.url ? new URL(response.url).toString() : '';
     const requestedUrl = new URL(url).toString();
@@ -229,6 +248,7 @@ export function createExternalSettingsHandler(options: ExternalSettingsHandlerOp
   const fetcher = options.fetch ?? (globalThis.fetch.bind(globalThis) as unknown as ExternalSettingsFetch);
   const now = options.now ?? (() => new Date());
   const timeoutMs = options.timeoutMs ?? EXTERNAL_REQUEST_TIMEOUT_MS;
+  const allowedHosts = options.allowedHosts ? new Set(options.allowedHosts.map((host) => host.toLowerCase())) : undefined;
   let activeController: AbortController | undefined;
 
   async function read(source: ExternalSettingsSource, signal?: AbortSignal): Promise<ExternalSettingsReadResult> {
@@ -251,7 +271,7 @@ export function createExternalSettingsHandler(options: ExternalSettingsHandlerOp
         };
       }
       if (accepted.kind === 'https-api') {
-        const result = await fetchJson(accepted, accepted.endpoint, { Accept: 'application/json' }, fetcher, controller.signal, timeoutMs);
+        const result = await fetchJson(accepted, accepted.endpoint, { Accept: 'application/json' }, fetcher, controller.signal, timeoutMs, options.resolveHost, allowedHosts);
         const parsed = parseHttpsApiResponse(result.body);
         if (!parsed.ok) return sourceFailure(accepted, 'malformed', parsed.reason);
         const reading = { ...parsed.reading, observedAt: now().toISOString() };
@@ -271,6 +291,8 @@ export function createExternalSettingsHandler(options: ExternalSettingsHandlerOp
         fetcher,
         controller.signal,
         timeoutMs,
+        options.resolveHost,
+        allowedHosts,
       );
       const parsed = parseHomeAssistantBooleanResponse(result.body);
       if (!parsed.ok) return sourceFailure(accepted, 'malformed', parsed.reason);

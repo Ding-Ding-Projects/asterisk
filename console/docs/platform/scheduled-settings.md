@@ -12,7 +12,7 @@ Rules are stored in the versioned desktop settings record. Dates use `YYYY-MM-DD
 
 ## Current status
 
-**Desktop application:** The validated schedule model and renderer evaluation seam are present in `shared/settings-schema.ts`, `app/renderer/src/settings/schedule.ts`, and `app/renderer/src/settings-runtime.ts`. `app/renderer/src/external-settings-runtime.ts` and the privileged `external-settings.*` actions provide source refresh state. The owning UI mount remains separate follow-up work.
+**Desktop application:** The validated schedule model, hydrated renderer evaluation runtime, reachable `#surface=settings` editor, external source runtime, and privileged `external-settings.*` actions are present in `shared/settings-schema.ts`, `app/renderer/src/settings/schedule.ts`, `app/renderer/src/settings-runtime.ts`, `app/renderer/src/settings-surface.tsx`, `app/renderer/src/external-settings-runtime.ts`, and `control-plane/dispatch.ts`. A built-artifact run remains open.
 
 **Documentation website:** Implemented for site-owned local settings. Every page exposes one persisted rule with explicit weekdays, start and end times, cross-midnight and equal-time behavior, local-timezone status, and scheduled theme, language, and density values. Base values return when the window ends.
 

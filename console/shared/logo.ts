@@ -14,6 +14,7 @@ export const LOGO_MAX_DECODED_PIXELS = 16_000_000;
 export const LOGO_MAX_DIMENSION = 4096;
 export const LOGO_MAX_FRAMES = 1;
 export const LOGO_MAX_OUTPUTS = 16;
+export const LOGO_MAX_MANIFEST_BYTES = 1 * 1024 * 1024;
 export const LOGO_MAX_CPU_MS = 2000;
 export const LOGO_MAX_MEMORY_BYTES = 64 * 1024 * 1024;
 

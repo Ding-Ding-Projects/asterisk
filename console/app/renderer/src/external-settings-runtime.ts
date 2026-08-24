@@ -39,6 +39,20 @@ function project(ruleId: string, value: unknown): ExternalRuleState {
   };
 }
 
+function parseWireState(value: unknown): ExternalRuleState | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const item = value as Record<string, unknown>;
+  const allowed = new Set(['ruleId', 'sourceKind', 'status', 'active', 'isFallback', 'isStale', 'assignmentCount', 'lastRefreshAt', 'nextRefreshAt', 'lastError']);
+  if (Object.keys(item).some((key) => !allowed.has(key))) return undefined;
+  if (typeof item.ruleId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u.test(item.ruleId)) return undefined;
+  if (typeof item.status !== 'string' || !['idle', 'refreshing', 'active', 'inactive', 'stale', 'offline', 'auth-error', 'rate-limited', 'malformed', 'timeout', 'blocked', 'cancelled', 'failed'].includes(item.status)) return undefined;
+  if (typeof item.active !== 'boolean' || typeof item.isFallback !== 'boolean' || typeof item.isStale !== 'boolean' || !Number.isSafeInteger(item.assignmentCount) || Number(item.assignmentCount) < 0) return undefined;
+  for (const key of ['lastRefreshAt', 'nextRefreshAt', 'lastError'] as const) {
+    if (item[key] !== undefined && typeof item[key] !== 'string') return undefined;
+  }
+  return project(item.ruleId, item);
+}
+
 /** Renderer seam for bounded external source refreshes. Endpoint and vault data
  * remain in the privileged process, while source activity feeds schedule runtime. */
 export class ExternalSettingsRuntime {
@@ -50,15 +64,20 @@ export class ExternalSettingsRuntime {
   all(): ReadonlyArray<ExternalRuleState> { return [...this.states.values()]; }
 
   async refresh(ruleId: string, source: ExternalSettingsSource, baseAssignments: readonly ScheduleAssignment[], force = false): Promise<ExternalRuleState> {
-    const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'external-settings.refresh', payload: { source, baseAssignments, force } });
-    const state = response.ok ? project(ruleId, response.data) : { ruleId, status: 'failed' as const, active: false, isFallback: true, isStale: false, assignmentCount: 0, lastError: response.message ?? 'The external settings source did not answer.' };
+    const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'external-settings.refresh', payload: { ruleId, source, baseAssignments, force } });
+    const parsed = response.ok ? parseWireState(response.data) : undefined;
+    const state = parsed ?? { ruleId, status: 'failed' as const, active: false, isFallback: true, isStale: false, assignmentCount: 0, lastError: response.message ?? 'The external settings source did not answer.' };
     this.states.set(ruleId, state);
     return state;
   }
 
-  async readState(): Promise<ReadonlyArray<ExternalRuleState>> {
-    const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'external-settings.state' });
-    if (!response.ok) return this.all();
+  async readState(ruleIds: readonly string[] = this.all().map((item) => item.ruleId)): Promise<ReadonlyArray<ExternalRuleState>> {
+    for (const ruleId of ruleIds) {
+      if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u.test(ruleId)) continue;
+      const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'external-settings.state', payload: { ruleId } });
+      const parsed = response.ok ? parseWireState(response.data) : undefined;
+      if (parsed) this.states.set(parsed.ruleId, parsed);
+    }
     return this.all();
   }
 

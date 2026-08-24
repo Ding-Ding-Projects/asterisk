@@ -10,10 +10,14 @@ import { basename, dirname, isAbsolute, join, parse, resolve, sep } from 'node:p
 import { createHash, randomUUID } from 'node:crypto';
 import {
   LOGO_MAX_OUTPUT_BYTES,
+  LOGO_MAX_MANIFEST_BYTES,
+  LOGO_MAX_OUTPUTS,
+  LOGO_PRESETS,
   LOGO_PACKAGE_IDENTITY,
   LOGO_SCHEMA_VERSION,
   inspectLogoBytes,
   validateLogoCrop,
+  validateLogoTargets,
   type LogoCacheAssetMetadata,
   type LogoCacheAssetReadRequest,
   type LogoCacheClearRequest,
@@ -38,6 +42,69 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function exactKeys(value: Record<string, unknown>, required: readonly string[], optional: readonly string[] = []): boolean {
+  const allowed = new Set([...required, ...optional]);
+  return Object.keys(value).every((key) => allowed.has(key)) && required.every((key) => Object.prototype.hasOwnProperty.call(value, key));
+}
+
+function hasDuplicateJsonKeys(raw: string): boolean {
+  let index = 0;
+  const whitespace = () => { while (/\s/u.test(raw[index] ?? '')) index += 1; };
+  const string = (): string | undefined => {
+    if (raw[index] !== '"') return undefined;
+    const start = index;
+    index += 1;
+    while (index < raw.length) {
+      if (raw[index] === '\\') { index += 2; continue; }
+      if (raw[index] === '"') { const value = raw.slice(start, ++index); try { return JSON.parse(value) as string; } catch { return undefined; } }
+      index += 1;
+    }
+    return undefined;
+  };
+  const value = (): boolean => {
+    whitespace();
+    if (raw[index] === '{') return object();
+    if (raw[index] === '[') {
+      index += 1; whitespace();
+      if (raw[index] === ']') { index += 1; return true; }
+      while (index < raw.length) {
+        if (!value()) return false;
+        whitespace();
+        if (raw[index] === ']') { index += 1; return true; }
+        if (raw[index] !== ',') return false;
+        index += 1;
+      }
+      return false;
+    }
+    if (raw[index] === '"') return string() !== undefined;
+    const match = /^(?:-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null)/u.exec(raw.slice(index));
+    if (!match) return false;
+    index += match[0].length;
+    return true;
+  };
+  const object = (): boolean => {
+    index += 1; whitespace();
+    const keys = new Set<string>();
+    if (raw[index] === '}') { index += 1; return true; }
+    while (index < raw.length) {
+      const key = string();
+      if (key === undefined || keys.has(key)) return false;
+      keys.add(key); whitespace();
+      if (raw[index] !== ':') return false;
+      index += 1;
+      if (!value()) return false;
+      whitespace();
+      if (raw[index] === '}') { index += 1; return true; }
+      if (raw[index] !== ',') return false;
+      index += 1; whitespace();
+    }
+    return false;
+  };
+  if (!value()) return true;
+  whitespace();
+  return index !== raw.length;
+}
+
 function safeAssetName(value: string): boolean {
   return value.length > 0 && value.length <= 180 && basename(value) === value && !value.includes('..') && /^[a-z0-9-]+\.(?:png|jpeg|webp)$/iu.test(value);
 }
@@ -45,12 +112,14 @@ function safeAssetName(value: string): boolean {
 function receiptShape(value: unknown): value is LogoOutputReceipt {
   if (!isObject(value) || !isObject(value.target)) return false;
   const target = value.target;
+  if (!exactKeys(target, ['format', 'width', 'height', 'alpha'])) return false;
+  if (!exactKeys(value, ['target', 'bytes', 'sha256', 'signature', 'width', 'height', 'alpha', 'decoder', 'roundTripVerified', 'lossNotes'])) return false;
   return (target.format === 'png' || target.format === 'jpeg' || target.format === 'webp')
     && Number.isInteger(target.width) && Number.isInteger(target.height)
     && typeof target.alpha === 'boolean'
     && typeof value.bytes === 'number' && Number.isInteger(value.bytes) && value.bytes > 0
     && typeof value.sha256 === 'string' && /^[0-9a-f]{64}$/iu.test(value.sha256)
-    && typeof value.signature === 'string'
+    && typeof value.signature === 'string' && value.signature.length > 0 && value.signature.length <= 128
     && value.decoder === 'isolated'
     && value.roundTripVerified === true
     && Number.isInteger(value.width) && Number.isInteger(value.height)
@@ -60,10 +129,23 @@ function receiptShape(value: unknown): value is LogoOutputReceipt {
 
 function cacheShape(value: unknown): value is LogoCacheRecord {
   if (!isObject(value) || value.schemaVersion !== LOGO_SCHEMA_VERSION || value.packageIdentity !== LOGO_PACKAGE_IDENTITY) return false;
-  if (typeof value.customLogoActive !== 'boolean' || typeof value.updatedAt !== 'string' || !isObject(value.crop) || !Array.isArray(value.assets)) return false;
+  if (!exactKeys(value, ['schemaVersion', 'packageIdentity', 'customLogoActive', 'crop', 'assets', 'updatedAt'], ['selectedPresetId'])) return false;
+  if (typeof value.customLogoActive !== 'boolean' || typeof value.updatedAt !== 'string' || value.updatedAt.length < 1 || value.updatedAt.length > 64 || !isObject(value.crop) || !Array.isArray(value.assets)) return false;
   if (value.selectedPresetId !== undefined && (typeof value.selectedPresetId !== 'string' || value.selectedPresetId.length > 128)) return false;
   if (value.assets.length > 16) return false;
-  return value.assets.every((asset) => isObject(asset) && typeof asset.filename === 'string' && safeAssetName(asset.filename) && receiptShape(asset.receipt));
+  if (!exactKeys(value.crop, ['fit', 'crop', 'focalPoint', 'safeArea', 'background'])) return false;
+  if (!isObject(value.crop.crop) || !exactKeys(value.crop.crop, ['x', 'y', 'width', 'height'])) return false;
+  if (!isObject(value.crop.focalPoint) || !exactKeys(value.crop.focalPoint, ['x', 'y'])) return false;
+  if (!isObject(value.crop.safeArea) || !exactKeys(value.crop.safeArea, ['top', 'right', 'bottom', 'left'])) return false;
+  if (!isObject(value.crop.background) || !exactKeys(value.crop.background, ['kind'], ['color'])) return false;
+  if (value.crop.background.kind === 'solid' && typeof value.crop.background.color !== 'string') return false;
+  if (value.crop.background.kind === 'transparent' && Object.prototype.hasOwnProperty.call(value.crop.background, 'color')) return false;
+  const filenames = new Set<string>();
+  return value.assets.every((asset) => {
+    if (!isObject(asset) || !exactKeys(asset, ['filename', 'receipt']) || typeof asset.filename !== 'string' || !safeAssetName(asset.filename) || filenames.has(asset.filename) || !receiptShape(asset.receipt)) return false;
+    filenames.add(asset.filename);
+    return true;
+  });
 }
 
 function targetKey(asset: LogoEncodedAsset): string {
@@ -118,6 +200,7 @@ export class LogoStore {
     } catch {
       return undefined;
     }
+    if (Buffer.byteLength(raw, 'utf8') > LOGO_MAX_MANIFEST_BYTES || hasDuplicateJsonKeys(raw)) return undefined;
     let parsed: unknown;
     try {
       parsed = JSON.parse(raw);
@@ -152,11 +235,18 @@ export class LogoStore {
 
   async write(request: LogoCacheWriteRequest): Promise<LogoCacheRecord> {
     const result = request.result;
-    if (!result.ok) throw new Error('A failed logo conversion cannot replace the active logo.');
+    if (!result.ok || result.packageIdentity !== LOGO_PACKAGE_IDENTITY) throw new Error('A failed or foreign logo conversion cannot replace the active logo.');
+    if (request.selectedPresetId !== undefined && !LOGO_PRESETS.some((preset) => preset.id === request.selectedPresetId)) throw new Error('The selected logo preset is not registered.');
+    const cropCheck = validateLogoCrop(result.crop);
+    if (!cropCheck.ok) throw new Error(cropCheck.reason);
+    const targetCheck = validateLogoTargets(result.outputs.map((asset) => asset.target));
+    if (!targetCheck.ok || result.outputs.length > LOGO_MAX_OUTPUTS) throw new Error(targetCheck.ok ? 'Logo output count is outside the bounded limit.' : targetCheck.reason);
     for (const asset of result.outputs) {
       const metadata = assetMetadata(asset);
       if (!validAssetBytes(asset.bytes, metadata)) throw new Error('Logo cache refused an output that failed independent receipt validation.');
     }
+    const outputBytes = result.outputs.reduce((total, asset) => total + asset.bytes.byteLength, 0);
+    if (outputBytes > LOGO_MAX_OUTPUT_BYTES) throw new Error('Logo cache refused an output set over the aggregate byte limit.');
     const assets = result.outputs.map(assetMetadata);
     if (new Set(assets.map((asset) => asset.filename)).size !== assets.length) throw new Error('Logo cache output names must be unique.');
     const record: LogoCacheRecord = {
@@ -183,7 +273,9 @@ export class LogoStore {
       const manifestPath = join(this.root, 'manifest.json');
       const temporaryManifest = `${manifestPath}.${randomUUID()}.tmp`;
       temporary.push(temporaryManifest);
-      await writeFile(temporaryManifest, JSON.stringify(record, null, 2), { encoding: 'utf8', flag: 'wx' });
+      const manifest = JSON.stringify(record, null, 2);
+      if (Buffer.byteLength(manifest, 'utf8') > LOGO_MAX_MANIFEST_BYTES) throw new Error('Logo cache manifest exceeds its bounded byte limit.');
+      await writeFile(temporaryManifest, manifest, { encoding: 'utf8', flag: 'wx' });
       await rename(temporaryManifest, manifestPath);
       return record;
     } finally {

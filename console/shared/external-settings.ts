@@ -224,6 +224,76 @@ function isPrivateIpv4(hostname: string): boolean {
     || first >= 224;
 }
 
+function ipv4Bytes(hostname: string): number[] | undefined {
+  const parts = hostname.split('.');
+  if (parts.length !== 4 || parts.some((part) => !/^\d+$/u.test(part))) return undefined;
+  const octets = parts.map(Number);
+  return octets.every((octet) => octet >= 0 && octet <= 255) ? octets : undefined;
+}
+
+function ipv6Bytes(hostname: string): number[] | undefined {
+  const value = strippedHostname(hostname).toLowerCase().split('%')[0];
+  if (!value.includes(':')) return undefined;
+  const pieces = value.split('::');
+  if (pieces.length > 2) return undefined;
+  const parsePart = (part: string): number[] | undefined => {
+    if (!part) return [];
+    const tokens = part.split(':');
+    const result: number[] = [];
+    for (const token of tokens) {
+      if (token.includes('.')) {
+        const mapped = ipv4Bytes(token);
+        if (!mapped) return undefined;
+        result.push((mapped[0] << 8) | mapped[1], (mapped[2] << 8) | mapped[3]);
+      } else if (/^[0-9a-f]{1,4}$/u.test(token)) result.push(Number.parseInt(token, 16));
+      else return undefined;
+    }
+    return result;
+  };
+  const left = parsePart(pieces[0]);
+  const right = parsePart(pieces[1] ?? '');
+  if (!left || !right || (pieces.length === 1 && left.length !== 8) || (pieces.length === 2 && left.length + right.length >= 8)) return undefined;
+  return [...left, ...Array.from({ length: 8 - left.length - right.length }, () => 0), ...right].flatMap((word) => [word >> 8, word & 0xff]);
+}
+
+/** Returns true for loopback, private, link-local, multicast, unspecified,
+ * documentation, reserved, and IPv4-mapped IPv6 destinations. */
+export function isBlockedResolvedAddress(hostname: string): boolean {
+  const ipv4 = ipv4Bytes(strippedHostname(hostname));
+  if (ipv4) {
+    const [first, second, third] = ipv4;
+    return first === 0 || first === 10 || first === 100 && second >= 64 && second <= 127
+      || first === 127 || first === 169 && second === 254
+      || first === 172 && second >= 16 && second <= 31
+      || first === 192 && (second === 0 && (third === 0 || third === 2) || second === 168)
+      || first === 198 && (second >= 18 && second <= 19 || second === 51)
+      || first === 203 && second === 0
+      || first >= 224;
+  }
+  const bytes = ipv6Bytes(hostname);
+  if (!bytes) return false;
+  const allZero = bytes.every((byte) => byte === 0);
+  const loopback = allZero && bytes[15] === 1;
+  const mapped = bytes.slice(0, 10).every((byte) => byte === 0) && bytes[10] === 0xff && bytes[11] === 0xff;
+  const mappedIpv4 = mapped ? bytes.slice(12) : undefined;
+  if (mappedIpv4) return isBlockedResolvedAddress(mappedIpv4.join('.'));
+  const first = bytes[0];
+  const second = bytes[1];
+  const documentation = first === 0x20 && second === 0x01 && bytes[2] === 0x0d && bytes[3] === 0xb8;
+  return allZero || loopback || first === 0xff || first >= 0xfc && first <= 0xfd
+    || first === 0xfe && (second & 0xc0) === 0x80
+    || documentation || first === 0x01 && second === 0x00;
+}
+
+export function isLoopbackResolvedAddress(hostname: string): boolean {
+  const ipv4 = ipv4Bytes(strippedHostname(hostname));
+  if (ipv4) return ipv4[0] === 127;
+  const bytes = ipv6Bytes(hostname);
+  if (!bytes) return false;
+  if (bytes.slice(0, 10).every((byte) => byte === 0) && bytes[10] === 0xff && bytes[11] === 0xff) return isLoopbackResolvedAddress(bytes.slice(12).join('.'));
+  return bytes.slice(0, 15).every((byte) => byte === 0) && bytes[15] === 1;
+}
+
 function isLoopback(hostname: string): boolean {
   const host = strippedHostname(hostname);
   return host === 'localhost' || host === '::1' || /^127(?:\.\d{1,3}){3}$/u.test(host);
@@ -253,7 +323,7 @@ export function validateExternalUrl(value: unknown):
   if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && isLoopback(parsed.hostname))) {
     return { ok: false, reason: 'URL must use HTTPS, or HTTP only for loopback development' };
   }
-  if (parsed.protocol === 'https:' && isBlockedHostname(parsed.hostname)) {
+  if (parsed.protocol === 'https:' && (isBlockedHostname(parsed.hostname) || isLoopback(parsed.hostname) || isBlockedResolvedAddress(parsed.hostname))) {
     return { ok: false, reason: 'Private, link-local, multicast, and local host targets are blocked' };
   }
   if (parsed.protocol === 'http:' && !isLoopback(parsed.hostname)) {

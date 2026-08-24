@@ -8,6 +8,7 @@
  * no dependency on Electron and can run inside a plain Node.js process on a VM.
  */
 import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync, unlinkSync, statSync } from 'node:fs';
+import { lookup } from 'node:dns/promises';
 import { join, dirname } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -45,7 +46,7 @@ import {
   type LogoConversionResult,
   type LogoSourceInput,
 } from '../shared/logo.js';
-import { createLogoConversionHandlers, type LogoConversionRequest } from './logo-converter.js';
+import { createLogoConversionHandlers, validateLogoConversionResult, validateLogoWirePayload, type LogoConversionRequest } from './logo-converter.js';
 import { LogoStore, logoStoreHandlers } from './logo-store.js';
 import { createExternalSettingsHandler, type VaultReferenceReader } from './external-settings-client.js';
 import { createExternalSettingsStore } from './external-settings-store.js';
@@ -143,7 +144,7 @@ function wireLogoResult(result: LogoConversionResult): unknown {
 
 function logoResultFromPayload(payload: Readonly<Record<string, unknown>> | undefined): LogoCacheWriteRequest | undefined {
   const candidate = payload?.result;
-  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return undefined;
+  if (!validateLogoWirePayload(candidate).ok || !candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return undefined;
   const value = candidate as Record<string, unknown>;
   if (value.ok !== true || !Array.isArray(value.outputs) || !value.inspection || !value.crop || value.packageIdentity !== 'ding-pbx-console') return undefined;
   const outputs = [];
@@ -154,10 +155,19 @@ function logoResultFromPayload(payload: Readonly<Record<string, unknown>> | unde
     if (!bytes || !item.target || !item.receipt) return undefined;
     outputs.push({ target: item.target, bytes, receipt: item.receipt });
   }
+  const result = {
+    ok: true,
+    packageIdentity: 'ding-pbx-console',
+    inspection: value.inspection,
+    crop: value.crop,
+    outputs,
+  } as LogoConversionResult;
+  const checked = validateLogoConversionResult(result);
+  if (!checked.ok) return undefined;
   return {
     kind: 'write',
     selectedPresetId: typeof payload?.selectedPresetId === 'string' ? payload.selectedPresetId : undefined,
-    result: { ok: true, packageIdentity: 'ding-pbx-console', inspection: value.inspection, crop: value.crop, outputs } as LogoConversionResult,
+    result,
   };
 }
 
@@ -192,8 +202,12 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
   };
   const logoStore = new LogoStore({ rootPath: join(userDataPath, 'logo-cache') });
   const logoHandlers = createLogoConversionHandlers(undefined, logoStoreHandlers(logoStore));
+  const resolveExternalHost = async (hostname: string): Promise<readonly string[]> => {
+    const records = await lookup(hostname, { all: true, verbatim: true });
+    return records.map((record) => record.address);
+  };
   const externalSettingsStore = createExternalSettingsStore({
-    handler: createExternalSettingsHandler({ vault: options.externalSettingsVault }),
+    handler: createExternalSettingsHandler({ vault: options.externalSettingsVault, resolveHost: resolveExternalHost }),
   });
   const ollamaReady = ollamaPullQueue.initialize();
   const converterQueue = converterRegistry.then(async (registry) => {
@@ -667,20 +681,25 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         return { ok: true, requestId: request.requestId, data: { cleared: true } };
       }
       if (request.action === 'external-settings.state') {
-        return { ok: true, requestId: request.requestId, data: projectExternalSettingsState(externalSettingsStore.getState()) };
+        const ruleId = typeof request.payload?.ruleId === 'string' ? request.payload.ruleId : '';
+        if (!ruleId) return { ok: false, requestId: request.requestId, code: 'EXTERNAL_RULE_REQUIRED', message: 'A schedule rule id is required.' };
+        return { ok: true, requestId: request.requestId, data: { ruleId, ...projectExternalSettingsState(externalSettingsStore.getState()) } };
       }
       if (request.action === 'external-settings.cancel') {
         externalSettingsStore.cancel();
-        return { ok: true, requestId: request.requestId, data: projectExternalSettingsState(externalSettingsStore.getState()) };
+        const ruleId = typeof request.payload?.ruleId === 'string' ? request.payload.ruleId : '';
+        return { ok: true, requestId: request.requestId, data: { ...(ruleId ? { ruleId } : {}), ...projectExternalSettingsState(externalSettingsStore.getState()) } };
       }
       if (request.action === 'external-settings.refresh') {
+        const ruleId = typeof request.payload?.ruleId === 'string' ? request.payload.ruleId : '';
+        if (!ruleId || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u.test(ruleId)) return { ok: false, requestId: request.requestId, code: 'EXTERNAL_RULE_REQUIRED', message: 'A bounded schedule rule id is required.' };
         const sourceResult = validateExternalSource(request.payload?.source);
         if (!sourceResult.ok) return { ok: false, requestId: request.requestId, code: 'EXTERNAL_SOURCE_INVALID', message: sourceResult.reason };
         const assignmentsResult = validateAssignments(request.payload?.baseAssignments ?? []);
         if (!assignmentsResult.ok) return { ok: false, requestId: request.requestId, code: 'EXTERNAL_ASSIGNMENTS_INVALID', message: assignmentsResult.reason };
         const force = request.payload?.force === true;
         const state = await externalSettingsStore.refresh(sourceResult.source, assignmentsResult.assignments, { force });
-        return { ok: true, requestId: request.requestId, data: projectExternalSettingsState(state) };
+        return { ok: true, requestId: request.requestId, data: { ruleId, ...projectExternalSettingsState(state) } };
       }
       if (request.action.startsWith('ollama.')) {
         await ollamaReady;

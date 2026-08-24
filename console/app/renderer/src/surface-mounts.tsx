@@ -3,12 +3,13 @@ import { ConverterSurface, type ConverterClient } from './converter-surface';
 import { OllamaSuite, type OllamaSuiteClient } from './ollama-suite';
 import { DocsSurface } from './docs-surface';
 import { ChangelogSurface } from './changelog-surface';
+import { SettingsSurface } from './settings-surface';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
 import { CHANGELOG_MARKDOWN, CHANGELOG_REPOSITORY_URL } from './generated/changelog-bundle';
 import type { BackendResponse, ChatSession, OllamaRuntimeEvidence, OllamaSuiteSnapshot, PullQueueEvidence } from './ollama-suite-model';
 import type { ConverterBackendHandlers } from '../../../shared/converter';
 
-type SurfaceRoute = 'converter' | 'ollama' | 'docs' | 'changelog';
+type SurfaceRoute = 'converter' | 'ollama' | 'docs' | 'changelog' | 'settings';
 
 function unavailable<T>(surface: string, operation: string): Promise<T> {
   return Promise.reject(new Error(`${surface} ${operation} is not registered in the privileged bridge. No value was assumed and no operation was attempted.`));
@@ -147,7 +148,7 @@ function routeFromHash(): SurfaceRoute | undefined {
   const value = window.location.hash.slice(1);
   if (!value.startsWith('surface=')) return undefined;
   const route = value.slice('surface='.length);
-  return route === 'converter' || route === 'ollama' || route === 'docs' || route === 'changelog' ? route : undefined;
+  return route === 'converter' || route === 'ollama' || route === 'docs' || route === 'changelog' || route === 'settings' ? route : undefined;
 }
 
 export function SurfaceMounts() {
@@ -158,7 +159,7 @@ export function SurfaceMounts() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
-  const links = useMemo(() => (['converter', 'ollama', 'docs', 'changelog'] as const), []);
+  const links = useMemo(() => (['converter', 'ollama', 'docs', 'changelog', 'settings'] as const), []);
   return (
     <aside className="surface-mount-host" aria-label="Mounted feature surfaces">
       <nav aria-label="Mounted feature surfaces">
@@ -169,6 +170,7 @@ export function SurfaceMounts() {
       {route === 'ollama' ? <OllamaSuite client={ollamaClient} /> : null}
       {route === 'docs' ? <DocsSurface bundle={DOCS_BUNDLE} /> : null}
       {route === 'changelog' ? <ChangelogSurface markdown={CHANGELOG_MARKDOWN} repositoryUrl={CHANGELOG_REPOSITORY_URL} /> : null}
+      {route === 'settings' ? <SettingsSurface /> : null}
     </aside>
   );
 }

@@ -12,7 +12,7 @@ Each non-local source has a refresh interval from 1 to 1440 minutes. A store ski
 
 ## Configuration
 
-Home Assistant stores only a bounded credential-vault account reference. The token is read at request time, used in memory for that request, and never placed in settings, history, exports, logs, or renderer state. The handler factory receives the vault reader and fetch implementation as injected seams, so the application can bind them in the privileged process without making the shared contract perform I/O.
+Home Assistant stores only a bounded credential-vault account reference. The token is read at request time through the desktop `safeStorage`-backed reader, used in memory for that request, and never placed in settings, history, exports, logs, or renderer state. The handler factory receives the vault reader, DNS resolver, and fetch implementation as injected seams, so the application binds them in the privileged process without making the shared contract perform I/O.
 
 Remote assignments are held in memory as the last accepted reading. They are never written into the local settings base. When a source is inactive, the local base assignments remain effective. When a refresh fails, the store uses a still-valid last accepted active reading when one exists; otherwise it uses the local base assignments. The state projection exposes the status, assignment count, timestamps, fallback flag, and safe diagnostic only. It never exposes the endpoint, vault reference, token, response body, or remote payload.
 
@@ -26,7 +26,7 @@ The client is designed for the privileged boundary. It does not read arbitrary f
 
 ## Current status
 
-**Desktop application:** The shared contract, privileged handler factory, in-memory fallback store, control-plane actions, and renderer-safe runtime are implemented in `shared/external-settings.ts`, `control-plane/external-settings-client.ts`, `control-plane/external-settings-store.ts`, `control-plane/dispatch.ts`, and `renderer/src/external-settings-runtime.ts`. The desktop dispatcher does not register an OS-vault reader yet, so Home Assistant is honestly unavailable until that host adapter exists.
+**Desktop application:** The shared contract, privileged handler factory, in-memory fallback store, control-plane actions, DNS resolution policy, desktop OS-vault reader, renderer-safe runtime, and reachable settings route are implemented in `shared/external-settings.ts`, `control-plane/external-settings-client.ts`, `control-plane/external-settings-store.ts`, `control-plane/dispatch.ts`, `app/electron/main.ts`, and `renderer/src/external-settings-runtime.ts`. Home Assistant is unavailable only when the encrypted reference is missing or the vault cannot decrypt it.
 
 **Documentation website:** The site does not execute privileged source reads. This article records the contract and the browser boundary without claiming that a static page can access an operating-system credential vault.
 

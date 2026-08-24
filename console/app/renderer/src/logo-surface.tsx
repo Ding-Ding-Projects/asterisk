@@ -14,6 +14,7 @@ export interface LogoSurfaceProps {
   readonly onChooseFile: (file: File) => void;
   readonly onReset: () => void;
   readonly disabled?: boolean;
+  readonly conversionUnavailable?: boolean;
 }
 
 function statusCopy(state: CustomLogoState): string {
@@ -123,10 +124,11 @@ export function LogoSurface(props: LogoSurfaceProps) {
           <h3>Custom local image</h3>
           <p id={statusId} className="logo-status" role="status" aria-live="polite">{props.state.customLogoLabel || statusCopy(props.state.customLogoState)}</p>
         </div>
-        <label className="logo-file-picker">
+          <label className="logo-file-picker" aria-disabled={props.conversionUnavailable || props.disabled}>
           <span>Choose local image</span>
-          <input type="file" accept={LOGO_PICKER_REGISTRATION.accept} aria-label={LOGO_PICKER_REGISTRATION.accessibleName} aria-describedby={statusId} onChange={onFile} disabled={props.disabled} />
+          <input type="file" accept={LOGO_PICKER_REGISTRATION.accept} aria-label={LOGO_PICKER_REGISTRATION.accessibleName} aria-describedby={statusId} onChange={onFile} disabled={props.disabled || props.conversionUnavailable} />
         </label>
+        {props.conversionUnavailable && <p className="logo-warning" role="note">Local conversion is unavailable until a bundled isolated image decoder is registered. The shipped mark remains active.</p>}
       </div>
 
       <fieldset className="logo-editor" disabled={props.disabled}>
