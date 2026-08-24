@@ -443,10 +443,16 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const path = typeof request.payload?.path === 'string' ? request.payload.path : '';
         return { ok: true, requestId: request.requestId, data: await migration.verifyRetainedTree(path) };
       }
+      if (request.action === 'backup.prune.preview') {
+        const keep = Number(request.payload?.keep ?? 30);
+        const selectedPaths = Array.isArray(request.payload?.selectedPaths) ? request.payload.selectedPaths.filter((path): path is string => typeof path === 'string') : [];
+        return { ok: true, requestId: request.requestId, data: await migration.previewPrune(keep, selectedPaths) };
+      }
       if (request.action === 'backup.prune') {
         const keep = Number(request.payload?.keep ?? 30);
         const selectedPaths = Array.isArray(request.payload?.selectedPaths) ? request.payload.selectedPaths.filter((path): path is string => typeof path === 'string') : [];
-        return { ok: true, requestId: request.requestId, data: await migration.pruneBackups(keep, selectedPaths) };
+        const previewToken = typeof request.payload?.previewToken === 'string' ? request.payload.previewToken : undefined;
+        return { ok: true, requestId: request.requestId, data: await migration.pruneBackups(keep, selectedPaths, previewToken) };
       }
       if (request.action === 'git.history.status') {
         const remote = typeof request.payload?.remote === 'string' ? request.payload.remote : undefined;

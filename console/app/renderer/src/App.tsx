@@ -274,6 +274,8 @@ export class App extends Base {
   private migrationSearchText = '';
   private migrationRegexEnabled = false;
   private migrationRegexPattern = '';
+  private migrationRegexFlags = ['i'];
+  private migrationRegexSample = '';
   private migrationRetention = 30;
   private migrationRecoveryError = '';
   private selectedBackupPaths = new Set<string>();
@@ -430,10 +432,15 @@ export class App extends Base {
   private migrationSearchInput = (event: unknown): void => { this.migrationSearchText = String((event as { target?: { value?: unknown } }).target?.value ?? '').slice(0, 256); this.forceUpdate(); };
   private migrationRegex = (): void => { this.migrationRegexEnabled = !this.migrationRegexEnabled; this.forceUpdate(); };
   private migrationRegexInput = (event: unknown): void => { this.migrationRegexPattern = String((event as { target?: { value?: unknown } }).target?.value ?? '').slice(0, 256); this.forceUpdate(); };
+  private migrationRegexAddToken = (token: string): void => { this.migrationRegexPattern = `${this.migrationRegexPattern}${token}`.slice(0, 256); this.forceUpdate(); };
+  private migrationRegexToggleFlag = (flag: string): void => { this.migrationRegexFlags = this.migrationRegexFlags.includes(flag) ? this.migrationRegexFlags.filter((value) => value !== flag) : [...this.migrationRegexFlags, flag]; this.forceUpdate(); };
+  private migrationRegexClear = (): void => { this.migrationRegexPattern = ''; this.migrationRegexSample = ''; this.migrationRegexEnabled = false; this.forceUpdate(); };
+  private migrationRegexApply = (): void => { this.migrationRegexEnabled = true; this.forceUpdate(); };
+  private migrationRegexSampleInput = (event: unknown): void => { this.migrationRegexSample = String((event as { target?: { value?: unknown } }).target?.value ?? '').slice(0, 4096); this.forceUpdate(); };
   private migrationMatches = (value: string): boolean => {
     const query = this.migrationSearchText.trim();
     if (this.migrationRegexEnabled && this.migrationRegexPattern.trim()) {
-      try { return new RegExp(this.migrationRegexPattern, 'iu').test(value); } catch { return false; }
+      try { return new RegExp(this.migrationRegexPattern, this.migrationRegexFlags.join('')).test(value); } catch { return false; }
     }
     return query.length === 0 || value.toLocaleLowerCase().includes(query.toLocaleLowerCase());
   };
@@ -443,8 +450,8 @@ export class App extends Base {
   private invertMigrationSelection = (): void => { const backups = this.historyData.backups.filter((entry) => this.migrationSelectionScope === 'all' || this.migrationMatches(`${entry.path} ${entry.createdAt} ${entry.status} ${entry.detail}`)); backups.forEach((entry) => { if (this.selectedBackupPaths.has(entry.path)) this.selectedBackupPaths.delete(entry.path); else this.selectedBackupPaths.add(entry.path); }); const receipts = this.historyData.receipts.filter((entry) => this.migrationSelectionScope === 'all' || this.migrationMatches(`${entry.id} ${entry.action} ${entry.remote} ${entry.branch} ${entry.status} ${entry.detail}`)); receipts.forEach((entry) => { if (this.selectedReceiptIds.has(entry.id)) this.selectedReceiptIds.delete(entry.id); else this.selectedReceiptIds.add(entry.id); }); this.forceUpdate(); };
   private bulkReceiptReview = (): void => { const selected = this.historyData.receipts.filter((receipt) => this.selectedReceiptIds.has(receipt.id)); const outcomes = selected.reduce<Record<string, number>>((counts, receipt) => { counts[receipt.status] = (counts[receipt.status] ?? 0) + 1; return counts; }, {}); this.fire('Receipt outcomes', selected.length ? Object.entries(outcomes).map(([status, count]) => `${status}: ${count}`).join(', ') : 'No receipts are selected.'); };
   private bulkExportMigration = async (): Promise<void> => { this.fire('All-owned export queued', `The migration format exports all eligible non-secret state. Selection remains a review scope, not a claim that only selected records will be exported.`); await this.migrationExport(); };
-  private pruneBackups = (): void => { const frozen = [...this.selectedBackupPaths]; const preview = this.historyData.backups.filter((entry) => frozen.includes(entry.path)).map((entry) => `${entry.path}: ${entry.status} ${entry.detail}`).join(' | ') || 'No backup records selected.'; this.areYouSure('Prune verified backups', `${frozen.length} backup records are frozen for this preview. ${preview} Only verified backup directories older than the newest ${this.migrationRetention} will be removed.`, 3, () => { void this.pruneBackupsConfirmed(frozen); }); };
-  private pruneBackupsConfirmed = async (frozenPaths: string[]): Promise<void> => { const response = await this.request('backup.prune', { payload: { keep: this.migrationRetention, selectedPaths: frozenPaths } }); const data = response?.data as { removed?: number; receipts?: Array<{ path: string; status: string; detail: string; removed?: boolean }> } | undefined; const paths = (data?.receipts ?? []).filter((entry) => entry.removed === true).map((entry) => entry.path).join(', ') || 'none'; this.fire(response?.ok ? 'Backup pruning complete' : 'Backup pruning refused', response?.message ?? `${data?.removed ?? 0} paths removed: ${paths}`); this.selectedBackupPaths.clear(); await this.loadMigrationState(); };
+  private pruneBackups = async (): Promise<void> => { const frozen = [...this.selectedBackupPaths]; const response = await this.request('backup.prune.preview', { payload: { keep: this.migrationRetention, selectedPaths: frozen } }); const preview = response?.data as { token?: string; records?: Array<{ path: string; eligible: boolean; reason: string }> } | undefined; if (!response?.ok || !preview?.token) { this.fire('Backup prune preview refused', response?.message ?? 'The current backup index could not be frozen.'); return; } const eligible = (preview.records ?? []).filter((entry) => entry.eligible); const retained = (preview.records ?? []).filter((entry) => !entry.eligible); const details = [...eligible.map((entry) => `REMOVE ${entry.path}`), ...retained.map((entry) => `KEEP ${entry.path}: ${entry.reason}`)].join(' | ') || 'No backup records selected.'; this.areYouSure('Prune verified backups', `${eligible.length} paths are eligible and ${retained.length} paths are retained. ${details}`, 3, () => { void this.pruneBackupsConfirmed(frozen, preview.token as string); }); };
+  private pruneBackupsConfirmed = async (frozenPaths: string[], previewToken: string): Promise<void> => { const response = await this.request('backup.prune', { payload: { keep: this.migrationRetention, selectedPaths: frozenPaths, previewToken } }); const data = response?.data as { removed?: number; receipts?: Array<{ path: string; status: string; detail: string; removed?: boolean }> } | undefined; const paths = (data?.receipts ?? []).filter((entry) => entry.removed === true).map((entry) => entry.path).join(', ') || 'none'; this.fire(response?.ok ? 'Backup pruning complete' : 'Backup pruning refused', response?.message ?? `${data?.removed ?? 0} paths removed: ${paths}`); this.selectedBackupPaths.clear(); await this.loadMigrationState(); };
   private selectMigrationRemote = (name: string): void => { const remote = this.historyData.remotes.find((entry) => entry.name === name); if (!remote) return; this.migrationRemoteName = name; this.migrationRemoteUrl = remote.url; this.migrationPushUrl = remote.pushUrl; this.forceUpdate(); void this.loadMigrationState(); };
   private selectMigrationBranch = (name: string): void => { this.migrationBranchName = name; this.forceUpdate(); void this.loadMigrationState(); };
 
@@ -2106,6 +2113,13 @@ It is shown once. The phone needs it to register.`);
           migrationSearchInput: this.migrationSearchInput,
           migrationRegexPattern: this.migrationRegexPattern,
           migrationRegexInput: this.migrationRegexInput,
+          migrationRegexFlags: this.migrationRegexFlags.map((flag) => ({ label: flag, on: this.migrationRegexFlags.includes(flag), toggle: () => this.migrationRegexToggleFlag(flag) })),
+          migrationRegexTokens: ['^', '$', '\\d+', '[A-Za-z]+', '.*', '(foo|bar)'].map((token) => ({ label: token, add: () => this.migrationRegexAddToken(token) })),
+          migrationRegexSample: this.migrationRegexSample,
+          migrationRegexSampleInput: this.migrationRegexSampleInput,
+          migrationRegexClear: this.migrationRegexClear,
+          migrationRegexApply: this.migrationRegexApply,
+          migrationRegexStatus: (() => { if (!this.migrationRegexPattern) return 'empty pattern'; try { const re = new RegExp(this.migrationRegexPattern, this.migrationRegexFlags.join('')); const matches = this.migrationRegexSample.match(re)?.length ?? 0; const captures = this.migrationRegexSample.match(re)?.slice(1).filter(Boolean).length ?? 0; return `valid, ${matches} sample match${matches === 1 ? '' : 'es'}, ${captures} capture${captures === 1 ? '' : 's'}`; } catch (error) { return `invalid pattern: ${error instanceof Error ? error.message : String(error)}`; } })(),
           migrationRegexEnabled: this.migrationRegexEnabled,
           selectAllMigration: this.selectAllMigration,
           invertMigrationSelection: this.invertMigrationSelection,

@@ -30,7 +30,7 @@ export type ControlPlaneAction =
   /* The desktop's complete local migration and Git history surface. */
   | 'migration.export' | 'migration.export.start' | 'migration.import.start' | 'migration.operation.status' | 'migration.validate' | 'migration.import'
   | 'migration.cancel' | 'migration.recovery.status' | 'migration.recovery.retry'
-  | 'backup.create' | 'backup.start' | 'backup.list' | 'backup.retained.verify'
+  | 'backup.create' | 'backup.start' | 'backup.list' | 'backup.retained.verify' | 'backup.prune.preview'
   | 'backup.prune'
   | 'git.history.status' | 'git.remote.set' | 'git.remote.set.start' | 'git.remote.remove' | 'git.remote.remove.start'
   | 'git.remote.fetch' | 'git.remote.fetch.start' | 'git.remote.push' | 'git.remote.push.start';

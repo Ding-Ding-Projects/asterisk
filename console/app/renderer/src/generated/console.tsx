@@ -573,7 +573,25 @@ function Template(v: any) {
                       "data_object"
                     )
                   ),
-                  (v.migrationRegexEnabled ? h("input", { value: v.migrationRegexPattern, onInput: fn(v.migrationRegexInput), "aria-label": `Migration regex pattern`, placeholder: `pattern`, style: sty(`width:180px; min-height:44px; background:#141A15; border:1px solid #82D9A5; border-radius:10px; padding:8px 10px; color:#DFE4DC; font-family:'Roboto Mono',monospace;`) }) : null),
+                  (v.migrationRegexEnabled ? F(
+                    h("input", { value: v.migrationRegexPattern, onInput: fn(v.migrationRegexInput), "aria-label": `Migration regex pattern`, placeholder: `pattern`, style: sty(`width:180px; min-height:44px; background:#141A15; border:1px solid #82D9A5; border-radius:10px; padding:8px 10px; color:#DFE4DC; font-family:'Roboto Mono',monospace;`) }),
+                    A(v.migrationRegexTokens).map(($t, $t$i) => R($t$i, h("button", { onClick: fn($t.add), "aria-label": `Add regex token ${S($t.label)}`, style: sty(`min-height:36px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:6px 8px; color:#C4CBC2; font-family:'Roboto Mono',monospace; cursor:pointer;`) },
+                        S($t.label)
+                      ))),
+                    A(v.migrationRegexFlags).map(($f, $f$i) => R($f$i, h("button", { onClick: fn($f.toggle), "aria-label": `Toggle regex flag ${S($f.label)}`, style: sty(`min-height:36px; background:${S($f.on ? '#005230' : '#1B211C')}; border:1px solid #414942; border-radius:8px; padding:6px 8px; color:#C4CBC2; font-family:'Roboto Mono',monospace; cursor:pointer;`) },
+                        S($f.label)
+                      ))),
+                    h("input", { value: v.migrationRegexSample, onInput: fn(v.migrationRegexSampleInput), "aria-label": `Migration regex sample text`, placeholder: `sample text`, style: sty(`width:180px; min-height:44px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:8px 10px; color:#DFE4DC; font-family:'Roboto Mono',monospace;`) }),
+                    h("span", { style: sty(`font-size:11px; color:#8FA394;`) },
+                      S(v.migrationRegexStatus)
+                    ),
+                    h("button", { onClick: fn(v.migrationRegexApply), style: sty(`min-height:36px; background:#005230; border:0; border-radius:8px; padding:6px 10px; color:#9FF7C4; cursor:pointer;`) },
+                      "Apply filter"
+                    ),
+                    h("button", { onClick: fn(v.migrationRegexClear), style: sty(`min-height:36px; background:transparent; border:1px solid #414942; border-radius:8px; padding:6px 10px; color:#C4CBC2; cursor:pointer;`) },
+                      "Clear"
+                    )
+                  ) : null),
                   h("span", { style: sty(`font-size:11px; color:#8FA394;`) },
                     S(v.migrationSearchSummary)
                   ),

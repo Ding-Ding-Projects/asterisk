@@ -182,6 +182,25 @@ export interface GitReceipt {
   detail: string;
 }
 
+interface PrunePreviewRecord {
+  path: string;
+  kind: string;
+  manifestSha256: string;
+  status: string;
+  verified: boolean;
+  eligible: boolean;
+  reason: string;
+}
+
+interface PrunePreview {
+  token: string;
+  keep: number;
+  selectedPaths: ReadonlyArray<string>;
+  indexRevision: string;
+  expiresAt: number;
+  records: ReadonlyArray<PrunePreviewRecord>;
+}
+
 export interface MigrationBackupOptions {
   userDataPath: string;
   historyPath?: string;
@@ -477,6 +496,7 @@ export class MigrationBackupService {
   #recoveryError?: string;
   readonly #completed = new Map<string, { done: boolean; result?: unknown; error?: string }>();
   readonly #handshakeControllers = new Map<string, AbortController>();
+  readonly #prunePreviews = new Map<string, PrunePreview>();
   constructor(options: MigrationBackupOptions) {
     this.#root = resolve(options.userDataPath); this.#history = resolve(options.historyPath ?? join(this.#root, "history")); this.#executor = options.executor; this.#now = options.now ?? (() => new Date());
     this.recoverInterruptedSwap();
@@ -700,15 +720,15 @@ export class MigrationBackupService {
     return { ...result, operation: { ...result.operation, kind: "backup" } };
   }
 
-  async listBackups(): Promise<ReadonlyArray<{ path: string; createdAt: string; kind: "verified-backup" | "retained-import-tree" | "unknown"; bytes: number; verified: boolean; status: "verified" | "unverified" | "corrupt" | "indexed"; detail: string }>> {
+  async listBackups(): Promise<ReadonlyArray<{ path: string; createdAt: string; kind: "verified-backup" | "retained-import-tree" | "unknown"; manifestSha256: string; bytes: number; verified: boolean; status: "verified" | "unverified" | "corrupt" | "indexed"; detail: string }>> {
     try {
       const value = readJsonStrict(backupIndexPath(this.#root)); if (!Array.isArray(value)) return [];
-      const output: Array<{ path: string; createdAt: string; kind: "verified-backup" | "retained-import-tree" | "unknown"; bytes: number; verified: boolean; status: "verified" | "unverified" | "corrupt" | "indexed"; detail: string }> = [];
+      const output: Array<{ path: string; createdAt: string; kind: "verified-backup" | "retained-import-tree" | "unknown"; manifestSha256: string; bytes: number; verified: boolean; status: "verified" | "unverified" | "corrupt" | "indexed"; detail: string }> = [];
       for (const entry of value as Array<Record<string, unknown>>) {
-        const path = String(entry.path ?? ""); const createdAt = String(entry.createdAt ?? ""); const kind = entry.kind === "retained-import-tree" ? "retained-import-tree" : entry.kind === "verified-backup" || entry.kind === undefined ? "verified-backup" : "unknown"; if (!isAbsolute(path)) { output.push({ path, createdAt, kind, bytes: 0, verified: false, status: "corrupt", detail: "Indexed backup path is not absolute." }); continue; }
-        if (kind === "retained-import-tree") { output.push({ path, createdAt, kind, bytes: 0, verified: false, status: "indexed", detail: String(entry.detail ?? "Retained import tree. It is never pruned automatically.") }); continue; }
-        try { const manifest = await this.verifyBackupDirectory(path); output.push({ path, createdAt, kind, bytes: manifest.files.reduce((sum, item) => sum + item.bytes, 0), verified: true, status: "verified", detail: "Manifest, file hashes, and Git bundle verified." }); }
-        catch (error) { const exists = existsSync(join(path, "manifest.json")); output.push({ path, createdAt, kind, bytes: 0, verified: false, status: exists ? "unverified" : "indexed", detail: sanitizeDiagnostic(error instanceof Error ? error.message : String(error)) }); }
+        const path = String(entry.path ?? ""); const createdAt = String(entry.createdAt ?? ""); const kind = entry.kind === "retained-import-tree" ? "retained-import-tree" : entry.kind === "verified-backup" || entry.kind === undefined ? "verified-backup" : "unknown"; if (!isAbsolute(path)) { output.push({ path, createdAt, kind, manifestSha256: "", bytes: 0, verified: false, status: "corrupt", detail: "Indexed backup path is not absolute." }); continue; }
+        if (kind === "retained-import-tree") { output.push({ path, createdAt, kind, manifestSha256: "", bytes: 0, verified: false, status: "indexed", detail: String(entry.detail ?? "Retained import tree. It is never pruned automatically.") }); continue; }
+        try { const manifest = await this.verifyBackupDirectory(path); output.push({ path, createdAt, kind, manifestSha256: sha256File(join(path, "manifest.json")), bytes: manifest.files.reduce((sum, item) => sum + item.bytes, 0), verified: true, status: "verified", detail: "Manifest, file hashes, and Git bundle verified." }); }
+        catch (error) { const exists = existsSync(join(path, "manifest.json")); output.push({ path, createdAt, kind, manifestSha256: exists ? sha256File(join(path, "manifest.json")) : "", bytes: 0, verified: false, status: exists ? "unverified" : "indexed", detail: sanitizeDiagnostic(error instanceof Error ? error.message : String(error)) }); }
       }
       return output;
     } catch { return []; }
@@ -730,15 +750,25 @@ export class MigrationBackupService {
     catch (error) { return { path: candidate, kind: "retained-import-tree", status: "corrupt", detail: sanitizeDiagnostic(error instanceof Error ? error.message : String(error)) }; }
   }
 
-  async pruneBackups(keep: number, selectedPaths: ReadonlyArray<string> = []): Promise<{ removed: number; retained: number; receipts: ReadonlyArray<{ path: string; status: string; detail: string; removed: boolean }> }> {
+  async previewPrune(keep: number, selectedPaths: ReadonlyArray<string> = []): Promise<PrunePreview> {
     this.assertReady();
     if (!Number.isSafeInteger(keep) || keep < 1 || keep > MIGRATION_LIMITS.maxRetention) throw new Error("Backup retention must be between 1 and 365.");
+    const entries = (await this.listBackups()).sort((a, b) => b.createdAt.localeCompare(a.createdAt)); const selected = new Set(selectedPaths.map((path) => resolve(path)));
+    const records = entries.map((entry, index) => { const selectedMatch = selected.size === 0 || selected.has(resolve(entry.path)); const eligible = entry.kind === "verified-backup" && entry.status === "verified" && index >= keep && selectedMatch; const reason = eligible ? "eligible: verified, beyond retention, and selected" : entry.kind === "retained-import-tree" ? "retained-import-tree: inventory-only and never pruned" : entry.status !== "verified" ? `not-eligible: ${entry.status}` : index < keep ? "not-eligible: within retention" : selectedMatch ? "not-eligible: policy" : "not-eligible: outside selected scope"; return { path: entry.path, kind: entry.kind, manifestSha256: entry.manifestSha256, status: entry.status, verified: entry.verified, eligible, reason }; });
+    const indexRevision = createHash("sha256").update(JSON.stringify(records)).digest("hex"); const token = randomUUID(); const preview = { token, keep, selectedPaths: [...selected], indexRevision, expiresAt: Date.now() + 5 * 60 * 1000, records }; this.#prunePreviews.set(token, preview); return preview;
+  }
+
+  async pruneBackups(keep: number, selectedPaths: ReadonlyArray<string> = [], previewToken?: string): Promise<{ removed: number; retained: number; receipts: ReadonlyArray<{ path: string; status: string; detail: string; removed: boolean }> }> {
+    this.assertReady();
+    if (!Number.isSafeInteger(keep) || keep < 1 || keep > MIGRATION_LIMITS.maxRetention) throw new Error("Backup retention must be between 1 and 365.");
+    const preview = previewToken ? this.#prunePreviews.get(previewToken) : undefined; if (previewToken && (!preview || preview.expiresAt < Date.now() || preview.keep !== keep || JSON.stringify([...preview.selectedPaths].map(resolve).sort()) !== JSON.stringify([...selectedPaths].map(resolve).sort()))) throw new Error("The prune preview is missing, expired, or stale. Preview the exact current backup set again.");
     const entries = (await this.listBackups()).sort((a, b) => b.createdAt.localeCompare(a.createdAt)); const receipts: Array<{ path: string; status: string; detail: string; removed: boolean }> = []; let removed = 0;
+    if (preview) { const current = await this.previewPrune(keep, selectedPaths); if (current.indexRevision !== preview.indexRevision) throw new Error("The backup index changed after preview. No paths were removed."); }
     for (const entry of entries) { try { await this.verifyBackupDirectory(entry.path); receipts.push({ path: entry.path, status: "verified", detail: "Manifest, hashes, and Git bundle verified.", removed: false }); } catch (error) { receipts.push({ path: entry.path, status: "unverified", detail: sanitizeDiagnostic(error instanceof Error ? error.message : String(error)), removed: false }); } }
-    const selected = new Set(selectedPaths.map((path) => resolve(path))); const removable = receipts.filter((receipt, index) => index >= keep && receipt.status === "verified" && (selected.size === 0 || selected.has(resolve(receipt.path))));
+    const selected = new Set(selectedPaths.map((path) => resolve(path))); const removable = preview ? receipts.filter((receipt) => preview.records.some((record) => record.path === receipt.path && record.eligible)) : receipts.filter((receipt, index) => index >= keep && receipt.status === "verified" && (selected.size === 0 || selected.has(resolve(receipt.path))));
     for (const receipt of removable) { assertNoLinksAlong(receipt.path); rmSync(receipt.path, { recursive: true, force: true }); receipt.removed = true; removed += 1; }
     const retained = entries.filter((entry) => !removable.some((candidate) => candidate.path === entry.path)); atomicWriteFileSync(backupIndexPath(this.#root), `${JSON.stringify(retained.map((entry) => ({ path: entry.path, createdAt: entry.createdAt, kind: entry.kind, detail: entry.detail })), null, 2)}\n`);
-    return { removed, retained: retained.length, receipts };
+    if (previewToken) this.#prunePreviews.delete(previewToken); return { removed, retained: retained.length, receipts };
   }
 
   async validateImport(source: string): Promise<MigrationManifest> {
