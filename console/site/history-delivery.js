@@ -31,19 +31,21 @@
   }
 
   function defaultState() {
-    return { schemaVersion: STATE_SCHEMA_VERSION, history: [], tabs: TAB_ROUTES.map(([idValue], index) => ({ id: idValue, pinned: index < 2 })), forge: { account: 'browser', owner: '', repository: '', route: 'copy', source: 'current-site', destination: 'new-repository' }, editor: { lastExport: '' }, transfer: { status: 'idle', name: '', startedAt: '', completedAt: '', totalBytes: 0, bytesWritten: 0, interruptionRecorded: false }, update: { status: 'ready', checkedAt: '' } };
+    return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: 'none', sourceVersion: STATE_SCHEMA_VERSION }, history: [], tabs: TAB_ROUTES.map(([idValue], index) => ({ id: idValue, pinned: index < 2 })), forge: { account: 'browser', owner: '', repository: '', route: 'copy', source: 'current-site', destination: 'new-repository' }, editor: { lastExport: '' }, transfer: { status: 'idle', name: '', startedAt: '', completedAt: '', totalBytes: 0, bytesWritten: 0, interruptionRecorded: false }, update: { status: 'ready', checkedAt: '' } };
   }
   function readState() {
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
       const defaults = defaultState();
+      const persistedVersion = Number(parsed.schemaVersion ?? 1);
+      if (!Number.isInteger(persistedVersion) || persistedVersion > STATE_SCHEMA_VERSION) return { ...defaults, migration: { status: 'future-version-refused', sourceVersion: persistedVersion } };
       const history = Array.isArray(parsed.history) ? parsed.history.filter(event => event && typeof event === 'object' && typeof event.id === 'string' && typeof event.timestamp === 'string' && typeof event.action === 'string' && typeof event.summary === 'string').slice(-MAX_HISTORY).map(event => ({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: text(event.action).slice(0, 80), summary: scrubSummary(event.summary), details: redactDetails(event.details || {}) })) : [];
       const allowedTabs = new Set(TAB_ROUTES.map(([idValue]) => idValue));
       const tabs = Array.isArray(parsed.tabs) ? parsed.tabs.filter(tab => tab && allowedTabs.has(tab.id)).map(tab => ({ id: tab.id, pinned: Boolean(tab.pinned) })) : defaults.tabs;
-      const forge = parsed.forge && typeof parsed.forge === 'object' ? { account: ['browser', 'manual'].includes(parsed.forge.account) ? parsed.forge.account : 'browser', owner: text(parsed.forge.owner).slice(0, 80), repository: text(parsed.forge.repository).slice(0, 100), route: ['copy', 'fork'].includes(parsed.forge.route) ? parsed.forge.route : 'copy', source: ['current-site', 'local-export', 'selected-file'].includes(parsed.forge.source) ? parsed.forge.source : 'current-site', destination: ['new-repository', 'existing-repository'].includes(parsed.forge.destination) ? parsed.forge.destination : 'new-repository' } : defaults.forge;
+      const forge = parsed.forge && typeof parsed.forge === 'object' ? { account: ['browser', 'manual'].includes(parsed.forge.account) ? parsed.forge.account : 'browser', owner: scrubSummary(parsed.forge.owner).slice(0, 80), repository: scrubSummary(parsed.forge.repository).slice(0, 100), route: ['copy', 'fork'].includes(parsed.forge.route) ? parsed.forge.route : 'copy', source: ['current-site', 'local-export', 'selected-file'].includes(parsed.forge.source) ? parsed.forge.source : 'current-site', destination: ['new-repository', 'existing-repository'].includes(parsed.forge.destination) ? parsed.forge.destination : 'new-repository' } : defaults.forge;
       const transferStatus = ['idle', 'started', 'complete', 'cancelled', 'unavailable', 'interrupted'].includes(parsed.transfer?.status) ? parsed.transfer.status : 'idle';
       const updateStatus = ['ready', 'unavailable', 'available', 'downloading', 'failed'].includes(parsed.update?.status) ? parsed.update.status : 'ready';
-      return { schemaVersion: STATE_SCHEMA_VERSION, history, tabs: tabs.length ? tabs : defaults.tabs, forge, editor: { lastExport: text(parsed.editor?.lastExport).slice(0, 120) }, transfer: { status: transferStatus === 'started' ? 'interrupted' : transferStatus, name: text(parsed.transfer?.name).slice(0, 160), startedAt: text(parsed.transfer?.startedAt).slice(0, 40), completedAt: text(parsed.transfer?.completedAt).slice(0, 40), totalBytes: Number.isFinite(parsed.transfer?.totalBytes) ? Math.max(0, parsed.transfer.totalBytes) : 0, bytesWritten: Number.isFinite(parsed.transfer?.bytesWritten) ? Math.max(0, parsed.transfer.bytesWritten) : 0, interruptionRecorded: transferStatus === 'started' ? false : parsed.transfer?.interruptionRecorded === true }, update: { status: updateStatus, checkedAt: text(parsed.update?.checkedAt).slice(0, 40) } };
+      return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: persistedVersion < STATE_SCHEMA_VERSION ? 'migrated' : 'none', sourceVersion: persistedVersion }, history, tabs: tabs.length ? tabs : defaults.tabs, forge, editor: { lastExport: scrubSummary(parsed.editor?.lastExport).slice(0, 120) }, transfer: { status: transferStatus === 'started' ? 'interrupted' : transferStatus, name: scrubSummary(parsed.transfer?.name).slice(0, 160), startedAt: text(parsed.transfer?.startedAt).slice(0, 40), completedAt: text(parsed.transfer?.completedAt).slice(0, 40), totalBytes: Number.isFinite(parsed.transfer?.totalBytes) ? Math.max(0, parsed.transfer.totalBytes) : 0, bytesWritten: Number.isFinite(parsed.transfer?.bytesWritten) ? Math.max(0, parsed.transfer.bytesWritten) : 0, interruptionRecorded: transferStatus === 'started' ? false : parsed.transfer?.interruptionRecorded === true }, update: { status: updateStatus, checkedAt: text(parsed.update?.checkedAt).slice(0, 40) } };
     } catch {
       return defaultState();
     }
@@ -64,13 +66,13 @@
   }
 
   function scrubSummary(value) {
-    return text(value).replace(/(?:bearer|token|password|passwd|secret|api[-_]?key)\s*[:=]\s*\S+/gi, '[redacted]').replace(/\b[0-9a-f]{32,}\b/gi, '[redacted]').slice(0, 240);
+    return text(value).replace(/(?:bearer|token|password|passwd|secret|api[-_]?key)\s*[:=]\s*\S+/gi, '[redacted]').replace(/https?:\/\/\S+/gi, '[url omitted]').replace(/(?:[A-Za-z]:\\|\\\\|\/(?:Users|home|private|tmp)\/)[^\s]+/gi, '[path omitted]').replace(/\b[0-9a-f]{32,}\b/gi, '[redacted]').slice(0, 240);
   }
 
   const REDACTED_DETAIL_KEYS = new Set(['source', 'route', 'action', 'bytes', 'progress', 'owner', 'repository', 'protocol', 'restore', 'completion', 'installation', 'content', 'privateVocabulary', 'credentials', 'mode', 'status', 'name', 'tag', 'commit', 'provider', 'account', 'destination', 'eventCount', 'sourceEvent']);
   function redactDetails(value, depth = 0) {
     if (depth > 3 || value === null || value === undefined) return undefined;
-    if (typeof value === 'string') return text(value).slice(0, 240);
+    if (typeof value === 'string') return scrubSummary(value).slice(0, 240);
     if (typeof value === 'number' && Number.isFinite(value)) return value;
     if (typeof value === 'boolean') return value;
     if (Array.isArray(value)) return value.slice(0, 20).map(item => redactDetails(item, depth + 1)).filter(item => item !== undefined);
@@ -120,14 +122,15 @@
   }
 
   function validDateRange(query) {
-    const valid = (!query.from || /^\d{4}-\d{2}-\d{2}$/.test(query.from)) && (!query.to || /^\d{4}-\d{2}-\d{2}$/.test(query.to));
+    const validDate = value => { if (!value) return true; if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false; const [year, month, day] = value.split('-').map(Number); const date = new Date(Date.UTC(year, month - 1, day)); return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day; };
+    const valid = validDate(query.from) && validDate(query.to);
     return valid && (!query.from || !query.to || query.from <= query.to);
   }
 
   function validReleaseManifest(manifest) {
     if (!manifest || manifest.schemaVersion !== 1 || !['unavailable', 'available', 'downloading', 'ready', 'failed'].includes(manifest.state) || !['stable', 'beta', 'nightly'].includes(manifest.channel) || !Array.isArray(manifest.assets)) return false;
     if (manifest.state === 'unavailable') return manifest.assets.length === 0;
-    return /^[0-9a-f]{40}$/.test(manifest.commit || '') && typeof manifest.version === 'string' && typeof manifest.tag === 'string' && manifest.assets.every(asset => asset && typeof asset.name === 'string' && /^https:\/\//.test(asset.url || '') && /^[0-9a-f]{64}$/.test(asset.sha256 || '') && Number.isInteger(asset.bytes) && asset.bytes > 0);
+    return manifest.assets.length > 0 && /^[0-9a-f]{40}$/.test(manifest.commit || '') && typeof manifest.version === 'string' && typeof manifest.tag === 'string' && manifest.assets.every(asset => asset && typeof asset.name === 'string' && /^https:\/\//.test(asset.url || '') && /^[0-9a-f]{64}$/.test(asset.sha256 || '') && Number.isInteger(asset.bytes) && asset.bytes > 0);
   }
 
   function filterHistory() {
@@ -150,11 +153,11 @@
 
   function applyDatePreset(query, preset) {
     const today = new Date();
-    const iso = date => date.toISOString().slice(0, 10);
+    const iso = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     query.to = preset === 'all' ? '' : iso(today);
     if (preset === 'all') query.from = '';
     else if (preset === '7d' || preset === '30d') { const from = new Date(today); from.setDate(from.getDate() - Number(preset.slice(0, -1)) + 1); query.from = iso(from); }
-    else if (preset === 'year') query.from = `${today.getUTCFullYear()}-01-01`;
+    else if (preset === 'year') query.from = `${today.getFullYear()}-01-01`;
   }
 
   function bindDatePreset(idValue, query, render) {
@@ -286,6 +289,9 @@
     bindContextTargets(host);
     const status = document.querySelector('#history-count');
     if (status) status.textContent = validDateRange(historyQuery) ? `${rows.length} of ${state.history.length} local events shown` : 'Invalid date range. Use ISO dates and ensure From is not after To.';
+    const migration = document.querySelector('#history-status');
+    if (migration && state.migration?.status === 'future-version-refused') migration.textContent = `Saved state version ${state.migration.sourceVersion} is newer than this page understands, so it was refused and no saved events were applied.`;
+    else if (migration && state.migration?.status === 'migrated') migration.textContent = `Saved state version ${state.migration.sourceVersion} was migrated to version ${STATE_SCHEMA_VERSION}.`;
   }
 
   function renderChangelog() {
@@ -309,8 +315,10 @@
     const progress = document.querySelector('#transfer-progress');
     const cancel = document.querySelector('#transfer-cancel');
     const complete = document.querySelector('#transfer-complete');
+    const start = document.querySelector('#transfer-start');
     if (!status) return;
     const transfer = state.transfer;
+    if (start) start.disabled = transfer.status === 'started' || !document.querySelector('#transfer-file')?.files?.length;
     if (transfer.status === 'started') {
       status.textContent = `Writing ${transfer.name} to the user-selected local destination. Bytes written are reported from the real file stream.`;
       progress.value = transfer.totalBytes ? Math.round(((transfer.bytesWritten || 0) / transfer.totalBytes) * 100) : 0;
@@ -475,20 +483,20 @@
     document.querySelector('#transfer-file')?.addEventListener('change', event => {
       const file = event.target.files?.[0];
       const start = document.querySelector('#transfer-start');
-      if (start) start.disabled = !file;
+      if (start) start.disabled = state.transfer.status === 'started' || !file;
       if (file) document.querySelector('#transfer-name').textContent = file.name;
     });
     document.querySelector('#transfer-start')?.addEventListener('click', async () => {
-      if (state.transfer.status === 'started') return;
+      if (state.transfer.status === 'started') { document.querySelector('#transfer-status').textContent = 'A local write is already active. Start is disabled until the writable stream settles.'; return; }
       const file = document.querySelector('#transfer-file').files?.[0];
       const status = document.querySelector('#transfer-status');
       if (!file) return;
-      if (typeof window.showSaveFilePicker !== 'function') { status.textContent = 'Unavailable: this browser does not expose a verified local output handle, so no transfer was started.'; state.transfer = { status: 'unavailable', name: file.name }; persist(); renderTransfer(); return; }
+      if (typeof window.showSaveFilePicker !== 'function') { status.textContent = 'Unavailable: this browser does not expose a verified local output handle, so no transfer was started.'; state.transfer = { ...state.transfer, status: 'unavailable', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; persist(); renderTransfer(); return; }
       let handle;
       try { handle = await window.showSaveFilePicker({ suggestedName: file.name, types: [{ description: 'Selected file', accept: { [file.type || 'application/octet-stream']: [`.${file.name.split('.').pop() || 'bin'}`] } }] }); transferWriter = await handle.createWritable(); }
-      catch (error) { status.textContent = `The browser did not provide an output handle: ${error.message || 'selection cancelled'}. Nothing was written.`; state.transfer = { status: 'idle', name: file.name }; renderTransfer(); return; }
+      catch (error) { status.textContent = `The browser did not provide an output handle: ${error.message || 'selection cancelled'}. Nothing was written.`; state.transfer = { ...state.transfer, status: 'idle', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; renderTransfer(); return; }
       transferAbort = new AbortController();
-      state.transfer = { status: 'started', name: file.name, startedAt: new Date().toISOString(), totalBytes: file.size, bytesWritten: 0 };
+      state.transfer = { ...state.transfer, status: 'started', name: scrubSummary(file.name), startedAt: new Date().toISOString(), totalBytes: file.size, bytesWritten: 0, interruptionRecorded: false };
       persist(); renderTransfer();
       record('download-started', `Started a local file write for ${file.name}`, { bytes: file.size, progress: 'measured', destination: 'omitted' });
       try {
@@ -563,7 +571,7 @@
     const previewButton = document.createElement('button'); previewButton.id = 'forge-preview-button'; previewButton.type = 'button'; previewButton.className = 'secondary-button'; previewButton.textContent = 'Preview provider handoff';
     document.querySelector('#forge-open').before(previewButton); document.querySelector('#forge-open').disabled = true; document.querySelector('#forge-open').before(preview);
     ['forge-account', 'forge-owner', 'forge-repository', 'forge-route', 'forge-source', 'forge-destination'].forEach(idValue => document.querySelector(`#${idValue}`)?.addEventListener('input', () => {
-      state.forge = { account: document.querySelector('#forge-account').value, owner: text(document.querySelector('#forge-owner').value), repository: text(document.querySelector('#forge-repository').value), route: document.querySelector('#forge-route').value, source: document.querySelector('#forge-source').value, destination: document.querySelector('#forge-destination').value };
+      state.forge = { account: document.querySelector('#forge-account').value, owner: scrubSummary(document.querySelector('#forge-owner').value), repository: scrubSummary(document.querySelector('#forge-repository').value), route: document.querySelector('#forge-route').value, source: document.querySelector('#forge-source').value, destination: document.querySelector('#forge-destination').value };
       document.querySelector('#forge-open').disabled = true;
       persist();
     }));
@@ -604,15 +612,17 @@
   function showContextMenu(event) {
     closeContextMenu();
     contextOrigin = event.target.closest('[data-delivery-context]') || event.target;
+    const targetKind = contextOrigin.dataset?.deliveryContext || 'panel';
     const menu = document.createElement('div'); menu.id = 'delivery-context-menu'; menu.className = 'delivery-context-menu'; menu.setAttribute('role', 'menu');
-    menu.innerHTML = `<label>Filter actions<div class="search-composite"><input id="delivery-context-search" data-label="context actions" type="search" aria-label="Filter context actions"><button type="button" class="regex-trigger" id="delivery-context-regex" aria-label="Build a regular expression for context actions">.*</button></div></label><div class="delivery-context-items"><button type="button" role="menuitem" data-context-action="palette">Open command palette <kbd>Ctrl+Shift+F</kbd></button><button type="button" role="menuitem" data-context-action="record">Record local event <kbd>Ctrl+Enter</kbd></button><button type="button" role="menuitem" data-context-action="escape">Close this menu <kbd>Escape</kbd></button></div>`;
+    const targetActions = targetKind === 'history-row' ? '<button type="button" role="menuitem" data-context-action="restore">Restore this event as new</button><button type="button" role="menuitem" data-context-action="copy-row">Copy this event summary</button>' : '<button type="button" role="menuitem" data-context-action="focus-history">Open local history</button><button type="button" role="menuitem" data-context-action="record">Record local event <kbd>Ctrl+Enter</kbd></button>';
+    menu.innerHTML = `<label>Filter actions<div class="search-composite"><input id="delivery-context-search" data-label="context actions" type="search" aria-label="Filter context actions"><button type="button" class="regex-trigger" id="delivery-context-regex" aria-label="Build a regular expression for context actions">.*</button></div></label><div class="delivery-context-items">${targetActions}<button type="button" role="menuitem" data-context-action="palette">Open command palette <kbd>Ctrl+Shift+F</kbd></button><button type="button" role="menuitem" data-context-action="escape">Close this menu <kbd>Escape</kbd></button></div>`;
     document.body.append(menu); menu.style.left = `${Math.min(event.clientX, innerWidth - 320)}px`; menu.style.top = `${Math.min(event.clientY, innerHeight - 190)}px`;
     const filter = menu.querySelector('input'); filter.focus();
     const contextQuery = { text: '', pattern: '', flags: 'iu', regex: false };
     filter.addEventListener('input', () => { contextQuery.text = filter.value.slice(0, 160); contextQuery.pattern = filter.dataset.regexPattern || ''; contextQuery.flags = filter.dataset.regexFlags || 'iu'; contextQuery.regex = Boolean(contextQuery.pattern); menu.querySelectorAll('[data-context-action]').forEach(item => { item.hidden = !matchesQuery(item.textContent, contextQuery); }); });
     menu.querySelector('#delivery-context-regex').addEventListener('click', () => openRegex(filter));
     menu.addEventListener('keydown', keyEvent => { if (keyEvent.key === 'ArrowDown' || keyEvent.key === 'ArrowUp') { keyEvent.preventDefault(); const items = [...menu.querySelectorAll('[data-context-action]:not([hidden])')]; const index = items.indexOf(document.activeElement); items[(index + (keyEvent.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus(); } if (keyEvent.key === 'Escape') { keyEvent.preventDefault(); closeContextMenu(); } });
-    menu.querySelectorAll('[data-context-action]').forEach(button => button.addEventListener('click', () => { if (button.dataset.contextAction === 'palette') document.querySelector('#palette-open')?.click(); if (button.dataset.contextAction === 'record') document.querySelector('#history-event-summary')?.focus(); closeContextMenu(); }));
+    menu.querySelectorAll('[data-context-action]').forEach(button => button.addEventListener('click', () => { const rowEvent = contextOrigin.closest?.('[data-event-id]'); if (button.dataset.contextAction === 'palette') document.querySelector('#palette-open')?.click(); if (button.dataset.contextAction === 'record') document.querySelector('#history-event-summary')?.focus(); if (button.dataset.contextAction === 'focus-history') document.querySelector('#history')?.scrollIntoView({ block: 'start' }); if (button.dataset.contextAction === 'restore') rowEvent?.querySelector('[data-restore-event]')?.click(); if (button.dataset.contextAction === 'copy-row') copyText(rowEvent?.querySelector('h3')?.textContent || '', document.querySelector('#history-status')); closeContextMenu(); }));
     document.addEventListener('click', closeContextMenu, { once: true });
     event.preventDefault();
   }

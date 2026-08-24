@@ -124,7 +124,7 @@
     },
     "local-version-history": {
       "state": "implemented",
-      "note": "history-delivery.js renders a schema-versioned local append-only visitor history panel with strict recursive redaction, search, anchored regex, date and action filters, validated presets, retention preview, prune-event reservation, restore-as-new-event, and redacted JSON/Markdown export. The history.html route and delivery rail make it reachable from every primary page.",
+      "note": "history-delivery.js renders a schema-versioned local append-only visitor history panel with explicit older-state migration and future-version refusal, strict recursive redaction, scrubbed summaries, search, anchored regex, date and action filters, validated presets, retention preview, prune-event reservation, restore-as-new-event, and redacted JSON/Markdown export. The history.html route and delivery rail make it reachable from every primary page.",
       "files": ["site/history-delivery.js", "site/history.html", "site/app.js", "site/build.mjs"]
     },
     "changelog-viewer": {
