@@ -37,7 +37,8 @@ export type BulkMutationResult =
 export type BulkCapability = { status: 'enabled' } | { status: 'disabled'; reason: string };
 
 export interface BulkExecutionContext {
-  signal?: { readonly aborted: boolean };
+  signal: AbortSignal;
+  itemDeadlineMs: number;
 }
 
 export interface ExecutableBulkAction<T extends SelectionItem> {
@@ -186,12 +187,13 @@ export type BulkItemOutcome<T> =
   | { item: T; status: BulkSuccessStatus; receipt: BulkMutationReceipt }
   | { item: T; status: 'skipped'; reason: string }
   | { item: T; status: 'cancelled'; reason: string }
+  | { item: T; status: 'timed-out'; code: 'deadline-exceeded'; reason: string; retryable: false }
   | { item: T; status: 'failed'; code: string; reason: string; retryable: boolean };
 
 export interface BulkProgress {
   completed: number;
   total: number;
-  counts: Readonly<Record<BulkSuccessStatus | 'skipped' | 'cancelled' | 'failed', number>>;
+  counts: Readonly<Record<BulkSuccessStatus | 'skipped' | 'cancelled' | 'timed-out' | 'failed', number>>;
 }
 
 export interface BulkUndoPlan<T> {
@@ -203,25 +205,91 @@ export interface BulkUndoPlan<T> {
 export interface BulkRunResult<T> {
   actionId: string;
   outcomes: ReadonlyArray<BulkItemOutcome<T>>;
-  counts: Readonly<Record<BulkSuccessStatus | 'skipped' | 'cancelled' | 'failed', number>>;
+  counts: Readonly<Record<BulkSuccessStatus | 'skipped' | 'cancelled' | 'timed-out' | 'failed', number>>;
   undo?: BulkUndoPlan<T>;
 }
 
+export const DEFAULT_BULK_ITEM_DEADLINE_MS = 30_000;
+const MAX_TIMER_DELAY_MS = 2_147_483_647;
+
 export interface RunBulkOptions {
   concurrency?: number;
-  signal?: { readonly aborted: boolean };
+  signal?: AbortSignal;
+  itemDeadlineMs?: number;
   onProgress?: (progress: BulkProgress) => void;
 }
 
-const ALL_OUTCOME_STATUSES: ReadonlyArray<BulkSuccessStatus | 'skipped' | 'cancelled' | 'failed'> = [
+type BulkOutcomeStatus = BulkSuccessStatus | 'skipped' | 'cancelled' | 'timed-out' | 'failed';
+
+const ALL_OUTCOME_STATUSES: ReadonlyArray<BulkOutcomeStatus> = [
   'converted', 'saved', 'exported', 'deleted', 'moved', 'copied', 'duplicated', 'renamed',
-  'tagged', 'untagged', 'enabled', 'disabled', 'retried', 'changed', 'skipped', 'cancelled', 'failed',
+  'tagged', 'untagged', 'enabled', 'disabled', 'retried', 'changed', 'skipped', 'cancelled',
+  'timed-out', 'failed',
 ];
 
-function outcomeCounts<T>(outcomes: ReadonlyArray<BulkItemOutcome<T>>): Record<BulkSuccessStatus | 'skipped' | 'cancelled' | 'failed', number> {
-  const counts = Object.fromEntries(ALL_OUTCOME_STATUSES.map((status) => [status, 0])) as Record<BulkSuccessStatus | 'skipped' | 'cancelled' | 'failed', number>;
+function outcomeCounts<T>(outcomes: ReadonlyArray<BulkItemOutcome<T>>): Record<BulkOutcomeStatus, number> {
+  const counts = Object.fromEntries(ALL_OUTCOME_STATUSES.map((status) => [status, 0])) as Record<BulkOutcomeStatus, number>;
   outcomes.forEach((outcome) => { counts[outcome.status] += 1; });
   return counts;
+}
+
+function resolveItemDeadline(value: number | undefined): number {
+  const deadline = value ?? DEFAULT_BULK_ITEM_DEADLINE_MS;
+  if (!Number.isSafeInteger(deadline) || deadline <= 0 || deadline > MAX_TIMER_DELAY_MS) {
+    throw new RangeError(`itemDeadlineMs must be a positive safe integer from 1 through ${MAX_TIMER_DELAY_MS}.`);
+  }
+  return deadline;
+}
+
+type BoundedOperationResult<T> =
+  | { status: 'completed'; value: T }
+  | { status: 'cancelled' }
+  | { status: 'timed-out' }
+  | { status: 'rejected' };
+
+async function runBoundedOperation<T>(
+  callerSignal: AbortSignal | undefined,
+  itemDeadlineMs: number,
+  invoke: (signal: AbortSignal) => Promise<T>,
+): Promise<BoundedOperationResult<T>> {
+  const controller = new AbortController();
+  let termination: 'cancelled' | 'timed-out' | undefined;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  let resolveTermination: ((result: BoundedOperationResult<T>) => void) | undefined;
+
+  const terminate = (status: 'cancelled' | 'timed-out'): void => {
+    if (termination) return;
+    termination = status;
+    controller.abort();
+    resolveTermination?.({ status });
+  };
+  const onCallerAbort = (): void => terminate('cancelled');
+
+  if (callerSignal?.aborted) {
+    terminate('cancelled');
+    return { status: 'cancelled' };
+  }
+
+  const terminationPromise = new Promise<BoundedOperationResult<T>>((resolve) => {
+    resolveTermination = resolve;
+    callerSignal?.addEventListener('abort', onCallerAbort, { once: true });
+    timeoutId = setTimeout(() => terminate('timed-out'), itemDeadlineMs);
+  });
+
+  const operationPromise = Promise.resolve()
+    .then(() => invoke(controller.signal))
+    .then(
+      (value): BoundedOperationResult<T> => termination ? { status: termination } : { status: 'completed', value },
+      (): BoundedOperationResult<T> => termination ? { status: termination } : { status: 'rejected' },
+    );
+
+  try {
+    return await Promise.race([operationPromise, terminationPromise]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+    callerSignal?.removeEventListener('abort', onCallerAbort);
+    resolveTermination = undefined;
+  }
 }
 
 function mapMutation<T>(item: T, successStatus: BulkSuccessStatus, result: BulkMutationResult): BulkItemOutcome<T> {
@@ -240,6 +308,33 @@ function mapMutation<T>(item: T, successStatus: BulkSuccessStatus, result: BulkM
   if (result.status === 'skipped') return { item, status: 'skipped', reason: result.reason };
   if (result.status === 'cancelled') return { item, status: 'cancelled', reason: result.reason };
   return { item, status: 'failed', code: result.code, reason: result.reason, retryable: result.retryable };
+}
+
+function mapBoundedMutation<T>(
+  item: T,
+  successStatus: BulkSuccessStatus,
+  result: BoundedOperationResult<BulkMutationResult>,
+): BulkItemOutcome<T> {
+  if (result.status === 'completed') return mapMutation(item, successStatus, result.value);
+  if (result.status === 'cancelled') {
+    return { item, status: 'cancelled', reason: 'The operation was cancelled before the item completed.' };
+  }
+  if (result.status === 'timed-out') {
+    return {
+      item,
+      status: 'timed-out',
+      code: 'deadline-exceeded',
+      reason: 'The item operation did not complete within its configured deadline.',
+      retryable: false,
+    };
+  }
+  return {
+    item,
+    status: 'failed',
+    code: 'handler-rejected',
+    reason: 'The item handler rejected without a typed failure result. Untyped details were not exposed.',
+    retryable: false,
+  };
 }
 
 function buildUndoPlan<T extends SelectionItem>(
@@ -269,6 +364,7 @@ export async function runBulkAction<T extends SelectionItem>(
   let nextIndex = 0;
   let completed = 0;
   const concurrency = Math.min(Math.max(1, options.concurrency ?? 1), Math.max(1, plan.affected.length));
+  const itemDeadlineMs = resolveItemDeadline(options.itemDeadlineMs);
 
   const report = (): void => {
     if (!options.onProgress) return;
@@ -283,17 +379,12 @@ export async function runBulkAction<T extends SelectionItem>(
       if (index >= plan.affected.length) return;
       nextIndex += 1;
       const item = plan.affected[index];
-      try {
-        outcomes[index] = mapMutation(item, plan.action.successStatus, await plan.action.execute(item, { signal: options.signal }));
-      } catch (error) {
-        outcomes[index] = {
-          item,
-          status: 'failed',
-          code: 'handler-threw',
-          reason: error instanceof Error ? error.message : String(error),
-          retryable: false,
-        };
-      }
+      const result = await runBoundedOperation(
+        options.signal,
+        itemDeadlineMs,
+        (signal) => plan.action.execute(item, { signal, itemDeadlineMs }),
+      );
+      outcomes[index] = mapBoundedMutation(item, plan.action.successStatus, result);
       completed += 1;
       report();
     }
@@ -328,23 +419,20 @@ export async function undoBulkAction<T extends SelectionItem>(
   if (!action.revert) {
     return { status: 'disabled', reason: 'This action has history evidence but no registered inverse handler in this surface.' };
   }
+  const revert = action.revert;
+  const itemDeadlineMs = resolveItemDeadline(options.itemDeadlineMs);
   const outcomes: Array<BulkItemOutcome<T>> = [];
   for (const { item, receipt } of [...undo.items].reverse()) {
     if (options.signal?.aborted) {
       outcomes.push({ item, status: 'cancelled', reason: 'Undo was cancelled before this item started.' });
       continue;
     }
-    try {
-      outcomes.push(mapMutation(item, 'changed', await action.revert(item, receipt, { signal: options.signal })));
-    } catch (error) {
-      outcomes.push({
-        item,
-        status: 'failed',
-        code: 'inverse-handler-threw',
-        reason: error instanceof Error ? error.message : String(error),
-        retryable: false,
-      });
-    }
+    const result = await runBoundedOperation(
+      options.signal,
+      itemDeadlineMs,
+      (signal) => revert(item, receipt, { signal, itemDeadlineMs }),
+    );
+    outcomes.push(mapBoundedMutation(item, 'changed', result));
     options.onProgress?.({ completed: outcomes.length, total: undo.items.length, counts: outcomeCounts(outcomes) });
   }
   return { status: 'complete', outcomes };

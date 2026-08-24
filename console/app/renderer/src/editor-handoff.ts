@@ -31,11 +31,11 @@ function availabilityFromProbe(probe: EditorProbeResult): EditorHandoffAvailabil
 export async function probeVsCode(port: ExportPlatformPort): Promise<EditorHandoffAvailability> {
   try {
     return availabilityFromProbe(await port.probeEditor('vscode'));
-  } catch (error) {
+  } catch {
     return {
       status: 'failed',
-      code: 'editor-probe-threw',
-      reason: error instanceof Error ? error.message : String(error),
+      code: 'editor-probe-rejected',
+      reason: 'Editor detection rejected without a typed failure result. Untyped details were not exposed.',
       retryable: false,
     };
   }
@@ -56,11 +56,11 @@ export async function openInVsCode(
   let result: PlatformOperationResult;
   try {
     result = await port.openInEditor({ editor: 'vscode', kind, path: targetPath });
-  } catch (error) {
+  } catch {
     return {
       status: 'failed',
-      code: 'editor-open-threw',
-      reason: error instanceof Error ? error.message : String(error),
+      code: 'editor-open-rejected',
+      reason: 'The editor handoff rejected without a typed failure result. Untyped details were not exposed.',
       retryable: false,
     };
   }
