@@ -7,7 +7,7 @@
  * directly now takes those two paths as constructor options instead, so this module has
  * no dependency on Electron and can run inside a plain Node.js process on a VM.
  */
-import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync, unlinkSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync, unlinkSync, statSync, openSync, fstatSync, readSync, closeSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -39,6 +39,7 @@ import type { ConverterRequest, ConverterSniffResult } from '../shared/converter
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
 import type { ChangePlan, ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
+import { DIM_SUM_CACHE_MAX_BYTES } from '../shared/dim-sum.js';
 
 /**
  * Actions that fundamentally depend on the Windows desktop (WSL) and cannot be answered
@@ -67,6 +68,20 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'ollama.chat.sessions', 'ollama.chat.create', 'ollama.chat.rename', 'ollama.chat.delete', 'ollama.chat.send', 'ollama.chat.retry', 'ollama.chat.regenerate', 'ollama.chat.stop',
   'dim-sum.cache.read',
 ]);
+
+function readBoundedUtf8(path: string, maxBytes: number): string {
+  const handle = openSync(path, 'r');
+  try {
+    const size = fstatSync(handle).size;
+    if (size > maxBytes) throw new Error(`The local cache is ${size} bytes, above the ${maxBytes}-byte limit.`);
+    const buffer = Buffer.allocUnsafe(maxBytes + 1);
+    const bytesRead = readSync(handle, buffer, 0, maxBytes + 1, 0);
+    if (bytesRead > maxBytes) throw new Error(`The local cache exceeded the ${maxBytes}-byte limit while being read.`);
+    return buffer.subarray(0, bytesRead).toString('utf8');
+  } finally {
+    closeSync(handle);
+  }
+}
 
 function validateRequestSchema(request: ControlPlaneRequest): string | undefined {
   if (!request || typeof request !== 'object') return 'The request body must be an object.';
@@ -544,10 +559,13 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       }
       if (request.action === 'dim-sum.cache.read') {
         const cachePath = join(userDataPath, 'dim-sum-cache.json');
-        try { return { ok: true, requestId: request.requestId, data: { text: readFileSync(cachePath, 'utf8') } }; }
+        try { return { ok: true, requestId: request.requestId, data: { text: readBoundedUtf8(cachePath, DIM_SUM_CACHE_MAX_BYTES) } }; }
         catch (error) {
           const code = (error as { code?: string }).code;
           if (code === 'ENOENT') return { ok: true, requestId: request.requestId, data: { text: null } };
+          if (error instanceof Error && /above the \d+-byte limit|exceeded the \d+-byte limit/u.test(error.message)) {
+            return { ok: false, requestId: request.requestId, code: 'DIM_SUM_CACHE_TOO_LARGE', message: error.message };
+          }
           return { ok: false, requestId: request.requestId, code: 'DIM_SUM_CACHE_UNAVAILABLE', message: 'The local dim-sum cache could not be read.' };
         }
       }

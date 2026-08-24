@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { DimSumSurprise } from './dim-sum-surprise';
 import { readStartupContext, subscribeStartupContext } from './startup-context';
 import { createDimSumCacheReader } from '../../../control-plane/dim-sum-cache-reader';
+import { createBrowserDimSumCacheReader } from '../../../shared/dim-sum';
+import { isHostedRuntime } from './bridge/http-bridge';
 import { ConverterSurface, type ConverterClient } from './converter-surface';
 import { OllamaSuite, type OllamaSuiteClient } from './ollama-suite';
 import { DocsSurface } from './docs-surface';
@@ -164,7 +166,12 @@ export function SurfaceMounts() {
 
   useEffect(() => subscribeStartupContext(() => setStartupContext(readStartupContext())), []);
 
-  const dimSumCacheReader = useMemo(() => createDimSumCacheReader(async () => {
+  const dimSumCacheReader = useMemo(() => {
+    if (isHostedRuntime()) {
+      try { return createBrowserDimSumCacheReader(window.localStorage); }
+      catch { return createBrowserDimSumCacheReader({ getItem: () => null }); }
+    }
+    return createDimSumCacheReader(async () => {
       const bridge = window.dingDesktop;
       if (!bridge) return null;
       try {
@@ -172,7 +179,8 @@ export function SurfaceMounts() {
       } catch {
         return null;
       }
-    }), []);
+    });
+  }, []);
 
   const links = useMemo(() => (['converter', 'ollama', 'docs', 'changelog'] as const), []);
   return (

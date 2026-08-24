@@ -12,7 +12,7 @@ Colors would be chosen through a continuous picker with bidirectional conversion
 
 ## Current status
 
-**Desktop application:** Partial but mounted. The central renderer now creates the persisted `AppearanceStore`, installs the appearance runtime stylesheet, marks rendered controls with stable appearance ids, and exposes every appearance property through the shared rich-control and palette registration. The existing generated panel still supplies its legacy global preview values, so built-artifact interaction and the complete word-processor editor remain unverified in this lane.
+**Desktop application:** Partial. The central renderer creates one persisted `AppearanceStore`, installs the appearance runtime stylesheet, derives the generated preview from that store, marks rendered controls with stable appearance ids, and exposes every appearance property through the shared rich-control registration. The generated palette still renders destination buttons rather than inline rich rows, dynamic target-specific controls remain unavailable until their real navigation entries exist, and built-artifact interaction remains unverified in this lane.
 
 **Documentation website:** Partial. Every page exposes persisted dark, light, and high-contrast themes, density, accent, font scale, navigation docking, logo presets, and a broad color translator. These values apply live. Per-element editors and full word-processor typography remain incomplete.
 

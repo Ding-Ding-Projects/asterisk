@@ -14,6 +14,14 @@ The same lane added `rich-control-registration.ts`. It registers design destinat
 
 No tests, lint, type checks, build, packaging, runtime interaction, captures, Lowlevel work, push, or release ran in this lane. The next owner must run the focused registry and renderer checks, then exercise the built desktop through startup suppression, missing-cache diagnostics, palette activation, every registered setting, appearance edits, and relaunch persistence before promoting any evidence.
 
+## Dim-sum and rich-control refutation repairs, 2026-08-23
+
+The follow-up repair keeps the startup draw unconsumed while first-run, School mode, errors, updates, or active work suppress it. Onboarding completion is now persisted in the durable settings bridge, including the final step, skip, and super-easy paths, so a later eligible state can perform the single launch draw.
+
+Desktop cache reads are bounded before the privileged file read returns bytes. Hosted surfaces use a browser-local visitor cache and do not call the control-plane endpoint. Image validation now checks signatures, dimensions, frame markers, pixel bounds, source-release and asset-filename identity, manifest agreement, SHA-256, and independent local browser decoding.
+
+The registry now records order, file, and action-backed controls, refreshes when prepared PBX controls are rebuilt, and exposes live rich palette rows with read, options, execute, and canonical navigation targets. The generated palette still consumes destination buttons only, and target-specific controls without canonical navigation entries remain unavailable. Appearance state is unified around the persisted `AppearanceStore`; the old direct DOM path is retained only as the pre-hydration fallback. Material appearance and command palette claims remain `partial` until a real rich-row consumer and complete dynamic target mount exist.
+
 ## Scope
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.

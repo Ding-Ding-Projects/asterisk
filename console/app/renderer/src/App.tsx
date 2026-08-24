@@ -47,7 +47,8 @@ import { COLOUR_FORMATS, formatColour, parseColour, translate as translateColour
 import { resolveAppearanceValue } from './appearance';
 import { APPEARANCE_RUNTIME_STYLES, bindAppearanceRuntime, detectAppearanceCapabilities, type BoundAppearanceRuntime } from './appearance-runtime';
 import { createAppearanceStore, type AppearanceStore } from './appearance-store';
-import { createRichControlRegistration, type RichControlRegistration } from './rich-control-registration';
+import { createRichControlRegistration, type RichControlInput, type RichControlRegistration } from './rich-control-registration';
+import { executeRichControl } from './command-registry';
 import { publishStartupContext } from './startup-context';
 import { validateDesktopSettings } from '../../../shared/settings-schema';
 import { DESKTOP_SETTINGS_STORAGE_KEY } from './settings-store';
@@ -120,6 +121,25 @@ function resourcesForScreen(file: unknown): string[] {
   const names = file.split(' · ').map((part) => part.trim());
   const resources = names.map(resourceForFile);
   return resources.every((resource): resource is string => typeof resource === 'string') ? resources : [];
+}
+
+function rgbToHslValues(r: number, g: number, b: number): { hue: number; sat: number; light: number } {
+  const red = r / 255;
+  const green = g / 255;
+  const blue = b / 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const delta = max - min;
+  let hue = 0;
+  let saturation = 0;
+  const lightness = (max + min) / 2;
+  if (delta !== 0) {
+    saturation = delta / (1 - Math.abs(2 * lightness - 1));
+    if (max === red) hue = 60 * (((green - blue) / delta) % 6);
+    else if (max === green) hue = 60 * ((blue - red) / delta + 2);
+    else hue = 60 * ((red - green) / delta + 4);
+  }
+  return { hue: (hue + 360) % 360, sat: saturation * 100, light: lightness * 100 };
 }
 
 /** Table screens whose design sample rows must never render. */
@@ -220,6 +240,7 @@ export class App extends Base {
       },
       readAppearanceValue: (property) => this.readMountedAppearanceValue(property),
       writeAppearanceValue: (property, value) => this.writeMountedAppearanceValue(property, value),
+      executeControlAction: (_controlId, action) => this.onControlAction(action),
     });
   }
   /** The chosen file's own name, kept only for display — never its contents. */
@@ -232,15 +253,17 @@ export class App extends Base {
    *  `AppearanceTheme` (appearance.ts) an explicit Export writes to a file. This is
    *  what makes a colour or font choice survive a relaunch. */
   private readonly APPEARANCE_STORAGE_KEY = 'asterisk-appearance-v1';
+  private readonly ONBOARDING_COMPLETED_KEY = 'ding-pbx-onboarding-completed-v1';
   /** Set once persisted state has been folded into `this.state.values`, so the
    *  restore only ever happens once per mount. */
   private appearanceRestored = false;
   /** The last JSON actually written to storage, so `renderVals` (called on every
    *  paint) does not re-write `localStorage` when nothing changed. */
   private appearanceLastSerialised = '';
+  private legacyAppearanceSerialised = '';
   private appearanceStore: AppearanceStore | undefined;
   private appearanceRuntime: BoundAppearanceRuntime | undefined;
-  private readonly richControlRegistration: RichControlRegistration;
+  private richControlRegistration: RichControlRegistration;
   /** The unlock ladder (unlock-ladder.ts) for the per-element lock's unlock dialog.
    *  Renderer-only: this app's per-element lock has no server-enforced attempt budget
    *  or time-based lockout of its own, so this in-memory instance -- like the PIN and
@@ -253,6 +276,22 @@ export class App extends Base {
   /** Consecutive wrong unlock attempts per lock key, so the ladder is offered after
    *  repeated failures rather than on the first typo. */
   private wrongUnlockCounts: Record<string, number> = {};
+
+  protected refreshRichControlRegistration(screenId: string, controls: ReadonlyArray<RichControlInput>): void {
+    this.richControlRegistration = createRichControlRegistration({
+      runtimeControls: { [screenId]: controls },
+      readControlValue: (controlId) => ((this.state as { values?: Record<string, unknown> }).values ?? {})[controlId],
+      writeControlValue: (controlId, value) => this.setVal({ id: controlId }, value),
+      openDestination: (destinationId) => {
+        const openScreen = (this as unknown as { openScreen?: (id: string) => void }).openScreen;
+        if (openScreen) openScreen(destinationId);
+        else this.setState({ screen: destinationId });
+      },
+      readAppearanceValue: (property) => this.readMountedAppearanceValue(property),
+      writeAppearanceValue: (property, value) => this.writeMountedAppearanceValue(property, value),
+      executeControlAction: (_controlId, action) => this.onControlAction(action),
+    });
+  }
 
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
@@ -272,8 +311,9 @@ export class App extends Base {
     setVocabularyStorage(this.vocabStorage);
     void this.durableStorage.bootstrap().then(() => {
       this.restoreLanguageMode();
-      this.restoreAppearance();
+      if (this.onboardingCompleted()) this.setState({ onboardOpen: false });
       this.mountSharedAppearanceRuntime();
+      this.legacyAppearanceSerialised = JSON.stringify(this.currentAppearanceValues());
       this.forceUpdate();
     });
     /* The configured server list is not a reading from any PBX — it exists before
@@ -317,6 +357,7 @@ export class App extends Base {
 
   componentDidUpdate() {
     this.publishDimSumContext(true);
+    this.syncLegacyAppearanceStore();
     void this.refresh();
   }
 
@@ -338,12 +379,36 @@ export class App extends Base {
     publishStartupContext({
       ready,
       schoolMode: sharedSchoolMode || Boolean(state.schoolMode || state.schoolModeEnabled),
-      firstRun: Boolean(state.onboardOpen),
+      firstRun: Boolean(state.onboardOpen) && !this.onboardingCompleted(),
       errorActive: Boolean(state.errorActive || state.errorOpen),
       updateActive: typeof document !== 'undefined' && document.documentElement.dataset.dimSumUpdateActive === 'true',
       taskActive: Boolean(this.oneClickRunning || this.discoveryPending || this.onboardBusy),
       reducedMotion: reducedMotion || Boolean(state.reducedMotion),
     });
+  }
+
+  private onboardingCompleted(): boolean {
+    return this.durableStorage.storage.getItem(this.ONBOARDING_COMPLETED_KEY) === 'true';
+  }
+
+  private markOnboardingCompleted(): void {
+    this.durableStorage.storage.setItem(this.ONBOARDING_COMPLETED_KEY, 'true');
+  }
+
+  private syncLegacyAppearanceStore(): void {
+    const store = this.appearanceStore;
+    if (!store) return;
+    const values = this.currentAppearanceValues();
+    const serialised = JSON.stringify(values);
+    if (!this.legacyAppearanceSerialised || serialised === this.legacyAppearanceSerialised) return;
+    this.legacyAppearanceSerialised = serialised;
+    const updates: Array<[AppearanceProperty, string]> = [
+      ['colour', `hsl(${values.hue} ${values.sat}% ${values.light}%)`],
+      ['fontFamily', values.family],
+      ['fontWeight', values.weight],
+      ['fontSize', `${values.size}px`],
+    ];
+    for (const [property, value] of updates) this.writeMountedAppearanceValue(property, value);
   }
 
   private mountSharedAppearanceRuntime(): void {
@@ -395,6 +460,7 @@ export class App extends Base {
     if (!draft.ok) { this.toast(draft.reason); return; }
     const applied = store.applyDraft({ scope: 'global' }, 'default', property);
     if (!applied.ok) this.toast(applied.reason);
+    else this.forceUpdate();
   }
 
   private async request(action: string, extra: Record<string, unknown> = {}): Promise<ControlPlaneResponse | undefined> {
@@ -1764,6 +1830,20 @@ It is shown once. The phone needs it to register.`);
   }
 
   private currentAppearanceValues(): { hue: number; sat: number; light: number; family: string; weight: string; size: number } {
+    const model = this.appearanceStore?.getModel();
+    if (model) {
+      const accent = model.globals.accent.kind === 'colour' ? parseColour(model.globals.accent.value) : undefined;
+      const hsl = accent ? rgbToHslValues(accent.r, accent.g, accent.b) : { hue: 148, sat: 54, light: 68 };
+      const family = model.globals.fontFamily || 'Roboto';
+      const weightValue = resolveAppearanceValue(model, WILDCARD_ELEMENT, 'default', 'fontWeight')?.value;
+      const sizeValue = resolveAppearanceValue(model, WILDCARD_ELEMENT, 'default', 'fontSize')?.value;
+      return {
+        ...hsl,
+        family,
+        weight: weightValue?.kind === 'literal' ? weightValue.value : '500',
+        size: sizeValue?.kind === 'literal' && Number.isFinite(Number.parseFloat(sizeValue.value)) ? Number.parseFloat(sizeValue.value) : 14,
+      };
+    }
     const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
     const num = (key: string, fallback: number): number => {
       const raw = values[key];
@@ -1844,6 +1924,7 @@ It is shown once. The phone needs it to register.`);
    *  to the DOM. Called once per render, which is cheap: four numbers/strings
    *  serialised and compared before anything is written. */
   private syncAppearance(): void {
+    if (this.appearanceStore) return;
     const vals = this.currentAppearanceValues();
     const theme = this.buildAppearanceTheme(vals);
     this.applyAppearanceToDom(theme);
@@ -1912,6 +1993,12 @@ It is shown once. The phone needs it to register.`);
    *  reset, not the design's original values:{} (which cleared every control on
    *  every screen, not only these four). */
   private resetAppearance(): void {
+    if (this.appearanceStore) {
+      const result = this.appearanceStore.resetAll();
+      if (!result.ok) this.toast(result.reason);
+      else this.toast('Appearance reset to the shared design system');
+      return;
+    }
     this.durableStorage.storage.removeItem(this.APPEARANCE_STORAGE_KEY);
     this.appearanceLastSerialised = '';
     this.setState((st: { values: Record<string, unknown> }) => {
@@ -1952,6 +2039,35 @@ It is shown once. The phone needs it to register.`);
     this.applyRows(screen);
     this.syncAppearance();
     const values = super.renderVals() as Record<string, unknown>;
+    const generatedStartOnboarding = values.startOnboarding;
+    const generatedOnboardNext = values.onboardNext;
+    const generatedSkipOnboard = values.skipOnboard;
+    const generatedSuperEasy = values.superEasy;
+    if (typeof generatedStartOnboarding === 'function') {
+      values.startOnboarding = () => {
+        this.durableStorage.storage.removeItem(this.ONBOARDING_COMPLETED_KEY);
+        (generatedStartOnboarding as () => void)();
+      };
+    }
+    if (typeof generatedOnboardNext === 'function') {
+      values.onboardNext = () => {
+        const step = Number((this.state as { onboardStep?: unknown }).onboardStep ?? 0);
+        if (step >= ONBOARD.length - 1) this.markOnboardingCompleted();
+        (generatedOnboardNext as () => void)();
+      };
+    }
+    if (typeof generatedSkipOnboard === 'function') {
+      values.skipOnboard = () => {
+        this.markOnboardingCompleted();
+        (generatedSkipOnboard as () => void)();
+      };
+    }
+    if (typeof generatedSuperEasy === 'function') {
+      values.superEasy = () => {
+        this.markOnboardingCompleted();
+        (generatedSuperEasy as () => void)();
+      };
+    }
     const bridge = this.bridge();
     const readings = this.readings[screen];
     const note = this.note(screen);
@@ -1974,6 +2090,18 @@ It is shown once. The phone needs it to register.`);
       })),
       richControlRegistry: this.richControlRegistration.registry,
       richControlDefinitions: this.richControlRegistration.definitions,
+      richPaletteRows: this.richControlRegistration.registry.entries
+        .filter((entry) => Boolean(entry.control))
+        .map((entry) => ({
+          id: entry.id,
+          label: entry.label,
+          description: entry.description,
+          target: entry.target,
+          control: entry.control,
+          currentValue: entry.control ? this.richControlRegistration.registry.valueReaders[entry.control.valueReaderId]?.() : undefined,
+          options: entry.control?.optionsProviderId ? this.richControlRegistration.registry.optionsProviders[entry.control.optionsProviderId]?.() ?? [] : [],
+          execute: (value: unknown) => executeRichControl(this.richControlRegistration.registry, entry.id, value),
+        })),
       __window: {
         minimize: () => bridge?.window.minimize(),
         toggleMaximize: () => bridge?.window.toggleMaximize(),

@@ -1,7 +1,7 @@
 /** Handler-backed commands and exact destination/control teleport contracts. */
 
 export type PaletteEntryKind = 'command' | 'destination' | 'setting' | 'control';
-export type RichControlKind = 'switch' | 'checkbox' | 'text' | 'number' | 'stepper' | 'slider' | 'select' | 'colour' | 'action';
+export type RichControlKind = 'switch' | 'checkbox' | 'text' | 'number' | 'stepper' | 'slider' | 'select' | 'colour' | 'order' | 'file' | 'action';
 
 export interface TeleportTarget {
   readonly destinationId: string;

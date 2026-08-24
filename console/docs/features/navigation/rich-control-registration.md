@@ -4,9 +4,9 @@ The desktop renderer exposes one registry for destination navigation, component 
 
 ## Behavior
 
-Every design control with a writable kind becomes a command-registry entry with a stable id, a live value reader, one handler, and an exact teleport target. Select, segmented, and chip controls keep their real option lists. Action-only text controls are excluded from writable registration because their value is a status report, not an editable setting. Appearance properties use the same registry with a global appearance target and the persisted appearance store as their handler.
+Every design control with a writable kind becomes a command-registry entry with a stable id, a live value reader, one handler, and an exact teleport target. Select, segmented, and chip controls keep their real option lists. Order, file, and action-backed controls retain their actual control kind and handler. A target-specific control is registered only when its id exists in the canonical navigation state, otherwise it remains an explicit unavailable alternate rather than receiving a fabricated target. Appearance properties use the same registry with a global appearance target and the persisted appearance store as their handler.
 
-The central renderer exposes the registry to the compiled palette as `paletteItems`, while the full registry and descriptors remain available to richer palette hosts. Activating a row opens the exact destination. Changing a registered value routes through the same generated control setter used by the visible editor, so persistence, validation, localization, and local history remain owned by the existing setting path.
+The central renderer exposes the registry to the compiled palette as `paletteItems` and exposes `richPaletteRows` with live readers, option providers, exact targets, and `executeRichControl` handlers. The full registry and descriptors remain available to richer palette hosts. Changing a registered value routes through the same generated control setter used by the visible editor, so persistence, validation, localization, and local history remain owned by the existing setting path. The generated palette still renders destination buttons only, so the feature remains partial until a real rich-row consumer is mounted.
 
 ## Appearance mount
 

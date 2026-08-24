@@ -521,6 +521,7 @@ export class PbxAdminApp extends App {
     }
 
     screens[screen]!.groups = groups;
+    this.refreshRichControlRegistration(screen, groups.flatMap((group) => group.ctls));
   }
 
   private historyOption(entry: HistoryEntry, index: number): string {

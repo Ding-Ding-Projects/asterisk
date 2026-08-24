@@ -74,12 +74,13 @@ export function DimSumSurprise({ cacheReader, context, autoDismissMs = 8_000, on
 
   useEffect(() => {
     if (attempted.current) return;
-    attempted.current = true;
     const blocked = suppression(context);
     if (blocked) {
       onDiagnostic?.(blocked);
       return;
     }
+    setDiagnostic(undefined);
+    attempted.current = true;
 
     const random = secureDimSumRandomSource();
     if (!random) {

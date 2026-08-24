@@ -7,6 +7,7 @@ import type {
 } from '../../../../shared/hosted-auth';
 
 const REQUEST_TIMEOUT_MS = 10_000;
+let hostedRuntime = false;
 
 interface ApiProblem {
   error?: string;
@@ -49,6 +50,7 @@ async function postMutation(path: string): Promise<HostedAuthMutationResult> {
 }
 
 export function installHttpBridge(): void {
+  hostedRuntime = true;
   const auth: HostedAuthBridge = {
     async getSession(): Promise<HostedSessionStatus> {
       const { response, body } = await requestJson<HostedSessionStatus>('/api/session');
@@ -141,6 +143,6 @@ export function installHttpBridge(): void {
 
 /** Electron installs its own bridge before renderer scripts execute. */
 export function isHostedRuntime(): boolean {
-  return typeof window !== 'undefined' && !window.dingDesktop;
+  return hostedRuntime || (typeof window !== 'undefined' && !window.dingDesktop);
 }
 

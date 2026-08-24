@@ -18,12 +18,14 @@ export const DIM_SUM_CACHE_MAX_ID_LENGTH = 160;
 export const DIM_SUM_CACHE_MAX_ASSET_URL_LENGTH = 2048;
 export const DIM_SUM_CACHE_MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const DIM_SUM_CACHE_MAX_IMAGE_DIMENSION = 8192;
+export const DIM_SUM_CACHE_MAX_IMAGE_PIXELS = 16 * 1024 * 1024;
 
 const HEX_64 = /^[a-f0-9]{64}$/;
 const REVISION = /^[a-f0-9]{7,128}$/;
 const MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const DATA_URL_PREFIX = /^data:(image\/(?:png|jpeg|webp));base64,/;
 const ASSET_URL = /^https:\/\/github\.com\/Ding-Ding-Projects\/dim-sum-photos\/releases\/download\/catalog-v1[^/]+\/[^/?#]+$/;
+const PNG_SIGNATURE = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 
 export interface DimSumImageDecodeProof {
   readonly validated: true;
@@ -82,6 +84,19 @@ export interface DimSumCacheStorage {
   getItem(key: string): string | null;
 }
 
+/** Browser-hosted surfaces read only their own visitor-local cache. */
+export function createBrowserDimSumCacheReader(storage: DimSumCacheStorage): DimSumCacheReader {
+  return {
+    async read(): Promise<string | null> {
+      try {
+        return storage.getItem(DIM_SUM_CACHE_STORAGE_KEY);
+      } catch {
+        return null;
+      }
+    },
+  };
+}
+
 export const DIM_SUM_CACHE_STORAGE_KEY = 'ding-pbx-dim-sum-cache-v1';
 
 export type DimSumCacheValidation =
@@ -128,6 +143,147 @@ function parseDataUrlMime(dataUrl: string): DimSumImageManifest['decodeProof']['
   return match[1] as DimSumImageManifest['decodeProof']['mimeType'];
 }
 
+interface ImageInspection {
+  readonly mimeType: DimSumImageManifest['decodeProof']['mimeType'];
+  readonly width: number;
+  readonly height: number;
+  readonly frameCount: number;
+}
+
+function u16be(bytes: Uint8Array, offset: number): number {
+  return (bytes[offset]! << 8) | bytes[offset + 1]!;
+}
+
+function u32be(bytes: Uint8Array, offset: number): number {
+  return (bytes[offset]! * 0x1000000) + (bytes[offset + 1]! << 16) + (bytes[offset + 2]! << 8) + bytes[offset + 3]!;
+}
+
+function u16le(bytes: Uint8Array, offset: number): number {
+  return bytes[offset]! | (bytes[offset + 1]! << 8);
+}
+
+function u24le(bytes: Uint8Array, offset: number): number {
+  return bytes[offset]! | (bytes[offset + 1]! << 8) | (bytes[offset + 2]! << 16);
+}
+
+function dimensionsAreBounded(width: number, height: number): boolean {
+  return Number.isSafeInteger(width) && Number.isSafeInteger(height)
+    && width > 0 && height > 0
+    && width <= DIM_SUM_CACHE_MAX_IMAGE_DIMENSION
+    && height <= DIM_SUM_CACHE_MAX_IMAGE_DIMENSION
+    && width * height <= DIM_SUM_CACHE_MAX_IMAGE_PIXELS;
+}
+
+function inspectPng(bytes: Uint8Array): ImageInspection | string {
+  if (bytes.length < 33 || !PNG_SIGNATURE.every((value, index) => bytes[index] === value)) return 'local PNG bytes have an invalid signature';
+  let offset = 8;
+  let width = 0;
+  let height = 0;
+  let hasHeader = false;
+  let hasEnd = false;
+  let animated = false;
+  while (offset + 12 <= bytes.length) {
+    const chunkLength = u32be(bytes, offset);
+    const chunkType = String.fromCharCode(bytes[offset + 4]!, bytes[offset + 5]!, bytes[offset + 6]!, bytes[offset + 7]!);
+    const chunkEnd = offset + 12 + chunkLength;
+    if (chunkLength > DIM_SUM_CACHE_MAX_IMAGE_BYTES || chunkEnd > bytes.length) return 'local PNG chunk bounds are invalid';
+    if (chunkType === 'IHDR') {
+      if (hasHeader || chunkLength !== 13) return 'local PNG has an invalid IHDR';
+      width = u32be(bytes, offset + 8);
+      height = u32be(bytes, offset + 12);
+      hasHeader = true;
+    } else if (chunkType === 'acTL') {
+      animated = true;
+    } else if (chunkType === 'IEND') {
+      hasEnd = true;
+      break;
+    }
+    offset = chunkEnd;
+  }
+  if (animated) return 'animated PNG data is not accepted';
+  if (!hasHeader || !hasEnd || !dimensionsAreBounded(width, height)) return 'local PNG dimensions or framing are invalid';
+  return { mimeType: 'image/png', width, height, frameCount: 1 };
+}
+
+function inspectJpeg(bytes: Uint8Array): ImageInspection | string {
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return 'local JPEG bytes have an invalid signature';
+  let offset = 2;
+  let width = 0;
+  let height = 0;
+  let frameCount = 0;
+  let ended = false;
+  while (offset + 1 < bytes.length) {
+    while (offset < bytes.length && bytes[offset] !== 0xff) offset += 1;
+    while (offset < bytes.length && bytes[offset] === 0xff) offset += 1;
+    if (offset >= bytes.length) break;
+    const marker = bytes[offset++]!;
+    if (marker === 0xd9) { ended = true; break; }
+    if (marker === 0xda) {
+      while (offset + 1 < bytes.length) {
+        if (bytes[offset] === 0xff && bytes[offset + 1] === 0xd9) { ended = true; break; }
+        offset += 1;
+      }
+      break;
+    }
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd8)) continue;
+    if (offset + 2 > bytes.length) return 'local JPEG segment length is missing';
+    const segmentLength = u16be(bytes, offset);
+    if (segmentLength < 2 || offset + segmentLength > bytes.length) return 'local JPEG segment bounds are invalid';
+    const isFrame = (marker >= 0xc0 && marker <= 0xc3) || (marker >= 0xc5 && marker <= 0xc7) || (marker >= 0xc9 && marker <= 0xcb) || (marker >= 0xcd && marker <= 0xcf);
+    if (isFrame) {
+      if (segmentLength < 7 || frameCount > 0) return 'local JPEG contains multiple or invalid frames';
+      height = u16be(bytes, offset + 3);
+      width = u16be(bytes, offset + 5);
+      frameCount += 1;
+    }
+    offset += segmentLength;
+  }
+  if (!ended || frameCount !== 1 || !dimensionsAreBounded(width, height)) return 'local JPEG framing or dimensions are invalid';
+  return { mimeType: 'image/jpeg', width, height, frameCount };
+}
+
+function inspectWebp(bytes: Uint8Array): ImageInspection | string {
+  if (bytes.length < 20 || String.fromCharCode(...bytes.slice(0, 4)) !== 'RIFF' || String.fromCharCode(...bytes.slice(8, 12)) !== 'WEBP') return 'local WebP bytes have an invalid RIFF signature';
+  let offset = 12;
+  let width = 0;
+  let height = 0;
+  let imageFrames = 0;
+  while (offset + 8 <= bytes.length) {
+    const type = String.fromCharCode(...bytes.slice(offset, offset + 4));
+    const chunkLength = bytes[offset + 4]! | (bytes[offset + 5]! << 8) | (bytes[offset + 6]! << 16) | (bytes[offset + 7]! << 24);
+    const dataStart = offset + 8;
+    const dataEnd = dataStart + chunkLength;
+    if (chunkLength < 0 || chunkLength > DIM_SUM_CACHE_MAX_IMAGE_BYTES || dataEnd > bytes.length) return 'local WebP chunk bounds are invalid';
+    if (type === 'ANIM' || type === 'ANMF') return 'animated WebP data is not accepted';
+    if (type === 'VP8X') {
+      if (chunkLength < 10) return 'local WebP VP8X header is invalid';
+      if ((bytes[dataStart]! & 0x02) !== 0) return 'animated WebP flags are not accepted';
+      width = u24le(bytes, dataStart + 4) + 1;
+      height = u24le(bytes, dataStart + 7) + 1;
+    } else if (type === 'VP8 ') {
+      if (chunkLength < 12 || bytes[dataStart + 6] !== 0x9d || bytes[dataStart + 7] !== 0x01 || bytes[dataStart + 8] !== 0x2a) return 'local WebP VP8 frame header is invalid';
+      width = u16le(bytes, dataStart + 9) & 0x3fff;
+      height = u16le(bytes, dataStart + 11) & 0x3fff;
+      imageFrames += 1;
+    } else if (type === 'VP8L') {
+      if (chunkLength < 5 || bytes[dataStart] !== 0x2f) return 'local WebP VP8L frame header is invalid';
+      const bits = bytes[dataStart + 1]! | (bytes[dataStart + 2]! << 8) | (bytes[dataStart + 3]! << 16) | (bytes[dataStart + 4]! << 24);
+      width = (bits & 0x3fff) + 1;
+      height = ((bits >>> 14) & 0x3fff) + 1;
+      imageFrames += 1;
+    }
+    offset = dataEnd + (chunkLength % 2);
+  }
+  if (imageFrames !== 1 || !dimensionsAreBounded(width, height)) return 'local WebP framing or dimensions are invalid';
+  return { mimeType: 'image/webp', width, height, frameCount: imageFrames };
+}
+
+function inspectImage(bytes: Uint8Array, mimeType: DimSumImageManifest['decodeProof']['mimeType']): ImageInspection | string {
+  if (mimeType === 'image/png') return inspectPng(bytes);
+  if (mimeType === 'image/jpeg') return inspectJpeg(bytes);
+  return inspectWebp(bytes);
+}
+
 async function sha256(bytes: Uint8Array): Promise<string | undefined> {
   const subtle = globalThis.crypto?.subtle;
   if (!subtle) return undefined;
@@ -135,7 +291,21 @@ async function sha256(bytes: Uint8Array): Promise<string | undefined> {
   return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('');
 }
 
-function validateEntry(value: unknown, index: number): DimSumCacheEntry | string {
+async function decodeImageLocally(bytes: Uint8Array, mimeType: DimSumImageManifest['decodeProof']['mimeType']): Promise<ImageInspection | string> {
+  const createBitmap = (globalThis as typeof globalThis & { createImageBitmap?: (image: Blob) => Promise<ImageBitmap> }).createImageBitmap;
+  if (typeof createBitmap !== 'function') return 'the local image decoder is unavailable';
+  try {
+    const bitmap = await createBitmap(new Blob([bytes], { type: mimeType }));
+    const result = { mimeType, width: bitmap.width, height: bitmap.height, frameCount: 1 } satisfies ImageInspection;
+    bitmap.close();
+    if (!dimensionsAreBounded(result.width, result.height)) return 'decoded image dimensions exceed the safety bounds';
+    return result;
+  } catch {
+    return 'local image decoding failed';
+  }
+}
+
+function validateEntry(value: unknown, index: number, sourceAssetRelease: string): DimSumCacheEntry | string {
   if (!isRecord(value) || !exactKeys(value, ['id', 'names', 'image'])) return `entry ${index + 1} has unexpected or missing fields`;
   if (!boundedString(value.id, DIM_SUM_CACHE_MAX_ID_LENGTH)) return `entry ${index + 1} has an invalid id`;
 
@@ -157,12 +327,16 @@ function validateEntry(value: unknown, index: number): DimSumCacheEntry | string
   const bytes = decodeBase64(image.dataUrl);
   const mimeType = parseDataUrlMime(image.dataUrl);
   if (!bytes || !mimeType || bytes.length === 0 || bytes.length > DIM_SUM_CACHE_MAX_IMAGE_BYTES) return `entry ${index + 1} has invalid local image bytes`;
+  const inspected = inspectImage(bytes, mimeType);
+  if (typeof inspected === 'string') return `entry ${index + 1} ${inspected}`;
+  const assetMatch = ASSET_URL.exec(image.assetUrl);
+  if (!assetMatch || assetMatch[1] !== sourceAssetRelease || assetMatch[2] !== image.assetId) return `entry ${index + 1} asset identity does not match the cache source manifest`;
   if (typeof image.byteSize !== 'number' || !Number.isSafeInteger(image.byteSize) || image.byteSize !== bytes.length) return `entry ${index + 1} has a byte-size proof that does not match its local image`;
   if (typeof image.sha256 !== 'string' || !HEX_64.test(image.sha256)) return `entry ${index + 1} has an invalid image digest`;
 
   const proof = image.decodeProof;
   if (!isRecord(proof) || !exactKeys(proof, ['validated', 'static', 'mimeType', 'width', 'height', 'checkedAt'])) return `entry ${index + 1} has incomplete decode proof`;
-  if (proof.validated !== true || proof.static !== true || proof.mimeType !== mimeType) return `entry ${index + 1} has an untrusted decode proof`;
+  if (proof.validated !== true || proof.static !== true || proof.mimeType !== mimeType || inspected.frameCount !== 1 || proof.width !== inspected.width || proof.height !== inspected.height) return `entry ${index + 1} has an untrusted or mismatched decode proof`;
   if (!Number.isSafeInteger(proof.width) || proof.width < 1 || proof.width > DIM_SUM_CACHE_MAX_IMAGE_DIMENSION || !Number.isSafeInteger(proof.height) || proof.height < 1 || proof.height > DIM_SUM_CACHE_MAX_IMAGE_DIMENSION) return `entry ${index + 1} has an invalid decoded image size`;
   if (!isIsoDate(proof.checkedAt)) return `entry ${index + 1} has an invalid decode-proof timestamp`;
   const width = proof.width as number;
@@ -217,7 +391,7 @@ export function validateDimSumCachePayload(rawText: string): DimSumCacheValidati
   const ids = new Set<string>();
   const entries: DimSumCacheEntry[] = [];
   for (let index = 0; index < value.entries.length; index += 1) {
-    const result = validateEntry(value.entries[index], index);
+    const result = validateEntry(value.entries[index], index, source.assetRelease as string);
     if (typeof result === 'string') return { ok: false, reason: result };
     if (ids.has(result.id)) return { ok: false, reason: `the private dim-sum cache repeats entry id ${result.id}` };
     ids.add(result.id);
@@ -261,6 +435,11 @@ export async function validateDimSumCachePayloadAsync(rawText: string): Promise<
     }
     if (!digest) return { ok: false, reason: 'Web Crypto is unavailable, so the private dim-sum cache cannot be verified' };
     if (digest !== entry.image.sha256) return { ok: false, reason: `entry ${index + 1} image bytes do not match the recorded SHA-256 proof` };
+    const decoded = await decodeImageLocally(bytes, entry.image.decodeProof.mimeType);
+    if (typeof decoded === 'string') return { ok: false, reason: `entry ${index + 1} ${decoded}` };
+    if (decoded.width !== entry.image.decodeProof.width || decoded.height !== entry.image.decodeProof.height || decoded.frameCount !== 1) {
+      return { ok: false, reason: `entry ${index + 1} decoded image dimensions do not match the recorded proof` };
+    }
   }
   return result;
 }

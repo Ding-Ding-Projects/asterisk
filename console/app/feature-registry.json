@@ -457,7 +457,7 @@
     },
     "dim-sum-surprise": {
       "status": "implemented-unverified",
-      "note": "SurfaceMounts mounts DimSumSurprise through the typed dimSum.readCache bridge and the startup-context event seam. The component performs one secure ten-percent draw, validates the private cache asynchronously, and reports suppression or unavailable state without inventing a dish. No tests, build, runtime interaction, or capture was run in this lane.",
+      "note": "Desktop SurfaceMounts mounts DimSumSurprise through the bounded typed dimSum.readCache bridge and the startup-context event seam. Hosted Day Teet Hui surfaces use only the visitor's browser-local cache and do not call the control plane, so their registry remains partial until a browser-local cache producer and site-specific evidence exist. The component performs one secure ten-percent draw only after suppression clears, validates the private cache asynchronously, and reports suppression or unavailable state without inventing a dish. No tests, build, runtime interaction, or capture was run in this lane.",
       "implementation": {
         "paths": [
           "app/renderer/src/dim-sum-surprise.tsx",
@@ -793,7 +793,7 @@
       }
     },
     "material-appearance": {
-      "status": "implemented-unverified",
+      "status": "partial",
       "note": "App.tsx now creates the persisted AppearanceStore after durable storage hydrates, installs APPEARANCE_RUNTIME_STYLES, marks real controls with stable data-appearance-id values, and binds AppearanceRuntime. The shared rich-control registration exposes every appearance property to the palette and uses the store for live draft/apply writes. The generated appearance panel remains a legacy global preview path, so built-artifact interaction and full typography proof are still unverified.",
       "implementation": {
         "paths": [
@@ -1311,7 +1311,7 @@
       }
     },
     "command-palette": {
-      "status": "implemented-unverified",
+      "status": "partial",
       "note": "App.tsx now mounts a command registry built from the design destination and setting catalogue plus every appearance property, and exposes its entries as the compiled paletteItems list with exact destination callbacks. The shared palette-index and shortcut behavior remain separate integration surfaces; no tests, build, runtime interaction, or capture was run in this lane.",
       "implementation": {
         "paths": [
