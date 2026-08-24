@@ -3,11 +3,14 @@
 #include <algorithm>
 #include <cstdint>
 #include <iostream>
+#include <fstream>
+#include <cstdlib>
+#include <iterator>
+#include <regex>
 #include <string>
 
 namespace {
 constexpr char kExtensionId[] = "dnpkplcgjmipnndmghkhljjoefjhidab";
-constexpr wchar_t kPipe[] = L"\\\\.\\pipe\\ding-pbx-download-ingress";
 constexpr std::uint32_t kMaxMessageBytes = 128u * 1024u;
 
 bool readExact(void* target, std::size_t bytes, ULONGLONG deadlineMs) {
@@ -38,10 +41,31 @@ void writeMessage(const std::string& body) {
 }
 
 bool containsExactIdentity(const std::string& body) {
-  return body.find("\"type\":\"download-handoff\"") != std::string::npos
-      && body.find("\"extensionId\":\"" + std::string(kExtensionId) + "\"") != std::string::npos
-      && body.find("\"handoff\":{") != std::string::npos;
+  return body.find("\"type\"") != std::string::npos
+      && body.find("download-handoff") != std::string::npos
+      && body.find(kExtensionId) != std::string::npos
+      && body.find("\"handoff\"") != std::string::npos;
 }
+
+std::string expandConfigPath() {
+  char* localAppData = nullptr;
+  std::size_t size = 0;
+  _dupenv_s(&localAppData, &size, "LOCALAPPDATA");
+  const std::string root = localAppData ? localAppData : "";
+  if (localAppData) free(localAppData);
+  return root + "\\Ding-Ding-Projects\\Asterisk\\native-messaging\\ingress-config.json";
+}
+
+bool readConfig(std::string& pipe, std::string& challenge) {
+  std::ifstream file(expandConfigPath(), std::ios::binary);
+  if (!file) return false;
+  const std::string json((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+  std::smatch match;
+  if (!std::regex_search(json, match, std::regex("\\\"pipeName\\\"\\s*:\\s*\\\"([^\\\"]+)\\\""))) return false;
+  pipe = match[1].str();
+  if (!std::regex_search(json, match, std::regex("\\\"challenge\\\"\\s*:\\s*\\\"([0-9a-f]{64})\\\""))) return false;
+  challenge = match[1].str();
+  return true;
 }
 }
 
@@ -57,16 +81,23 @@ int main() {
     return 1;
   }
 
-  if (!WaitNamedPipeW(kPipe, 15'000)) {
+  std::string pipeName;
+  std::string challenge;
+  if (!readConfig(pipeName, challenge)) {
+    writeMessage(R"({"accepted":false,"detail":"The native ingress installation challenge was unavailable."})");
+    return 1;
+  }
+  const std::wstring pipeWide(pipeName.begin(), pipeName.end());
+  if (!WaitNamedPipeW(pipeWide.c_str(), 15'000)) {
     writeMessage(R"({"accepted":false,"detail":"The desktop native ingress pipe was unavailable."})");
     return 1;
   }
-  const HANDLE pipe = CreateFileW(kPipe, GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+  const HANDLE pipe = CreateFileW(pipeWide.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
   if (pipe == INVALID_HANDLE_VALUE) {
     writeMessage(R"({"accepted":false,"detail":"The desktop native ingress pipe was unavailable."})");
     return 1;
   }
-  const std::string line = body + "\n";
+  const std::string line = "{\"challenge\":\"" + challenge + "\",\"payload\":" + body + "}\n";
   DWORD written = 0;
   if (!WriteFile(pipe, line.data(), static_cast<DWORD>(line.size()), &written, nullptr)) {
     CloseHandle(pipe);

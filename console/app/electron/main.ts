@@ -2,13 +2,15 @@ import { app, BrowserWindow, dialog, ipcMain, type WebContents } from 'electron'
 import { stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { createServer, type Server } from 'node:net';
+import { randomBytes } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
 import { createVaultReference } from '../../control-plane/status-hub-client.js';
 import type { ControlPlaneRequest, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
 import type { DownloadCommand, DownloadSurfaceKind, ExtensionDownloadHandoff } from '../../shared/download-transfer.js';
 import { isExtensionDownloadHandoff } from '../../shared/download-transfer.js';
-import { DOWNLOAD_NATIVE_MESSAGE_LIMIT, DOWNLOAD_NATIVE_PIPE, isNativeDownloadIngressMessage } from '../../shared/native-messaging.js';
+import { DOWNLOAD_NATIVE_MESSAGE_LIMIT, isNativeDownloadIngressMessage } from '../../shared/native-messaging.js';
 import {
   parseVersion, resolveLatestUpdate, validateReleaseIdentity, initialUpdaterState, beganChecking, checkSucceeded,
   updateFailed, beganDownloading, downloadReady, dismissedForNow, verifyDownload, findDigestForAsset,
@@ -24,6 +26,9 @@ interface DownloadWindowRecord { window: BrowserWindow; handoffId?: string; tran
 const downloadWindows = new Map<DownloadSurfaceKind, DownloadWindowRecord>();
 let downloadOriginWindow: BrowserWindow | null = null;
 let nativeIngressServer: Server | undefined;
+let nativeIngressConfig: { pipeName: string; challenge: string } | undefined;
+let nativeIngressConnections = 0;
+const MAX_NATIVE_INGRESS_CONNECTIONS = 2;
 function vaultReferenceFromEnvironment(name: string) {
   const value = process.env[name];
   if (!value) return undefined;
@@ -215,11 +220,29 @@ async function acceptExtensionHandoff(handoff: ExtensionDownloadHandoff, senderW
   return result;
 }
 
+function readNativeIngressConfig(): { pipeName: string; challenge: string } | undefined {
+  const root = process.env.LOCALAPPDATA;
+  if (!root) return undefined;
+  const path = join(root, 'Ding-Ding-Projects', 'Asterisk', 'native-messaging', 'ingress-config.json');
+  if (!existsSync(path)) return undefined;
+  try {
+    const value = JSON.parse(readFileSync(path, 'utf8')) as { pipeName?: unknown; challenge?: unknown };
+    if (typeof value.pipeName !== 'string' || !/^\\\\\.\\pipe\\ding-pbx-download-[a-z0-9]{32}$/u.test(value.pipeName)) return undefined;
+    if (typeof value.challenge !== 'string' || !/^[0-9a-f]{64}$/iu.test(value.challenge)) return undefined;
+    return { pipeName: value.pipeName, challenge: value.challenge.toLowerCase() };
+  } catch { return undefined; }
+}
+
 ipcMain.handle('download:submit-handoff', async (_event, handoff: ExtensionDownloadHandoff) => acceptExtensionHandoff(handoff, BrowserWindow.fromWebContents(_event.sender) ?? mainWindow));
 
 function startNativeDownloadIngress(): void {
   if (process.platform !== 'win32' || nativeIngressServer) return;
+  nativeIngressConfig = readNativeIngressConfig();
+  if (!nativeIngressConfig) return;
   nativeIngressServer = createServer((socket) => {
+    if (nativeIngressConnections >= MAX_NATIVE_INGRESS_CONNECTIONS) { socket.end(JSON.stringify({ accepted: false, detail: 'The native ingress connection limit was reached.' }) + '\n'); return; }
+    nativeIngressConnections += 1;
+    socket.once('close', () => { nativeIngressConnections = Math.max(0, nativeIngressConnections - 1); });
     let buffer = '';
     let settled = false;
     const finish = (response: { accepted: boolean; detail: string }) => {
@@ -236,15 +259,15 @@ function startNativeDownloadIngress(): void {
       if (newline < 0) return;
       const text = buffer.slice(0, newline);
       try {
-        const message: unknown = JSON.parse(text);
-        if (!isNativeDownloadIngressMessage(message)) { finish({ accepted: false, detail: 'The native ingress extension identity or handoff shape was refused.' }); return; }
-        void acceptExtensionHandoff(message.handoff, mainWindow).then(finish).catch((error) => finish({ accepted: false, detail: error instanceof Error ? error.message : 'The native ingress handoff was refused.' }));
+        const envelope = JSON.parse(text) as { challenge?: unknown; payload?: unknown };
+        if (envelope.challenge !== nativeIngressConfig?.challenge || !isNativeDownloadIngressMessage(envelope.payload)) { finish({ accepted: false, detail: 'The native ingress challenge, extension identity, or handoff shape was refused.' }); return; }
+        void acceptExtensionHandoff(envelope.payload.handoff, mainWindow).then(finish).catch((error) => finish({ accepted: false, detail: error instanceof Error ? error.message : 'The native ingress handoff was refused.' }));
       } catch { finish({ accepted: false, detail: 'The native ingress message was not valid JSON.' }); }
     });
     socket.on('error', () => { if (!settled) finish({ accepted: false, detail: 'The native ingress connection failed.' }); });
   });
   nativeIngressServer.on('error', () => { nativeIngressServer = undefined; });
-  nativeIngressServer.listen(DOWNLOAD_NATIVE_PIPE);
+  nativeIngressServer.listen({ path: nativeIngressConfig.pipeName, readableAll: false, writableAll: false, backlog: MAX_NATIVE_INGRESS_CONNECTIONS });
 }
 
 function windowRecordForContents(contents: WebContents): DownloadWindowRecord | undefined {
