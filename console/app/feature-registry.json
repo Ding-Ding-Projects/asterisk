@@ -163,12 +163,15 @@
       ]
     },
     "local-version-history": {
-      "state": "absent",
-      "note": "control-plane/local-history.ts and control-plane/config-history.ts implement Git-backed local history server-side, but nothing in the renderer surfaces a history/versions panel, restore action, or diff view to the user. The feature exists as backend plumbing with no reachable UI.",
+      "state": "partial",
+      "note": "CORRECTED 2026-08-24, and the correction is the point. This row read \"absent -- backend plumbing with no reachable UI\", which was accurate when written and stale by the time it mattered: control-plane/local-history.ts implements Git-backed history with secret redaction, control-plane/config-history.ts backs the config side, dispatch answers history.list and history.restore, and PbxAdminApp -- which is the mounted root, through PbxAdminIntegratedApp -- lists recovery points per resource and restores one behind a confirmation, handling the failure of each. I read the row, believed it, and began designing a replacement for a feature that already worked. A guard now refuses any absent row whose evidence is in the source tree.",
       "files": [
-        "control-plane/local-history.ts",
-        "control-plane/config-history.ts"
-      ]
+        "app/renderer/src/PbxAdminApp.tsx",
+        "control-plane/config-history.ts",
+        "control-plane/dispatch.ts",
+        "control-plane/local-history.ts"
+      ],
+      "blockedBy": "BLOCKED ON THE REST OF THE CONTRACT, not on existence. What is there: Git-backed snapshots in an isolated repository, secret redaction before anything is written, listing recovery points per resource, and restore behind a confirmation. What the canonical contract also asks for and this does not yet do: a diff between two points, user-applied labels, retention and pruning controls, export of redacted history, and a date-and-action filter over the list. Real consumption of the rest means a History panel in the design carrying those controls, reading the same history.list the admin surface already calls, plus a history.diff action beside it -- the snapshots to diff are already being written, so this is a surface and one action rather than new plumbing."
     },
     "changelog-viewer": {
       "state": "partial",
