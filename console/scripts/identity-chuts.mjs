@@ -20,6 +20,10 @@ const consolePath = new URL('../../design/Asterisk Console M3.dc.html', import.m
 const m3Path = new URL('../../design/M3 Control.dc.html', import.meta.url);
 const consoleSource = readFileSync(consolePath, 'utf8');
 const m3Source = readFileSync(m3Path, 'utf8');
+const appSource = readFileSync(new URL('../app/renderer/src/App.tsx', import.meta.url), 'utf8');
+const runtimeSource = readFileSync(new URL('../app/renderer/src/dc-runtime.tsx', import.meta.url), 'utf8');
+const generatedConsoleSource = readFileSync(new URL('../app/renderer/src/generated/console.tsx', import.meta.url), 'utf8');
+const manifest = JSON.parse(readFileSync(new URL('../app/renderer/src/generated/design-manifest.json', import.meta.url), 'utf8'));
 const consoleMarkup = designMarkup(consolePath);
 const m3Markup = designMarkup(m3Path);
 
@@ -41,4 +45,16 @@ for (const [name, markup, needle] of fixtures) {
 
 assert.match(consoleSource, /data-stable-identity-contract="id,key"/u);
 assert.match(m3Source, /data-stable-identity-contract="id,key"/u);
+const mounted = manifest.directAppearanceIds.mountedStates;
+assert.notDeepEqual(mounted.shell, mounted.palette, 'shell and palette direct-ID sets must differ');
+assert.notDeepEqual(mounted.shell, mounted.appearance, 'shell and appearance direct-ID sets must differ');
+assert.notDeepEqual(mounted.palette, mounted.appearance, 'palette and appearance direct-ID sets must differ');
+assert.ok(mounted['palette-appearance'].length >= mounted.palette.length, 'combined state must include palette IDs');
+assert.ok(mounted['palette-appearance'].length >= mounted.appearance.length, 'combined state must include appearance IDs');
+assert.match(appSource, /const refusal = this\.recordControlActionHistory[\s\S]*?operation\.cancelRefusalPending = refusal[\s\S]*?await refusal/u, 'cancel-refused history is not awaited before the refusal outcome');
+assert.match(appSource, /if \(operation\?\.cancelRefusalPending\) await operation\.cancelRefusalPending/u, 'terminal outcome is not ordered after cancellation refusal history');
+assert.match(runtimeSource, /primitive producer without explicit id\/key/u, 'primitive identity fallback remains');
+assert.doesNotMatch(runtimeSource, /record\.value/u, 'value fallback identity remains');
+assert.match(generatedConsoleSource, /requireChoice/u, 'generated controls do not fail closed on producer identity');
+assert.doesNotMatch(generatedConsoleSource, /id:String\(x\)/u, 'generated controls still synthesize identity with String(x)');
 console.log('PASS: five identity fixtures red and restored green; console=73, m3Control=8, total=81');

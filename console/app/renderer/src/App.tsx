@@ -249,7 +249,10 @@ export class App extends Base {
       executeControlAction: (controlId, action) => this.onControlAction(action, controlId),
     });
     this.navigationAdapter = this.richControlRegistration.navigationAdapter;
-    this.generatedNavigationRevision = this.navigationAdapter.getState().revision;
+    this.adapterNavigationRevision = this.navigationAdapter.getState().revision;
+    this.generatedNavigationRevision = this.adapterNavigationRevision;
+    this.navigationExpectedRevision = this.adapterNavigationRevision;
+    this.navigationAdapter.subscribe((next) => { this.adapterNavigationRevision = next.revision; });
   }
   /** The chosen file's own name, kept only for display — never its contents. */
   private pickedFileNames = new Map<string, string>();
@@ -278,8 +281,10 @@ export class App extends Base {
   private navigationRollbackPending = false;
   private navigationTransactionToken: number | undefined;
   private queuedRichControlRefresh: { screenId: string; controls: ReadonlyArray<RichControlInput> } | undefined;
+  private adapterNavigationRevision = 0;
   private generatedNavigationRevision = 0;
-  private controlOperations = new Map<string, { controlId: string; action: string; executing: boolean; cancelled: boolean; progress: number; status: string; terminalPhase?: 'completed' | 'failed' | 'cancelled' }>();
+  private navigationExpectedRevision = 0;
+  private controlOperations = new Map<string, { controlId: string; action: string; executing: boolean; cancelled: boolean; progress: number; status: string; cancelRefusalPending?: Promise<boolean>; terminalPhase?: 'completed' | 'failed' | 'cancelled' }>();
   /** The unlock ladder (unlock-ladder.ts) for the per-element lock's unlock dialog.
    *  Renderer-only: this app's per-element lock has no server-enforced attempt budget
    *  or time-based lockout of its own, so this in-memory instance -- like the PIN and
@@ -389,21 +394,26 @@ export class App extends Base {
       this.queuedRichControlRefresh = undefined;
       this.publishDimSumContext(true);
       this.syncLegacyAppearanceStore();
+      this.navigationExpectedRevision = this.navigationAdapter.getState().revision;
       void this.refresh();
       if (queuedRefresh) this.refreshRichControlRegistration(queuedRefresh.screenId, queuedRefresh.controls);
       return;
     }
     const syncedNavigation = this.navigationAdapter.syncGenerated({
-      expectedRevision: this.generatedNavigationRevision,
+      expectedRevision: this.navigationExpectedRevision,
       screen: (this.state as { screen?: unknown }).screen,
       tabs: (this.state as { tabs?: unknown }).tabs,
       pinned: (this.state as { pinned?: unknown }).pinned,
       groups: (this.state as { groups?: unknown }).groups,
       railId: (this.state as { railId?: unknown }).railId,
     });
-    this.generatedNavigationRevision = syncedNavigation.revision;
+    this.adapterNavigationRevision = syncedNavigation.revision;
     if (!syncedNavigation.ok && syncedNavigation.reason === 'stale-revision') {
+      this.navigationExpectedRevision = syncedNavigation.revision;
       this.restoreNavigationShell(syncedNavigation.state, false);
+    } else if (syncedNavigation.ok) {
+      this.navigationExpectedRevision = syncedNavigation.revision;
+      this.generatedNavigationRevision = syncedNavigation.revision;
     }
     this.publishDimSumContext(true);
     this.syncLegacyAppearanceStore();
@@ -542,10 +552,12 @@ export class App extends Base {
       expectedDynamicIds.add('rich-operation-progress');
       expectedDynamicIds.add('rich-operation-cancel');
     }
-    const directManifest = new Set<string>(
-      DESIGN_MANIFEST.directAppearanceIds?.mountedStates?.[mountedState]
-      ?? [...(DESIGN_MANIFEST.directAppearanceIds?.console ?? []), ...(DESIGN_MANIFEST.directAppearanceIds?.m3Control ?? [])],
-    );
+    const stateManifest = DESIGN_MANIFEST.directAppearanceIds?.mountedStates?.[mountedState];
+    if (!Array.isArray(stateManifest)) {
+      document.documentElement.dataset.appearanceRegistrationError = `inventory:missing state-specific direct-ID manifest for ${mountedState}`;
+      return false;
+    }
+    const directManifest = new Set<string>(stateManifest);
     const inventoryDefects = appearanceInventoryDefects(document, mountedState, expectedDynamicIds, directManifest);
     if (inventoryDefects.length > 0) {
       document.documentElement.dataset.appearanceRegistrationError = `inventory:${inventoryDefects.join(' | ')}`;
@@ -1059,13 +1071,16 @@ export class App extends Base {
     this.controlOperations.delete(operationId);
   }
 
-  cancelControlAction = (operationId: string): { ok: boolean; cancelled: boolean; reason: string } => {
+  cancelControlAction = async (operationId: string): Promise<{ ok: boolean; cancelled: boolean; reason: string }> => {
     const operation = this.controlOperations.get(operationId);
     if (!operation) return { ok: false, cancelled: false, reason: `Operation ${operationId} is not active.` };
     if (operation.executing) {
       const reason = `Operation ${operationId} is already executing and cannot be cancelled.`;
+      const refusal = this.recordControlActionHistory(operation.controlId, operation.action, operationId, 'cancel-refused');
+      operation.cancelRefusalPending = refusal;
+      await refusal;
+      if (operation.cancelRefusalPending === refusal) operation.cancelRefusalPending = undefined;
       this.fire('Action cancellation outcome', reason);
-      void this.recordControlActionHistory(operation.controlId, operation.action, operationId, 'cancel-refused');
       return { ok: false, cancelled: false, reason };
     }
     operation.cancelled = true;
@@ -1102,6 +1117,7 @@ export class App extends Base {
   private async finishControlOperation(controlId: string, action: string, operationId: string, phase: 'completed' | 'failed' | 'cancelled', detail: string): Promise<void> {
     const operation = this.controlOperations.get(operationId);
     if (operation?.terminalPhase) return;
+    if (operation?.cancelRefusalPending) await operation.cancelRefusalPending;
     if (operation) { operation.terminalPhase = phase; operation.progress = 100; operation.status = `${phase}: ${detail}`; }
     this.fire('Action outcome', `${action} operation ${operationId} ${phase}: ${detail}`);
     await this.recordControlActionHistory(controlId, action, operationId, phase);

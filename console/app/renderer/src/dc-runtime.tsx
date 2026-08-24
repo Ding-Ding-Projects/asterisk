@@ -45,29 +45,19 @@ export function A<T>(list: T[] | null | undefined): T[] {
   return Array.isArray(list) ? list : [];
 }
 
-/** Normalizes one explicitly identity-bearing design loop without using labels or indexes. */
+/** Validates one explicitly identity-bearing design loop without using labels, values, or indexes as identity. */
 export function I<T>(list: T[] | null | undefined, designPath: string, loopVariable: string): Array<T & { id: string; key: string }> {
   if (!Array.isArray(list)) return [];
   const seen = new Set<string>();
   return list.map((raw) => {
-    let id: unknown;
-    let key: unknown;
-    if (raw !== null && typeof raw === 'object') {
-      const record = raw as { id?: unknown; key?: unknown; value?: unknown };
-      id = record.id ?? record.key ?? record.value;
-      key = record.key ?? record.id ?? record.value;
-    } else {
-      id = raw;
-      key = raw;
-    }
-    if (typeof id !== 'string' && typeof id !== 'number') throw new Error(`Design path ${designPath}, loop variable ${loopVariable} lacks a producer id/key/value.`);
-    if (typeof key !== 'string' && typeof key !== 'number') throw new Error(`Design path ${designPath}, loop variable ${loopVariable} lacks a producer key/id/value.`);
-    const stableId = String(id).trim();
-    const stableKey = String(key).trim();
+    if (raw === null || typeof raw !== 'object') throw new Error(`Design path ${designPath}, loop variable ${loopVariable} has a primitive producer without explicit id/key.`);
+    const record = raw as { id?: unknown; key?: unknown };
+    if (typeof record.id !== 'string' || typeof record.key !== 'string') throw new Error(`Design path ${designPath}, loop variable ${loopVariable} lacks explicit producer id/key.`);
+    const stableId = record.id.trim();
+    const stableKey = record.key.trim();
     if (!stableId || !stableKey || seen.has(stableId)) throw new Error(`Design path ${designPath}, loop variable ${loopVariable} has a missing or duplicate producer identity.`);
     seen.add(stableId);
-    if (raw !== null && typeof raw === 'object') return Object.assign({}, raw, { id: stableId, key: stableKey }) as T & { id: string; key: string };
-    return { value: raw, label: String(raw), id: stableId, key: stableKey } as T & { id: string; key: string };
+    return raw as T & { id: string; key: string };
   });
 }
 

@@ -2000,12 +2000,18 @@ const stableChoice = (raw, context) => {
   }
   return Object.assign({}, raw, { id, key, value, label: typeof raw.label === 'string' ? raw.label : value });
 };
-const optionValue = (raw) => raw && typeof raw === 'object' ? raw.value : raw;
+const requireChoice = (raw, context) => {
+  if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string' || typeof raw.key !== 'string' || typeof raw.value !== 'string' || typeof raw.label !== 'string') {
+    throw new Error(`${context} producer must supply explicit id, key, value, and label.`);
+  }
+  return raw;
+};
 const buildCtl = (id, label, kind, value, extra) => {
   const source = extra || {};
   const options = Array.isArray(source.options) ? source.options.map((option) => stableChoice(option, `${id} ${kind}`)) : source.options;
   const pool = Array.isArray(source.pool) ? source.pool.map((item) => stableChoice(item, `${id} pool`)) : source.pool;
-  return Object.assign({ id, key: id, label, kind, value }, source, { options, pool });
+  const normalizedValue = kind === 'order' && Array.isArray(value) ? value.map((item) => stableChoice(item, `${id} order value`)) : value;
+  return Object.assign({ id, key: id, label, kind, value: normalizedValue }, source, { options, pool });
 };
 const ctl = buildCtl;
 
@@ -3071,11 +3077,11 @@ class Component extends DCLogic {
     };
   };
   commit = () => this.notify('warning', 'History unavailable', 'Local intent is not a history entry. The host must return a durable history receipt.');
-  setVal = (c, value) => this.invokeHost('settings.update', { screen:this.state.screen, settingId:c.id, value, expectedSource:(SCREENS[this.state.screen] || {}).file || 'console' }).then(receipt => {
+  setVal = (c, value) => { const outbound = c.kind === 'order' && Array.isArray(value) ? value.map(item => requireChoice(item, `${c.id} order write`).value) : value; return this.invokeHost('settings.update', { screen:this.state.screen, settingId:c.id, value:outbound, expectedSource:(SCREENS[this.state.screen] || {}).file || 'console' }).then(receipt => {
     if (!receipt.ok) return receipt;
     this.setState(st => ({ values:Object.assign({}, st.values, { [c.id]:value }), commits:receipt.historyEntry ? [receipt.historyEntry].concat(st.commits || []).slice(0, 400) : (st.commits || []) }));
     return receipt;
-  });
+  }); };
 
   showDoc = (c) => {
     this._lastCtl = c;
@@ -3376,12 +3382,12 @@ class Component extends DCLogic {
       onInfo:() => this.showDoc(c),
       onInfoLegacy:() => this.showInfo(c.label, c.info || ('This setting is written to ' + (SCREENS[this.state.screen] || {}).file + ' as ' + c.id + '.'), null),
       set:(nv) => this.setVal(c, nv) };
-    if (c.kind === 'segmented' || c.kind === 'select') o.options = (c.options || []).map(x => { const value = String(optionValue(x)); const label = x && typeof x === 'object' && typeof x.label === 'string' ? x.label : value; return { id:x.id || x.key || value, key:x.key || x.id || value, value, label, on:value === String(v), off:value !== String(v), pick:() => this.setVal(c, value) }; });
-    if (c.kind === 'chips') o.options = (c.options || []).map(x => { const value = String(optionValue(x)); const label = x && typeof x === 'object' && typeof x.label === 'string' ? x.label : value; const selected = (v || []).map(String).indexOf(value) >= 0; return { id:x.id || x.key || value, key:x.key || x.id || value, value, label, on:selected, off:!selected, pick:() => this.setVal(c, (v || []).map(String).indexOf(value) >= 0 ? v.filter(y => String(y) !== value) : (v || []).concat([value])) }; });
+    if (c.kind === 'segmented' || c.kind === 'select') o.options = (c.options || []).map(x => { const option = requireChoice(x, `${c.id} option`); return { ...option, on:option.value === v, off:option.value !== v, pick:() => this.setVal(c, option.value) }; });
+    if (c.kind === 'chips') o.options = (c.options || []).map(x => { const option = requireChoice(x, `${c.id} option`); const selected = (v || []).indexOf(option.value) >= 0; return { ...option, on:selected, off:!selected, pick:() => this.setVal(c, selected ? v.filter(y => y !== option.value) : (v || []).concat([option.value])) }; });
     if (c.kind === 'order') {
       o.move = (from, to) => { const a = (v || []).slice(); const [m] = a.splice(from, 1); a.splice(to, 0, m); this.setVal(c, a); };
-      o.items = (v || []).map((x, i) => ({ id:String(x), key:String(x), label:x, idx:i, up:() => { const a = v.slice(); if (i > 0) { a[i] = a[i - 1]; a[i - 1] = x; this.setVal(c, a); } }, down:() => { const a = v.slice(); if (i < a.length - 1) { a[i] = a[i + 1]; a[i + 1] = x; this.setVal(c, a); } }, drop:() => this.setVal(c, v.filter(y => y !== x)) }));
-      o.pool = (c.pool || []).map(x => { const value = String(optionValue(x)); const label = x && typeof x === 'object' && typeof x.label === 'string' ? x.label : value; return { id:x.id || x.key || value, key:x.key || x.id || value, value, label, add:() => this.setVal(c, (v || []).concat([value])) }; }).filter(x => (v || []).map(String).indexOf(x.value) < 0);
+      o.items = (v || []).map((x, i) => { const item = requireChoice(x, `${c.id} order item`); return { ...item, idx:i, up:() => { const a = v.slice(); if (i > 0) { a[i] = a[i - 1]; a[i - 1] = item; this.setVal(c, a); } }, down:() => { const a = v.slice(); if (i < a.length - 1) { a[i] = a[i + 1]; a[i + 1] = item; this.setVal(c, a); } }, drop:() => this.setVal(c, v.filter(y => y !== item)) }; });
+      o.pool = (c.pool || []).map(x => requireChoice(x, `${c.id} pool item`)).filter(x => (v || []).every(item => item.id !== x.id && item.key !== x.key)).map(x => ({ ...x, add:() => this.setVal(c, (v || []).concat([x])) }));
     }
     if (c.kind === 'switch') { o.on = !!v; o.off = !v; o.toggle = () => this.setVal(c, !v); }
     if (c.kind === 'stepper') {

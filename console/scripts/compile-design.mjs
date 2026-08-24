@@ -194,16 +194,36 @@ function assertStableDynamicIdentityContract(path, loopVariable) {
   }
 }
 
-function annotateDirectInteractiveNodes(nodes, componentName, paths, path = '0') {
+function addMountedState(states, state, id) {
+  if (state === 'palette-appearance') states['palette-appearance'].push(id);
+  else if (state === 'palette') states.palette.push(id);
+  else if (state === 'appearance') states.appearance.push(id);
+  else states.shell.push(id);
+}
+
+function childMountedState(node, state) {
+  if (node.tag !== 'sc-if') return state;
+  const condition = String(node.attrs.value ?? '');
+  const hasPalette = condition.includes('paletteOpen');
+  const hasAppearance = condition.includes('appearOpen');
+  if (hasPalette && hasAppearance) return 'palette-appearance';
+  if (hasPalette) return state === 'appearance' ? 'palette-appearance' : 'palette';
+  if (hasAppearance) return state === 'palette' ? 'palette-appearance' : 'appearance';
+  return state;
+}
+
+function annotateDirectInteractiveNodes(nodes, componentName, paths, mountedStates, path = '0', state = 'shell') {
   nodes.forEach((node, index) => {
     if (node.text !== undefined) return;
     const nodePath = `${path}_${index}`;
     const interactive = DIRECT_INTERACTIVE_TAGS.has(node.tag) || Object.keys(node.attrs ?? {}).some((name) => EVENTS.has(name));
     if (interactive && !node.attrs['data-appearance-id']) {
       node.attrs['data-direct-appearance-path'] = `${componentName.toLowerCase()}-${nodePath}`;
-      paths.push(`direct-${componentName.toLowerCase()}-${nodePath}`);
+      const id = `direct-${componentName.toLowerCase()}-${nodePath}`;
+      paths.push(id);
+      addMountedState(mountedStates, state, id);
     }
-    annotateDirectInteractiveNodes(node.children ?? [], componentName, paths, nodePath);
+    annotateDirectInteractiveNodes(node.children ?? [], componentName, paths, mountedStates, nodePath, childMountedState(node, state));
   });
 }
 
@@ -481,7 +501,13 @@ function compileComponent({ name, source, componentName, extraImports = '', expo
   activeInteractiveIdentityRecords = [];
   if (windowChrome) nodes = attachWindowChrome(nodes);
   const directAppearancePaths = [];
-  annotateDirectInteractiveNodes(nodes, componentName, directAppearancePaths);
+  const mountedStatePaths = { shell: [], palette: [], appearance: [], 'palette-appearance': [] };
+  annotateDirectInteractiveNodes(nodes, componentName, directAppearancePaths, mountedStatePaths);
+  if (componentName === 'M3Control') {
+    mountedStatePaths.palette.push(...directAppearancePaths);
+    mountedStatePaths.appearance.push(...directAppearancePaths);
+    mountedStatePaths['palette-appearance'].push(...directAppearancePaths);
+  }
   const interactiveLoopCount = countInteractiveLoops(nodes);
   const body = generate(nodes, new Map(), hovers, '    ');
   const template = `function Template(v: any) {\n  return F(${body.map((part) => `\n    ${part}`).join(',')}\n  );\n}`;
@@ -494,6 +520,7 @@ function compileComponent({ name, source, componentName, extraImports = '', expo
   return {
     hoverCss: hovers.css(),
     directAppearancePaths,
+    mountedStatePaths,
     interactiveLoopCount,
     interactiveIdentityRecords: activeInteractiveIdentityRecords,
     code: [
@@ -575,12 +602,17 @@ const manifest = {
   directAppearanceIds: {
     console: consoleModule.directAppearancePaths,
     m3Control: control.directAppearancePaths,
-    mountedStates: {
-      shell: [...consoleModule.directAppearancePaths, ...control.directAppearancePaths],
-      palette: [...consoleModule.directAppearancePaths, ...control.directAppearancePaths],
-      appearance: [...consoleModule.directAppearancePaths, ...control.directAppearancePaths],
-      'palette-appearance': [...consoleModule.directAppearancePaths, ...control.directAppearancePaths],
-    },
+    mountedStates: (() => {
+      const own = Object.fromEntries(Object.keys(consoleModule.mountedStatePaths).map((state) => [state, [
+        ...consoleModule.mountedStatePaths[state],
+        ...control.mountedStatePaths[state],
+      ]]));
+      const shell = [...new Set(own.shell)];
+      const palette = [...new Set([...shell, ...own.palette])];
+      const appearance = [...new Set([...shell, ...own.appearance])];
+      const combined = [...new Set([...shell, ...palette, ...appearance, ...own['palette-appearance']])];
+      return { shell, palette, appearance, 'palette-appearance': combined };
+    })(),
   },
   interactiveLoopsWithIdentity: {
     console: consoleModule.interactiveLoopCount,
