@@ -26,6 +26,11 @@ import {
   commitUrl, filterAndSearch, parseChangelogDetailed, toMarkdown, toPlainText, type ChangelogEntry,
 } from './changelog';
 import { CHANGELOG_MARKDOWN, CHANGELOG_REPOSITORY_URL } from './generated/changelog-bundle';
+import {
+  click as bulkClick, clearSelection as bulkClearSelection, invert as bulkInvert, planBulk, selectAll as bulkSelectAll,
+  summarise as bulkSummarise, type SelectionState,
+} from './bulk';
+import { describeLoss, exportFilename, exportRows, suitableFormats, type ExportFormat } from './export';
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -601,6 +606,120 @@ export class App extends Base {
     this.toast(`${name} loaded into the editor below.`);
   };
 
+  /**
+   * Real bulk-action handling for every table-like screen.
+   *
+   * The design's own `bulk()` cleared the selection and announced a canned
+   * sentence ("Enabled: 3 objects in one action.") whether or not anything
+   * was actually eligible. This builds a real plan through `bulk.ts` -- which
+   * items are affected versus skipped, and why -- and reports that plan
+   * before acting on it, exactly as the bulk-actions contract requires.
+   *
+   * The 'Exported' verb additionally runs the selected rows through the real
+   * export engine (`export.ts`): it picks a format that can faithfully carry
+   * the columns actually on screen, states any loss the format entails, and
+   * hands the browser a real file download built from those exact rows --
+   * never the whole table when only a few rows are selected.
+   */
+  bulk = (verb: string, sel: string[]): void => {
+    const screen = (this.state as { screen: string }).screen;
+    const screens = SCREENS as Record<string, { table?: { rows: string[][]; cols: string[] } }>;
+    const table = screens[screen]?.table;
+    const cols = table?.cols ?? [];
+    const rows = table?.rows ?? [];
+    const known = new Set(rows.map((r) => r[0]));
+
+    // Every selected row that no longer exists in the current table (deleted,
+    // filtered out) is a real skip with a real reason -- never silently dropped.
+    const plan = planBulk(verb, sel, (id) => (known.has(id) ? true : 'no longer in this table'), {
+      destructive: verb === 'Deleted',
+    });
+    const message = bulkSummarise(plan);
+
+    if (verb === 'Exported') {
+      if (plan.affected.length === 0) {
+        this.fire('Nothing to export', message);
+        return;
+      }
+      const byId = new Map(rows.map((r) => [r[0], r] as const));
+      const records = plan.affected.map((id) => {
+        const row = byId.get(id) ?? [];
+        return Object.fromEntries(cols.map((c, i) => [c, row[i] ?? ''])) as Record<string, unknown>;
+      });
+      const formats = suitableFormats(records);
+      const format: ExportFormat = formats.includes('csv') ? 'csv' : (formats[0] ?? 'json');
+      const text = exportRows({ rows: records, format, table: screen });
+      const loss = describeLoss(records, format);
+      const filename = exportFilename(screen, format);
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      this.set('selected', []);
+      const lossNote = loss.length > 0 ? ` ${loss.join(' ')}` : '';
+      this.fire('Exported', `${message} Saved as ${filename} — ${format.toUpperCase()}, UTF-8, LF line endings.${lossNote}`);
+      return;
+    }
+
+    // Every other bulk verb (Enable/Disable/Duplicate/...) has no write path in this
+    // console yet -- the plan and its honest count are real, but nothing is applied.
+    this.set('selected', []);
+    this.fire(verb, message);
+  };
+
+  /**
+   * Selection mechanics for the current table screen, run through `bulk.ts` rather
+   * than the design's own array-splice logic: shift-click ranges, ctrl-click toggles,
+   * select-all-on-this-page, and inverse selection all go through the real functions
+   * the bulk-actions contract requires every list to have.
+   *
+   * Select-all only ever has a "page" scope here: this console has no server-side
+   * paging or a superset of matches beyond the rows already read from the target, so
+   * "this page" and "every match" are the same set. `selectAll`'s `matches` scope is
+   * therefore unused, and the result is reported as a page-scoped selection rather
+   * than claiming a broader one the console cannot actually distinguish.
+   */
+  private bulkSelectionVals(screen: string, values: Record<string, unknown>): Record<string, unknown> {
+    const screens = SCREENS as Record<string, { table?: { rows: string[][] } }>;
+    const table = screens[screen]?.table;
+    if (!table) return {};
+    const ids = table.rows.map((r) => r[0]);
+    const state = this.state as { selected?: string[] };
+    const selectedArr = state.selected ?? [];
+    const sel: SelectionState = {
+      anchor: selectedArr.length > 0 ? selectedArr[selectedArr.length - 1] : undefined,
+      selected: new Set(selectedArr),
+    };
+    const apply = (next: SelectionState) => this.set('selected', [...next.selected]);
+
+    const rows = Array.isArray(values.tableRows) ? (values.tableRows as Array<Record<string, unknown>>) : [];
+    const tableRows = rows.map((row, i) => ({
+      ...row,
+      toggle: (e?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => {
+        const modifiers = { shift: !!e?.shiftKey, ctrl: !!(e?.ctrlKey || e?.metaKey) };
+        apply(bulkClick(sel, ids[i], modifiers, ids));
+      },
+    }));
+
+    const existingActions = Array.isArray(values.bulkActions)
+      ? (values.bulkActions as Array<{ icon: string; label: string; run: () => void }>)
+      : [];
+
+    return {
+      tableRows,
+      toggleAll: () => apply(selectedArr.length === ids.length && ids.length > 0
+        ? bulkClearSelection(sel)
+        : bulkSelectAll(sel, 'page', ids, ids).state),
+      clearSelection: () => apply(bulkClearSelection(sel)),
+      bulkActions: existingActions.concat([
+        { icon: 'flip_camera_android', label: 'Invert selection', run: () => apply(bulkInvert(sel, ids)) },
+      ]),
+    };
+  }
+
   /** Writes the controls back onto the endpoint they were loaded from. */
   onSaveEndpoint = async (): Promise<void> => {
     const value = this.pjsipValue();
@@ -1075,6 +1194,10 @@ It is shown once. The phone needs it to register.`);
       // The changelog viewer: every released version, built from this repository's
       // own tag history (see scripts/bundle-changelog.mjs), never invented.
       ...(screen === 'changelog' ? this.changelogVals() : {}),
+
+      // Real selection mechanics and bulk-action plans (bulk.ts) plus a real file
+      // export (export.ts) for every table-like screen -- see bulkSelectionVals above.
+      ...(TABLE_SCREENS.includes(screen) ? this.bulkSelectionVals(screen, values) : {}),
     };
   }
 
