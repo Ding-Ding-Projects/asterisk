@@ -1,0 +1,399 @@
+{
+  "schemaVersion": 2,
+  "title": "Resumeable UI smoke execution ledger",
+  "ledgerExecutor": "console/scripts/run-ui-smoke-ledger.mjs",
+  "required": [
+    "planId",
+    "sourceCommit",
+    "integratedCommit",
+    "inventoryDigest",
+    "batchNumber",
+    "rowIds",
+    "status",
+    "events",
+    "runtimeIdentity"
+  ],
+  "statuses": [
+    "planned",
+    "running",
+    "paused",
+    "completed",
+    "failed",
+    "cancelled",
+    "stale"
+  ],
+  "eventSchema": {
+    "required": [
+      "planId",
+      "rowId",
+      "sourceCommit",
+      "integratedCommit",
+      "inventoryDigest",
+      "actionType",
+      "phase",
+      "beforeSha256",
+      "afterSha256",
+      "status",
+      "redactionStatus"
+    ],
+    "hashType": "sha256-or-null-before-capture",
+    "runtimeIdentityRequired": true
+  },
+  "legalTransitions": {
+    "planned": [
+      "running",
+      "cancelled",
+      "stale"
+    ],
+    "running": [
+      "running",
+      "paused",
+      "completed",
+      "failed",
+      "cancelled",
+      "stale"
+    ],
+    "paused": [
+      "running",
+      "cancelled",
+      "stale"
+    ],
+    "failed": [
+      "running",
+      "cancelled",
+      "stale"
+    ],
+    "cancelled": [
+      "running",
+      "stale"
+    ],
+    "stale": [
+      "planned"
+    ],
+    "completed": [
+      "completed"
+    ]
+  },
+  "batchRules": {
+    "maxRowsPerBatch": 24,
+    "maxConcurrentApplications": 1,
+    "maxPollSeconds": 30,
+    "maxCaptureBytes": 33554432,
+    "cancellation": "cooperative-and-visible",
+    "noOverlapAcrossBatches": true
+  },
+  "runtimeIdentity": {
+    "required": [
+      "artifactPath",
+      "artifactSha256",
+      "profileId",
+      "profilePath",
+      "desktopName",
+      "processId",
+      "hwnd",
+      "cdpPort",
+      "targetId",
+      "cleanupState"
+    ],
+    "reResolveBefore": [
+      "processId",
+      "hwnd",
+      "cdpPort",
+      "targetId"
+    ],
+    "cleanupOnlyRecorded": true
+  },
+  "provenance": {
+    "commands": [
+      "git rev-parse --verify {sourceCommit}^{commit}",
+      "git rev-parse --verify {integratedCommit}^{commit}",
+      "git merge-base --is-ancestor {sourceCommit} {integratedCommit}",
+      "git diff --exit-code {sourceCommit}:console/inventories/ui-smoke-inventory.mjs {integratedCommit}:console/inventories/ui-smoke-inventory.mjs"
+    ],
+    "requireObjectTypeCommit": true,
+    "requireAncestry": true
+  },
+  "redaction": {
+    "schemaVersion": 1,
+    "rawRunRootNotCommitted": true,
+    "neverPersist": [
+      "passwords",
+      "pins",
+      "totpSecrets",
+      "accessTokens",
+      "authorizationHeaders",
+      "privateKeys",
+      "cookies",
+      "clipboardContents",
+      "callContent",
+      "environmentValues",
+      "privatePaths",
+      "rawNetworkBodies"
+    ],
+    "recursiveAllowlist": {
+      "allowed": [
+        "rowId",
+        "surfaceId",
+        "featureId",
+        "routeTuple",
+        "target",
+        "action",
+        "before",
+        "after",
+        "outcome",
+        "observablePredicate",
+        "altText",
+        "sourceCommit",
+        "integratedCommit",
+        "artifactPath",
+        "artifactSha256",
+        "profileId",
+        "desktopName",
+        "processId",
+        "hwnd",
+        "cdpPort",
+        "targetId",
+        "cleanupState"
+      ],
+      "rejectUnknownKeys": true,
+      "rejectCredentialLikeKeys": true,
+      "rejectCredentialLikeValues": true
+    },
+    "failureMode": "fail-closed"
+  },
+  "receiptSchemas": {
+    "interaction": {
+      "schemaVersion": 1,
+      "required": [
+        "planId",
+        "rowId",
+        "sourceCommit",
+        "integratedCommit",
+        "inventoryDigest",
+        "runtimeIdentity",
+        "routeTuple",
+        "target",
+        "action",
+        "before",
+        "after",
+        "outcome",
+        "observablePredicate",
+        "status",
+        "redactionStatus"
+      ],
+      "status": [
+        "accepted",
+        "failed",
+        "cancelled",
+        "stale"
+      ],
+      "types": {
+        "schemaVersion": "integer",
+        "planId": "string",
+        "rowId": "string",
+        "sourceCommit": "sha256",
+        "integratedCommit": "sha256",
+        "inventoryDigest": "sha256",
+        "runtimeIdentity": "object",
+        "routeTuple": "object",
+        "target": "object",
+        "action": "object",
+        "before": "object",
+        "after": "object",
+        "outcome": "object",
+        "observablePredicate": "string",
+        "status": "enum",
+        "redactionStatus": "enum"
+      },
+      "enums": {
+        "redactionStatus": [
+          "clean",
+          "red"
+        ]
+      },
+      "relations": [
+        "rowId equals plan.rowIds entry",
+        "sourceCommit equals ledger.sourceCommit",
+        "integratedCommit is ancestor-proven",
+        "before.sha256 and after.sha256 are lowercase 64-hex strings"
+      ],
+      "rule": "The receipt is accepted only when the independent observable predicate is true and before and after hashes are present."
+    },
+    "outcome": {
+      "schemaVersion": 1,
+      "required": [
+        "planId",
+        "rowId",
+        "actionType",
+        "predicate",
+        "observed",
+        "observedAt",
+        "beforeSha256",
+        "afterSha256",
+        "status"
+      ],
+      "types": {
+        "schemaVersion": "integer",
+        "planId": "string",
+        "rowId": "string",
+        "actionType": "string",
+        "predicate": "string",
+        "observed": "object",
+        "observedAt": "iso-8601",
+        "beforeSha256": "sha256",
+        "afterSha256": "sha256",
+        "status": "enum"
+      },
+      "enums": {
+        "status": [
+          "accepted",
+          "failed",
+          "cancelled",
+          "stale"
+        ]
+      },
+      "relations": [
+        "rowId equals interaction.rowId",
+        "beforeSha256 equals interaction.before.sha256",
+        "afterSha256 equals interaction.after.sha256"
+      ],
+      "rule": "Outcome values come from a separate observable read, not from the action command result."
+    },
+    "privacy": {
+      "schemaVersion": 1,
+      "required": [
+        "planId",
+        "rowId",
+        "sourceCommit",
+        "integratedCommit",
+        "runtimeIdentity",
+        "routeTuple",
+        "rawRunRootNotCommitted",
+        "networkRequests",
+        "targetIsolation",
+        "redactionStatus",
+        "redactedKeys"
+      ],
+      "rule": "Privacy receipt proves the raw root stayed outside the repository and the exact one-target proof held.",
+      "types": {
+        "schemaVersion": "integer",
+        "planId": "string",
+        "rowId": "string",
+        "sourceCommit": "sha256",
+        "integratedCommit": "sha256",
+        "runtimeIdentity": "object",
+        "routeTuple": "object",
+        "rawRunRootNotCommitted": "boolean",
+        "networkRequests": "integer",
+        "targetIsolation": "object",
+        "redactionStatus": "enum",
+        "redactedKeys": "array"
+      },
+      "enums": {
+        "redactionStatus": [
+          "clean",
+          "red"
+        ]
+      },
+      "relations": [
+        "networkRequests equals 0 for local-only actions",
+        "targetIsolation.targetCount equals 1",
+        "rawRunRootNotCommitted equals true"
+      ]
+    },
+    "altText": {
+      "schemaVersion": 1,
+      "required": [
+        "rowId",
+        "before",
+        "after",
+        "state",
+        "targetName"
+      ],
+      "rule": "Alt text names the exact surface, state, target, and visible receipt without relying on pixels alone.",
+      "types": {
+        "schemaVersion": "integer",
+        "rowId": "string",
+        "before": "string",
+        "after": "string",
+        "state": "string",
+        "targetName": "string"
+      },
+      "relations": [
+        "rowId equals interaction.rowId",
+        "before and after are non-empty accessible descriptions"
+      ]
+    },
+    "pixelReview": {
+      "schemaVersion": 1,
+      "required": [
+        "rowId",
+        "beforeWidth",
+        "beforeHeight",
+        "beforePixelSha256",
+        "afterWidth",
+        "afterHeight",
+        "afterPixelSha256",
+        "beforeMetadataTypes",
+        "afterMetadataTypes",
+        "pixelReviewStatus",
+        "reviewedAt"
+      ],
+      "rule": "Pixel review records PNG signature, dimensions, metadata absence, and a human or approved reviewer status without copying private pixels into the receipt.",
+      "types": {
+        "schemaVersion": "integer",
+        "rowId": "string",
+        "beforeWidth": "integer",
+        "beforeHeight": "integer",
+        "beforePixelSha256": "sha256",
+        "afterWidth": "integer",
+        "afterHeight": "integer",
+        "afterPixelSha256": "sha256",
+        "beforeMetadataTypes": "array",
+        "afterMetadataTypes": "array",
+        "pixelReviewStatus": "enum",
+        "reviewedAt": "iso-8601"
+      },
+      "enums": {
+        "pixelReviewStatus": [
+          "reviewed",
+          "failed"
+        ]
+      },
+      "relations": [
+        "PNG dimensions and pixel hashes equal the fully decoded files",
+        "metadata arrays are empty for accepted evidence"
+      ]
+    },
+    "evidence": {
+      "schemaVersion": 1,
+      "required": [
+        "rowId",
+        "integratedCommit",
+        "canonicalRoot",
+        "sourceSha256",
+        "destinationSha256",
+        "bytePreserving",
+        "comparisonPath",
+        "visualDiffPath"
+      ],
+      "rule": "Evidence is promoted only after the source and destination hashes match and the comparison and visual-diff records exist.",
+      "types": {
+        "schemaVersion": "integer",
+        "rowId": "string",
+        "integratedCommit": "sha256",
+        "canonicalRoot": "path",
+        "sourceSha256": "sha256",
+        "destinationSha256": "sha256",
+        "bytePreserving": "boolean",
+        "comparisonPath": "path",
+        "visualDiffPath": "path"
+      },
+      "relations": [
+        "sourceSha256 equals destinationSha256",
+        "canonicalRoot equals console/docs/evidence/ui-smoke/{integratedCommit}/",
+        "bytePreserving equals true"
+      ]
+    }
+  }
+}

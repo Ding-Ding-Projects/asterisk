@@ -1,0 +1,55 @@
+{
+  "sourceArchiveSha256": "9A4284745A745C18A18B0A23D2A2F5851A79F9B6EFCBC5EE30EDCD69CEA2863F",
+  "sourceFiles": [
+    {
+      "path": "design/Asterisk Console M3.dc.html",
+      "sha256": "C485EDD647A3CD9EA41C8FAB1908AC245C9F0F8A4563E263F7A3BD0B5E78472B"
+    },
+    {
+      "path": "design/M3 Control.dc.html",
+      "sha256": "4B1AF8D412B5890ED149DC1B0DF088F11AE007319A894CCCF6B0A604F54DBBBE"
+    }
+  ],
+  "generatedArtifact": {
+    "path": "console/app/renderer/src/generated/console.tsx",
+    "sha256": "2C41015B1A60D0BAA415F6789C04CA941290E38D2FC6727005D76DB874AC4DBF"
+  },
+  "destinationCount": 32,
+  "controlCount": 479,
+  "distinctExpressionCount": 168,
+  "transientStateFamilyCount": 17,
+  "declarativeBindings": {
+    "total": 265,
+    "click": 212,
+    "change": 10,
+    "input": 10,
+    "contextmenu": 9,
+    "dragstart": 4,
+    "dragover": 4,
+    "drop": 4,
+    "dragend": 4,
+    "mousedown": 5,
+    "mouseenter": 1,
+    "mouseleave": 1,
+    "mouseup": 1
+  },
+  "transientStateFamilies": [
+    "appearOpen",
+    "ceremonyOpen",
+    "ctxOpen",
+    "infoOpen",
+    "lockOpen",
+    "onboardOpen",
+    "paletteOpen",
+    "regexOpen",
+    "renameOpen",
+    "subOpen",
+    "sureOpen",
+    "tabColourOpen",
+    "tabFilterOpen",
+    "toastOpen",
+    "tourOpen",
+    "unlockOpen",
+    "wizardOpen"
+  ]
+}

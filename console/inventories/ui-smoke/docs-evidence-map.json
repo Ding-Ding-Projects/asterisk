@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 2,
+  "sourceManifest": "console/inventories/ui-smoke/interaction-manifest.json",
+  "canonicalRoot": "console/docs/evidence/ui-smoke/{integratedCommit}/",
+  "rawRunRootNotCommitted": true,
+  "mappings": {
+    "repositoryDocs": "console/docs/evidence/ui-smoke/{integratedCommit}/index.html",
+    "wiki": "wiki/UI-smoke-evidence.md#{integratedCommit}",
+    "issue": "GitHub issue comment with inline before and after evidence per row",
+    "pages": "console/site/documentation.html#ui-smoke-evidence-{integratedCommit}"
+  },
+  "mappingValidator": "Each surface id and row id must resolve to all four mappings after integration."
+}
