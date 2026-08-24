@@ -70,7 +70,7 @@ html, body { margin:0; padding:0; background:#0B0F0C; }
 /* The window is frameless, so the design title bar drags it and its controls do not. */
 [data-window-drag] { -webkit-app-region: drag; }
 [data-window-drag] button, [data-window-drag] input, [data-window-drag] [data-window-button] { -webkit-app-region: no-drag; cursor: pointer; }
-button, input, select, textarea, [role="button"] { min-width:44px; min-height:44px; }
+button, input, select, textarea, [role="button"], [role="group"] { min-width:44px; min-height:44px; }
 
 /* style-hover and style-active from the design reference. */
 .c-h0:hover{background:#005230 !important}

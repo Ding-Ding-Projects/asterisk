@@ -91,7 +91,7 @@ function Template(v: any) {
         )
       ),
       h("div", { role: `tablist`, "aria-label": `Open destinations`, "aria-orientation": v.tabOrientation, style: sty(`height:38px; flex:0 0 38px; display:flex; align-items:flex-end; gap:2px; background:#0B0F0C; padding:0 6px; overflow-x:auto;`) },
-        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { role: `group`, "data-group-id": $g.id, "aria-label": `Tab group ${S($g.name)}`, "aria-expanded": $g.expanded, onClick: fn($g.toggle), onContextMenu: fn($g.ctx), onKeyDown: fn($g.keyDown), tabIndex: `0`, style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
+        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { role: `group`, "data-group-id": $g.id, "aria-label": `Tab group ${S($g.name)}`, "aria-expanded": $g.expanded, "aria-owns": $g.ownedTabIds, onClick: fn($g.toggle), onContextMenu: fn($g.ctx), onKeyDown: fn($g.keyDown), tabIndex: `0`, style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
             h("span", { style: sty(`width:9px; height:9px; border-radius:50%; background:${S($g.colour)};`) }),
             h("span", { style: sty(`font-size:12px; font-weight:500; color:#DFE4DC; white-space:nowrap;`) },
               S($g.name)
@@ -104,7 +104,7 @@ function Template(v: any) {
             )
           ))),
         A(v.tabs).map(($t, $t$i) => R($t$i, F(
-          ($t.on ? h("div", { role: `tab`, "data-tab-id": $t.key, "aria-selected": `true`, "aria-controls": `panel-${S($t.key)}`, tabIndex: $t.tabIndex, draggable: `true`, onKeyDown: fn($t.keyDown), onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), id: `tab-${S($t.key)}` },
+          ($t.on ? h("div", { role: `tab`, "data-tab-id": $t.key, "aria-selected": `true`, "aria-controls": `panel-${S($t.key)}`, tabIndex: $t.tabIndex, draggable: `true`, onKeyDown: fn($t.keyDown), onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), id: `tab-${S($t.key)}`, "aria-label": `Interactive region` },
               ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
               h("span", { style: sty(`width:7px; height:7px; border-radius:50%; background:${S($t.colour)}; flex:0 0 auto;`) }),
               h("span", { style: sty(`font-size:16px; color:#82D9A5; flex:0 0 auto;`), className: "msym" },
@@ -122,7 +122,7 @@ function Template(v: any) {
                 )
               )
             ) : null),
-          ($t.off ? h("div", { role: `tab`, "data-tab-id": $t.key, "aria-selected": `false`, "aria-controls": `panel-${S($t.key)}`, tabIndex: $t.tabIndex, draggable: `true`, onKeyDown: fn($t.keyDown), onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), id: `tab-${S($t.key)}`, className: "k-h7" },
+          ($t.off ? h("div", { role: `tab`, "data-tab-id": $t.key, "aria-selected": `false`, "aria-controls": `panel-${S($t.key)}`, tabIndex: $t.tabIndex, draggable: `true`, onKeyDown: fn($t.keyDown), onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), id: `tab-${S($t.key)}`, "aria-label": `Interactive region`, className: "k-h7" },
               ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
               h("span", { style: sty(`font-size:16px; color:#8FA394; flex:0 0 auto;`), className: "msym" },
                 S($t.icon)
@@ -322,7 +322,7 @@ function Template(v: any) {
                   "Unlock"
                 )
               ),
-              h("div", { onClick: fn(v.openUnlock), style: sty(`position:absolute; left:26px; right:26px; top:74px; bottom:0; z-index:5; cursor:not-allowed; background:rgba(11,15,12,.45);`) })
+              h("button", { onClick: fn(v.openUnlock), style: sty(`position:absolute; left:26px; right:26px; top:74px; bottom:0; z-index:5; cursor:not-allowed; background:rgba(11,15,12,.45);`), type: `button` })
             ) : null),
             (v.isDashboard ? F(
               h("div", { style: sty(`display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px;`) },
@@ -540,7 +540,7 @@ function Template(v: any) {
                     )))
                   ),
                   h("div", { style: sty(`max-height:460px; overflow-y:auto;`) },
-                    A(v.commitRows).map(($c, $c$i) => R($c$i, h("div", { onClick: fn($c.pick), onContextMenu: fn($c.ctx), style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), className: "k-h16" },
+                    A(v.commitRows).map(($c, $c$i) => R($c$i, h("div", { onClick: fn($c.pick), onContextMenu: fn($c.ctx), style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), role: `group`, tabIndex: `0`, "aria-label": `Interactive region`, onKeyDown: fn(v.activateClickableRegion), className: "k-h16" },
                         h("div", { style: sty(`display:flex; flex-direction:column; align-items:center; padding-top:3px; flex:0 0 auto;`) },
                           h("span", { style: sty(`width:11px; height:11px; border-radius:50%; background:${S($c.dot)}; border:2px solid #0F1510;`) }),
                           h("span", { style: sty(`width:2px; flex:1; min-height:22px; background:#333B34;`) })
@@ -989,7 +989,7 @@ function Template(v: any) {
                   )
                 ),
                 h("div", { style: sty(`flex:1; display:grid; grid-template-columns:1fr 300px; gap:10px; min-height:0;`) },
-                  h("div", { onClick: fn(v.canvasBgClick), onDragOver: fn(v.canvasDragOver), onDrop: fn(v.canvasDrop), style: sty(`position:relative; border-radius:12px; background-color:#0C110D; background-image:radial-gradient(#222A23 1px, transparent 1px); background-size:22px 22px; overflow:hidden;`) },
+                  h("div", { onClick: fn(v.canvasBgClick), onDragOver: fn(v.canvasDragOver), onDrop: fn(v.canvasDrop), style: sty(`position:relative; border-radius:12px; background-color:#0C110D; background-image:radial-gradient(#222A23 1px, transparent 1px); background-size:22px 22px; overflow:hidden;`), role: `group`, tabIndex: `0`, "aria-label": `Interactive region`, onKeyDown: fn(v.activateClickableRegion) },
                     h("div", { style: sty(`position:absolute; left:10px; top:10px; z-index:3; display:flex; gap:5px; background:rgba(20,26,21,.9); border-radius:999px; padding:4px;`) },
                       A(v.canvasLayers).map(($l, $l$i) => R($l$i, F(
                         ($l.on ? h("button", { onClick: fn($l.pick), style: sty(`background:#005230; border:0; border-radius:999px; padding:5px 12px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;`) },
@@ -1010,7 +1010,7 @@ function Template(v: any) {
                     h("svg", { viewBox: `0 0 760 420`, preserveAspectRatio: `none`, style: sty(`position:absolute; left:0; top:0; width:760px; height:420px; pointer-events:none;`) },
                       A(v.edges).map(($e, $e$i) => R($e$i, h("path", { d: $e.d, fill: `none`, stroke: $e.stroke, strokeWidth: $e.w })))
                     ),
-                    A(v.nodes).map(($n, $n$i) => R($n$i, h("div", { draggable: `true`, onDragStart: fn($n.onDragStart), onDragEnd: fn($n.onDragEnd), onClick: fn($n.pick), onContextMenu: fn($n.ctx), style: sty(`position:absolute; left:${S($n.x)}; top:${S($n.y)}; width:196px; border-radius:14px; background:#1B211C; border:2px solid ${S($n.border)}; padding:11px 13px; cursor:grab; box-shadow:0 4px 12px rgba(0,0,0,.45); transition:left .26s cubic-bezier(.2,0,0,1), top .26s cubic-bezier(.2,0,0,1), border-color .2s ease, box-shadow .2s ease;`) },
+                    A(v.nodes).map(($n, $n$i) => R($n$i, h("div", { draggable: `true`, onDragStart: fn($n.onDragStart), onDragEnd: fn($n.onDragEnd), onClick: fn($n.pick), onContextMenu: fn($n.ctx), style: sty(`position:absolute; left:${S($n.x)}; top:${S($n.y)}; width:196px; border-radius:14px; background:#1B211C; border:2px solid ${S($n.border)}; padding:11px 13px; cursor:grab; box-shadow:0 4px 12px rgba(0,0,0,.45); transition:left .26s cubic-bezier(.2,0,0,1), top .26s cubic-bezier(.2,0,0,1), border-color .2s ease, box-shadow .2s ease;`), role: `group`, tabIndex: `0`, "aria-label": `Interactive region`, onKeyDown: fn(v.activateClickableRegion) },
                         h("div", { style: sty(`display:flex; align-items:center; gap:8px;`) },
                           h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                             S($n.icon)
@@ -1394,7 +1394,7 @@ function Template(v: any) {
                       S(v.docsResultsLabel)
                     ),
                     h("div", { style: sty(`overflow-y:auto; flex:1;`) },
-                      A(v.docsResults).map(($r, $r$i) => R($r$i, h("div", { onClick: fn($r.select), style: sty(`padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($r.bg)};`), className: "k-h16" },
+                      A(v.docsResults).map(($r, $r$i) => R($r$i, h("button", { onClick: fn($r.select), style: sty(`padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($r.bg)};`), type: `button`, className: "k-h16" },
                           h("div", { style: sty(`display:flex; align-items:center; gap:8px;`) },
                             h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#82D9A5; text-transform:uppercase;`) },
                               S($r.category)
@@ -1464,7 +1464,7 @@ function Template(v: any) {
                       h("div", { style: sty(`font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:8px;`) },
                         "Suggested articles"
                       ),
-                      A(v.docsSuggested).map(($sg, $sg$i) => R($sg$i, h("div", { onClick: fn($sg.select), style: sty(`display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;`), className: "k-h29" },
+                      A(v.docsSuggested).map(($sg, $sg$i) => R($sg$i, h("button", { onClick: fn($sg.select), style: sty(`display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;`), type: `button`, className: "k-h29" },
                           h("span", { style: sty(`font-size:15px;`), className: "msym" },
                             S($sg.icon)
                           ),
@@ -1642,7 +1642,7 @@ function Template(v: any) {
       ),
       (v.infoOpen ? F(
         h("div", { onClick: fn(v.closeInfo), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.32); z-index:60;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-60-0` }),
-        h("div", { style: sty(`position:absolute; ${S(v.infoChrome)} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;`), "data-overlay": `panel`, "data-overlay-key": `overlay-61-1`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+        h("div", { style: sty(`position:absolute; ${S(v.infoChrome)} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;`), "data-overlay": `panel`, "data-overlay-key": `overlay-61-1`, role: `dialog`, "aria-label": `Information panel`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { onMouseDown: fn(v.dragInfo), style: sty(`display:flex; align-items:center; gap:8px; margin:-18px -20px 10px; padding:14px 16px 8px; cursor:grab; min-width:0;`) },
             h("span", { style: sty(`font-size:16px; color:#778078; flex:0 0 auto;`), className: "msym" },
               "drag_indicator"
@@ -1782,7 +1782,7 @@ function Template(v: any) {
           )
         )
       ) : null),
-      (v.wizardOpen ? h("div", { style: sty(`position:absolute; ${S(v.wizardChrome)} max-height:100vh; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:55; display:flex; flex-direction:column;`), "data-overlay": `panel`, "data-overlay-key": `overlay-55-2`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.wizardOpen ? h("div", { style: sty(`position:absolute; ${S(v.wizardChrome)} max-height:100vh; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:55; display:flex; flex-direction:column;`), "data-overlay": `panel`, "data-overlay-key": `overlay-55-2`, role: `dialog`, "aria-label": `Guided wizard`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { onMouseDown: fn(v.dragWizard), style: sty(`padding:16px 20px 12px; display:flex; align-items:flex-start; gap:10px; cursor:grab;`) },
             h("span", { style: sty(`font-size:18px; color:#778078; margin-top:4px;`), className: "msym" },
               "drag_indicator"
@@ -1919,9 +1919,9 @@ function Template(v: any) {
           h("div", { role: `status`, "aria-live": `polite`, style: sty(`padding:6px 14px; color:#9AA39B; font-size:11px;`) },
             S(v.paletteResultLabel)
           ),
-          h("div", { style: sty(`max-height:420px; overflow-y:auto; padding:8px;`) },
+          h("div", { role: `listbox`, "aria-label": `Command palette results`, style: sty(`max-height:420px; overflow-y:auto; padding:8px;`) },
             A(v.paletteItems).map(($p, $p$i) => R($p$i, F(
-              h("button", { onClick: fn($p.go), onKeyDown: fn($p.keyDown), role: `option`, "aria-selected": $p.selected, tabIndex: $p.tabIndex, style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:${S($p.bg)}; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;`), className: "k-h32" },
+              h("button", { onClick: fn($p.go), onKeyDown: fn($p.keyDown), role: `option`, "aria-selected": $p.selected, "aria-setsize": $p.count, "aria-posinset": $p.position, tabIndex: $p.tabIndex, style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:${S($p.bg)}; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;`), className: "k-h32" },
                 h("span", { style: sty(`font-size:19px; color:#82D9A5;`), className: "msym" },
                   S($p.icon)
                 ),
@@ -1940,13 +1940,13 @@ function Template(v: any) {
         )
       ) : null),
       (v.ceremonyOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:80; display:flex; align-items:center; justify-content:center;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80-4` },
-          h("div", { style: sty(`width:660px; max-height:88vh; overflow-y:auto; background:#252B25; border-radius:28px; padding:26px 28px; box-shadow:0 16px 48px rgba(0,0,0,.7); animation:dlgCeremony .3s cubic-bezier(.2,0,0,1);`), className: "overlay-ceremony-card" },
+          h("div", { "data-overlay": `ceremony`, role: `dialog`, "aria-modal": `true`, "aria-labelledby": `ceremony-title`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown), style: sty(`width:660px; max-height:88vh; overflow-y:auto; background:#252B25; border-radius:28px; padding:26px 28px; box-shadow:0 16px 48px rgba(0,0,0,.7); animation:dlgCeremony .3s cubic-bezier(.2,0,0,1);`), className: "overlay-ceremony-card" },
             h("div", { style: sty(`display:flex; align-items:center; gap:12px;`) },
               h("span", { style: sty(`font-size:26px; color:#FFB4AB;`), className: "msym" },
                 "gpp_maybe"
               ),
               h("div", { style: sty(`flex:1;`) },
-                h("div", { style: sty(`font-size:19px; font-weight:500;`) },
+                h("div", { id: `ceremony-title`, style: sty(`font-size:19px; font-weight:500;`) },
                   S(v.ceremonyTitle)
                 ),
                 h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:12px; color:#9AA39B; margin-top:3px;`) },
@@ -2153,7 +2153,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.tourOpen ? h("div", { style: sty(`position:absolute; left:${S(v.tourX)}; top:${S(v.tourY)}; width:320px; background:#005230; border-radius:16px; padding:16px 18px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:75; animation:dlgSure .3s cubic-bezier(.2,1.2,.3,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-75-6`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.tourOpen ? h("div", { style: sty(`position:absolute; left:${S(v.tourX)}; top:${S(v.tourY)}; width:320px; background:#005230; border-radius:16px; padding:16px 18px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:75; animation:dlgSure .3s cubic-bezier(.2,1.2,.3,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-75-6`, role: `dialog`, "aria-label": `Tour panel`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#9FF7C4;`) },
             S(v.tourCount)
           ),
@@ -2175,7 +2175,7 @@ function Template(v: any) {
         ) : null),
       (v.regexOpen ? F(
         h("div", { onClick: fn(v.closeRegex), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.3); z-index:96;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-96-7` }),
-        h("div", { style: sty(`position:absolute; ${S(v.regexChrome)} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;`), "data-overlay": `panel`, "data-overlay-key": `overlay-97-8`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+        h("div", { style: sty(`position:absolute; ${S(v.regexChrome)} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;`), "data-overlay": `panel`, "data-overlay-key": `overlay-97-8`, role: `dialog`, "aria-label": `Regex builder`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { onMouseDown: fn(v.dragRegex), style: sty(`display:flex; align-items:center; gap:9px; margin:-18px -20px 4px; padding:16px 20px 10px; cursor:grab;`) },
             h("span", { style: sty(`font-size:18px; color:#778078;`), className: "msym" },
               "drag_indicator"
@@ -2360,6 +2360,9 @@ function Template(v: any) {
                 )
               )
             ),
+            h("div", { role: `status`, "aria-live": `polite`, style: sty(`padding:0 8px 6px; color:#9AA39B; font-size:10px;`) },
+              S(v.subResultLabel)
+            ),
             A(v.subItems).map(($i, $i$i) => R($i$i, h("button", { role: `menuitem`, "aria-setsize": v.subItemCount, "aria-posinset": $i.position, onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
                 h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                   S($i.icon)
@@ -2407,7 +2410,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.lockOpen ? h("div", { style: sty(`position:absolute; ${S(v.lockChrome)} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;`), "data-overlay": `panel`, "data-overlay-key": `overlay-82-10`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.lockOpen ? h("div", { style: sty(`position:absolute; ${S(v.lockChrome)} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;`), "data-overlay": `panel`, "data-overlay-key": `overlay-82-10`, role: `dialog`, "aria-label": `Element lock wizard`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { onMouseDown: fn(v.dragLock), style: sty(`display:flex; align-items:center; gap:9px; cursor:grab; margin:-18px -20px 0; padding:16px 20px 8px;`) },
             h("span", { style: sty(`font-size:18px; color:#778078;`), className: "msym" },
               "drag_indicator"
@@ -2628,7 +2631,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.appearOpen ? h("div", { style: sty(`position:absolute; right:0; top:40px; bottom:0; width:468px; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:84; display:flex; flex-direction:column; animation:dlgAppear .28s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-84-12`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.appearOpen ? h("div", { style: sty(`position:absolute; right:0; top:40px; bottom:0; width:468px; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:84; display:flex; flex-direction:column; animation:dlgAppear .28s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-84-12`, role: `dialog`, "aria-label": `Appearance editor`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`padding:16px 20px 10px; display:flex; align-items:flex-start; gap:12px;`) },
             h("div", { style: sty(`flex:1;`) },
               h("div", { style: sty(`font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#8FA394;`) },
@@ -2725,13 +2728,13 @@ function Template(v: any) {
           )
         ) : null),
       (v.sureOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:86; display:flex; align-items:center; justify-content:center;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-86-13` },
-          h("div", { style: sty(`width:520px; background:#252B25; border-radius:28px; padding:22px 26px; animation:dlgSure .34s cubic-bezier(.2,1.2,.3,1);`), className: "overlay-confirmation-card" },
+          h("div", { "data-overlay": `confirmation`, role: `dialog`, "aria-modal": `true`, "aria-labelledby": `confirmation-title`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown), style: sty(`width:520px; background:#252B25; border-radius:28px; padding:22px 26px; animation:dlgSure .34s cubic-bezier(.2,1.2,.3,1);`), className: "overlay-confirmation-card" },
             h("div", { style: sty(`display:flex; align-items:center; gap:12px;`) },
               h("span", { style: sty(`font-size:26px; color:#FFD68A;`), className: "msym" },
                 "help_center"
               ),
               h("div", { style: sty(`flex:1;`) },
-                h("div", { style: sty(`font-size:19px; font-weight:500;`) },
+                h("div", { id: `confirmation-title`, style: sty(`font-size:19px; font-weight:500;`) },
                   "Are you sure?"
                 ),
                 h("div", { style: sty(`font-size:12.5px; color:#9AA39B; margin-top:3px;`) },
@@ -2790,7 +2793,7 @@ function Template(v: any) {
         ) : null),
       (v.tabFilterOpen ? F(
         h("div", { onClick: fn(v.closeTabFilter), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80-14` }),
-        h("div", { style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81-15`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+        h("div", { style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81-15`, role: `dialog`, "aria-label": `Tab filter`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
             h("span", { style: sty(`font-size:21px; color:#82D9A5;`), className: "msym" },
               "filter_alt"
@@ -2866,7 +2869,7 @@ function Template(v: any) {
       ) : null),
       (v.tabColourOpen ? F(
         h("div", { onClick: fn(v.closeTabColour), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80-16` }),
-        h("div", { style: sty(`position:absolute; left:50%; top:110px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgColour .3s cubic-bezier(.2,1.3,.3,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81-17`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+        h("div", { style: sty(`position:absolute; left:50%; top:110px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgColour .3s cubic-bezier(.2,1.3,.3,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81-17`, role: `dialog`, "aria-label": `Tab colour editor`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
             h("span", { style: sty(`font-size:20px; color:#82D9A5;`), className: "msym" },
               "colorize"
@@ -2924,7 +2927,7 @@ function Template(v: any) {
       ) : null),
       (v.renameOpen ? F(
         h("div", { onClick: fn(v.cancelRename), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80-18` }),
-        h("div", { style: sty(`position:absolute; left:50%; top:120px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgRename .22s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81-19`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+        h("div", { style: sty(`position:absolute; left:50%; top:120px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgRename .22s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81-19`, role: `dialog`, "aria-label": `Rename editor`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`font-size:16px; font-weight:500; margin-bottom:12px;`) },
             "Rename tab"
           ),
@@ -2944,7 +2947,7 @@ function Template(v: any) {
           )
         )
       ) : null),
-      (v.celebrate ? h("div", { style: sty(`position:absolute; inset:0; z-index:88; pointer-events:none; overflow:hidden; background:radial-gradient(ellipse at 50% 34%, rgba(27,77,51,.55), rgba(0,0,0,0) 62%);`), "data-overlay": `panel`, "data-overlay-key": `overlay-88-20`, role: `dialog`, "aria-label": `Dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.celebrate ? h("div", { style: sty(`position:absolute; inset:0; z-index:88; pointer-events:none; overflow:hidden; background:radial-gradient(ellipse at 50% 34%, rgba(27,77,51,.55), rgba(0,0,0,0) 62%);`), "data-overlay": `panel`, "data-overlay-key": `overlay-88-20`, role: `dialog`, "aria-label": `Celebration`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           A(v.confetti).map(($c, $c$i) => R($c$i, h("div", { style: sty(`position:absolute; left:${S($c.x)}; top:-40px; width:${S($c.size)}; height:${S($c.size)}; background:${S($c.color)}; border-radius:${S($c.radius)}; box-shadow:0 0 10px rgba(0,0,0,.35); animation:m3Fall ${S($c.dur)} cubic-bezier(.2,.6,.4,1) ${S($c.delay)} forwards;`) }))),
           h("div", { style: sty(`position:absolute; left:50%; top:34%; transform:translate(-50%,-50%); text-align:center;`) },
             h("div", { style: sty(`width:132px; height:132px; margin:0 auto 18px; border-radius:50%; background:rgba(159,247,196,.14); display:flex; align-items:center; justify-content:center; animation:m3Glow 1.1s ease-out infinite;`) },
@@ -4141,12 +4144,8 @@ class ConsoleShell extends DCLogic {
     toastOpen:false, toastText:'', nodeId:'n1', zoom:100, tableFilter:'All', filtersOpen:true,
     cli:{ verb:'pjsip', obj:'show', target:'endpoints' },
     regex:['^memory/', 'projects', '\\.md$'],
-    patterns:{ nav:[], table:[], memory:['^memory/', 'projects'], palette:[], ctx:[], sub:[] },
-    /* Each search field owns its complete editing tuple. The legacy maps above
-     * remain as a migration shape, but no field reads another field's query,
-     * pattern, flags, or sample. */
-    regexFields:{ nav:{ query:'', pattern:[], flags:['i'], sample:'' }, table:{ query:'', pattern:[], flags:['i'], sample:'' }, memory:{ query:'', pattern:[], flags:['i'], sample:'' }, palette:{ query:'', pattern:[], flags:['i'], sample:'' }, ctx:{ query:'', pattern:[], flags:['i'], sample:'' }, sub:{ query:'', pattern:[], flags:['i'], sample:'' } },
-    regexOpen:false, regexTarget:'nav', regexX:'300px', regexY:'120px', regexSamples:{},
+    regexFields:{ nav:{ query:'', pattern:[], flags:['i'], sample:'' }, table:{ query:'', pattern:[], flags:['i'], sample:'' }, memory:{ query:'', pattern:['^memory/','projects'], flags:['i'], sample:'' }, palette:{ query:'', pattern:[], flags:['i'], sample:'' }, ctx:{ query:'', pattern:[], flags:['i'], sample:'' }, sub:{ query:'', pattern:[], flags:['i'], sample:'' } },
+    regexOpen:false, regexTarget:'nav', regexX:'300px', regexY:'120px',
     ctxOpen:false, ctxX:'0px', ctxY:'0px', ctxTarget:'', ctxKind:'screen', ctxReturnFocus:null, ctxFilter:'', ctxRegexOn:false, subFilter:'', subRegexOn:false, recoveryOpen:false, recoveryAction:null, recoveryTitle:'', recoveryBody:'', recoveryStatus:'No retry or re-authentication has run yet.',
     locks:{}, lockOpen:false, lockTarget:'', lockKey:'', lockStep:0, lockMethod:'PIN', pin:'', password:'', pinReveal:false, lockX:'40%', lockY:'22%',
     credits:3, game:'whack', gameScore:0, gameTime:0, gameCell:-1, gamePlaying:false,
@@ -4160,7 +4159,7 @@ class ConsoleShell extends DCLogic {
     canvasTool:'select', grid:true, snap:true, guides:true, minimap:true, layer:'Dialplan',
     tabNames:{}, tabColours:{}, ctxTabKey:'', renameOpen:false, renameKey:'', renameValue:'', tabColourOpen:false,
     tabFilterOpen:false, tabFilterMode:'has', tabFilterText:'', tabFilterRegexOn:false, ctxSub:'',
-    rxText:'', rxManual:false, tabFilterColour:'', rndNonce:1,
+    rxManual:false, tabFilterColour:'', rndNonce:1,
     tabDrag:-1, tabOver:-1, groups:[], ctxGroupId:'', groupRenameOpen:false,
     branch:'main', commits:[
       { sha:'8f2a1c4', file:'queues.conf', screen:'queues', key:'q_strategy', label:'strategy', from:'ringall', to:'leastrecent', when:'12 min ago', author:'you', branch:'main', tag:'' },
@@ -4224,6 +4223,7 @@ class ConsoleShell extends DCLogic {
         this._overlayStack = this._overlayStack.filter(entry => entry.key !== key).concat([{ key, origin }]);
       }
       if (!flags[key] && this._overlayFlags?.[key]) this._overlayStack = this._overlayStack.filter(entry => entry.key !== key);
+      if (flags[key] && !this._overlayFlags?.[key]) setTimeout(() => document.querySelector('[data-overlay="' + key + '"][role="dialog"], [data-overlay="' + key + '"] [role="dialog"]')?.focus?.(), 0);
     });
     this._overlayFlags = flags;
     this.state.activeOverlayStack = (this._overlayStack || []).slice();
@@ -4242,17 +4242,16 @@ class ConsoleShell extends DCLogic {
       return [screen].concat(controls);
     }).concat(PALETTE_DOC_INVENTORY.map(id => ({ key:'docs', icon:'menu_book', label:'Article · ' + id, hint:id, kind:'article', articleId:id })))
       .concat((state.tabs || []).map(tab => ({ key:tab, tabId:tab, icon:'tab', label:'Tab · ' + (state.tabNames?.[tab] || tab), hint:'tab', kind:'tab' })))
-      .concat((state.groups || []).map(group => ({ key:state.screen, groupId:group.id, icon:'folder', label:'Group · ' + String(group.name || group.id), hint:'group', kind:'group' })));
+      .concat((state.groups || []).map(group => ({ key:state.screen, groupId:group.id, icon:'folder', label:'Group · ' + String(group.name || group.id), hint:'group', kind:'group' })))
+      .concat(typeof this.paletteArticleInventory === 'function' ? this.paletteArticleInventory(state) : []);
     if (!query) return all;
     if (!state.paletteRegexOn) return all.filter(item => item.label.toLowerCase().includes(query.toLowerCase()) || item.hint.toLowerCase().includes(query.toLowerCase()));
     try { const re = new RegExp(query, 'i'); return all.filter(item => re.test(item.label) || re.test(item.hint)); }
     catch (error) { return []; }
   };
   regexField = (target) => {
-    const legacyQuery = target === 'palette' ? this.state.paletteQuery : (target === 'ctx' ? this.state.ctxFilter : (target === 'sub' ? this.state.subFilter : (target === 'nav' ? this.state.tabFilterText : '')));
-    const legacyPattern = (this.state.patterns && this.state.patterns[target]) || [];
     const stored = (this.state.regexFields && this.state.regexFields[target]) || {};
-    return { query:stored.query !== undefined ? stored.query : (legacyQuery || ''), pattern:Array.isArray(stored.pattern) && stored.pattern.length ? stored.pattern : legacyPattern, flags:Array.isArray(stored.flags) && stored.flags.length ? stored.flags : ['i'], sample:typeof stored.sample === 'string' ? stored.sample : '' };
+    return { query:typeof stored.query === 'string' ? stored.query : '', pattern:Array.isArray(stored.pattern) ? stored.pattern : [], flags:Array.isArray(stored.flags) && stored.flags.length ? stored.flags : ['i'], sample:typeof stored.sample === 'string' ? stored.sample : '' };
   };
   setRegexField = (target, patch) => this.setState(st => ({ regexFields:Object.assign({}, st.regexFields, { [target]:Object.assign({}, this.regexField(target), patch) }) }));
   openPalette = () => { this.paletteReturnFocus = document.activeElement; this.setState({ paletteOpen:true, paletteCursor:0 }); setTimeout(() => document.getElementById('palette-search')?.focus(), 0); };
@@ -4817,7 +4816,7 @@ class ConsoleShell extends DCLogic {
         const close = s.tabs.filter(k => matches(k) && excluded.indexOf(k) < 0);
         return { blocked:'', rows:s.tabs.map(k => ({ label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), close:close.indexOf(k) >= 0, excluded:excluded.indexOf(k) >= 0 })), keep:s.tabs.filter(k => close.indexOf(k) < 0), excluded };
       }
-      const q = String(s.tabFilterText || (s.patterns.nav || []).join('')).trim();
+      const q = String(s.tabFilterText || this.regexField('nav').query).trim();
       if (!q) return { blocked:'Enter text or a valid pattern before closing tabs.', rows:[], keep:s.tabs.slice(), excluded:[] };
       let re = null;
       if (s.tabFilterRegexOn) { try { re = new RegExp(q, this.regexField('nav').flags.filter(f => f !== 'g').join('')); } catch (error) { return { blocked:'The pattern is invalid. Fix it before closing tabs.', rows:[], keep:s.tabs.slice(), excluded:[] }; } }
@@ -4833,6 +4832,7 @@ class ConsoleShell extends DCLogic {
     const chipOK = { 'Reachable':1, 'Registered':1, 'Running':1, 'Up':1, 'Active':1, 'Connected':1, 'Signed':1, 'Enabled':1, 'Published':1, 'Sealed':1, 'Locked':1 };
 
     return {
+      activateClickableRegion:(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } },
       menus:['File','Edit','View','PBX','Agent','Window','Help'].map(l => ({ label:l, open:() => this.toast(l + ' menu') })),
       connLabel:'pbx-hq · AMI 5038', connUptime:'up 14d 06:22',
       openConnection:() => this.showInfo('Connection', 'The console is attached to pbx-hq over the manager interface on port 5038, secured with TLS. Losing this connection makes every live number on the dashboard grey out — configuration screens keep working from the last read.', 'The app is talking to your phone system over the network. If the little dot stops being green, the two are no longer talking.', '38%', '70px'),
@@ -5157,7 +5157,7 @@ class ConsoleShell extends DCLogic {
       })),
 
       tabGroups:s.groups.map(g => ({
-        id:g.id, name:g.name, colour:g.colour, count:g.tabs.length + '', expanded:!g.collapsed, bg:'#141A15',
+        id:g.id, name:g.name, colour:g.colour, count:g.tabs.length + '', expanded:!g.collapsed, ownedTabIds:g.tabs.map(tab => 'tab-' + tab).join(' '), bg:'#141A15',
         chevron:g.collapsed ? 'chevron_right' : 'expand_more',
         toggle:() => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, { collapsed:!x.collapsed }) : x) }),
         keyDown:(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, { collapsed:!x.collapsed }) : x) }); } },
@@ -5233,10 +5233,10 @@ class ConsoleShell extends DCLogic {
         if (count < 1) return this.toast('No unprotected tabs match this filter. Nothing closed.');
          const plannedTabs = s.tabs.slice();
          const plannedLabels = tabClosePlan.rows.filter(r => r.close).map(r => r.label);
-         const plannedPredicateInputs = JSON.stringify({ tabs:plannedTabs, pinned:s.pinned, locks:s.locks, unsaved:s.tabUnsaved, mode:s.tabFilterMode, text:s.tabFilterText, colour:s.tabFilterColour, regexOn:s.tabFilterRegexOn, flags:this.regexField('nav').flags, pattern:(s.patterns.nav || []).slice() });
+         const plannedPredicateInputs = JSON.stringify({ tabs:plannedTabs, pinned:s.pinned, locks:s.locks, unsaved:s.tabUnsaved, names:s.tabNames, colours:s.tabColours, groups:s.groups, mode:s.tabFilterMode, text:s.tabFilterText, colour:s.tabFilterColour, regexOn:s.tabFilterRegexOn, flags:this.regexField('nav').flags, pattern:this.regexField('nav').pattern });
          this.areYouSure('Close matching tabs', count + ' tab(s) will close: ' + plannedLabels.join(', ') + '. Pinned, locked, and unsaved tabs are excluded.', 3, () => {
            const currentTabs = this.state.tabs || [];
-           const currentPredicateInputs = JSON.stringify({ tabs:currentTabs, pinned:this.state.pinned, locks:this.state.locks, unsaved:this.state.tabUnsaved, mode:this.state.tabFilterMode, text:this.state.tabFilterText, colour:this.state.tabFilterColour, regexOn:this.state.tabFilterRegexOn, flags:this.regexField('nav').flags, pattern:(this.state.patterns.nav || []).slice() });
+           const currentPredicateInputs = JSON.stringify({ tabs:currentTabs, pinned:this.state.pinned, locks:this.state.locks, unsaved:this.state.tabUnsaved, names:this.state.tabNames, colours:this.state.tabColours, groups:this.state.groups, mode:this.state.tabFilterMode, text:this.state.tabFilterText, colour:this.state.tabFilterColour, regexOn:this.state.tabFilterRegexOn, flags:this.regexField('nav').flags, pattern:this.regexField('nav').pattern });
            if (currentPredicateInputs !== plannedPredicateInputs) {
              this.toast('The tab-close plan is stale because its predicate inputs changed. Review it again.');
              return;
@@ -5535,20 +5535,20 @@ class ConsoleShell extends DCLogic {
       } })),
       submitUnlock:() => this.tryUnlock(),
 
-      navSearchLabel:(s.patterns.nav.length ? s.patterns.nav.join('') : 'Search sections…'),
-      tableSearchLabel:(s.patterns.table.length ? s.patterns.table.join('') : 'Search rows…'),
+      navSearchLabel:(this.regexField('nav').query || 'Search sections…'),
+      tableSearchLabel:(this.regexField('table').query || 'Search rows…'),
       openNavRegex:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'120px', regexY:'150px' }),
       openTableRegex:() => this.setState({ regexOpen:true, regexTarget:'table', regexX:'420px', regexY:'180px' }),
       regexOpen:s.regexOpen,
       regexX:this.pos('regex', s.regexX, s.regexY)[0], regexY:this.pos('regex', s.regexX, s.regexY)[1],
       regexTargetLabel:s.regexTarget === 'nav' ? 'section list' : (s.regexTarget === 'table' ? 'row filter' : (s.regexTarget === 'palette' ? 'command palette' : (s.regexTarget === 'ctx' ? 'context menu' : (s.regexTarget === 'sub' ? 'submenu' : 'memory search')))),
-      rxText:s.rxText || (s.patterns[s.regexTarget] || []).join(''),
-      onRxText:(e) => { const v = e.target.value; const p = Object.assign({}, s.patterns); p[s.regexTarget] = v ? [v] : []; this.setState({ rxText:v, patterns:p }); },
+      rxText:this.regexField(s.regexTarget).query,
+      onRxText:(e) => { const v = String(e.target.value); this.setRegexField(s.regexTarget, { query:v, pattern:v ? [v] : [] }); },
       regexFlagStr:this.regexField(s.regexTarget).flags.join(''),
-      regexValid:(() => { const v = s.rxText || (s.patterns[s.regexTarget] || []).join(''); if (!v) return 'empty'; try { new RegExp(v); return 'valid'; } catch (e) { return 'invalid'; } })(),
-      regexValidColor:(() => { const v = s.rxText || (s.patterns[s.regexTarget] || []).join(''); if (!v) return '#8FA394'; try { new RegExp(v); return '#82D9A5'; } catch (e) { return '#FFB4AB'; } })(),
+      regexValid:(() => { const v = this.regexField(s.regexTarget).query; if (!v) return 'empty'; try { new RegExp(v); return 'valid'; } catch (e) { return 'invalid'; } })(),
+      regexValidColor:(() => { const v = this.regexField(s.regexTarget).query; if (!v) return '#8FA394'; try { new RegExp(v); return '#82D9A5'; } catch (e) { return '#FFB4AB'; } })(),
       regexExplain:(() => {
-        const v = s.rxText || (s.patterns[s.regexTarget] || []).join('');
+        const v = this.regexField(s.regexTarget).query;
         if (!v) return 'No pattern yet, so everything matches.';
         const parts = [];
         if (v.indexOf('^') === 0) parts.push('starts with what follows');
@@ -5566,35 +5566,35 @@ class ConsoleShell extends DCLogic {
         return parts.length ? ('Matches text that ' + parts.join(', and ') + '.') : ('Matches the literal text “' + v + '” anywhere in the value.');
       })(),
       rxTools:[
-        { icon:'backspace', label:'Delete last', title:'Remove the last piece', run:() => { const v = (s.rxText || '').slice(0, -1); const p = Object.assign({}, s.patterns); p[s.regexTarget] = v ? [v] : []; this.setState({ rxText:v, patterns:p }); } },
-        { icon:'auto_fix_high', label:'Escape literals', title:'Treat what you typed as plain text', run:() => { const v = (s.rxText || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); const p = Object.assign({}, s.patterns); p[s.regexTarget] = [v]; this.setState({ rxText:v, patterns:p }); } },
-        { icon:'data_array', label:'Wrap in group', title:'Wrap the whole pattern in a capture group', run:() => { const v = '(' + (s.rxText || '') + ')'; const p = Object.assign({}, s.patterns); p[s.regexTarget] = [v]; this.setState({ rxText:v, patterns:p }); } },
-        { icon:'swap_horiz', label:'Anchor both ends', title:'Require a full match', run:() => { let v = s.rxText || ''; if (v.indexOf('^') !== 0) v = '^' + v; if (v.slice(-1) !== '$') v = v + '$'; const p = Object.assign({}, s.patterns); p[s.regexTarget] = [v]; this.setState({ rxText:v, patterns:p }); } },
+        { icon:'backspace', label:'Delete last', title:'Remove the last piece', run:() => { const v = this.regexField(s.regexTarget).query.slice(0, -1); this.setRegexField(s.regexTarget, { query:v, pattern:v ? [v] : [] }); } },
+        { icon:'auto_fix_high', label:'Escape literals', title:'Treat what you typed as plain text', run:() => { const v = this.regexField(s.regexTarget).query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); this.setRegexField(s.regexTarget, { query:v, pattern:[v] }); } },
+        { icon:'data_array', label:'Wrap in group', title:'Wrap the whole pattern in a capture group', run:() => { const v = '(' + this.regexField(s.regexTarget).query + ')'; this.setRegexField(s.regexTarget, { query:v, pattern:[v] }); } },
+        { icon:'swap_horiz', label:'Anchor both ends', title:'Require a full match', run:() => { let v = this.regexField(s.regexTarget).query; if (v.indexOf('^') !== 0) v = '^' + v; if (v.slice(-1) !== '$') v = v + '$'; this.setRegexField(s.regexTarget, { query:v, pattern:[v] }); } },
         { icon:'bookmark_add', label:'Save pattern', title:'Save to the palette', run:() => this.fire('Pattern saved', 'It is in the command palette now.') },
         { icon:'library_books', label:'Cheatsheet', title:'Explain every token', run:() => this.showInfo('Regex cheatsheet', 'Anchors pin the match to the start (^) or end ($). Character classes stand in for kinds of character: \\d a digit, \\w a letter or digit, \\s a space, and a dot for anything at all. Quantifiers say how many: + is one or more, * is any number including none, ? makes the piece optional, and {2,4} means between two and four. Brackets are a set of allowed characters, parentheses group things together, and a bar between two options means either will do.', 'Think of it as a sentence describing what the text should look like, written in shorthand. You never have to write it by hand here — the buttons build it.') }
       ],
-      regexValue:(s.patterns[s.regexTarget] || []).join('') || '(everything)',
-      regexChips:(s.patterns[s.regexTarget] || []).map((t, i) => ({ label:t, remove:() => { const p = Object.assign({}, s.patterns); p[s.regexTarget] = p[s.regexTarget].filter((_, j) => j !== i); this.setState({ patterns:p }); } })),
-      regexGroups:REGEX_GROUPS.map(g => ({ title:g.title, items:g.items.map(([token, label]) => ({ token, label, add:() => { const p = Object.assign({}, s.patterns); p[s.regexTarget] = (p[s.regexTarget] || []).concat([token]); this.setState({ patterns:p }); } })) })),
+      regexValue:this.regexField(s.regexTarget).pattern.join('') || '(everything)',
+      regexChips:this.regexField(s.regexTarget).pattern.map((t, i) => ({ label:t, remove:() => { const pattern = this.regexField(s.regexTarget).pattern.filter((_, j) => j !== i); this.setRegexField(s.regexTarget, { query:pattern.join(''), pattern }); } })),
+      regexGroups:REGEX_GROUPS.map(g => ({ title:g.title, items:g.items.map(([token, label]) => ({ token, label, add:() => { const pattern = this.regexField(s.regexTarget).pattern.concat([token]); this.setRegexField(s.regexTarget, { query:pattern.join(''), pattern }); } })) })),
       regexFlags:[['i', 'ignore case'], ['g', 'all matches'], ['m', 'multiline'], ['s', 'dot matches newline']].map(([f, l]) => { const flags = this.regexField(s.regexTarget).flags; return { label:f + ' · ' + l, on:flags.indexOf(f) >= 0, off:flags.indexOf(f) < 0, toggle:() => this.setRegexField(s.regexTarget, { flags:flags.indexOf(f) >= 0 ? flags.filter(x => x !== f) : flags.concat([f]) }) }; }),
       regexSample:this.regexField(s.regexTarget).sample,
-      onRegexSample:(e) => { const sample = String(e.target.value).slice(0, 2000); const samples = Object.assign({}, s.regexSamples, { [s.regexTarget]:sample }); this.setState({ regexSamples:samples }); this.setRegexField(s.regexTarget, { sample }); },
+      onRegexSample:(e) => { const sample = String(e.target.value).slice(0, 2000); this.setRegexField(s.regexTarget, { sample }); },
       regexMatchesLabel:(() => { const field = this.regexField(s.regexTarget); const sample = field.sample; const pattern = field.pattern.join(''); if (!pattern) return 'No pattern. Plain text remains the default in the originating field.'; try { const re = new RegExp(pattern, field.flags.filter(f => f !== 'g').join('')); const matches = sample ? Array.from(sample.matchAll(new RegExp(pattern, field.flags.includes('g') ? field.flags.join('') : field.flags.concat(['g']).join('')))).length : 0; return `Pattern valid. ${matches} match(es) in the sample.`; } catch (e) { return 'Pattern invalid. No matches are applied.'; } })(),
       regexCaptures:(() => { const field = this.regexField(s.regexTarget); const sample = field.sample; const pattern = field.pattern.join(''); if (!sample || !pattern) return []; try { const re = new RegExp(pattern, field.flags.filter(f => f !== 'g').join('')); const match = re.exec(sample); return match ? match.slice(1, 9).map((value, i) => ({ label:'$' + (i + 1), value:value === undefined ? 'not captured' : value })) : []; } catch (e) { return []; } })(),
-      copyRegex:() => { void navigator.clipboard?.writeText((s.patterns[s.regexTarget] || []).join('')).then(() => this.toast('Pattern copied'), () => this.toast('Pattern could not be copied')); },
+      copyRegex:() => { void navigator.clipboard?.writeText(this.regexField(s.regexTarget).pattern.join('')).then(() => this.toast('Pattern copied'), () => this.toast('Pattern could not be copied')); },
       exportRegex:() => { const field = this.regexField(s.regexTarget); const pattern = field.pattern.join(''); const sample = field.sample; let captures = []; try { const match = pattern && sample ? new RegExp(pattern, field.flags.filter(f => f !== 'g').join('')).exec(sample) : null; captures = match ? match.slice(1, 9) : []; } catch (e) {} const blob = new Blob([JSON.stringify({ schemaVersion:1, target:s.regexTarget, query:field.query, pattern, flags:field.flags, sample, captures }, null, 2)], { type:'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'regex-result.json'; link.click(); URL.revokeObjectURL(url); },
-      regexCount:(() => { const pat = (s.patterns[s.regexTarget] || []).join(''); if (!pat) return 'no filter'; try { new RegExp(pat); return 'valid pattern'; } catch (e) { return 'invalid pattern'; } })(),
+      regexCount:(() => { const pat = this.regexField(s.regexTarget).pattern.join(''); if (!pat) return 'no filter'; try { new RegExp(pat); return 'valid pattern'; } catch (e) { return 'invalid pattern'; } })(),
       regexPreview:(() => {
-        const pat = (s.patterns[s.regexTarget] || []).join('');
+        const pat = this.regexField(s.regexTarget).pattern.join('');
         const pool = s.regexTarget === 'nav' ? ORDER.map(k => SCREENS[k].label) : (s.regexTarget === 'palette' ? PALETTE_INVENTORY.map(k => SCREENS[k].title) : (s.regexTarget === 'ctx' ? (this._ctxItems || []).map(i => i.label) : (s.regexTarget === 'sub' ? (this._subItems || []).map(i => i.label) : (sc.table ? sc.table.rows.map(r => r[0]) : ORDER.map(k => SCREENS[k].label)))));
         let re = null; try { re = pat ? new RegExp(pat, this.regexField(s.regexTarget).flags.filter(f => f !== 'g').join('')) : null; } catch (e) { return [{ text:'pattern is not valid yet', icon:'error', color:'#FFB4AB' }]; }
         return pool.slice(0, 6).map(x => ({ text:x, icon:(!re || re.test(x)) ? 'check_circle' : 'remove_circle_outline', color:(!re || re.test(x)) ? '#82D9A5' : '#778078' }));
       })(),
-      clearRegex:() => { const p = Object.assign({}, s.patterns); p[s.regexTarget] = []; this.setState({ patterns:p }); },
+      clearRegex:() => this.setRegexField(s.regexTarget, { query:'', pattern:[] }),
       closeRegex:() => {
-        if (s.regexTarget === 'palette') { const query = (s.patterns.palette || []).join(''); this.setRegexField('palette', { query, pattern:s.patterns.palette || [] }); this.closeOverlay('regex', { paletteQuery:query, paletteRegexOn:true }); }
-        else if (s.regexTarget === 'ctx') { const query = (s.patterns.ctx || []).join(''); this.setRegexField('ctx', { query, pattern:s.patterns.ctx || [] }); this.closeOverlay('regex', { ctxFilter:query, ctxRegexOn:true }); }
-        else if (s.regexTarget === 'sub') { const query = (s.patterns.sub || []).join(''); this.setRegexField('sub', { query, pattern:s.patterns.sub || [] }); this.closeOverlay('regex', { subFilter:query, subRegexOn:true }); }
+        if (s.regexTarget === 'palette') { const field = this.regexField('palette'); this.closeOverlay('regex', { paletteQuery:field.query, paletteRegexOn:true }); }
+        else if (s.regexTarget === 'ctx') { const field = this.regexField('ctx'); this.closeOverlay('regex', { ctxFilter:field.query, ctxRegexOn:true }); }
+        else if (s.regexTarget === 'sub') { const field = this.regexField('sub'); this.closeOverlay('regex', { subFilter:field.query, subRegexOn:true }); }
         else this.closeOverlay('regex');
       },
 
@@ -5669,11 +5669,12 @@ class ConsoleShell extends DCLogic {
           return filtered;
         };
         this._dec = decorate;
+        const recoveryItem = s.recoveryAction ? { icon:'key', label:'Recover recorded action…', hint:'', run:() => { close(); this.setState({ recoveryOpen:true }); } } : null;
         const common = [
           { icon:'lock', label:'Lock this element…', hint:'⌃L', run:() => { close(); this.setState({ lockOpen:true, lockTarget:s.ctxTarget, lockKey:s.screen, lockStep:0, pin:'', password:'', lockX:s.ctxX, lockY:s.ctxY }); } },
           { icon:'brush', label:'Edit appearance…', hint:'⌃E', run:() => { close(); this.setState({ appearOpen:true, appearTarget:s.ctxTarget }); } },
           { icon:'help', label:'Explain this…', hint:'F1', run:() => { close(); this.showInfo(s.ctxTarget, sc.sub, null, s.ctxX, s.ctxY); } },
-          { icon:'key', label:'Recover or re-authenticate…', hint:'', run:() => { close(); this.setState({ recoveryOpen:true, recoveryAction:{ target:String(s.ctxTarget).slice(0, 128), kind:String(s.ctxKind).slice(0, 32), action:'pbx.read', view:s.screen, source:String(sc.file || 'console').slice(0, 128), screen:s.screen }, recoveryTitle:'Recovery for ' + s.ctxTarget, recoveryBody:'The failed action stays unchanged. Choose Retry to run the recorded screen reading again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus:'No retry or re-authentication has run yet.' }); } }
+          { icon:'refresh', label:'Refresh', hint:'', run:() => { close(); void this.openScreen(s.screen); } }
         ];
         if (s.ctxKind === 'group') {
           const g = s.groups.find(x => x.id === s.ctxGroupId) || { tabs:[], name:'' };
@@ -5689,7 +5690,7 @@ class ConsoleShell extends DCLogic {
             { icon:'close', label:'Close group and its tabs', hint:'', run:() => { close(); this.areYouSure('Close ' + g.name, 'Every tab in this group closes. Unsaved staged changes in them are discarded.', 3, () => { const keep = s.tabs.filter(t => g.tabs.indexOf(t) < 0); this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep[0] || 'dash', groups:s.groups.filter(x => x.id !== g.id) }); }); } },
             { icon:'brush', label:'Edit group appearance…', hint:'⌃E', run:() => { close(); this.setState({ appearOpen:true, appearTarget:'group · ' + g.name }); } },
             { icon:'lock', label:'Lock this group…', hint:'⌃L', run:common[0].run },
-            common[3]
+             ...(recoveryItem ? [recoveryItem] : [])
           ]);
         }
         if (s.ctxKind === 'tab') {
@@ -5708,7 +5709,7 @@ class ConsoleShell extends DCLogic {
             { icon:'open_in_new', label:'Move to new window', hint:'', run:() => { close(); this.toast('Tab detached to its own window'); } },
             { icon:'dock_to_right', label:'Dock this tab right', hint:'', run:() => { close(); this.set('dock', 'right'); } },
             { icon:'lock', label:'Lock this tab…', hint:'⌃L', run:common[0].run },
-            common[3]
+             ...(recoveryItem ? [recoveryItem] : [])
           ]);
         }
         if (s.ctxKind === 'row') {
@@ -5721,7 +5722,7 @@ class ConsoleShell extends DCLogic {
             { icon:'download', label:'Export as configuration', hint:'', run:() => { close(); this.toast(name + ' exported'); } },
             { icon:'history', label:'Version history for this', hint:'', run:() => { close(); this.openScreen('history'); } },
             { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.', 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : this.ceremony('Delete ' + name, 'delete ' + name))); } },
-            common[0], common[1], common[3]
+             common[0], common[1], ...(recoveryItem ? [recoveryItem] : [])
           ]);
         }
         if (s.ctxKind === 'search') {
@@ -5730,8 +5731,8 @@ class ConsoleShell extends DCLogic {
             { icon:'match_case', label:'Match case', hint:'', run:() => { close(); this.setRegexField('table', { flags:this.regexField('table').flags.filter(f => f !== 'i') }); } },
             { icon:'select_all', label:'Whole word only', hint:'', run:() => { close(); this.toast('Whole-word matching on'); } },
             { icon:'bookmark_add', label:'Save this search', hint:'', run:() => { close(); this.fire('Search saved', 'It is in the palette now.'); } },
-            { icon:'clear', label:'Clear search', hint:'⎋', run:() => { close(); const p = Object.assign({}, s.patterns); p.table = []; p.nav = []; this.setState({ patterns:p }); } },
-            common[0], common[1], common[3]
+            { icon:'clear', label:'Clear search', hint:'⎋', run:() => { close(); this.setRegexField('table', { query:'', pattern:[] }); this.setRegexField('nav', { query:'', pattern:[] }); } },
+            common[0], common[1], common[3], ...(recoveryItem ? [recoveryItem] : [])
           ]);
         }
         if (s.ctxKind === 'node') {
@@ -5741,7 +5742,7 @@ class ConsoleShell extends DCLogic {
             { icon:'content_copy', label:'Duplicate step', hint:'⌃D', run:() => { close(); this.toast('Step duplicated'); } },
             { icon:'call_split', label:'Insert condition before', hint:'', run:() => { close(); this.toast('Condition inserted'); } },
             { icon:'delete', label:'Delete step', hint:'⌦', run:() => { close(); this.areYouSure('Delete this step', 'The step and its connections are removed from the dialplan.', 3, () => this.fire('Step deleted', 'Canvas updated.')); } },
-            common[0], common[1], common[3]
+            common[0], common[1], common[3], ...(recoveryItem ? [recoveryItem] : [])
           ]);
         }
         return decorate([
@@ -5758,6 +5759,7 @@ class ConsoleShell extends DCLogic {
       ctxResultLabel:s.ctxFilter ? ((this._ctxItems || []).length + ' matching menu item(s). Arrow keys move through the remaining results.') : ((this._ctxItems || []).length + ' available menu item(s). Arrow keys move through results.'),
       ctxItemCount:(this._ctxItems || []).length,
       subItemCount:(this._subItems || []).length,
+      subResultLabel:(this._subItems || []).length + ' submenu item(s). Arrow keys move through results.',
       subFilter:s.subFilter,
       onCtxFilter:(e) => { const query = String(e.target.value); this.setState({ ctxFilter:query, ctxRegexOn:false }); this.setRegexField('ctx', { query }); },
       onSubFilter:(e) => { const query = String(e.target.value); this.setState({ subFilter:query, subRegexOn:false }); this.setRegexField('sub', { query }); },
@@ -5958,7 +5960,7 @@ class ConsoleShell extends DCLogic {
         else if (e.key === 'Escape') { e.preventDefault(); this.closePalette(); }
       },
       openPaletteRegex:() => this.setState({ regexOpen:true, regexTarget:'palette', regexX:'34%', regexY:'150px' }),
-       paletteItems:this.filteredPalette(s).map((item, index) => ({ icon:item.icon, label:item.label, hint:item.hint, kind:item.kind, articleId:item.articleId, tabId:item.tabId, groupId:item.groupId, isSetting:!!item.isSetting, inline:item.inline, controlId:item.controlId, selected:index === s.paletteCursor, tabIndex:index === s.paletteCursor ? 0 : -1, bg:index === s.paletteCursor ? '#1B4D33' : 'transparent', go:() => this.activatePaletteItem(item), keyDown:(e) => { if (e.key === 'Enter') { e.preventDefault(); this.activatePaletteItem(item); } } })),
+       paletteItems:this.filteredPalette(s).map((item, index, list) => ({ icon:item.icon, label:item.label, hint:item.hint, kind:item.kind, articleId:item.articleId, tabId:item.tabId, groupId:item.groupId, isSetting:!!item.isSetting, inline:item.inline, controlId:item.controlId, position:index + 1, count:list.length, selected:index === s.paletteCursor, tabIndex:index === s.paletteCursor ? 0 : -1, bg:index === s.paletteCursor ? '#1B4D33' : 'transparent', go:() => this.activatePaletteItem(item), keyDown:(e) => { if (e.key === 'Enter') { e.preventDefault(); this.activatePaletteItem(item); } } })),
 
       ceremonyOpen:s.ceremonyOpen, ceremonyTitle:s.ceremonyTitle, ceremonyCmd:s.ceremonyCmd,
       ceremonySteps:['Operator key', 'Arming switch', 'Slide to commit', 'Attention check'].map((l, i) => ({ label:l, bg:i <= s.cStep ? '#82D9A5' : '#333B34', fg:i <= s.cStep ? '#9FF7C4' : '#778078' })),

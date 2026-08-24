@@ -56,6 +56,9 @@ html.attention-focus #root [data-focus-surface] > * { filter: saturate(.72) brig
 html.attention-focus #root [data-focus-surface] > *:focus-within,
 html.attention-focus #root [data-focus-surface][data-focus-active],
 html.attention-focus #root [data-focus-surface][data-focus-active] > * { filter: none; }
+/* Transient overlays are outside the active work surface. Focus mode must never
+ * dim the overlay that currently owns keyboard focus or its scrim. */
+html.attention-focus #root [data-overlay] { filter: none !important; }
 html.attention-low-stimulation *,
 html.attention-reduced-motion * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
 html.attention-low-stimulation .toast-region,

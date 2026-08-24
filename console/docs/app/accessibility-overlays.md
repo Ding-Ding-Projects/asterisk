@@ -8,7 +8,7 @@ Focus-visible outlines use a high-contrast green outline with an offset so focus
 
 ## Overlays
 
-Context menus, submenus, regex builders, and recovery panels paint their own background, border, and elevation. The shared overlay rules cap width and height against the viewport, keep overflow scrollable, and switch to a bounded narrow layout below 900px. An explicit active-overlay stack owns Escape, action, cancel, scrim, and nested close paths, then restores the exact opener. Meaningful headings receive `aria-labelledby`; overlays do not expose generated serial keys as their accessible name. Reduced-motion preferences combine the platform preference with the durable user switch, without removing the state or action. Runtime interaction remains unverified in this lane.
+Context menus, submenus, regex builders, and recovery panels paint their own background, border, and elevation. The shared overlay rules cap width and height against the viewport, keep overflow scrollable, and switch to a bounded narrow layout below 900px. An explicit active-overlay stack owns Escape, action, cancel, scrim, and nested close paths, then restores the exact opener. Ceremony and confirmation cards carry their own dialog role, heading, keyboard handling, and focus. Meaningful headings receive `aria-labelledby`; overlays do not expose generated serial keys as their accessible name. Reduced-motion preferences combine the platform preference with the durable user switch, without removing the state or action. Runtime interaction remains unverified in this lane.
 
 ## Long operations
 
@@ -16,7 +16,7 @@ One-click deployment reports the active stage, percentage, completed steps, and 
 
 ## Recovery
 
-Every context-menu target includes `Recover or re-authenticate…`. The anchored recovery panel identifies the failed target, keeps the failed action unchanged, and gives distinct Retry and Re-authenticate callbacks. Retry uses the bounded recorded action and its exact view or resource, rejects an unrecorded or unsafe action, and never substitutes a generic `pbx.read`. Re-authenticate refreshes the local discovery path. Its live status never reports a credential value or an unverified success. Runtime interaction remains unverified in this lane.
+Every actual failed control-plane action records a bounded descriptor with its exact action and view or resource. Context menus show `Refresh` by default and show `Recover recorded action…` only when a real descriptor exists. Retry rejects an unrecorded or unsafe action and never substitutes a generic `pbx.read`. Re-authenticate is available only for connection and daemon discovery actions. Its live status never reports a credential value or an unverified success. Runtime interaction remains unverified in this lane.
 
 ## Notifications and filters
 
@@ -24,7 +24,7 @@ Toasts and celebration messages append to durable local notification history. Th
 
 ## Tabs and dropdowns
 
-The tab strip exposes `tablist`, `tab`, `tabpanel`, and `group` semantics, with roving tab indexes, stable tab/panel IDs, valid grouped-tab ownership, and axis-aware arrow keys. Close controls have an accessible name and a 44px target. Tab bulk-close uses one shared predicate for preview and execution, freezes the exact planned labels in confirmation, rejects empty or invalid input and stale plans, defaults to plain text, and protects pinned, locked, or unsaved tabs. Select controls expose `listbox` and `option` semantics with a plain-text-first local filter and a full opt-in regex builder.
+The tab strip exposes `tablist`, `tab`, `tabpanel`, and `group` semantics, with roving tab indexes, stable tab/panel IDs, `aria-owns` group membership, valid grouped-tab ownership, and axis-aware arrow keys. Close controls have an accessible name and a 44px target. Tab bulk-close uses one shared predicate for preview and execution, freezes every predicate input including names, colours, groups, pins, locks, unsaved state, mode, query, pattern, and flags, rejects empty or invalid input and stale plans, defaults to plain text, and protects pinned, locked, or unsaved tabs. The palette teleports exact articles, tabs, groups, and controls by stable ids. Select controls expose `listbox` and `option` semantics with a plain-text-first local filter and a full opt-in regex builder.
 
 The command palette inventory is hand-written and includes every destination, declared setting, article id, open tab, and tab group. Setting results render the same rich control used by the owning screen, while destination and setting results teleport to their screen and return focus to the matching labelled control. The palette traps Tab focus while open and announces its result set through the live result list.
 
@@ -32,7 +32,7 @@ The compiled design carries exact fail-closed inventories for every declared con
 
 Low stimulation is consumed at the root: non-essential celebration and toast presentation is suppressed while the notification record is still retained in durable history. Focus and reduced-motion classes are reapplied after durable bootstrap. Persistence refusal is surfaced in the toolbar status, while pre-bootstrap writes queue and flush after the snapshot is ready.
 
-The regex builder keeps an independent `{query, pattern, flags, sample}` tuple per originating field, with no global flags value. It reports match counts, exposes capture groups, copies the pattern, and exports a bounded JSON result containing the exact query, pattern, flags, sample, and captures. Plain text remains the default until the user opens regex mode.
+The regex builder keeps an independent `{query, pattern, flags, sample}` tuple per originating field, with no legacy global pattern, sample, flags, or raw-query state. Raw editing and guided mutations both route through `setRegexField`. It reports match counts, exposes capture groups, copies the pattern, and exports a bounded JSON result containing the exact query, pattern, flags, sample, and captures. Plain text remains the default until the user opens regex mode.
 
 ## Verification boundary
 

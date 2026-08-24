@@ -237,6 +237,30 @@ function firstHeading(node) {
   return null;
 }
 
+function hasInteractiveDescendant(node) {
+  return (node.children || []).some((child) => child.tag && (
+    /^(?:button|input|select|textarea|a)$/u.test(child.tag)
+    || hasInteractiveDescendant(child)
+  ));
+}
+
+function overlayDescription(key, z) {
+  const exact = {
+    'overlay-61-1': 'Information panel',
+    'overlay-55-2': 'Guided wizard',
+    'overlay-75-6': 'Tour panel',
+    'overlay-97-8': 'Regex builder',
+    'overlay-82-10': 'Element lock wizard',
+    'overlay-84-12': 'Appearance editor',
+    'overlay-81-15': 'Tab filter',
+    'overlay-81-17': 'Tab colour editor',
+    'overlay-81-19': 'Rename editor',
+    'overlay-90-5': 'Onboarding',
+    'overlay-88-20': 'Celebration',
+  };
+  return exact[key] || (z === 86 ? 'Confirmation' : `Overlay content at layer ${z}`);
+}
+
 function emit(node, scope, hovers, indent) {
   if (node.text !== undefined) {
     const text = node.text;
@@ -275,7 +299,7 @@ function emit(node, scope, hovers, indent) {
           heading.attrs = heading.attrs || {};
           heading.attrs.id = heading.attrs.id || `overlay-title-${overlaySerial}`;
           node.attrs['aria-labelledby'] = heading.attrs.id;
-        } else node.attrs['aria-label'] = 'Dialog';
+        } else node.attrs['aria-label'] = overlayDescription(overlayKey, overlayZ);
       }
       node.attrs.tabindex = node.attrs.tabindex || '-1';
       node.attrs.onKeyDown = node.attrs.onKeyDown || '{{ overlayKeyDown }}';
@@ -284,6 +308,19 @@ function emit(node, scope, hovers, indent) {
   if (node.tag === 'button' && !node.attrs?.['aria-label'] && !node.attrs?.title) {
     const icon = soleIconName(node);
     if (icon) { node.attrs.title = icon.replace(/_/g, ' '); node.attrs['aria-label'] = icon.replace(/_/g, ' '); }
+  }
+
+  /* Clickable cards and rows are real controls. Convert simple div wrappers to
+   * native buttons so keyboard, focus, and 44px sizing are automatic. Composite
+   * surfaces that contain their own controls remain containers. */
+  if (node.tag === 'div' && node.attrs?.onClick && node.attrs?.['data-overlay'] !== 'scrim' && !node.attrs?.role && !hasInteractiveDescendant(node)) {
+    node.tag = 'button';
+    node.attrs.type = 'button';
+  } else if (node.tag === 'div' && node.attrs?.onClick && node.attrs?.['data-overlay'] !== 'scrim') {
+    node.attrs.role = node.attrs.role || 'group';
+    node.attrs.tabindex = node.attrs.tabindex || '0';
+    node.attrs['aria-label'] = node.attrs['aria-label'] || 'Interactive region';
+    node.attrs.onKeyDown = node.attrs.onKeyDown || '{{ activateClickableRegion }}';
   }
 
   if (node.tag === 'sc-if') {
@@ -493,7 +530,7 @@ const baseCss = [
   '/* The window is frameless, so the design title bar drags it and its controls do not. */',
   '[data-window-drag] { -webkit-app-region: drag; }',
   '[data-window-drag] button, [data-window-drag] input, [data-window-drag] [data-window-button] { -webkit-app-region: no-drag; cursor: pointer; }',
-  'button, input, select, textarea, [role="button"] { min-width:44px; min-height:44px; }',
+  'button, input, select, textarea, [role="button"], [role="group"] { min-width:44px; min-height:44px; }',
   '',
   '/* style-hover and style-active from the design reference. */',
   control.hoverCss,

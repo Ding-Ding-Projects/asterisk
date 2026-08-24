@@ -137,6 +137,7 @@ interface Shell {
   toast(message: string): void;
   areYouSure(title: string, body: string, seconds: number, onConfirm: () => void): void;
   fire(title: string, body: string): void;
+  closeOverlay(key: string, patch?: Record<string, unknown>): void;
 }
 
 /** The shape the compiled shell hands every control callback. */
@@ -1736,7 +1737,7 @@ It is shown once. The phone needs it to register.`);
           { icon: 'content_copy', label: 'Duplicate step', hint: '⌃D', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
           { icon: 'call_split', label: 'Insert condition before', hint: '', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
           { icon: 'delete', label: 'Delete step', hint: '⌦', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
-          { icon: 'key', label: 'Recover or re-authenticate…', hint: '', act: () => { const state = this.state as { ctxTarget?: string; ctxKind?: string }; this.setState({ ctxOpen: false, recoveryOpen: true, recoveryAction: { target: String(state.ctxTarget || 'observed step').slice(0, 128), kind: String(state.ctxKind || 'node').slice(0, 32), action: 'pbx.read', view: 'canvas', source: 'dialplan canvas', screen: 'canvas' }, recoveryTitle: `Recovery for ${state.ctxTarget || 'observed step'}`, recoveryBody: 'The failed action stays unchanged. Choose Retry to run the recorded screen reading again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus: 'No retry or re-authentication has run yet.' } as never); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'refresh', label: 'Refresh', hint: '', act: () => { this.closeOverlay('ctx'); void this.refresh(); }, hover: () => {}, bg: '#1B211C' },
         ]
       : undefined;
 
@@ -2104,6 +2105,11 @@ It is shown once. The phone needs it to register.`);
     this.toast('Appearance exported as JSON');
   }
 
+  paletteArticleInventory = (): Array<Record<string, unknown>> => listArticles(DOCS_BUNDLE).map((article) => ({
+    key: 'docs', icon: 'menu_book', label: `Article · ${article.title}`, hint: article.id,
+    kind: 'article', articleId: article.id,
+  }));
+
   renderVals() {
     const screen = (this.state as { screen: string }).screen;
     this.applyRows(screen);
@@ -2112,9 +2118,32 @@ It is shown once. The phone needs it to register.`);
     const bridge = this.bridge();
     const readings = this.readings[screen];
     const note = this.note(screen);
+    const bundledArticles = listArticles(DOCS_BUNDLE);
+    const paletteItems = Array.isArray(values.paletteItems) ? values.paletteItems as Array<Record<string, unknown>> : [];
+    const paletteArticleItems = bundledArticles.map((article, index) => ({
+      icon: 'menu_book', label: `Article · ${article.title}`, hint: article.id, kind: 'article', articleId: article.id,
+      position: index + 1, count: bundledArticles.length, selected: false, tabIndex: -1, bg: 'transparent', go: () => this.setState({ screen: 'docs', railId: 'app', docsSelectedId: article.id }),
+      keyDown: (event: KeyboardEvent) => { if (event.key === 'Enter') { event.preventDefault(); this.setState({ screen: 'docs', railId: 'app', docsSelectedId: article.id }); } },
+    }));
+    const paletteWithoutStaleArticles = paletteItems.filter((item) => item.kind !== 'article');
+    const paletteQuery = String((this.state as { paletteQuery?: string }).paletteQuery || '').trim();
+    const paletteRegex = (this.state as { paletteRegexOn?: boolean }).paletteRegexOn === true;
+    const matchingArticles = paletteArticleItems.filter((item) => {
+      if (!paletteQuery) return true;
+      if (!paletteRegex) return item.label.toLowerCase().includes(paletteQuery.toLowerCase()) || item.hint.toLowerCase().includes(paletteQuery.toLowerCase());
+      try { const pattern = new RegExp(paletteQuery, 'i'); return pattern.test(item.label) || pattern.test(item.hint); } catch { return false; }
+    });
+    const combinedPalette = paletteWithoutStaleArticles.concat(matchingArticles).map((item, index, list) => ({
+      ...item, position: index + 1, count: list.length, selected: index === (this.state as { paletteCursor?: number }).paletteCursor,
+      tabIndex: index === (this.state as { paletteCursor?: number }).paletteCursor ? 0 : -1,
+      bg: index === (this.state as { paletteCursor?: number }).paletteCursor ? '#1B4D33' : 'transparent',
+    }));
 
     return {
       ...values,
+      paletteItems: combinedPalette,
+      paletteArticleInventory: bundledArticles.map((article) => article.id),
+      paletteResultLabel: `${combinedPalette.length} result(s). Use Up and Down to move, Enter to teleport.`,
       // The "Edit appearance..." panel's real colour translator and real actions
       // (appearance.ts + colour.ts) -- see the Appearance section above renderVals.
       ...this.appearanceVals(),
@@ -2252,7 +2281,16 @@ It is shown once. The phone needs it to register.`);
       runOneClick: this.discover,
       cancelOneClick: this.cancelOneClick,
       recoveryRetry: () => { void this.retryFailedAction(); },
-      recoveryReauth: () => { const action = (this.state as { recoveryAction?: { target?: string } }).recoveryAction; this.setState({ recoveryStatus: `Re-authentication requested for ${String(action?.target || 'the recorded action').slice(0, 128)}. Discovery will refresh the local connection path without exposing credentials.` } as never); void this.discover(); },
+      recoveryReauth: () => {
+        const action = (this.state as { recoveryAction?: { target?: string; action?: string } }).recoveryAction;
+        const allowed = new Set(['server.list', 'server.connect', 'runtime.status', 'daemon.status']);
+        if (!action?.action || !allowed.has(action.action)) {
+          this.setState({ recoveryStatus: `Re-authentication is unavailable for the recorded action ${String(action?.action || 'unknown').slice(0, 64)}.` } as never);
+          return;
+        }
+        this.setState({ recoveryStatus: `Re-authentication requested for ${String(action.target || 'the recorded action').slice(0, 128)}. Discovery will refresh the local connection path without exposing credentials.` } as never);
+        void this.discover();
+      },
       durableStatus: this.universalPersistenceStatus,
 
       // Nav-rail badges: only a count this session actually read, never the design's
