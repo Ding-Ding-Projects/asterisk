@@ -22,7 +22,7 @@
  *    refuses to perform.
  */
 import { createHash } from "node:crypto";
-import { mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { ProcessExecutor } from "./executor.js";
 
@@ -90,12 +90,14 @@ export interface LocalHistoryOptions {
 }
 
 const REDACTED_MARKER = "[redacted]";
-const SECRET_KEY_NAMES = ["password", "passwd", "passphrase", "secret", "token", "bearer", "authorization", "authheader", "apikey", "api_key", "pin", "credential", "privatekey", "accesskey"];
+const SECRET_KEY_NAMES = ["password", "passwd", "passphrase", "secret", "token", "bearer", "authorization", "authheader", "apikey", "api_key", "key", "pin", "credential", "privatekey", "accesskey"];
 const MAX_PAYLOAD_BYTES = 1_048_576;
 const MAX_PAYLOAD_DEPTH = 32;
 const MAX_PAYLOAD_ENTRIES = 10_000;
 const MAX_PAYLOAD_KEY_LENGTH = 256;
 const MAX_PAYLOAD_VALUE_LENGTH = 8_192;
+const MAX_RETRY_ENTRIES = 1_000;
+const MAX_RETRY_BYTES = 8 * 1024 * 1024;
 
 const RECORD_SEPARATOR = "\x1e";
 const GROUP_SEPARATOR = "\x1d";
@@ -324,7 +326,9 @@ export class LocalHistory {
       await unlink(absolutePath).catch(() => undefined);
     } else {
       await mkdir(dirname(absolutePath), { recursive: true });
-      await writeFile(absolutePath, `${JSON.stringify(redactedPayload, null, 2)}\n`, "utf8");
+      const serialized = `${JSON.stringify(redactedPayload, null, 2)}\n`;
+      if (Buffer.byteLength(serialized, 'utf8') > MAX_PAYLOAD_BYTES) throw new Error(`A history payload exceeds the ${MAX_PAYLOAD_BYTES}-byte limit after UTF-8 serialization.`);
+      await writeFile(absolutePath, serialized, "utf8");
     }
     /* Stage the entire records tree so a delete is a real tree deletion and every
      * commit carries the complete selected snapshot, not only the changed file. */
@@ -335,9 +339,26 @@ export class LocalHistory {
   private async readRetryQueue(): Promise<LocalHistoryEntry[]> {
     try {
       const raw = await readFile(join(this.#repositoryPath, '..', 'history-retry.json'), 'utf8');
+      if (Buffer.byteLength(raw, 'utf8') > MAX_RETRY_BYTES) return [];
       const parsed = JSON.parse(raw) as unknown;
-      return Array.isArray(parsed) ? parsed.filter((entry): entry is LocalHistoryEntry => Boolean(entry && typeof entry === 'object' && typeof (entry as LocalHistoryEntry).identity === 'string' && typeof (entry as LocalHistoryEntry).subject === 'string')) : [];
+      if (!parsed || typeof parsed !== 'object' || (parsed as { schemaVersion?: unknown }).schemaVersion !== 1) return [];
+      const entries = (parsed as { entries?: unknown }).entries;
+      if (!Array.isArray(entries)) return [];
+      return entries.slice(0, MAX_RETRY_ENTRIES).filter((entry): entry is LocalHistoryEntry => {
+        if (!entry || typeof entry !== 'object' || typeof (entry as LocalHistoryEntry).identity !== 'string' || typeof (entry as LocalHistoryEntry).subject !== 'string' || typeof (entry as LocalHistoryEntry).action !== 'string' || !HISTORY_ACTION_SET.has((entry as LocalHistoryEntry).action)) return false;
+        try { validatePayload((entry as LocalHistoryEntry).payload); return true; } catch { return false; }
+      });
     } catch { return []; }
+  }
+
+  private async writeRetryQueue(entries: readonly LocalHistoryEntry[]): Promise<void> {
+    const bounded = entries.slice(0, MAX_RETRY_ENTRIES).map((entry) => ({ ...entry, payload: redactSecretValues(entry.payload) }));
+    const raw = `${JSON.stringify({ schemaVersion: 1, entries: bounded })}\n`;
+    if (Buffer.byteLength(raw, 'utf8') > MAX_RETRY_BYTES) throw new Error('The durable history retry queue exceeded its byte limit.');
+    const path = join(this.#repositoryPath, '..', 'history-retry.json');
+    const temporary = `${path}.${process.pid}.${Date.now()}.tmp`;
+    await writeFile(temporary, raw, 'utf8');
+    await rename(temporary, path);
   }
 
   async enqueueRetry(entry: LocalHistoryEntry): Promise<void> {
@@ -345,8 +366,10 @@ export class LocalHistory {
     const queue = await this.readRetryQueue();
     queue.push(safe);
     await mkdir(dirname(join(this.#repositoryPath, '..', 'history-retry.json')), { recursive: true });
-    await writeFile(join(this.#repositoryPath, '..', 'history-retry.json'), `${JSON.stringify(queue)}\n`, 'utf8');
+    await this.writeRetryQueue(queue);
   }
+
+  async retryQueueCount(): Promise<number> { return (await this.readRetryQueue()).length; }
 
   async retryQueued(): Promise<{ attempted: number; recorded: number; remaining: number }> {
     const queue = await this.readRetryQueue();
@@ -355,7 +378,7 @@ export class LocalHistory {
     for (const entry of queue) {
       try { await this.record(entry); recorded += 1; } catch { remaining.push(entry); }
     }
-    await writeFile(join(this.#repositoryPath, '..', 'history-retry.json'), `${JSON.stringify(remaining)}\n`, 'utf8');
+    await this.writeRetryQueue(remaining);
     return { attempted: queue.length, recorded, remaining: remaining.length };
   }
 

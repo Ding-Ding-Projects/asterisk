@@ -59,7 +59,7 @@ import {
 } from './unlock-ladder';
 import {
   filterHistory, formatHistoryTimestamp, historyActionLabel, historyCounts, historyExportRows,
-  HISTORY_ACTIONS, isHistoryAction, type HistoryAction, type HistoryCommit,
+  HISTORY_ACTIONS, isHistoryAction, stableHistoryIdentity, type HistoryAction, type HistoryCommit,
 } from './local-history';
 import { calendarDays, shiftCalendarMonth, validateInclusiveDateRange } from './date-range';
 
@@ -256,10 +256,9 @@ export class App extends Base {
   private localHistoryCounts = historyCounts([]);
   private localHistoryPending = false;
   private localHistoryError = '';
-  private localHistoryAccess = { configured: false, authorized: false, warning: '' };
+  private localHistoryAccess = { configured: false, authorized: false, queued: 0, warning: '' };
   private localHistoryInspection: { commitId: string; files: string[]; diff: string } | undefined;
   private localHistoryComparison: { first: string; second: string; files: string[]; diff: string } | undefined;
-  private pendingHistoryRecords: Array<{ action: HistoryAction; subject: string; payload: unknown; identity: string }> = [];
   private historyBatch = { running: false, done: 0, total: 0, cancelled: false };
 
   private readonly localHistoryRepositoryLabel = 'App data history';
@@ -393,7 +392,7 @@ export class App extends Base {
       this.forceUpdate();
       return;
     }
-    this.localHistoryAccess = { configured: true, authorized: true, warning: '' };
+    this.localHistoryAccess = { configured: true, authorized: true, queued: this.localHistoryAccess.queued, warning: '' };
     this.localHistoryError = '';
     this.toast('History manager unlocked for this session');
     await this.loadLocalHistory();
@@ -432,7 +431,6 @@ export class App extends Base {
       payload: { action, subject, payload, identity },
     }).then((response) => {
       if (!response?.ok) {
-        if (response.code !== 'HISTORY_WRITE_QUEUED') this.pendingHistoryRecords.push({ action, subject, payload, identity });
         this.localHistoryError = response?.message ?? 'A successful change could not be recorded in local history.';
         this.fire('History recording unavailable', `${this.localHistoryError} The change remains live. Open History and retry the pending record.`);
         this.forceUpdate();
@@ -440,7 +438,6 @@ export class App extends Base {
       }
       if ((this.state as { screen?: string }).screen === 'history') void this.loadLocalHistory();
     }).catch(() => {
-      this.pendingHistoryRecords.push({ action, subject, payload, identity });
       this.localHistoryError = 'A successful change could not be recorded in local history.';
       this.fire('History recording unavailable', `${this.localHistoryError} The change remains live. Open History and retry the pending record.`);
       this.forceUpdate();
@@ -451,18 +448,11 @@ export class App extends Base {
     const queued = await this.request('local-history.retry');
     if (queued?.ok) {
       const result = queued.data as { attempted?: number; recorded?: number; remaining?: number };
+      this.localHistoryAccess.queued = result.remaining ?? this.localHistoryAccess.queued;
       this.toast(`Durable history retry recorded ${result.recorded ?? 0} of ${result.attempted ?? 0}; ${result.remaining ?? 0} remain.`);
     }
-    const pending = this.pendingHistoryRecords.splice(0);
-    const failures: typeof pending = [];
-    for (const entry of pending) {
-      const response = await this.request('local-history.record', { payload: { ...entry } });
-      if (!response?.ok) failures.push(entry);
-    }
-    this.pendingHistoryRecords.push(...failures);
-    this.localHistoryError = failures.length > 0 ? `${failures.length} history record(s) still need retry.` : '';
-    if (failures.length === 0) this.toast('Pending history records are now recorded');
-    else this.fire('History retry incomplete', this.localHistoryError);
+    this.localHistoryError = '';
+    this.toast('Durable history retry requested');
     await this.loadLocalHistory();
   };
 
@@ -783,7 +773,7 @@ export class App extends Base {
     this.readings = {};
     this.canvasReadings = undefined;
     await this.refreshDaemonStatus();
-    this.recordLocalHistory('updated', `runtime daemon ${verb}`, { target: this.target.id, verb }, `runtime:${this.target.id}:daemon`);
+    this.recordLocalHistory('updated', `runtime daemon ${verb}`, { target: this.target.id, verb }, stableHistoryIdentity(this.target.id, 'runtime', 'daemon', verb));
     this.fire(`Phone system ${verb === 'start' ? 'started' : verb === 'stop' ? 'stopped' : 'restarted'}`, `Asterisk on ${this.target.label} answered after the ${verb}.`);
   };
 
@@ -912,7 +902,7 @@ ${resolution.disclosure}`);
         'settings-changed',
         control.label?.trim() || control.id,
         { controlId: control.id, value },
-        `setting:${control.id}`,
+        stableHistoryIdentity('console', 'settings', 'control', control.id),
       );
     }
   };
@@ -954,7 +944,7 @@ ${resolution.disclosure}`);
     const created = await this.servers.add(input as never);
     this.forceUpdate();
     if (created) {
-      this.recordLocalHistory('created', `server ${created.name}`, created, `server:${created.id}`);
+      this.recordLocalHistory('created', `server ${created.name}`, created, stableHistoryIdentity('console', 'server-inventory', 'server', created.id));
       this.fire('Connection added', `${created.name} is now in the server list below.`);
     }
     else this.fire('Not added', 'The control plane did not accept that connection.');
@@ -967,7 +957,7 @@ ${resolution.disclosure}`);
     const removed = await this.servers.remove(server.id);
     this.forceUpdate();
     if (removed) {
-      this.recordLocalHistory('deleted', `server ${name}`, { id: server.id, name }, `server:${server.id}`);
+      this.recordLocalHistory('deleted', `server ${name}`, { id: server.id, name }, stableHistoryIdentity('console', 'server-inventory', 'server', server.id));
       this.fire('Connection removed', `${name} was removed from the server list.`);
     }
     else this.fire('Not removed', 'The control plane did not accept that removal.');
@@ -1055,7 +1045,7 @@ ${resolution.disclosure}`);
         this.fire('Not created', provisioned?.message ?? 'Creating the runtime did not succeed, so there is nothing to deploy to.');
         return;
       }
-      this.recordLocalHistory('created', 'runtime provisioned', { target: this.target.id, action: 'runtime.provision' }, `runtime:${this.target.id}:distribution`);
+      this.recordLocalHistory('created', 'runtime provisioned', { target: this.target.id, action: 'runtime.provision' }, stableHistoryIdentity(this.target.id, 'runtime', 'distribution', 'managed'));
       await this.discover();
       if (!this.target.connected) {
         this.fire('No target', 'The runtime was created but nothing is connected yet — open Deploy & servers to finish connecting, then try the wizard again.');
@@ -1095,7 +1085,7 @@ ${resolution.disclosure}`);
             this.fire('Deploy not applied', `${response?.message ?? result?.data?.result?.message ?? 'The target refused the change.'}`);
             return;
           }
-          this.recordLocalHistory('updated', 'onboarding deploy', { target: this.target.id, documents: plan.documents }, `onboarding:${this.target.id}`);
+          this.recordLocalHistory('updated', 'onboarding deploy', { target: this.target.id, documents: plan.documents }, stableHistoryIdentity(this.target.id, 'onboarding', 'plan', 'deploy'));
           const secretLines = plan.newExtensions.map((e) => `${e.id}: ${e.secret}`).join('\n');
           this.fire(
             'Deployed',
@@ -1255,6 +1245,7 @@ ${resolution.disclosure}`);
     const ids = table.rows.map((r) => r[0]);
     const state = this.state as { selected?: string[] };
     const selectedArr = state.selected ?? [];
+    const bulkScope = ((this.state as { bulkScope?: string }).bulkScope === 'matches' ? 'matches' : 'page') as 'page' | 'matches';
     const sel: SelectionState = {
       anchor: selectedArr.length > 0 ? selectedArr[selectedArr.length - 1] : undefined,
       selected: new Set(selectedArr),
@@ -1282,7 +1273,10 @@ ${resolution.disclosure}`);
       bulkExportFormats: suitableFormats(records).map((format) => ({ value: format, label: format.toUpperCase() })),
       toggleAll: () => apply(selectedArr.length === ids.length && ids.length > 0
         ? bulkClearSelection(sel)
-        : bulkSelectAll(sel, 'page', ids, ids).state),
+        : bulkSelectAll(sel, bulkScope, ids, ids).state),
+      bulkScope,
+      setBulkScope: (event: { target?: { value?: string } }) => this.setState({ bulkScope: event.target?.value === 'matches' ? 'matches' : 'page' }),
+      bulkScopeLabel: bulkScope === 'matches' ? `All filtered matches (${ids.length})` : `This page (${ids.length})`,
       clearSelection: () => apply(bulkClearSelection(sel)),
       bulkActions: existingActions.concat([
         { icon: 'flip_camera_android', label: 'Invert selection', run: () => apply(bulkInvert(sel, ids)) },
@@ -1487,7 +1481,7 @@ It is shown once. The phone needs it to register.`);
     delete this.configs.endpoints;
     this.seeded.delete('endpoints');
     const historyAction: HistoryAction = /created/iu.test(done) ? 'created' : /removed/iu.test(done) ? 'deleted' : 'updated';
-    this.recordLocalHistory(historyAction, `endpoint ${done.replace(/\s+(created|updated|removed)$/iu, '')}`, document.value, `endpoint:${this.editingEndpoint || done}:${document.resource}`);
+    this.recordLocalHistory(historyAction, `endpoint ${done.replace(/\s+(created|updated|removed)$/iu, '')}`, document.value, stableHistoryIdentity(this.target.id, document.resource, 'endpoint', this.editingEndpoint || done));
     this.fire(done, summary.join('\n'));
     this.forceUpdate();
     return true;
@@ -2169,7 +2163,7 @@ It is shown once. The phone needs it to register.`);
             this.fire('Not created', `${response.message ?? 'Creating the runtime did not succeed.'}\n\n${steps}`.trim());
             return;
           }
-          this.recordLocalHistory('created', 'runtime provisioned', { action: 'runtime.provision', steps: carrier.data?.steps ?? [] }, 'runtime:distribution');
+          this.recordLocalHistory('created', 'runtime provisioned', { action: 'runtime.provision', steps: carrier.data?.steps ?? [] }, stableHistoryIdentity('console', 'runtime', 'distribution', 'managed'));
           this.fire('Runtime ready', steps || 'The runtime was created and answered.');
           void this.discover();
         });
@@ -2364,7 +2358,7 @@ It is shown once. The phone needs it to register.`);
       })),
       histActions: [
         { icon: 'refresh', label: this.localHistoryPending ? 'Refreshing…' : 'Refresh history', run: () => void this.loadLocalHistory() },
-        { icon: 'sync', label: `Retry pending writes (${this.pendingHistoryRecords.length})`, run: this.retryLocalHistoryWrites },
+        { icon: 'sync', label: `Retry durable writes (${this.localHistoryAccess.queued})`, run: this.retryLocalHistoryWrites },
         { icon: 'select_all', label: 'Select all visible', run: () => { const next = bulkSelectAll({ anchor: state.historyAnchor, selected: new Set(selectedIds) }, 'page', filtered.entries.map((entry) => entry.id), filtered.entries.map((entry) => entry.id)); this.setState({ historySelectedIds: [...next.state.selected] }); } },
         { icon: 'flip_camera_android', label: 'Invert visible selection', run: () => { const next = bulkInvert({ anchor: state.historyAnchor, selected: new Set(selectedIds) }, filtered.entries.map((entry) => entry.id)); this.setState({ historySelectedIds: [...next.selected] }); } },
         { icon: 'restore', label: 'Restore selected', run: () => selectedEntry && void this.restoreLocalHistory(selectedEntry.id) },
@@ -2372,7 +2366,7 @@ It is shown once. The phone needs it to register.`);
         { icon: 'download', label: 'Export history', run: this.exportLocalHistory },
         { icon: 'archive', label: `Export ZIP (${ARCHIVE_CHOICES[0].label})`, run: this.exportLocalHistoryZip },
         { icon: 'open_in_new', label: 'Open history folder in editor', run: this.openHistoryFolderInEditor },
-        { icon: 'rule', label: 'Review retention policy', run: this.pruneLocalHistory },
+        { icon: 'rule', label: this.localHistoryAccess.authorized ? 'Review retention policy' : 'Retention unavailable until unlock', run: this.pruneLocalHistory },
       ],
       commitRows,
       diffFile: selectedEntry
@@ -2413,8 +2407,8 @@ It is shown once. The phone needs it to register.`);
       setHistoryCredential: (event: { target?: { value?: string } }) => this.setState({ historyCredential: event.target?.value ?? '' }),
       authorizeHistory: this.authorizeLocalHistory,
       historyAccessLabel: this.localHistoryAccess.authorized
-        ? 'Unlocked for this session; the credential remains in the operating-system vault.'
-        : 'Locked. Enter the separate history-manager credential. The desktop reports a warning and keeps rows hidden until it is unlocked.',
+        ? `Unlocked for this session; the credential remains in the operating-system vault. Durable retry queue: ${this.localHistoryAccess.queued}.`
+        : `Locked. Enter the separate history-manager credential. Durable retry queue: ${this.localHistoryAccess.queued}. The desktop reports a warning and keeps rows hidden until it is unlocked.`,
       historyResultLabel: this.localHistoryError || (this.localHistoryPending ? 'Reading app-data history…' : `${filtered.entries.length} visible entr${filtered.entries.length === 1 ? 'y' : 'ies'}`),
       historyBulkPreview: this.historyBatch.running
         ? `Restoring ${this.historyBatch.done} of ${this.historyBatch.total}. ${this.historyBatch.cancelled ? 'Cancellation requested.' : 'The next entry remains queued.'}`

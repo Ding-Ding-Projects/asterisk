@@ -589,7 +589,8 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           return await runHistory(async () => {
             await ensureHistory();
             const configured = await historyVault.get(historyAccount).then((value) => value !== undefined).catch(() => false);
-            return { ok: true, requestId: request.requestId, data: { configured, authorized: historyAuthorized, warning: historyAuthorized ? '' : 'History manager is locked. Unlock it with its separate operating-system-vault credential.' } };
+            const queued = await localHistory.retryQueueCount();
+            return { ok: true, requestId: request.requestId, data: { configured, authorized: historyAuthorized, queued, warning: historyAuthorized ? '' : 'History manager is locked. Unlock it with its separate operating-system-vault credential.' } };
           });
         }
         if (request.action === 'local-history.authorize') {
@@ -615,6 +616,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           }
           if (request.action === 'local-history.record') {
             const entry = request.payload as unknown as Parameters<LocalHistory['record']>[0];
+            if (!entry || typeof entry.identity !== 'string' || entry.identity.trim() === '') return { ok: false, requestId: request.requestId, code: 'HISTORY_IDENTITY_REQUIRED', message: 'A history mutation must name its stable target, resource, kind, and object identity.' };
             try {
               return { ok: true, requestId: request.requestId, data: await localHistory.record(entry) };
             } catch (error) {

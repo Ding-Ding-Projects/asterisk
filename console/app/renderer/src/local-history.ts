@@ -39,6 +39,14 @@ export interface HistorySearchResult {
   error?: string;
 }
 
+/** Stable identity builder. Target id is deliberately first, so two PBX targets
+ * with the same endpoint name never share a history record path. */
+export function stableHistoryIdentity(targetId: string, resource: string, kind: string, objectId: string): string {
+  const parts = [targetId, resource, kind, objectId].map((part) => part.trim());
+  if (parts.some((part) => part.length === 0 || /[\u0000-\u001f\u007f]/u.test(part))) throw new Error('History identity parts must be non-empty and contain no control characters.');
+  return parts.join('|');
+}
+
 const MAX_QUERY_LENGTH = 256;
 
 function actionLabel(action: HistoryAction): string {

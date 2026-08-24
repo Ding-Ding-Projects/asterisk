@@ -1268,6 +1268,14 @@ function Template(v: any) {
                           S($f.label)
                         )))
                     ),
+                    h("select", { value: v.bulkScope, onChange: fn(v.setBulkScope), "aria-label": `Bulk selection scope`, style: sty(`background:rgba(0,0,0,.24); border:1px solid rgba(159,247,196,.3); border-radius:8px; padding:7px 9px; color:#C3EFD5; font:inherit; font-size:11.5px;`) },
+                      h("option", { value: `page` },
+                        "This page"
+                      ),
+                      h("option", { value: `matches` },
+                        "All filtered matches"
+                      )
+                    ),
                     h("button", { onClick: fn(v.clearSelection), style: sty(`background:transparent; border:0; color:#C3EFD5; font:inherit; font-size:12.5px; cursor:pointer; padding:7px 10px;`) },
                       "Clear"
                     )

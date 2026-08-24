@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "surface": "windows-console",
   "description": "Hand-written inventory of every desktop mutation that must create an app-data history event.",
+  "identityRegression": { "sameObjectDifferentTargets": ["target-a|pjsip.conf|endpoint|1001", "target-b|pjsip.conf|endpoint|1001"], "mustDiffer": true },
   "mutations": [
     { "id": "settings-control", "action": "settings-changed", "owner": "App.languageAwareSetVal", "implementation": "app/renderer/src/App.tsx", "history": "local-history.record", "status": "implemented" },
     { "id": "server-create", "action": "created", "owner": "App.onAddServer", "implementation": "app/renderer/src/App.tsx", "history": "local-history.record", "status": "implemented" },
