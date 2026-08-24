@@ -1,3 +1,5 @@
+# External settings source contract
+
 ## External settings source contract
 
 - Added a secret-free shared contract for local, versioned HTTPS, and Home Assistant boolean schedule sources.

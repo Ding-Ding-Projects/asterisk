@@ -31,6 +31,10 @@ import { ConverterRunner } from './converter-runner.js';
 import { ConverterQueue } from './converter-queue.js';
 import { sniffFileType } from './converter-sniff.js';
 import { OllamaClient } from './ollama-client.js';
+import { createOllamaRuntimeHandlers } from './ollama-client.js';
+import { OllamaStore } from './ollama-store.js';
+import { OllamaPullQueue, createOllamaPullHandlers } from './ollama-pulls.js';
+import { OllamaChat, createOllamaChatHandlers } from './ollama-chat.js';
 import type { ConverterRequest, ConverterSniffResult } from '../shared/converter.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
 import type { ChangePlan, ReadOnlyCommand, TargetProfile } from './index.js';
@@ -58,6 +62,9 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'converter.queue.create', 'converter.queue.enqueue-one', 'converter.queue.page',
   'converter.queue.start', 'converter.queue.pause', 'converter.queue.resume', 'converter.queue.cancel',
   'ollama.snapshot',
+  'ollama.health', 'ollama.version', 'ollama.models.installed', 'ollama.models.running', 'ollama.model.show', 'ollama.model.delete', 'ollama.model.copy',
+  'ollama.pulls.list', 'ollama.pulls.enqueue', 'ollama.pulls.cancel', 'ollama.pulls.retry', 'ollama.pulls.reconcile',
+  'ollama.chat.sessions', 'ollama.chat.create', 'ollama.chat.rename', 'ollama.chat.delete', 'ollama.chat.send', 'ollama.chat.retry', 'ollama.chat.regenerate', 'ollama.chat.stop',
 ]);
 
 function validateRequestSchema(request: ControlPlaneRequest): string | undefined {
@@ -96,6 +103,15 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
   const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
   const converterRegistry = ConverterRegistry.create();
   const ollamaClient = new OllamaClient();
+  const ollamaStore = new OllamaStore(join(userDataPath, 'ollama-state.json'));
+  const ollamaPullQueue = new OllamaPullQueue({ client: ollamaClient, store: ollamaStore });
+  const ollamaChat = new OllamaChat({ client: ollamaClient });
+  const ollamaHandlers = {
+    ...createOllamaRuntimeHandlers(ollamaClient),
+    ...createOllamaPullHandlers(ollamaPullQueue),
+    ...createOllamaChatHandlers(ollamaChat),
+  };
+  const ollamaReady = ollamaPullQueue.initialize();
   const converterQueue = converterRegistry.then(async (registry) => {
     const store = new ConverterStore({ rootPath: join(userDataPath, 'converter-queues') });
     await store.initialize();
@@ -524,6 +540,14 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           ollamaClient.health(), ollamaClient.version(), ollamaClient.installedModels(), ollamaClient.runningModels(),
         ]);
         return { ok: true, requestId: request.requestId, data: { observedAt, endpoint: ollamaClient.endpoint, health, version, installed, running } };
+      }
+      if (request.action.startsWith('ollama.')) {
+        await ollamaReady;
+        const handler = ollamaHandlers[request.action as keyof typeof ollamaHandlers];
+        if (!handler) return { ok: false, requestId: request.requestId, code: 'OLLAMA_ACTION_UNAVAILABLE', message: 'The requested Ollama action is not registered.' };
+        const response = await handler(request as never);
+        if (!response.ok) return { ok: false, requestId: request.requestId, code: response.code, message: response.message };
+        return { ok: true, requestId: request.requestId, data: response.data };
       }
       if (request.action === 'converter.queue.create') {
         const label = typeof request.payload?.label === 'string' ? request.payload.label : '';

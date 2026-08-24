@@ -1,3 +1,5 @@
+# Browser-extension transfer surfaces
+
 ## Browser-extension transfer surfaces
 
 - Added typed extension handoff, transfer snapshot, command receipt, window-intent, and surface-registration contracts.

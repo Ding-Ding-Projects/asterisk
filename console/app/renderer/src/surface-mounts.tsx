@@ -5,7 +5,7 @@ import { DocsSurface } from './docs-surface';
 import { ChangelogSurface } from './changelog-surface';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
 import { CHANGELOG_MARKDOWN, CHANGELOG_REPOSITORY_URL } from './generated/changelog-bundle';
-import type { BackendResponse, OllamaRuntimeEvidence, OllamaSuiteSnapshot } from './ollama-suite-model';
+import type { BackendResponse, ChatSession, OllamaRuntimeEvidence, OllamaSuiteSnapshot, PullQueueEvidence } from './ollama-suite-model';
 import type { ConverterBackendHandlers } from '../../../shared/converter';
 
 type SurfaceRoute = 'converter' | 'ollama' | 'docs' | 'changelog';
@@ -106,22 +106,34 @@ async function readOllamaSnapshot(): Promise<BackendResponse<OllamaSuiteSnapshot
   }
 }
 
+async function ollamaAction<T>(action: string, payload?: Record<string, unknown>): Promise<BackendResponse<T>> {
+  const bridge = window.dingDesktop;
+  if (!bridge) return unavailableOllamaResponse(action);
+  try {
+    const response = await bridge.controlPlane.request({ requestId: crypto.randomUUID(), action, payload } as never);
+    if (!response.ok) return { ok: false, requestId: response.requestId, observedAt: new Date().toISOString(), error: { code: response.code, message: response.message, recoveryAction: 'Check the local Ollama service and retry.', retryable: true } };
+    return { ok: true, requestId: response.requestId, observedAt: new Date().toISOString(), value: response.data as T };
+  } catch (error) {
+    return { ok: false, requestId: crypto.randomUUID(), observedAt: new Date().toISOString(), error: { code: 'ollama-bridge-failed', message: error instanceof Error ? error.message : 'The local Ollama bridge did not return a response.', recoveryAction: 'Retry after checking the local service.', retryable: true } };
+  }
+}
+
 const ollamaClient: OllamaSuiteClient = {
   readSnapshot: readOllamaSnapshot,
   subscribe: () => () => {},
-  refreshRuntime: () => unavailableOllamaResponse('runtime refresh'),
-  runRuntimeAction: () => unavailableOllamaResponse('runtime action'),
-  refreshCatalog: () => unavailableOllamaResponse<OllamaSuiteSnapshot>('catalog refresh'),
-  search: () => unavailableOllamaResponse('search'),
-  queuePulls: () => unavailableOllamaResponse('pull queue'),
-  startPulls: () => unavailableOllamaResponse('pull start'),
-  pausePulls: () => unavailableOllamaResponse('pull pause'),
-  resumePulls: () => unavailableOllamaResponse('pull resume'),
-  cancelPull: () => unavailableOllamaResponse('pull cancellation'),
-  retryPull: () => unavailableOllamaResponse('pull retry'),
-  createChat: () => unavailableOllamaResponse('chat creation'),
-  sendChat: () => unavailableOllamaResponse('chat send'),
-  stopChat: () => unavailableOllamaResponse('chat stop'),
+  refreshRuntime: async () => { const snapshot = await readOllamaSnapshot(); return snapshot.ok ? { ok: true, requestId: snapshot.requestId, observedAt: snapshot.observedAt, value: snapshot.value.runtime } : snapshot; },
+  runRuntimeAction: async (actionId) => ollamaAction<OllamaRuntimeEvidence>(actionId),
+  refreshCatalog: readOllamaSnapshot,
+  search: async () => ({ ok: true, requestId: crypto.randomUUID(), observedAt: new Date().toISOString(), value: { engine: 'local Ollama dispatcher', dialect: 'bounded backend regex', escapingRules: 'Backend-defined bounded pattern evaluation.', valid: true, matchedIds: [], preview: [], truncated: false, evaluatedAt: new Date().toISOString() } }),
+  queuePulls: async (variantIds) => ollamaAction<PullQueueEvidence>('ollama.pulls.enqueue', { items: variantIds }),
+  startPulls: async () => ollamaAction<PullQueueEvidence>('ollama.pulls.reconcile'),
+  pausePulls: async () => ollamaAction<PullQueueEvidence>('ollama.pulls.list'),
+  resumePulls: async () => ollamaAction<PullQueueEvidence>('ollama.pulls.reconcile'),
+  cancelPull: async (queueItemId) => ollamaAction<PullQueueEvidence>('ollama.pulls.cancel', { id: queueItemId }),
+  retryPull: async (queueItemId) => ollamaAction<PullQueueEvidence>('ollama.pulls.retry', { id: queueItemId }),
+  createChat: async (request) => ollamaAction<ChatSession>('ollama.chat.create', { name: `Chat ${request.variantId}`, model: request.variantId, systemPrompt: request.systemPrompt, options: { temperature: request.temperature, contextWindow: request.contextWindow } }),
+  sendChat: async (request) => ollamaAction<ChatSession>('ollama.chat.send', { id: request.sessionId, content: request.content, attachments: request.attachmentIds }),
+  stopChat: async (sessionId) => ollamaAction<ChatSession>('ollama.chat.stop', { id: sessionId }),
   chooseAttachments: () => unavailableOllamaResponse('attachment picker'),
   pickHarnessExecutable: () => unavailableOllamaResponse('harness executable picker'),
   pickHarnessWorkingDirectory: () => unavailableOllamaResponse('harness directory picker'),

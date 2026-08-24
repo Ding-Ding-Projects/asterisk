@@ -24,8 +24,21 @@ export interface DocsBundle {
 
 export const DOCS_BUNDLE: DocsBundle = {
   "generatedAt": "1970-01-01T00:00:00.000Z",
-  "articleCount": 84,
+  "articleCount": 117,
   "articles": [
+    {
+      "id": "agent/changelog-status-hub-client",
+      "category": "agent",
+      "title": "Changelog fragment: Status Hub client",
+      "headings": [
+        {
+          "title": "Unreleased",
+          "id": "unreleased"
+        }
+      ],
+      "links": [],
+      "body": "# Changelog fragment: Status Hub client\n\n## Unreleased\n\n- Added a typed Status Hub client and external store for project registration, observed sessions, reply inbox polling, and question delivery receipts.\n- Added HTTPS or explicit loopback transport validation, redirect refusal, bounded response parsing, request deadlines, generation cancellation, and honest unavailable/offline/authentication/refused/stale/partial states.\n- Added a standalone renderer surface that displays only server-observed project and session evidence. It does not invent rows or report delivery until a server receipt exists.\n\nVerification for this fragment: no tests, builds, lint, network requests, runtime interaction, or capture workflows were run in this implementation lane.\n"
+    },
     {
       "id": "agent/hub",
       "category": "agent",
@@ -206,6 +219,39 @@ export const DOCS_BUNDLE: DocsBundle = {
         "ops.md"
       ],
       "body": "# Skills registry\n\n## Behavior\n\nInstalled agent skills with their trigger scope. Enabling a skill is a switch; nothing about a skill is typed here. It is backed by `skills/`. The rail badge on this destination currently reads `26`. It lives on the Agent rail, under the Agent global memory group: Memory, sync, skills, hub sessions and the emission guard.\n\n## Configuration\n\n### Orchestration\n\nMulti-agent orchestration defaults.\n\n- **Maximum parallel lanes** (`u_lanes`) — a stepper control, default `4`.\n- **Isolated worktree per lane** (`u_isolate`) — a switch control, default `true`.\n- **Lane model override** (`u_model`) — a select control, default `gpt-5.6-luna`, choices `gpt-5.6-luna`, `inherit`.\n- **Verification panel for high-risk lanes** (`u_verify`) — a switch control, default `true`.\n- **Keep destructive actions with orchestrator** (`u_destruct`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery row reflects a real object in skills/; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in skills/, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Memory console](memory.md), [Status hub](hub.md), and [Operations](ops.md).\n"
+    },
+    {
+      "id": "agent/status-hub-client",
+      "category": "agent",
+      "title": "Status Hub client",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Security and privacy",
+          "id": "security-and-privacy"
+        },
+        {
+          "title": "Verification boundary",
+          "id": "verification-boundary"
+        }
+      ],
+      "links": [
+        "../platform/status-hub.md",
+        "../system/security.md",
+        "../platform/in-context-recovery.md"
+      ],
+      "body": "# Status Hub client\n\n## Behavior\n\nThe client provides a typed, renderer-safe connection to the project's live status service. It can:\n\n- register a project and retain the server's registration receipt;\n- read the project record and its observed checks;\n- read sessions with exact ids, states, commit references, run references and evidence links;\n- read each session's question list and reply inbox; and\n- submit a question answer and expose the server's delivery receipt.\n\nThe client and store are mount-ready but are not mounted by this lane. The later application wiring can use `createStatusHubClient`, `createStatusHubStore`, and `createStatusHubHandlerFactory` without changing the generated design renderer.\n\nThe renderer surface derives rows only from server observations. It has no sample project, sample session, or optimistic delivery state. A question remains without a receipt until the server returns one. Polling is non-blocking, bounded, single-flight, and cancellable.\n\n## Configuration\n\n`StatusHubClient` accepts:\n\n- `baseUrl`, which must be HTTPS or HTTP on `localhost`, `127.0.0.1`, or `::1`;\n- optional `enrollment` and `reply` credential references; and\n- optional request and polling deadlines.\n\nCredential references use the bounded `vault://...` form. The client never accepts a bearer value, password, API key, or other credential value. A privileged host is responsible for resolving the references from its operating-system vault.\n\nThe registration descriptor is exported as `STATUS_HUB_REGISTRATION_DESCRIPTOR` for a later dispatch integration. The current route shape is:\n\n```text\nPOST /api/status-hub/projects\nGET  /api/status-hub/projects/:projectId\nGET  /api/status-hub/projects/:projectId/sessions\nGET  /api/status-hub/sessions/:sessionId\nGET  /api/status-hub/sessions/:sessionId/replies\nPOST /api/status-hub/sessions/:sessionId/questions/:questionId/answers\n```\n\nAll responses are bounded before JSON parsing. Redirects are refused, cross-origin responses are refused, and requests have deadlines. A new mount generation aborts older work and marks its late results stale.\n\n## Failure modes\n\nThe store reports the observed availability state instead of converting a failure into an empty success:\n\n- `unavailable`: the route or service is not reachable;\n- `offline`: a network or deadline failure occurred;\n- `authRequired`: the service requires authentication;\n- `refused`: the service rejected the request, URL, redirect, or response bounds;\n- `stale`: a newer generation superseded the request;\n- `partial`: some project, session, or inbox data arrived while another read did not; and\n- `error`: the response shape or JSON was invalid.\n\nAn answer submission that receives a transport error does not create a receipt. A refusal returned by the server is shown only when it is part of the typed server receipt.\n\n## Security and privacy\n\nThe client does not log request bodies, response bodies, credential references, or credential values. It sends only a vault reference header to the configured origin. URL parsing rejects embedded credentials, fragments, unexpected origins, and non-HTTPS non-loopback transport. Response bodies are limited to 512 KiB, lists are bounded, and all strings are length-checked before entering renderer state.\n\nThe renderer receives project and session evidence links, states and ids, but no enrollment or reply credential material. The client does not follow redirects. A host integration must keep vault resolution in the privileged boundary and must never pass the resolved value through renderer code.\n\n## Verification boundary\n\nThis lane was implemented without launching tests, builds, lint, network requests, runtime interaction, or capture workflows. The decisive verification remains the later integration's typed build and server-contract checks against the exact endpoints recorded above.\n\nSuggested articles: [Status Hub](../platform/status-hub.md), [local security](../system/security.md), and [hosted authentication](../platform/in-context-recovery.md).\n"
     },
     {
       "id": "agent/sync",
@@ -439,6 +485,43 @@ export const DOCS_BUNDLE: DocsBundle = {
       "body": "# History\n\n## Behavior\n\nEvery control you touch commits to a local git repository the moment you touch it. This screen is the full history: the commit graph, the exact diff, blame per option, branches for trying things out, and a restore that runs the four gates. It is backed by `/etc/asterisk/.git`. It lives on the App rail, under the Deploy & application group: Stand up a new server, then appearance, updates and the console itself.\n\n## Configuration\n\n### Commit behaviour\n\nWhat happens on every single change.\n\n- **Commit on every change** (`hi_commit`) — a switch control, default `true`. On means each toggle, slider and picker writes a real git commit against the configuration directory. Off batches changes until you commit by hand — which is how people lose track of what they changed.\n  - *What it is:* Whether every individual control change writes a git commit immediately.\n  - *Why it exists:* It gives you an exact, attributable history and a one-click revert of any single change.\n  - *Choosing a value:* On is strongly recommended.\n  - *Gotcha:* Off batches changes until you commit manually, which in practice means nobody remembers what changed between two working states.\n- **Commit message style** (`hi_msg`) — a segmented control, default `Descriptive`, choices `Terse`, `Descriptive`, `Conventional`.\n- **Attribute commits to** (`hi_author`) — a segmented control, default `Signed-in user`, choices `Signed-in user`, `Console`, `Both`.\n- **Sign commits** (`hi_sign`) — a switch control, default `false`.\n- **Mirror to a remote** (`hi_push`) — a switch control, default `false`.\n- **Run asterisk config validation as a pre-commit hook** (`hi_hook`) — a switch control, default `true`.\n\n### Retention & safety\n\nHow much history is kept and what a restore does.\n\n- **Keep commits** (`hi_keep`) — a stepper control, default `500`.\n- **Garbage collect monthly** (`hi_gc`) — a switch control, default `true`.\n- **Show a diff before restoring** (`hi_diff`) — a switch control, default `true`.\n- **Restore onto a new branch instead of main** (`hi_branch`) — a switch control, default `true`.\n- **Reload Asterisk after a restore** (`hi_reload`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery control here maps to a real key in /etc/asterisk/.git; an unreachable configuration store is shown as unreachable, never backfilled with placeholder values. Off batches changes until you commit manually, which in practice means nobody remembers what changed between two working states.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in /etc/asterisk/.git, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm every default shown here matches what a fresh install actually ships, and that changing a value here is reflected the next time this screen loads.\n\n## Suggested articles\n\n[Deploy & servers](servers.md), [Security](../system/security.md), and [Arcade](arcade.md).\n"
     },
     {
+      "id": "app/lifecycle-integrity",
+      "category": "app",
+      "title": "Lifecycle and configuration integrity",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Security considerations",
+          "id": "security-considerations"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "servers.md",
+        "history.md",
+        "../system/security.md"
+      ],
+      "body": "# Lifecycle and configuration integrity\n\nThe desktop console keeps server selection, configuration writes, and Asterisk daemon actions tied to one explicit target. It does not treat discovery, persistence, process launch, or an accepted CLI command as proof that a connection or lifecycle transition succeeded.\n\n## Behavior\n\n- The saved server inventory uses a versioned schema and validates every record before it can become a target.\n- A missing inventory is an empty first-run state. Unreadable or malformed inventory data is a blocking error and is never overwritten by a later add, edit, remove, or selection.\n- Connection kinds use the control-plane contract names: `wsl`, `localDocker`, `remoteLinux`, and `remoteDocker`.\n- WSL connection success requires both a valid operating-system observation and a valid Asterisk daemon identity from the exact selected distribution.\n- Docker and remote routes may be saved with their required routing fields, but daemon and configuration operations refuse them until their target-specific transports are implemented.\n- Start and restart succeed only after the selected daemon returns a valid identity. Stop succeeds only after an independent process check proves that Asterisk is no longer running.\n- Configuration reads return an explicit `present` or `absent` state. Read errors never become empty documents.\n- Existing secret values cross the renderer boundary only as hidden, non-writable references. The privileged transport resolves those references against the current target while staging, then verifies the exact post-write file without returning raw secret bytes.\n- Every staged configuration file has a unique handle and retains the live file's numeric uid, gid, and mode. When the target is absent, a new file starts with the documented restrictive `root:root` and `0600` metadata. Apply renames the staged file, reapplies the retained metadata through fixed argument lists, then independently stats the live file before reporting success.\n- Backup and rollback retain and reapply backup metadata, with an independent post-rollback stat. If a metadata step fails after the rename, the transport restores the bound backup before returning the failure.\n- A transaction is bound to its target id, verifies each applied file, reloads the affected Asterisk subsystem, and verifies the selected running daemon before reporting success.\n- The onboarding flow creates the endpoint, authentication, and AoR sections together. Endpoint create, save, and delete require a successful live `pjsip.conf` read and invalidate the displayed reading after a verified write.\n\n## Configuration\n\nThe server inventory accepts only fields belonging to its selected connection kind. WSL records require a discovered distribution. Local container records require a project. Remote records require an exact host, user, and valid port, while remote container records also require a project.\n\nConfiguration resources remain restricted to exact files below `/etc/asterisk`. Composite screen labels are split into individually allowlisted files and are accepted only when every component is a valid configuration filename. A partial multi-file read is reported as unavailable instead of combining old and new observations.\n\n## Failure modes\n\n- An unreadable inventory remains untouched and the server list reports the read reason.\n- A target changed after planning causes the write to be refused and reviewed again.\n- A missing configuration file is reported as absent. A failed, oversized, timed-out, malformed, or partial read is unavailable and cannot seed a write.\n- A hidden value whose original field disappeared is refused rather than replaced with a marker.\n- A reload or runtime verification failure triggers reverse-order file rollback and reloads the restored resources. If that recovery cannot be verified, the transaction remains failed and does not claim a safe rollback.\n- A stopped-daemon probe that cannot prove process absence is reported as unresponsive or unknown, never stopped.\n- Unsupported Docker and remote target transports remain visible as saved profiles with an exact refusal reason. They are not silently rerouted through WSL.\n\n## Security considerations\n\nRaw configuration bytes are read only inside the privileged control plane through fixed `wsl.exe` arguments, with bounded output and time. They are not logged, returned to the renderer, placed in command arguments, or persisted in the server inventory. Writable configuration documents are structurally validated before rendering, target resources are exact-allowlisted, and unique staging paths prevent two writes from sharing a predictable temporary file. Staged metadata is retained only against the generated handle and is cleared on validation or apply failure. The fixed `mv`, `chown`, `chmod`, and `stat` sequence has no shell concatenation, and metadata mismatches fail closed.\n\nPackaged-runtime provenance and base-image metadata use explicit schemas. Base-image URLs require HTTPS and an approved Ubuntu image host, with no embedded credentials. Renderer responses omit packaged filesystem paths.\n\nThe hosted HTTP layer must still enforce its own request-origin policy before dispatch. The dispatcher validates request shape and action membership, but it does not receive the browser request origin and therefore cannot replace the host's origin check.\n\n## Verification\n\nThis change was implemented under an ultra-speed boundary that prohibited tests, lint, type checks, builds, packaging, UI interaction, and captures. Verification in this task is limited to source and diff inspection. Runtime behavior, compilation, interaction reachability, and rollback behavior remain unverified until the owning integration task runs the applicable local checks and exercises the built desktop artifact.\n\n## Suggested articles\n\n- [Deploy a server](servers.md)\n- [History and Git](history.md)\n- [Security](../system/security.md)\n"
+    },
+    {
       "id": "app/notifications",
       "category": "app",
       "title": "Notification centre",
@@ -519,6 +602,44 @@ export const DOCS_BUNDLE: DocsBundle = {
         "../agent/ops.md"
       ],
       "body": "# Deploy a server\n\n## Behavior\n\nThis screen discovers local targets, verifies the selected target through the control plane, and keeps the configured server list in the installation's local inventory. Discovery alone is not treated as a connection: the desktop calls `server.connect`, starts the managed daemon when needed, and retries the verification once. The rail badge is empty until a real server row exists. It lives on the App rail, under the Deploy & application group: stand up a new server, then appearance, updates and the console itself.\n\n## Configuration\n\n### Route\n\nHow this console reaches Asterisk. Everything below reshapes itself around this answer. The selected local target is read from the real discovery result rather than from the design's example names.\n\n- **Connection type** (`sv_kind`) — a segmented control, default `Local`, choices `Local`, `Local Docker`, `SSH`, `SSH Docker`. Local is the same machine. Local Docker is a container here. SSH is another machine. SSH Docker is a container on another machine, reached over SSH and then into the container.\n  - *What it is:* How this console reaches Asterisk: locally, into a container, over SSH, or over SSH and then into a container.\n  - *Why it exists:* Everything else on the screen reshapes around this answer, including how configuration files are written.\n  - *Choosing a value:* Local for the same machine, Local Docker for a container here, SSH for another machine, SSH Docker for a container elsewhere.\n  - *Gotcha:* Over SSH the manager port is forwarded through the tunnel, so it never crosses the network unprotected — but only if tunnel forwarding stays enabled.\n- **Host** (`sv_host`) — the host value supplied to the local inventory. It starts empty until the user supplies a target.\n- **Container** (`sv_container`) — the container context supplied to the local inventory when a container route is selected.\n- **SSH user** (`sv_user`) — the user supplied to the local inventory for an SSH route.\n- **SSH port** (`sv_sshport`) — a stepper control, default `22`.\n- **Strict host key checking** (`sv_hostkey`) — a switch control, default `true`. On means a changed host key aborts the connection instead of asking you to accept it. That prompt is how people get compromised.\n  - *What it is:* Whether a changed SSH host key aborts the connection.\n  - *Why it exists:* A changed host key means either a rebuild or an interception. Only one of those is benign.\n  - *Choosing a value:* On, always.\n  - *Gotcha:* The prompt asking a human to accept a new key is precisely how these attacks succeed. This console refuses instead of asking.\n\n### Manager interface\n\nAMI for live events and CLI, ARI for Stasis applications.\n\n- **Interface** (`sv_iface`) — a segmented control, default `AMI`, choices `AMI`, `ARI`, `Both`.\n- **Manager port** (`sv_amiport`) — a stepper control, default `5038`.\n- **TLS** (`sv_tls`) — a switch control, default `true`.\n- **Forward through the SSH tunnel** (`sv_forward`) — a switch control, default `true`.\n- **Reconnect automatically** (`sv_watch`) — a switch control, default `true`.\n- **Open read-only** (`sv_readonly`) — a switch control, default `false`.\n\n## Failure modes and security\n\nThe server list is an honest local inventory. A discovered target is not labelled connected until `server.connect` confirms it. If the control plane cannot answer, the row retains the exact unavailable reason and the dashboard retries failed readings on its one-second refresh cadence. Over SSH the manager port is forwarded through the tunnel, so it never crosses the network unprotected — but only if tunnel forwarding stays enabled. The prompt asking a human to accept a new key is precisely how these attacks succeed. This console refuses instead of asking.\n\n## Verification\n\nExercise discovery with no target, discovery with a target whose daemon is stopped, a successful `server.connect`, and a refused connection. Confirm no row is labelled connected before the control-plane response, and that a failed dashboard read retries without relaunching the app.\n\n## Suggested articles\n\n[Security](../system/security.md), [AMI & ARI](../data/ami.md), and [Operations](../agent/ops.md).\n"
+    },
+    {
+      "id": "changelog-fragments/2026-08-23-site-local-suites",
+      "category": "changelog-fragments",
+      "title": "Local suite pages added",
+      "headings": [],
+      "links": [],
+      "body": "# Local suite pages added\n\nAdded the local file-converter and browser-local Ollama manager pages. The converter exposes only bundled text, structured, and binary-encoding adapters, while every unavailable media, document, and archive family stays visible with its missing-adapter reason. The Ollama page requires explicit loopback approval, keeps catalogue completeness unknown unless an exhaustive catalogue fetch exists, and reports browser and service boundaries without fake success.\n\nVerification remains pending because this lane intentionally ran no build, lint, test suite, browser session, or network request.\n"
+    },
+    {
+      "id": "changelog-fragments/2026-08-23-site-universal-shell",
+      "category": "changelog-fragments",
+      "title": "Documentation website shared shell and factual status records",
+      "headings": [
+        {
+          "title": "Changed",
+          "id": "changed"
+        },
+        {
+          "title": "Evidence boundary",
+          "id": "evidence-boundary"
+        }
+      ],
+      "links": [],
+      "body": "# Documentation website shared shell and factual status records\n\n## Changed\n\n- Added one local shared control shell to every top-level page and every composed documentation article.\n- Added persisted language, independent 1-to-5 voice controls, attention modes, site-owned scheduling, appearance and logo controls, personal-vocabulary validation, notification history, direct article search, menu search, and complete site-state export.\n- Replaced copied status counters, decorative trends, and guessed download copy with build-manifest and validated release-record rendering.\n- Removed the invented product call path and linked command-palette article results directly to composed articles.\n- Moved every opted-in regular-expression preview and site search evaluation into bounded, locally constructed workers with timeouts, cancellation, zero-width handling, capture-group reporting, and stable-id result application.\n- Cleared stale search results while worker evaluation is pending or unavailable, and kept plain-text search synchronous by default.\n- Made destination coverage rails explicitly derive their labels and values from the current catalogue, and changed clipboard, export, vocabulary-clear, and logo-clear feedback so success is reported only after the corresponding local action starts or completes.\n\n## Evidence boundary\n\nNo automated test, build, package, or visual capture was run for this source change. Published status remains unavailable until `console/site/build.mjs` composes and embeds a validated record.\n"
+    },
+    {
+      "id": "changelog-fragments/external-settings-sources",
+      "category": "changelog-fragments",
+      "title": "External settings source contract",
+      "headings": [
+        {
+          "title": "External settings source contract",
+          "id": "external-settings-source-contract"
+        }
+      ],
+      "links": [],
+      "body": "# External settings source contract\n\n## External settings source contract\n\n- Added a secret-free shared contract for local, versioned HTTPS, and Home Assistant boolean schedule sources.\n- Added bounded privileged reads with HTTPS and loopback development URL rules, redirect rejection, response size and depth limits, allowlisted assignment targets, generation cancellation, refresh cadence, and vault-reference-only authentication.\n- Added in-memory last-valid and local-base fallback state without persisting remote assignments, plus a renderer-safe state projection.\n\nVerification for this fragment: implementation-only lane. No tests, builds, network requests, runtime interaction, or captures were run by this lane.\n"
     },
     {
       "id": "changelog/automatic-updater-reliability",
@@ -604,6 +725,225 @@ export const DOCS_BUNDLE: DocsBundle = {
         "ami.md"
       ],
       "body": "# Data\n\nRecords & APIs: call records, event logging and the machine interfaces.\n\n- [CDR & CEL](cdr.md)\n- [AMI & ARI](ami.md)\n"
+    },
+    {
+      "id": "features/auth-lock-ui/authenticator",
+      "category": "features",
+      "title": "Built-in authenticator",
+      "headings": [
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "toy-locks.md",
+        "support-tickets.md",
+        "unlock-ladder.md"
+      ],
+      "body": "# Built-in authenticator\n\nThe authenticator surface accepts an issuer, account, secret, algorithm, digit count, and period. It builds an `otpauth://totp/` pairing value locally, shows the manual value during pairing, and requires one current code before the vault-backed entry is armed.\n\nAfter confirmation the surface displays only redacted metadata and generated current and next codes. Code reads use the typed vault client, never log the secret, and fail to an honest unavailable state when the vault cannot answer. The countdown is text, and a clock-skew warning is shown when the offset exceeds one period.\n\nThe entry list supports issuer grouping, bounded plain-text or regular-expression search, and removal through the typed client. Ordinary JSON export labels secret material as omitted and contains no vault reference. Mutation history receives redacted subjects only, so history failure cannot turn into a secret leak.\n\n## Suggested articles\n\n- [Per-element toy locks](toy-locks.md)\n- [Support Tickets](support-tickets.md)\n- [Unlock ladder](unlock-ladder.md)\n"
+    },
+    {
+      "id": "features/auth-lock-ui/README",
+      "category": "features",
+      "title": "Authenticator and local recovery surfaces",
+      "headings": [],
+      "links": [
+        "authenticator.md",
+        "toy-locks.md",
+        "support-tickets.md",
+        "unlock-ladder.md"
+      ],
+      "body": "# Authenticator and local recovery surfaces\n\nThis feature set adds mount-ready renderer surfaces for the local authenticator, per-element toy locks, Support Tickets, and the unlock ladder. The surfaces accept typed clients so the renderer never reaches storage, the credential vault, or the control plane directly.\n\nArticles:\n\n- [Built-in authenticator](authenticator.md)\n- [Per-element toy locks](toy-locks.md)\n- [Support Tickets](support-tickets.md)\n- [Unlock ladder](unlock-ladder.md)\n\nAll requests use a bounded deadline. Secret material is held only long enough for pairing or code calculation, is never rendered after pairing, and is omitted from ordinary exports. The Support Tickets disclosure is intentionally plain: tickets are local fiction, no request leaves the computer, and the folder-opening action never deletes data.\n"
+    },
+    {
+      "id": "features/auth-lock-ui/support-tickets",
+      "category": "features",
+      "title": "Support Tickets",
+      "headings": [
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "toy-locks.md",
+        "authenticator.md",
+        "unlock-ladder.md"
+      ],
+      "body": "# Support Tickets\n\nSupport Tickets are a local recovery desk, not a network service. Ticket records contain a category, description, severity, status, local identifier, and creation time. The surface states that nothing is sent, no remote ticket exists, and nobody is reading the description.\n\nThe resolution action requests that the platform file manager open the exact application-data path supplied by the typed client. It never deletes the folder and does not offer a hidden deletion route. If the platform cannot open the file manager, the surface reports that failure instead of claiming success.\n\n## Suggested articles\n\n- [Per-element toy locks](toy-locks.md)\n- [Built-in authenticator](authenticator.md)\n- [Unlock ladder](unlock-ladder.md)\n"
+    },
+    {
+      "id": "features/auth-lock-ui/toy-locks",
+      "category": "features",
+      "title": "Per-element toy locks",
+      "headings": [
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "authenticator.md",
+        "support-tickets.md",
+        "unlock-ladder.md"
+      ],
+      "body": "# Per-element toy locks\n\nThe lock manager treats every target identity as an independent, optional speed bump. A credential reference is created for that target, then the typed lock client stores only the reference and duration. Password and TOTP candidates are converted to short-lived bytes for verification and cleared from the surface after the request settles.\n\nDurations are surface-only, a bounded number of minutes, or until the application closes. The manager lists each lock, shows whether it is open, offers an explicit Lock again action, and keeps search local. It never describes the feature as encryption or access control.\n\nRecovery is self-service. The exact application-data path comes from the typed recovery record. Support Tickets can request that the platform file manager open the path, but the app never deletes it. The recovery record explicitly says that deletion is a user action.\n\n## Suggested articles\n\n- [Built-in authenticator](authenticator.md)\n- [Support Tickets](support-tickets.md)\n- [Unlock ladder](unlock-ladder.md)\n"
+    },
+    {
+      "id": "features/auth-lock-ui/unlock-ladder",
+      "category": "features",
+      "title": "Unlock ladder",
+      "headings": [
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "toy-locks.md",
+        "support-tickets.md",
+        "authenticator.md"
+      ],
+      "body": "# Unlock ladder\n\nThe unlock ladder is a server-graded wait-clearing surface. It requests a single-use nonce challenge, displays the current rung, and submits an answer through the typed client. A successful grade clears only the waiting period. It never creates a session, sets a cookie, signs a user in, or changes the ordinary attempt budget.\n\nThe ladder starts with a dish choice unless School mode is active, in which case the dish rung is absent and the sums rung is first. Five wrong dishes escalate to ten sums, one wrong sum escalates to the timed mole round, and a lost mole round leaves only the clock. The client owns the rolling budget, nonce consumption, expiry, and timing checks.\n\nEvery request has a deadline. The mole surface reports a numeric countdown and cannot submit before the round has elapsed. It records distinct visible-cell hits only, while the service remains responsible for grading.\n\n## Suggested articles\n\n- [Per-element toy locks](toy-locks.md)\n- [Support Tickets](support-tickets.md)\n- [Built-in authenticator](authenticator.md)\n"
+    },
+    {
+      "id": "features/authenticator-core",
+      "category": "features",
+      "title": "Authenticator core",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification boundary",
+          "id": "verification-boundary"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "../platform/built-in-authenticator.md",
+        "../platform/local-version-history.md",
+        "../system/security.md"
+      ],
+      "body": "# Authenticator core\n\n## Behavior\n\nThe authenticator core provides local TOTP registration and code verification using RFC 6238 over RFC 4226. It accepts SHA-1, SHA-256, or SHA-512, six through eight digits, and a positive period up to 86,400 seconds. Pairing data follows the standard `otpauth://totp/` shape so a local QR renderer can present it without a network request.\n\nRegistration validates bounded RFC 4648 base32 input, writes the secret directly to the operating-system credential vault, and returns only redacted metadata. An entry remains unarmed until the user confirms one current code. The confirmation result never reveals or describes secret material.\n\n## Configuration\n\nThe control-plane store receives a `CredentialVault` adapter, a durable metadata store, and a stable unique entry-identity source. Both stores must fail explicitly when unavailable. There is no in-memory or plaintext fallback. Persisted metadata contains issuer, account, algorithm, digit count, period, stable entry identity, vault reference, armed state, and timestamps, but never the secret. Returned entries omit the vault reference as well.\n\n## Failure modes and security\n\nMalformed registration, unsupported algorithms, out-of-range digits or periods, invalid base32, missing entries, unavailable vaults, and failed confirmation all return bounded, actionable error codes. Vault errors are passed through without secret values. Deleting an entry removes the vault record first and only then removes its metadata.\n\n## Verification boundary\n\nThis lane was implemented without running tests, lint, type checks, builds, packaging, runtime interaction, or captures. RFC-vector verification and built-artifact wiring remain unverified until the owning lane runs its release checks.\n\n## Suggested articles\n\n[Built-in authenticator](../platform/built-in-authenticator.md), [Local version history](../platform/local-version-history.md), and [Security](../system/security.md).\n"
+    },
+    {
+      "id": "features/navigation/tabs-search-palette-core",
+      "category": "features",
+      "title": "Tabs, searches, anchored regex builders, and the command palette",
+      "headings": [
+        {
+          "title": "Browser-style tabs",
+          "id": "browser-style-tabs"
+        },
+        {
+          "title": "Four independent tab searches",
+          "id": "four-independent-tab-searches"
+        },
+        {
+          "title": "Anchored regex builders",
+          "id": "anchored-regex-builders"
+        },
+        {
+          "title": "Dropdowns and context menus",
+          "id": "dropdowns-and-context-menus"
+        },
+        {
+          "title": "Bulk-close previews",
+          "id": "bulk-close-previews"
+        },
+        {
+          "title": "Command palette",
+          "id": "command-palette"
+        },
+        {
+          "title": "Configuration and persistence",
+          "id": "configuration-and-persistence"
+        },
+        {
+          "title": "Integration seams",
+          "id": "integration-seams"
+        },
+        {
+          "title": "Failure modes and recovery",
+          "id": "failure-modes-and-recovery"
+        },
+        {
+          "title": "Security, privacy, and bounds",
+          "id": "security-privacy-and-bounds"
+        },
+        {
+          "title": "Verification boundary",
+          "id": "verification-boundary"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "../../platform/browser-style-tabs.md",
+        "../../platform/tab-groups-and-searches.md",
+        "../../platform/regex-builder.md",
+        "../../platform/command-palette.md",
+        "../../platform/bounded-overlays.md",
+        "../../platform/bulk-actions.md",
+        "../../platform/context-menu-shortcuts.md",
+        "../../platform/local-version-history.md"
+      ],
+      "body": "# Tabs, searches, anchored regex builders, and the command palette\n\nThis article defines the navigation contract for tabs, tab discovery, local menu\nsearch, bulk tab actions, and the command palette. It is deliberately explicit\nabout ownership and state so that a search result always leads to the same place\nas the control it describes.\n\nThe current implementation supplies persistent state, reducers, bounded search\nevaluation, capability models, close previews, a command registry, a palette\nindex, and exact teleport instructions. Rendering, shortcut registration,\noverlay placement, local-history events, and central application wiring remain\nwith the owning renderer changes and are not claimed by this core lane.\n\n## Browser-style tabs\n\nThe model represents application destinations and settings sections as separate\nbrowser-style tabs.\nThe tab strip is a real `tablist`, and each destination is a `tab` connected to a\ncorresponding `tabpanel`. The strip docks to the left, right, top, or bottom edge\nof its surface. Left is the default. The selected edge, tab order, pinned order,\ngroups, group order, and collapsed state persist locally per surface.\n\nThe strip provides all of the following behaviors:\n\n- Reorder tabs with pointer and keyboard operations.\n- Pin and unpin tabs. Pinned tabs occupy a stable protected region and remain\n  visible when ordinary tabs overflow.\n- Create, name, rename, recolor, reorder, collapse, expand, and remove tab\n  groups. Moving a tab into a collapsed group does not expand that group.\n- Open an overflow surface when the strip cannot show every tab. Overflow is\n  scrollable and never silently clips a tab label.\n- Keep full accessible names when a narrow layout reduces the strip to icons or\n  an edge affordance.\n- Expose normal tab management from the context menu and expose `Edit tab\n  appearance...` in that same menu. Shift plus right-click opens the anchored\n  appearance editor directly when the platform supports the modifier.\n\nKeyboard navigation follows the strip orientation. A horizontal strip uses left\nand right arrows, while a vertical strip uses up and down arrows. Focus is always\nvisible, and the selected tab, its controls, and its panel expose their current\nstate to assistive technology.\n\n## Four independent tab searches\n\nThe state API defines four separate searches. They do not share query text,\nregular-expression mode, flags, validation state, or result focus.\n\n1. **Current strip search** searches the tabs in the active strip.\n2. **Group search** is available inside every tab group and searches that group's\n   tabs only.\n3. **Group-name search** searches visible group names and labels.\n4. **Master tab search** searches every open tab owned by the application, across\n   all windows, workspaces, strips, and groups.\n\nEvery result identifies its location: window or workspace, strip edge, group,\npinned state, and visible tab label. Activating a result reveals the result in a\ncollapsed group without changing that group's persisted collapsed preference.\nIt selects the target tab, returns focus to the target, and provides an obvious\nkeyboard path back to the originating search.\n\nPlain text is the default mode. Each search has its own adjacent builder button,\nand choosing regex mode is an explicit user action. An empty result is a named\nno-match state, not a blank list.\n\n## Anchored regex builders\n\nThe regex builder belongs to the search field that opened it. It is an anchored\npopover or inline panel, not a distant global dialog. The anchor remains clear\nwhen the viewport changes, and the panel is bounded by the viewport with an\ninternal scroll region when necessary.\n\nThe renderer contract for the builder includes:\n\n- Guided controls for literals, character classes, anchors, groups, alternation,\n  and quantifiers.\n- A raw pattern editor and the flags supported by the application's actual regex\n  engine.\n- Sample text, syntax feedback, live matches, and capture groups.\n- Copy and export actions that preserve the pattern and flags.\n- A visible indication of whether the field is in plain-text or regex mode.\n\nThe query, pattern, flags, validation result, and mode synchronize in both\ndirections. Switching back to plain text does not discard the user's pattern;\nswitching to regex restores it for that field. The builder states the engine\ndialect, escaping rules, input limits, and evaluation timeout. Patterns and\nsample text are evaluated locally. The core evaluator bounds pattern size,\ncandidate size, candidate count, match count, and elapsed work between\ncandidates, and rejects several high-risk pattern forms. A renderer that needs\nhard interruption of one native regular-expression operation must host the\nevaluator in its cancellable worker boundary.\nZero-width matches, Unicode, multiline input, invalid syntax, no matches, and\ncapture groups have explicit result states.\n\nThe same field-owned builder is required for every search surface described in\nthis article. It is also required beside each dropdown filter and context-menu\nfilter, including short menus.\n\n## Dropdowns and context menus\n\nEvery select, combobox, picker, autocomplete list, menu button, overflow menu,\nand right-click menu opens with a keyboard-accessible local filter field. The\nfield searches the visible items in that menu only. It has its own anchored regex\nbuilder and its own plain-text-first query state.\n\nFiltering never changes an item's action, reorders items to change their meaning,\nor removes an action from keyboard access without showing why. Arrow keys move\nthrough the filtered set, Enter activates, and Escape first clears the filter and\nthen closes the menu. Focus returns to the control that opened the menu. The\nfiltered count and an honest no-match message are announced to assistive\ntechnology.\n\n## Bulk-close previews\n\nEach tab strip and searchable tab list provides both **Close tabs containing\ntext** and **Close tabs not containing text**. Both actions use the visible tab\nlabel or title, never hidden page content. They share the exact same predicate,\nincluding case, Unicode, flags, and regex mode, so the inverse action is a true\nlogical inverse rather than a second implementation.\n\nBefore closing, the surface shows the entered query, match mode, exact number of\ntabs that would close, and a reviewable preview. Empty queries and invalid\npatterns cannot run. Pinned tabs are excluded by default, and an explicit\ninclude-pinned choice is part of the reviewed preview. Locked, non-closable, and\nunsaved-work tabs remain excluded. A partial result reports which tabs were\nclosed, skipped, cancelled, or refused.\n\nBulk actions are keyboard accessible and use the application's destructive-action\nconfirmation for irreversible closes. They record the result in local history\nwhen the application owns the affected tab state, and they remain cancellable\nwhile a long operation is in progress.\n\n## Command palette\n\nThe command registry is designed for the owning renderer to open the command\npalette with `Ctrl+Shift+F`. That is the global shortcut contract for the\nWindows desktop surface, and `Ctrl+K` is not a competing default. Shortcut\nwiring is outside this reducer-only lane.\n\nThe palette indexes every command, destination, feature article, setting,\nappearance control, nested tab, group, and documentation route. Its search is\nplain-text-first and has its own anchored full regex builder. Results retain\nkeyboard navigation, an accessible name, and enough context to distinguish two\nsimilarly named controls.\n\nPalette rows are rich controls where the target supports a live value. A setting\nrow can expose its real switch, checkbox, text field, stepper, slider, select, or\ncolor control inline. The row uses the same validation, persistence,\nlocalization, history, and accessibility behavior as the originating control.\nAn action row exposes its real action and target context rather than a decorative\nlabel.\n\nSelecting a result teleports to the exact target. The palette opens the owning\nsurface, selects the correct tab and group, reveals the target if it is inside a\ncollapsed group, scrolls it into view, focuses it, and briefly highlights it\nwithout changing unrelated state. A result for a locked target opens the target's\nunlock route. A result that cannot be reached reports the exact missing route or\nstate instead of silently opening a nearby page.\n\nThe palette offers a bounded card view and a full-window view. The selected size\npersists locally, and the palette itself remains searchable and keyboard\noperable in both sizes.\n\n## Configuration and persistence\n\nTab, group, search, menu-filter, bulk-close, and palette state is stored in a\nversioned local schema. Stable identifiers are used for surfaces, windows,\nstrips, groups, tabs, searches, and palette targets. Persisted state includes:\n\n- Tab and group order, pinned order, membership, edge docking, and collapsed\n  state.\n- The active query, regex mode, pattern, flags, and last validated state for each\n  independent search field, where retaining query state is enabled by the\n  surface.\n- Palette size, recent navigation context, and user-selected display options.\n\nThe schema currently accepts version 1 and rejects unsupported versions,\nmalformed values, oversized patterns, and invalid identifiers without partially\napplying the record. A future schema change must add an explicit deterministic\nmigration. Clearing local application data resets this state to the documented\ndefaults. Local-history recording is an integration responsibility of the\nsurface that dispatches settings, tab, group, bulk, or palette actions.\n\n## Integration seams\n\nThe navigation implementation exposes these seams to its owning renderer and\napplication shell:\n\n| Seam | Required contract |\n| --- | --- |\n| Tab registry | Stable tab, group, strip, window, and workspace identifiers plus visible labels and pinned state. |\n| Search adapter | A field-scoped query, pattern, flags, mode, validation result, bounded evaluator, and result location. |\n| Overlay anchor | The opening control, viewport bounds, focus return target, and collision-aware placement. |\n| Menu adapter | Visible menu items, action identity, keyboard shortcuts, disabled-state reason, and local filter scope. |\n| Bulk-close planner | The exact predicate, protected-item policy, preview rows, cancellation handle, and per-tab outcome. |\n| Palette index | Commands and destinations with stable target paths, rich-control descriptors, and teleport callbacks. |\n| Persistence adapter | Versioned records, load, save, reset, and visible write errors. Atomic storage and local-history events belong to the supplied storage integration. |\n\nAdapters must use stable target identity rather than display text. Display labels\ncan be renamed or localized, while a teleport callback must still reach the same\nelement. The renderer must not accept arbitrary executable actions, unbounded\npatterns, or caller-supplied paths through these seams.\n\n## Failure modes and recovery\n\nThe user receives an actionable, non-blocking notification for recoverable\nfailures. Examples include an unavailable search index, an invalid regex, a\nstale target identifier, a failed persistence write, an overflow surface that\ncannot be positioned, or a target that is currently locked. The message names\nwhat was attempted, what remains unchanged, and the next available action.\n\nThe implementation must fail closed in these cases:\n\n- An invalid or over-limit pattern produces no matches and cannot trigger a bulk\n  action.\n- A stale palette target does not fall back to a similarly named control.\n- A failed persistence write does not claim that tab or group state was saved.\n- A protected tab is never closed because a preview omitted its protection state.\n- A missing group or strip does not cause a result to teleport into another\n  window or workspace.\n- A timed-out multi-candidate evaluation stops adding results, marks the result\n  truncated, and reports the timeout. Hard interruption of one native regex\n  call requires the renderer's cancellable worker boundary.\n\nWhen a target disappears between indexing and activation, the palette keeps the\nuser's query, identifies the stale result, refreshes its index, and offers a\nretry. It does not invoke a guessed action.\n\n## Security, privacy, and bounds\n\nSearch, regex evaluation, tab metadata, and palette navigation run locally.\nPatterns, sample text, tab labels, group labels, and navigation history are not\nsent to a server or placed in telemetry. Exports and ordinary diagnostics omit\nprivate search contents and credentials. A palette result never serializes a\ncredential, secret, private file content, or hidden page data merely because the\ntarget is searchable.\n\nCore inputs are bounded by record size, entry count, identifier length, pattern\nlength, candidate length, match count, elapsed multi-candidate evaluation time,\nand result count. Regex evaluation must be isolated from the UI event loop by\nthe owning renderer when a hard per-operation deadline is required. Menu\nfilters inspect only their menu's visible items. Tab searches inspect only the\nmetadata declared by the tab registry. Bulk close inspects only visible labels\nand titles, never document contents or hidden fields.\n\n## Verification boundary\n\nDocumentation for this contract is complete when every surface names its own\ntab registry, four search fields, anchored builder, menu and dropdown filters,\nbulk-close preview, palette index, teleport target, persistence record, and\nfailure state. Implementation verification is separate. It must exercise the\nreal built desktop artifact, including keyboard navigation, focus return,\nvertical and horizontal strips, overflow, groups, protected tabs, invalid and\npathological regex input, menu filtering, both bulk-close actions, rich palette\nrows, exact teleport targets, stale targets, persistence across restart, and\nnarrow and high-scale layouts. A source-only assertion or mock overlay does not\nprove the built interaction.\n\nThis core change does not claim that those runtime, capture, or test checks were\nperformed. The assigned lane is limited to reusable reducers and adapters plus\nthis contract and its verification boundary.\n\n## Suggested articles\n\n- [Browser-style tabbed navigation](../../platform/browser-style-tabs.md)\n- [Tab groups and tab search](../../platform/tab-groups-and-searches.md)\n- [Regex builder](../../platform/regex-builder.md)\n- [Command palette](../../platform/command-palette.md)\n- [Bounded overlays](../../platform/bounded-overlays.md)\n- [Bulk actions](../../platform/bulk-actions.md)\n- [Context-menu shortcuts](../../platform/context-menu-shortcuts.md)\n- [Local version history](../../platform/local-version-history.md)\n"
+    },
+    {
+      "id": "features/toy-lock-and-history-core",
+      "category": "features",
+      "title": "Toy lock, unlock ladder, and local-history core",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration and integration",
+          "id": "configuration-and-integration"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Security and privacy",
+          "id": "security-and-privacy"
+        },
+        {
+          "title": "Verification state",
+          "id": "verification-state"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "authenticator-core.md",
+        "../platform/built-in-authenticator.md",
+        "../platform/per-element-toy-locks.md",
+        "../platform/unlock-ladder.md",
+        "../platform/local-version-history.md"
+      ],
+      "body": "# Toy lock, unlock ladder, and local-history core\n\n## Behavior\n\nThe core models each toy lock as one stable element identity with one independent credential-vault\nreference and one unlock duration. A matching value may open only that element for the current\nsurface, a bounded number of minutes, or the current application session. Relocking removes the\ntemporary grant without changing the credential reference.\n\nThe unlock ladder is a privileged, server-graded state machine. A challenge response may clear the\ncurrent wait only. It never clears a credential, restores sign-in attempts, or grants\nauthentication. Challenges use single-use nonces, expire, consume a rolling-hour success budget,\nreject a mole round submitted before its duration, and count each visible mole spawn at most once.\nWhen School mode is active, a new lockout begins with arithmetic and does not expose a dish rung.\n\nLocal history stores one immutable encrypted entry file per revision in an isolated local Git\nrepository. Restore opens the selected encrypted snapshot in memory, reseals it, and appends a new\nrevision. It never checks old plaintext into the working tree and never rewrites an existing commit.\n\n## Configuration and integration\n\nThe toy-lock store requires two runtime adapters:\n\n1. A metadata persistence adapter that stores only stable lock records and vault references.\n2. An operating-system credential-vault adapter that owns verification and credential removal.\n\nThe unlock ladder requires a privileged clock, a bounded random source for challenge content, and a\ncryptographically strong unique nonce source. It also requires a durable privileged state store for\nlockout progression and rolling-hour success timestamps. If that store is unavailable, only the\nordinary clock remains. The public challenge model does not contain expected answers.\n\nThe history store requires an executor that explicitly allows the `git` executable and a snapshot\nprotector backed by a key reference in the operating-system credential vault. The currently mounted\ndispatcher provides neither. Calls therefore return an honest unavailable result until that wiring\nis added. There is no plaintext or memory-only fallback.\n\n## Failure modes\n\n- If lock metadata cannot be read or written, the store does not assume a lock state and reports the\n  persistence failure.\n- If the credential vault is unavailable, lock creation, verification, removal, and history\n  snapshot work remain unavailable. Existing metadata is not silently deleted.\n- If a history snapshot cannot be encrypted, no plaintext file is written and the live operation\n  may continue with a separate history warning.\n- If an encrypted revision cannot be opened, restore leaves the live record unchanged.\n- If Git is not allowlisted, local-history initialization reports that exact missing integration\n  instead of claiming a revision was recorded.\n- A lost toy-lock credential is recovered by opening the application-data folder and letting the\n  user delete it themselves. The recovery route never deletes data automatically.\n\n## Security and privacy\n\nCredential material is represented as short-lived bytes only at the vault boundary. The store\nzeroes verification input after use and persists only an opaque vault account reference. History\nentry files contain redacted metadata and authenticated encrypted snapshots. Plaintext snapshots,\ncredential values, QR payloads, and one-time codes are not written to Git, logs, exports, captures,\nor documentation.\n\nToy locks are personal speed bumps. They are not encryption and do not protect data from another\nperson with access to the computer.\n\n## Verification state\n\nThis ultra-speed implementation pass intentionally did not run tests, lint, type checks, builds,\npackaging, runtime interaction, or screen captures. The files are integration-ready foundations,\nnot evidence that the currently generated interface is connected to them. The mounted dispatcher\nstill needs a reviewed Git executor and snapshot protector, and the generated interface still needs\nreviewed actions that use these stores.\n\n## Suggested articles\n\n- [Authenticator core](authenticator-core.md)\n- [Built-in authenticator](../platform/built-in-authenticator.md)\n- [Per-element toy locks](../platform/per-element-toy-locks.md)\n- [Unlock ladder](../platform/unlock-ladder.md)\n- [Local version history](../platform/local-version-history.md)\n"
     },
     {
       "id": "installer-iso",
@@ -831,6 +1171,43 @@ export const DOCS_BUNDLE: DocsBundle = {
         "endpoints.md"
       ],
       "body": "# Dialplan canvas\n\n## Behavior\n\nOne infinite canvas for the live dialplan, IVR and queue routing graph. Nodes and edges are parsed from the target's `dialplan show` output, and the layout can be moved locally for inspection. The inspector is read-only because this surface has no dialplan write path. The rail badge on this destination is empty until a live graph is read. It lives on the PBX rail, under the Telephony group: Endpoints, routing and everything a call touches while it is alive.\n\n## Configuration\n\nThere is no settings form here. Adding, deleting, duplicating, or rewiring a node reports that the canvas is read-only rather than claiming a write occurred. An unread or unavailable target produces an empty canvas with the control-plane reason.\n\n## Failure modes and security\n\nA node that references a destination that no longer exists is omitted by the parser and the source reading reports the exact parse or target failure. Local layout changes never alter the target.\n\n## Verification\n\nConfirm the graph contains only nodes and edges from a successful live reading, that local dragging changes layout only, and that every attempted write action reports the read-only boundary without changing the target.\n\n## Suggested articles\n\n[IVR menus](ivr.md), [Queues & agents](queues.md), and [Endpoints](endpoints.md).\n"
+    },
+    {
+      "id": "pbx/control-provenance",
+      "category": "pbx",
+      "title": "Control and table provenance",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Security",
+          "id": "security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "canvas.md",
+        "endpoints.md",
+        "queues.md"
+      ],
+      "body": "# Control and table provenance\n\n## Behavior\n\nEvery base control has an explicit inventory entry. A control that edits Asterisk configuration is bound to one exact resource, section, key, parser, and host writer capability. Its current state is one of `read`, `missing`, `unparseable`, `unmapped`, `local-draft`, `applied`, or `unavailable`. A shipped design value is presentation data only and is never reported as the current value on a selected target.\n\nTable destinations aggregate the state of every command required to build their rows. The model distinguishes a verified empty result from a command that was not read, a command that was unavailable, and a partially observed destination. Unread cells use a neutral marker while retaining an accessible explanation of what was not observed and why.\n\nThe dialplan canvas publishes subset metadata beside its graph. The metadata names the source command, observation time, observed and rendered counts, omitted edge count, represented scope, and the unavailable add, edit, remove, and rewire capabilities.\n\n## Configuration\n\nScreen resources come from `console/shared/configuration-resources.ts`. Multi-file screens use ordered resource arrays. Display labels such as `cdr.conf · cel.conf` are never parsed into paths. Missing resource and host-capability descriptors fail closed.\n\nControl bindings live in `console/app/renderer/src/control-keys.ts`. Resource readings and freshness metadata live in `configuration.ts`. `control-provenance.ts` combines those inputs with local draft and applied records without copying a compiled design default into the observed value.\n\n## Failure modes\n\n- A missing binding produces `unmapped` and disables writing.\n- A target file or key that is absent produces `missing`; it is not treated as an empty string.\n- A raw value outside the parser contract produces `unparseable` and preserves the raw value for diagnosis without enabling a write.\n- A missing host capability produces `unavailable` with its exact reason.\n- A stale observation keeps its prior state and carries a separate stale reason.\n- A multi-command table with mixed outcomes produces `partial` and retains the status of every command.\n\n## Security\n\nOnly hand-written resource descriptors can authorize a resource. Paths are not accepted from display text, and missing descriptors never inherit access from another screen. Provenance records contain configuration coordinates and timing, not credentials or secret values.\n\n## Verification\n\nThe ultra-speed implementation pass intentionally does not run tests, type checks, builds, runtime interaction, or captures. Integration must wire the screen resource arrays, per-control provenance records, destination table state, server collection counts, and canvas subset metadata into the compiled shell before claiming runtime verification.\n\n## Suggested articles\n\n[Dialplan canvas](canvas.md), [Endpoints](endpoints.md), and [Queues and agents](queues.md).\n"
     },
     {
       "id": "pbx/dash",
@@ -1123,6 +1500,49 @@ export const DOCS_BUNDLE: DocsBundle = {
       "body": "# Accessibility\n\nKeyboard reachability, visible focus, correct semantic roles, sufficient contrast, and screen-reader-sensible structure across the whole product.\n\n## Behavior\n\nEvery interactive element is meant to be reachable by keyboard, carry a visible focus indicator, expose the correct accessible role, name, and state, hold sufficient contrast, and respect a reduced-motion preference.\n\n## Configuration\n\nThis is treated as a completion blocker rather than later polish: a control that looks interactive but cannot be reached or announced correctly is considered unfinished, not merely rough.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application's rendered interface currently contains no accessibility attributes at all — no ARIA roles, no accessible names distinct from visible labels, and no verified keyboard focus order. There are also no automated tests covering the desktop application's generic feature surface. This is stated directly rather than left for a reader to assume.\n\n**Documentation website:** Partial. The documentation website has some baseline structure — heading hierarchy, a skip-to-content link, and semantic landmarks — but has not been audited for contrast, full keyboard operability, or screen-reader correctness across every page.\n\n## Failure modes\n\nA control that cannot currently be reached by keyboard or announced correctly to a screen reader is, today, a real and known gap rather than a hypothetical failure mode; closing it is unstarted work on the desktop application and partial work on the site.\n\n## Accessibility and localization\n\nThe desktop application's interface currently contains no accessibility attributes at all, and there are no automated tests covering the desktop application's generic feature surface. This is stated here directly so a reader does not have to assume it. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Responsive and high-scale sizing](responsive-sizing.md), [Material appearance system](material-appearance.md), [Security](../system/security.md), [Platform feature index](README.md).\n"
     },
     {
+      "id": "platform/accessibility-runtime-primitives",
+      "category": "platform",
+      "title": "Accessibility runtime primitives",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "accessibility.md",
+        "responsive-sizing.md",
+        "bounded-overlays.md",
+        "long-operation-progress.md",
+        "README.md"
+      ],
+      "body": "# Accessibility runtime primitives\n\nShared renderer contracts now describe focus, semantic structure, asynchronous status, responsive geometry, motion preferences, and long-running operations without tying those decisions to one React component.\n\n## Behavior\n\nThe runtime primitives provide:\n\n- deterministic focus capture, initial focus selection, Escape dismissal intent, focus return, and a composed confirmation-overlay contract;\n- orientation-aware roving focus for horizontal, vertical, and right-to-left tab strips;\n- semantic descriptors for dialogs, popovers, menus, lists, tables, disabled controls, and individual data values;\n- distinct loading, verified-empty, unavailable, partial, stale, ready, and error states with non-color status text and live-region announcements;\n- per-cell provenance that renders unread and unavailable values as `—` while announcing why the value is absent;\n- progress and countdown text that remains meaningful without color or animation;\n- reduced-motion resolution where the operating-system preference takes priority;\n- minimum target sizing, viewport-bounded overlay placement, recoverable panel geometry, and keyboard move or resize deltas;\n- a pure operation state machine for pending work, progress, cancellation, deadlines, completion, failure, timeout, and re-entry refusal.\n\n## Configuration\n\nThe modules expose TypeScript data and transition functions. A central renderer chooses the actual elements, live-region hosts, focus scopes, viewport values, and operation timers, then applies the returned descriptors to those surfaces.\n\nStatus severity is explicit. Failures use `error`, partial and stale data use `warning`, loading uses `progress`, verified empty data uses `neutral`, and completed data uses `success`. A renderer should map those names to both visible text and visual treatment. Color must remain supplementary.\n\n## Current status\n\n**Desktop application:** Primitives implemented, central mounting not implemented in this change. The modules are integration-ready, but generated screens and the root application do not yet consume them. This work therefore does not claim complete keyboard, focus, screen-reader, responsive-layout, or long-operation coverage.\n\n**Documentation website:** Unchanged. These renderer primitives do not mount into the website.\n\n## Failure modes and security\n\nReturning an attribute descriptor without applying it to the corresponding element has no user-visible effect. Focus return also requires the opening component to capture a snapshot before mounting its overlay and to call restore after dismissal. The operation state machine refuses duplicate starts, but callers must route every submission path through it, including keyboard submission.\n\nUnread values never acquire a placeholder that resembles measured data. An unavailable or stale value keeps its reason and observation metadata in the accessible description. Error text can include a recovery action, but it must not expose credentials, configuration secrets, call content, or private paths.\n\n## Accessibility and localization\n\nThe primitives accept user-facing labels and details from their caller instead of embedding a localization system. Integration must supply localized text for the active language mode. Exact values, counts, timestamps, and operation states remain factual at every copy tone.\n\n## Verification\n\nNo test, build, type check, UI interaction, or screen capture ran in this ultra-speed implementation lane. Central integration must add focused tests and built-application verification before any accessibility compliance claim is made.\n\n## Suggested articles\n\n[Accessibility](accessibility.md), [Responsive and high-scale sizing](responsive-sizing.md), [Bounded overlays](bounded-overlays.md), [Long-operation progress](long-operation-progress.md), and [Platform feature index](README.md).\n"
+    },
+    {
       "id": "platform/app-display-name",
       "category": "platform",
       "title": "Renameable app display name",
@@ -1203,7 +1623,52 @@ export const DOCS_BUNDLE: DocsBundle = {
         "../app/appearance.md",
         "README.md"
       ],
-      "body": "# App logo customization\n\nLets a user replace the application's displayed mark with a shipped preset or their own local image.\n\n## Behavior\n\nA logo customization surface is meant to offer several presets plus a local image upload, processed entirely on-device with cropping, fit, and background controls, then applied live wherever the mark is shown.\n\n## Configuration\n\nProcessing would be bounded and safe — validated file types, no network upload — with conversion failures leaving the previous valid logo in place.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application shows a fixed application mark with no customization surface.\n\n**Documentation website:** Partial. The site's settings page includes a placeholder entry for logo customization; no preset picker, no upload control, and no on-device processing exist behind it yet.\n\n## Failure modes\n\nA malformed or oversized uploaded image is meant to be rejected before it becomes the active mark, with the previous logo staying in place; nothing implements the upload path today, so nothing enforces that yet.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Material appearance system](material-appearance.md), [Renameable app display name](app-display-name.md), [Appearance](../app/appearance.md), [Platform feature index](README.md).\n"
+      "body": "# App logo customization\n\nLets a user replace the application's displayed mark with a shipped preset or their own local image.\n\n## Behavior\n\nA logo customization surface is meant to offer several presets plus a local image upload, processed entirely on-device with cropping, fit, and background controls, then applied live wherever the mark is shown.\n\n## Configuration\n\nProcessing would be bounded and safe — validated file types, no network upload — with conversion failures leaving the previous valid logo in place.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application shows a fixed application mark with no customization surface.\n\n**Documentation website:** Partial. Every page exposes three presets, contain/fill choice, and local PNG/JPEG upload. The loader verifies the byte signature, bounds encoded bytes and decoded pixels, revalidates the cache, applies the mark live, and retains the prior valid mark after rejection. Crop, focal point, background treatment, and multi-size output remain incomplete.\n\n## Failure modes\n\nA malformed, spoofed, oversized, or over-dimension image is rejected before storage, with the previous valid logo staying active. Source filenames and file paths are not retained, and image bytes are omitted from site-state export with that omission stated.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Material appearance system](material-appearance.md), [Renameable app display name](app-display-name.md), [Appearance](../app/appearance.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/appearance-runtime-core",
+      "category": "platform",
+      "title": "Appearance runtime core",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Color model",
+          "id": "color-model"
+        },
+        {
+          "title": "Persistence and import",
+          "id": "persistence-and-import"
+        },
+        {
+          "title": "Capability records",
+          "id": "capability-records"
+        },
+        {
+          "title": "Mounting",
+          "id": "mounting"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification status",
+          "id": "verification-status"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "material-appearance.md",
+        "app-logo-customization.md",
+        "accessibility.md"
+      ],
+      "body": "# Appearance runtime core\n\nThe desktop renderer has a local, versioned appearance model that can be mounted by any real surface without routing settings through a preview-only facade.\n\n## Behavior\n\nEvery override is addressed by a stable element identifier, one interaction state, and one property. Interaction states include default, hover, focus, focus-visible, active, disabled, selected, checked, and expanded. Resolution is deterministic: an element's state override wins over its default override, then the matching global state, then the global default.\n\nEditing uses a per-property draft. Creating a draft does not change the mounted value. Apply changes only that property and removes its draft. Discard removes only the draft. Reset can target one property, one state on one element, every state on one element, one global state, all global values, or the complete appearance model. These scopes are separate so resetting one color cannot erase unrelated settings.\n\nNamed presets contain real global settings, rainbow speed, and override snapshots. Applying a preset replaces those values and clears drafts. Saving, applying, deleting, importing, and resetting return executable inverse actions only after local persistence succeeds. A no-op reports that nothing changed, and an unavailable operation reports why it did not run.\n\n## Color model\n\nThe color engine accepts continuous HSL coordinates and translates bidirectionally among named colors, HEX and HEX8, RGB and RGBA, HSL and HSLA, HSV and HSB, HWB, CIELAB and LCH, OKLab and OKLCH, and CMYK. Alpha is retained in every translation, using an alpha-preserving hexadecimal fallback when no exact name exists.\n\nWide-gamut input reports when its displayed sRGB result was clipped. The original input remains available to the calling editor, so a display conversion never pretends the source was already inside the display gamut. Contrast evidence records the exact foreground, background, ratio, and WCAG verdict when both colors are fixed. Animated color reports that a fixed ratio cannot be calculated.\n\nRainbow is a discriminated marker, not a color string and not a palette entry. One global speed level maps to one duration shared by every mounted rainbow surface. Reduced motion resolves the marker to one stable hue and disables the animation.\n\n## Persistence and import\n\nThe local store uses schema version 2 and a caller-provided storage adapter. The browser adapter can use local storage, while tests or non-browser hosts can supply another adapter without changing the model. Reads revalidate the complete stored document. Writes serialize and validate the complete next model before replacing the prior stored value. A rejected import applies nothing.\n\nJSON export includes the complete model, drafts, presets, capability records, and safe logo rendering metadata. It does not include custom-logo bytes, filenames, paths, cache keys, or network references. A custom logo export states that the local asset was omitted.\n\n## Capability records\n\nRuntime support is recorded explicitly for installed-font enumeration, variable font axes, eyedropper access, clipboard writes, local logo decoding and crop, rainbow animation, and direct OKLCH output. An unsupported record carries both the reason and the fallback. The interface must use these records to keep an unavailable control visible and truthful rather than showing a success notification for an operation that never ran.\n\n## Mounting\n\n`appearance-runtime.ts` mounts values onto elements that expose `data-appearance-id`. A host can set `data-appearance-state` as interaction changes and remount the model. The adapter reports element identifiers that are stored but not present in the mounted surface. It also exports the stylesheet needed for hue interpolation. The central renderer must install that stylesheet and mount the adapter before these model changes become visible.\n\n## Failure modes and security\n\n- Storage read failure starts with an empty model and exposes the rejection reason.\n- Storage write failure preserves the previous in-memory and persisted model.\n- A stale inverse action is refused when its expected revision no longer matches.\n- A malformed, oversized, duplicate, unknown-version, or privacy-invalid import is rejected as a whole.\n- A rainbow marker never enters color parsing, translation, contrast, alpha concatenation, or finite palettes.\n- Logo metadata cannot carry a path, URL, raw asset, filename, or cache key.\n- Capability detection never invokes a permission prompt and never claims clipboard, eyedropper, font, or decoder success.\n\n## Verification status\n\nThis ultra-speed implementation did not run unit tests, lint, type checking, a build, packaging, runtime interaction, or screen captures. The API is mount-ready, but the central renderer integration and built-artifact proof belong to the surface-wiring lane.\n\n## Suggested articles\n\n[Material appearance system](material-appearance.md), [App logo customization](app-logo-customization.md), and [Accessibility](accessibility.md).\n"
     },
     {
       "id": "platform/attention-modes",
@@ -1244,7 +1709,7 @@ export const DOCS_BUNDLE: DocsBundle = {
         "non-blocking-notifications.md",
         "README.md"
       ],
-      "body": "# Attention-support modes\n\nA set of independently toggleable, off-by-default interface modes — focus, low stimulation, time awareness, one-thing-at-a-time, and momentum — aimed at attention difficulties.\n\n## Behavior\n\nEach mode is meant to be a separate switch: focus dims everything but the active item without hiding it, low stimulation reduces motion and non-essential notifications, time awareness shows elapsed session time, one-thing-at-a-time pins a single chosen next action, and momentum gently and dismissibly flags long-untouched work.\n\n## Configuration\n\nCopy in these modes would stay plain and factual, never gamified or judgmental, presented as interface accommodations rather than anything medical or diagnostic.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has none of these modes; there is no focus dimming, no stimulation reduction toggle, no elapsed-time indicator, and no momentum prompt.\n\n**Documentation website:** Partial. The site's settings page includes placeholder entries naming these modes; none of the five behaviors are actually wired to change the rendered page yet.\n\n## Failure modes\n\nNone of these modes currently changes anything a user can see; the placeholder settings entries are labels only, so there is no interaction to fail yet.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Accessibility](accessibility.md), [Non-blocking notifications](non-blocking-notifications.md), [Platform feature index](README.md).\n"
+      "body": "# Attention-support modes\n\nA set of independently toggleable, off-by-default interface modes — focus, low stimulation, time awareness, one-thing-at-a-time, and momentum — aimed at attention difficulties.\n\n## Behavior\n\nEach mode is meant to be a separate switch: focus dims everything but the active item without hiding it, low stimulation reduces motion and non-essential notifications, time awareness shows elapsed session time, one-thing-at-a-time pins a single chosen next action, and momentum gently and dismissibly flags long-untouched work.\n\n## Configuration\n\nCopy in these modes would stay plain and factual, never gamified or judgmental, presented as interface accommodations rather than anything medical or diagnostic.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has none of these modes; there is no focus dimming, no stimulation reduction toggle, no elapsed-time indicator, and no momentum prompt.\n\n**Documentation website:** Implemented for the site-owned surface. Every page exposes independently persisted focus, low stimulation, time awareness, one-thing-at-a-time, and momentum controls, all off by default. The current action and elapsed time appear on the page, and the momentum notice uses a bounded local idle interval.\n\n## Failure modes\n\nIf no current action is entered, one-thing-at-a-time stays visually quiet rather than inventing one. Reduced-motion and low-stimulation requests stop non-essential animation; momentum never claims that work changed.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Accessibility](accessibility.md), [Non-blocking notifications](non-blocking-notifications.md), [Platform feature index](README.md).\n"
     },
     {
       "id": "platform/automatic-updates",
@@ -1370,6 +1835,36 @@ export const DOCS_BUNDLE: DocsBundle = {
       "body": "# Browser-extension download capture surfaces\n\nA companion browser extension's Start-download and in-progress-download dialogs, giving a real confirm/cancel decision and live transfer progress.\n\n## Behavior\n\nA Start-download dialog is meant to name the proposed file, source, and destination before anything transfers; a separate always-on-top Downloading dialog would show live progress, rate, and pause/resume/cancel controls for the real transfer underway.\n\n## Configuration\n\nBoth dialogs would reflect the actual queued and in-flight transfer rather than a simulated progress value.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application is not a browser and has no browser-extension download surface of this kind.\n\n**Documentation website:** Not implemented. The documentation website is not a browser extension and has no download-capture flow of this kind.\n\n## Failure modes\n\nN/A — with no extension or capture flow implemented, there is no failure path to describe.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Long-operation progress reporting](long-operation-progress.md), [Platform feature index](README.md).\n"
     },
     {
+      "id": "platform/browser-extension-download-surfaces-implementation",
+      "category": "platform",
+      "title": "Browser-extension download transfer surfaces",
+      "headings": [
+        {
+          "title": "Extension handoff contract",
+          "id": "extension-handoff-contract"
+        },
+        {
+          "title": "Window and accessibility intent",
+          "id": "window-and-accessibility-intent"
+        },
+        {
+          "title": "Failure and verification boundaries",
+          "id": "failure-and-verification-boundaries"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "long-operation-progress.md",
+        "in-context-recovery.md",
+        "accessibility.md",
+        "responsive-sizing.md"
+      ],
+      "body": "# Browser-extension download transfer surfaces\n\nThis implementation adds three mount-ready renderer surfaces for a browser-extension handoff:\n\n1. **Start download** is a blocking decision surface. It names the file, source, destination, and known size. Nothing starts until `DownloadTransferClient.start()` accepts the typed handoff. Cancel uses `cancelHandoff()` and reports the receipt.\n2. **Downloading** is a separate progress surface. It renders only `DownloadTransferSnapshot` values from the transfer client, including exact bytes, known totals, observed rate, known ETA, deadline, pause/resume/cancel/retry availability, errors, and partial outcomes. It never increments a local timer or predicts a result.\n3. **Download complete** is a non-blocking result surface. It names the file, destination, observed outcome, and observation time. The exported intent metadata marks it always-on-top while leaving dismissal non-blocking.\n\n## Extension handoff contract\n\n`console/shared/download-transfer.ts` is the boundary contract. An extension handoff is bounded and must have an HTTPS source, a file name, a destination, an ISO timestamp, an explicit unsaved-work state, and an optional known byte total. `isExtensionDownloadHandoff()` rejects malformed or unbounded messages before they reach a transfer client.\n\nThe transfer client is intentionally injected. The renderer therefore knows only the typed `start`, `cancelHandoff`, `command`, and `subscribe` operations. Preload or control-plane wiring can implement that client later without changing the three surfaces or making renderer code own file I/O.\n\n## Window and accessibility intent\n\n`DOWNLOAD_WINDOW_INTENTS` and `DOWNLOAD_SURFACE_REGISTRATIONS` export platform handoff metadata. Start is a blocking decision and returns focus to its originating control after close. Progress is an always-on-top progress window. Completion is always-on-top but non-blocking, with a dismiss action. Each surface uses semantic headings, live status or alert regions, visible keyboard focus, keyboard-sized controls, overflow-safe URLs and paths, reduced-motion CSS, and a narrow-layout breakpoint.\n\nLanguage and funny-copy selection remain host-owned: labels are ordinary strings in these mount-ready components, so a future host can pass localized or funny-level copy without changing transfer facts such as bytes, timestamps, URLs, paths, status, or error codes. Unsaved-work state is required in the handoff and remains visible on the Start surface; no transfer action discards it.\n\n## Failure and verification boundaries\n\nThe client must provide real snapshots and real command receipts. A missing first snapshot is shown as a waiting state. A rejected command, deadline, non-retryable error, cancellation, and partial result stay visible and are not converted into success. This lane intentionally contains no test or extension launch wiring; integration owners must connect the exported contract to the preload/control-plane boundary and add built-artifact interaction evidence there.\n\n## Suggested articles\n\n[Long-operation progress reporting](long-operation-progress.md), [In-context failure recovery](in-context-recovery.md), [Accessibility](accessibility.md), [Responsive and high-scale sizing](responsive-sizing.md).\n"
+    },
+    {
       "id": "platform/browser-style-tabs",
       "category": "platform",
       "title": "Browser-style tabbed navigation",
@@ -1410,7 +1905,7 @@ export const DOCS_BUNDLE: DocsBundle = {
         "../app/appearance.md",
         "README.md"
       ],
-      "body": "# Browser-style tabbed navigation\n\nPresents application and settings content as discrete, navigable tabs rather than one long scrolling page.\n\n## Behavior\n\nEvery major surface, including settings, is meant to use a persistent tab strip, dockable to any screen edge, with overflow handling, reordering, and pinning, rather than a single scrolling column.\n\n## Configuration\n\nTabs would support keyboard navigation with correct roles and states, and the strip would collapse gracefully at narrow widths without clipping labels.\n\n## Current status\n\n**Desktop application:** Partial. A left navigation rail separates the app's screens, which gives some of the navigational benefit of tabs, but there is no true tab strip with overflow handling, reordering, pinning, or edge-docking choice.\n\n**Documentation website:** Not implemented. Articles are presented as a navigable list with in-page section anchors rather than a browser-style tab strip.\n\n## Failure modes\n\nWhen more tabs are open than the strip can show, the intended behavior is an overflow menu listing the rest rather than silently clipping the last tab off-screen; there is no tab strip yet to overflow.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Tab groups and tab search](tab-groups-and-searches.md), [Command palette](command-palette.md), [Material appearance system](material-appearance.md), [Appearance](../app/appearance.md), [Platform feature index](README.md).\n"
+      "body": "# Browser-style tabbed navigation\n\nPresents application and settings content as discrete, navigable tabs rather than one long scrolling page.\n\n## Behavior\n\nEvery major surface, including settings, is meant to use a persistent tab strip, dockable to any screen edge, with overflow handling, reordering, and pinning, rather than a single scrolling column.\n\n## Configuration\n\nTabs would support keyboard navigation with correct roles and states, and the strip would collapse gracefully at narrow widths without clipping labels.\n\n## Current status\n\n**Desktop application:** Partial. A left navigation rail separates the app's screens, which gives some of the navigational benefit of tabs, but there is no true tab strip with overflow handling, reordering, pinning, or edge-docking choice.\n\n**Documentation website:** Partial. Every top-level page and composed article receives the same ARIA tablist with persisted left, right, top, and bottom docking. Left is the default, and side docking collapses to the compact header below 900px. Reordering, pinning, grouping, overflow management, and the four independent tab searches remain incomplete.\n\n## Failure modes\n\nWhen more tabs are open than the strip can show, the intended behavior is an overflow menu listing the rest rather than silently clipping the last tab off-screen; there is no tab strip yet to overflow.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Tab groups and tab search](tab-groups-and-searches.md), [Command palette](command-palette.md), [Material appearance system](material-appearance.md), [Appearance](../app/appearance.md), [Platform feature index](README.md).\n"
     },
     {
       "id": "platform/built-in-authenticator",
@@ -1494,6 +1989,45 @@ export const DOCS_BUNDLE: DocsBundle = {
         "README.md"
       ],
       "body": "# Bulk actions\n\nMulti-select and batch operations across every list, table, and collection in the product, with an honest preview before anything irreversible runs.\n\n## Behavior\n\nEvery list is meant to support multi-select (click, shift-click ranges, and a keyboard equivalent), an honestly scoped select-all, and the same actions available singly — delete, export, move, tag, and so on — offered in bulk with a reviewable count and preview.\n\n## Configuration\n\nA bulk action would be undoable through local version history where the underlying action normally is, and would never silently skip an item without reporting it.\n\n## Current status\n\n**Desktop application:** Not implemented. Every list in the desktop application (servers, recordings, and similar) is single-selection only, with no multi-select, select-all, or batch action available.\n\n**Documentation website:** Not implemented. The documentation website has no user-owned lists to act on in bulk.\n\n## Failure modes\n\nIf an item in a bulk batch cannot complete the action (a locked record, a permission error), the intended behavior is to report that item as skipped in the result summary rather than silently omit it; there is no bulk mechanism yet to test this against.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Complete data export](complete-exports.md), [Destructive-action super confirmation](destructive-action-confirmation.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/changelog-browser-extension-transfer",
+      "category": "platform",
+      "title": "Browser-extension transfer surfaces",
+      "headings": [
+        {
+          "title": "Browser-extension transfer surfaces",
+          "id": "browser-extension-transfer-surfaces"
+        }
+      ],
+      "links": [],
+      "body": "# Browser-extension transfer surfaces\n\n## Browser-extension transfer surfaces\n\n- Added typed extension handoff, transfer snapshot, command receipt, window-intent, and surface-registration contracts.\n- Added distinct Start download, Downloading, and Download complete renderer surfaces with real-client request seams, exact observed progress fields, partial-result reporting, keyboard focus, accessible live regions, reduced-motion behavior, and narrow-layout styling.\n- Added implementation documentation describing the preload/control-plane integration boundary and the deliberate no-simulation rule.\n"
+    },
+    {
+      "id": "platform/changelog-dim-sum-runtime",
+      "category": "platform",
+      "title": "Runtime contract: dim-sum startup cache",
+      "headings": [
+        {
+          "title": "Runtime contract: dim-sum startup cache",
+          "id": "runtime-contract-dim-sum-startup-cache"
+        }
+      ],
+      "links": [],
+      "body": "# Runtime contract: dim-sum startup cache\n\n## Runtime contract: dim-sum startup cache\n\nAdded the mount-ready dim-sum startup runtime contract. It performs one cryptographically secure ten-percent draw per launch, suppresses School mode, first run, error, update, and mid-task states, and renders only a local image from a validated private application-data cache. The cache records the public catalog revision, bilingual names, published catalog-v1 asset identity, byte size, digest, and static decode proof. Missing or invalid cache data reports unavailable and never fetches or invents a dish.\n\n"
+    },
+    {
+      "id": "platform/changelog-logo-conversion",
+      "category": "platform",
+      "title": "Changelog fragment: bounded app-logo conversion",
+      "headings": [
+        {
+          "title": "Unreleased",
+          "id": "unreleased"
+        }
+      ],
+      "links": [],
+      "body": "# Changelog fragment: bounded app-logo conversion\n\n## Unreleased\n\n- Added shared app-logo contracts for shipped presets, a semantic local image picker, signature-first inspection, safe static SVG handling, bounded crop models, contrast warnings, conversion receipts, and stable package identity.\n- Added a control-plane conversion boundary that requires an isolated decoder, independently validates every output, and preserves the previous logo when conversion fails.\n- Added a schema-versioned local cache that stores only converted assets and redacted receipts, with clear and reset purge operations.\n- Added a mount-ready renderer surface with keyboard-editable crop, focal-point, fit, background, preset, upload, status, and reset controls.\n\nVerification state: implementation contracts are ready for the integration lane. Decoder registration, dispatcher mounting, focused tests, packaged interaction, and captures remain unverified until that lane runs them.\n\n"
     },
     {
       "id": "platform/changelog-viewer",
@@ -1616,7 +2150,7 @@ export const DOCS_BUNDLE: DocsBundle = {
         "browser-style-tabs.md",
         "README.md"
       ],
-      "body": "# Command palette\n\nA `Ctrl+Shift+F`-activated global search that jumps directly to any command, setting, or destination in the product.\n\n## Behavior\n\nThe palette is meant to list every command, feature page, destination, and setting, and to teleport the user to the exact matching control rather than only its containing page.\n\n## Configuration\n\nResults would render as rich, interactive rows — a settings row with its actual live control inline — rather than plain text, in either a compact or a full-window view.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has no command palette or global keyboard-activated search of any kind.\n\n**Documentation website:** Partial. The site responds to `Ctrl+Shift+F` with a basic overlay that filters the article title list by substring; it does not index individual settings or in-page destinations, and results are plain text links rather than rich interactive rows.\n\n## Failure modes\n\nIf the underlying index were incomplete, the intended behavior is to show fewer results rather than a broken or unresponsive palette; the current site overlay degrades this way already, since it only ever indexes titles.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Regex builder](regex-builder.md), [Browser-style tabbed navigation](browser-style-tabs.md), [Platform feature index](README.md).\n"
+      "body": "# Command palette\n\nA `Ctrl+Shift+F`-activated global search that jumps directly to any command, setting, or destination in the product.\n\n## Behavior\n\nThe palette is meant to list every command, feature page, destination, and setting, and to teleport the user to the exact matching control rather than only its containing page.\n\n## Configuration\n\nResults would render as rich, interactive rows — a settings row with its actual live control inline — rather than plain text, in either a compact or a full-window view.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has no command palette or global keyboard-activated search of any kind.\n\n**Documentation website:** Implemented for the shared shell. Every page responds to `Ctrl+Shift+F`, searches all top-level pages, direct composed article URLs, and exact shared controls, and opens a selected control with focus. Article results no longer depend on a paginated destination card being present.\n\n## Failure modes\n\nAn empty result says that no page, article, or control matched. The palette uses direct article paths instead of hash targets that can be absent from the current pagination page.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Regex builder](regex-builder.md), [Browser-style tabbed navigation](browser-style-tabs.md), [Platform feature index](README.md).\n"
     },
     {
       "id": "platform/complete-exports",
@@ -1657,7 +2191,45 @@ export const DOCS_BUNDLE: DocsBundle = {
         "local-version-history.md",
         "README.md"
       ],
-      "body": "# Complete data export\n\nEvery record, list, and view the product owns can be exported, in whichever format can faithfully carry that data.\n\n## Behavior\n\nEvery list, document, log, and setting is meant to be exportable in an appropriate format — JSON, CSV, Markdown, and others depending on the data's shape — stating encoding and any fields a format cannot carry before the export runs.\n\n## Configuration\n\nExports would be complete and, where the shape allows it, re-importable, rather than a partial dump of only the currently visible rows.\n\n## Current status\n\n**Desktop application:** Not implemented. No list, record, or setting anywhere in the desktop application can currently be exported to a file.\n\n**Documentation website:** Partial. The site's settings page includes a placeholder export button that is not wired to produce a file yet.\n\n## Failure modes\n\nWhere a chosen format cannot carry every field of a record, the intended behavior is to say so before the export runs rather than truncate silently afterward; the placeholder export button does not yet reach this decision point.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Bulk actions](bulk-actions.md), [Local version history](local-version-history.md), [Platform feature index](README.md).\n"
+      "body": "# Complete data export\n\nEvery record, list, and view the product owns can be exported, in whichever format can faithfully carry that data.\n\n## Behavior\n\nEvery list, document, log, and setting is meant to be exportable in an appropriate format — JSON, CSV, Markdown, and others depending on the data's shape — stating encoding and any fields a format cannot carry before the export runs.\n\n## Configuration\n\nExports would be complete and, where the shape allows it, re-importable, rather than a partial dump of only the currently visible rows.\n\n## Current status\n\n**Desktop application:** Not implemented. No list, record, or setting anywhere in the desktop application can currently be exported to a file.\n\n**Documentation website:** Implemented for current site-owned records. Documentation results and selected notifications use every suitable structured or tabular format. Shared site-state export includes every persisted setting and notification in JSON, and explicitly names omitted personal-vocabulary data, source metadata, and custom-logo bytes.\n\n## Failure modes\n\nFormats that cannot faithfully carry nested values are removed from the applicable picker, and remaining loss notes appear before export. Privacy-bound payloads are omitted only with an explicit field in the exported file describing the omission.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Bulk actions](bulk-actions.md), [Local version history](local-version-history.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/completeness-matrix",
+      "category": "platform",
+      "title": "Completeness matrix",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Security and privacy",
+          "id": "security-and-privacy"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "offline-documentation-browser.md",
+        "changelog-viewer.md",
+        "status-hub.md",
+        "README.md"
+      ],
+      "body": "# Completeness matrix\n\nThe completeness matrix is the hand-written record of the product contracts that every user-facing surface must carry. It is independent from source discovery, so a feature or page that disappears from the code cannot disappear from the inventory at the same time.\n\n## Behavior\n\n`console/inventories/surface-completeness.json` uses schema version 2. It records 44 canonical features and 143 addressable surfaces: the desktop shell, login and setup routes, 32 desktop destinations, 17 desktop overlay states, six top-level site pages, 82 generated documentation routes, and the three browser-extension download states. Every surface has one row for every canonical feature.\n\nEach row records the status (`absent`, `partial`, `implemented-unverified`, or `verified`), demo state, source provenance, sample-data declaration, implementation paths and symbols, registration paths and symbols, deterministic route, documentation, localization, persistence, focused checks, negative regression evidence, built-artifact interaction evidence, current-commit captures, and the design-parity tuple.\n\n## Configuration\n\nThe canonical feature and requirement arrays are literal data in the matrix generator and checked-in JSON. The generator does not scan source files, infer routes, or infer features. The two surface registries point back to the canonical matrix and preserve exact implementation notes and symbols for the desktop and site surfaces. Converter and Ollama requirements remain present on every surface. There are no exemptions.\n\n## Failure modes\n\nThe validator fails when a canonical feature, page, route, or row disappears; when a symbol is renamed or commented out; when a verified evidence commit is stale; when a required artifact is missing; when a route is supported only by prose; when a status claims success without all evidence; or when sample data is marked as provenance. Symbol matching uses exact declaration or registration boundaries, not substring presence.\n\n## Security and privacy\n\nThe matrix contains paths, symbols, routes, statuses, and evidence references only. It contains no credentials, private user data, call content, personal vocabulary values, or captured PBX configuration. Evidence references are claims about artifacts, not artifacts themselves. A row cannot become verified by changing its status string.\n\n## Verification\n\nThe focused validator is `console/scripts/verify-inventories.mjs`. The deliberate regression is `console/scripts/negative-surface-completeness.mjs`, with a companion evidence-claim regression in `console/scripts/negative-evidence-claims.mjs`. The current ultra-speed delivery boundary did not run these validators, tests, or captures, so all evidence that was not already present remains explicitly unverified. A later verification pass must run the validators against the exact integrated commit, observe every deliberate break turn red, restore the matrix, and observe green before changing any row to `verified`.\n\n## Suggested articles\n\n[Design parity](../../design/inventory.json), [Offline documentation browser](offline-documentation-browser.md), [Changelog viewer](changelog-viewer.md), [Status Hub](status-hub.md), [Platform feature index](README.md).\n"
     },
     {
       "id": "platform/context-menu-shortcuts",
@@ -1698,6 +2270,46 @@ export const DOCS_BUNDLE: DocsBundle = {
         "README.md"
       ],
       "body": "# Right-click menus show keyboard shortcuts\n\nEvery context-menu item that has a keyboard shortcut displays it, right-aligned, in the platform's own notation.\n\n## Behavior\n\nA context menu is meant to show each item's real, currently-working keyboard shortcut beside its label, derived from the same source that registers the binding, never a guessed or stale one.\n\n## Configuration\n\nShortcuts would be exposed to assistive technology as shortcuts, not as decorative trailing text.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application's right-click menus, where they exist, do not display keyboard shortcuts beside their items.\n\n**Documentation website:** Not implemented. The documentation website has no right-click context menus of its own.\n\n## Failure modes\n\nA displayed shortcut that no longer matches the actual binding (because the binding changed and the label did not) is the specific failure this feature exists to prevent by deriving both from one source; there is nothing implemented yet to exercise that guarantee.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Command palette](command-palette.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/desktop-settings-runtime",
+      "category": "platform",
+      "title": "Desktop settings runtime",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Integration API",
+          "id": "integration-api"
+        },
+        {
+          "title": "Personal vocabulary",
+          "id": "personal-vocabulary"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Current integration state",
+          "id": "current-integration-state"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "language-modes.md",
+        "funny-levels.md",
+        "school-mode.md",
+        "narration.md",
+        "scheduled-settings.md",
+        "personal-vocabulary-upload.md"
+      ],
+      "body": "# Desktop settings runtime\n\nThe desktop settings runtime provides one validated local state contract for language, tone, dialog decoration, renamed School mode, attention-support modes, narration, display naming, and scheduled overrides.\n\n## Behavior\n\nSettings use schema version 1 from `console/shared/settings-schema.ts`. A fresh profile starts with English, both funny levels at 5, dialog emojis enabled, School mode off, every attention-support mode off, narration off, the shipped display name, dark theme, comfortable density, the shipped accent and font, normal scale and weight, and motion enabled. The package identity remains the constant `com.dingdingprojects.ding-pbx-console` regardless of the chosen display name.\n\n`SettingsStore` validates every stored record during hydration and every proposed record before writing. Missing data uses documented defaults. Invalid or stale data is removed and reported through `recoveryReason`; it is never partially applied. Subscribers receive immutable snapshots after hydration, a successful update, a reset, or a storage event from another renderer.\n\n`RendererSettingsRuntime` adds schedule evaluation, School-mode projection, personal-vocabulary application, and narrator mounting. Schedule rules use an IANA timezone, optional date bounds, a local time window, weekdays, deterministic priority, and stable list ordering. Equal start and end times mean a full day. Cross-midnight windows belong to the day on which they begin. External rules remain inactive until the privileged source reader supplies an explicit active state.\n\nWhen School mode is enabled, the effective projection forces English and English narration, reports Cantonese, funny-level controls, personal vocabulary, and dim-sum behavior as unavailable, and leaves the user's stored choices untouched for restoration when the mode is disabled.\n\n## Integration API\n\nThe application integration point is `console/app/renderer/src/settings/index.ts`.\n\n```ts\nconst settings = browserSettingsRuntime()\n\nsettings.hydrate()\nconst unsubscribe = settings.subscribe((snapshot) => render(snapshot))\nsettings.update((draft) => { draft.language.mode = 'bilingual' })\nsettings.applyVocabularyText({ text: label, boundary: 'user-interface-copy' })\nsettings.mountNarration(speechEngine)\nsettings.queueNarration('connection', { en: englishText, zh: cantoneseText })\n```\n\nThe runtime also exposes `snapshot()`, `reset()`, `provenance(target)`, `setScheduleSourceState()`, `tick()`, `narrationVoices()`, `narrationStatus()`, `narrationQueueStatus()`, `setScreenReaderActive()`, `setQuiet()`, `unmountNarration()`, and `dispose()`.\n\nEach scheduled target reports whether its current value came from compiled defaults, validated local storage, a schedule rule, or School-mode suppression. Effective appearance values are part of the snapshot and also remain exposed through `scheduledOverrides` for the separately owned appearance subsystem to consume.\n\n## Personal vocabulary\n\nThe accepted file has one canonical shape: a version of 1 and a `replacements` array containing only `from` and `to` strings. Validation rejects oversized input, excessive nesting, too many entries, unknown fields, unsafe keys, duplicate JSON object keys, duplicate source terms, invalid versions, and bounded-string violations. The cache is revalidated before every application. Invalid uploads never replace the last valid cache, and clearing the cache immediately restores original wording.\n\nReplacement is available only through an explicitly classified private user-interface-copy or accessible-name boundary. Commands, URLs, identifiers, code, paths, logs, exports, history, diagnostics, provider-authored text, and public records must not pass through that API. No mapping, payload, source filename, or source path ships in this repository.\n\n## Failure modes and security\n\n- A storage read or validation failure activates defaults and reports the exact recovery reason.\n- A privacy context that refuses access to browser storage uses one guarded probe, then gives settings and personal vocabulary the same memory-only store. Snapshots report `session-memory` provenance and the reason values will not survive restart.\n- A storage write failure leaves the previous settings active and returns a failed update result.\n- An external schedule source has no effect until its privileged reader reports a current true state.\n- Missing speech support leaves narration unmounted. Voice enumeration then returns an empty list and queue attempts return `false`.\n- A removed selected voice remains selected in stored settings while runtime status reports the actual fallback or lack of a usable voice.\n- Speech failures are retained in queue status and do not block the application or later queued lines.\n- Secrets are not part of the settings schema. Home Assistant rules store only a credential-vault account key, never credential material.\n\n## Current integration state\n\nThe settings core and public integration functions exist, but the desktop shell does not yet construct the store, subscribe to runtime snapshots, route rendered text through the vocabulary boundary, mount a platform speech engine, or apply appearance overrides. Those seams belong to the application wiring change. Until that wiring lands, these settings do not change the visible desktop interface.\n\nThis ultra-speed implementation did not run tests, type checking, builds, packaging, UI interaction, or captures. Its behavior remains unverified until the owning integration work runs the repository's local validation and built-artifact evidence paths.\n\n## Suggested articles\n\n[Language modes](language-modes.md), [Funny-level sliders](funny-levels.md), [School mode](school-mode.md), [Spoken narration](narration.md), [Scheduled settings](scheduled-settings.md), and [Personal vocabulary upload](personal-vocabulary-upload.md).\n"
     },
     {
       "id": "platform/destructive-action-confirmation",
@@ -1782,6 +2394,35 @@ export const DOCS_BUNDLE: DocsBundle = {
       "body": "# Dialog emoji toggle\n\nA persisted on/off switch controlling whether dialogs and message boxes show a decorative emoji alongside their factual text.\n\n## Behavior\n\nWhen enabled, dialogs are meant to get a relevant, non-semantic emoji; when disabled, the same factual copy is meant to appear with no emoji. The toggle would never add emoji to buttons, field labels, or other control text — only to descriptive dialog copy.\n\n## Configuration\n\nA single switch in application settings, reachable by keyboard, is meant to control this for every dialog at once.\n\n## Current status\n\n**Desktop application:** Not implemented. No toggle exists and no dialog in the product currently carries an emoji.\n\n**Documentation website:** Not implemented. The site has no application-style message boxes to decorate.\n\n## Failure modes\n\nN/A — a switch with no dialogs to affect has no meaningful failure mode of its own; failure would only arise once dialogs exist to decorate.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Non-blocking notifications](non-blocking-notifications.md), [Platform feature index](README.md).\n"
     },
     {
+      "id": "platform/dim-sum-startup-runtime",
+      "category": "platform",
+      "title": "Dim-sum startup runtime cache",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Cache contract",
+          "id": "cache-contract"
+        },
+        {
+          "title": "Mount seam",
+          "id": "mount-seam"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "dim-sum-surprise.md",
+        "school-mode.md",
+        "non-blocking-notifications.md"
+      ],
+      "body": "# Dim-sum startup runtime cache\n\nThis article describes the mount-ready runtime contract for the dim-sum startup surprise. The parent surface still owns the final mount and the package step owns cache production.\n\n## Behavior\n\nThe renderer makes one fresh cryptographically secure random draw per launch. The winning interval is exactly ten percent of the uint32 range. A winning draw selects one entry from a validated private application-data cache and shows the cache's local image bytes with the authoritative English and Traditional Chinese names. The surface is non-blocking, does not take focus, respects reduced motion, and dismisses itself after the configured short interval. There is no opt-out control.\n\nThe draw is suppressed during School mode, first run, an active error, an active update, or a mid-task state. Suppression is reported to the mount callback and never names or reveals a hidden dish. The attempt flag is held in the component instance so Strict Mode or a rerender cannot create a second draw in one launch.\n\n## Cache contract\n\n`console/shared/dim-sum.ts` validates the complete JSON envelope before any image bytes render. The envelope must identify the public `Ding-Ding-Projects/dim-sum-photos` catalog URL, an immutable catalog revision, its revision URL, and a published `catalog-v1*` release asset. Every entry carries exact bilingual names, the public asset identity and URL, a local data URL, its byte size and SHA-256 digest, and a static decode proof with MIME type and dimensions. The async validator recomputes each local image digest with Web Crypto before selection. Unknown fields, repeated entry ids, malformed data URLs, oversized bytes, non-published asset URLs, missing proof, and unsupported revisions fail closed.\n\nThe renderer reads only through the `DimSumCacheReader` seam. A missing or invalid cache produces an unavailable diagnostic and no image. The renderer never calls the public catalog, never downloads a release asset, and never invents a dish. The package or application-data owner must verify the image digest before publishing the cache and must retain the public catalog revision and asset identity for audit.\n\n## Mount seam\n\n`DIM_SUM_SURPRISE_REGISTRATION` identifies the `startup-overlay` mount, its non-blocking and focus-neutral behavior, its automatic dismissal, its no-opt-out contract, its cache boundary, and its cryptographically secure ten-percent draw. The host supplies `context`, including the shared School-mode state, and a `cacheReader` that returns the private JSON text.\n\n## Suggested articles\n\n[Dim sum surprise](dim-sum-surprise.md), [School mode](school-mode.md), and [Non-blocking notifications](non-blocking-notifications.md).\n"
+    },
+    {
       "id": "platform/dim-sum-surprise",
       "category": "platform",
       "title": "Dim sum surprise",
@@ -1820,6 +2461,82 @@ export const DOCS_BUNDLE: DocsBundle = {
         "README.md"
       ],
       "body": "# Dim sum surprise\n\nA small, un-opt-outable 10% chance at each startup of showing a randomly chosen dim sum dish's name and picture.\n\n## Behavior\n\nOn roughly one in ten launches, a bundled local image of a dim sum dish is meant to appear briefly with its name in both English and Chinese, then dismiss itself automatically without blocking the interface from becoming usable.\n\n## Configuration\n\nThere is deliberately no setting to turn this off; the only configurable aspect is that School mode, once it exists, would suppress it along with every other optional capability.\n\n## Current status\n\n**Desktop application:** Not implemented. No such surprise, no bundled dish imagery, and no random-draw logic exist in the product.\n\n**Documentation website:** Not implemented. A static documentation site has no startup event to attach this to.\n\n## Failure modes\n\nIf the bundled image set were ever missing an entry, the intended behavior is to skip that draw rather than show a broken image; nothing implements the draw today.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[School mode](school-mode.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/docs-runtime",
+      "category": "platform",
+      "title": "Offline documentation and changelog runtime",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Accessibility and localization",
+          "id": "accessibility-and-localization"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "offline-documentation-browser.md",
+        "provider-markup-rendering.md",
+        "changelog-viewer.md",
+        "regex-builder.md",
+        "README.md"
+      ],
+      "body": "# Offline documentation and changelog runtime\n\nThe desktop renderer includes mount-ready documentation and changelog surfaces backed by the generated bundles already produced during the normal build.\n\n## Behavior\n\nThe documentation surface lists every bundled article, searches titles, headings, and article bodies, renders the selected article as formatted content, resolves article-to-article links inside the application, exposes an article outline, and suggests related articles from real bundle links.\n\nThe changelog surface parses the generated release history, rejects malformed release dates, composes date and text filters, shows categorized changes, exports the filtered view, and links a recorded commit only when both its identifier and the supplied repository URL are valid. A caller may supply verified commit availability; absent that evidence, the surface labels availability as unverified rather than claiming the link was checked.\n\nBoth surfaces use the same isolated Markdown renderer. It creates React elements directly, treats embedded HTML as text, allows only HTTP, HTTPS, and mail links outside the bundle, and reports empty, truncated, or malformed input instead of executing provider-authored markup.\n\n## Configuration\n\n`DOCUMENTATION_SURFACE_MOUNT` targets the `docs` destination and carries the generated documentation bundle as its default input. `CHANGELOG_SURFACE_MOUNT` targets the `changelog` destination and carries the generated changelog text and repository URL. The central application integration imports these descriptors and decides where they mount; the surfaces do not alter the generated design shell themselves.\n\nPlain-text search is the default. Selecting regular-expression mode uses a disposable worker, a bounded corpus, a bounded result count, and a hard deadline. Search results retain the exact source field and capture groups returned by that single isolated evaluation.\n\n## Failure modes and security\n\nIf the bundle's declared article count differs from its contents, the documentation surface reports the mismatch. A missing selected article, empty bundle, malformed Markdown, an invalid release date, invalid date range, invalid pattern, unavailable worker, deadline expiry, missing commit, and unverified commit each have distinct visible states.\n\nRegular expressions never run on the renderer thread. When worker isolation is unavailable, regular-expression search fails closed. Plain-text search retains a bounded fallback. Links using file, script, data, or unknown schemes do not become active controls.\n\n## Accessibility and localization\n\nThe surfaces use semantic headings, regions, lists, labels, status messages, alerts, native date fields, keyboard-operable controls, and minimum 44-pixel action targets. The directly authored copy is currently English. A later language integration must provide the project's English, Cantonese, and bilingual resources without changing dates, versions, commit identifiers, search origins, or failure facts.\n\n## Verification\n\nThis implementation was prepared in the ultra-speed lane, where tests, type checks, builds, generated-bundle refreshes, runtime interaction, and screen captures were explicitly excluded. The central mounting integration and its normal verification remain separate work. The generated bundles were read as existing inputs and were not edited in this change.\n\n## Suggested articles\n\n[Offline documentation browser](offline-documentation-browser.md), [Provider-authored markup rendering](provider-markup-rendering.md), [In-app changelog viewer](changelog-viewer.md), [Regex builder](regex-builder.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/export-and-bulk-core",
+      "category": "platform",
+      "title": "Export and bulk-operation core",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Platform integration contract",
+          "id": "platform-integration-contract"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Security and privacy",
+          "id": "security-and-privacy"
+        },
+        {
+          "title": "Verification status",
+          "id": "verification-status"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "complete-exports.md",
+        "bulk-actions.md",
+        "external-editor-handoff.md"
+      ],
+      "body": "# Export and bulk-operation core\n\nThe renderer includes a domain layer for preparing faithful data exports, scoping collection selections, planning bulk operations, and reporting confirmed platform outcomes.\n\n## Behavior\n\nExport preparation validates input against the versioned `ding-pbx-export.v1` tree schema before encoding it. Supported outputs are JSON, JSONL, YAML, TOML, XML, CSV, TSV, Markdown, HTML, SQL, TypeScript, JavaScript, and Python. Every artifact declares UTF-8, its schema version, media type, line-ending convention, byte count, row count, and format-specific disclosures.\n\nFormats fail closed when they cannot preserve a dataset. For example, TOML is unavailable for null values or mixed-type arrays, SQL is unavailable for nested values without a target schema, and XML is unavailable for characters XML 1.0 cannot represent. Source-code forms contain data literals only. Tabular formats use canonical JSON in headers and populated cells, while an empty cell means the field was absent, preserving names, types, and ragged rows.\n\nArchive export and archive encryption are explicitly unavailable because no bundled, verified ZIP or 7z adapter is registered. The core does not accept encryption settings or claim that a renamed or unverified archive is protected.\n\nSelection state belongs to one collection identifier and one query key. Changing either context creates a new empty selection, preventing stale selections from acting on a different result set. Page selection, all-match selection, inverse selection, additive toggles, and inclusive ranges share the same pinned and protected-item exclusion policy.\n\nBulk actions are discriminated as enabled or disabled. An enabled action must provide an execution handler. A disabled action must provide an exact reason and has no callable handler. Plans distinguish selected, affected, and excluded counts before execution. Runs report each item as converted, saved, exported, changed, skipped, cancelled, or failed according to the action and its confirmed result.\n\nEach execute and revert call receives a real `AbortSignal` from its own linked `AbortController` and a finite positive safe-integer per-item deadline. The default is 30 seconds. Caller cancellation actively aborts every in-flight item, while a deadline abort records a distinct timed-out result. Timers and caller-signal listeners are removed on every settle path. Untyped handler or platform-adapter rejections are reduced to fixed public-safe failure copy instead of exposing raw messages that may contain private paths.\n\nUndo is exposed only when a confirmed mutation supplies an inverse token or local-history revision and the surface registers a real inverse handler. A notification action cannot manufacture undo support.\n\n## Platform integration contract\n\nThe renderer does not write files or launch an editor directly. A privileged desktop or hosted adapter must implement the shared `ExportPlatformPort` contract for save, download, clipboard, editor detection, and editor launch. The renderer reports success only after that adapter returns a confirmation receipt with an operation identifier and completion time.\n\nSaving and opening an export in Visual Studio Code is a two-stage operation. The save must first be confirmed with a local path. Editor detection and launch happen afterward, and the overall result remains failed, cancelled, or unavailable unless the launch is separately confirmed.\n\n## Failure modes\n\n- Unsupported values, excessive depth, excessive value count, sparse arrays, cycles, repeated object references, accessors, and class instances make preparation unavailable with an exact path and reason.\n- A platform cancellation remains cancelled. It is never translated into success.\n- A platform failure preserves its code, reason, and retryable state.\n- A confirmed save without a returned local path cannot proceed to editor handoff.\n- Pinned and protected records remain excluded unless the caller explicitly requests their inclusion.\n- Cancellation stops new bulk items from starting and records every unstarted item as cancelled.\n- A never-settling execute or revert handler is aborted at its finite per-item deadline and reported as timed out. Timed-out work is not automatically retryable because an abort-ignoring handler may still complete a side effect later.\n- A thrown action handler becomes a per-item failed outcome and does not turn the remaining batch green.\n\n## Security and privacy\n\nEncoding is local and deterministic. The domain layer performs no network access, filesystem access, clipboard mutation, process launch, clock read, or random generation. External effects exist only behind the injected platform contract. SQL output uses quoted identifiers and escaped literals, but remains review-only because target constraints and column types are not known to the exporter.\n\n## Verification status\n\nThis change provides the pure/domain implementation and platform contracts only. It does not wire a visible export button, file dialog, clipboard bridge, Visual Studio Code launch bridge, or list surface. No tests, type checks, builds, runtime interactions, or captures were run in the ultra-speed lane.\n\n## Suggested articles\n\n[Complete data export](complete-exports.md), [Bulk actions](bulk-actions.md), [External editor handoff](external-editor-handoff.md).\n"
     },
     {
       "id": "platform/external-editor-handoff",
@@ -1876,20 +2593,20 @@ export const DOCS_BUNDLE: DocsBundle = {
           "id": "configuration"
         },
         {
-          "title": "Current status",
-          "id": "current-status"
-        },
-        {
           "title": "Failure modes",
           "id": "failure-modes"
         },
         {
-          "title": "Accessibility and localization",
-          "id": "accessibility-and-localization"
+          "title": "Security and privacy",
+          "id": "security-and-privacy"
         },
         {
-          "title": "Verification",
-          "id": "verification"
+          "title": "Current status",
+          "id": "current-status"
+        },
+        {
+          "title": "Verification boundary",
+          "id": "verification-boundary"
         },
         {
           "title": "Suggested articles",
@@ -1898,9 +2615,10 @@ export const DOCS_BUNDLE: DocsBundle = {
       ],
       "links": [
         "scheduled-settings.md",
-        "README.md"
+        "README.md",
+        "local-version-history.md"
       ],
-      "body": "# External settings sources\n\nLets a scheduled setting take its value from a remote source — an HTTPS API or a home-automation boolean — instead of only from a fixed local schedule.\n\n## Behavior\n\nA scheduled rule is meant to be able to source its active or inactive value from a validated versioned HTTPS endpoint or a linked home-automation boolean entity, refreshing on a bounded interval.\n\n## Configuration\n\nThe source would be selected per rule alongside the local schedule fields, with the access token for a remote source kept in the operating system credential store rather than in a settings file.\n\n## Current status\n\n**Desktop application:** Not implemented. No external source integration exists; scheduled settings themselves are also not implemented, so there is nothing yet for a remote source to feed.\n\n**Documentation website:** Not implemented. No remote settings source exists on the site.\n\n## Failure modes\n\nOn a network failure, timeout, or malformed response, the intended behavior is to keep the last valid local value and surface a recovery notification rather than silently applying whatever the failed response contained; nothing implements that path today.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Scheduled settings](scheduled-settings.md), [Platform feature index](README.md).\n"
+      "body": "# External settings sources\n\nLets a scheduled setting take its value from a local rule, a versioned HTTPS API, or a Home Assistant boolean entity. This article documents the privileged source contract. The renderer integration and user-facing editor remain separate work.\n\n## Behavior\n\nThe control-plane handler accepts the same setting targets as `ScheduleAssignment` in `console/shared/settings-schema.ts`: language, School mode, attention modes, narration, display name, and appearance values. The response is versioned, carries an `active` boolean, and carries only an allowlisted assignment array. Unknown fields, unknown targets, duplicate targets, invalid value ranges, malformed JSON, unsafe object keys, oversized bodies, and deeply nested bodies are rejected before an assignment can be selected.\n\nThe local source performs no network request and uses the rule's own assignments. The HTTPS source performs a bounded `GET` with `redirect: error`. HTTPS is required, while HTTP is accepted only for loopback development addresses. URL credentials, file paths, UNC-style paths, private and link-local IP literals, multicast addresses, local hostnames, and non-HTTP protocols are rejected. The Home Assistant source calls only `/api/states/<entity>` for a validated `binary_sensor.*` or `input_boolean.*` entity and interprets exactly `on` as active and `off` as inactive.\n\nEach non-local source has a refresh interval from 1 to 1440 minutes. A store skips a refresh that arrives before the next permitted time unless the caller explicitly requests a manual refresh. Every refresh has a hard deadline and a generation number. A newer refresh cancels the older one, and a stale result cannot overwrite the newer state.\n\n## Configuration\n\nHome Assistant stores only a bounded credential-vault account reference. The token is read at request time, used in memory for that request, and never placed in settings, history, exports, logs, or renderer state. The handler factory receives the vault reader and fetch implementation as injected seams, so the application can bind them in the privileged process without making the shared contract perform I/O.\n\nRemote assignments are held in memory as the last accepted reading. They are never written into the local settings base. When a source is inactive, the local base assignments remain effective. When a refresh fails, the store uses a still-valid last accepted active reading when one exists; otherwise it uses the local base assignments. The state projection exposes the status, assignment count, timestamps, fallback flag, and safe diagnostic only. It never exposes the endpoint, vault reference, token, response body, or remote payload.\n\n## Failure modes\n\nThe state model distinguishes `offline`, `auth-error`, `rate-limited`, `malformed`, `timeout`, `blocked`, `cancelled`, and `failed`, plus the normal `active`, `inactive`, `refreshing`, `stale`, and `idle` states. HTTP 401 and 403 are authentication failures, HTTP 429 is rate limiting, bounded 408, 504, and 5xx responses are offline, and redirect or URL-policy violations are blocked. Expired API responses are stale and cannot become the effective value. A response body or credential is never included in a diagnostic.\n\n## Security and privacy\n\nThe client is designed for the privileged boundary. It does not read arbitrary files, follow redirects, accept a caller-supplied header, discover tokens from environment variables, or send a token to any host other than the validated Home Assistant base URL. The Home Assistant path is constructed from a validated base URL and entity identifier, with query and fragment removed. Response bytes are capped before parsing, JSON depth and object keys are bounded, and the assignment target list is explicit.\n\n## Current status\n\n**Desktop application:** The shared contract, privileged handler factory, in-memory fallback store, and renderer-safe state projection are implemented. Dispatch and UI wiring are intentionally separate so the source can be reviewed before it is connected to the application lifecycle.\n\n**Documentation website:** The site does not execute privileged source reads. This article records the contract and the browser boundary without claiming that a static page can access an operating-system credential vault.\n\n## Verification boundary\n\nThis lane adds no network requests, runtime interaction, tests, builds, or captures. The next integration lane should bind the handler through the privileged dispatch path, exercise injected fetch and vault seams, and verify the built application states. The source contract is intentionally dispatch-ready but not a claim that the application already exposes the feature.\n\n## Suggested articles\n\n[Scheduled settings](scheduled-settings.md), [Platform feature index](README.md), and [Local version history](local-version-history.md).\n"
     },
     {
       "id": "platform/forge-publishing",
@@ -1981,7 +2699,7 @@ export const DOCS_BUNDLE: DocsBundle = {
         "language-modes.md",
         "README.md"
       ],
-      "body": "# Funny-level sliders\n\nTwo independent sliders, one per language, that control how playful the product's own copy sounds — from fully serious to maximum playfulness.\n\n## Behavior\n\nTwo sliders, English and Cantonese, are meant to each range from level 1 (fully professional wording) to level 5 (maximum playfulness), restyling every message category including warnings and errors without changing the underlying facts they carry.\n\n## Configuration\n\nSliders would live in settings, default to level 5 for both languages, and be changeable and resettable independently of each other.\n\n## Current status\n\n**Desktop application:** Not implemented. No slider exists and all product copy is written at a single fixed tone.\n\n**Documentation website:** Partial. A settings page draft includes slider controls, but changing them does not yet restyle any rendered page copy.\n\n## Failure modes\n\nA message's facts (file names, error causes, irreversible-action warnings) are meant to stay exact at every level regardless of tone; if a restyled string ever disagreed with the underlying fact, that would be treated as a defect in the styling layer, not an acceptable trade-off.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Language modes](language-modes.md), [Platform feature index](README.md).\n"
+      "body": "# Funny-level sliders\n\nTwo independent sliders, one per language, that control how playful the product's own copy sounds — from fully serious to maximum playfulness.\n\n## Behavior\n\nTwo sliders, English and Cantonese, are meant to each range from level 1 (fully professional wording) to level 5 (maximum playfulness), restyling every message category including warnings and errors without changing the underlying facts they carry.\n\n## Configuration\n\nSliders would live in settings, default to level 5 for both languages, and be changeable and resettable independently of each other.\n\n## Current status\n\n**Desktop application:** Not implemented. No slider exists and all product copy is written at a single fixed tone.\n\n**Documentation website:** Partial. Every page exposes two independent persisted controls from 1 to 5, both defaulting to 5. Shared copy with defined variants changes immediately, but every authored article sentence is not yet represented at all five levels.\n\n## Failure modes\n\nA message's facts (file names, error causes, irreversible-action warnings) are meant to stay exact at every level regardless of tone; if a restyled string ever disagreed with the underlying fact, that would be treated as a defect in the styling layer, not an acceptable trade-off.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Language modes](language-modes.md), [Platform feature index](README.md).\n"
     },
     {
       "id": "platform/guided-forms",
@@ -2022,6 +2740,52 @@ export const DOCS_BUNDLE: DocsBundle = {
         "README.md"
       ],
       "body": "# Guided forms\n\nFields populated from real data wherever possible, sensible defaults, plain-language inline validation, and named reasons on every disabled control.\n\n## Behavior\n\nWherever a value can be enumerated or defaulted, the form is meant to do so — pickers over blank text boxes, a suggested default instead of an empty field, and inline validation that says what to type rather than only showing a red border.\n\n## Configuration\n\nEvery disabled control would state, in its own tooltip or adjacent text, exactly which condition is unmet and how to satisfy it.\n\n## Current status\n\n**Desktop application:** Partial. The desktop application's server and deployment forms mix real pickers for some fields with free-text entry for others; validation messages exist for some fields but not consistently, and not every disabled control names its exact blocking condition.\n\n**Documentation website:** Partial. The site's forms, such as the settings placeholders, are minimal and mostly unvalidated; inline validation guidance is largely absent.\n\n## Failure modes\n\nA field left blank or filled incorrectly is meant to be caught inline, in plain words, before submission is attempted; several forms on both surfaces still rely on submission itself, or a generic error, to reveal that a field was wrong.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Destructive-action super confirmation](destructive-action-confirmation.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/hosted-authentication",
+      "category": "platform",
+      "title": "Hosted administrator authentication",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Storage and limits",
+          "id": "storage-and-limits"
+        },
+        {
+          "title": "Transport policy",
+          "id": "transport-policy"
+        },
+        {
+          "title": "Health and deployment",
+          "id": "health-and-deployment"
+        },
+        {
+          "title": "Failure modes and recovery",
+          "id": "failure-modes-and-recovery"
+        },
+        {
+          "title": "Security considerations",
+          "id": "security-considerations"
+        },
+        {
+          "title": "Verification status",
+          "id": "verification-status"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "../system/security.md",
+        "../app/servers.md",
+        "non-blocking-notifications.md",
+        "README.md"
+      ],
+      "body": "# Hosted administrator authentication\n\nThe hosted console uses one local administrator account, memory-hard password hashing, signed server-side sessions, and server-side authorization for every control-plane request. Authentication is an access boundary for the hosted console. It is separate from the desktop application, which does not expose the hosted HTTP routes.\n\n## Behavior\n\nAccount storage has three explicit states:\n\n- **Missing:** first-run setup is available.\n- **Valid:** setup is unavailable and sign-in is available.\n- **Corrupt:** setup and sign-in both fail closed, existing sessions stop authorizing control-plane requests, and the sign-in surface explains the recovery action.\n\nThe server checks this state before serving the application shell. A missing record routes to setup, a valid unauthenticated request routes to sign-in, and a corrupt record routes to the recovery state. A network timeout or unavailable server is never interpreted as a missing account.\n\nSetup and sign-in surfaces report checking, ready, busy, timeout, unavailable, refused, rate-limited, corrupt-account recovery, and retry states. They use bounded requests and leave form controls disabled while the account state is unknown.\n\nSuccessful sign-in creates a random, HMAC-signed session identifier in an `HttpOnly`, `SameSite=Strict` cookie. TLS deployments also set `Secure`. Sign-out revokes the current session. The hosted bridge also exposes a revoke-all-sessions action for the signed-in administrator.\n\n## Storage and limits\n\n`admin-account.json` uses schema version 1 and contains only the username, scrypt password hash, and creation time. The reader limits file size, rejects unknown or extra fields, validates exact field bounds, and accepts the original unversioned three-field record as schema version 1 for compatibility. A malformed file is corrupt, never missing.\n\nAccount and signing-key files are created with restrictive permissions where the operating system supports them. Each file is written to a unique same-directory temporary file, flushed, and published without replacing an existing file. This prevents concurrent setup requests from overwriting the first completed account.\n\nPassword input is limited to 1,024 characters and the username to 128 characters. Password hashes must use the supported scrypt parameters, salt size, and derived-key size before password verification runs, so a modified record cannot request unbounded scrypt work.\n\nThe in-memory session table is capped at 1,024 live sessions and removes expired entries before every relevant operation. The login-rate table is capped at 4,096 source addresses, removes expired windows, and never trusts forwarding headers supplied by a client.\n\n## Transport policy\n\nPassword creation and sign-in are allowed over TLS or a loopback-only plain HTTP listener. They are refused when a plain HTTP server is bound to a non-loopback address.\n\n`ServerModeOptions.allowInsecureDevelopmentAuth` is an explicit development-only override. It is honored only when `NODE_ENV` is exactly `development`. Production launchers and service definitions must not set it. Sign-out remains available so a user can always revoke a session even if the transport policy changes after sign-in.\n\n## Health and deployment\n\n`GET /api/health` is unauthenticated and returns only the API version, stable service identifier, and `ok` or `degraded`. It contains no username, path, network address, session count, account existence flag, or control-plane data. A corrupt account store returns `503` with the same bounded health shape so a service monitor can distinguish readiness from process liveness without receiving sensitive data.\n\n## Failure modes and recovery\n\n- **Server unavailable or timeout:** retry from the same sign-in or setup surface after confirming service reachability. No setup redirect occurs.\n- **Exposed plain HTTP:** enable TLS or return the listener to loopback, then retry.\n- **Rate limited:** wait for the exact `Retry-After` interval. Correct credentials remain refused during the interval.\n- **Corrupt account storage:** restore `admin-account.json` from a trusted backup, or move the corrupt file aside manually and restart. The server never overwrites or silently resets it.\n- **Corrupt signing key:** the hosted process refuses to start. Restore the key or deliberately replace it, understanding that replacement revokes every existing session.\n\n## Security considerations\n\nPasswords are never logged, returned, or stored in plaintext. Password comparison uses Node's constant-time comparison after fixed, validated scrypt parameters. Session cookies contain only a random identifier and an HMAC. Control-plane requests are authorized by the server immediately before dispatch, including a fresh valid-account check and username match.\n\nThe health route is deliberately narrow. Static assets may be fetched without a session, but the application shell and every control-plane operation remain session-gated.\n\n## Verification status\n\nThis change was implemented under an ultra-speed release lane that explicitly prohibited tests, lint, type checks, builds, packaging, server launch, browser interaction, and screen captures. Those checks remain unrun for this change and must not be inferred from this documentation.\n\n## Suggested articles\n\n[System security](../system/security.md), [Hosted server operation](../app/servers.md), [Non-blocking notifications](non-blocking-notifications.md), [Platform feature index](README.md).\n\n"
     },
     {
       "id": "platform/in-context-recovery",
@@ -2103,7 +2867,86 @@ export const DOCS_BUNDLE: DocsBundle = {
         "../app/customise.md",
         "README.md"
       ],
-      "body": "# Language modes\n\nLets a person pick English, playful Cantonese, or a bilingual view of every label the product shows.\n\n## Behavior\n\nA language mode setting is meant to control which language every user-facing string renders in, independent of the operating system's own locale, with three choices: English only, a playful Cantonese variant, and a bilingual mode showing both languages together without crowding the layout.\n\n## Configuration\n\nThe choice would live in application or site settings, persist across sessions, and apply to every screen at once rather than page by page.\n\n## Current status\n\n**Desktop application:** Not implemented. No language selector exists anywhere in the interface; every label is a fixed English string with no translation table behind it.\n\n**Documentation website:** Partial. A mode selector exists in site settings and changes visible copy on a handful of pages, not every string across the site.\n\n## Failure modes\n\nWhere a translation is missing for a chosen mode, the intended behavior is to fall back to English for that string rather than showing a blank or broken label; today there is nothing to fall back from, since no second language exists yet.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Funny-level sliders](funny-levels.md), [School mode](school-mode.md), [Customise everything](../app/customise.md), [Platform feature index](README.md).\n"
+      "body": "# Language modes\n\nLets a person pick English, playful Cantonese, or a bilingual view of every label the product shows.\n\n## Behavior\n\nA language mode setting is meant to control which language every user-facing string renders in, independent of the operating system's own locale, with three choices: English only, a playful Cantonese variant, and a bilingual mode showing both languages together without crowding the layout.\n\n## Configuration\n\nThe choice would live in application or site settings, persist across sessions, and apply to every screen at once rather than page by page.\n\n## Current status\n\n**Desktop application:** Not implemented. No language selector exists anywhere in the interface; every label is a fixed English string with no translation table behind it.\n\n**Documentation website:** Partial. Every top-level page and composed article now receives the same persisted English, Cantonese, and bilingual control. Shared shell labels and status copy change immediately; authored article prose remains its original source text, and the shell states that limitation.\n\n## Failure modes\n\nWhere a translation is missing for a chosen mode, the intended behavior is to fall back to English for that string rather than showing a blank or broken label; today there is nothing to fall back from, since no second language exists yet.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Funny-level sliders](funny-levels.md), [School mode](school-mode.md), [Customise everything](../app/customise.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/local-file-converter",
+      "category": "platform",
+      "title": "Local file converter",
+      "headings": [
+        {
+          "title": "Desktop backend contract",
+          "id": "desktop-backend-contract"
+        },
+        {
+          "title": "Documentation site surface",
+          "id": "documentation-site-surface"
+        },
+        {
+          "title": "Privacy and failure modes",
+          "id": "privacy-and-failure-modes"
+        },
+        {
+          "title": "Verification boundary",
+          "id": "verification-boundary"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "complete-exports.md",
+        "long-operation-progress.md",
+        "destructive-action-confirmation.md",
+        "non-blocking-notifications.md",
+        "regex-builder.md",
+        "responsive-sizing.md",
+        "README.md"
+      ],
+      "body": "# Local file converter\n\nThe converter backend and documentation-site equivalent are separate local surfaces. Both keep source bytes local, detect types from bounded bytes rather than extensions, and leave the source unchanged. Neither uses PATH discovery, a remote converter, or guessed output.\n\n## Desktop backend contract\n\nThe backend defines a bounded, offline conversion catalog and a persistent queue. It always exposes Documents and PDF, Images, Audio, Video, Archives, Structured Data and Spreadsheets, Code and Text, and Binary Encodings, including when every adapter in a category is unavailable. Unavailable adapters remain visible with the exact missing bundled dependency and reason.\n\nThe fixed worker kernels cover strict UTF-8 text to canonical Base64, canonical Base64 to arbitrary binary data, arbitrary binary data to lowercase hexadecimal text, even-length hexadecimal text to arbitrary binary data, and strict UTF-8 line-ending normalization. A caller cannot supply code, a command, an executable, arguments, or environment variables. An adapter becomes enabled only with a packaged-artifact proof containing its absolute path, SHA-256, verification time, offline declaration, and exact runtime identity. Source-tree presence is not proof.\n\nKnown capabilities that remain unavailable until their runtimes are bundled and proven include PDF inspection and editing, office to PDF conversion, image conversion, audio and video transcoding, archive conversion, spreadsheet conversion, and document or markup conversion. The UI must show each missing dependency rather than hiding it.\n\nInput type comes from bounded signature inspection and strict UTF-8 decoding. JSON, Base64, hexadecimal, and CSV classification is attempted only when the complete file fits the sniffing limit. Unknown non-text bytes remain arbitrary binary data. Empty files are not converted.\n\nEvery adapter declares input and output formats, packaged proof or an unavailable reason, sandbox boundary, resource limits, output validator, metadata and encoding behavior, lossiness, and required disclosures. The runner performs storage preflight, rejects symbolic-link sources and destination components, writes a unique temporary file, syncs and reopens it, validates the result, and only then replaces the destination atomically. Cancellation removes temporary output and leaves the destination unchanged. Transient Windows rename sharing violations use a short bounded retry; other errors fail immediately.\n\nThe queue consumes an `AsyncIterable` one path at a time and persists each item before requesting the next. It has no artificial total-file cap, uses bounded shards and concurrency from 1 through 8, checks source size and destination capacity before admission, and persists pause, resume, cancellation, per-file results, and crash reconciliation. Outcomes distinguish converted, skipped, cancelled, and failed work. A failed item never becomes a false batch success.\n\nPDF adapters are cataloged but disabled until a packaged offline tool is proven. A valid adapter must reopen its output and verify page count, order, rotations, metadata, and opaque capability limits before replacement. Encrypted, signed, malformed, and unsupported inputs remain explicit facts.\n\n## Documentation site surface\n\nThe site exposes `converter.html` as a browser-local equivalent. Its catalog is categorized as Documents/PDF, Images, Audio, Video, Archives, Structured Data/Spreadsheets, Code/Text, and Binary Encodings. Browser-bundled adapters are limited to UTF-8 text, Markdown, JSON, JSONL, CSV, TSV, and Base64 output. Other entries stay visible as unavailable with their missing-adapter reason.\n\nThe site queue stores file handles and bounded metadata, reads one file at a time, pages visible results, and reports queued, reading, ready, skipped, failed, or cancelled state. A Blob is offered only after conversion succeeds, preview text is capped, cancellation is honored at safe boundaries, and one failed item never marks another successful. Adapter search is plain text by default with its own adjacent regex builder. Pattern evaluation and file bytes stay in the browser.\n\n## Privacy and failure modes\n\nConversion is local-only. Paths must be absolute and null-free, symbolic-link sources and destination components are refused, and no adapter is enabled through PATH discovery. Inputs, outputs, memory, time, temporary storage, and concurrency are bounded. Existing destinations require explicit overwrite approval. The backend and site report unavailable adapters, malformed encodings, source mismatches, missing disclosures, resource limits, storage shortages, cancellation, output validation mismatches, and destination conflicts without writing guessed or partial output.\n\n## Verification boundary\n\nThis lane did not run tests, lint, type checks, builds, packaging, runtime execution, browser sessions, network requests, or screen captures. The desktop and site surfaces remain implemented but unverified until the required built-artifact and focused verification passes run.\n\n## Suggested articles\n\n[Complete exports](complete-exports.md), [Long-operation progress](long-operation-progress.md), [Destructive-action confirmation](destructive-action-confirmation.md), [Non-blocking notifications](non-blocking-notifications.md), [Regex builder](regex-builder.md), [Responsive sizing](responsive-sizing.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/local-file-converter-ui",
+      "category": "platform",
+      "title": "Local file converter surface",
+      "headings": [
+        {
+          "title": "User flow",
+          "id": "user-flow"
+        },
+        {
+          "title": "Search and regex builder",
+          "id": "search-and-regex-builder"
+        },
+        {
+          "title": "Queue and failure states",
+          "id": "queue-and-failure-states"
+        },
+        {
+          "title": "PDF commands",
+          "id": "pdf-commands"
+        },
+        {
+          "title": "Export and editor handoff",
+          "id": "export-and-editor-handoff"
+        },
+        {
+          "title": "Security and privacy boundaries",
+          "id": "security-and-privacy-boundaries"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "regex-builder.md",
+        "complete-exports.md",
+        "long-operation-progress.md",
+        "in-context-recovery.md"
+      ],
+      "body": "# Local file converter surface\n\nThe desktop renderer exposes the local file converter through `ConverterSurface`. The\nsurface is mounted later by `CONVERTER_SURFACE_REGISTRATION`, which accepts a typed\n`ConverterClient` and keeps the privileged file and control-plane operations outside the\nrenderer component.\n\n## User flow\n\n1. Choose a local file through the client-provided native picker.\n2. Read the source bytes through the typed `sniff` method. The surface shows the exact\n   format, confidence, inspection method, byte count, and detail returned by the client.\n3. Review the complete adapter catalog. All eight categories remain visible, including\n   adapters that are unavailable because their required bundled dependency has not been\n   proven in the packaged artifact.\n4. Select an enabled adapter, review every loss, metadata, and encoding disclosure, and\n   acknowledge each disclosure.\n5. Provide an absolute destination path. The client may provide a native destination\n   picker, but the text field remains available and is validated again by the privileged\n   boundary.\n6. Request overwrite confirmation from the client. The renderer never assumes that a\n   destination is absent and never sets approval without the client response.\n7. Queue one request through `enqueueOne`. Queue records are loaded in bounded pages and\n   are never collected into an unbounded renderer array by the surface.\n\n## Search and regex builder\n\nEvery category owns a separate search query and an adjacent anchored regex builder. Plain\ntext is the initial mode. The builder exposes guided insertions for literals, character\nclasses, anchors, groups, alternation, and quantifiers, plus a raw JavaScript `RegExp`\npattern, flags, bounded sample text, syntax feedback, matches, capture groups, and copy.\nThe query and pattern stay synchronized when regex mode is selected. Invalid patterns and\noversized samples produce an explicit local error and no match result.\n\n## Queue and failure states\n\nThe queue uses the backend cursor contract. The surface loads at most 100 records at a\ntime, offers refresh and next-page controls, and displays every returned item state and\noutcome. Start, pause, resume, and cancel invoke the corresponding typed client method.\nProgress is shown only when the client has reported a real progress event. A missing\ntotal is rendered as an indeterminate detail rather than an invented percentage.\n\nAll client calls use a bounded deadline. Rejected promises and timeouts become visible\nrenderer error or status copy. No rejected call is turned into a success state.\n\n## PDF commands\n\nThe surface renders inspect, split, merge, extract, reorder, rotate, and metadata commands\nfrom the `pdfCapabilities` response. Unavailable commands stay visible with the exact\nreason returned by the client. The operation form accepts absolute sources and the\noperation-specific ranges, pages, rotation, or metadata. Execution is available only when\nthe registered client exposes `runPdfOperation` and reports that capability as available.\n\n## Export and editor handoff\n\nThe surface exports only the queue page currently loaded by the renderer. JSON, CSV, and\nMarkdown descriptors state their media type, extension, scope, and loss note. A separate\nVisual Studio Code handoff descriptor opens the selected destination only through the\nregistered client. Missing client methods leave the controls disabled with an exact reason.\n\n## Security and privacy boundaries\n\nThe renderer does not read arbitrary paths, invoke a shell, discover machine-wide tools,\nor upload a source. The client owns native file selection, byte inspection, destination\nvalidation, bundled-adapter proof, overwrite confirmation, conversion, atomic output\nvalidation, and editor launch. The renderer holds only display metadata and the queue page\nprovided by the client. A consumer integration must keep the client methods local and\nbounded, and must not put credentials or source contents in logs, exports, history, or\ntelemetry.\n\n## Suggested articles\n\n- [Regex builder](regex-builder.md)\n- [Complete exports](complete-exports.md)\n- [Long-operation progress](long-operation-progress.md)\n- [In-context recovery](in-context-recovery.md)\n"
     },
     {
       "id": "platform/local-version-history",
@@ -2146,6 +2989,44 @@ export const DOCS_BUNDLE: DocsBundle = {
         "README.md"
       ],
       "body": "# Local version history\n\nA Git-backed, browsable, restorable history of every user-managed record — documents, settings, accounts — kept locally and privately.\n\n## Behavior\n\nEvery creation, edit, and deletion of a user-owned record is meant to be recorded as a commit in a local, isolated repository, with a browsing panel offering filtering, diffing, labeling, and non-destructive restore.\n\n## Configuration\n\nRestoring would itself be recorded as a new revision rather than rewriting history, so a restore could itself be undone.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application keeps no local version history of any kind; settings and records are overwritten in place with no way to browse or restore a prior state.\n\n**Documentation website:** Not implemented. The documentation website has no user-managed records of its own to version.\n\n## Failure modes\n\nIf the local history repository became unreadable, the intended behavior is to keep the live data intact and report the history failure separately rather than blocking the operation that triggered it; nothing implements the repository today.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[In-app changelog viewer](changelog-viewer.md), [Destructive-action super confirmation](destructive-action-confirmation.md), [History and git](../app/history.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/logo-conversion-contract",
+      "category": "platform",
+      "title": "App logo conversion contract",
+      "headings": [
+        {
+          "title": "Inputs and picker",
+          "id": "inputs-and-picker"
+        },
+        {
+          "title": "Inspection and limits",
+          "id": "inspection-and-limits"
+        },
+        {
+          "title": "Crop and presentation",
+          "id": "crop-and-presentation"
+        },
+        {
+          "title": "Conversion and receipts",
+          "id": "conversion-and-receipts"
+        },
+        {
+          "title": "Local cache",
+          "id": "local-cache"
+        },
+        {
+          "title": "Verification boundary",
+          "id": "verification-boundary"
+        }
+      ],
+      "links": [
+        "material-appearance.md",
+        "complete-exports.md",
+        "local-version-history.md",
+        "responsive-sizing.md"
+      ],
+      "body": "# App logo conversion contract\n\nThe logo surface lets a person choose one of the shipped marks or select one local image. The selected mark changes presentation only. It never changes the package identifier, executable name, installer identity, update feed, or application-data directory.\n\n## Inputs and picker\n\nThe renderer registers one semantic local file picker at `logo.custom-file`. Its accepted formats are PNG, JPEG, WebP, and static SVG. The picker is keyboard and screen-reader operable and exposes empty, reading, ready, invalid, replacement, and clear/reset states. A selected filename is UI state only and is not written to the conversion cache, history, exports, logs, telemetry, or captures.\n\n## Inspection and limits\n\nThe shared inspector reads bytes rather than trusting a file extension or declared MIME type. It validates PNG, JPEG, WebP, and SVG signatures, dimensions, frame count, alpha behavior, and decoded-memory estimates. It rejects malformed data, animated images, oversized inputs, dimensions beyond 4096 pixels, decoded buffers above 64 MiB, and SVG script, event-handler, animation, external-resource, or embedded-object content. The input limit is 8 MiB and the converted output set is bounded to 16 MiB.\n\nSVG is accepted only when its root is a static `svg` element with a width and height or a viewBox. No network fetch or remote resource is permitted. A production decoder must run in an isolated process with the same CPU, memory, input, output, and frame limits.\n\n## Crop and presentation\n\nCrop coordinates, focal point, and safe-area insets are numeric proportions between 0 and 1. The fit choices are contain, cover, and fill. The background is either transparent or a validated hexadecimal colour. The surface provides keyboard-editable number fields for all crop and focal values and warns when a solid background may not provide a 4.5:1 contrast ratio for the mark.\n\n## Conversion and receipts\n\nThe control-plane converter accepts an injected isolated decoder. It will not convert when that seam is absent. Every decoder result must contain bytes, a successful reopen or round-trip receipt, and optional loss notes. The converter independently re-inspects every output, verifies the requested format, dimensions, alpha policy, signature, output bounds, memory receipt, and elapsed CPU budget. Any failure returns a redacted reason and leaves the previous logo active.\n\nThe registration descriptors are `logo.inspect`, `logo.convert`, `logo.cache.read`, `logo.cache.write`, and `logo.cache.clear`. They are local-only and are ready for the control-plane dispatcher to mount without granting the renderer filesystem or network access.\n\n## Local cache\n\n`LogoStore` writes only converted assets and a schema-versioned manifest beneath the app's private data directory. Asset names are generated from target metadata and a SHA-256 receipt. Loading rechecks the signature, dimensions, alpha state, and byte count. Missing or invalid cache data is treated as absent. Clear and reset remove the private logo cache; the shipped mark remains the fallback.\n\n## Verification boundary\n\nThis lane supplies pure inspection, conversion, cache, state, and renderer contracts. Decoder integration, central dispatcher wiring, packaged artifact interaction, capture evidence, and focused tests belong to the owning integration lane. No user image is included in this source tree.\n\nSuggested articles: [Material appearance](material-appearance.md), [Complete exports](complete-exports.md), [Local version history](local-version-history.md), and [Responsive sizing](responsive-sizing.md).\n\n"
     },
     {
       "id": "platform/long-operation-progress",
@@ -2227,7 +3108,7 @@ export const DOCS_BUNDLE: DocsBundle = {
         "../app/appearance.md",
         "README.md"
       ],
-      "body": "# Material appearance system\n\nRuntime theme, density, accent color, and typography controls, so a user can restyle the interface without editing any file.\n\n## Behavior\n\nA conformant visual system is meant to expose theme (light and dark), density, accent or seed color, and full font customization at runtime with a live preview, plus a per-element appearance editor reachable from any control's context menu.\n\n## Configuration\n\nColors would be chosen through a continuous picker with bidirectional conversion between common color notations rather than a fixed swatch grid; presets would be exportable and importable as files.\n\n## Current status\n\n**Desktop application:** Partial. A dark/light theme toggle exists in settings, but accent color, density, typography customization, the continuous color picker, and the per-element appearance editor are all absent.\n\n**Documentation website:** Partial. The site ships a fixed dark theme with no live theme switch, no accent picker, no density control, and no per-element editor.\n\n## Failure modes\n\nAn appearance change that fails to persist (for example, a write to a locked settings file) is meant to notify the user and keep the prior appearance in effect rather than silently reverting after the fact; there is little to test that against today, since most controls do not exist yet.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[App logo customization](app-logo-customization.md), [Browser-style tabbed navigation](browser-style-tabs.md), [Appearance](../app/appearance.md), [Platform feature index](README.md).\n"
+      "body": "# Material appearance system\n\nRuntime theme, density, accent color, and typography controls, so a user can restyle the interface without editing any file.\n\n## Behavior\n\nA conformant visual system is meant to expose theme (light and dark), density, accent or seed color, and full font customization at runtime with a live preview, plus a per-element appearance editor reachable from any control's context menu.\n\n## Configuration\n\nColors would be chosen through a continuous picker with bidirectional conversion between common color notations rather than a fixed swatch grid; presets would be exportable and importable as files.\n\n## Current status\n\n**Desktop application:** Partial. A dark/light theme toggle exists in settings, but accent color, density, typography customization, the continuous color picker, and the per-element appearance editor are all absent.\n\n**Documentation website:** Partial. Every page exposes persisted dark, light, and high-contrast themes, density, accent, font scale, navigation docking, logo presets, and a broad color translator. These values apply live. Per-element editors and full word-processor typography remain incomplete.\n\n## Failure modes\n\nAn appearance change that fails to persist (for example, a write to a locked settings file) is meant to notify the user and keep the prior appearance in effect rather than silently reverting after the fact; there is little to test that against today, since most controls do not exist yet.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[App logo customization](app-logo-customization.md), [Browser-style tabbed navigation](browser-style-tabs.md), [Appearance](../app/appearance.md), [Platform feature index](README.md).\n"
     },
     {
       "id": "platform/narration",
@@ -2309,7 +3190,7 @@ export const DOCS_BUNDLE: DocsBundle = {
         "../app/notifications.md",
         "README.md"
       ],
-      "body": "# Non-blocking notifications\n\nToast-style status messages anchored in a screen corner, used for anything that only informs rather than something the user must decide on.\n\n## Behavior\n\nInformational, success, progress, and non-decision error messages are meant to appear as auto-dismissing (persistent for warnings and errors) toasts anchored to a screen corner, stacking without overlapping, reserving blocking dialogs strictly for confirmations and destructive-action gates.\n\n## Configuration\n\nNotifications would carry an optional title, body, and action links, and remain reviewable afterward in a notification history rather than vanishing without a trace.\n\n## Current status\n\n**Desktop application:** Partial. The desktop application shows a small number of transient status messages during build and deployment actions, but they are not consistently corner-anchored, do not stack predictably, and there is no notification history panel to review a dismissed one.\n\n**Documentation website:** Implemented. The documentation website surfaces confirmation and copy-to-clipboard toasts as non-blocking corner notifications with auto-dismiss timing.\n\n## Failure modes\n\nA notification that fails to render (for example, a missing template) is meant to fall back to a plain-text toast rather than silently drop; there is still no reviewable notification history on either surface to check that against.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Dialog emoji toggle](dialog-emojis.md), [Status hub](status-hub.md), [Notifications](../app/notifications.md), [Platform feature index](README.md).\n"
+      "body": "# Non-blocking notifications\n\nToast-style status messages anchored in a screen corner, used for anything that only informs rather than something the user must decide on.\n\n## Behavior\n\nInformational, success, progress, and non-decision error messages are meant to appear as auto-dismissing (persistent for warnings and errors) toasts anchored to a screen corner, stacking without overlapping, reserving blocking dialogs strictly for confirmations and destructive-action gates.\n\n## Configuration\n\nNotifications would carry an optional title, body, and action links, and remain reviewable afterward in a notification history rather than vanishing without a trace.\n\n## Current status\n\n**Desktop application:** Partial. The desktop application shows a small number of transient status messages during build and deployment actions, but they are not consistently corner-anchored, do not stack predictably, and there is no notification history panel to review a dismissed one.\n\n**Documentation website:** Implemented. Every top-level and composed article page uses the same corner notifications and persisted history, with search, an adjacent regex builder, real multi-select dismissal, and selected-record export. A filtered no-match state is distinct from a truly empty history.\n\n## Failure modes\n\nA notification that cannot be shown in the corner remains in local history. History is bounded to 30 entries, and destructive bulk dismissal requires a reviewable confirmation before records are removed.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Dialog emoji toggle](dialog-emojis.md), [Status hub](status-hub.md), [Notifications](../app/notifications.md), [Platform feature index](README.md).\n"
     },
     {
       "id": "platform/offline-documentation-browser",
@@ -2350,6 +3231,132 @@ export const DOCS_BUNDLE: DocsBundle = {
         "README.md"
       ],
       "body": "# Offline documentation browser\n\nA fully offline, in-app documentation browser bundling every feature article, with internal links and a search bar, independent of the public documentation website.\n\n## Behavior\n\nEvery article is meant to be bundled into the application at build time, rendered through one shared markdown renderer, with article-to-article links resolving inside the browser and a search bar covering both titles and article bodies.\n\n## Configuration\n\nA completeness guard would fail the build if any article file present in the source tree were missing from the bundle.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has no in-app documentation browser; it links out to the public documentation website instead of bundling articles for offline use.\n\n**Documentation website:** Partial. The documentation website itself hosts and renders these same articles online, with in-page section navigation and inter-article links, but it depends on network access and is not the bundled in-app offline browser this feature describes; there is also no full-text search across article bodies yet, only the article list.\n\n## Failure modes\n\nAn article present in the source tree but missing from a build's bundle is meant to fail that build outright; the site's own build script instead simply reflects whatever exists on disk, which is a different and looser guarantee than this feature calls for.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Command palette](command-palette.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/ollama-local-suite-backend",
+      "category": "platform",
+      "title": "Local Ollama suite backend",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Security and privacy",
+          "id": "security-and-privacy"
+        },
+        {
+          "title": "Dispatch integration",
+          "id": "dispatch-integration"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "guided-forms.md",
+        "long-operation-progress.md",
+        "local-version-history.md",
+        "README.md"
+      ],
+      "body": "# Local Ollama suite backend\n\nProvides the bounded, local service layer for inspecting and operating an Ollama installation through its documented loopback HTTP API. This article covers the backend contract only. The desktop application does not expose these actions until its dispatcher and user interface integrate the handler maps described below.\n\n## Behavior\n\nThe backend provides independent typed handler maps for these areas:\n\n- Runtime health and version, installed models, running models, model details, copy, and deletion.\n- Verified catalogue refresh through an injected paginated source, with source identity, revision, refresh timestamp, page count, completeness, and staleness recorded together.\n- Exact reconciliation between catalogue variants and the models Ollama reports as installed or running. Installed models missing from the catalogue remain visible as installed-only records.\n- Conservative hardware-fit assessment with four results: Runs well, Runs with limits, Unlikely, and Unknown. Every result carries measured evidence, explicit assumptions, and blockers.\n- A durable pull queue with bounded parallelism, per-item byte progress when Ollama supplies it, cancellation, retry, restart recovery, and reconciliation against current installed state.\n- Multi-session streamed chat with model capability checks, validated generation parameters, bounded content and attachments, event delivery, cancellation, retry, and regeneration.\n- Application-owned harness profile preflight, launch, configuration snapshots, one-click restore, and automatic rollback after a failed launch or health check.\n\nEach module exports a typed handler factory. A later integration step may compose those maps into the shared dispatcher without duplicating behavior.\n\n## Configuration\n\nThe Ollama client accepts only an HTTP loopback endpoint. The default is `http://127.0.0.1:11434/`. Credentials, non-loopback hosts, redirects, unrecognized API paths, oversized responses, invalid UTF-8, and malformed JSON are refused.\n\nCatalogue refresh uses an injected `OllamaCatalogPageSource`. This is intentional because Ollama's documented loopback API exposes local tags, not an exhaustive official online catalogue. The source must supply every page and variant, keep one stable source identity and revision throughout a refresh, end with an explicit terminal page, and never substitute a curated subset.\n\nDurable state is written beneath application data through `OllamaStore`. The file has a versioned schema, bounded record counts, a 32 MiB size ceiling, serialized writes, a unique temporary file per mutation, bounded rename retries, and restrictive file permissions where the platform supports them.\n\nHarness execution requires an application-supplied registry of executable policies, fixed argument rules, environment rules, working-directory roots, mutable configuration keys, health checks, a structured process launcher, and a configuration adapter. Profiles identify a registered executable policy. They never contain a command line or shell script.\n\n## Failure modes\n\n- A refused or timed-out loopback endpoint reports a stopped state. A reachable endpoint with an invalid response reports unhealthy. The backend does not claim that Ollama is missing when the loopback observation cannot distinguish missing from stopped.\n- If an official catalogue refresh fails and a verified cache exists, the previous complete snapshot remains available and is marked stale with the exact refresh reason. With no cache, the catalogue is explicitly unavailable and incomplete.\n- Fit becomes Unknown when exact blob size, available RAM, or free destination storage was not measured. Missing measurements never become zero.\n- Pull records retain failed, cancelled, skipped, and completed outcomes independently. One failed item never turns the batch into a complete success or removes another installed model.\n- Chat refuses image attachments unless the selected model reports vision capability. Streams that exceed response limits are cancelled and reported as failed rather than truncated into a success.\n- Harness preflight refuses missing models, unknown policies, shell or script launchers, unrecognized arguments, credential-bearing fields, paths outside allowlisted roots, unknown environment keys, unavailable health checks, and invalid ports.\n- Harness configuration is restored automatically when launch or health verification fails. A successful launch retains its snapshot so the user can restore it explicitly later.\n\n## Security and privacy\n\nThe Ollama transport never calls a cloud model service and never accepts a non-loopback endpoint. It uses explicit API paths, separate structured request fields, bounded response decoding, request deadlines, and cancellation signals.\n\nThe persistent store rejects fields whose names indicate passwords, tokens, credentials, API keys, or private keys. Chat message content stays in memory in this backend contract rather than being written into the plain state file. Product integration must keep operating-system credential storage and redacted export behavior at the application boundary.\n\nHarness launch is application orchestration. Ollama does not launch arbitrary programs. The executable path comes from a reviewed policy, arguments are compiled from typed allowlist rules, and only declared environment keys reach the launcher. Shells, script hosts, script files, free-form commands, and ambient secret-bearing environment fields are refused.\n\n## Dispatch integration\n\nThe handler factories are:\n\n- `createOllamaRuntimeHandlers`\n- `createOllamaCatalogHandlers`\n- `createOllamaFitHandlers`\n- `createOllamaPullHandlers`\n- `createOllamaChatHandlers`\n- `createOllamaHarnessHandlers`\n\nThey use the action names declared in `console/shared/ollama.ts`. This backend lane does not edit `console/control-plane/dispatch.ts`, the Electron bridge, or renderer code. Until those seams are integrated, the installed application cannot call the new actions.\n\n## Verification\n\nNo tests, type checks, lint, build, packaging command, runtime request, or screen capture ran for this ultra-speed implementation lane. The evidence available from this lane is source inspection and its committed diff. Integration must run the repository's local checks, deliberately exercise absent, unhealthy, stale, cancelled, failed, and rollback states, and verify the built application before describing the feature as shipped.\n\n## Suggested articles\n\n[Guided forms](guided-forms.md), [Long-operation progress](long-operation-progress.md), [Local version history](local-version-history.md), [Platform feature contracts](README.md).\n"
+    },
+    {
+      "id": "platform/ollama-suite-manager",
+      "category": "platform",
+      "title": "Local Ollama suite manager",
+      "headings": [
+        {
+          "title": "Desktop behavior",
+          "id": "desktop-behavior"
+        },
+        {
+          "title": "Documentation site behavior",
+          "id": "documentation-site-behavior"
+        },
+        {
+          "title": "Failure modes and recovery",
+          "id": "failure-modes-and-recovery"
+        },
+        {
+          "title": "Security and privacy",
+          "id": "security-and-privacy"
+        },
+        {
+          "title": "Verification boundary",
+          "id": "verification-boundary"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "regex-builder.md",
+        "guided-forms.md",
+        "long-operation-progress.md",
+        "non-blocking-notifications.md",
+        "local-version-history.md",
+        "external-settings-sources.md",
+        "README.md"
+      ],
+      "body": "# Local Ollama suite manager\n\nThe desktop console has a mount-ready React surface for a local Ollama installation, and the documentation site has a browser-local equivalent at `ollama.html`. Neither is a cloud model store or an Ollama replacement. The desktop surface accepts an `OllamaSuiteClient`; the site requires an explicitly approved loopback endpoint. Both treat observed backend data as authoritative and never seed sample models, simulated progress, or fake health results.\n\n## Desktop behavior\n\nThe desktop surface has four destinations. Model Store presents every model and variant returned by a completed catalog traversal with source identity, revision, refresh time, last successful refresh, page count, completeness, staleness, and offline-cache evidence. Installed tags are reconciled with the catalog without hiding either set.\n\nPull queue schedules local pulls with bounded backend-controlled parallelism, byte progress only when Ollama supplies bytes, durable per-item state, cancellation, retry, and honest completed, skipped, cancelled, and failed outcomes. One failed item does not remove a valid installed model or turn a partial result into success.\n\nLocal chat uses installed variants that report chat capability, streams partial output as partial, supports stop, validated generation settings, local session history, and attachment controls that remain visible but disabled when capability is missing. Harness profiles are bundled or registered through semantic executable and folder pickers and allowlisted argument profiles. Preflight shows the executable, arguments, working directory, redacted environment-key names, required resources, blockers, warnings, and hardware-fit evidence. Launch snapshots the profile and configuration first, and failed launch state includes rollback evidence.\n\nThe central mount must provide `OllamaSuiteClient` from `ollama-suite-model.ts`. It owns local HTTP, catalog pagination, offline cache evidence, bounded regex evaluation, pull persistence, chat streaming, file picking, preflight, process launch, snapshots, rollback, and secret redaction. Search state is separate for the catalog, chat sessions, and harness profiles. Plain text is the default and each search has its own adjacent regex builder with bounded evaluation.\n\nHardware fit is one of **Runs well**, **Runs with limits**, **Unlikely**, or **Unknown**, backed by observed RAM, GPU and VRAM, driver or backend support, free storage, exact blob size, parameter count, quantization, context, and overhead. Missing facts remain missing and produce a conservative verdict.\n\n## Documentation site behavior\n\nThe site asks the user to approve one endpoint before a request can start. It accepts only localhost, `127.0.0.1`, or `[::1]`, rejects credentials, query strings, fragments, and unsupported schemes, and reports mixed-content and browser CORS boundaries distinctly. It offers no shell command, guessed download, cloud fallback, or web hunt.\n\nAfter approval, it reads version, installed tags, and running tags through the documented local API with bounded response sizes and timeouts. The official catalog is not fetched by this browser surface, so catalog completeness remains **Unknown** and is never inferred from installed tags. Pull and chat remain disabled until a real model tag is returned, use bounded newline-delimited streams, and support cancellation and partial output. Capability metadata comes from the selected model and is never guessed.\n\n## Failure modes and recovery\n\nMissing, stopped, unhealthy, offline, timed-out, and malformed runtime states remain visible with backend-provided recovery actions. Stale or partial catalogs are never labeled exhaustive. No local models, insufficient storage, unsupported capability, partial pull failure, chat interruption, blocked preflight, launch failure, and rollback states each keep their exact evidence and next action visible. No local click is treated as launch or restore success without a receipt.\n\n## Security and privacy\n\nThe renderer accepts no arbitrary command field. Harness registration uses backend-owned pickers and allowlisted executable and argument profiles. The backend allowlists loopback endpoints, bounds requests and responses, cancels superseded work, validates every response, and keeps secrets in the operating-system credential store. Credentials and secret environment values never enter arguments, snapshots, logs, history, exports, captures, or renderer state. Pulls disclose network transfer and storage cost; chat data remains local.\n\n## Verification boundary\n\nThis lane did not run tests, lint, type checks, builds, packaging, runtime interaction, browser sessions, network requests, or screen captures. The desktop and site surfaces remain implemented but unverified until the required built-artifact and focused verification passes run.\n\n## Suggested articles\n\n[Regex builder](regex-builder.md), [Guided forms](guided-forms.md), [Long-operation progress](long-operation-progress.md), [Non-blocking notifications](non-blocking-notifications.md), [Local version history](local-version-history.md), [External settings sources](external-settings-sources.md), [Platform feature contracts](README.md).\n"
+    },
+    {
+      "id": "platform/operation-receipts",
+      "category": "platform",
+      "title": "Receipt-backed operations and notifications",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Notification history",
+          "id": "notification-history"
+        },
+        {
+          "title": "Search, export, and bulk actions",
+          "id": "search-export-and-bulk-actions"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Integration status",
+          "id": "integration-status"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "non-blocking-notifications.md",
+        "long-operation-progress.md",
+        "in-context-recovery.md",
+        "bulk-actions.md",
+        "local-version-history.md"
+      ],
+      "body": "# Receipt-backed operations and notifications\n\nTyped foundations for long-running console operations and the notification history that reports their real outcomes.\n\n## Behavior\n\nAn operation request identifies one operation type, one exact target, the affected data, a stable idempotency key, a deadline, and whether cancellation and retry are allowed. A capability check distinguishes available, unavailable, and deliberately disabled behavior before any work begins. Unavailable and disabled states carry their exact reason and may point to an explicit recovery or enable action.\n\nThe coordinator refuses duplicate submissions while the same idempotency key is pending. It reports observed progress, supports cancellation only when the request allows it, enforces the deadline, and returns one terminal receipt. A runner choosing an execution path is not success. A successful or partial receipt must include an observation from the component that applied the effect, and the receipt must match the request's operation id, type, idempotency key, and target.\n\nBulk and multi-step work returns per-item outcomes. A partial result names what succeeded, failed, was skipped, or was cancelled. Its retry action exists only when the request provides a distinct idempotency key for the unfinished work, so retry cannot replay or repeat effects that already landed. Failure, cancellation, timeout, refusal, unavailable capability, and disabled capability stay distinct so the interface can offer an accurate next action.\n\n## Notification history\n\nNotifications have stable ids and one of five severities: information, progress, success, warning, or error. Active notifications have deterministic stacking order. Dismissing one removes it from the active stack but keeps it in history. Deleting one removes it from history and is a separate command.\n\nQuiet hours suppress presentation according to the configured policy, not recording. Warning and error records never auto-dismiss. Every store mutation returns a receipt from the persistence adapter. An in-memory change whose persistence write was not observed is reported as partial rather than successful.\n\nNotification actions are explicit references. Retry appears only when the operation receipt supplies a retry reference. Undo appears only when the receipt supplies a real inverse operation or a local history revision. Running Undo is another operation and must return its own receipt.\n\n## Search, export, and bulk actions\n\nHistory can be filtered by text, severity, state, and source. Export projection includes factual notification text, source, timestamps, operation receipt reference, and action labels without serializing executable callbacks or operation payloads.\n\nBulk dismissal, deletion, and read-state changes report every changed id and every skipped id with its reason. An empty selection or a selection containing no applicable record fails explicitly.\n\n## Failure modes and security\n\n- Missing or malformed request identity, target details, affected-data descriptions, or timestamps are refused before dispatch.\n- Duplicate in-flight idempotency keys are refused by the handler, including keyboard or programmatic re-entry.\n- A runner exception becomes a failure receipt. It is never converted into success because the intended path was selected.\n- A deadline aborts the runner signal and returns a timeout receipt when no terminal receipt arrived in time.\n- Invalid, mismatched, or unobserved success receipts become failure receipts.\n- Persistence receipt mismatch reports a partial notification mutation and keeps the live in-memory state visible.\n- Payloads and affected-data descriptions must remain redacted. Receipts carry references and summaries, not credentials or private configuration values.\n\n## Integration status\n\nThe shared contracts, renderer coordinator, receipt helpers, notification model, and durable store are implemented as integration foundations. They are not yet wired into the product shell, trusted process bridge, or control-plane operation dispatch. No screen should claim these behaviors are active until those seams return and render real receipts.\n\n## Verification\n\nThis ultra-speed implementation did not run tests, type checks, builds, packaging, runtime interaction, or screen captures. Integration must add focused coverage for unavailable and disabled capabilities, duplicate submission, progress, cancellation, timeout, invalid success receipts, partial outcomes, idempotent replay, quiet hours, warning and error persistence, dismissal versus deletion, persistence mismatch, bulk results, retry, and receipt-backed Undo.\n\n## Suggested articles\n\n[Non-blocking notifications](non-blocking-notifications.md), [Long-operation progress](long-operation-progress.md), [In-context recovery](in-context-recovery.md), [Bulk actions](bulk-actions.md), and [Local version history](local-version-history.md).\n"
     },
     {
       "id": "platform/per-element-toy-locks",
@@ -2432,7 +3439,7 @@ export const DOCS_BUNDLE: DocsBundle = {
         "language-modes.md",
         "README.md"
       ],
-      "body": "# Personal vocabulary upload\n\nLets a user supply a local JSON file that remaps specific words in the interface to their own preferred terms, with no data leaving the device.\n\n## Behavior\n\nA file-upload control is meant to accept a bounded, versioned local JSON file of word replacements, apply it to user-facing text only, and clear back to original wording when the file is removed.\n\n## Configuration\n\nValidation would bound file size, nesting depth, and entry count, and make no network request of any kind when loading, applying, or clearing the file.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has no personal-vocabulary upload control anywhere in its settings.\n\n**Documentation website:** Partial. The site's settings page includes a placeholder upload control; no file validation, no applied replacement, and no clear/reset behavior are wired up behind it yet.\n\n## Failure modes\n\nA malformed or oversized uploaded file is meant to be rejected with the exact reason shown inline, and the previous vocabulary state left untouched; the placeholder control does not yet reach this validation step.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Language modes](language-modes.md), [Platform feature index](README.md).\n"
+      "body": "# Personal vocabulary upload\n\nLets a user supply a local JSON file that remaps specific words in the interface to their own preferred terms, with no data leaving the device.\n\n## Behavior\n\nA file-upload control is meant to accept a bounded, versioned local JSON file of word replacements, apply it to user-facing text only, and clear back to original wording when the file is removed.\n\n## Configuration\n\nValidation would bound file size, nesting depth, and entry count, and make no network request of any kind when loading, applying, or clearing the file.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has no personal-vocabulary upload control anywhere in its settings.\n\n**Documentation website:** Implemented for the shared site shell. Every page exposes upload and clear controls. The loader bounds bytes and entry counts, rejects unsupported versions, unexpected fields, unsafe and duplicate keys, and unbounded strings, applies replacements locally, and revalidates cached data on every load. Reload status describes the cache rather than pretending the original file remains loaded.\n\n## Failure modes\n\nA malformed or oversized file is rejected inline and never partially applied. A corrupt cache is removed and original wording resumes. Personal mappings, source names, and file paths are excluded from export.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Language modes](language-modes.md), [Platform feature index](README.md).\n"
     },
     {
       "id": "platform/provider-markup-rendering",
@@ -2529,7 +3536,7 @@ export const DOCS_BUNDLE: DocsBundle = {
         "collapsible-filters.md",
         "automatic-updates.md"
       ],
-      "body": "# Platform feature contracts\n\nThis category documents the canonical platform feature contracts this product is expected to implement, and states plainly, per surface, which of them are actually built today.\n\nThe two surfaces referenced throughout are the desktop application (the installed Windows console) and the documentation website (this published site).\n\n- [Language modes](language-modes.md)\n- [Funny-level sliders](funny-levels.md)\n- [Dialog emoji toggle](dialog-emojis.md)\n- [School mode](school-mode.md)\n- [Spoken narration](narration.md)\n- [Scheduled settings](scheduled-settings.md)\n- [External settings sources](external-settings-sources.md)\n- [Dim sum surprise](dim-sum-surprise.md)\n- [Regex builder](regex-builder.md)\n- [Non-blocking notifications](non-blocking-notifications.md)\n- [Status hub](status-hub.md)\n- [Material appearance system](material-appearance.md)\n- [App logo customization](app-logo-customization.md)\n- [Browser-style tabbed navigation](browser-style-tabs.md)\n- [Tab groups and tab search](tab-groups-and-searches.md)\n- [Command palette](command-palette.md)\n- [Destructive-action super confirmation](destructive-action-confirmation.md)\n- [Local version history](local-version-history.md)\n- [In-app changelog viewer](changelog-viewer.md)\n- [External editor handoff](external-editor-handoff.md)\n- [Complete data export](complete-exports.md)\n- [Bulk actions](bulk-actions.md)\n- [Accessibility](accessibility.md)\n- [Responsive and high-scale sizing](responsive-sizing.md)\n- [Personal vocabulary upload](personal-vocabulary-upload.md)\n- [Per-element toy locks](per-element-toy-locks.md)\n- [Support Tickets recovery flow](support-tickets.md)\n- [Unlock ladder](unlock-ladder.md)\n- [Built-in authenticator](built-in-authenticator.md)\n- [Attention-support modes](attention-modes.md)\n- [Browser-extension download capture surfaces](browser-extension-download-surfaces.md)\n- [Offline documentation browser](offline-documentation-browser.md)\n- [Renameable app display name](app-display-name.md)\n- [Guided forms](guided-forms.md)\n- [Bounded, self-painting overlays](bounded-overlays.md)\n- [Right-click menus show keyboard shortcuts](context-menu-shortcuts.md)\n- [Long-operation progress reporting](long-operation-progress.md)\n- [In-context failure recovery](in-context-recovery.md)\n- [Provider-authored markup rendering](provider-markup-rendering.md)\n- [Forge publishing](forge-publishing.md)\n- [Collapsible filters and statistics](collapsible-filters.md)\n- [Automatic updates](automatic-updates.md)\n\n## Exemptions\n\nTwo further canonical features were considered for this product and deliberately excluded by the owner rather than left unbuilt by omission: an Ollama model-manager suite and a general local file converter. Neither shares a data path, a target, or a control surface with the rest of this console. The recorded reason for each exclusion lives in `console/inventories/exemptions.json`, not repeated here, so there is exactly one place that reason can drift out of date.\n\n"
+      "body": "# Platform feature contracts\n\nThis category documents the canonical platform feature contracts this product is expected to implement, and states plainly, per surface, which of them are actually built today.\n\nThe two surfaces referenced throughout are the desktop application (the installed Windows console) and the documentation website (this published site).\n\n- [Language modes](language-modes.md)\n- [Funny-level sliders](funny-levels.md)\n- [Dialog emoji toggle](dialog-emojis.md)\n- [School mode](school-mode.md)\n- [Spoken narration](narration.md)\n- [Scheduled settings](scheduled-settings.md)\n- [External settings sources](external-settings-sources.md)\n- [Dim sum surprise](dim-sum-surprise.md)\n- [Regex builder](regex-builder.md)\n- [Non-blocking notifications](non-blocking-notifications.md)\n- [Status hub](status-hub.md)\n- [Material appearance system](material-appearance.md)\n- [App logo customization](app-logo-customization.md)\n- [Browser-style tabbed navigation](browser-style-tabs.md)\n- [Tab groups and tab search](tab-groups-and-searches.md)\n- [Command palette](command-palette.md)\n- [Destructive-action super confirmation](destructive-action-confirmation.md)\n- [Local version history](local-version-history.md)\n- [In-app changelog viewer](changelog-viewer.md)\n- [External editor handoff](external-editor-handoff.md)\n- [Complete data export](complete-exports.md)\n- [Bulk actions](bulk-actions.md)\n- [Accessibility](accessibility.md)\n- [Responsive and high-scale sizing](responsive-sizing.md)\n- [Personal vocabulary upload](personal-vocabulary-upload.md)\n- [Per-element toy locks](per-element-toy-locks.md)\n- [Support Tickets recovery flow](support-tickets.md)\n- [Unlock ladder](unlock-ladder.md)\n- [Built-in authenticator](built-in-authenticator.md)\n- [Attention-support modes](attention-modes.md)\n- [Browser-extension download capture surfaces](browser-extension-download-surfaces.md)\n- [Offline documentation browser](offline-documentation-browser.md)\n- [Renameable app display name](app-display-name.md)\n- [Guided forms](guided-forms.md)\n- [Bounded, self-painting overlays](bounded-overlays.md)\n- [Right-click menus show keyboard shortcuts](context-menu-shortcuts.md)\n- [Long-operation progress reporting](long-operation-progress.md)\n- [In-context failure recovery](in-context-recovery.md)\n- [Provider-authored markup rendering](provider-markup-rendering.md)\n- [Forge publishing](forge-publishing.md)\n- [Collapsible filters and statistics](collapsible-filters.md)\n- [Automatic updates](automatic-updates.md)\n\n## Exemptions\n\nThe local file converter and Ollama suite are now present as separate local surfaces. The desktop routes are `desktop://console/#surface=converter` and `desktop://console/#surface=ollama`; the Pages equivalents are `converter.html` and `ollama.html`. Their current evidence is `implemented-unverified`: the converter catalog and PDF capability read are mounted through the control plane, while picker and queue mutations remain explicitly unavailable until their handlers are registered. The Ollama desktop client reports a typed bridge-unregistered state until its privileged dispatcher is mounted. Neither surface invents models, health, conversion output, or sample data.\n\n"
     },
     {
       "id": "platform/regex-builder",
@@ -2571,7 +3578,7 @@ export const DOCS_BUNDLE: DocsBundle = {
         "collapsible-filters.md",
         "README.md"
       ],
-      "body": "# Regex builder\n\nA guided pattern-building tool attached to every search field, letting a user construct a regular expression without knowing the syntax by heart.\n\n## Behavior\n\nEvery search bar, dropdown filter field, and context-menu filter is meant to carry an adjacent, anchored regex builder offering guided construction, a raw pattern editor, sample text, and live match feedback, with plain text staying the default search mode.\n\n## Configuration\n\nQuery, pattern, flags, and mode would stay synchronized bidirectionally between the search field and its builder popover; pattern and sample size would be bounded to protect against runaway evaluation.\n\n## Current status\n\n**Desktop application:** Partial. The desktop application's filter fields accept plain-text substring queries and have no adjacent builder affordance, raw pattern editor, or guided construction controls.\n\n**Documentation website:** Partial. The site's search input is plain-text only with no builder affordance, guided construction, or pattern/flags UI.\n\n## Failure modes\n\nA pathological pattern is meant to be time- and step-bounded so it cannot hang the evaluating process; today there is no evaluator to bound, since there is no regex mode on either surface.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Command palette](command-palette.md), [Tab groups and tab search](tab-groups-and-searches.md), [Collapsible filters and statistics](collapsible-filters.md), [Platform feature index](README.md).\n"
+      "body": "# Regex builder\n\nA guided pattern-building tool attached to every search field, letting a user construct a regular expression without knowing the syntax by heart.\n\n## Behavior\n\nEvery search bar, dropdown filter field, and context-menu filter is meant to carry an adjacent, anchored regex builder offering guided construction, a raw pattern editor, sample text, and live match feedback, with plain text staying the default search mode.\n\n## Configuration\n\nQuery, pattern, flags, and mode would stay synchronized bidirectionally between the search field and its builder popover; pattern and sample size would be bounded to protect against runaway evaluation.\n\n## Current status\n\n**Desktop application:** Partial. The desktop application's filter fields accept plain-text substring queries and have no adjacent builder affordance, raw pattern editor, or guided construction controls.\n\n**Documentation website:** Implemented for the shared shell. Settings, documentation, command-palette, notification, every upgraded dropdown, and page-context searches have their own adjacent builder, bounded raw pattern, guided inserts, i/m/u flags, sample text, live match count, and local JavaScript-engine application. Plain text remains the default.\n\n## Failure modes\n\nPattern and sample input are bounded, but browser-native JavaScript regular expressions do not provide a hard execution deadline. The site identifies that engine and keeps the evaluator local; a worker-isolated timeout remains incomplete.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Command palette](command-palette.md), [Tab groups and tab search](tab-groups-and-searches.md), [Collapsible filters and statistics](collapsible-filters.md), [Platform feature index](README.md).\n"
     },
     {
       "id": "platform/responsive-sizing",
@@ -2652,7 +3659,7 @@ export const DOCS_BUNDLE: DocsBundle = {
         "external-settings-sources.md",
         "README.md"
       ],
-      "body": "# Scheduled settings\n\nLets a user schedule when a setting — language, theme, density, and the like — takes effect, by date, time, and weekday.\n\n## Behavior\n\nA schedule editor is meant to let a rule pick an optional start and end date, a start and end time, and either every day or specific weekdays, then apply a chosen setting value only during that window, respecting the user's local timezone including daylight-saving behavior.\n\n## Configuration\n\nRules would be stored with stable identifiers and deterministic precedence for when more than one rule could apply at the same moment.\n\n## Current status\n\n**Desktop application:** Not implemented. No schedule editor and no scheduled-value application logic exist anywhere in the product.\n\n**Documentation website:** Not implemented. No scheduling surface exists on the site.\n\n## Failure modes\n\nAn invalid or overlapping schedule is meant to be rejected with a specific inline reason rather than silently applied; there is nothing to validate today because no schedule editor exists.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[External settings sources](external-settings-sources.md), [Platform feature index](README.md).\n"
+      "body": "# Scheduled settings\n\nLets a user schedule when a setting — language, theme, density, and the like — takes effect, by date, time, and weekday.\n\n## Behavior\n\nA schedule editor is meant to let a rule pick an optional start and end date, a start and end time, and either every day or specific weekdays, then apply a chosen setting value only during that window, respecting the user's local timezone including daylight-saving behavior.\n\n## Configuration\n\nRules would be stored with stable identifiers and deterministic precedence for when more than one rule could apply at the same moment.\n\n## Current status\n\n**Desktop application:** Not implemented. No schedule editor and no scheduled-value application logic exist anywhere in the product.\n\n**Documentation website:** Implemented for site-owned local settings. Every page exposes one persisted rule with explicit weekdays, start and end times, cross-midnight and equal-time behavior, local-timezone status, and scheduled theme, language, and density values. Base values return when the window ends.\n\n## Failure modes\n\nAn empty weekday selection never matches. Invalid time text never matches. This bounded site implementation has one rule, so overlapping-rule precedence and external sources remain outside the implemented slice.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[External settings sources](external-settings-sources.md), [Platform feature index](README.md).\n"
     },
     {
       "id": "platform/school-mode",
@@ -2737,7 +3744,7 @@ export const DOCS_BUNDLE: DocsBundle = {
         "../agent/hub.md",
         "README.md"
       ],
-      "body": "# Status hub\n\nA shared, live status page reporting what the product's own maintenance work is currently doing — what is running, what has landed, and what is blocked.\n\n## Behavior\n\nA status surface is meant to show real-time build, verification, and release state with evidence behind every claim, distinct from the product's own PBX operational dashboards.\n\n## Configuration\n\nIt would update one page in place rather than mint a new page per update, and carry emoji-coded states that never claim a check passed before it has actually run.\n\n## Current status\n\n**Desktop application:** Not implemented. No such development-status page exists for this product on the desktop application.\n\n**Documentation website:** Not implemented. No such development-status page exists on the site either.\n\n## Failure modes\n\nIf the underlying build or release data were unreachable, the intended behavior is to say so on the page rather than show a stale state as current; nothing implements that today.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Non-blocking notifications](non-blocking-notifications.md), [In-app changelog viewer](changelog-viewer.md), [Agent hub](../agent/hub.md), [Platform feature index](README.md).\n"
+      "body": "# Status hub\n\nA shared, live status page reporting what the product's own maintenance work is currently doing — what is running, what has landed, and what is blocked.\n\n## Behavior\n\nA status surface is meant to show real-time build, verification, and release state with evidence behind every claim, distinct from the product's own PBX operational dashboards.\n\n## Configuration\n\nIt would update one page in place rather than mint a new page per update, and carry emoji-coded states that never claim a check passed before it has actually run.\n\n## Current status\n\n**Desktop application:** Not implemented. No such development-status page exists for this product on the desktop application.\n\n**Documentation website:** Partial. The site composer embeds one validated build-manifest record into every published page. The status and download surfaces derive their counts, release availability, immutable URL, byte count, and digest only from that record, and show unavailable, invalid, or stale states otherwise. Live maintenance sessions and interactive question delivery are not implemented on this public surface.\n\n## Failure modes\n\nIf no composed record exists, the source page says the record is unavailable. If release evidence fails schema checks or describes a different package version, the download remains disabled and the exact invalid or stale reason is shown.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Non-blocking notifications](non-blocking-notifications.md), [In-app changelog viewer](changelog-viewer.md), [Agent hub](../agent/hub.md), [Platform feature index](README.md).\n"
     },
     {
       "id": "platform/support-tickets",

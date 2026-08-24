@@ -32,7 +32,11 @@ export type ControlPlaneAction =
   | 'converter.catalog' | 'converter.pdf-capabilities' | 'converter.sniff'
   | 'converter.queue.create' | 'converter.queue.enqueue-one' | 'converter.queue.page'
   | 'converter.queue.start' | 'converter.queue.pause' | 'converter.queue.resume' | 'converter.queue.cancel'
-  | 'ollama.snapshot';
+  | 'ollama.snapshot' | 'ollama.health' | 'ollama.version' | 'ollama.models.installed' | 'ollama.models.running'
+  | 'ollama.model.show' | 'ollama.model.delete' | 'ollama.model.copy'
+  | 'ollama.pulls.list' | 'ollama.pulls.enqueue' | 'ollama.pulls.cancel' | 'ollama.pulls.retry' | 'ollama.pulls.reconcile'
+  | 'ollama.chat.sessions' | 'ollama.chat.create' | 'ollama.chat.rename' | 'ollama.chat.delete' | 'ollama.chat.send'
+  | 'ollama.chat.retry' | 'ollama.chat.regenerate' | 'ollama.chat.stop';
 
 /** The screens a `pbx.read` can answer, each backed by read-only Asterisk CLI output. */
 export type PbxReadView =
