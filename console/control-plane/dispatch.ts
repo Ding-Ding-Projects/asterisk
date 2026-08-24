@@ -162,11 +162,11 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     ...createOllamaPullHandlers(ollamaPullQueue),
     ...createOllamaChatHandlers(ollamaChat),
   };
-  const logoStore = new LogoStore({ rootPath: join(userDataPath, 'logo-cache') });
   const candidateDecoderPath = options.logoDecoderWorkerPath && existsSync(options.logoDecoderWorkerPath)
     ? options.logoDecoderWorkerPath
     : join(import.meta.dirname, 'logo-decoder-worker.js');
   const logoDecoder = existsSync(candidateDecoderPath) ? createIsolatedLogoDecoder({ workerPath: candidateDecoderPath }) : undefined;
+  const logoStore = new LogoStore({ rootPath: join(userDataPath, 'logo-cache'), reopen: logoDecoder?.reopen });
   const logoHandlers = createLogoConversionHandlers(logoDecoder, logoStoreHandlers(logoStore));
   const resolveExternalHost = async (hostname: string, signal: AbortSignal): Promise<readonly string[]> => {
     const lookupPromise = lookup(hostname, { all: true, verbatim: true }).then((records) => records.map((record) => record.address));
@@ -198,9 +198,17 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     request.once('error', reject);
     request.end();
   });
-  const externalSettingsStore = createExternalSettingsStore({
-    handler: createExternalSettingsHandler({ vault: options.externalSettingsVault, fetch: pinnedExternalFetch, resolveHost: resolveExternalHost }),
-  });
+  const externalSettingsStores = new Map<string, ReturnType<typeof createExternalSettingsStore>>();
+  const externalSettingsStoreFor = (ruleId: string) => {
+    let store = externalSettingsStores.get(ruleId);
+    if (!store) {
+      store = createExternalSettingsStore({
+        handler: createExternalSettingsHandler({ vault: options.externalSettingsVault, fetch: pinnedExternalFetch, resolveHost: resolveExternalHost }),
+      });
+      externalSettingsStores.set(ruleId, store);
+    }
+    return store;
+  };
   const ollamaReady = ollamaPullQueue.initialize();
   const converterQueue = converterRegistry.then(async (registry) => {
     const store = new ConverterStore({ rootPath: join(userDataPath, 'converter-queues') });
@@ -641,7 +649,13 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         }
       }
       if (request.action === 'logo.decoder.status') {
-        return { ok: true, requestId: request.requestId, data: { available: logoDecoder !== undefined } };
+        if (!logoDecoder) return { ok: true, requestId: request.requestId, data: { available: false, reason: 'The packaged isolated decoder worker is unavailable.' } };
+        try {
+          const health = await logoDecoder.health();
+          return { ok: true, requestId: request.requestId, data: { available: true, workerVersion: health.workerVersion, sharpVersion: health.sharpVersion, peakMemoryBytes: health.peakMemoryBytes } };
+        } catch (error) {
+          return { ok: true, requestId: request.requestId, data: { available: false, reason: error instanceof Error ? error.message : 'The decoder health handshake failed.' } };
+        }
       }
       if (request.action === 'logo.inspect') {
         const source = logoSourceFromPayload(request.payload);
@@ -679,12 +693,13 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'external-settings.state') {
         const ruleId = typeof request.payload?.ruleId === 'string' ? request.payload.ruleId : '';
         if (!ruleId) return { ok: false, requestId: request.requestId, code: 'EXTERNAL_RULE_REQUIRED', message: 'A schedule rule id is required.' };
-        return { ok: true, requestId: request.requestId, data: { ruleId, ...projectExternalSettingsState(externalSettingsStore.getState()) } };
+        return { ok: true, requestId: request.requestId, data: { ruleId, ...projectExternalSettingsState(externalSettingsStoreFor(ruleId).getState()) } };
       }
       if (request.action === 'external-settings.cancel') {
-        externalSettingsStore.cancel();
         const ruleId = typeof request.payload?.ruleId === 'string' ? request.payload.ruleId : '';
-        return { ok: true, requestId: request.requestId, data: { ...(ruleId ? { ruleId } : {}), ...projectExternalSettingsState(externalSettingsStore.getState()) } };
+        if (ruleId) externalSettingsStoreFor(ruleId).cancel();
+        else externalSettingsStores.forEach((store) => store.cancel());
+        return { ok: true, requestId: request.requestId, data: { ...(ruleId ? { ruleId } : {}), ...(ruleId ? projectExternalSettingsState(externalSettingsStoreFor(ruleId).getState()) : {}) } };
       }
       if (request.action === 'external-settings.refresh') {
         const ruleId = typeof request.payload?.ruleId === 'string' ? request.payload.ruleId : '';
@@ -694,7 +709,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const assignmentsResult = validateAssignments(request.payload?.baseAssignments ?? []);
         if (!assignmentsResult.ok) return { ok: false, requestId: request.requestId, code: 'EXTERNAL_ASSIGNMENTS_INVALID', message: assignmentsResult.reason };
         const force = request.payload?.force === true;
-        const state = await externalSettingsStore.refresh(sourceResult.source, assignmentsResult.assignments, { force });
+        const state = await externalSettingsStoreFor(ruleId).refresh(sourceResult.source, assignmentsResult.assignments, { force });
         return { ok: true, requestId: request.requestId, data: { ruleId, ...projectExternalSettingsState(state) } };
       }
       if (request.action.startsWith('ollama.')) {

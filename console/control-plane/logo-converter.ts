@@ -47,8 +47,15 @@ export interface IsolatedLogoDecoderOutput {
   readonly peakMemoryBytes?: number;
 }
 
+export interface IsolatedLogoDecoderHealth {
+  readonly workerVersion: string;
+  readonly sharpVersion: string;
+  readonly peakMemoryBytes: number;
+}
+
 export interface IsolatedLogoDecoder {
   readonly kind: 'isolated';
+  health(): Promise<IsolatedLogoDecoderHealth>;
   convert(input: {
     readonly source: Uint8Array;
     readonly sourceFormat: string;

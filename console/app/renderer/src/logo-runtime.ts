@@ -27,6 +27,7 @@ export interface LogoRuntimeState {
   readonly detail: string;
   readonly active: ActiveLogo;
   readonly decoderAvailable?: boolean;
+  readonly decoderHealth?: { workerVersion: string; sharpVersion: string; peakMemoryBytes: number };
 }
 
 function requestId(): string {
@@ -117,13 +118,13 @@ export class LogoRuntime {
   selectPreset(presetId: string): LogoRuntimeState {
     if (!LOGO_PRESETS.some((preset) => preset.id === presetId)) return this.state;
     this.publish({ status: 'active', detail: 'The selected shipped logo preset is active.', active: { kind: 'shipped-preset', presetId, crop: DEFAULT_LOGO_CROP, assets: new Map() } });
-    void this.persistUiState({ selectedPresetId: presetId, crop: DEFAULT_LOGO_CROP });
     return this.state;
   }
 
-  async persistUiState(value: { readonly selectedPresetId: string; readonly crop: LogoCropModel }): Promise<void> {
-    if (!LOGO_PRESETS.some((preset) => preset.id === value.selectedPresetId) || !validateLogoCrop(value.crop).ok) return;
-    await this.bridge.controlPlane.request({ requestId: requestId(), action: 'settings.write', payload: { key: 'logo.ui-v1', value: JSON.stringify(value) } });
+  async persistUiState(value: { readonly selectedPresetId: string; readonly crop: LogoCropModel }): Promise<{ ok: boolean; reason?: string }> {
+    if (!LOGO_PRESETS.some((preset) => preset.id === value.selectedPresetId) || !validateLogoCrop(value.crop).ok) return { ok: false, reason: 'The selected logo state is invalid.' };
+    const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'settings.write', payload: { key: 'logo.ui-v1', value: JSON.stringify(value) } });
+    return response.ok ? { ok: true } : { ok: false, reason: response.message ?? 'Logo settings were not persisted.' };
   }
 
   subscribe(listener: (state: LogoRuntimeState) => void): () => void {
@@ -139,7 +140,8 @@ export class LogoRuntime {
   async load(): Promise<LogoRuntimeState> {
     this.publish({ ...this.state, status: 'reading', detail: 'Reading the validated local logo cache.' });
     const decoderResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.decoder.status' });
-    this.state = { ...this.state, decoderAvailable: decoderResponse.ok && (decoderResponse.data as { available?: unknown } | undefined)?.available === true };
+    const decoderData = decoderResponse.data as { available?: unknown; workerVersion?: unknown; sharpVersion?: unknown; peakMemoryBytes?: unknown } | undefined;
+    this.state = { ...this.state, decoderAvailable: decoderResponse.ok && decoderData?.available === true, ...(typeof decoderData?.workerVersion === 'string' && typeof decoderData.sharpVersion === 'string' && typeof decoderData.peakMemoryBytes === 'number' ? { decoderHealth: { workerVersion: decoderData.workerVersion, sharpVersion: decoderData.sharpVersion, peakMemoryBytes: decoderData.peakMemoryBytes } } : {}) };
     const settingsResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'settings.snapshot' });
     const stored = settingsResponse.ok ? (settingsResponse.data as { values?: Record<string, string> } | undefined)?.values?.['logo.ui-v1'] : undefined;
     if (stored) {

@@ -1,8 +1,13 @@
 import sharp from 'sharp';
 import { createInterface } from 'node:readline';
 
+if (!process.argv.includes('--no-network')) process.exit(78);
+
 type Target = { format: 'png' | 'jpeg' | 'webp'; width: number; height: number; alpha: boolean };
 type Crop = { fit: 'contain' | 'cover' | 'fill'; crop: { x: number; y: number; width: number; height: number }; background: { kind: 'transparent' } | { kind: 'solid'; color: string } };
+const baselineRss = process.memoryUsage().rss;
+let peakRss = baselineRss;
+const memoryProbe = setInterval(() => { peakRss = Math.max(peakRss, process.memoryUsage().rss); }, 20);
 
 function signature(format: Target['format']): string {
   return format === 'png' ? 'png-signature' : format === 'jpeg' ? 'jpeg-signature' : 'webp-riff-signature';
@@ -14,10 +19,19 @@ function alphaFor(format: Target['format'], channels: number | undefined): boole
 
 async function reopen(bytes: Buffer, target: Target): Promise<Record<string, unknown>> {
   const metadata = await sharp(bytes, { animated: false, limitInputPixels: 16_000_000, failOn: 'error' }).metadata();
+  const decoded = await sharp(bytes, { animated: false, limitInputPixels: 16_000_000, failOn: 'error' }).raw().toBuffer({ resolveWithObject: true });
   const format = metadata.format === 'jpg' ? 'jpeg' : metadata.format;
   const alpha = alphaFor(target.format, metadata.channels);
   if (format !== target.format || metadata.width !== target.width || metadata.height !== target.height || alpha !== target.alpha || (metadata.pages ?? 1) !== 1) throw new Error('The isolated decoder reopen did not match the requested output.');
-  return { ok: true, inspection: { format, width: metadata.width, height: metadata.height, frames: 1, animated: false, alpha, decodedBytes: (metadata.width ?? 0) * (metadata.height ?? 0) * 4, signature: signature(target.format) }, roundTripVerified: true, peakMemoryBytes: process.memoryUsage().rss };
+  if (decoded.data.byteLength > 64 * 1024 * 1024) throw new Error('The isolated reopen exceeded its decoded memory bound.');
+  return { ok: true, inspection: { format, width: metadata.width, height: metadata.height, frames: 1, animated: false, alpha, decodedBytes: decoded.data.byteLength, signature: signature(target.format) }, roundTripVerified: true, peakMemoryBytes: Math.max(0, peakRss - baselineRss), workerVersion: process.version, sharpVersion: (sharp.versions as Record<string, string>).sharp ?? 'unknown' };
+}
+
+async function health(): Promise<Record<string, unknown>> {
+  const onePixelPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+  const decoded = await sharp(onePixelPng, { animated: false, limitInputPixels: 16_000_000, failOn: 'error' }).raw().toBuffer({ resolveWithObject: true });
+  if (decoded.data.byteLength < 1) throw new Error('The isolated decoder health decode was empty.');
+  return { ok: true, workerVersion: process.version, sharpVersion: (sharp.versions as Record<string, string>).sharp ?? 'unknown', peakMemoryBytes: Math.max(0, peakRss - baselineRss) };
 }
 
 async function convert(input: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -48,11 +62,14 @@ const input = createInterface({ input: process.stdin, crlfDelay: Infinity });
 input.on('line', (line) => {
   void (async () => {
     const request = JSON.parse(line) as Record<string, unknown>;
-    const result = request.operation === 'convert'
-      ? await convert(request)
-      : await reopen(Buffer.from(String(request.bytesBase64), 'base64'), request.target as Target);
+    const result = request.operation === 'health'
+      ? await health()
+      : request.operation === 'convert'
+        ? await convert(request)
+        : await reopen(Buffer.from(String(request.bytesBase64), 'base64'), request.target as Target);
     process.stdout.write(`${JSON.stringify({ id: request.id, ...result })}\n`);
   })().catch((error) => {
     process.stdout.write(`${JSON.stringify({ id: (() => { try { return (JSON.parse(line) as Record<string, unknown>).id; } catch { return undefined; } })(), ok: false, reason: error instanceof Error ? error.message : 'decoder failure' })}\n`);
   });
 });
+process.once('beforeExit', () => clearInterval(memoryProbe));

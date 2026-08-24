@@ -26,12 +26,15 @@ import {
   type LogoConversionResult,
   type LogoEncodedAsset,
   type LogoOutputReceipt,
+  type LogoInspectionResult,
+  type LogoTarget,
   type LogoValidationFailure,
 } from '../shared/logo.js';
 
 export interface LogoStoreOptions {
   readonly rootPath: string;
   readonly now?: () => string;
+  readonly reopen?: (bytes: Uint8Array, target: LogoTarget) => Promise<LogoInspectionResult>;
 }
 
 function failure(code: LogoValidationFailure['code'], reason: string): LogoValidationFailure {
@@ -156,15 +159,19 @@ function digest(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
-function validAssetBytes(bytes: Uint8Array, metadata: LogoCacheAssetMetadata): boolean {
+async function validAssetBytes(bytes: Uint8Array, metadata: LogoCacheAssetMetadata, reopen: LogoStoreOptions['reopen']): Promise<boolean> {
   if (bytes.byteLength !== metadata.receipt.bytes || bytes.byteLength > LOGO_MAX_OUTPUT_BYTES || digest(bytes) !== metadata.receipt.sha256) return false;
   const inspection = inspectLogoBytes(bytes, { declaredExtension: metadata.receipt.target.format });
-  return inspection.ok
-    && inspection.inspection.format === metadata.receipt.target.format
-    && inspection.inspection.width === metadata.receipt.width
-    && inspection.inspection.height === metadata.receipt.height
-    && inspection.inspection.alpha === metadata.receipt.alpha
-    && inspection.inspection.signature === metadata.receipt.signature;
+  if (!inspection.ok || inspection.inspection.format !== metadata.receipt.target.format || inspection.inspection.width !== metadata.receipt.width || inspection.inspection.height !== metadata.receipt.height || inspection.inspection.alpha !== metadata.receipt.alpha || inspection.inspection.signature !== metadata.receipt.signature) return false;
+  if (!reopen) return false;
+  const reopened = await reopen(bytes, metadata.receipt.target);
+  return reopened.ok
+    && reopened.inspection.format === metadata.receipt.target.format
+    && reopened.inspection.width === metadata.receipt.width
+    && reopened.inspection.height === metadata.receipt.height
+    && reopened.inspection.alpha === metadata.receipt.alpha
+    && reopened.inspection.signature === metadata.receipt.signature
+    && metadata.receipt.roundTripVerified === true;
 }
 
 function assetMetadata(asset: LogoEncodedAsset): LogoCacheAssetMetadata {
@@ -177,6 +184,7 @@ function assetMetadata(asset: LogoEncodedAsset): LogoCacheAssetMetadata {
 export class LogoStore {
   private readonly root: string;
   private readonly now: () => string;
+  private readonly reopen: LogoStoreOptions['reopen'];
 
   constructor(options: LogoStoreOptions) {
     if (!isAbsolute(options.rootPath)) throw new Error('Logo cache path must be absolute.');
@@ -184,6 +192,7 @@ export class LogoStore {
     if (root === parse(root).root || root === resolve(dirname(root))) throw new Error('Logo cache path must not be a filesystem root.');
     this.root = root;
     this.now = options.now ?? (() => new Date().toISOString());
+    this.reopen = options.reopen;
   }
 
   private assetPath(filename: string): string {
@@ -216,7 +225,7 @@ export class LogoStore {
     for (const asset of parsed.assets) {
       try {
         const bytes = new Uint8Array(await readFile(this.assetPath(asset.filename)));
-        if (!validAssetBytes(bytes, asset)) return undefined;
+        if (!(await validAssetBytes(bytes, asset, this.reopen))) return undefined;
       } catch {
         return undefined;
       }
@@ -229,7 +238,7 @@ export class LogoStore {
     if (!metadata) return undefined;
     try {
       const bytes = new Uint8Array(await readFile(this.assetPath(filename)));
-      if (!validAssetBytes(bytes, metadata)) return undefined;
+      if (!(await validAssetBytes(bytes, metadata, this.reopen))) return undefined;
       return bytes;
     } catch {
       return undefined;
@@ -246,7 +255,7 @@ export class LogoStore {
     if (!targetCheck.ok || result.outputs.length > LOGO_MAX_OUTPUTS) throw new Error(targetCheck.ok ? 'Logo output count is outside the bounded limit.' : targetCheck.reason);
     for (const asset of result.outputs) {
       const metadata = assetMetadata(asset);
-      if (!validAssetBytes(asset.bytes, metadata)) throw new Error('Logo cache refused an output that failed independent receipt validation.');
+      if (!(await validAssetBytes(asset.bytes, metadata, this.reopen))) throw new Error('Logo cache refused an output that failed independent receipt and reopen validation.');
     }
     const outputBytes = result.outputs.reduce((total, asset) => total + asset.bytes.byteLength, 0);
     if (outputBytes > LOGO_MAX_OUTPUT_BYTES) throw new Error('Logo cache refused an output set over the aggregate byte limit.');

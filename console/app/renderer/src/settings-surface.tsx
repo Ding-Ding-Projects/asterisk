@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ScheduleRule, ScheduleSource, Weekday } from '../../../shared/settings-schema';
+import { LOGO_MAX_INPUT_BYTES } from '../../../shared/logo';
 import { LogoSurface } from './logo-surface';
 import { createInitialLogoUiState, type LogoUiState } from './logo-state';
 import type { LogoRuntimeState } from './logo-runtime';
@@ -44,6 +45,7 @@ export function SettingsSurface() {
   const [newVaultReference, setNewVaultReference] = useState('');
   const [vaultToken, setVaultToken] = useState('');
   const [vaultStatus, setVaultStatus] = useState('');
+  const [logoPersistStatus, setLogoPersistStatus] = useState('');
   const [busy, setBusy] = useState(false);
   const rulesRef = useRef<readonly ScheduleRule[]>([]);
   const applicationRuntime = useMemo(() => getApplicationRuntime(), []);
@@ -71,7 +73,7 @@ export function SettingsSurface() {
     return () => {
       unsubscribeSettings();
       unsubscribeLogo();
-      void externalRuntime.cancel();
+      void externalRuntime.cancel(rulesRef.current.filter((rule) => rule.source.kind !== 'local').map((rule) => rule.id));
     };
   }, [durable, externalRuntime, logoRuntime, settingsRuntime]);
 
@@ -79,6 +81,8 @@ export function SettingsSurface() {
     if (!snapshot?.hydrated) return undefined;
     let cancelled = false;
     const refreshAll = async () => {
+      const restored = await externalRuntime.readState(rulesRef.current.filter((rule) => rule.source.kind !== 'local').map((rule) => rule.id));
+      setExternalStates(restored);
       for (const rule of rulesRef.current) {
         if (cancelled || rule.source.kind === 'local') continue;
         const result = await externalRuntime.refresh(rule.id, rule.source, rule.assignments);
@@ -106,6 +110,10 @@ export function SettingsSurface() {
   const chooseFile = async (file: File) => {
     setBusy(true);
     try {
+      if (!Number.isSafeInteger(file.size) || file.size < 1 || file.size > LOGO_MAX_INPUT_BYTES) {
+        setLogoState((previous) => ({ ...previous, customLogoState: 'invalid', customLogoLabel: `The local image must be between 1 and ${LOGO_MAX_INPUT_BYTES} bytes.` }));
+        return;
+      }
       const bytes = new Uint8Array(await file.arrayBuffer());
       const inspection = await logoRuntime.inspect(bytes, file.name, file.type || undefined);
       if (!inspection.ok) {
@@ -138,6 +146,16 @@ export function SettingsSurface() {
       setVaultToken('');
     }
   };
+  const removeVaultReference = async (reference: string) => {
+    if (rules.some((rule) => rule.source.kind === 'home-assistant-boolean' && rule.source.vaultAccountKey === reference)) {
+      setVaultStatus('This reference is used by a schedule rule. Choose another reference first; removal was refused.');
+      return;
+    }
+    if (!window.confirm(`Remove enrolled reference ${reference}? No schedule rule currently references it.`)) return;
+    const result = await window.dingDesktop?.externalSettings.removeVaultReference(reference);
+    setVaultStatus(result?.ok ? 'Enrolled reference removed.' : result?.reason ?? 'The enrolled reference was not removed.');
+    if (result?.ok) setVaultReferences((current) => current.filter((item) => item !== reference));
+  };
 
   return (
     <section className="settings-surface" aria-labelledby="settings-surface-title">
@@ -148,7 +166,8 @@ export function SettingsSurface() {
           if (patch.selectedPresetId) logoRuntime.selectPreset(patch.selectedPresetId);
           setLogoState((previous) => {
             const next = { ...previous, ...patch };
-            void logoRuntime.persistUiState({ selectedPresetId: next.selectedPresetId, crop: next.crop });
+            setLogoPersistStatus('Saving logo selection...');
+            void logoRuntime.persistUiState({ selectedPresetId: next.selectedPresetId, crop: next.crop }).then((result) => setLogoPersistStatus(result.ok ? 'Logo selection saved.' : result.reason ?? 'Logo selection was not saved.'));
             return next;
           });
         }}
@@ -173,8 +192,8 @@ export function SettingsSurface() {
           </article>;
         })}
       </section>
-      <section className="vault-enrollment" aria-labelledby="vault-enrollment-title"><h3 id="vault-enrollment-title">Home Assistant credential enrollment</h3><p>Choose an enrolled reference in a rule. The credential value is sent once to the desktop vault and is never placed in settings or renderer state.</p><div className="schedule-fields"><label>New reference<input value={newVaultReference} onChange={(event) => setNewVaultReference(event.currentTarget.value)} placeholder="home-assistant-main" /></label><label>Credential value<input type="password" value={vaultToken} onChange={(event) => setVaultToken(event.currentTarget.value)} /></label><button type="button" onClick={() => void enrollVaultReference()} disabled={!newVaultReference || !vaultToken}>Store in vault</button></div><p role="status">{vaultStatus || `${vaultReferences.length} enrolled reference${vaultReferences.length === 1 ? '' : 's'}.`}</p></section>
-      <p className="settings-runtime-status" role="status">{logoRuntimeState?.detail ?? 'The shipped logo preset is active.'}</p>
+      <section className="vault-enrollment" aria-labelledby="vault-enrollment-title"><h3 id="vault-enrollment-title">Home Assistant credential enrollment</h3><p>Choose an enrolled reference in a rule. The credential value is sent once to the desktop vault and is never placed in settings or renderer state.</p><div className="schedule-fields"><label>New reference<input value={newVaultReference} onChange={(event) => setNewVaultReference(event.currentTarget.value)} placeholder="home-assistant-main" /></label><label>Credential value<input type="password" value={vaultToken} onChange={(event) => setVaultToken(event.currentTarget.value)} /></label><button type="button" onClick={() => void enrollVaultReference()} disabled={!newVaultReference || !vaultToken}>Store in vault</button></div><div className="schedule-fields">{vaultReferences.map((reference) => <span key={reference}><code>{reference}</code><button type="button" onClick={() => void removeVaultReference(reference)}>Remove</button></span>)}</div><p role="status">{vaultStatus || `${vaultReferences.length} enrolled reference${vaultReferences.length === 1 ? '' : 's'}.`}</p></section>
+      <p className="settings-runtime-status" role="status">{logoRuntimeState?.detail ?? 'The shipped logo preset is active.'} {logoPersistStatus}</p>
     </section>
   );
 }

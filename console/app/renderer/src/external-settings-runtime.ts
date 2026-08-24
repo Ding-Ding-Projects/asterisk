@@ -57,6 +57,7 @@ function parseWireState(value: unknown): ExternalRuleState | undefined {
  * remain in the privileged process, while source activity feeds schedule runtime. */
 export class ExternalSettingsRuntime {
   private readonly states = new Map<string, ExternalRuleState>();
+  private readonly inFlight = new Map<string, Promise<ExternalRuleState>>();
   constructor(private readonly bridge: ExternalSettingsRuntimeBridge) {}
 
   state(ruleId: string): ExternalRuleState | undefined { return this.states.get(ruleId); }
@@ -64,11 +65,17 @@ export class ExternalSettingsRuntime {
   all(): ReadonlyArray<ExternalRuleState> { return [...this.states.values()]; }
 
   async refresh(ruleId: string, source: ExternalSettingsSource, baseAssignments: readonly ScheduleAssignment[], force = false): Promise<ExternalRuleState> {
-    const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'external-settings.refresh', payload: { ruleId, source, baseAssignments, force } });
-    const parsed = response.ok ? parseWireState(response.data) : undefined;
-    const state = parsed ?? { ruleId, status: 'failed' as const, active: false, isFallback: true, isStale: false, assignmentCount: 0, lastError: response.message ?? 'The external settings source did not answer.' };
-    this.states.set(ruleId, state);
-    return state;
+    const active = this.inFlight.get(ruleId);
+    if (active) return active;
+    const task = (async () => {
+      const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'external-settings.refresh', payload: { ruleId, source, baseAssignments, force } });
+      const parsed = response.ok ? parseWireState(response.data) : undefined;
+      const state = parsed ?? { ruleId, status: 'failed' as const, active: false, isFallback: true, isStale: false, assignmentCount: 0, lastError: response.message ?? 'The external settings source did not answer.' };
+      this.states.set(ruleId, state);
+      return state;
+    })();
+    this.inFlight.set(ruleId, task);
+    try { return await task; } finally { if (this.inFlight.get(ruleId) === task) this.inFlight.delete(ruleId); }
   }
 
   async readState(ruleIds: readonly string[] = this.all().map((item) => item.ruleId)): Promise<ReadonlyArray<ExternalRuleState>> {
@@ -81,7 +88,7 @@ export class ExternalSettingsRuntime {
     return this.all();
   }
 
-  async cancel(): Promise<void> {
-    await this.bridge.controlPlane.request({ requestId: requestId(), action: 'external-settings.cancel' });
+  async cancel(ruleIds: readonly string[] = [...new Set([...this.states.keys(), ...this.inFlight.keys()])]): Promise<void> {
+    await Promise.all(ruleIds.map((ruleId) => this.bridge.controlPlane.request({ requestId: requestId(), action: 'external-settings.cancel', payload: { ruleId } })));
   }
 }
