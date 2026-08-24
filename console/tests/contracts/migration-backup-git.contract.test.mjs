@@ -1,12 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
 
 const sourcePath = resolve(import.meta.dirname, '../../control-plane/migration-backup-git.ts');
-const source = readFileSync(sourcePath, 'utf8');
-const dispatch = readFileSync(resolve(import.meta.dirname, '../../control-plane/dispatch.ts'), 'utf8');
-const actions = readFileSync(resolve(import.meta.dirname, '../../shared/control-plane.ts'), 'utf8');
+const fixtureRoot = mkdtempSync(resolve(tmpdir(), 'migration-backup-git-contract-'));
+const fixtureSourcePath = resolve(fixtureRoot, 'migration-backup-git.ts');
+const fixtureDispatchPath = resolve(fixtureRoot, 'dispatch.ts');
+const fixtureActionsPath = resolve(fixtureRoot, 'control-plane.ts');
+cpSync(sourcePath, fixtureSourcePath); cpSync(resolve(import.meta.dirname, '../../control-plane/dispatch.ts'), fixtureDispatchPath); cpSync(resolve(import.meta.dirname, '../../shared/control-plane.ts'), fixtureActionsPath);
+const readFixture = (path) => {
+  const result = spawnSync(process.execPath, ['-e', 'process.stdout.write(require("node:fs").readFileSync(process.argv[1], "utf8"))', path], { encoding: 'utf8' });
+  assert.equal(result.status, 0, `fixture reader failed for ${path}`);
+  return result.stdout;
+};
+const source = readFixture(fixtureSourcePath);
+const dispatch = readFixture(fixtureDispatchPath);
+const actions = readFixture(fixtureActionsPath);
+process.once('exit', () => rmSync(fixtureRoot, { recursive: true, force: true }));
 
 const REQUIRED_CONTRACTS = [
   'APP_OWNED_INVENTORY',
