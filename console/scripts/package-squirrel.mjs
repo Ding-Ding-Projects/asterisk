@@ -52,7 +52,9 @@ const setup = files.filter((entry) => /Setup\.exe$/iu.test(entry.name));
 const releases = files.filter((entry) => entry.name === 'RELEASES');
 const fullPackages = files.filter((entry) => /-full\.nupkg$/iu.test(entry.name));
 const deltaPackages = files.filter((entry) => /-delta\.nupkg$/iu.test(entry.name));
+const unpackedExecutable = join(unpackedOutput, 'Ding PBX Console.exe');
 if (setup.length !== 1 || releases.length !== 1 || fullPackages.length < 1) throw new Error('Squirrel output must contain exactly one Setup.exe, one RELEASES file, and at least one full nupkg.');
+if (!existsSync(unpackedExecutable)) throw new Error('Unpacked packaged executable is missing before release identity is written.');
 for (const entry of fullPackages) if (!entry.name.includes(`-${version}-full.nupkg`)) throw new Error(`Full package ${entry.name} does not carry version ${version}.`);
 const releaseText = readFileSync(releases[0].path, 'utf8');
 for (const entry of [...fullPackages, ...deltaPackages]) if (!releaseText.includes(entry.name)) throw new Error(`RELEASES does not reference ${entry.name}.`);
@@ -61,6 +63,7 @@ const record = (entry) => ({ name: entry.name, size: statSync(entry.path).size, 
 writeFileSync(join(output, 'release-identity.json'), JSON.stringify({
   schemaVersion: 1,
   product: 'ding-pbx-console',
+  productName: 'Ding PBX Console',
   appId: 'org.dingdingprojects.dingpbxconsole',
   version,
   candidateCommit,
@@ -73,6 +76,7 @@ writeFileSync(join(output, 'release-identity.json'), JSON.stringify({
     deltaPackages: deltaPackages.map(record),
     sha256sums: 'SHA256SUMS.txt',
     identity: 'release-identity.json',
+    executable: { name: 'Ding PBX Console.exe', size: statSync(unpackedExecutable).size, sha256: digest(unpackedExecutable) },
   },
 }, null, 2) + '\n', 'utf8');
 

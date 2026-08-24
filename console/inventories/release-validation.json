@@ -32,9 +32,10 @@
     },
     {
       "id": "probe-preload-isolation",
+      "command": "node scripts/verify-probe-path-fixture.mjs",
       "source": "console/app/electron/preload-probe.cjs",
       "status": "implemented-unverified",
-      "evidence": "The probe-only preload is packaged separately; the normal preload and shared desktop API type contain no packaged-vault probe capability."
+      "evidence": "The probe-only preload is packaged separately; the normal preload and shared desktop API type contain no packaged-vault probe capability. The native path fixture accepts an ordinary profile and rejects a junction."
     },
     {
       "id": "candidate-provenance",
@@ -53,7 +54,7 @@
       "id": "candidate-package-identity",
       "source": "console/scripts/package-squirrel.mjs",
       "status": "implemented-unverified",
-      "evidence": "Candidate commit and package version are passed into the packaged probe and release identity."
+      "evidence": "Candidate product, app ID, commit, package version, product name, and unpacked executable digest are recorded in release identity and compared by the packaged probe."
     }
   ]
 }

@@ -1,8 +1,8 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, utilityProcess } from 'electron';
+import { spawnSync } from 'node:child_process';
 import { existsSync, lstatSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve as resolvePath } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
-import * as keytar from 'keytar';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
 import { SCHOOL_CREDENTIAL_ACCOUNT, SCHOOL_CREDENTIAL_SERVICE } from '../../shared/school-contract.js';
@@ -26,11 +26,17 @@ if (probeModeRequested && !requestedProbeUserData) throw new Error('Probe mode r
 function assertNoSymlinkAncestors(target: string): void {
   let current = resolvePath(target);
   while (true) {
-    if (existsSync(current) && lstatSync(current).isSymbolicLink()) throw new Error(`Probe user-data path contains a symlink or reparse point: ${current}`);
+    if (existsSync(current) && (lstatSync(current).isSymbolicLink() || isNativeReparsePoint(current))) throw new Error(`Probe user-data path contains a symlink or reparse point: ${current}`);
     const parent = dirname(current);
     if (parent === current) return;
     current = parent;
   }
+}
+function isNativeReparsePoint(path: string): boolean {
+  if (process.platform !== 'win32') return false;
+  const result = spawnSync('fsutil.exe', ['reparsepoint', 'query', path], { stdio: 'ignore', windowsHide: true, shell: false });
+  if (result.error) throw result.error;
+  return result.status === 0;
 }
 if (requestedProbeUserData) {
   assertNoSymlinkAncestors(requestedProbeUserData);
@@ -41,6 +47,72 @@ if (requestedProbeUserData) {
 const probeUserDataMatches = probeModeRequested && requestedProbeUserData ? resolvePath(app.getPath('userData')) === resolvePath(requestedProbeUserData) : false;
 const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false });
 const { controlPlaneRequest } = dispatcher;
+type KeytarWorkerRequest = {
+  operation: 'set' | 'verify' | 'deleteAndCheck';
+  service: string;
+  account: string;
+  value?: string;
+};
+type KeytarWorkerResponse = {
+  ok: boolean;
+  matched?: boolean;
+  missing?: boolean;
+  deleted?: boolean;
+  absent?: boolean;
+  error?: string;
+};
+
+async function runKeytarWorker(request: KeytarWorkerRequest, timeoutMs = 3000): Promise<KeytarWorkerResponse> {
+  const workerPath = join(import.meta.dirname, 'keytar-worker.js');
+  const worker = utilityProcess.fork(workerPath, [], { stdio: 'pipe', serviceName: 'ding-pbx-keytar-probe' });
+  return await new Promise<KeytarWorkerResponse>((resolve, reject) => {
+    let output = '';
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let killTimer: ReturnType<typeof setTimeout> | undefined;
+    const complete = (value: KeytarWorkerResponse): void => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      if (killTimer) clearTimeout(killTimer);
+      resolve(value);
+    };
+    const fail = (error: Error): void => {
+      if (settled) return;
+      if (!worker.killed) worker.kill();
+      killTimer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+      }, 1000);
+      worker.once('exit', () => {
+        if (settled) return;
+        settled = true;
+        if (killTimer) clearTimeout(killTimer);
+        reject(error);
+      });
+    };
+    worker.stdout?.on('data', (chunk: Buffer | string) => {
+      output += chunk.toString();
+      if (output.length > 8192) fail(new Error('The credential-vault worker returned an oversized response.'));
+    });
+    worker.once('error', (error) => fail(error));
+    worker.once('exit', (code) => {
+      if (settled) return;
+      if (code !== 0) return fail(new Error('The credential-vault worker exited without a successful response.'));
+      try {
+        const line = output.trim().split('\n')[0] ?? '';
+        complete(JSON.parse(line) as KeytarWorkerResponse);
+      } catch {
+        fail(new Error('The credential-vault worker returned malformed response data.'));
+      }
+    });
+    timer = setTimeout(() => {
+      fail(new Error('The credential-vault worker did not exit after its bounded cancellation.'));
+    }, timeoutMs);
+    worker.stdin?.end(`${JSON.stringify(request)}\n`);
+  });
+}
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let updateCheckInFlight: Promise<void> | undefined;
 let updateGeneration = 0;
@@ -222,8 +294,8 @@ ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequ
 ipcMain.handle('school:set-credential', async (_event, candidate: unknown) => {
   if (typeof candidate !== 'string' || candidate.length < 4 || candidate.length > 256) return { ok: false, reason: 'The unlock credential must be between 4 and 256 characters.' };
   try {
-    await keytar.setPassword(SCHOOL_CREDENTIAL_SERVICE, SCHOOL_CREDENTIAL_ACCOUNT, candidate);
-    return { ok: true };
+    const result = await runKeytarWorker({ operation: 'set', service: SCHOOL_CREDENTIAL_SERVICE, account: SCHOOL_CREDENTIAL_ACCOUNT, value: candidate });
+    return result.ok ? { ok: true } : { ok: false, reason: result.error ?? 'The operating-system credential vault could not save the credential.' };
   } catch {
     return { ok: false, reason: 'The operating-system credential vault could not save the credential.' };
   }
@@ -231,11 +303,11 @@ ipcMain.handle('school:set-credential', async (_event, candidate: unknown) => {
 ipcMain.handle('school:verify-credential', async (_event, candidate: unknown) => {
   if (typeof candidate !== 'string') return { ok: false, reason: 'The operating-system credential vault is unavailable.' };
   try {
-    const stored = await keytar.getPassword(SCHOOL_CREDENTIAL_SERVICE, SCHOOL_CREDENTIAL_ACCOUNT);
-    if (stored === null) return { ok: false, reason: 'No School mode unlock credential has been set yet.' };
-    return stored === candidate
+    const result = await runKeytarWorker({ operation: 'verify', service: SCHOOL_CREDENTIAL_SERVICE, account: SCHOOL_CREDENTIAL_ACCOUNT, value: candidate });
+    if (result.missing) return { ok: false, reason: 'No School mode unlock credential has been set yet.' };
+    return result.ok && result.matched
       ? { ok: true }
-      : { ok: false, reason: 'The shared credential was not accepted.' };
+      : { ok: false, reason: result.error ?? 'The shared credential was not accepted.' };
   } catch {
     return { ok: false, reason: 'The operating-system credential vault could not verify the credential.' };
   }
@@ -276,15 +348,19 @@ ipcMain.handle('school:packaged-vault-probe', async (_event, authorization: unkn
   let readMatched = false;
   let deleteSucceeded = false;
   let absentAfterDelete = false;
+  let vaultOperations = 0;
   let deleteAttempts = 0;
   let cleanupError: string | undefined;
+  const runVaultOperation = async (operation: KeytarWorkerRequest): Promise<KeytarWorkerResponse> => {
+    vaultOperations += 1;
+    return await runKeytarWorker(operation);
+  };
   const cleanupProbe = async (): Promise<void> => {
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       deleteAttempts = attempt;
       try {
-        const deleted = await keytar.deletePassword(service, account);
-        const absent = (await keytar.getPassword(service, account)) === null;
-        if (deleted && absent) {
+        const result = await runVaultOperation({ operation: 'deleteAndCheck', service, account });
+        if (result.ok && result.deleted && result.absent) {
           deleteSucceeded = true;
           absentAfterDelete = true;
           cleanupError = undefined;
@@ -297,17 +373,19 @@ ipcMain.handle('school:packaged-vault-probe', async (_event, authorization: unkn
     }
   };
   try {
-    await keytar.setPassword(service, account, value);
-    writeSucceeded = true;
-    readMatched = (await keytar.getPassword(service, account)) === value;
+    const setResult = await runVaultOperation({ operation: 'set', service, account, value });
+    writeSucceeded = setResult.ok;
+    const readResult = await runVaultOperation({ operation: 'verify', service, account, value });
+    readMatched = readResult.ok && readResult.matched === true;
     await cleanupProbe();
   } finally {
     if (!deleteSucceeded || !absentAfterDelete) await cleanupProbe();
   }
+  const executableSha256 = createHash('sha256').update(readFileSync(process.execPath)).digest('hex');
   return {
     provenanceMatched, writeSucceeded, readMatched, deleteSucceeded, absentAfterDelete,
-    cleanup: { deleteAttempts, cleanupError },
-    artifact: { product: String(candidate.product ?? ''), packageVersion: String(candidate.packageVersion ?? ''), candidateCommit: String(candidate.candidateCommit ?? ''), appId: String(candidate.appId ?? ''), provenanceSha256, probeUserDataMatches },
+    cleanup: { deleteAttempts, vaultOperations, cleanupError },
+    artifact: { product: String(candidate.product ?? ''), packageVersion: String(candidate.packageVersion ?? ''), candidateCommit: String(candidate.candidateCommit ?? ''), appId: String(candidate.appId ?? ''), provenanceSha256, probeUserDataMatches, executableSha256, executableVersion: app.getVersion(), executableProduct: app.getName() },
   };
 });
 }

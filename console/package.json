@@ -20,6 +20,7 @@
     "rebuild:native": "electron-builder install-app-deps --platform win32 --arch x64",
     "verify:keytar:packaged": "node scripts/verify-keytar-packaged.mjs",
     "verify:event-copy": "node scripts/verify-event-copy-inventory.mjs",
+    "verify:probe-path": "node scripts/verify-probe-path-fixture.mjs",
     "compile:design": "node scripts/compile-design.mjs && node scripts/extend-pbx-m3.mjs",
     "test:renderer": "tsx --test tests/ui/*.test.tsx",
     "test:inventories": "node scripts/verify-inventories.mjs --allow-unverified && node scripts/negative-design-parity.mjs && node scripts/negative-surface-completeness.mjs && node scripts/negative-evidence-claims.mjs",

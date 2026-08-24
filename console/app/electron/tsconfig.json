@@ -16,6 +16,7 @@
   },
   "include": [
     "main.ts",
+    "keytar-worker.ts",
     "preload.ts",
     "squirrel-events.ts",
     "updater-runtime.ts",
