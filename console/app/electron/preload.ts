@@ -14,6 +14,11 @@ const api: DingDesktopApi = {
   logo: {
     pickFile: () => ipcRenderer.invoke('logo:pick-file'),
   },
+  externalSettings: {
+    listVaultReferences: () => ipcRenderer.invoke('external-settings:list-vault-references'),
+    enrollVaultReference: (request) => ipcRenderer.invoke('external-settings:enroll-vault-reference', request),
+    removeVaultReference: (reference) => ipcRenderer.invoke('external-settings:remove-vault-reference', reference),
+  },
   converter: {
     pickFile: () => ipcRenderer.invoke('converter:pick-file'),
     pickDestination: () => ipcRenderer.invoke('converter:pick-destination'),

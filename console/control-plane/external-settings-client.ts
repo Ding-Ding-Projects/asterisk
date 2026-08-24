@@ -63,7 +63,7 @@ export interface ExternalSettingsFetchResponse {
 
 export type ExternalSettingsFetch = (
   input: string,
-  init: { readonly method: 'GET'; readonly headers: Readonly<Record<string, string>>; readonly redirect: 'error'; readonly signal: AbortSignal },
+  init: { readonly method: 'GET'; readonly headers: Readonly<Record<string, string>>; readonly redirect: 'error'; readonly signal: AbortSignal; readonly resolvedAddress?: string },
 ) => Promise<ExternalSettingsFetchResponse>;
 
 export interface ExternalSettingsHandler {
@@ -77,7 +77,7 @@ export interface ExternalSettingsHandlerOptions {
   readonly now?: () => Date;
   readonly timeoutMs?: number;
   /** Resolves the validated hostname in the privileged process before connect. */
-  readonly resolveHost?: (hostname: string) => Promise<readonly string[]>;
+  readonly resolveHost?: (hostname: string, signal: AbortSignal) => Promise<readonly string[]>;
   /** Optional explicit host allowlist, applied before DNS resolution. */
   readonly allowedHosts?: readonly string[];
 }
@@ -113,6 +113,7 @@ function sourceFailure(source: ExternalSettingsSource, status: ExternalSettingsF
 }
 
 function responseStatus(status: number): ExternalSettingsFailure | undefined {
+  if (status >= 300 && status < 400) return 'blocked';
   if (status === 401 || status === 403) return 'auth-error';
   if (status === 408 || status === 504 || status >= 500) return 'offline';
   if (status === 429) return 'rate-limited';
@@ -214,14 +215,16 @@ async function fetchJson(
     if (allowedHosts && !allowedHosts.has(parsedUrl.hostname.toLowerCase())) {
       throw new ExpectedReadFailure('blocked', 'The external settings host is not on the configured allowlist');
     }
+    let resolvedAddress: string | undefined;
     if (resolveHost) {
-      const addresses = await resolveHost(parsedUrl.hostname);
+      const addresses = await resolveHost(parsedUrl.hostname, bounded.signal);
       const loopbackDevelopment = parsedUrl.protocol === 'http:' && (parsedUrl.hostname === 'localhost' || /^127(?:\.\d{1,3}){3}$/u.test(parsedUrl.hostname) || parsedUrl.hostname === '[::1]' || parsedUrl.hostname === '::1');
       if (addresses.length === 0 || addresses.some((address) => isBlockedResolvedAddress(address) && !(loopbackDevelopment && isLoopbackResolvedAddress(address)))) {
         throw new ExpectedReadFailure('blocked', 'The external settings host resolved to a private or reserved address');
       }
+      resolvedAddress = addresses[0];
     }
-    const response = await fetcher(url, { method: 'GET', headers, redirect: 'error', signal: bounded.signal });
+    const response = await fetcher(url, { method: 'GET', headers, redirect: 'error', signal: bounded.signal, resolvedAddress });
     const responseUrl = response.url ? new URL(response.url).toString() : '';
     const requestedUrl = new URL(url).toString();
     if (response.redirected || (responseUrl !== '' && responseUrl !== requestedUrl)) {

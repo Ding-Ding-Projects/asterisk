@@ -108,6 +108,11 @@ export function installHttpBridge(): void {
         throw new Error('The hosted server cannot open a desktop file picker. Select a local logo through the site surface.');
       },
     },
+    externalSettings: {
+      listVaultReferences: async () => [],
+      enrollVaultReference: async () => ({ ok: false, reason: 'The hosted server does not enroll desktop credential references.' }),
+      removeVaultReference: async () => ({ ok: false, reason: 'The hosted server does not remove desktop credential references.' }),
+    },
     converter: {
       pickFile: async () => { throw new Error('The hosted server cannot open a desktop file picker. Choose a local file through the site surface.'); },
       pickDestination: async () => { throw new Error('The hosted server cannot open a desktop destination picker.'); },

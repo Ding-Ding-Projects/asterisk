@@ -2,6 +2,7 @@ import {
   DEFAULT_LOGO_CROP,
   LOGO_MAX_INPUT_BYTES,
   LOGO_PRESETS,
+  validateLogoCrop,
   type LogoCacheRecord,
   type LogoCropModel,
   type LogoInspectionResult,
@@ -25,6 +26,7 @@ export interface LogoRuntimeState {
   readonly status: 'idle' | 'reading' | 'converting' | 'active' | 'unavailable' | 'failed';
   readonly detail: string;
   readonly active: ActiveLogo;
+  readonly decoderAvailable?: boolean;
 }
 
 function requestId(): string {
@@ -60,17 +62,68 @@ function responseError(response: { ok: boolean; message?: string }): string | un
  * can become active. Conversion failure leaves the previous active mark intact.
  */
 export class LogoRuntime {
-  private state: LogoRuntimeState = { status: 'idle', detail: 'The shipped logo preset is active.', active: initialActive() };
+  private state: LogoRuntimeState = { status: 'idle', detail: 'The shipped logo preset is active.', active: initialActive(), decoderAvailable: undefined };
   private readonly listeners = new Set<(state: LogoRuntimeState) => void>();
 
   constructor(private readonly bridge: LogoRuntimeBridge) {}
+
+  mountDocument(root: Document): () => void {
+    const apply = () => {
+      root.documentElement.dataset.logoPreset = this.state.active.presetId;
+      root.documentElement.dataset.logoSource = this.state.active.kind;
+      const asset = this.state.active.assets.values().next().value as Uint8Array | undefined;
+      const titleMark = root.querySelector<HTMLElement>('[data-window-drag] > div:first-child > span:first-child');
+      if (!asset) {
+        if (titleMark) {
+          titleMark.style.backgroundImage = '';
+          titleMark.style.backgroundRepeat = '';
+          titleMark.style.backgroundPosition = '';
+          titleMark.style.backgroundSize = '';
+          titleMark.style.color = '';
+          titleMark.removeAttribute('aria-label');
+          titleMark.removeAttribute('data-logo-consumer');
+          titleMark.dataset.logoPreset = this.state.active.presetId;
+          titleMark.style.borderRadius = this.state.active.presetId === 'signal-ring' ? '50%' : '0.35rem';
+          titleMark.style.boxShadow = this.state.active.presetId === 'signal-ring' ? '0 0 0 0.18rem #7fd1c8, 0 0 0 0.36rem #f5bd68' : '';
+          titleMark.style.transform = this.state.active.presetId === 'console-mark' ? 'rotate(45deg)' : '';
+        }
+        root.documentElement.style.removeProperty('--app-logo-data-url');
+        return;
+      }
+      const metadata = this.state.active.record?.assets[0];
+      if (!metadata) return;
+      const dataUrl = `data:image/${metadata.receipt.target.format === 'jpeg' ? 'jpeg' : metadata.receipt.target.format};base64,${encodeBase64(asset)}`;
+      root.documentElement.style.setProperty('--app-logo-data-url', `url("${dataUrl}")`);
+      if (titleMark) {
+        titleMark.dataset.logoConsumer = 'titlebar';
+        titleMark.style.backgroundImage = `url("${dataUrl}")`;
+        titleMark.style.backgroundRepeat = 'no-repeat';
+        titleMark.style.backgroundPosition = 'center';
+        titleMark.style.backgroundSize = 'contain';
+        titleMark.style.color = 'transparent';
+        titleMark.style.borderRadius = '0.35rem';
+        titleMark.style.boxShadow = 'none';
+        titleMark.style.transform = 'none';
+        titleMark.setAttribute('aria-label', 'Application logo');
+      }
+      root.querySelectorAll<HTMLElement>('[data-logo-consumer]').forEach((element) => { element.style.backgroundImage = `url("${dataUrl}")`; });
+    };
+    apply();
+    return this.subscribe(apply);
+  }
 
   getState(): LogoRuntimeState { return this.state; }
 
   selectPreset(presetId: string): LogoRuntimeState {
     if (!LOGO_PRESETS.some((preset) => preset.id === presetId)) return this.state;
     this.publish({ status: 'active', detail: 'The selected shipped logo preset is active.', active: { kind: 'shipped-preset', presetId, crop: DEFAULT_LOGO_CROP, assets: new Map() } });
+    void this.persistUiState({ selectedPresetId: presetId, crop: DEFAULT_LOGO_CROP });
     return this.state;
+  }
+
+  async persistUiState(value: { readonly selectedPresetId: string; readonly crop: LogoCropModel }): Promise<void> {
+    if (!LOGO_PRESETS.some((preset) => preset.id === value.selectedPresetId) || !validateLogoCrop(value.crop).ok) return;
+    await this.bridge.controlPlane.request({ requestId: requestId(), action: 'settings.write', payload: { key: 'logo.ui-v1', value: JSON.stringify(value) } });
   }
 
   subscribe(listener: (state: LogoRuntimeState) => void): () => void {
@@ -85,6 +138,18 @@ export class LogoRuntime {
 
   async load(): Promise<LogoRuntimeState> {
     this.publish({ ...this.state, status: 'reading', detail: 'Reading the validated local logo cache.' });
+    const decoderResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.decoder.status' });
+    this.state = { ...this.state, decoderAvailable: decoderResponse.ok && (decoderResponse.data as { available?: unknown } | undefined)?.available === true };
+    const settingsResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'settings.snapshot' });
+    const stored = settingsResponse.ok ? (settingsResponse.data as { values?: Record<string, string> } | undefined)?.values?.['logo.ui-v1'] : undefined;
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as { selectedPresetId?: unknown; crop?: unknown };
+        if (typeof parsed.selectedPresetId === 'string' && LOGO_PRESETS.some((preset) => preset.id === parsed.selectedPresetId) && parsed.crop && validateLogoCrop(parsed.crop as LogoCropModel).ok) {
+          this.state = { ...this.state, active: { kind: 'shipped-preset', presetId: parsed.selectedPresetId, crop: parsed.crop as LogoCropModel, assets: new Map() } };
+        }
+      } catch { /* Defaults remain active. */ }
+    }
     const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.cache.read' });
     const error = responseError(response);
     if (error) {
@@ -131,14 +196,9 @@ export class LogoRuntime {
   async convertAndCache(bytes: Uint8Array, crop: LogoCropModel, targets: readonly LogoTarget[], selectedPresetId?: string, name?: string, declaredMime?: string): Promise<LogoRuntimeState> {
     const previous = this.state;
     this.publish({ ...previous, status: 'converting', detail: 'Converting the local logo within bounded limits.' });
-    const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.convert', payload: { source: { kind: 'local', bytesBase64: encodeBase64(bytes), metadata: { filename: name, declaredMime } }, crop, targets } });
-    if (!response.ok || !response.data || (response.data as { ok?: boolean }).ok !== true) {
+    const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.convert', payload: { source: { kind: 'local', bytesBase64: encodeBase64(bytes), metadata: { filename: name, declaredMime } }, crop, targets, selectedPresetId } });
+    if (!response.ok || !response.data || (response.data as { cached?: boolean }).cached !== true) {
       this.publish({ ...previous, status: 'failed', detail: response.message ?? 'Conversion failed; the previous logo remains active.' });
-      return this.state;
-    }
-    const write = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.cache.write', payload: { selectedPresetId, result: response.data } });
-    if (!write.ok) {
-      this.publish({ ...previous, status: 'failed', detail: write.message ?? 'The converted logo was not cached; the previous logo remains active.' });
       return this.state;
     }
     return this.load();
@@ -151,6 +211,7 @@ export class LogoRuntime {
       return this.state;
     }
     const active = initialActive();
+    await this.bridge.controlPlane.request({ requestId: requestId(), action: 'settings.remove', payload: { key: 'logo.ui-v1' } });
     this.publish({ status: 'active', detail: 'Custom logo cleared; the shipped preset is active.', active });
     return this.state;
   }

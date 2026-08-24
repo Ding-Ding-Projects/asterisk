@@ -30,7 +30,7 @@ export type ControlPlaneAction =
   /* Local logo bytes and scheduled-source readings cross this bridge only through
    * bounded, redacted contracts. Logo sources never become URLs or paths in the
    * renderer, and Home Assistant credentials are vault references only. */
-  | 'logo.inspect' | 'logo.convert' | 'logo.cache.read' | 'logo.cache.asset.read' | 'logo.cache.write' | 'logo.cache.clear'
+  | 'logo.decoder.status' | 'logo.inspect' | 'logo.convert' | 'logo.cache.read' | 'logo.cache.asset.read' | 'logo.cache.write' | 'logo.cache.clear'
   | 'external-settings.refresh' | 'external-settings.state' | 'external-settings.cancel'
   /* Local converter catalog and capability evidence. The queue and file-picker actions
    * use the same namespace so the renderer cannot invent a parallel transport. */
@@ -97,6 +97,11 @@ export interface DingDesktopApi {
   controlPlane: { request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> };
   logo: {
     pickFile(): Promise<{ name: string; bytes: number; dataBase64: string; declaredMime?: string } | undefined>;
+  };
+  externalSettings: {
+    listVaultReferences(): Promise<ReadonlyArray<string>>;
+    enrollVaultReference(request: { reference: string; token: string }): Promise<{ ok: boolean; reference?: string; reason?: string }>;
+    removeVaultReference(reference: string): Promise<{ ok: boolean; reason?: string }>;
   };
   converter: {
     pickFile(): Promise<{ sourcePath: string; name: string; bytes: number; lastModified?: string } | undefined>;

@@ -163,6 +163,8 @@ export function createLogoConversionHandlers(decoder: IsolatedLogoDecoder | unde
     if (!cropCheck.ok) return cropCheck;
     const targetCheck = validateLogoTargets(request.targets);
     if (!targetCheck.ok) return targetCheck;
+    const declaredOutputPixels = request.targets.reduce((total, target) => total + target.width * target.height, 0);
+    if (!Number.isSafeInteger(declaredOutputPixels) || declaredOutputPixels * 4 > LOGO_MAX_OUTPUT_BYTES) return failure('OUTPUT_TOO_LARGE', 'The declared output pixel aggregate exceeds the bounded output budget.');
     const sourceCheck = inspect(request.source);
     if (!sourceCheck.ok) return sourceCheck;
     if (!decoder) return failure('DECODER_UNAVAILABLE', 'The isolated image decoder is not registered for this build.');

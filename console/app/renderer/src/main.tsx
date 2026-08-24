@@ -5,6 +5,7 @@ import { UpdateBanner } from './UpdateBanner';
 import { SurfaceMounts } from './surface-mounts';
 import { installHttpBridge, isHostedRuntime } from './bridge/http-bridge';
 import './styles.css';
+import { mountApplicationRuntime } from './application-runtime';
 
 /**
  * In Electron, `window.dingDesktop` is already installed by the preload script before
@@ -28,6 +29,8 @@ async function boot() {
       return;
     }
   }
+
+  await mountApplicationRuntime();
 
   /* The root is the PBX-admin-integrated shell rather than the plain console one. Both
    * sides of this file changed at once and the merge could have kept either: the hosted

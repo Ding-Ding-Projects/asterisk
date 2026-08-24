@@ -8,11 +8,11 @@ The shared logo contract defines three shipped presets, a local picker, crop, fi
 
 ## Configuration
 
-`shared/logo.ts` validates PNG, JPEG, WebP, and static SVG signatures, dimensions, animation, SVG safety, crop ratios, output targets, and byte budgets before conversion. `control-plane/logo-store.ts` persists only independently inspected output bytes and redacted receipts below the private per-installation cache, with strict manifest keys, duplicate-key rejection, bounded manifest bytes, digest checks, and exact receipt relationships. No logo action accepts a URL. No declared bundled isolated image decoder exists in this checkout, so the picker is visibly disabled and conversion reports `DECODER_UNAVAILABLE` rather than claiming success.
+`shared/logo.ts` validates PNG, JPEG, WebP, and static SVG signatures, dimensions, animation, SVG safety, crop ratios, output targets, and byte budgets before conversion. `control-plane/logo-store.ts` persists only independently inspected output bytes and redacted receipts below the private per-installation cache, with strict manifest keys, duplicate-key rejection, bounded manifest bytes, digest checks, and exact receipt relationships. No logo action accepts a URL. The declared `sharp` dependency is packaged beside an isolated decoder worker, which reopens every encoded output before the internal cache write.
 
 ## Current status
 
-**Desktop application:** Privileged logo inspection, conversion, cache read/write/asset-read/clear actions, desktop local-file picker, `LogoRuntime`, and the reachable `#surface=settings` route are wired. `LogoSurface` visibly explains that conversion is unavailable until a bundled isolated decoder exists. Any future decoder must reopen every output through its isolated boundary before a cache write can occur.
+**Desktop application:** Privileged logo inspection, conversion, decoder-status, cache read/asset-read/clear actions, desktop local-file picker, `LogoRuntime`, and the reachable `#surface=settings` route are wired. `sharp` runs in the packaged isolated worker, with CPU, memory, input/output, frame, pixel, target, aggregate, and reopen bounds enforced before cache replacement.
 
 **Documentation website:** Partial. Every page exposes three presets, contain/fill choice, and local PNG/JPEG upload. The loader verifies the byte signature, bounds encoded bytes and decoded pixels, revalidates the cache, applies the mark live, and retains the prior valid mark after rejection. Crop, focal point, background treatment, and multi-size output remain incomplete.
 
@@ -26,7 +26,7 @@ The renderer lifecycle exposes state and recovery text for the UI mount, but thi
 
 ## Verification
 
-Verification was not run in this lane. The concrete bridge paths are `logo:pick-file`, `logo.inspect`, `logo.convert`, `logo.cache.read`, `logo.cache.asset.read`, `logo.cache.write`, and `logo.cache.clear`; a verified packaged decoder and built-artifact interaction remain open.
+Verification was not run in this lane. The concrete bridge paths are `logo:pick-file`, `logo.decoder.status`, `logo.inspect`, `logo.convert`, `logo.cache.read`, `logo.cache.asset.read`, and `logo.cache.clear`; `logo.cache.write` is internal-only. The packaged decoder and built-artifact interaction remain unverified.
 
 ## Suggested articles
 

@@ -881,14 +881,17 @@
       }
     },
     "app-logo-customization": {
-      "status": "partial",
-      "note": "Local logo validation, private converted-asset cache, desktop picker, privileged bridge actions, renderer lifecycle, and a reachable settings route are mounted. No declared bundled image decoder exists, so the picker visibly remains disabled and conversion is explicitly unavailable until one is proven.",
+      "status": "implemented-unverified",
+      "note": "Local logo validation, private converted-asset cache, desktop picker, privileged bridge actions, renderer lifecycle, reachable settings route, and a packaged sharp-backed isolated decoder worker are mounted. Decoder reopen and cache validation remain unverified until the build path runs.",
       "implementation": {
         "paths": [
           "shared/logo.ts",
           "control-plane/logo-converter.ts",
           "control-plane/logo-store.ts",
+          "control-plane/logo-decoder.ts",
+          "control-plane/logo-decoder-worker.ts",
           "control-plane/dispatch.ts",
+          "app/renderer/src/application-runtime.ts",
           "app/electron/main.ts",
           "app/electron/preload.ts",
           "app/renderer/src/logo-runtime.ts",
@@ -901,7 +904,7 @@
         ]
       },
       "registration": {
-        "paths": ["app/electron/main.ts", "app/electron/preload.ts", "control-plane/dispatch.ts", "app/renderer/src/surface-mounts.tsx", "app/renderer/src/settings-surface.tsx"],
+        "paths": ["app/electron/main.ts", "app/electron/preload.ts", "control-plane/dispatch.ts", "app/renderer/src/application-runtime.ts", "app/renderer/src/surface-mounts.tsx", "app/renderer/src/settings-surface.tsx"],
         "symbols": [
           {"path": "app/electron/main.ts", "name": "logo:pick-file", "kind": "ipc-handler"},
           {"path": "app/electron/preload.ts", "name": "logo.pickFile", "kind": "bridge"},

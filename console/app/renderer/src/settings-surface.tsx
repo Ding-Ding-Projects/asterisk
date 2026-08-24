@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ScheduleRule, ScheduleSource, Weekday } from '../../../shared/settings-schema';
-import { DEFAULT_LOGO_CROP, LOGO_PRESETS } from '../../../shared/logo';
 import { LogoSurface } from './logo-surface';
 import { createInitialLogoUiState, type LogoUiState } from './logo-state';
-import { LogoRuntime, type LogoRuntimeState } from './logo-runtime';
-import { ExternalSettingsRuntime, type ExternalRuleState } from './external-settings-runtime';
-import { createDurableStorage } from './durable-storage';
-import { RendererSettingsRuntime, type RendererSettingsSnapshot } from './settings-runtime';
-import { SettingsStore } from './settings-store';
+import type { LogoRuntimeState } from './logo-runtime';
+import type { ExternalRuleState } from './external-settings-runtime';
+import { getApplicationRuntime } from './application-runtime';
+import type { RendererSettingsSnapshot } from './settings-runtime';
 import './settings-surface.css';
 
 function id(prefix: string): string {
@@ -42,12 +40,17 @@ export function SettingsSurface() {
   const [logoState, setLogoState] = useState<LogoUiState>(createInitialLogoUiState);
   const [logoRuntimeState, setLogoRuntimeState] = useState<LogoRuntimeState | undefined>();
   const [externalStates, setExternalStates] = useState<ReadonlyArray<ExternalRuleState>>([]);
+  const [vaultReferences, setVaultReferences] = useState<ReadonlyArray<string>>([]);
+  const [newVaultReference, setNewVaultReference] = useState('');
+  const [vaultToken, setVaultToken] = useState('');
+  const [vaultStatus, setVaultStatus] = useState('');
   const [busy, setBusy] = useState(false);
   const rulesRef = useRef<readonly ScheduleRule[]>([]);
-  const durable = useMemo(() => createDurableStorage(window.dingDesktop), []);
-  const settingsRuntime = useMemo(() => new RendererSettingsRuntime({ store: new SettingsStore(durable.storage), vocabularyStorage: durable.storage }), [durable]);
-  const logoRuntime = useMemo(() => new LogoRuntime({ logo: window.dingDesktop?.logo, controlPlane: window.dingDesktop!.controlPlane }), []);
-  const externalRuntime = useMemo(() => new ExternalSettingsRuntime({ controlPlane: window.dingDesktop!.controlPlane }), []);
+  const applicationRuntime = useMemo(() => getApplicationRuntime(), []);
+  const durable = applicationRuntime.durable;
+  const settingsRuntime = applicationRuntime.settings;
+  const logoRuntime = applicationRuntime.logo;
+  const externalRuntime = applicationRuntime.external;
 
   useEffect(() => {
     const unsubscribeSettings = settingsRuntime.subscribe(setSnapshot);
@@ -68,7 +71,7 @@ export function SettingsSurface() {
     return () => {
       unsubscribeSettings();
       unsubscribeLogo();
-      settingsRuntime.dispose();
+      void externalRuntime.cancel();
     };
   }, [durable, externalRuntime, logoRuntime, settingsRuntime]);
 
@@ -88,6 +91,10 @@ export function SettingsSurface() {
     const timer = window.setInterval(() => { void refreshAll(); }, 60_000);
     return () => { cancelled = true; window.clearInterval(timer); };
   }, [externalRuntime, settingsRuntime, snapshot?.hydrated]);
+
+  useEffect(() => {
+    void window.dingDesktop?.externalSettings.listVaultReferences().then(setVaultReferences);
+  }, []);
 
   if (!snapshot) return <section className="settings-surface" aria-live="polite"><h2>Settings</h2><p>Reading validated local settings...</p></section>;
 
@@ -122,20 +129,33 @@ export function SettingsSurface() {
     setExternalStates(externalRuntime.all());
     settingsRuntime.setScheduleSourceState(rule.id, result.active);
   };
+  const enrollVaultReference = async () => {
+    const result = await window.dingDesktop?.externalSettings.enrollVaultReference({ reference: newVaultReference, token: vaultToken });
+    setVaultStatus(result?.ok ? 'Credential stored in the operating-system vault.' : result?.reason ?? 'Credential enrollment is unavailable.');
+    if (result?.ok && result.reference) {
+      setVaultReferences((current) => [...new Set([...current, result.reference!])].sort());
+      setNewVaultReference('');
+      setVaultToken('');
+    }
+  };
 
   return (
     <section className="settings-surface" aria-labelledby="settings-surface-title">
-      <header className="settings-surface-heading"><div><p className="settings-eyebrow">Application settings</p><h2 id="settings-surface-title">Appearance and schedules</h2><p>Values are hydrated from the local store. Temporary scheduled values never replace the saved base.</p></div><span role="status">{snapshot.hydrated ? 'Hydrated' : 'Reading'}</span></header>
+      <header className="settings-surface-heading"><div><p className="settings-eyebrow">Application settings</p><h2 id="settings-surface-title">Appearance and schedules</h2><p>Values are hydrated from the local store. Temporary scheduled values never replace the saved base.</p><label>Display name<input value={snapshot.base.displayName.value} onChange={(event) => { const value = event.currentTarget.value; settingsRuntime.update((draft) => { draft.displayName.value = value; }); }} /></label></div><span role="status">{snapshot.hydrated ? 'Hydrated' : 'Reading'}</span></header>
       <LogoSurface
         state={logoState}
         onStateChange={(patch) => {
           if (patch.selectedPresetId) logoRuntime.selectPreset(patch.selectedPresetId);
-          setLogoState((previous) => ({ ...previous, ...patch }));
+          setLogoState((previous) => {
+            const next = { ...previous, ...patch };
+            void logoRuntime.persistUiState({ selectedPresetId: next.selectedPresetId, crop: next.crop });
+            return next;
+          });
         }}
         onChooseFile={(file) => { void chooseFile(file); }}
         onReset={() => { void logoRuntime.clear(); }}
         disabled={busy}
-        conversionUnavailable
+        conversionUnavailable={logoRuntimeState?.decoderAvailable !== true}
       />
       <section className="schedule-editor" aria-labelledby="schedule-editor-title">
         <div className="settings-surface-heading"><div><p className="settings-eyebrow">Scheduled settings</p><h3 id="schedule-editor-title">Rules</h3><p>Timezone: <code>{snapshot.base.schedule.timeZone}</code>. Higher priority wins, then later list position.</p></div><button type="button" onClick={createRule}>Create rule from current defaults</button></div>
@@ -147,12 +167,13 @@ export function SettingsSurface() {
             <label>Weekdays<select value={rule.weekdays === 'every-day' ? 'every-day' : rule.weekdays.join(',')} onChange={(event) => patchRule(rule.id, { weekdays: event.currentTarget.value === 'every-day' ? 'every-day' : event.currentTarget.value.split(',').map(Number) as Weekday[] })}><option value="every-day">Every day</option><option value="1,2,3,4,5">Monday to Friday</option><option value="0,6">Saturday and Sunday</option></select></label>
             <label>Source<select value={rule.source.kind} onChange={(event) => patchRule(rule.id, { source: sourceFor(event.currentTarget.value, rule.source) })}><option value="local">Local schedule</option><option value="https-api">HTTPS API</option><option value="home-assistant-boolean">Home Assistant boolean</option></select></label>
             {rule.source.kind === 'https-api' ? <div className="schedule-fields"><label>Endpoint<input type="url" value={rule.source.endpoint} onChange={(event) => patchRule(rule.id, { source: { ...rule.source, endpoint: event.currentTarget.value } })} /></label><label>Refresh minutes<input type="number" min="1" max="1440" value={rule.source.refreshMinutes} onChange={(event) => patchRule(rule.id, { source: { ...rule.source, refreshMinutes: Number(event.currentTarget.value) } })} /></label></div> : null}
-            {rule.source.kind === 'home-assistant-boolean' ? <div className="schedule-fields"><label>Base URL<input type="url" value={rule.source.baseUrl} onChange={(event) => patchRule(rule.id, { source: { ...rule.source, baseUrl: event.currentTarget.value } })} /></label><label>Entity<input value={rule.source.entityId} placeholder="binary_sensor.example" onChange={(event) => patchRule(rule.id, { source: { ...rule.source, entityId: event.currentTarget.value } })} /></label><label>Vault reference<input value={rule.source.vaultAccountKey} onChange={(event) => patchRule(rule.id, { source: { ...rule.source, vaultAccountKey: event.currentTarget.value } })} /></label><label>Refresh minutes<input type="number" min="1" max="1440" value={rule.source.refreshMinutes} onChange={(event) => patchRule(rule.id, { source: { ...rule.source, refreshMinutes: Number(event.currentTarget.value) } })} /></label></div> : null}
+            {rule.source.kind === 'home-assistant-boolean' ? <div className="schedule-fields"><label>Base URL<input type="url" value={rule.source.baseUrl} onChange={(event) => patchRule(rule.id, { source: { ...rule.source, baseUrl: event.currentTarget.value } })} /></label><label>Entity<input value={rule.source.entityId} placeholder="binary_sensor.example" onChange={(event) => patchRule(rule.id, { source: { ...rule.source, entityId: event.currentTarget.value } })} /></label><label>Stored credential<select value={rule.source.vaultAccountKey} onChange={(event) => patchRule(rule.id, { source: { ...rule.source, vaultAccountKey: event.currentTarget.value } })}><option value="">Choose an enrolled reference</option>{vaultReferences.map((reference) => <option key={reference} value={reference}>{reference}</option>)}</select></label><label>Refresh minutes<input type="number" min="1" max="1440" value={rule.source.refreshMinutes} onChange={(event) => patchRule(rule.id, { source: { ...rule.source, refreshMinutes: Number(event.currentTarget.value) } })} /></label></div> : null}
             <p className="schedule-hint">{sourceValidationHint(rule.source)} {sourceLabel(rule.source)}</p>
             {rule.source.kind !== 'local' ? <div className="schedule-status" role="status"><button type="button" onClick={() => void refreshExternal(rule)}>Refresh source</button>{external ? <span>{external.status}: {external.active ? 'active' : 'inactive'}{external.isFallback ? ' (using fallback)' : ''}</span> : <span>No source reading yet.</span>}</div> : null}
           </article>;
         })}
       </section>
+      <section className="vault-enrollment" aria-labelledby="vault-enrollment-title"><h3 id="vault-enrollment-title">Home Assistant credential enrollment</h3><p>Choose an enrolled reference in a rule. The credential value is sent once to the desktop vault and is never placed in settings or renderer state.</p><div className="schedule-fields"><label>New reference<input value={newVaultReference} onChange={(event) => setNewVaultReference(event.currentTarget.value)} placeholder="home-assistant-main" /></label><label>Credential value<input type="password" value={vaultToken} onChange={(event) => setVaultToken(event.currentTarget.value)} /></label><button type="button" onClick={() => void enrollVaultReference()} disabled={!newVaultReference || !vaultToken}>Store in vault</button></div><p role="status">{vaultStatus || `${vaultReferences.length} enrolled reference${vaultReferences.length === 1 ? '' : 's'}.`}</p></section>
       <p className="settings-runtime-status" role="status">{logoRuntimeState?.detail ?? 'The shipped logo preset is active.'}</p>
     </section>
   );

@@ -88,3 +88,15 @@ body,
 .surface-mount-host > nav a[aria-current="page"] {
   background: var(--md-sys-color-secondary-container, #29382e);
 }
+:root {
+  --appearance-font-scale: 1;
+  --appearance-font-weight: 400;
+  --accent: #6750A4;
+  --app-logo-data-url: none;
+}
+html { color-scheme: dark; font-size: calc(100% * var(--appearance-font-scale)); font-weight: var(--appearance-font-weight); }
+html[data-appearance-theme='light'] { color-scheme: light; }
+html[data-appearance-theme='dark'] { color-scheme: dark; }
+html[data-appearance-density='compact'] { --surface-gap: .5rem; }
+html[data-appearance-density='comfortable'] { --surface-gap: 1rem; }
+html[data-appearance-density='spacious'] { --surface-gap: 1.5rem; }

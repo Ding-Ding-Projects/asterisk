@@ -9,6 +9,9 @@
  */
 import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync, unlinkSync, statSync } from 'node:fs';
 import { lookup } from 'node:dns/promises';
+import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
+import { Readable } from 'node:stream';
 import { join, dirname } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -42,13 +45,12 @@ import type { ChangePlan, ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
 import {
   LOGO_MAX_INPUT_BYTES,
-  type LogoCacheWriteRequest,
-  type LogoConversionResult,
   type LogoSourceInput,
 } from '../shared/logo.js';
-import { createLogoConversionHandlers, validateLogoConversionResult, validateLogoWirePayload, type LogoConversionRequest } from './logo-converter.js';
+import { createLogoConversionHandlers, type LogoConversionRequest } from './logo-converter.js';
+import { createIsolatedLogoDecoder } from './logo-decoder.js';
 import { LogoStore, logoStoreHandlers } from './logo-store.js';
-import { createExternalSettingsHandler, type VaultReferenceReader } from './external-settings-client.js';
+import { createExternalSettingsHandler, type ExternalSettingsFetch, type VaultReferenceReader } from './external-settings-client.js';
 import { createExternalSettingsStore } from './external-settings-store.js';
 import { projectExternalSettingsState, validateExternalSource, validateAssignments } from '../shared/external-settings.js';
 
@@ -70,7 +72,7 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'daemon.status', 'daemon.start', 'daemon.stop', 'daemon.restart',
   'history.list', 'history.restore', 'media.list', 'media.upload', 'media.remove',
   'local-history.list', 'local-history.record', 'local-history.restore',
-  'logo.inspect', 'logo.convert', 'logo.cache.read', 'logo.cache.asset.read', 'logo.cache.write', 'logo.cache.clear',
+  'logo.decoder.status', 'logo.inspect', 'logo.convert', 'logo.cache.read', 'logo.cache.asset.read', 'logo.cache.write', 'logo.cache.clear',
   'external-settings.refresh', 'external-settings.state', 'external-settings.cancel',
   'converter.catalog', 'converter.pdf-capabilities', 'converter.sniff',
   'converter.queue.create', 'converter.queue.enqueue-one', 'converter.queue.page',
@@ -130,47 +132,6 @@ function logoConversionRequestFromPayload(payload: Readonly<Record<string, unkno
   return { source, crop: payload?.crop as LogoConversionRequest['crop'], targets: payload.targets as LogoConversionRequest['targets'] };
 }
 
-function wireLogoResult(result: LogoConversionResult): unknown {
-  if (!result.ok) return result;
-  return {
-    ...result,
-    outputs: result.outputs.map((output) => ({
-      target: output.target,
-      receipt: output.receipt,
-      bytesBase64: Buffer.from(output.bytes).toString('base64'),
-    })),
-  };
-}
-
-function logoResultFromPayload(payload: Readonly<Record<string, unknown>> | undefined): LogoCacheWriteRequest | undefined {
-  const candidate = payload?.result;
-  if (!validateLogoWirePayload(candidate).ok || !candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return undefined;
-  const value = candidate as Record<string, unknown>;
-  if (value.ok !== true || !Array.isArray(value.outputs) || !value.inspection || !value.crop || value.packageIdentity !== 'ding-pbx-console') return undefined;
-  const outputs = [];
-  for (const output of value.outputs) {
-    if (!output || typeof output !== 'object' || Array.isArray(output)) return undefined;
-    const item = output as Record<string, unknown>;
-    const bytes = decodeBoundedBase64(item.bytesBase64, 16 * 1024 * 1024);
-    if (!bytes || !item.target || !item.receipt) return undefined;
-    outputs.push({ target: item.target, bytes, receipt: item.receipt });
-  }
-  const result = {
-    ok: true,
-    packageIdentity: 'ding-pbx-console',
-    inspection: value.inspection,
-    crop: value.crop,
-    outputs,
-  } as LogoConversionResult;
-  const checked = validateLogoConversionResult(result);
-  if (!checked.ok) return undefined;
-  return {
-    kind: 'write',
-    selectedPresetId: typeof payload?.selectedPresetId === 'string' ? payload.selectedPresetId : undefined,
-    result,
-  };
-}
-
 export interface ControlPlaneDispatcherOptions {
   /** Where per-installation state (server inventory, local history) is written. */
   userDataPath: string;
@@ -185,6 +146,7 @@ export interface ControlPlaneDispatcherOptions {
   converterPickDestination?: () => Promise<string | undefined>;
   /** A vault reference reader. The token itself never enters this dispatcher. */
   externalSettingsVault?: VaultReferenceReader;
+  logoDecoderWorkerPath?: string;
 }
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
@@ -201,13 +163,43 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     ...createOllamaChatHandlers(ollamaChat),
   };
   const logoStore = new LogoStore({ rootPath: join(userDataPath, 'logo-cache') });
-  const logoHandlers = createLogoConversionHandlers(undefined, logoStoreHandlers(logoStore));
-  const resolveExternalHost = async (hostname: string): Promise<readonly string[]> => {
-    const records = await lookup(hostname, { all: true, verbatim: true });
-    return records.map((record) => record.address);
+  const candidateDecoderPath = options.logoDecoderWorkerPath && existsSync(options.logoDecoderWorkerPath)
+    ? options.logoDecoderWorkerPath
+    : join(import.meta.dirname, 'logo-decoder-worker.js');
+  const logoDecoder = existsSync(candidateDecoderPath) ? createIsolatedLogoDecoder({ workerPath: candidateDecoderPath }) : undefined;
+  const logoHandlers = createLogoConversionHandlers(logoDecoder, logoStoreHandlers(logoStore));
+  const resolveExternalHost = async (hostname: string, signal: AbortSignal): Promise<readonly string[]> => {
+    const lookupPromise = lookup(hostname, { all: true, verbatim: true }).then((records) => records.map((record) => record.address));
+    return await Promise.race([
+      lookupPromise,
+      new Promise<readonly string[]>((_, reject) => signal.addEventListener('abort', () => reject(new DOMException('External DNS lookup cancelled', 'AbortError')), { once: true })),
+    ]);
   };
+  const pinnedExternalFetch: ExternalSettingsFetch = (input, init) => new Promise((resolve, reject) => {
+    let parsed: URL;
+    try { parsed = new URL(input); } catch { reject(new Error('External settings URL is invalid.')); return; }
+    const address = init.resolvedAddress;
+    const requestFn = parsed.protocol === 'https:' ? httpsRequest : parsed.protocol === 'http:' ? httpRequest : undefined;
+    if (!requestFn || !address) { reject(new Error('External settings connection was not pinned to a validated address.')); return; }
+    const request = requestFn({
+      protocol: parsed.protocol,
+      hostname: address,
+      port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+      path: `${parsed.pathname}${parsed.search}`,
+      method: init.method,
+      headers: { ...init.headers, Host: parsed.host },
+      ...(parsed.protocol === 'https:' ? { servername: parsed.hostname, rejectUnauthorized: true } : {}),
+    }, (response) => {
+      const headers = { get(name: string): string | null { const value = response.headers[name.toLowerCase()]; return Array.isArray(value) ? value[0] ?? null : value ?? null; } };
+      resolve({ status: response.statusCode ?? 0, redirected: false, url: input, headers, body: Readable.toWeb(response) as unknown as ReadableStream<Uint8Array>, text: async () => '' });
+    });
+    const abort = () => request.destroy(new Error('External settings request cancelled.'));
+    if (init.signal.aborted) abort(); else init.signal.addEventListener('abort', abort, { once: true });
+    request.once('error', reject);
+    request.end();
+  });
   const externalSettingsStore = createExternalSettingsStore({
-    handler: createExternalSettingsHandler({ vault: options.externalSettingsVault, resolveHost: resolveExternalHost }),
+    handler: createExternalSettingsHandler({ vault: options.externalSettingsVault, fetch: pinnedExternalFetch, resolveHost: resolveExternalHost }),
   });
   const ollamaReady = ollamaPullQueue.initialize();
   const converterQueue = converterRegistry.then(async (registry) => {
@@ -648,6 +640,9 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           return { ok: false, requestId: request.requestId, code: 'DIM_SUM_CACHE_UNAVAILABLE', message: 'The local dim-sum cache could not be read.' };
         }
       }
+      if (request.action === 'logo.decoder.status') {
+        return { ok: true, requestId: request.requestId, data: { available: logoDecoder !== undefined } };
+      }
       if (request.action === 'logo.inspect') {
         const source = logoSourceFromPayload(request.payload);
         if (!source) return { ok: false, requestId: request.requestId, code: 'LOGO_INPUT_INVALID', message: 'Choose a bounded local image; network sources and malformed bytes are refused.' };
@@ -656,7 +651,14 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'logo.convert') {
         const conversion = logoConversionRequestFromPayload(request.payload);
         if (!conversion) return { ok: false, requestId: request.requestId, code: 'LOGO_INPUT_INVALID', message: 'A local logo source, crop model, and bounded output targets are required.' };
-        return { ok: true, requestId: request.requestId, data: wireLogoResult(await logoHandlers.convert(conversion)) };
+        const result = await logoHandlers.convert(conversion);
+        if (!result.ok) return { ok: true, requestId: request.requestId, data: result };
+        try {
+          const record = await logoHandlers.cache.write({ kind: 'write', result, selectedPresetId: typeof request.payload?.selectedPresetId === 'string' ? request.payload.selectedPresetId : undefined });
+          return { ok: true, requestId: request.requestId, data: { cached: true, record } };
+        } catch (error) {
+          return { ok: false, requestId: request.requestId, code: 'LOGO_CACHE_WRITE_FAILED', message: error instanceof Error ? error.message : 'The previous logo remains active because the cache write failed.' };
+        }
       }
       if (request.action === 'logo.cache.read') {
         return { ok: true, requestId: request.requestId, data: await logoHandlers.cache.read({ kind: 'read' }) };
@@ -668,13 +670,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         return { ok: true, requestId: request.requestId, data: bytes ? { filename, bytesBase64: Buffer.from(bytes).toString('base64') } : undefined };
       }
       if (request.action === 'logo.cache.write') {
-        const write = logoResultFromPayload(request.payload);
-        if (!write) return { ok: false, requestId: request.requestId, code: 'LOGO_CACHE_INPUT_INVALID', message: 'Only a successful, independently validated local conversion may be cached.' };
-        try {
-          return { ok: true, requestId: request.requestId, data: await logoHandlers.cache.write(write) };
-        } catch (error) {
-          return { ok: false, requestId: request.requestId, code: 'LOGO_CACHE_WRITE_FAILED', message: error instanceof Error ? error.message : 'The previous logo remains active because the cache write failed.' };
-        }
+        return { ok: false, requestId: request.requestId, code: 'LOGO_CACHE_INTERNAL_ONLY', message: 'Logo cache writes are performed only after privileged isolated conversion and reopen validation.' };
       }
       if (request.action === 'logo.cache.clear') {
         await logoHandlers.cache.clear({ kind: request.payload?.kind === 'reset' ? 'reset' : 'clear' });

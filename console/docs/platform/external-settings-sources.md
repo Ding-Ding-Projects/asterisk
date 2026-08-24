@@ -32,7 +32,7 @@ The client is designed for the privileged boundary. It does not read arbitrary f
 
 ## Verification boundary
 
-This lane adds no test, build, package, runtime interaction, or capture verification. The dispatch path is wired, but a real OS-vault adapter and built-artifact interaction remain open; absence of either is reported as unavailable rather than success.
+This lane adds no test, build, package, runtime interaction, or capture verification. The dispatch path, DNS policy, credential enrollment writer, and renderer route are wired, but built-artifact interaction remains open; an absent vault record is reported as unavailable rather than success.
 
 ## Suggested articles
 

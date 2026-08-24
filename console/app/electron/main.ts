@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, safeStorage } from 'electron';
-import { readFile, stat } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
@@ -40,7 +41,43 @@ function externalSettingsVault(): VaultReferenceReader {
   };
 }
 
-const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false, externalSettingsVault: externalSettingsVault() });
+const VAULT_REFERENCE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/u;
+const vaultDirectory = () => join(app.getPath('userData'), 'credentials');
+
+ipcMain.handle('external-settings:list-vault-references', async () => {
+  try {
+    const entries = await readdir(vaultDirectory(), { withFileTypes: true });
+    return entries.filter((entry) => entry.isFile() && entry.name.endsWith('.enc') && VAULT_REFERENCE.test(entry.name.slice(0, -4))).map((entry) => entry.name.slice(0, -4));
+  } catch {
+    return [];
+  }
+});
+ipcMain.handle('external-settings:enroll-vault-reference', async (_event, request: { reference?: unknown; token?: unknown }) => {
+  const reference = typeof request?.reference === 'string' ? request.reference.trim() : '';
+  const token = typeof request?.token === 'string' ? request.token : '';
+  if (!safeStorage.isEncryptionAvailable()) return { ok: false, reason: 'The operating-system credential vault is unavailable.' };
+  if (!VAULT_REFERENCE.test(reference) || token.length < 1 || token.length > 4096) return { ok: false, reason: 'Provide a bounded reference and credential value.' };
+  try {
+    await mkdir(vaultDirectory(), { recursive: true });
+    const temporary = join(vaultDirectory(), `${reference}.${randomUUID()}.tmp`);
+    try {
+      await writeFile(temporary, safeStorage.encryptString(token).toString('base64'), { encoding: 'utf8', flag: 'wx' });
+      await rename(temporary, join(vaultDirectory(), `${reference}.enc`));
+      return { ok: true, reference };
+    } finally {
+      await unlink(temporary).catch(() => undefined);
+    }
+  } catch {
+    return { ok: false, reason: 'The credential could not be stored in the operating-system vault.' };
+  }
+});
+ipcMain.handle('external-settings:remove-vault-reference', async (_event, reference: unknown) => {
+  if (typeof reference !== 'string' || !VAULT_REFERENCE.test(reference)) return { ok: false, reason: 'The credential reference is invalid.' };
+  try { await unlink(join(vaultDirectory(), `${reference}.enc`)); return { ok: true }; }
+  catch { return { ok: false, reason: 'The credential reference could not be removed.' }; }
+});
+
+const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false, externalSettingsVault: externalSettingsVault(), logoDecoderWorkerPath: join(process.resourcesPath, 'logo-decoder', 'logo-decoder-worker.js') });
 const { controlPlaneRequest } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let updateCheckInFlight: Promise<void> | undefined;

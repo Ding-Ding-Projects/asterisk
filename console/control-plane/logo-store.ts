@@ -5,7 +5,7 @@
  * selected source filename and source bytes are never written to this store,
  * history, exports, or diagnostics.
  */
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join, parse, resolve, sep } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import {
@@ -196,7 +196,10 @@ export class LogoStore {
   async read(): Promise<LogoCacheRecord | undefined> {
     let raw: string;
     try {
-      raw = await readFile(join(this.root, 'manifest.json'), 'utf8');
+      const manifestPath = join(this.root, 'manifest.json');
+      const info = await stat(manifestPath);
+      if (!info.isFile() || info.size > LOGO_MAX_MANIFEST_BYTES) return undefined;
+      raw = await readFile(manifestPath, 'utf8');
     } catch {
       return undefined;
     }
