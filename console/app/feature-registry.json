@@ -2033,7 +2033,8 @@
           "app/renderer/src/surface-mounts.tsx",
           "control-plane/auth-lock-runtime.ts",
           "control-plane/lock-store.ts",
-          "app/electron/credential-vault.ts"
+          "app/electron/credential-vault.ts",
+          "app/renderer/src/destructive-action-gate.tsx"
         ],
         "symbols": [
           {
@@ -2295,7 +2296,9 @@
           "app/renderer/src/surface-mounts.tsx",
           "control-plane/auth-lock-runtime.ts",
           "control-plane/authenticator-store.ts",
-          "app/electron/credential-vault.ts"
+          "app/electron/credential-vault.ts",
+          "app/renderer/src/destructive-action-gate.tsx",
+          "app/renderer/src/qr.ts"
         ],
         "symbols": [
           {

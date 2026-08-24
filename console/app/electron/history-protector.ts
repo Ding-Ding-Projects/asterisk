@@ -1,8 +1,8 @@
 import { safeStorage } from "electron";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { readFileSync } from "node:fs";
 import type { EncryptedHistorySnapshot, HistorySnapshotProtector } from "../../shared/history.js";
+import { atomicWriteFileSync } from "../../control-plane/atomic-file.js";
 
 export class ElectronHistorySnapshotProtector implements HistorySnapshotProtector {
   readonly #path: string;
@@ -15,14 +15,13 @@ export class ElectronHistorySnapshotProtector implements HistorySnapshotProtecto
     if (this.#key) return this.#key;
     try { if (!safeStorage.isEncryptionAvailable()) return undefined; } catch { return undefined; }
     try {
-      mkdirSync(dirname(this.#path), { recursive: true });
       const stored = readFileSync(this.#path, "utf8").trim();
       const decoded = safeStorage.decryptString(Buffer.from(stored, "base64"));
       this.#key = decoded ? Buffer.from(decoded, "base64") : undefined;
     } catch {
       try {
         const key = randomBytes(32);
-        writeFileSync(this.#path, safeStorage.encryptString(key.toString("base64")).toString("base64"), { encoding: "utf8", flag: "wx" });
+        atomicWriteFileSync(this.#path, safeStorage.encryptString(key.toString("base64")).toString("base64"));
         this.#key = key;
       } catch { this.#key = undefined; }
     }

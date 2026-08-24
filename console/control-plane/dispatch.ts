@@ -61,12 +61,12 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'daemon.status', 'daemon.start', 'daemon.stop', 'daemon.restart',
   'history.list', 'history.restore', 'media.list', 'media.upload', 'media.remove',
   'local-history.list', 'local-history.record', 'local-history.restore',
-  'authenticator.list', 'authenticator.register', 'authenticator.confirm', 'authenticator.remove', 'authenticator.secret',
+  'authenticator.list', 'authenticator.register', 'authenticator.confirm', 'authenticator.remove', 'authenticator.snapshot', 'authenticator.restore',
   'toy-lock.initialize', 'toy-lock.list', 'toy-lock.create', 'toy-lock.unlock', 'toy-lock.relock', 'toy-lock.remove',
   'toy-lock.recovery',
   'toy-lock-credential.create',
   'support-ticket.list', 'support-ticket.create', 'support-ticket.advance',
-  'unlock-ladder.issue', 'unlock-ladder.grade',
+  'unlock-ladder.issue', 'unlock-ladder.hit', 'unlock-ladder.grade',
   'converter.catalog', 'converter.pdf-capabilities', 'converter.sniff',
   'converter.queue.create', 'converter.queue.enqueue-one', 'converter.queue.page',
   'converter.queue.start', 'converter.queue.pause', 'converter.queue.resume', 'converter.queue.cancel',
@@ -915,16 +915,24 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'authenticator.confirm') {
         const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
         const code = typeof request.payload?.code === 'string' ? request.payload.code : '';
-        const atMs = typeof request.payload?.atMs === 'number' ? request.payload.atMs : Date.now();
-        return { ok: true, requestId: request.requestId, data: await authLocks.authenticator.confirmAndArm(id, code, atMs, 1) };
+        return { ok: true, requestId: request.requestId, data: await authLocks.authenticator.confirmAndArm(id, code, Date.now(), 1) };
       }
       if (request.action === 'authenticator.remove') {
         const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
         return { ok: true, requestId: request.requestId, data: await authLocks.authenticator.remove(id) };
       }
-      if (request.action === 'authenticator.secret') {
+      if (request.action === 'authenticator.snapshot') {
         const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
-        return { ok: true, requestId: request.requestId, data: await authLocks.secret(id) };
+        return { ok: true, requestId: request.requestId, data: await authLocks.codeSnapshot(id) };
+      }
+      if (request.action === 'authenticator.restore') {
+        const commitId = typeof request.payload?.commitId === 'string' ? request.payload.commitId : '';
+        const restored = await authLocks.history.restore(commitId);
+        if (!restored.ok) return { ok: true, requestId: request.requestId, data: restored };
+        const applied = await authLocks.authenticator.restoreRedacted(restored.value.snapshot);
+        if (!applied.ok) return { ok: true, requestId: request.requestId, data: applied };
+        await authLocks.history.record({ action: 'restored', stableRecordId: applied.value.id, subject: `Authenticator ${applied.value.issuer} restored`, snapshot: { kind: 'authenticator-entry', entry: applied.value } });
+        return { ok: true, requestId: request.requestId, data: applied };
       }
       if (request.action === 'toy-lock.initialize') {
         return { ok: true, requestId: request.requestId, data: await authLocks.locksReady };
@@ -947,7 +955,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           if (!/^[A-Z2-7]+$/u.test(normalized) || [1, 3, 6].includes(normalized.length % 8)) return { ok: false, requestId: request.requestId, code: 'TOY_LOCK_CREDENTIAL_INVALID', message: 'The TOTP secret is not a bounded base32 value.' };
         }
         const vaultAccount = `toy-lock/${targetId}/${randomUUID()}`;
-        const saved = await authLocks.vault.setSecret(vaultAccount, value);
+        const saved = await authLocks.vault.setSecret(vaultAccount, value, method === 'password' ? 'password-hash' : 'totp');
         if (!saved.ok) return { ok: false, requestId: request.requestId, code: saved.code, message: saved.message };
         return { ok: true, requestId: request.requestId, data: { vaultAccount, method } };
       }
@@ -964,7 +972,10 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'toy-lock.unlock') {
         await authLocks.locksReady;
         const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
-        const candidate = typeof request.payload?.candidateBase64 === 'string' ? Uint8Array.from(Buffer.from(request.payload.candidateBase64, 'base64')) : new Uint8Array();
+        const encoded = typeof request.payload?.candidateBase64 === 'string' ? request.payload.candidateBase64 : '';
+        if (encoded.length > 2_048 || !/^[A-Za-z0-9+/]*={0,2}$/u.test(encoded)) return { ok: false, requestId: request.requestId, code: 'TOY_LOCK_CANDIDATE_INVALID', message: 'The unlock value is outside its encoded safety bound.' };
+        const candidate = Uint8Array.from(Buffer.from(encoded, 'base64'));
+        if (candidate.length > 512) return { ok: false, requestId: request.requestId, code: 'TOY_LOCK_CANDIDATE_INVALID', message: 'The unlock value is outside its decoded safety bound.' };
         const surfaceId = typeof request.payload?.surfaceId === 'string' ? request.payload.surfaceId : undefined;
         return { ok: true, requestId: request.requestId, data: await authLocks.locks.unlock(id, candidate, surfaceId) };
       }
@@ -987,7 +998,13 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       }
       if (request.action === 'unlock-ladder.issue') {
         const payload = request.payload as { lockoutId?: string; budgetScopeId?: string; schoolMode?: boolean } | undefined;
-        return { ok: true, requestId: request.requestId, data: await authLocks.issueLadder({ lockoutId: payload?.lockoutId ?? '', budgetScopeId: payload?.budgetScopeId ?? '', schoolMode: payload?.schoolMode === true }) };
+        return { ok: true, requestId: request.requestId, data: await authLocks.issueLadder({ lockoutId: payload?.lockoutId ?? '', budgetScopeId: payload?.budgetScopeId ?? '', schoolMode: settingsRegistry().get('schoolMode.enabled') === 'true' }) };
+      }
+      if (request.action === 'unlock-ladder.hit') {
+        const nonce = typeof request.payload?.nonce === 'string' ? request.payload.nonce : '';
+        const spawnId = typeof request.payload?.spawnId === 'number' ? request.payload.spawnId : -1;
+        const cell = typeof request.payload?.cell === 'number' ? request.payload.cell : -1;
+        return { ok: true, requestId: request.requestId, data: await authLocks.hitLadder(nonce, spawnId, cell) };
       }
       if (request.action === 'unlock-ladder.grade') {
         const nonce = typeof request.payload?.nonce === 'string' ? request.payload.nonce : '';

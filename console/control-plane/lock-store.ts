@@ -323,20 +323,19 @@ export class ToyLockStore {
     if (!this.#vault.available) {
       return failure("vault-unavailable", "The operating-system credential vault is unavailable.");
     }
-    try {
-      if (!(await this.#vault.remove(record.credential))) {
-        return failure(
-          "vault-reference-missing",
-          "The credential could not be removed, so the lock record was kept.",
-        );
-      }
-    } catch {
-      return failure("vault-unavailable", "The credential vault could not remove this lock.");
-    }
     const next = new Map(this.#records);
     next.delete(id);
     const persisted = await this.#persist(next);
     if (!persisted.ok) return persisted;
+    try {
+      if (!(await this.#vault.remove(record.credential))) {
+        await this.#persistence.save([...this.#records.values()]);
+        return failure("vault-reference-missing", "The credential could not be removed, so the lock record was kept.");
+      }
+    } catch {
+      await this.#persistence.save([...this.#records.values()]).catch(() => undefined);
+      return failure("vault-unavailable", "The credential vault could not remove this lock.");
+    }
     this.#records = next;
     return { ok: true, value: { removed: true } };
   }

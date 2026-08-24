@@ -10,6 +10,7 @@ import './authenticator-surface.css';
 
 export interface UnlockLadderClient {
   issue(request: { lockoutId: string; budgetScopeId: string; schoolMode: boolean }): Promise<UnlockLadderIssueResult>;
+  hit(nonce: string, spawnId: number, cell: number): Promise<{ ok: true; value: { receiptId: string; spawnId: number; cell: number; observedAt: string } } | { ok: false; reason: string }>;
   grade(nonce: string, answer: UnlockLadderAnswer): Promise<UnlockLadderGradeResult>;
 }
 
@@ -27,7 +28,7 @@ export function UnlockLadderSurface({ client, lockoutId, budgetScopeId, schoolMo
   const [clockReason, setClockReason] = useState<string | undefined>();
   const [dishChoice, setDishChoice] = useState<number | undefined>();
   const [sumAnswers, setSumAnswers] = useState<string[]>([]);
-  const [moleHits, setMoleHits] = useState<Array<{ spawnId: number; cell: number; atMs: number }>>([]);
+  const [moleHits, setMoleHits] = useState<Array<{ receiptId: string; spawnId: number; cell: number }>>([]);
   const [roundStarted, setRoundStarted] = useState<number | undefined>();
   const [remaining, setRemaining] = useState<number | undefined>();
   const [message, setMessage] = useState<string | undefined>();
@@ -57,7 +58,7 @@ export function UnlockLadderSurface({ client, lockoutId, budgetScopeId, schoolMo
     let answer: UnlockLadderAnswer;
     if (challenge.rung === 'dish') answer = { kind: 'dish', choiceIndex: dishChoice ?? -1 };
     else if (challenge.rung === 'sums') answer = { kind: 'sums', answers: sumAnswers.map((value) => Number(value)) };
-    else answer = { kind: 'moles', hits: moleHits };
+    else answer = { kind: 'moles', hits: moleHits.map((hit) => ({ receiptId: hit.receiptId })) };
     setBusy(true);
     try {
       const result = await withDeadline(client.grade(challenge.nonce, answer));
@@ -77,7 +78,7 @@ export function UnlockLadderSurface({ client, lockoutId, budgetScopeId, schoolMo
     {clockReason ? <div className="auth-card"><h3>The clock remains</h3><p>{clockReason}</p><p className="auth-help">The ladder never shortens the underlying lockout escalation.</p></div> : null}
     {challenge?.rung === 'dish' ? <div className="auth-card"><h3>Choose one dish</h3><p className="auth-help">Four choices, one answer. A wrong dish can escalate the next rung.</p><div className="auth-entry-list">{challenge.payload.choices.map((choice, index) => <button key={choice} type="button" className={dishChoice === index ? 'auth-button' : 'auth-button secondary'} onClick={() => setDishChoice(index)}>{choice}</button>)}</div><button className="auth-button" type="button" onClick={() => void submit()} disabled={busy || dishChoice === undefined}>Submit answer</button></div> : null}
     {challenge?.rung === 'sums' ? <div className="auth-card"><h3>Ten easy sums</h3><div className="auth-entry-list">{challenge.payload.problems.map((problem, index) => <label key={`${problem.a}-${problem.operator}-${problem.b}-${index}`}>{problem.a} {problem.operator} {problem.b}<input inputMode="numeric" value={sumAnswers[index] ?? ''} onChange={(event) => setSumAnswers((current) => { const next = [...current]; next[index] = event.target.value.replace(/\D/gu, ''); return next; })} /></label>)}</div><button className="auth-button" type="button" onClick={() => void submit()} disabled={busy || sumAnswers.length !== challenge.payload.problems.length || sumAnswers.some((value) => !value)}>Submit all ten</button></div> : null}
-    {challenge?.rung === 'moles' ? <div className="auth-card"><h3>Whack-a-mole</h3><p className="auth-help">Round time remaining: <strong>{Math.ceil((remaining ?? challenge.payload.durationMs) / 1000)} seconds</strong>. Hits are recorded locally and graded once by the service after the round duration.</p><div className="mole-grid" style={{ gridTemplateColumns: `repeat(${Math.sqrt(challenge.payload.gridSize)}, minmax(44px, 1fr))` }}>{Array.from({ length: challenge.payload.gridSize }, (_, cell) => { const visibleSpawn = activeMoles.find((spawn) => spawn.cell === cell); const hit = moleHits.some((entry) => entry.spawnId === visibleSpawn?.spawnId); return <button key={cell} type="button" className={hit ? 'mole-cell hit' : visibleSpawn ? 'mole-cell visible' : 'mole-cell'} aria-label={visibleSpawn ? `Mole cell ${cell + 1}` : `Empty cell ${cell + 1}`} onClick={() => { if (!roundStarted || !visibleSpawn || hit) return; setMoleHits((current) => [...current, { spawnId: visibleSpawn.spawnId, cell, atMs: Date.now() - roundStarted }]); }}>{visibleSpawn ? '●' : ''}</button>; })}</div><button className="auth-button" type="button" onClick={() => void submit()} disabled={busy || (remaining ?? 0) > 0}>Submit round</button></div> : null}
+    {challenge?.rung === 'moles' ? <div className="auth-card"><h3>Whack-a-mole</h3><p className="auth-help">Round time remaining: <strong>{Math.ceil((remaining ?? challenge.payload.durationMs) / 1000)} seconds</strong>. Each visible hit receives a privileged receipt. The service grades only those receipts after the round duration.</p><div className="mole-grid" style={{ gridTemplateColumns: `repeat(${Math.sqrt(challenge.payload.gridSize)}, minmax(44px, 1fr))` }}>{Array.from({ length: challenge.payload.gridSize }, (_, cell) => { const visibleSpawn = activeMoles.find((spawn) => spawn.cell === cell); const hit = moleHits.some((entry) => entry.spawnId === visibleSpawn?.spawnId); return <button key={cell} type="button" className={hit ? 'mole-cell hit' : visibleSpawn ? 'mole-cell visible' : 'mole-cell'} aria-label={visibleSpawn ? `Mole cell ${cell + 1}` : `Empty cell ${cell + 1}`} onClick={() => { if (!roundStarted || !visibleSpawn || hit || busy) return; void client.hit(challenge.nonce, visibleSpawn.spawnId, cell).then((result) => { if (result.ok) setMoleHits((current) => [...current, { receiptId: result.value.receiptId, spawnId: result.value.spawnId, cell: result.value.cell }]); }); }}>{visibleSpawn ? '●' : ''}</button>; })}</div><button className="auth-button" type="button" onClick={() => void submit()} disabled={busy || (remaining ?? 0) > 0}>Submit round</button></div> : null}
     {!challenge && !clockReason ? <div className="auth-card"><h3>Challenge unavailable</h3><p>Ask the local service for a fresh challenge. The screen does not guess a result.</p><button className="auth-button" type="button" onClick={() => void issue()} disabled={busy}>Request fresh challenge</button></div> : null}
   </section>;
 }

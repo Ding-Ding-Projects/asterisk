@@ -1,10 +1,11 @@
-import { randomBytes, randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { createHmac, randomBytes, randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import type {
   AuthenticatorEntry,
   AuthenticatorRegistration,
   AuthenticatorResult,
+  AuthenticatorCodeSnapshot,
   CredentialVault,
   VaultResult,
 } from "../shared/authenticator.js";
@@ -19,7 +20,8 @@ import { AuthenticatorStore, type AuthenticatorMetadataStore, type Authenticator
 import { FileLockRecordPersistence, ToyLockStore, type LockRecordPersistence, type ToyLockCredentialVault, type LockStoreResult } from "./lock-store.js";
 import { LocalHistory } from "./local-history.js";
 import type { ProcessExecutor } from "./executor.js";
-import { UnlockLadder, type UnlockLadderAnswer, type UnlockLadderGradeResult, type UnlockLadderIssueResult, type UnlockLadderLockoutState, type UnlockLadderStateStore } from "../app/renderer/src/unlock-ladder.js";
+import { atomicWriteFileSync } from "./atomic-file.js";
+import { UnlockLadder, type UnlockLadderAnswer, type UnlockLadderGradeResult, type UnlockLadderIssueResult, type UnlockLadderLockoutState, type UnlockLadderStateStore, type MoleHitReceipt } from "../app/renderer/src/unlock-ladder.js";
 
 export type SupportTicketStatus = "received" | "reviewed" | "resolution-ready";
 export interface SupportTicket {
@@ -32,7 +34,7 @@ export interface SupportTicket {
 }
 
 export interface AuthLockVault extends CredentialVault, ToyLockCredentialVault {
-  setSecret(key: string, secret: string): Promise<VaultResult<undefined>>;
+  setSecret(key: string, secret: string, kind?: "reversible" | "password-hash" | "totp"): Promise<VaultResult<undefined>>;
 }
 
 const UNAVAILABLE_VAULT: AuthLockVault = {
@@ -57,15 +59,7 @@ async function readJson<T>(path: string, fallback: T): Promise<T> {
 }
 
 async function writeJson(path: string, value: unknown): Promise<void> {
-  await mkdir(dirname(path), { recursive: true });
-  const temporary = `${path}.${randomUUID()}.tmp`;
-  await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
-  try {
-    await rename(temporary, path);
-  } catch (error) {
-    await unlink(temporary).catch(() => undefined);
-    throw error;
-  }
+  atomicWriteFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
 export class FileAuthenticatorMetadataStore implements AuthenticatorMetadataStore {
@@ -133,36 +127,60 @@ interface LadderDocument {
   version: 1;
   lockouts: Record<string, UnlockLadderLockoutState>;
   budgets: Record<string, number[]>;
+  waits: Record<string, { expiresAt: number }>;
 }
 
 class FileUnlockLadderStateStore implements UnlockLadderStateStore {
   readonly #path: string;
   readonly available = true;
+  #writeChain: Promise<void> = Promise.resolve();
   constructor(path: string) { this.#path = path; }
 
   async #read(): Promise<LadderDocument> {
-    const value = await readJson<LadderDocument>(this.#path, { version: 1, lockouts: {}, budgets: {} });
+    const value = await readJson<LadderDocument>(this.#path, { version: 1, lockouts: {}, budgets: {}, waits: {} });
     if (value.version !== 1 || !value.lockouts || !value.budgets) throw new Error("Unlock ladder state is malformed.");
+    if (!value.waits) value.waits = {};
     return value;
   }
 
   async #write(value: LadderDocument): Promise<void> { await writeJson(this.#path, value); }
+  async #serialize<T>(operation: () => Promise<T>): Promise<T> { const previous = this.#writeChain; let release!: () => void; this.#writeChain = new Promise<void>((resolve) => { release = resolve; }); await previous; try { return await operation(); } finally { release(); } }
   async readLockout(lockoutId: string): Promise<UnlockLadderLockoutState | undefined> { return (await this.#read()).lockouts[lockoutId]; }
   async writeLockout(lockoutId: string, state: UnlockLadderLockoutState | undefined): Promise<void> {
-    const document = await this.#read();
-    if (state) document.lockouts[lockoutId] = state; else delete document.lockouts[lockoutId];
-    await this.#write(document);
+    await this.#serialize(async () => { const document = await this.#read(); if (state) document.lockouts[lockoutId] = state; else delete document.lockouts[lockoutId]; await this.#write(document); });
   }
   async readClearedWaits(budgetScopeId: string): Promise<ReadonlyArray<number>> { return (await this.#read()).budgets[budgetScopeId] ?? []; }
   async writeClearedWaits(budgetScopeId: string, timestamps: ReadonlyArray<number>): Promise<void> {
-    const document = await this.#read();
-    document.budgets[budgetScopeId] = [...timestamps];
-    await this.#write(document);
+    await this.#serialize(async () => { const document = await this.#read(); document.budgets[budgetScopeId] = [...timestamps]; await this.#write(document); });
   }
+  async hasWait(lockoutId: string): Promise<boolean> { const wait = (await this.#read()).waits[lockoutId]; return Boolean(wait && wait.expiresAt > Date.now()); }
+  async clearWait(lockoutId: string): Promise<boolean> { return await this.#serialize(async () => { const document = await this.#read(); if (!document.waits[lockoutId]) return false; delete document.waits[lockoutId]; await this.#write(document); return true; }); }
 }
 
 function randomUnit(): number { return randomBytes(4).readUInt32BE(0) / 0x1_0000_0000; }
 function createNonce(): string { return randomBytes(32).toString("base64url"); }
+
+function decodeBase32(value: string): Buffer | undefined {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  const cleaned = value.replace(/\s+/gu, "").replace(/=+$/u, "").toUpperCase();
+  if (!cleaned || [1, 3, 6].includes(cleaned.length % 8)) return undefined;
+  let bits = "";
+  for (const character of cleaned) { const index = alphabet.indexOf(character); if (index < 0) return undefined; bits += index.toString(2).padStart(5, "0"); }
+  const bytes = Buffer.alloc(Math.floor(bits.length / 8));
+  for (let index = 0; index < bytes.length; index += 1) bytes[index] = Number.parseInt(bits.slice(index * 8, index * 8 + 8), 2);
+  return bytes;
+}
+
+function generateCode(secret: string, parameters: { algorithm: string; digits: number; period: number }, atMs: number): string {
+  const bytes = decodeBase32(secret);
+  if (!bytes) throw new Error("The authenticator secret could not be decoded.");
+  const counter = Math.floor(atMs / 1_000 / parameters.period);
+  const counterBytes = Buffer.alloc(8); counterBytes.writeBigUInt64BE(BigInt(counter));
+  const digest = createHmac(parameters.algorithm.replace("-", ""), bytes).update(counterBytes).digest();
+  const offset = digest[digest.length - 1]! & 0x0f;
+  const binary = ((digest[offset]! & 0x7f) << 24) | ((digest[offset + 1]! & 0xff) << 16) | ((digest[offset + 2]! & 0xff) << 8) | (digest[offset + 3]! & 0xff);
+  return String(binary % (10 ** parameters.digits)).padStart(parameters.digits, "0");
+}
 
 export interface AuthLockRuntimeOptions {
   userDataPath: string;
@@ -202,7 +220,8 @@ export function createAuthLockRuntime(options: AuthLockRuntimeOptions) {
   const locks = new ToyLockStore({ persistence, vault, recovery: options.recovery });
   const locksReady = locks.initialize();
   const tickets = new FileSupportTicketStore(join(options.userDataPath, "support-tickets.json"));
-  const ladder = new UnlockLadder({ now: () => Date.now(), random: randomUnit, createNonce, stateStore: new FileUnlockLadderStateStore(join(options.userDataPath, "unlock-ladder-state.json")) });
+  const ladderState = new FileUnlockLadderStateStore(join(options.userDataPath, "unlock-ladder-state.json"));
+  const ladder = new UnlockLadder({ now: () => Date.now(), random: randomUnit, createNonce, stateStore: ladderState, hasAuthoritativeWait: (lockoutId) => ladderState.hasWait(lockoutId), clearAuthoritativeWait: (lockoutId) => ladderState.clearWait(lockoutId) });
   const history = new LocalHistory({ executor: options.executor, repositoryPath: join(options.userDataPath, "history"), protector: options.historyProtector });
 
   return {
@@ -213,7 +232,7 @@ export function createAuthLockRuntime(options: AuthLockRuntimeOptions) {
     tickets,
     ladder,
     history,
-    async secret(id: string): Promise<AuthenticatorResult<string>> {
+    async codeSnapshot(id: string): Promise<AuthenticatorResult<AuthenticatorCodeSnapshot>> {
       const result = await authenticator.get(id);
       if (!result.ok) return result;
       const records = await metadata.read();
@@ -221,10 +240,15 @@ export function createAuthLockRuntime(options: AuthLockRuntimeOptions) {
       const record = records.value.find((entry) => entry.id === id);
       if (!record) return { ok: false, code: "not-found", message: "Authenticator entry was not found." };
       const secret = await vault.getSecret(record.credentialReference);
-      return secret.ok ? secret : { ok: false, code: secret.code, message: secret.message };
+      if (!secret.ok) return { ok: false, code: secret.code, message: secret.message };
+      const atMs = Date.now();
+      try {
+        return { ok: true, value: { current: generateCode(secret.value, record.parameters, atMs), next: generateCode(secret.value, record.parameters, atMs + record.parameters.period * 1_000), secondsRemaining: record.parameters.period - (Math.floor(atMs / 1_000) % record.parameters.period), clockOffsetMs: 0, clockWarning: "No external time source is configured. Code timing uses the privileged system clock.", observedAt: new Date(atMs).toISOString() } };
+      } catch { return { ok: false, code: "vault-error", message: "The authenticator code could not be generated." }; }
     },
     async initializeHistory() { return await history.initialize(); },
     async issueLadder(request: { lockoutId: string; budgetScopeId: string; schoolMode: boolean }): Promise<UnlockLadderIssueResult> { return await ladder.issue(request); },
+    async hitLadder(nonce: string, spawnId: number, cell: number): Promise<{ ok: true; value: MoleHitReceipt } | { ok: false; reason: string }> { return await ladder.recordMoleHit(nonce, spawnId, cell); },
     async gradeLadder(nonce: string, answer: UnlockLadderAnswer): Promise<UnlockLadderGradeResult> { return await ladder.grade(nonce, answer); },
   };
 }

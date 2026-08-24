@@ -30,6 +30,15 @@ export interface AuthenticatorEntryRecord extends AuthenticatorEntry {
   credentialReference: string;
 }
 
+export interface AuthenticatorCodeSnapshot {
+  current: string;
+  next: string;
+  secondsRemaining: number;
+  clockOffsetMs?: number;
+  clockWarning?: string;
+  observedAt: string;
+}
+
 export interface AuthenticatorRegistration {
   issuer: string;
   account: string;

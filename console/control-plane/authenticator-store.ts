@@ -244,17 +244,40 @@ export class AuthenticatorStore {
     const existing = current.value.find((entry) => entry.id === id);
     if (!existing) return { ok: false, code: "not-found", message: "Authenticator entry was not found." };
 
-    let deleted;
+    let secretResult;
     try {
-      deleted = await this.#vault.deleteSecret(existing.credentialReference);
+      secretResult = await this.#vault.getSecret(existing.credentialReference);
     } catch {
       return vaultFailure("vault-error");
     }
+    if (!secretResult.ok) return vaultFailure(secretResult.code);
+
+    let deleted;
+    try { deleted = await this.#vault.deleteSecret(existing.credentialReference); }
+    catch { return vaultFailure("vault-error"); }
     if (!deleted.ok) return vaultFailure(deleted.code);
 
     const written = await this.#writeRecords(current.value.filter((entry) => entry.id !== id));
-    if (!written.ok) return metadataFailure(written);
+    if (!written.ok) {
+      try { await this.#vault.setSecret(existing.credentialReference, secretResult.value); }
+      catch { return vaultFailure("vault-error"); }
+      return metadataFailure(written);
+    }
     return { ok: true, value: undefined };
+  }
+
+  async restoreRedacted(snapshot: unknown): Promise<AuthenticatorResult<AuthenticatorEntry>> {
+    if (!snapshot || typeof snapshot !== "object") return { ok: false, code: "invalid-input", message: "The authenticator restore snapshot is malformed." };
+    const entry = (snapshot as { entry?: AuthenticatorEntry }).entry;
+    if (!entry || typeof entry.id !== "string") return { ok: false, code: "invalid-input", message: "The authenticator restore snapshot has no entry." };
+    const current = await this.#readRecords();
+    if (!current.ok) return metadataFailure(current);
+    const existing = current.value.find((candidate) => candidate.id === entry.id);
+    if (!existing) return { ok: false, code: "not-found", message: "The credential for this authenticator entry is no longer in the vault." };
+    const restored: AuthenticatorEntryRecord = { ...existing, issuer: entry.issuer, account: entry.account, parameters: { ...entry.parameters }, armed: entry.armed, updatedAt: this.#now() };
+    const written = await this.#writeRecords(current.value.map((candidate) => candidate.id === entry.id ? restored : candidate));
+    if (!written.ok) return metadataFailure(written);
+    return { ok: true, value: redactAuthenticatorEntry(restored) };
   }
 
   async #findRecord(id: string): Promise<AuthenticatorResult<AuthenticatorEntryRecord>> {

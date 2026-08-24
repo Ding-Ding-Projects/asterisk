@@ -3,7 +3,6 @@ import type { AuthenticatorEntry, AuthenticatorRegistration } from '../../../sha
 import {
   buildPairingDescriptor,
   exportAuthenticatorEntries,
-  readCodeSnapshot,
   recordAuthHistory,
   searchAuthenticatorEntries,
   withDeadline,
@@ -11,21 +10,19 @@ import {
   type AuthenticatorCodeSnapshot,
   type AuthenticatorHistoryClient,
   type PairingDescriptor,
-  type SecretReader,
 } from './authenticator-surface-state';
 import './authenticator-surface.css';
+import { DestructiveActionGate } from './destructive-action-gate';
 
 export interface AuthenticatorSurfaceProps {
   client: AuthenticatorClient;
-  secretReader: SecretReader;
   history?: AuthenticatorHistoryClient;
-  clockOffsetMs?: number;
   onNotice?: (message: string, detail?: string) => void;
 }
 
 const EMPTY_REGISTRATION: AuthenticatorRegistration = { issuer: '', account: '', secret: '', algorithm: 'SHA-1', digits: 6, period: 30 };
 
-export function AuthenticatorSurface({ client, secretReader, history, clockOffsetMs = 0, onNotice }: AuthenticatorSurfaceProps) {
+export function AuthenticatorSurface({ client, history, onNotice }: AuthenticatorSurfaceProps) {
   const [entries, setEntries] = useState<ReadonlyArray<AuthenticatorEntry>>([]);
   const [registration, setRegistration] = useState<AuthenticatorRegistration>(EMPTY_REGISTRATION);
   const [pairing, setPairing] = useState<PairingDescriptor | undefined>();
@@ -36,6 +33,7 @@ export function AuthenticatorSurface({ client, secretReader, history, clockOffse
   const [group, setGroup] = useState('All');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const [removing, setRemoving] = useState<AuthenticatorEntry | undefined>();
 
   const refresh = async () => {
     try {
@@ -52,20 +50,21 @@ export function AuthenticatorSurface({ client, secretReader, history, clockOffse
   useEffect(() => {
     let cancelled = false;
     const update = async () => {
-      const atMs = Date.now();
       const next: Record<string, AuthenticatorCodeSnapshot> = {};
       for (const entry of entries) {
         if (!entry.armed) continue;
         try {
-          next[entry.id] = await readCodeSnapshot(secretReader, entry, atMs, clockOffsetMs);
+          const result = await withDeadline(client.codeSnapshot(entry.id));
+          if (result.ok) next[entry.id] = result.value;
         } catch { /* Vault failure is shown at the row, never as a fabricated code. */ }
       }
       if (!cancelled) setCodes(next);
     };
     void update();
     const timer = setInterval(() => { void update(); }, 1_000);
-    return () => { cancelled = true; clearInterval(timer); };
-  }, [entries, secretReader, clockOffsetMs]);
+    return () => { cancelled = true; clearInterval(timer); setCodes({}); };
+  }, [entries, client]);
+  useEffect(() => () => { setPairing(undefined); setRegistration(EMPTY_REGISTRATION); setConfirmation(''); setCodes({}); }, []);
 
   const visibleEntries = useMemo(() => {
     const filtered = searchAuthenticatorEntries(entries, query, regex);
@@ -79,7 +78,7 @@ export function AuthenticatorSurface({ client, secretReader, history, clockOffse
 
   const beginPairing = () => {
     try { setPairing(buildPairingDescriptor(registration)); setConfirmation(''); setError(undefined); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : 'Pairing details are invalid.'); }
+    catch (reason) { setPairing(undefined); setRegistration(EMPTY_REGISTRATION); setConfirmation(''); setError(reason instanceof Error ? reason.message : 'Pairing details are invalid.'); }
   };
 
   const register = async () => {
@@ -88,12 +87,13 @@ export function AuthenticatorSurface({ client, secretReader, history, clockOffse
     try {
       const result = await withDeadline(client.register(registration));
       if (!result.ok) throw new Error(result.message);
-      await recordAuthHistory(history, { action: 'created', subject: `Authenticator ${result.value.issuer} / ${result.value.account}`, stableRecordId: result.value.id });
+      await recordAuthHistory(history, { action: 'created', subject: `Authenticator ${result.value.issuer} / ${result.value.account}`, stableRecordId: result.value.id, snapshot: { kind: 'authenticator-entry', entry: result.value } });
       setPairing(undefined);
       setRegistration(EMPTY_REGISTRATION);
+      setConfirmation('');
       await refresh();
       onNotice?.('Pairing saved locally. Enter one current code to arm it.');
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Pairing could not be saved.'); }
+    } catch (reason) { setPairing(undefined); setRegistration(EMPTY_REGISTRATION); setConfirmation(''); setError(reason instanceof Error ? reason.message : 'Pairing could not be saved.'); }
     finally { setBusy(false); }
   };
 
@@ -101,23 +101,23 @@ export function AuthenticatorSurface({ client, secretReader, history, clockOffse
     if (busy) return;
     setBusy(true);
     try {
-      const result = await withDeadline(client.confirmAndArm(entryId, confirmation, Date.now(), 1));
+      const result = await withDeadline(client.confirmAndArm(entryId, confirmation));
       if (!result.ok) throw new Error(result.message);
-      await recordAuthHistory(history, { action: 'updated', subject: `Authenticator ${result.value.issuer} armed`, stableRecordId: result.value.id });
+      await recordAuthHistory(history, { action: 'updated', subject: `Authenticator ${result.value.issuer} armed`, stableRecordId: result.value.id, snapshot: { kind: 'authenticator-entry', entry: result.value } });
       setConfirmation('');
       await refresh();
       onNotice?.('Authenticator armed after local code confirmation.');
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Confirmation failed.'); }
+    } catch (reason) { setConfirmation(''); setError(reason instanceof Error ? reason.message : 'Confirmation failed.'); }
     finally { setBusy(false); }
   };
 
   const remove = async (entry: AuthenticatorEntry) => {
-    if (busy || !window.confirm(`Remove ${entry.issuer} / ${entry.account}? Secret material will be removed from the vault.`)) return;
+    if (busy) return;
     setBusy(true);
     try {
       const result = await withDeadline(client.remove(entry.id));
       if (!result.ok) throw new Error(result.message);
-      await recordAuthHistory(history, { action: 'deleted', subject: `Authenticator ${entry.issuer} / ${entry.account}`, stableRecordId: entry.id });
+      await recordAuthHistory(history, { action: 'deleted', subject: `Authenticator ${entry.issuer} / ${entry.account}`, stableRecordId: entry.id, snapshot: { kind: 'authenticator-entry-deleted', entry } });
       await refresh();
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Authenticator could not be removed.'); }
     finally { setBusy(false); }
@@ -149,16 +149,17 @@ export function AuthenticatorSurface({ client, secretReader, history, clockOffse
       </form>
       {pairing ? <div className="auth-card pairing-card" role="dialog" aria-labelledby="pairing-title">
         <h3 id="pairing-title">Confirm pairing before arm</h3>
-        <div className="qr-placeholder" role="img" aria-label={pairing.qrAccessibleLabel}><span>QR</span><code>{pairing.qrValue}</code></div>
-        <p className="auth-help">The host can pass this exact local URI to its bundled QR renderer. No QR service or network request is used.</p>
+        <div className="qr-placeholder" dangerouslySetInnerHTML={{ __html: pairing.qrSvg }} />
+        <p className="auth-help">This QR is rendered by the bundled in-process encoder. The manual value and pairing URI remain available as accessible text, and no QR service or network request is used.</p>
         <dl className="auth-facts"><div><dt>Manual value</dt><dd><code>{pairing.manualSecret}</code></dd></div><div><dt>Parameters</dt><dd>{pairing.parameters.algorithm}, {pairing.parameters.digits} digits, {pairing.parameters.period}s</dd></div></dl>
         <label>Current code<input value={confirmation} onChange={(event) => setConfirmation(event.target.value.replace(/\D/gu, '').slice(0, pairing.parameters.digits))} inputMode="numeric" maxLength={pairing.parameters.digits} autoComplete="one-time-code" /></label>
-        <div className="auth-actions"><button className="auth-button" type="button" onClick={() => void register()} disabled={busy}>Save unarmed</button><button className="auth-button" type="button" onClick={() => setPairing(undefined)}>Cancel</button></div>
+        <div className="auth-actions"><button className="auth-button" type="button" onClick={() => void register()} disabled={busy}>Save unarmed</button><button className="auth-button" type="button" onClick={() => { setPairing(undefined); setRegistration(EMPTY_REGISTRATION); setConfirmation(''); }}>Cancel</button></div>
       </div> : null}
     </div>
+    {removing ? <DestructiveActionGate actionLabel={`remove ${removing.issuer} / ${removing.account}`} onCancel={() => setRemoving(undefined)} onConfirm={async () => { await remove(removing); setRemoving(undefined); }} /> : null}
     <div className="auth-list-card">
       <div className="auth-list-toolbar"><div><h3>Local entries</h3><p>{visibleEntries.length} visible, {entries.length} stored records</p></div><div className="auth-toolbar-controls"><input aria-label="Search authenticator entries" placeholder="Search issuer, account or ID" value={query} onChange={(event) => setQuery(event.target.value)} /><label className="auth-check"><input type="checkbox" checked={regex} onChange={(event) => setRegex(event.target.checked)} /> Regex</label><select aria-label="Filter by issuer" value={group} onChange={(event) => setGroup(event.target.value)}>{groups.map((item) => <option key={item}>{item}</option>)}</select></div></div>
-      {visibleEntries.length === 0 ? <p className="auth-empty">No matching authenticator records. Nothing is invented when the vault has no entry.</p> : <div className="auth-entry-list">{visibleEntries.map((entry) => { const snapshot = codes[entry.id]; return <article className="auth-entry" key={entry.id}><div className="auth-entry-heading"><div><h4>{entry.issuer} <span aria-hidden="true">·</span> {entry.account}</h4><p>{entry.parameters.algorithm} · {entry.parameters.digits} digits · {entry.parameters.period}s</p></div><span className={entry.armed ? 'auth-status armed' : 'auth-status'}>{entry.armed ? 'Armed' : 'Awaiting confirmation'}</span></div>{entry.armed ? <div className="code-panel"><strong>{snapshot?.current ?? 'Unavailable'}</strong><span>{snapshot ? `${snapshot.secondsRemaining}s remaining` : 'Vault read unavailable'}</span><span>Next: {snapshot?.next ?? 'Unavailable'}</span>{snapshot?.clockWarning ? <small role="alert">{snapshot.clockWarning}</small> : null}</div> : <div className="inline-confirm"><input aria-label={`Confirmation code for ${entry.account}`} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} inputMode="numeric" placeholder="Current code" /><button className="auth-button" type="button" onClick={() => void confirmAndArm(entry.id)} disabled={busy}>Confirm and arm</button></div>}<button className="text-button" type="button" onClick={() => void remove(entry)}>Remove entry</button></article>; })}</div>}
+      {visibleEntries.length === 0 ? <p className="auth-empty">No matching authenticator records. Nothing is invented when the vault has no entry.</p> : <div className="auth-entry-list">{visibleEntries.map((entry) => { const snapshot = codes[entry.id]; return <article className="auth-entry" key={entry.id}><div className="auth-entry-heading"><div><h4>{entry.issuer} <span aria-hidden="true">·</span> {entry.account}</h4><p>{entry.parameters.algorithm} · {entry.parameters.digits} digits · {entry.parameters.period}s</p></div><span className={entry.armed ? 'auth-status armed' : 'auth-status'}>{entry.armed ? 'Armed' : 'Awaiting confirmation'}</span></div>{entry.armed ? <div className="code-panel"><strong>{snapshot?.current ?? 'Unavailable'}</strong><span>{snapshot ? `${snapshot.secondsRemaining}s remaining` : 'Vault read unavailable'}</span><span>Next: {snapshot?.next ?? 'Unavailable'}</span>{snapshot?.clockWarning ? <small role="alert">{snapshot.clockWarning}</small> : null}</div> : <div className="inline-confirm"><input aria-label={`Confirmation code for ${entry.account}`} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} inputMode="numeric" placeholder="Current code" /><button className="auth-button" type="button" onClick={() => void confirmAndArm(entry.id)} disabled={busy}>Confirm and arm</button></div>}<button className="text-button" type="button" onClick={() => setRemoving(entry)}>Remove entry</button></article>; })}</div>}
     </div>
   </section>;
 }

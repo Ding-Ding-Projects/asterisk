@@ -9,6 +9,7 @@ import type {
 import { assertStableLockId, assertToyLockUnlockDuration, isToyLockOpen } from '../../../shared/locks';
 import { withDeadline } from './authenticator-surface-state';
 import './authenticator-surface.css';
+import { DestructiveActionGate } from './destructive-action-gate';
 
 export interface ToyLockClient {
   initialize(): Promise<{ ok: true; value: { count: number } } | { ok: false; message: string }>;
@@ -57,6 +58,7 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
   const [regex, setRegex] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const [removing, setRemoving] = useState<ToyLockRecord | undefined>();
 
   const refresh = async () => {
     try {
@@ -68,6 +70,7 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Toy locks could not be loaded.'); }
   };
   useEffect(() => { void refresh(); }, [client]);
+  useEffect(() => () => { setCredentialValue(''); setCandidateById({}); }, []);
 
   const visible = useMemo(() => {
     const text = query.trim();
@@ -103,6 +106,7 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
     if (busy) return;
     setBusy(true);
     const candidate = candidateById[record.id] ?? '';
+    if (candidate.length > 512) { setError('The unlock value is too long.'); setBusy(false); return; }
     try {
       const result = await withDeadline(client.unlock(record.id, new TextEncoder().encode(candidate), surfaceId));
       if (!result.ok) throw new Error(result.message);
@@ -122,7 +126,7 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
   };
 
   const remove = async (record: ToyLockRecord) => {
-    if (busy || !window.confirm(`Remove the independent toy lock for ${record.targetId}?`)) return;
+    if (busy) return;
     setBusy(true);
     try { const result = await withDeadline(client.remove(record.id)); if (!result.ok) throw new Error(result.message); await refresh(); }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'The lock could not be removed.'); }
@@ -137,7 +141,8 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
        <form className="auth-card" onSubmit={(event) => void createLock(event)}><h3>Lock one exact element</h3><p className="auth-help">Use the element's stable identity. A fresh vault credential is created for this element only.</p><label>Target identity<input value={targetId} onChange={(event) => setTargetId(event.target.value)} placeholder="settings.appearance.font-size" maxLength={128} required /></label><label>Credential method<select value={method} onChange={(event) => setMethod(event.target.value as 'password' | 'totp')}><option value="password">Password</option><option value="totp">TOTP</option></select></label><label>{method === 'totp' ? 'Base32 TOTP secret' : 'Password'}<input type="password" value={credentialValue} onChange={(event) => setCredentialValue(event.target.value)} maxLength={512} autoComplete="new-password" required /></label><label>Unlock duration<select value={durationChoice} onChange={(event) => setDurationChoice(event.target.value as DurationChoice)}><option value="surface">This surface</option><option value="minutes">Timed</option><option value="until-application-closes">Until the app closes</option></select></label>{durationChoice === 'minutes' ? <label>Minutes<input type="number" min={1} max={1440} value={minutes} onChange={(event) => setMinutes(event.target.value)} /></label> : null}<button className="auth-button" type="submit" disabled={busy}>Create independent lock</button></form>
       <div className="auth-card"><h3>Recovery details</h3><p className="auth-help">The app never deletes this folder for you. Support Tickets can open it in the platform file manager.</p><dl className="auth-facts"><div><dt>Application data</dt><dd><code>{client.recovery.applicationDataPath}</code></dd></div><div><dt>Support route</dt><dd>{client.recovery.supportTicketRoute}</dd></div><div><dt>Auto-delete</dt><dd>No</dd></div></dl><button className="auth-button secondary" type="button" onClick={onOpenSupportTickets}>Open Support Tickets</button></div>
     </div>
-    <div className="auth-list-card"><div className="auth-list-toolbar"><div><h3>Independent lock list</h3><p>{visible.length} visible, {records.length} total</p></div><div className="auth-toolbar-controls"><input aria-label="Search toy locks" placeholder="Search target, ID or method" value={query} onChange={(event) => setQuery(event.target.value)} /><label className="auth-check"><input type="checkbox" checked={regex} onChange={(event) => setRegex(event.target.checked)} /> Regex</label></div></div>{visible.length === 0 ? <p className="auth-empty">No matching locks.</p> : <div className="auth-entry-list">{visible.map((record) => { const open = lockIsOpen(record, surfaceId); return <article className="auth-entry" key={record.id}><div className="auth-entry-heading"><div><h4>{record.targetId}</h4><p>{record.credential.method} · {record.unlockDuration.kind === 'minutes' ? `${record.unlockDuration.minutes} minutes` : record.unlockDuration.kind}</p></div><span className={open ? 'auth-status armed' : 'auth-status'}>{open ? 'Open' : 'Locked'}</span></div>{open ? <button className="auth-button secondary" type="button" onClick={() => void relock(record)} disabled={busy}>Lock again</button> : <div className="inline-confirm"><input type="password" aria-label={`Unlock value for ${record.targetId}`} value={candidateById[record.id] ?? ''} onChange={(event) => setCandidateById((current) => ({ ...current, [record.id]: event.target.value }))} autoComplete="off" placeholder="Credential value" /><button className="auth-button" type="button" onClick={() => void unlock(record)} disabled={busy}>Unlock</button></div>}<button className="text-button" type="button" onClick={() => void remove(record)}>Remove lock</button></article>; })}</div>}</div>
+    {removing ? <DestructiveActionGate actionLabel={`remove the lock for ${removing.targetId}`} onCancel={() => setRemoving(undefined)} onConfirm={async () => { await remove(removing); setRemoving(undefined); }} /> : null}
+    <div className="auth-list-card"><div className="auth-list-toolbar"><div><h3>Independent lock list</h3><p>{visible.length} visible, {records.length} total</p></div><div className="auth-toolbar-controls"><input aria-label="Search toy locks" placeholder="Search target, ID or method" value={query} onChange={(event) => setQuery(event.target.value)} /><label className="auth-check"><input type="checkbox" checked={regex} onChange={(event) => setRegex(event.target.checked)} /> Regex</label></div></div>{visible.length === 0 ? <p className="auth-empty">No matching locks.</p> : <div className="auth-entry-list">{visible.map((record) => { const open = lockIsOpen(record, surfaceId); return <article className="auth-entry" key={record.id}><div className="auth-entry-heading"><div><h4>{record.targetId}</h4><p>{record.credential.method} · {record.unlockDuration.kind === 'minutes' ? `${record.unlockDuration.minutes} minutes` : record.unlockDuration.kind}</p></div><span className={open ? 'auth-status armed' : 'auth-status'}>{open ? 'Open' : 'Locked'}</span></div>{open ? <button className="auth-button secondary" type="button" onClick={() => void relock(record)} disabled={busy}>Lock again</button> : <div className="inline-confirm"><input type="password" aria-label={`Unlock value for ${record.targetId}`} value={candidateById[record.id] ?? ''} onChange={(event) => setCandidateById((current) => ({ ...current, [record.id]: event.target.value }))} autoComplete="off" placeholder="Credential value" /><button className="auth-button" type="button" onClick={() => void unlock(record)} disabled={busy}>Unlock</button></div>}<button className="text-button" type="button" onClick={() => setRemoving(record)}>Remove lock</button></article>; })}</div>}</div>
   </section>;
 }
 

@@ -8,7 +8,7 @@ import { CHANGELOG_MARKDOWN, CHANGELOG_REPOSITORY_URL } from './generated/change
 import type { BackendResponse, ChatSession, OllamaRuntimeEvidence, OllamaSuiteSnapshot, PullQueueEvidence } from './ollama-suite-model';
 import type { ConverterBackendHandlers } from '../../../shared/converter';
 import { AuthenticatorSurface } from './authenticator-surface';
-import type { AuthenticatorClient, AuthenticatorHistoryClient, SecretReader } from './authenticator-surface-state';
+import type { AuthenticatorClient, AuthenticatorHistoryClient } from './authenticator-surface-state';
 import type { AuthenticatorRegistration } from '../../../shared/authenticator';
 import { LockManagerSurface } from './lock-manager-surface';
 import type { ToyLockClient, ToyLockCredentialClient } from './lock-manager-surface';
@@ -53,12 +53,12 @@ const converterClient: ConverterClient = {
 const authenticatorClient: AuthenticatorClient = {
   list: () => bridgeRequest<Awaited<ReturnType<AuthenticatorClient['list']>>>('authenticator.list'),
   register: (input: AuthenticatorRegistration) => bridgeRequest<Awaited<ReturnType<AuthenticatorClient['register']>>>('authenticator.register', input),
-  confirmAndArm: (id, code, atMs, skewSteps) => bridgeRequest<Awaited<ReturnType<AuthenticatorClient['confirmAndArm']>>>('authenticator.confirm', { id, code, atMs, skewSteps }),
+  confirmAndArm: (id, code) => bridgeRequest<Awaited<ReturnType<AuthenticatorClient['confirmAndArm']>>>('authenticator.confirm', { id, code }),
   remove: (id) => bridgeRequest<Awaited<ReturnType<AuthenticatorClient['remove']>>>('authenticator.remove', { id }),
+  codeSnapshot: (id) => bridgeRequest<Awaited<ReturnType<AuthenticatorClient['codeSnapshot']>>>('authenticator.snapshot', { id }),
 };
-const secretReader: SecretReader = { readSecret: (entryId) => bridgeRequest<Awaited<ReturnType<SecretReader['readSecret']>>>('authenticator.secret', { id: entryId }) };
 const historyClient: AuthenticatorHistoryClient = {
-  record: (entry) => bridgeRequest('local-history.record', { ...entry, snapshot: { kind: 'authenticator-redacted', stableRecordId: entry.stableRecordId, action: entry.action, subject: entry.subject } }),
+  record: (entry) => bridgeRequest('local-history.record', { ...entry, snapshot: entry.snapshot ?? { kind: 'authenticator-redacted', stableRecordId: entry.stableRecordId, action: entry.action, subject: entry.subject } }),
 };
 
 let lockRecords: ReadonlyArray<ToyLockRecord> = [];
@@ -81,6 +81,7 @@ const supportTicketsClient: SupportTicketsClient = {
 };
 const unlockLadderClient: UnlockLadderClient = {
   issue: (request) => bridgeRequest<Awaited<ReturnType<UnlockLadderClient['issue']>>>('unlock-ladder.issue', request),
+  hit: (nonce, spawnId, cell) => bridgeRequest<Awaited<ReturnType<UnlockLadderClient['hit']>>>('unlock-ladder.hit', { nonce, spawnId, cell }),
   grade: (nonce, answer) => bridgeRequest<Awaited<ReturnType<UnlockLadderClient['grade']>>>('unlock-ladder.grade', { nonce, answer }),
 };
 
@@ -191,6 +192,7 @@ function routeFromHash(): SurfaceRoute | undefined {
   const value = window.location.hash.slice(1);
   if (!value.startsWith('surface=')) return undefined;
   const route = value.slice('surface='.length);
+  if (window.dingDesktop?.platform === 'web' && (route === 'authenticator' || route === 'locks' || route === 'support-tickets' || route === 'unlock-ladder')) return undefined;
   return route === 'converter' || route === 'ollama' || route === 'docs' || route === 'changelog' || route === 'authenticator' || route === 'locks' || route === 'support-tickets' || route === 'unlock-ladder' ? route : undefined;
 }
 
@@ -204,7 +206,9 @@ export function SurfaceMounts() {
   }, []);
   useEffect(() => { void bridgeRequest('toy-lock.recovery').then((recovery) => { lockRecovery = recovery; setRecoveryRevision((value) => value + 1); }).catch(() => undefined); }, []);
 
-  const links = useMemo(() => (['converter', 'ollama', 'docs', 'changelog', 'authenticator', 'locks', 'support-tickets', 'unlock-ladder'] as const), []);
+  const links = useMemo(() => window.dingDesktop?.platform === 'web'
+    ? (['converter', 'ollama', 'docs', 'changelog'] as const)
+    : (['converter', 'ollama', 'docs', 'changelog', 'authenticator', 'locks', 'support-tickets', 'unlock-ladder'] as const), []);
   return (
     <aside className="surface-mount-host" aria-label="Mounted feature surfaces">
       <nav aria-label="Mounted feature surfaces">
@@ -215,8 +219,8 @@ export function SurfaceMounts() {
       {route === 'ollama' ? <OllamaSuite client={ollamaClient} /> : null}
       {route === 'docs' ? <DocsSurface bundle={DOCS_BUNDLE} /> : null}
       {route === 'changelog' ? <ChangelogSurface markdown={CHANGELOG_MARKDOWN} repositoryUrl={CHANGELOG_REPOSITORY_URL} /> : null}
-      {route === 'authenticator' ? <AuthenticatorSurface client={authenticatorClient} secretReader={secretReader} history={historyClient} /> : null}
-      {route === 'locks' ? <LockManagerSurface client={lockClient} credentials={lockCredentials} onOpenSupportTickets={() => { window.location.hash = 'surface=support-tickets'; }} /> : null}
+      {route === 'authenticator' ? <AuthenticatorSurface client={authenticatorClient} history={historyClient} /> : null}
+      {route === 'locks' ? <LockManagerSurface client={lockClient} credentials={lockCredentials} surfaceId="locks" onOpenSupportTickets={() => { window.location.hash = 'surface=support-tickets'; }} /> : null}
       {route === 'support-tickets' ? <SupportTicketsSurface client={supportTicketsClient} applicationDataPath={lockRecovery.applicationDataPath} openApplicationDataFolder={(path) => window.dingDesktop?.localAuth?.openApplicationDataFolder(path) ?? Promise.resolve({ ok: false, message: 'The privileged application bridge is unavailable.' })} /> : null}
       {route === 'unlock-ladder' ? <UnlockLadderSurface client={unlockLadderClient} lockoutId="console-surface-lockout" budgetScopeId="console-surface" /> : null}
     </aside>

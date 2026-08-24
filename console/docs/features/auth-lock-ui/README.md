@@ -1,6 +1,6 @@
 # Authenticator and local recovery surfaces
 
-This feature set mounts the local authenticator, per-element toy locks, Support Tickets, and the unlock ladder at `#surface=authenticator`, `#surface=locks`, `#surface=support-tickets`, and `#surface=unlock-ladder`. The surfaces accept typed clients so the renderer never reaches storage, the credential vault, or the control plane directly. The privileged desktop path persists redacted metadata and ticket state under application data, keeps credential values behind the operating-system vault adapter, and reports an unavailable vault or history protector without inventing a success.
+This feature set mounts the local authenticator, per-element toy locks, Support Tickets, and the unlock ladder at `#surface=authenticator`, `#surface=locks`, `#surface=support-tickets`, and `#surface=unlock-ladder` only in the desktop renderer. Hosted mode leaves these routes unmounted because its browser bridge does not provide an operating-system credential vault or a file-manager recovery path. The surfaces accept typed clients so the renderer never reaches storage, the credential vault, or the control plane directly. The privileged desktop path persists redacted metadata and ticket state under application data, keeps credential values behind the operating-system vault adapter, and reports an unavailable vault or history protector without inventing a success.
 
 Articles:
 

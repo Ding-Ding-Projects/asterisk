@@ -82,7 +82,14 @@ export type UnlockLadderIssueResult =
 export type UnlockLadderAnswer =
   | { kind: "dish"; choiceIndex: number }
   | { kind: "sums"; answers: readonly number[] }
-  | { kind: "moles"; hits: readonly { spawnId: number; cell: number; atMs: number }[] };
+  | { kind: "moles"; hits: readonly { receiptId: string }[] };
+
+export interface MoleHitReceipt {
+  receiptId: string;
+  spawnId: number;
+  cell: number;
+  observedAt: string;
+}
 
 export interface UnlockLadderGradeResult {
   waitCleared: boolean;
@@ -109,6 +116,8 @@ export interface UnlockLadderOptions {
   stateStore: UnlockLadderStateStore;
   maxClearedWaitsPerHour?: number;
   challengeTtlMs?: number;
+  hasAuthoritativeWait?: (lockoutId: string) => Promise<boolean>;
+  clearAuthoritativeWait?: (lockoutId: string) => Promise<boolean>;
 }
 
 interface InternalChallengeBase {
@@ -120,7 +129,7 @@ interface InternalChallengeBase {
 type InternalChallenge =
   | (InternalChallengeBase & { expected: { kind: "dish"; correctIndex: number } })
   | (InternalChallengeBase & { expected: { kind: "sums"; answers: readonly number[] } })
-  | (InternalChallengeBase & { expected: { kind: "moles" } });
+  | (InternalChallengeBase & { expected: { kind: "moles" }; receipts: Map<string, { spawnId: number; cell: number }> });
 
 export interface UnlockLadderLockoutState {
   rung: UnlockLadderRung;
@@ -248,6 +257,8 @@ export class UnlockLadder {
   readonly #stateStore: UnlockLadderStateStore;
   readonly #maxClearedWaitsPerHour: number;
   readonly #challengeTtlMs: number;
+  readonly #hasAuthoritativeWait?: (lockoutId: string) => Promise<boolean>;
+  readonly #clearAuthoritativeWait?: (lockoutId: string) => Promise<boolean>;
   readonly #challenges = new Map<string, InternalChallenge>();
 
   constructor(options: UnlockLadderOptions) {
@@ -258,6 +269,8 @@ export class UnlockLadder {
     this.#maxClearedWaitsPerHour =
       options.maxClearedWaitsPerHour ?? DEFAULT_MAX_CLEARED_WAITS_PER_HOUR;
     this.#challengeTtlMs = options.challengeTtlMs ?? DEFAULT_CHALLENGE_TTL_MS;
+    this.#hasAuthoritativeWait = options.hasAuthoritativeWait;
+    this.#clearAuthoritativeWait = options.clearAuthoritativeWait;
     if (
       !Number.isSafeInteger(this.#maxClearedWaitsPerHour) ||
       this.#maxClearedWaitsPerHour < 1 ||
@@ -292,6 +305,9 @@ export class UnlockLadder {
         reason: "state-store-unavailable",
         budgetRemaining: 0,
       };
+    }
+    if (this.#hasAuthoritativeWait && !(await this.#hasAuthoritativeWait(request.lockoutId))) {
+      return { offered: false, rung: "clock", reason: "lockout-clock-only", budgetRemaining: 0 };
     }
     let budgetRemaining: number;
     let existing: UnlockLadderLockoutState | undefined;
@@ -371,6 +387,7 @@ export class UnlockLadder {
         lockoutId: request.lockoutId,
         budgetScopeId: request.budgetScopeId,
         expected: { kind: "moles" },
+        receipts: new Map(),
       };
     } else {
       return { offered: false, rung: "clock", reason: "lockout-clock-only", budgetRemaining };
@@ -444,7 +461,7 @@ export class UnlockLadder {
           return this.#gradeResult(false, "clock", "state-store-unavailable", 0);
         }
       }
-      correct = this.#gradeMoles(challenge, answer);
+      correct = this.#gradeMoles(challenge, answer, internal.receipts);
     }
 
     if (!correct) {
@@ -463,6 +480,9 @@ export class UnlockLadder {
 
     try {
       await this.#recordClearedWait(internal.budgetScopeId, atMs);
+      if (this.#clearAuthoritativeWait && !(await this.#clearAuthoritativeWait(internal.lockoutId))) {
+        return this.#gradeResult(false, "clock", "state-store-unavailable", await this.#budgetRemaining(internal.budgetScopeId, atMs));
+      }
       await this.#stateStore.writeLockout(internal.lockoutId, undefined);
       return this.#gradeResult(
         true,
@@ -478,24 +498,38 @@ export class UnlockLadder {
   #gradeMoles(
     challenge: MolesChallenge,
     answer: Extract<UnlockLadderAnswer, { kind: "moles" }>,
+    receipts: Map<string, { spawnId: number; cell: number }>,
   ): boolean {
     if (answer.hits.length > 256) return false;
     const credited = new Set<number>();
     for (const hit of answer.hits) {
-      const spawn = challenge.payload.spawns.find((candidate) => candidate.spawnId === hit.spawnId);
+      const receipt = receipts.get(hit.receiptId);
+      const spawn = receipt ? challenge.payload.spawns.find((candidate) => candidate.spawnId === receipt.spawnId) : undefined;
       if (
         !spawn ||
         credited.has(spawn.spawnId) ||
-        spawn.cell !== hit.cell ||
-        !Number.isSafeInteger(hit.atMs) ||
-        hit.atMs < spawn.appearsAtMs ||
-        hit.atMs > spawn.disappearsAtMs
+        !receipt ||
+        spawn.cell !== receipt.cell
       ) {
         continue;
       }
       credited.add(spawn.spawnId);
     }
     return credited.size >= challenge.payload.hitsRequired;
+  }
+
+  async recordMoleHit(nonce: string, spawnId: number, cell: number): Promise<{ ok: true; value: MoleHitReceipt } | { ok: false; reason: "unknown-or-consumed-nonce" | "not-visible" | "duplicate" | "expired" }> {
+    const internal = this.#challenges.get(nonce);
+    if (!internal || internal.expected.kind !== "moles") return { ok: false, reason: "unknown-or-consumed-nonce" };
+    const atMs = assertServerTime(this.#now());
+    const challenge = internal.publicChallenge as MolesChallenge;
+    if (atMs > Date.parse(challenge.expiresAt)) return { ok: false, reason: "expired" };
+    if ([...internal.receipts.values()].some((receipt) => receipt.spawnId === spawnId)) return { ok: false, reason: "duplicate" };
+    const spawn = challenge.payload.spawns.find((candidate) => candidate.spawnId === spawnId && candidate.cell === cell && atMs - Date.parse(challenge.issuedAt) >= candidate.appearsAtMs && atMs - Date.parse(challenge.issuedAt) <= candidate.disappearsAtMs);
+    if (!spawn) return { ok: false, reason: "not-visible" };
+    const receiptId = this.#createNonce();
+    internal.receipts.set(receiptId, { spawnId, cell });
+    return { ok: true, value: { receiptId, spawnId, cell, observedAt: new Date(atMs).toISOString() } };
   }
 
   async #escalate(

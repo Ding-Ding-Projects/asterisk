@@ -23,12 +23,12 @@ export type ControlPlaneAction =
   | 'media.list' | 'media.upload' | 'media.remove'
   /* The console's own append-only record of what it changed, kept locally. */
   | 'local-history.list' | 'local-history.record' | 'local-history.restore'
-  | 'authenticator.list' | 'authenticator.register' | 'authenticator.confirm' | 'authenticator.remove' | 'authenticator.secret'
+  | 'authenticator.list' | 'authenticator.register' | 'authenticator.confirm' | 'authenticator.remove' | 'authenticator.snapshot' | 'authenticator.restore'
   | 'toy-lock.initialize' | 'toy-lock.list' | 'toy-lock.create' | 'toy-lock.unlock' | 'toy-lock.relock' | 'toy-lock.remove'
   | 'toy-lock.recovery'
   | 'toy-lock-credential.create'
   | 'support-ticket.list' | 'support-ticket.create' | 'support-ticket.advance'
-  | 'unlock-ladder.issue' | 'unlock-ladder.grade'
+  | 'unlock-ladder.issue' | 'unlock-ladder.hit' | 'unlock-ladder.grade'
   /* Durable renderer settings (appearance, personal vocabulary) -- see
    * `control-plane/settings-store.ts`. The renderer's own `localStorage` is in-memory
    * only for a `file://` origin and never survives a relaunch. */

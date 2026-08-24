@@ -1,11 +1,12 @@
 import { safeStorage } from "electron";
-import { createHmac, timingSafeEqual } from "node:crypto";
-import { mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { readFileSync } from "node:fs";
 import type { ToyLockCredentialReference } from "../../shared/locks.js";
 import type { AuthLockVault } from "../../control-plane/auth-lock-runtime.js";
+import { atomicWriteFileSync } from "../../control-plane/atomic-file.js";
 
-type VaultDocument = { version: 1; entries: Record<string, string> };
+type VaultEntry = { kind: "reversible" | "password-hash" | "totp"; ciphertext?: string; hash?: string; salt?: string; parameters?: { N: number; r: number; p: number } };
+type VaultDocument = { version: 1; entries: Record<string, VaultEntry> };
 const KEY = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u;
 const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
@@ -44,6 +45,7 @@ export class ElectronCredentialVault implements AuthLockVault {
     try {
       const parsed = JSON.parse(readFileSync(this.#path, "utf8")) as VaultDocument;
       if (parsed.version !== 1 || !parsed.entries || typeof parsed.entries !== "object") throw new Error("invalid vault document");
+      for (const [key, value] of Object.entries(parsed.entries as Record<string, VaultEntry | string>)) if (typeof value === "string") parsed.entries[key] = { kind: "reversible", ciphertext: value };
       return parsed;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return { version: 1, entries: {} };
@@ -52,23 +54,37 @@ export class ElectronCredentialVault implements AuthLockVault {
   }
 
   #write(document: VaultDocument): void {
-    mkdirSync(dirname(this.#path), { recursive: true });
-    const temporary = `${this.#path}.${process.pid}.${Date.now()}.tmp`;
-    writeFileSync(temporary, `${JSON.stringify(document)}\n`, { encoding: "utf8", flag: "wx" });
-    try { renameSync(temporary, this.#path); } catch (error) { try { unlinkSync(temporary); } catch { /* preserve write error */ } throw error; }
+    atomicWriteFileSync(this.#path, `${JSON.stringify(document)}\n`);
   }
 
-  async setSecret(key: string, secret: string) {
+  async setSecret(key: string, secret: string, kind: "reversible" | "password-hash" | "totp" = "reversible") {
     if (!this.available) return { ok: false as const, code: "vault-unavailable" as const, message: "The operating-system credential vault is unavailable." };
     if (!KEY.test(key) || typeof secret !== "string" || secret.length < 1 || secret.length > 4_096) return { ok: false as const, code: "vault-error" as const, message: "The credential request is outside its safety bound." };
-    try { const document = this.#read(); document.entries[key] = safeStorage.encryptString(secret).toString("base64"); this.#write(document); return { ok: true as const, value: undefined }; }
+    try {
+      const document = this.#read();
+      if (kind === "password-hash") {
+        const salt = randomBytes(16);
+        const parameters = { N: 32_768, r: 8, p: 1 };
+        const hash = scryptSync(secret, salt, 32, parameters).toString("base64");
+        document.entries[key] = { kind: "password-hash", hash, salt: salt.toString("base64"), parameters };
+      } else {
+        document.entries[key] = { kind, ciphertext: safeStorage.encryptString(secret).toString("base64") };
+      }
+      this.#write(document);
+      return { ok: true as const, value: undefined };
+    }
     catch { return { ok: false as const, code: "vault-error" as const, message: "The operating-system credential vault could not save the credential." }; }
   }
 
   async getSecret(key: string) {
     if (!this.available) return { ok: false as const, code: "vault-unavailable" as const, message: "The operating-system credential vault is unavailable." };
     if (!KEY.test(key)) return { ok: false as const, code: "vault-error" as const, message: "The credential reference is malformed." };
-    try { const encoded = this.#read().entries[key]; if (!encoded) return { ok: false as const, code: "vault-error" as const, message: "The credential reference was not found." }; return { ok: true as const, value: safeStorage.decryptString(Buffer.from(encoded, "base64")) }; }
+    try {
+      const entry = this.#read().entries[key];
+      if (!entry) return { ok: false as const, code: "vault-error" as const, message: "The credential reference was not found." };
+      if (!entry.ciphertext || entry.kind === "password-hash") return { ok: false as const, code: "vault-error" as const, message: "This credential is not reversibly readable." };
+      return { ok: true as const, value: safeStorage.decryptString(Buffer.from(entry.ciphertext, "base64")) };
+    }
     catch { return { ok: false as const, code: "vault-error" as const, message: "The operating-system credential vault could not read the credential." }; }
   }
 
@@ -78,14 +94,21 @@ export class ElectronCredentialVault implements AuthLockVault {
     catch { return { ok: false as const, code: "vault-error" as const, message: "The operating-system credential vault could not remove the credential." }; }
   }
 
-  async has(reference: ToyLockCredentialReference): Promise<boolean> { const result = await this.getSecret(reference.vaultAccount); return result.ok; }
+  async has(reference: ToyLockCredentialReference): Promise<boolean> { try { return Boolean(this.#read().entries[reference.vaultAccount]); } catch { return false; } }
   async verify(reference: ToyLockCredentialReference, candidate: Uint8Array): Promise<boolean> {
-    const stored = await this.getSecret(reference.vaultAccount);
-    if (!stored.ok) return false;
     const value = new TextDecoder().decode(candidate);
-    if (reference.method === "totp") return verifyTotp(stored.value, value);
-    const expected = Buffer.from(stored.value, "utf8"); const supplied = Buffer.from(value, "utf8");
-    return expected.length === supplied.length && timingSafeEqual(expected, supplied);
+    try {
+      const entry = this.#read().entries[reference.vaultAccount];
+      if (!entry) return false;
+      if (reference.method === "totp") {
+        if (!entry.ciphertext) return false;
+        return verifyTotp(safeStorage.decryptString(Buffer.from(entry.ciphertext, "base64")), value);
+      }
+      if (!entry.hash || !entry.salt || !entry.parameters) return false;
+      const supplied = scryptSync(value, Buffer.from(entry.salt, "base64"), 32, entry.parameters);
+      const expected = Buffer.from(entry.hash, "base64");
+      return expected.length === supplied.length && timingSafeEqual(expected, supplied);
+    } catch { return false; }
   }
   async remove(reference: ToyLockCredentialReference): Promise<boolean> { return (await this.deleteSecret(reference.vaultAccount)).ok; }
 }

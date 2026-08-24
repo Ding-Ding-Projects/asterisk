@@ -3,32 +3,26 @@ import type {
   AuthenticatorParameters,
   AuthenticatorRegistration,
   AuthenticatorResult,
+  AuthenticatorCodeSnapshot,
 } from '../../../shared/authenticator';
-import { generateCode, pairingUri, secondsRemaining, type TotpAlgorithm } from './totp';
+import { pairingUri, type TotpAlgorithm } from './totp';
+import { qrSvg } from './qr';
+
+export type { AuthenticatorCodeSnapshot } from '../../../shared/authenticator';
 
 export const AUTH_UI_DEADLINE_MS = 8_000;
-
-export interface SecretReader {
-  readSecret(entryId: string): Promise<{ ok: true; value: string } | { ok: false; message: string }>;
-}
 
 export interface AuthenticatorClient {
   list(): Promise<AuthenticatorResult<ReadonlyArray<AuthenticatorEntry>>>;
   register(input: AuthenticatorRegistration): Promise<AuthenticatorResult<AuthenticatorEntry>>;
-  confirmAndArm(id: string, code: string, atMs: number, skewSteps?: number): Promise<AuthenticatorResult<AuthenticatorEntry>>;
+  confirmAndArm(id: string, code: string): Promise<AuthenticatorResult<AuthenticatorEntry>>;
   remove(id: string): Promise<AuthenticatorResult<undefined>>;
+  codeSnapshot(id: string): Promise<AuthenticatorResult<AuthenticatorCodeSnapshot>>;
 }
 
 export interface AuthenticatorHistoryClient {
-  record(entry: { action: 'created' | 'updated' | 'deleted'; subject: string; stableRecordId: string }): Promise<unknown>;
+  record(entry: { action: 'created' | 'updated' | 'deleted'; subject: string; stableRecordId: string; snapshot?: unknown }): Promise<unknown>;
 }
-
-export type AuthenticatorCodeSnapshot = {
-  current: string;
-  next: string;
-  secondsRemaining: number;
-  clockWarning?: string;
-};
 
 export type PairingDescriptor = {
   uri: string;
@@ -39,6 +33,7 @@ export type PairingDescriptor = {
   /** The URI is passed to a local QR renderer by the host surface. */
   qrValue: string;
   qrAccessibleLabel: string;
+  qrSvg: string;
 };
 
 export type AuthenticatorExportRow = Omit<AuthenticatorEntry, 'id'> & { id: string };
@@ -68,6 +63,7 @@ export function buildPairingDescriptor(input: AuthenticatorRegistration): Pairin
     parameters,
     qrValue: uri,
     qrAccessibleLabel: `Local QR pairing for ${input.issuer.trim()} and ${input.account.trim()}. The same pairing value is available as a manual code.`,
+    qrSvg: qrSvg(uri, `Local QR pairing for ${input.issuer.trim()} and ${input.account.trim()}`),
   };
 }
 
@@ -104,28 +100,10 @@ export function exportAuthenticatorEntries(entries: ReadonlyArray<AuthenticatorE
   };
 }
 
-export async function readCodeSnapshot(
-  reader: SecretReader,
-  entry: AuthenticatorEntry,
-  atMs: number,
-  clockOffsetMs = 0,
-): Promise<AuthenticatorCodeSnapshot> {
-  const secretResult = await withDeadline(reader.readSecret(entry.id));
-  if (!secretResult.ok) throw new Error(secretResult.message);
-  const parameters = { ...entry.parameters, secret: secretResult.value };
-  const current = await withDeadline(generateCode(parameters, atMs));
-  const next = await withDeadline(generateCode(parameters, atMs + entry.parameters.period * 1_000));
-  const remaining = secondsRemaining(entry.parameters.period, atMs);
-  const tolerance = entry.parameters.period * 1_000;
-  const clockWarning = Math.abs(clockOffsetMs) > tolerance
-    ? `This computer clock is about ${Math.round(Math.abs(clockOffsetMs) / 1_000)} seconds ${clockOffsetMs > 0 ? 'ahead of' : 'behind'} real time.`
-    : undefined;
-  return { current, next, secondsRemaining: remaining, clockWarning };
-}
 
 export async function recordAuthHistory(
   history: AuthenticatorHistoryClient | undefined,
-  entry: { action: 'created' | 'updated' | 'deleted'; subject: string; stableRecordId: string },
+  entry: { action: 'created' | 'updated' | 'deleted'; subject: string; stableRecordId: string; snapshot?: unknown },
 ): Promise<void> {
   if (!history) return;
   await withDeadline(history.record(entry)).catch(() => undefined);
