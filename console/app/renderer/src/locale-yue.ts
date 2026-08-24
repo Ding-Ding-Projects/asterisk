@@ -204,6 +204,13 @@ export const CANTONESE: Catalog = {
   'CLI builder': '指令產生器',
   'Arcade': '遊戲機',
 
+  /* External editor handoff. */
+  'External editor': '外部編輯器',
+  'Editor': '編輯器',
+  'Other editor name': '其他編輯器名稱',
+  'Other editor executable': '其他編輯器執行檔',
+  'Forget the chosen editor': '唔記得揀咗嘅編輯器',
+
   /* Support Tickets. */
   'Support Tickets': '支援工單',
   'Category': '類別',

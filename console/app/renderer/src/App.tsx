@@ -32,6 +32,7 @@ import {
 import { setEmojisEnabled } from './dialog-emojis';
 import { isAttentionMode, setModeEnabled } from './attention-modes';
 import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
+import { KNOWN_EDITORS, chooseEditor, clearEditorChoice } from './external-editor';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
 import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
@@ -570,6 +571,14 @@ ${resolution.disclosure}`);
     }
     /* The five attention modes share one prefix and one handler, so adding a sixth is
      * a registry entry rather than another branch here. */
+    if (control?.id === 'ed_choice' && typeof value === 'string') {
+      const editor = KNOWN_EDITORS.find((candidate) => candidate.name === value);
+      if (editor) chooseEditor(this.durableStorage.storage, editor.id);
+    }
+    if (control?.id === 'ed_clear' && value === true) {
+      clearEditorChoice(this.durableStorage.storage);
+      this.toast('Editor choice forgotten');
+    }
     if (control?.id === 'sup_open' && value === true) {
       this.fileSupportTicket();
       return;

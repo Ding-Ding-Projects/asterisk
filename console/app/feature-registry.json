@@ -157,9 +157,13 @@
       ]
     },
     "external-editor-handoff": {
-      "state": "absent",
-      "note": "No open-in-external-editor / VS Code handoff exists anywhere in the renderer or control-plane.",
-      "files": []
+      "state": "implemented",
+      "note": "Implemented 2026-08-23 as app/renderer/src/external-editor.ts with four controls in the design, acted on through App.tsx. Detects installed editors (PATH first, then absolute fallbacks in order), persists the choice, and lets one be added by hand. VS Code is a first-class export rather than a row in a list, because anything exportable has to be openable in it, and opening a folder carries the workspace-root arguments so a file tree appears rather than a bare file. Nothing is launched through a shell: a plan carries an executable and an argument list passed separately and has no joined command line for a target to be interpolated into, so a path with a space stays one argument and a path carrying shell metacharacters is inert. A hand-added editor is validated as a bare executable and refuses operators and quotes. An editor that has been uninstalled is never silently replaced with another. The copy treats an editor as an optional integration rather than a missing prerequisite, since the console is complete without one.",
+      "files": [
+        "app/renderer/src/external-editor.ts",
+        "app/renderer/src/App.tsx",
+        "tests/ui/external-editor.test.tsx"
+      ]
     },
     "complete-exports": {
       "state": "partial",
