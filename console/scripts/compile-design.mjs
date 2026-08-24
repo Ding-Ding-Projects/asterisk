@@ -16,7 +16,13 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..', '..');
-const outDir = resolve(root, 'console/app/renderer/src/generated');
+/* Where the compiled output lands. Overridable so the drift check can compile into a
+ * scratch directory and compare, rather than rewriting the shipped files underneath the
+ * sibling tests reading them -- that race made an unrelated test fail intermittently with
+ * an empty parse, which reads exactly like a real regression in whatever was changed last. */
+const outDir = process.env.DING_DESIGN_OUT_DIR
+  ? resolve(process.env.DING_DESIGN_OUT_DIR)
+  : resolve(root, 'console/app/renderer/src/generated');
 
 /** Branding replacements recorded in console/design/inventory.json under source.sanitization. */
 const BRAND = [

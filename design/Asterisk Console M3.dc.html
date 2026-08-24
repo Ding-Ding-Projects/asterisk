@@ -3823,7 +3823,9 @@ class Component extends DCLogic {
       zoomIn:() => this.set('zoom', Math.min(200, s.zoom + 10)),
       zoomOut:() => this.set('zoom', Math.max(40, s.zoom - 10)),
       canvasBgClick:() => {},
-      edges:s.edgeList.map(([a, b]) => {
+      /* A removed step takes its connections with it, which is what the confirmation
+         promises. Filtering only the nodes would leave lines running to nothing. */
+      edges:s.edgeList.filter(([a, b]) => (s.removedNodes || []).indexOf(a) < 0 && (s.removedNodes || []).indexOf(b) < 0).map(([a, b]) => {
         const An = NODES.find(n => n.id === a), Bn = NODES.find(n => n.id === b);
         if (!An || !Bn) return { d:'', stroke:'transparent', w:0 };
         const Ap = s.nodePos[a] || An, Bp = s.nodePos[b] || Bn;
@@ -3841,7 +3843,7 @@ class Component extends DCLogic {
         }
         return { d, stroke:sel ? '#82D9A5' : '#37483D', w:sel ? 2.5 : 1.8 };
       }),
-      nodes:NODES.map(n => {
+      nodes:NODES.filter(n => (s.removedNodes || []).indexOf(n.id) < 0).map(n => {
         const p = s.nodePos[n.id] || { x:n.x, y:n.y };
         const on = n.id === s.nodeId;
         return { x:p.x + 'px', y:p.y + 'px', icon:n.icon, title:n.title, detail:n.detail,
@@ -3855,7 +3857,7 @@ class Component extends DCLogic {
           connect:() => this.addEdgeFrom(),
           ctx:(e) => { e.preventDefault(); this.setState({ nodeId:n.id, ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:n.title, ctxKind:'node' }); },
           dup:() => this.toast(n.title + ' duplicated on the canvas'),
-          del:() => this.areYouSure('Delete ' + n.title, 'The step and every connection into or out of it are removed from the dialplan.', 3, () => this.fire('Step deleted', n.title + ' is gone.')) };
+          del:() => this.areYouSure('Delete ' + n.title, 'The step and every connection into or out of it are removed from the dialplan.', 3, () => { const gone = (s.removedNodes || []).concat([n.id]); this.setState({ removedNodes:gone }); this.fire('Step deleted', n.title + ' is off the canvas, with its connections.'); }) };
       }),
       canvasDrop:(e) => {
         e.preventDefault();
@@ -4599,7 +4601,7 @@ class Component extends DCLogic {
             { icon:'timeline', label:'Connect to…', hint:'C', run:() => { close(); this.addEdgeFrom(); } },
             { icon:'content_copy', label:'Duplicate step', hint:'⌃D', run:() => { close(); this.toast('Step duplicated'); } },
             { icon:'call_split', label:'Insert condition before', hint:'', run:() => { close(); this.toast('Condition inserted'); } },
-            { icon:'delete', label:'Delete step', hint:'⌦', run:() => { close(); this.areYouSure('Delete this step', 'The step and its connections are removed from the dialplan.', 3, () => this.fire('Step deleted', 'Canvas updated.')); } },
+            { icon:'delete', label:'Delete step', hint:'⌦', run:() => { close(); this.areYouSure('Delete this step', 'The step and its connections are removed from the dialplan.', 3, () => { const gone = (s.removedNodes || []).concat([s.nodeId]); this.setState({ removedNodes:gone }); this.fire('Step deleted', 'It is off the canvas, with its connections.'); }); } },
             common[0], common[1]
           ]);
         }

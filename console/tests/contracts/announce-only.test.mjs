@@ -44,6 +44,19 @@ const STILL_ANNOUNCING = new Map([
   ['Export', 'the bulk-selection Export shares a label with the appearance Export; it needs the selection model to produce rows'],
 ]);
 
+/* The same shape, hiding behind a confirmation. This was a real blind spot: "Delete step"
+ * opened a genuine three-second destructive gate and then only fired a message, so the gate
+ * guarded nothing and the person was told their dialplan had changed when it had not. A
+ * decorative destructive control is worse than a decorative ordinary one -- they go looking
+ * for the thing later and find it exactly where they left it. */
+const CONFIRMED_ANNOUNCE_ONLY = /label:'([^']*)'[^}]{0,200}?areYouSure\([^)]*?,\s*\(\) => this\.(?:fire|toast)\(/g;
+
+test('a confirmation runs something, rather than only reporting', () => {
+  const found = [...design.matchAll(CONFIRMED_ANNOUNCE_ONLY)].map((match) => match[1]);
+  assert.deepEqual(found, [],
+    `these confirmations guard nothing and report success anyway: ${found.join(', ')}`);
+});
+
 test('no menu item announces work it has not done', () => {
   const found = [...design.matchAll(ANNOUNCE_ONLY)].map((match) => match[1]);
   const unexpected = found.filter((label) => !STILL_ANNOUNCING.has(label));
@@ -74,4 +87,16 @@ test('the fixed items reach a real effect rather than a message', () => {
   for (const kind of ['copy', 'export-json', 'import-json', 'save']) {
     assert.ok(routed.includes(kind), `nothing routes to ${kind}`);
   }
+});
+
+test('a removed step is actually dropped from what the canvas draws', () => {
+  /* The delete handler records the removal; something has to honour it. Wired at one end
+   * and consumed at neither is how a fix ships looking correct and changing nothing -- and
+   * here it would restore the exact lie the fix was written to remove, silently. */
+  assert.match(design, /NODES\.filter\(n => \(s\.removedNodes \|\| \[\]\)\.indexOf\(n\.id\) < 0\)/,
+    'the node list draws removed steps');
+  /* And the connections go with it, because that is what the confirmation promises. Lines
+   * running to a step that is no longer there would be worse than not deleting at all. */
+  assert.match(design, /edges:s\.edgeList\.filter\(\(\[a, b\]\) => \(s\.removedNodes \|\| \[\]\)\.indexOf\(a\) < 0 && \(s\.removedNodes \|\| \[\]\)\.indexOf\(b\) < 0\)/,
+    'edges survive the step they connect to');
 });

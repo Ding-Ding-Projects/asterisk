@@ -1,17 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { readFile, readdir } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const consoleRoot = new URL('../../', import.meta.url);
 const generated = new URL('app/renderer/src/generated/', consoleRoot);
 const compiler = fileURLToPath(new URL('scripts/compile-design.mjs', consoleRoot));
 const pbxExtension = fileURLToPath(new URL('scripts/extend-pbx-m3.mjs', consoleRoot));
 
-const snapshot = async () => {
-  const names = (await readdir(generated)).sort();
-  const files = await Promise.all(names.map((name) => readFile(new URL(name, generated), 'utf8')));
+const snapshot = async (dir = generated) => {
+  const names = (await readdir(dir)).sort();
+  const files = await Promise.all(names.map((name) => readFile(new URL(name, dir), 'utf8')));
   return Object.fromEntries(names.map((name, index) => [name, files[index]]));
 };
 
@@ -24,15 +26,34 @@ test('the shipped renderer is byte-identical to a fresh compile of the design re
   const before = await snapshot();
   assert.ok(Object.keys(before).length > 0, 'no compiled design output is checked in');
 
-  execFileSync(process.execPath, [compiler], { stdio: 'pipe' });
-  execFileSync(process.execPath, [pbxExtension], { stdio: 'pipe' });
-
-  const after = await snapshot();
-  assert.deepEqual(Object.keys(after), Object.keys(before), 'recompiling changed the set of generated files');
-  for (const name of Object.keys(before)) {
-    assert.equal(after[name], before[name], `${name} drifted from the reproducible design-system compile`);
+  /* Into a scratch directory, never over the shipped files. Recompiling in place proved the
+   * same thing and did it by writing the very files the other test files are reading at that
+   * moment -- the runner runs them concurrently, so a sibling could read a half-written
+   * console.tsx and fail with an empty parse. That reads exactly like a real regression in
+   * whatever was changed last, which is the most expensive kind of false alarm there is. */
+  const scratch = await mkdtemp(join(tmpdir(), 'ding-design-drift-'));
+  try {
+    execFileSync(process.execPath, [compiler], { stdio: 'pipe', env: { ...process.env, DING_DESIGN_OUT_DIR: scratch } });
+    execFileSync(process.execPath, [pbxExtension], { stdio: 'pipe', env: { ...process.env, DING_DESIGN_OUT_DIR: scratch } });
+    await compare(before, await snapshot(pathToFileURL(scratch + '/')));
+  } finally {
+    await rm(scratch, { recursive: true, force: true });
   }
 });
+
+async function compare(before, after) {
+  /* Only what the compile actually emits. The shipped directory also holds files put there
+   * by other steps -- the docs and changelog bundles, a .gitattributes -- and a scratch
+   * compile legitimately contains none of them, so comparing whole directory listings would
+   * fail for a reason that has nothing to do with drift. */
+  assert.ok(Object.keys(after).length >= 4, `the compile emitted only ${Object.keys(after).length} files`);
+  for (const name of Object.keys(after)) {
+    assert.ok(name in before, `${name} was compiled but is not checked in`);
+  }
+  for (const name of Object.keys(after)) {
+    assert.equal(after[name], before[name], `${name} drifted from the reproducible design-system compile`);
+  }
+}
 
 /**
  * The independently audited design carries 267 declarative bindings — 265 plus the two
