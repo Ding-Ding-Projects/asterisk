@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ControlPlaneRequest, ControlPlaneResponse, DingDesktopApi, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
+import type { ControlPlaneRequest, ControlPlaneResponse, DingDesktopApi, UpdaterStatusForRenderer, UpdaterRestartResult } from '../../shared/control-plane.js';
 
 const api: DingDesktopApi = {
   platform: process.platform,
@@ -14,7 +14,8 @@ const api: DingDesktopApi = {
   updater: {
     getStatus: () => ipcRenderer.invoke('updater:get-status') as Promise<UpdaterStatusForRenderer>,
     checkNow: () => ipcRenderer.invoke('updater:check-now') as Promise<UpdaterStatusForRenderer>,
-    restartToInstall: () => ipcRenderer.send('updater:restart-to-install'),
+    restartToInstall: () => ipcRenderer.invoke('updater:restart-to-install') as Promise<UpdaterRestartResult>,
+    setUnsavedDraftCount: (count: number) => ipcRenderer.send('updater:set-draft-count', count),
     dismiss: () => ipcRenderer.send('updater:dismiss'),
     onStatus: (listener: (status: UpdaterStatusForRenderer) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, status: UpdaterStatusForRenderer) => listener(status);

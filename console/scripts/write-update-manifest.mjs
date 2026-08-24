@@ -1,30 +1,30 @@
 #!/usr/bin/env node
-/**
- * Writes `resources/update-manifest.json`, the one fact the packaged app needs in order
- * to know its own place in the release sequence: the exact release tag the delivery
- * workflow will publish for the run doing the packaging.
- *
- * `.github/workflows/delivery.yml`'s `release` job computes that tag as
- * `ding-pbx-console-v0.0.<run number>-r<run attempt>` from `github.run_number` and
- * `github.run_attempt` — both of which are ordinary Actions environment variables
- * (`GITHUB_RUN_NUMBER`, `GITHUB_RUN_ATTEMPT`) available in the earlier `build-package`
- * job too, so the packaging step can predict the tag the release job will use for the
- * very same run before that job exists. Outside CI (a developer running `npm run build`
- * or `build.bat` locally) those variables are unset; the manifest then records `tag:
- * null`, and the shipped update checker (see `control-plane/updater.ts` and its wiring
- * in `app/electron/main.ts`) treats an unknown current version as "always offer the
- * newest published release" rather than refusing to compare.
- */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-const runNumber = process.env.GITHUB_RUN_NUMBER;
+const consoleRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+const repositoryRoot = join(consoleRoot, '..');
+const packageJson = JSON.parse(readFileSync(join(consoleRoot, 'package.json'), 'utf8'));
+const head = execFileSync('git', ['-C', repositoryRoot, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+const candidateCommit = process.env.DING_PBX_CANDIDATE_COMMIT ?? head;
+const version = process.env.DING_PBX_VERSION ?? packageJson.version;
 const runAttempt = process.env.GITHUB_RUN_ATTEMPT;
-const tag = runNumber && runAttempt ? `ding-pbx-console-v0.0.${runNumber}-r${runAttempt}` : null;
+const inferredTag = process.env.GITHUB_RUN_NUMBER && runAttempt ? `ding-pbx-console-v${version}-r${runAttempt}` : null;
+const tag = process.env.DING_PBX_RELEASE_TAG ?? inferredTag;
+if (!/^[0-9a-f]{40}$/u.test(candidateCommit) || candidateCommit !== head) throw new Error('The candidate commit must be the exact checkout HEAD.');
+if (!/^\d+\.\d+\.\d+$/u.test(version)) throw new Error('The package version must be numeric semantic version text.');
+if (tag !== null && tag !== `ding-pbx-console-v${version}-r${runAttempt}`) throw new Error('The release tag does not match the package version and run attempt.');
 
-const outDir = join(repoRoot, 'resources');
+const outDir = join(consoleRoot, 'resources');
 mkdirSync(outDir, { recursive: true });
-writeFileSync(join(outDir, 'update-manifest.json'), JSON.stringify({ tag }, null, 2) + '\n', 'utf8');
-console.log(`Wrote resources/update-manifest.json with tag ${tag ?? '(none — not a CI run)'}`);
+writeFileSync(join(outDir, 'update-manifest.json'), JSON.stringify({
+  schemaVersion: 1,
+  product: 'ding-pbx-console',
+  version,
+  candidateCommit,
+  tag,
+  published: Boolean(tag),
+}, null, 2) + '\n', 'utf8');
+console.log(`Wrote resources/update-manifest.json for version ${version}, candidate ${candidateCommit}, tag ${tag ?? '(local unpublished build)'}.`);

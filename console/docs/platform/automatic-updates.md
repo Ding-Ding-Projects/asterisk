@@ -1,33 +1,37 @@
 # Automatic updates
 
-Chrome-style unsigned update checking that downloads, validates, and stages a new version in the background, then offers a non-blocking restart prompt.
+The desktop updater checks the published release feed over HTTPS, validates one complete release identity, downloads the matching unsigned `Setup.exe`, checks its declared size and SHA-256 digest, and stages it for a user-directed restart.
 
 ## Behavior
 
-The application is meant to check for updates on startup and on a bounded schedule, validate the unsigned update package by hash over HTTPS, stage it locally, and show a persistent non-blocking ready banner naming the version and offering restart-now or later.
+Published releases use a monotonic semantic version, beginning above `0.1.0`, and one immutable identity record. A usable release carries exactly one `Setup.exe`, one `RELEASES`, at least one full `.nupkg`, `SHA256SUMS.txt`, and `release-identity.json`. The identity records the package version, candidate commit, release tag, artifact names, sizes, and SHA-256 values. A release is ignored when any record is missing, malformed, unpublished, or inconsistent.
 
-## Configuration
+The installed version comes from the packaged `update-manifest.json`. A release is offered only when its package version is strictly newer. Local unpublished builds remain identifiable by their candidate commit and are never treated as published releases.
 
-Because code signing is permanently out of scope for this product, every update surface would say plainly that the package is unsigned and may trigger an operating-system warning.
+The desktop checks once at startup and on a bounded schedule. Only one check or download may be in flight. Metadata, identity, checksum text, and installer streams have finite response and per-read deadlines and bounded sizes. Temporary installer directories are owned by the updater, removed after every failed or superseded operation, and swept when the desktop starts.
 
-## Current status
+## Restart and drafts
 
-**Desktop application:** Not implemented. The desktop application has no automatic-update mechanism; new versions must be installed manually from a downloaded installer, and there is no update-check, staging, or ready-to-restart banner.
+The ready banner is non-blocking and offers `Restart to install update` and `Later`. `Later` hides the banner without deleting the staged installer. A manual check or the next scheduled check may reveal the preserved ready state again. Restart uses an invoke-based acknowledgement. The main process has one installing latch, launches `Setup.exe` at most once, and quits only after the operating system acknowledges process spawn. A spawn failure stays visible and retryable.
 
-**Documentation website:** Not implemented. The documentation website has no installable update cycle of this kind; it is redeployed directly rather than updated on a user's machine.
+PBX drafts disable restart. The banner states the exact recovery route: review the draft, apply it, or discard it, then retry the restart. The updater never drops a draft to make installation convenient.
+
+## Configuration and safety
+
+Code signing is permanently prohibited. The package and update feed are intentionally unsigned, so the operating system may show an unknown-publisher or SmartScreen warning. Digest checking proves byte integrity only and never claims authenticity or signing.
 
 ## Failure modes
 
-A downloaded update package whose hash does not match its published manifest is meant to be discarded without staging or offering to restart into it; there is no updater yet to enforce that check.
+Malformed packaged identity, an older or equal package version, incomplete release assets, missing checksum lines, inconsistent artifact sizes or digests, response-header timeout, stream-read timeout, bounded-size overflow, temporary-file failure, and installer-spawn failure remain visible as retryable updater states. A failed or superseded download is removed from its updater-owned temporary directory.
 
 ## Accessibility and localization
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.
+The banner is a keyboard-operable, screen-reader-named non-blocking status surface with visible focus, a pending state, a disabled restart control while drafts exist, and explicit retry copy after spawn failure. It avoids claiming that a download is running while a staged installer is merely ready. The product's language and localization surfaces own the final copy.
 
-## Verification
+## Verification boundary
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+This lane intentionally did not run tests, lint, type checks, builds, packaging, desktop launch, UI interaction, or screen captures. The final handoff records the exact packaged regression seam that still needs the cheap Lowlevel headless route: a packaged Windows build with a valid unpublished manifest, a complete newer release identity, a mismatched digest, a malformed manifest, a preserved `Later` state, a duplicate restart activation, a spawn failure, and a PBX draft count above zero.
 
 ## Suggested articles
 
-[Status hub](status-hub.md), [About and policy](../app/about.md), [Platform feature index](README.md).
+[In-context recovery](in-context-recovery.md), [Non-blocking notifications](non-blocking-notifications.md), [App display name](app-display-name.md), [Platform feature index](README.md).

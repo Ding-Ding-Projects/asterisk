@@ -59,9 +59,19 @@ export type ControlPlaneResponse =
  */
 export interface UpdaterStatusForRenderer {
   state: 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'failed';
+  revision?: number;
   latestVersion?: string;
+  installedVersion?: string;
   releaseUrl?: string;
   lastError?: string;
+  dismissed?: boolean;
+  unsavedDraftCount: number;
+  restartPending: boolean;
+}
+
+export interface UpdaterRestartResult {
+  ok: boolean;
+  reason?: string;
 }
 
 export interface DingDesktopApi {
@@ -73,8 +83,10 @@ export interface DingDesktopApi {
     getStatus(): Promise<UpdaterStatusForRenderer>;
     /** Manual "Check for updates" action. Resolves once the check (and any download) settles. */
     checkNow(): Promise<UpdaterStatusForRenderer>;
-    /** "Restart to install update" — only valid once state is 'ready'. Never returns; the app quits. */
-    restartToInstall(): void;
+    /** "Restart to install update" — returns only after spawn acknowledgement or failure. */
+    restartToInstall(): Promise<UpdaterRestartResult>;
+    /** Publishes the count of PBX drafts that still need review, apply, or discard. */
+    setUnsavedDraftCount(count: number): void;
     /** "Later" — hides the banner until the next check finds something (or the user checks manually). */
     dismiss(): void;
     /** Subscribes to every state change; returns an unsubscribe function. */

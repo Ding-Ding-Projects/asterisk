@@ -132,6 +132,7 @@ export class PbxAdminApp extends App {
   private adminMedia = new Map<string, MediaFile[]>();
   private adminStatus = new Map<string, string>();
   private adminPickedFileNames = new Map<string, string>();
+  private publishedDraftCount = -1;
 
   private adminRequest = async (action: string, extra: Record<string, unknown> = {}): Promise<ControlPlaneResponse | undefined> => {
     const bridge = window.dingDesktop;
@@ -142,6 +143,12 @@ export class PbxAdminApp extends App {
   private stateValues(): StateValues {
     const state = this.state as unknown as Partial<StateValues>;
     return { screen: state.screen ?? '', values: state.values ?? {} };
+  }
+
+  private publishDraftCount(count: number): void {
+    if (count === this.publishedDraftCount) return;
+    this.publishedDraftCount = count;
+    window.dingDesktop?.updater.setUnsavedDraftCount(count);
   }
 
   private featureResources(feature: PbxFeatureDefinition): ReadonlyArray<string> {
@@ -452,6 +459,7 @@ export class PbxAdminApp extends App {
       });
 
       const changed = key && this.adminLoaded.has(key) && JSON.stringify(draft) !== JSON.stringify(this.adminLoaded.get(key));
+      this.publishDraftCount(changed ? 1 : 0);
       const planDiffs = plan?.diffs?.length ?? 0;
       groups.push({
         title: 'Review & apply',

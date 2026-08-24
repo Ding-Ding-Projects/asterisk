@@ -45,12 +45,13 @@ export function installHttpBridge(): void {
       // software. Reporting a fixed "idle" state is honest: there is never anything to
       // check for from inside the running process.
       async getStatus() {
-        return { state: 'idle' as const };
+        return { state: 'idle' as const, unsavedDraftCount: 0, restartPending: false, revision: 0 };
       },
       async checkNow() {
-        return { state: 'idle' as const };
+        return { state: 'idle' as const, unsavedDraftCount: 0, restartPending: false, revision: 0 };
       },
-      restartToInstall: () => {},
+      restartToInstall: async () => ({ ok: false, reason: 'Hosted server mode does not install desktop updates.' }),
+      setUnsavedDraftCount: (_count: number) => {},
       dismiss: () => {},
       onStatus: () => () => {},
     },

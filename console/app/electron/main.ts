@@ -2,118 +2,154 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'node:path';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
-import type { ControlPlaneRequest, ControlPlaneResponse } from '../../shared/control-plane.js';
-import type { UpdaterStatusForRenderer } from '../../shared/control-plane.js';
+import type { ControlPlaneRequest, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
 import {
-  parseReleaseTag, resolveLatestUpdate, initialUpdaterState, beganChecking, checkSucceeded,
+  parseVersion, resolveLatestUpdate, validateReleaseIdentity, initialUpdaterState, beganChecking, checkSucceeded,
   updateFailed, beganDownloading, downloadReady, dismissedForNow, verifyDownload, findDigestForAsset,
 } from '../../control-plane/updater.js';
 import type { UpdaterState } from '../../control-plane/updater.js';
 import {
-  readCurrentTag, fetchReleases, downloadAsset, fetchShaSumsText, discardDownload, launchInstallerAndQuit,
+  readCurrentIdentity, fetchReleases, fetchReleaseIdentity, fetchShaSumsText, downloadAsset,
+  discardDownload, sweepStaleDownloads, launchInstaller, releaseIdentityDigest,
 } from './updater-runtime.js';
 
 let mainWindow: BrowserWindow | null = null;
-const dispatcher = createControlPlaneDispatcher({
-  userDataPath: app.getPath('userData'),
-  resourcesPath: process.resourcesPath,
-  hosted: false,
-});
+const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false });
 const { controlPlaneRequest } = dispatcher;
-
-/*
- * Update checking. See `control-plane/updater.ts` for why this downloads a full Setup.exe
- * from GitHub Releases rather than driving Electron's built-in (Squirrel-protocol)
- * `autoUpdater`: this project's delivery workflow publishes each push as its own
- * self-contained release rather than one running multi-version feed directory, so the
- * Squirrel delta-update wire protocol has nothing to reconstruct a chain from. Signing is
- * permanently prohibited for this project; the feed and every downloaded artifact remain
- * unsigned, and this code never claims otherwise. Only bytes are verified, via SHA-256.
- */
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
-let updaterState: UpdaterState = initialUpdaterState(undefined);
+let unsavedDraftCount = 0;
+let updateCheckInFlight: Promise<void> | undefined;
+let updateGeneration = 0;
+let installingLatch: Promise<UpdaterRestartResult> | undefined;
 
-function currentOrdinal() {
-  const tag = readCurrentTag();
-  return tag ? parseReleaseTag(tag) : undefined;
+function readInitialState(): UpdaterState {
+  const identity = readCurrentIdentity();
+  const version = identity ? parseVersion(identity.version) : undefined;
+  const state = initialUpdaterState(version, identity?.tag);
+  if (!identity) return updateFailed(state, 'The packaged update manifest is missing or malformed.');
+  return state;
 }
+
+let updaterState = readInitialState();
 
 function toRendererStatus(state: UpdaterState): UpdaterStatusForRenderer {
   return {
     state: state.state,
-    latestVersion: state.resolved?.tag,
+    revision: state.revision,
+    installedVersion: state.currentVersion ? state.currentVersion.join('.') : undefined,
+    latestVersion: state.resolved?.version,
     releaseUrl: state.resolved?.releaseUrl,
     lastError: state.lastError,
+    unsavedDraftCount,
+    restartPending: state.restartPending,
+    dismissed: Boolean(state.dismissedTag && state.dismissedTag === state.resolved?.tag),
   };
 }
 
-function publishUpdaterState(next: UpdaterState) {
+function publishUpdaterState(next: UpdaterState): void {
   updaterState = next;
   mainWindow?.webContents.send('updater:status', toRendererStatus(updaterState));
 }
 
-/** Runs one full check-and-download cycle. Never throws; every failure lands in `updateFailed`. */
-async function runUpdateCheck(): Promise<void> {
-  publishUpdaterState(beganChecking(updaterState, new Date()));
-  let releases;
-  try {
-    releases = await fetchReleases();
-  } catch (error) {
-    publishUpdaterState(updateFailed(updaterState, error instanceof Error ? error.message : String(error)));
+function isCurrentGeneration(generation: number): boolean { return generation === updateGeneration; }
+
+async function performUpdateCheck(revealDismissed: boolean): Promise<void> {
+  if (updaterState.state === 'ready') {
+    if (revealDismissed && updaterState.dismissedTag) publishUpdaterState({ ...updaterState, dismissedTag: undefined, revision: updaterState.revision + 1 });
     return;
   }
-  const resolved = resolveLatestUpdate(releases, currentOrdinal());
-  publishUpdaterState(checkSucceeded(updaterState, resolved));
-  if (!resolved) return;
-
-  publishUpdaterState(beganDownloading(updaterState));
+  if (!readCurrentIdentity()) {
+    publishUpdaterState(updateFailed(updaterState, 'The packaged update manifest is missing or malformed.'));
+    return;
+  }
+  const generation = ++updateGeneration;
+  publishUpdaterState(beganChecking(updaterState, new Date()));
   try {
-    const [file, shaSumsText] = await Promise.all([
-      downloadAsset(resolved.setupAsset),
-      fetchShaSumsText(resolved),
-    ]);
-    const expectedDigest = shaSumsText ? findDigestForAsset(shaSumsText, resolved.setupAsset.name) : undefined;
-    const verdict = verifyDownload(resolved, file, expectedDigest);
-    if (!verdict.ok) {
-      discardDownload(file.path);
-      publishUpdaterState(updateFailed(updaterState, verdict.reason));
+    const releases = await fetchReleases();
+    if (!isCurrentGeneration(generation)) return;
+    const currentVersion = updaterState.currentVersion;
+    const resolved = resolveLatestUpdate(releases, currentVersion);
+    if (!resolved) {
+      publishUpdaterState(checkSucceeded(updaterState, undefined));
       return;
     }
-    publishUpdaterState(downloadReady(updaterState, file.path));
+    const [rawIdentity, shaSumsText] = await Promise.all([fetchReleaseIdentity(resolved), fetchShaSumsText(resolved)]);
+    if (!isCurrentGeneration(generation)) return;
+    const identityResult = validateReleaseIdentity(rawIdentity, resolved);
+    if (!identityResult.ok) throw new Error(identityResult.reason);
+    const identity = identityResult.value;
+    const requiredAssets = [resolved.setupAsset, resolved.releasesAsset, ...resolved.fullPackageAssets, ...resolved.deltaPackageAssets, resolved.identityAsset];
+    for (const asset of requiredAssets) {
+      const digest = findDigestForAsset(shaSumsText, asset.name);
+      if (!digest) throw new Error(`SHA256SUMS.txt has no digest for ${asset.name}.`);
+      const identityDigest = asset.name === resolved.identityAsset.name ? findDigestForAsset(shaSumsText, asset.name) : releaseIdentityDigest(identity, asset.name);
+      if (asset.name !== resolved.identityAsset.name && (!identityDigest || identityDigest.toLowerCase() !== digest.toLowerCase())) {
+        throw new Error(`Release identity digest does not match ${asset.name}.`);
+      }
+    }
+    publishUpdaterState(checkSucceeded(updaterState, resolved));
+    publishUpdaterState(beganDownloading(updaterState));
+    const file = await downloadAsset(resolved.setupAsset);
+    try {
+      const expectedDigest = findDigestForAsset(shaSumsText, resolved.setupAsset.name);
+      const verdict = verifyDownload(resolved, file, expectedDigest);
+      if (!verdict.ok) throw new Error(verdict.reason);
+      if (!isCurrentGeneration(generation)) {
+        await discardDownload(file.path);
+        return;
+      }
+      publishUpdaterState(downloadReady(updaterState, file.path));
+    } catch (error) {
+      await discardDownload(file.path);
+      throw error;
+    }
   } catch (error) {
-    publishUpdaterState(updateFailed(updaterState, error instanceof Error ? error.message : String(error)));
+    if (isCurrentGeneration(generation)) publishUpdaterState(updateFailed(updaterState, error instanceof Error ? error.message : String(error)));
   }
 }
 
-function scheduleUpdateChecks() {
-  updaterState = initialUpdaterState(readCurrentTag());
-  void runUpdateCheck();
-  setInterval(() => { void runUpdateCheck(); }, UPDATE_CHECK_INTERVAL_MS);
+function runUpdateCheck(revealDismissed = false): Promise<void> {
+  if (updateCheckInFlight) return updateCheckInFlight;
+  updateCheckInFlight = performUpdateCheck(revealDismissed).finally(() => { updateCheckInFlight = undefined; });
+  return updateCheckInFlight;
+}
+
+function scheduleUpdateChecks(): void {
+  void sweepStaleDownloads().catch(() => undefined);
+  if (updaterState.state === 'failed' && !readCurrentIdentity()) return;
+  void runUpdateCheck(true);
+  setInterval(() => { void runUpdateCheck(true); }, UPDATE_CHECK_INTERVAL_MS);
 }
 
 ipcMain.handle('updater:get-status', () => toRendererStatus(updaterState));
-ipcMain.handle('updater:check-now', async () => { await runUpdateCheck(); return toRendererStatus(updaterState); });
+ipcMain.handle('updater:check-now', async () => { await runUpdateCheck(true); return toRendererStatus(updaterState); });
 ipcMain.on('updater:dismiss', () => publishUpdaterState(dismissedForNow(updaterState)));
-ipcMain.on('updater:restart-to-install', () => {
-  if (updaterState.state === 'ready' && updaterState.downloadedPath) launchInstallerAndQuit(updaterState.downloadedPath);
+ipcMain.on('updater:set-draft-count', (_event, count: unknown) => {
+  unsavedDraftCount = Number.isSafeInteger(count) && Number(count) >= 0 ? Math.min(Number(count), 10000) : 0;
+  mainWindow?.webContents.send('updater:status', toRendererStatus(updaterState));
+});
+ipcMain.handle('updater:restart-to-install', async (): Promise<UpdaterRestartResult> => {
+  if (installingLatch) return installingLatch;
+  if (unsavedDraftCount > 0) return { ok: false, reason: 'Review, apply, or discard PBX drafts before restarting to install the update.' };
+  if (updaterState.state !== 'ready' || !updaterState.downloadedPath) return { ok: false, reason: 'The update is not ready to install.' };
+  installingLatch = (async () => {
+    publishUpdaterState({ ...updaterState, restartPending: true, revision: updaterState.revision + 1 });
+    const result = await launchInstaller(updaterState.downloadedPath!);
+    if (!result.ok) {
+      publishUpdaterState(updateFailed(updaterState, result.reason));
+      return result;
+    }
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    app.quit();
+    return result;
+  })().finally(() => { installingLatch = undefined; });
+  return installingLatch;
 });
 
-function createWindow() {
+function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 1440,
-    height: 920,
-    minWidth: 920,
-    minHeight: 640,
-    frame: false,
-    backgroundColor: '#101510',
-    show: false,
-    title: 'Ding PBX Console',
-    webPreferences: {
-      preload: join(import.meta.dirname, '../../../app/electron/preload.cjs'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
+    width: 1440, height: 920, minWidth: 920, minHeight: 640, frame: false, backgroundColor: '#101510', show: false, title: 'Ding PBX Console',
+    webPreferences: { preload: join(import.meta.dirname, '../../../app/electron/preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   mainWindow.once('ready-to-show', () => mainWindow?.show());
   if (process.env.VITE_DEV_SERVER_URL) mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
@@ -125,11 +161,6 @@ ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindo
 ipcMain.on('window:close', () => mainWindow?.close());
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
 
-/* Before anything else. Squirrel launches the app with a --squirrel-* argument on
- * install, update and uninstall and waits about fifteen seconds for it to finish and
- * exit; an app that does not recognise the argument just starts normally, so Squirrel
- * waits out the whole timeout and gives up on the hook. Any work done ahead of this
- * check — opening a window, reading configuration — is spent from that same budget. */
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();
 } else {

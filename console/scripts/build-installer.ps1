@@ -1,5 +1,9 @@
 [CmdletBinding()]
-param([switch]$Silent)
+param(
+    [switch]$Silent,
+    [string]$Version = $env:DING_PBX_VERSION,
+    [string]$CandidateCommit = $env:DING_PBX_CANDIDATE_COMMIT
+)
 
 $ErrorActionPreference = 'Stop'
 $started = [DateTimeOffset]::UtcNow
@@ -39,6 +43,15 @@ function Test-UnsignedPortableExecutable([string]$Path) {
     } finally { $reader.Dispose(); $stream.Dispose() }
 }
 
+$headCommit = (& git -C $repoRoot rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $headCommit -notmatch '^[0-9a-f]{40}$') { throw 'Could not resolve the exact candidate commit from the checkout.' }
+if ([string]::IsNullOrWhiteSpace($CandidateCommit)) { $CandidateCommit = $headCommit }
+if ($CandidateCommit -ne $headCommit) { throw "Candidate commit $CandidateCommit does not match checkout HEAD $headCommit." }
+if ([string]::IsNullOrWhiteSpace($Version)) { $Version = (Get-Content -Raw (Join-Path $repoRoot 'consolepackage.json') | ConvertFrom-Json).version }
+if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "Version '$Version' must be numeric semantic version text." }
+$env:DING_PBX_VERSION = $Version
+$env:DING_PBX_CANDIDATE_COMMIT = $CandidateCommit
+
 try {
     Phase 'Bootstrapping all packaging dependencies.'
     $bootstrapArgs = @()
@@ -61,11 +74,17 @@ try {
     $setup = @(Get-ChildItem -LiteralPath $output -File -Filter '*Setup.exe')
     $releases = @(Get-ChildItem -LiteralPath $output -File -Filter 'RELEASES')
     $full = @(Get-ChildItem -LiteralPath $output -File -Filter '*-full.nupkg')
+    $delta = @(Get-ChildItem -LiteralPath $output -File -Filter '*-delta.nupkg')
     $bundledRootfs = Join-Path $repoRoot 'console\dist\squirrel-windows\win-unpacked\resources\asterisk\asterisk-wsl-rootfs.tar'
     $bundledProvenance = Join-Path $repoRoot 'console\dist\squirrel-windows\win-unpacked\resources\asterisk\asterisk-wsl-rootfs.json'
     if ($setup.Count -ne 1) { throw "expected exactly one Setup.exe under $output; found $($setup.Count)" }
     if ($releases.Count -ne 1) { throw "expected exactly one RELEASES under $output; found $($releases.Count)" }
     if ($full.Count -lt 1) { throw "expected at least one full .nupkg under $output; found none" }
+    $identityPath = Join-Path $output 'release-identity.json'
+    if (-not (Test-Path -LiteralPath $identityPath)) { throw 'packaged output is missing release-identity.json' }
+    $identity = Get-Content -Raw -LiteralPath $identityPath | ConvertFrom-Json
+    if ($identity.schemaVersion -ne 1 -or $identity.product -ne 'ding-pbx-console') { throw 'release identity schema or product is invalid' }
+    if ($identity.version -ne $Version -or $identity.candidateCommit -ne $CandidateCommit) { throw 'release identity does not match the package version and candidate commit' }
     if (-not (Test-Path -LiteralPath $bundledRootfs)) { throw 'packaged application is missing the bundled Asterisk WSL rootfs' }
     if (-not (Test-Path -LiteralPath $bundledProvenance)) { throw 'packaged application is missing Asterisk bundle provenance' }
     $bundleRecord = Get-Content -Raw -LiteralPath $bundledProvenance | ConvertFrom-Json
@@ -73,8 +92,14 @@ try {
     if ($bundleRecord.sourceCommit -ne (& git -C $repoRoot rev-parse HEAD).Trim()) { throw 'packaged Asterisk WSL rootfs came from a different source commit' }
     $releaseText = Get-Content -Raw -LiteralPath $releases[0].FullName
     foreach ($package in $full) {
+        if ($package.Name -notmatch [regex]::Escape("-$Version-full.nupkg")) { throw "$($package.Name) does not carry package version $Version" }
         if ($releaseText -notmatch [regex]::Escape($package.Name)) { throw "RELEASES does not reference $($package.Name)" }
     }
+    foreach ($package in $delta) { if ($releaseText -notmatch [regex]::Escape($package.Name)) { throw "RELEASES does not reference $($package.Name)" } }
+    if ($identity.artifacts.setup.name -ne $setup[0].Name -or $identity.artifacts.releases.name -ne $releases[0].Name) { throw 'release identity does not name the exact Setup.exe and RELEASES artifacts' }
+    if (@($identity.artifacts.fullPackages).Count -ne $full.Count) { throw 'release identity does not enumerate every full package' }
+    $hashLines = Get-ChildItem -LiteralPath $output -File | Sort-Object Name | ForEach-Object { "{0}  {1}" -f (Get-Sha256 $_.FullName), $_.Name }
+    $hashLines | Set-Content -Encoding ascii (Join-Path $output 'SHA256SUMS.txt')
     if (-not (Test-UnsignedPortableExecutable $setup[0].FullName)) { throw 'code-signing policy violation: Setup.exe contains an Authenticode certificate table' }
 
     Phase 'Installer verification complete. Artifacts are intentionally unsigned.'

@@ -1,31 +1,4 @@
-/**
- * The console's own update decision logic.
- *
- * Ding PBX Console ships as Squirrel.Windows installers built and published by
- * `.github/workflows/delivery.yml`. Every push to `master` builds a fresh unsigned
- * Setup.exe/RELEASES/*.nupkg set and publishes it under a brand-new, immutable GitHub
- * Release tag shaped `ding-pbx-console-v0.0.<run number>-r<run attempt>` (see the
- * `release` job's `$tag` assignment). Each release stands alone: its RELEASES file only
- * ever references the nupkg built in that same run, so there is no single running feed
- * directory that accumulates nupkgs release over release the way Squirrel's original
- * update protocol (and Electron's built-in `autoUpdater`, which speaks that protocol on
- * Windows) expects. Pointing Electron's `autoUpdater` at this project's GitHub Releases
- * would therefore never find anything to reconstruct a delta chain from.
- *
- * What GitHub Releases *does* give reliably is: an ordered list of releases, each
- * carrying its own complete Setup.exe, RELEASES and full .nupkg, plus (per the release
- * job) a `SHA256SUMS.txt` asset recording every asset's digest. That is exactly enough
- * to build a simpler, honest update path: check the Releases API for a release newer
- * than the one this build shipped from, download its Setup.exe, verify it against the
- * published SHA-256, and hand it to the user to run. Running a Squirrel Setup.exe again
- * is itself how Squirrel performs an update — it installs the new version into a fresh
- * `app-<version>` folder beside the current one and repoints the shortcuts — so this is
- * a real update, not a reinstall pretending to be one. It is just driven by a full
- * installer download rather than a binary delta.
- *
- * Everything below is pure and injectable: no network, no filesystem, no Electron. The
- * caller (`app/electron/main.ts`) supplies the HTTP fetch and the running version.
- */
+/** Pure release identity and update state decisions for the desktop updater. */
 
 export type UpdateState =
   | 'idle'
@@ -37,7 +10,6 @@ export type UpdateState =
 
 export interface ReleaseAsset {
   name: string;
-  /** Must be an `https://` URL; anything else is rejected before it is ever used. */
   browserDownloadUrl: string;
   size: number;
 }
@@ -51,56 +23,151 @@ export interface GitHubRelease {
   assets: ReleaseAsset[];
 }
 
+export interface ReleaseIdentityArtifact { name: string; size: number; sha256: string }
+
+export interface ReleaseIdentity {
+  schemaVersion: 1;
+  product: 'ding-pbx-console';
+  version: string;
+  candidateCommit: string;
+  tag: string;
+  published: true;
+  artifacts: {
+    setup: ReleaseIdentityArtifact;
+    releases: ReleaseIdentityArtifact;
+    fullPackages: ReleaseIdentityArtifact[];
+    deltaPackages: ReleaseIdentityArtifact[];
+    sha256sums: string;
+    identity: string;
+  };
+}
+
+export type Version = readonly [number, number, number];
+export type ReleaseOrdinal = readonly [number, number, number, number];
+
 export interface ResolvedUpdate {
   tag: string;
-  /** The numeric run/attempt pair extracted from the tag, used only to order releases. */
-  ordinal: readonly [number, number];
+  version: string;
+  ordinal: ReleaseOrdinal;
   releaseUrl: string;
   setupAsset: ReleaseAsset;
-  shaSumsAsset: ReleaseAsset | undefined;
+  releasesAsset: ReleaseAsset;
+  fullPackageAssets: ReleaseAsset[];
+  deltaPackageAssets: ReleaseAsset[];
+  shaSumsAsset: ReleaseAsset;
+  identityAsset: ReleaseAsset;
 }
 
-const TAG_PATTERN = /^ding-pbx-console-v0\.0\.(\d+)-r(\d+)$/;
+const TAG_PATTERN = /^ding-pbx-console-v(\d+)\.(\d+)\.(\d+)-r(\d+)$/u;
+const VERSION_PATTERN = /^(\d+)\.(\d+)\.(\d+)$/u;
+const SHA_PATTERN = /^[0-9a-f]{64}$/iu;
+const COMMIT_PATTERN = /^[0-9a-f]{40}$/u;
 
-/** Parses this project's own tag shape. Returns undefined for anything else, including a tag from a different product. */
-export function parseReleaseTag(tag: string): readonly [number, number] | undefined {
+export function parseReleaseTag(tag: string): ReleaseOrdinal | undefined {
   const match = TAG_PATTERN.exec(tag.trim());
-  if (!match) return undefined;
-  return [Number(match[1]), Number(match[2])];
+  return match ? [Number(match[1]), Number(match[2]), Number(match[3]), Number(match[4])] : undefined;
 }
 
-function compareOrdinal(a: readonly [number, number], b: readonly [number, number]): number {
-  return a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1];
+export function parseVersion(version: string): Version | undefined {
+  const match = VERSION_PATTERN.exec(version.trim());
+  return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : undefined;
 }
 
-/**
- * Picks the newest usable release strictly ahead of `currentOrdinal`, or undefined when
- * there is none. A release is usable only when it is not a draft or prerelease and
- * carries exactly the assets this project's delivery workflow always publishes together.
- */
-export function resolveLatestUpdate(
-  releases: readonly GitHubRelease[],
-  currentOrdinal: readonly [number, number] | undefined,
-): ResolvedUpdate | undefined {
+export function compareVersion(a: Version, b: Version): number {
+  for (const index of [0, 1, 2] as const) {
+    if (a[index] !== b[index]) return a[index] - b[index];
+  }
+  return 0;
+}
+
+function compareOrdinal(a: ReleaseOrdinal, b: ReleaseOrdinal): number {
+  for (const index of [0, 1, 2, 3] as const) {
+    if (a[index] !== b[index]) return a[index] - b[index];
+  }
+  return 0;
+}
+
+function httpsAsset(asset: ReleaseAsset | undefined): asset is ReleaseAsset {
+  return Boolean(asset && asset.browserDownloadUrl.startsWith('https://') && Number.isSafeInteger(asset.size) && asset.size > 0);
+}
+
+function exactlyOne(assets: readonly ReleaseAsset[], name: string): ReleaseAsset | undefined {
+  const matches = assets.filter((asset) => asset.name === name);
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
+/** Only a published release with the complete immutable identity can be offered. */
+export function resolveLatestUpdate(releases: readonly GitHubRelease[], currentVersion: Version | undefined): ResolvedUpdate | undefined {
   let best: ResolvedUpdate | undefined;
   for (const release of releases) {
     if (release.draft || release.prerelease) continue;
     const ordinal = parseReleaseTag(release.tagName);
     if (!ordinal) continue;
-    if (currentOrdinal && compareOrdinal(ordinal, currentOrdinal) <= 0) continue;
+    const version: Version = [ordinal[0], ordinal[1], ordinal[2]];
+    if (currentVersion && compareVersion(version, currentVersion) <= 0) continue;
     if (best && compareOrdinal(ordinal, best.ordinal) <= 0) continue;
-    const setupAsset = release.assets.find((asset) => asset.name.toLowerCase().endsWith('setup.exe'));
-    if (!setupAsset || !setupAsset.browserDownloadUrl.startsWith('https://')) continue;
-    const shaSumsAsset = release.assets.find((asset) => asset.name === 'SHA256SUMS.txt');
-    best = { tag: release.tagName, ordinal, releaseUrl: release.htmlUrl, setupAsset, shaSumsAsset };
+    if (!release.htmlUrl.startsWith('https://')) continue;
+    const setups = release.assets.filter((asset) => /Setup\.exe$/iu.test(asset.name));
+    const fullPackages = release.assets.filter((asset) => /-full\.nupkg$/iu.test(asset.name));
+    const releasesAsset = exactlyOne(release.assets, 'RELEASES');
+    const shaSumsAsset = exactlyOne(release.assets, 'SHA256SUMS.txt');
+    const identityAsset = exactlyOne(release.assets, 'release-identity.json');
+    if (setups.length !== 1 || !httpsAsset(setups[0]) || !httpsAsset(releasesAsset) || !httpsAsset(shaSumsAsset) ||
+      !httpsAsset(identityAsset) || fullPackages.length < 1 || !fullPackages.every(httpsAsset)) continue;
+    best = {
+      tag: release.tagName,
+      version: `${version[0]}.${version[1]}.${version[2]}`,
+      ordinal,
+      releaseUrl: release.htmlUrl,
+      setupAsset: setups[0],
+      releasesAsset,
+      fullPackageAssets: fullPackages,
+      deltaPackageAssets: release.assets.filter((asset) => /-delta\.nupkg$/iu.test(asset.name) && httpsAsset(asset)),
+      shaSumsAsset,
+      identityAsset,
+    };
   }
   return best;
 }
 
-/** Finds the line in a `sha256sum`-style listing (`<hex>  <name>`) that names `fileName`, case-sensitively on the name. */
+export function validateReleaseIdentity(identity: unknown, resolved: ResolvedUpdate): { ok: true; value: ReleaseIdentity } | { ok: false; reason: string } {
+  if (!identity || typeof identity !== 'object') return { ok: false, reason: 'The published release identity is not an object.' };
+  const value = identity as Partial<ReleaseIdentity>;
+  if (value.schemaVersion !== 1 || value.product !== 'ding-pbx-console' || value.published !== true) {
+    return { ok: false, reason: 'The published release identity is malformed or unpublished.' };
+  }
+  if (value.version !== resolved.version || value.tag !== resolved.tag || typeof value.candidateCommit !== 'string' || !COMMIT_PATTERN.test(value.candidateCommit)) {
+    return { ok: false, reason: 'The published release identity does not match its release tag or candidate commit.' };
+  }
+  const artifacts = value.artifacts;
+  if (!artifacts || typeof artifacts !== 'object' || typeof artifacts.sha256sums !== 'string' || typeof artifacts.identity !== 'string' ||
+    !artifacts.setup || !artifacts.releases || !Array.isArray(artifacts.fullPackages) || !Array.isArray(artifacts.deltaPackages)) {
+    return { ok: false, reason: 'The published release identity has incomplete artifact records.' };
+  }
+  if (artifacts.sha256sums !== 'SHA256SUMS.txt' || artifacts.identity !== 'release-identity.json') {
+    return { ok: false, reason: 'The published release identity names the wrong checksum or identity asset.' };
+  }
+  const records = [artifacts.setup, artifacts.releases, ...artifacts.fullPackages, ...artifacts.deltaPackages];
+  if (!records.every((record) => Boolean(record && typeof record.name === 'string' && Number.isSafeInteger(record.size) && record.size > 0 && typeof record.sha256 === 'string' && SHA_PATTERN.test(record.sha256)))) {
+    return { ok: false, reason: 'The published release identity contains an invalid artifact digest record.' };
+  }
+  const resolvedAssets = [...resolved.fullPackageAssets, ...resolved.deltaPackageAssets, resolved.setupAsset, resolved.releasesAsset];
+  for (const record of records) {
+    const asset = resolvedAssets.find((candidate) => candidate.name === record.name);
+    if (!asset) return { ok: false, reason: `The published release identity names an unknown artifact ${record.name}.` };
+    if (asset && asset.size !== record.size) return { ok: false, reason: `The published release identity does not match asset ${record.name}.` };
+  }
+  if (artifacts.setup.name !== resolved.setupAsset.name || artifacts.releases.name !== resolved.releasesAsset.name ||
+    artifacts.fullPackages.length !== resolved.fullPackageAssets.length || artifacts.fullPackages.some((record) => !resolved.fullPackageAssets.some((asset) => asset.name === record.name && asset.size === record.size)) ||
+    artifacts.deltaPackages.length !== resolved.deltaPackageAssets.length || artifacts.deltaPackages.some((record) => !resolved.deltaPackageAssets.some((asset) => asset.name === record.name && asset.size === record.size))) {
+    return { ok: false, reason: 'The published release identity does not enumerate the complete Squirrel artifact set.' };
+  }
+  return { ok: true, value: value as ReleaseIdentity };
+}
+
 export function findDigestForAsset(shaSumsText: string, fileName: string): string | undefined {
-  for (const line of shaSumsText.split(/\r?\n/)) {
-    const match = /^([0-9a-f]{64})\s+\*?(.+)$/i.exec(line.trim());
+  for (const line of shaSumsText.split(/\r?\n/u)) {
+    const match = /^([0-9a-f]{64})\s+\*?(.+)$/iu.exec(line.trim());
     if (match && match[2] === fileName) return match[1].toLowerCase();
   }
   return undefined;
@@ -108,85 +175,61 @@ export function findDigestForAsset(shaSumsText: string, fileName: string): strin
 
 export interface UpdaterState {
   state: UpdateState;
+  currentVersion: Version | undefined;
   currentTag: string | undefined;
   resolved: ResolvedUpdate | undefined;
   downloadedPath: string | undefined;
   lastCheckedAt: string | undefined;
   lastError: string | undefined;
+  revision: number;
+  dismissedTag: string | undefined;
+  restartPending: boolean;
 }
 
-export function initialUpdaterState(currentTag: string | undefined): UpdaterState {
-  return { state: 'idle', currentTag, resolved: undefined, downloadedPath: undefined, lastCheckedAt: undefined, lastError: undefined };
+export function initialUpdaterState(currentVersion: Version | undefined, currentTag?: string): UpdaterState {
+  return { state: 'idle', currentVersion, currentTag, resolved: undefined, downloadedPath: undefined, lastCheckedAt: undefined, lastError: undefined, revision: 0, dismissedTag: undefined, restartPending: false };
 }
 
-/**
- * Whether a background check should run now, given when the last one finished. Startup
- * always checks immediately (pass `lastCheckedAt: undefined`); afterwards checks are
- * spaced out so a machine left running does not hammer the GitHub API.
- */
 export function shouldCheckNow(lastCheckedAt: string | undefined, now: Date, intervalMs: number): boolean {
   if (!lastCheckedAt) return true;
   const last = new Date(lastCheckedAt).getTime();
-  if (Number.isNaN(last)) return true;
-  return now.getTime() - last >= intervalMs;
+  return Number.isNaN(last) || now.getTime() - last >= intervalMs;
 }
 
-export const DEFAULT_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000; // four hours
+export const DEFAULT_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
-/** Transition: a check started. */
 export function beganChecking(s: UpdaterState, now: Date): UpdaterState {
-  return { ...s, state: 'checking', lastCheckedAt: now.toISOString(), lastError: undefined };
+  return { ...s, state: 'checking', lastCheckedAt: now.toISOString(), lastError: undefined, revision: s.revision + 1, restartPending: false };
 }
 
-/** Transition: the check finished, successfully, with or without an update. */
 export function checkSucceeded(s: UpdaterState, resolved: ResolvedUpdate | undefined): UpdaterState {
-  if (!resolved) return { ...s, state: 'idle', resolved: undefined };
-  return { ...s, state: 'available', resolved };
+  if (!resolved) return { ...s, state: 'idle', resolved: undefined, downloadedPath: undefined, dismissedTag: undefined, revision: s.revision + 1 };
+  return { ...s, state: 'available', resolved, lastError: undefined, revision: s.revision + 1 };
 }
 
-/** Transition: the check, download, or verification failed. Never silently reverts to idle — the reason is kept. */
 export function updateFailed(s: UpdaterState, reason: string): UpdaterState {
-  return { ...s, state: 'failed', lastError: reason };
+  return { ...s, state: 'failed', lastError: reason, dismissedTag: undefined, restartPending: false, revision: s.revision + 1 };
 }
 
-/** Transition: a download of the currently-resolved update started. */
 export function beganDownloading(s: UpdaterState): UpdaterState {
-  if (!s.resolved) return updateFailed(s, 'No resolved update to download.');
-  return { ...s, state: 'downloading' };
+  if (!s.resolved) return updateFailed(s, 'No complete release identity is available to download.');
+  return { ...s, state: 'downloading', revision: s.revision + 1 };
 }
 
-/** Transition: the download landed and its hash matched (or no hash was published to check against). */
 export function downloadReady(s: UpdaterState, downloadedPath: string): UpdaterState {
-  return { ...s, state: 'ready', downloadedPath };
+  return { ...s, state: 'ready', downloadedPath, lastError: undefined, revision: s.revision + 1 };
 }
 
-/** Transition: the user dismissed the ready banner for now. The update stays resolved so the banner can return. */
 export function dismissedForNow(s: UpdaterState): UpdaterState {
-  return { ...s, state: s.resolved ? 'available' : 'idle' };
+  if (!s.resolved) return s;
+  return { ...s, dismissedTag: s.resolved.tag, revision: s.revision + 1 };
 }
 
-export interface DownloadedFile {
-  path: string;
-  sha256: string;
-  size: number;
-}
+export interface DownloadedFile { path: string; sha256: string; size: number }
 
-/**
- * Verifies a downloaded Setup.exe against the resolved update's declared size and, when
- * a SHA256SUMS.txt digest was found for it, its published hash. Integrity only — this
- * proves the bytes are the ones GitHub actually served for that asset, never that they
- * were produced by any particular signer. The artifacts are permanently unsigned.
- */
-export function verifyDownload(
-  resolved: ResolvedUpdate,
-  file: DownloadedFile,
-  expectedDigest: string | undefined,
-): { ok: true } | { ok: false; reason: string } {
-  if (file.size !== resolved.setupAsset.size) {
-    return { ok: false, reason: `Downloaded ${file.size} bytes but the release declared ${resolved.setupAsset.size}.` };
-  }
-  if (expectedDigest && file.sha256.toLowerCase() !== expectedDigest.toLowerCase()) {
-    return { ok: false, reason: 'Downloaded file does not match the published SHA-256 digest.' };
-  }
+export function verifyDownload(resolved: ResolvedUpdate, file: DownloadedFile, expectedDigest: string | undefined): { ok: true } | { ok: false; reason: string } {
+  if (file.size !== resolved.setupAsset.size) return { ok: false, reason: `Downloaded ${file.size} bytes but the release declared ${resolved.setupAsset.size}.` };
+  if (!expectedDigest) return { ok: false, reason: 'The release did not publish a SHA-256 digest for Setup.exe.' };
+  if (file.sha256.toLowerCase() !== expectedDigest.toLowerCase()) return { ok: false, reason: 'Downloaded Setup.exe does not match the published SHA-256 digest.' };
   return { ok: true };
 }
