@@ -281,6 +281,7 @@ export const CANTONESE: Catalog = {
   'Editor choice not cleared': '編輯器選擇未能清除',
   'Editor settings reset': '編輯器設定已重設',
   'Editor settings not reset': '編輯器設定未能重設',
+  'Editor mutation did not complete': '編輯器操作未完成',
   'Project folder not chosen': '未揀專案資料夾',
   'Choose a local project folder first': '請先揀本機專案資料夾',
   'Session-only local folder': '只限今次 session 嘅本機資料夾',

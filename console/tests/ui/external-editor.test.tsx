@@ -15,6 +15,7 @@ import {
   detectEditors, isRefusal, planLaunch, validateCustomEditor,
   type DetectedEditor, type EditorStorage, type Probe,
 } from '../../app/renderer/src/external-editor.ts';
+import { editorMutationOutcome } from '../../app/renderer/src/external-editor-status.ts';
 
 const memory = (): EditorStorage & { map: Map<string, string> } => {
   const map = new Map<string, string>();
@@ -183,4 +184,27 @@ test('a quoted path is refused with an explanation rather than silently unquoted
   const problems = validateCustomEditor({ name: 'x', executable: '"C:\\Program Files\\ed.exe"' });
   assert.equal(problems.length, 1);
   assert.match(problems[0].message, /Leave the quotes off/u);
+});
+
+test('a failed returned mutation status cannot produce a success notice', () => {
+  const outcome = editorMutationOutcome({
+    operation: { operationId: 'op-failed', kind: 'persist', state: 'failed', progress: 1, message: 'EEXIST' },
+  }, 'Editor settings reset', 'Editor settings not reset');
+  assert.deepEqual(outcome, { kind: 'failure', titleKey: 'Editor settings not reset', detail: 'EEXIST' });
+});
+
+test('only a completed returned mutation status produces a success notice', () => {
+  const outcome = editorMutationOutcome({
+    operation: { operationId: 'op-complete', kind: 'persist', state: 'completed', progress: 1, message: 'done' },
+  }, 'Editor settings reset', 'Editor settings not reset');
+  assert.deepEqual(outcome, { kind: 'success', titleKey: 'Editor settings reset' });
+});
+
+test('cancelled or missing returned mutation status stays out of the success path', () => {
+  const cancelled = editorMutationOutcome({
+    operation: { operationId: 'op-cancelled', kind: 'persist', state: 'cancelled', progress: 1, message: 'cancelled' },
+  }, 'Editor settings reset', 'Editor settings not reset');
+  const missing = editorMutationOutcome({}, 'Editor settings reset', 'Editor settings not reset');
+  assert.equal(cancelled.kind, 'failure');
+  assert.equal(missing.kind, 'failure');
 });

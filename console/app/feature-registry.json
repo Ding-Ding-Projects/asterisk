@@ -161,6 +161,7 @@
       "note": "Mounted as a pure renderer policy plus the privileged control-plane runtime, preload bridge, and App.tsx actions. Detects stable, Insiders and bounded portable Visual Studio Code routes with normalized absolute paths and environment expansion, verifies explicit portable selection through Windows product metadata, persists verified portable paths and bounded custom records, keeps unavailable choices visible, uses native file and folder pickers, materializes selected PBX read-back content into bounded local exports, and launches through child_process.spawn with shell:false and separate executable and argument values. Each operation, including native picker operations, shares one status contract with an id, bounded progress, busy re-entry refusal, end-to-end cancellation, active child and temporary-file cleanup, and distinct cancellation stage. The privileged store is the sole choice source, uses Windows-safe atomic rename retry, reports invalid persistence and offers reset, enforces file versus folder kind, records typed latest exports, and refuses unknown or stale editor ids without a fallback.",
       "files": [
         "app/renderer/src/external-editor.ts",
+        "app/renderer/src/external-editor-status.ts",
         "control-plane/external-editor-runtime.ts",
         "control-plane/atomic-file.ts",
         "control-plane/settings-store.ts",

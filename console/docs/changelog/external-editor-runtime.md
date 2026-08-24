@@ -16,6 +16,13 @@ busy, and reports picker cancellation separately from launch or materialization 
 Cancellation now kills a child editor when present, removes a temporary materialization, and
 returns a typed cancelled result carrying the operation id and stage.
 
+## Renderer mutation notices stay truthful
+
+Status-returning save, remove, clear and reset actions now share one renderer outcome helper.
+Only a completed privileged operation can produce a success notice. Failed, cancelled, running
+or missing terminal status produces localized failure copy with the exact privileged detail and
+keeps the rolled-back status visible.
+
 ## Suggested articles
 
 [External editor handoff](../platform/external-editor-handoff.md), [Complete data export](../platform/complete-exports.md), [Local version history](../app/local-version-history.md).

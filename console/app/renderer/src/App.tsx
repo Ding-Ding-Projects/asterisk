@@ -56,6 +56,7 @@ import {
 import {
   UnlockLadder, type Challenge, type GradeResult,
 } from './unlock-ladder';
+import { editorMutationOutcome } from './external-editor-status';
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -355,6 +356,21 @@ export class App extends Base {
 
   exportUnavailable = (title: string, reason: string): void => this.fire(title, reason);
 
+  private applyEditorMutationStatus(
+    status: ExternalEditorStatus,
+    successKey: string,
+    failureKey: string,
+  ): void {
+    this.externalEditorStatus = status;
+    const outcome = editorMutationOutcome(status, successKey, failureKey);
+    if (outcome.kind === 'failure') {
+      this.fire(localizeText(outcome.titleKey), outcome.detail || localizeText('Editor mutation did not complete'));
+    } else {
+      this.toast(localizeText(outcome.titleKey));
+    }
+    this.forceUpdate();
+  }
+
   private async editorAction(action: string): Promise<void> {
     const bridge = this.bridge();
     if (!bridge?.externalEditor) { this.fire(localizeText('Editor not reached'), localizeText('The desktop bridge is unavailable')); return; }
@@ -373,7 +389,7 @@ export class App extends Base {
       this.externalEditorStatus = { ...this.externalEditorStatus, operation: picked.operation };
       if (picked.canceled) { if (picked.reason === 'busy') this.fire(localizeText('Editor picker busy'), localizeText('Another native picker is already open')); else this.toast(localizeText('Portable executable picker cancelled')); return; }
       if (!picked.canceled && picked.value) {
-        try { this.externalEditorStatus = await bridge.externalEditor.savePortable(picked.value); if (this.externalEditorStatus.operation?.state === 'failed') this.fire(localizeText('Portable editor not saved'), this.externalEditorStatus.operation.message); else this.toast(localizeText('Portable editor saved and selected')); this.forceUpdate(); }
+        try { this.applyEditorMutationStatus(await bridge.externalEditor.savePortable(picked.value), 'Portable editor saved and selected', 'Portable editor not saved'); }
         catch (error) { this.fire(localizeText('Portable editor not saved'), error instanceof Error ? error.message : String(error)); }
       }
       return;
@@ -394,14 +410,12 @@ export class App extends Base {
     if (action === 'editor-save-custom') {
       const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
       try {
-        this.externalEditorStatus = await bridge.externalEditor.saveCustom({
+        const status = await bridge.externalEditor.saveCustom({
           name: String(values['pbxadm:ed_custom_name'] ?? ''),
           executable: String(values['pbxadm:ed_custom_path'] ?? ''),
           supportsFolderWorkspace: String(values.ed_custom_folder ?? 'Files only') === 'Folders as workspaces',
         });
-        if (this.externalEditorStatus.operation?.state === 'failed') this.fire(localizeText('Custom editor not saved'), this.externalEditorStatus.operation.message);
-        else this.toast(localizeText('Custom editor saved and selected'));
-        this.forceUpdate();
+        this.applyEditorMutationStatus(status, 'Custom editor saved and selected', 'Custom editor not saved');
       } catch (error) { this.fire(localizeText('Custom editor not saved'), error instanceof Error ? error.message : String(error)); }
       return;
     }
@@ -426,17 +440,17 @@ export class App extends Base {
       const selected = this.externalEditorStatus.selectedId;
       const record = this.externalEditorStatus.editors.find((editor) => editor.id === selected);
       if (!selected || !record?.custom) { this.fire(localizeText('Custom editor not removed'), `${localizeText('Choose a saved custom editor first')}.`); return; }
-      try { this.externalEditorStatus = await bridge.externalEditor.removeCustom(selected); if (this.externalEditorStatus.operation?.state === 'failed') this.fire(localizeText('Custom editor not removed'), this.externalEditorStatus.operation.message); else this.toast(localizeText('Custom editor removed')); this.forceUpdate(); }
+      try { this.applyEditorMutationStatus(await bridge.externalEditor.removeCustom(selected), 'Custom editor removed', 'Custom editor not removed'); }
       catch (error) { this.fire(localizeText('Custom editor not removed'), error instanceof Error ? error.message : String(error)); }
       return;
     }
     if (action === 'editor-clear-choice') {
-      try { this.externalEditorStatus = await bridge.externalEditor.clearChoice(); if (this.externalEditorStatus.operation?.state === 'failed') this.fire(localizeText('Editor choice not cleared'), this.externalEditorStatus.operation.message); else this.toast(localizeText('Editor choice forgotten')); this.forceUpdate(); }
+      try { this.applyEditorMutationStatus(await bridge.externalEditor.clearChoice(), 'Editor choice forgotten', 'Editor choice not cleared'); }
       catch (error) { this.fire(localizeText('Editor choice not cleared'), error instanceof Error ? error.message : String(error)); }
       return;
     }
     if (action === 'editor-reset-storage') {
-      try { this.externalEditorStatus = await bridge.externalEditor.resetStorage(); if (this.externalEditorStatus.operation?.state === 'failed') this.fire(localizeText('Editor settings not reset'), this.externalEditorStatus.operation.message); else this.toast(localizeText('Editor settings reset')); this.forceUpdate(); }
+      try { this.applyEditorMutationStatus(await bridge.externalEditor.resetStorage(), 'Editor settings reset', 'Editor settings not reset'); }
       catch (error) { this.fire(localizeText('Editor settings not reset'), error instanceof Error ? error.message : String(error)); }
       return;
     }
