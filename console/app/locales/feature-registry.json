@@ -90,8 +90,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
-      "blockedBy": "not-implemented"
+      "note": "Implemented, and deliberately contributes no design label: the feature has no control, because it has no off switch. It is nonetheless bilingual by construction rather than by translation -- every dish renders its English and Traditional Chinese names together in every language mode, and the dish name is data that stays exact rather than copy the catalog should key against.",
+      "blockedBy": "no-label-surface"
     },
     "regex-builder": {
       "state": "localized",

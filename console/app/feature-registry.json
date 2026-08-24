@@ -53,9 +53,12 @@
       "files": []
     },
     "dim-sum-surprise": {
-      "state": "absent",
-      "note": "No startup dim-sum surprise, bundled dish assets, or 10% draw exists.",
-      "files": []
+      "state": "implemented",
+      "note": "Implemented 2026-08-23 as app/renderer/src/dim-sum-surprise.ts. A one-in-ten draw at startup, non-blocking, focus-preserving and self-dismissing, suppressed entirely during a first run, an error path, an update, a mid-task flow or quiet hours -- those clauses are what make an un-optable surprise polite, so each is enforced here rather than trusted to the caller. Exactly one draw per launch, because a second would make the real rate higher than the stated one, and the probability boundary is exclusive for the same reason. Every dish carries both names and alt text naming it, so it reaches a screen-reader user. Images are bundled local assets, never URLs. Deliberately has no control and no off switch: storedPreferenceIsIgnored() states that as a fact a test can check, and an older profile carrying \"off\" simply rejoins the draw.",
+      "files": [
+        "app/renderer/src/dim-sum-surprise.ts",
+        "tests/ui/dim-sum-surprise.test.tsx"
+      ]
     },
     "regex-builder": {
       "state": "partial",
