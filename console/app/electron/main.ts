@@ -14,7 +14,7 @@ import {
 } from './updater-runtime.js';
 
 let mainWindow: BrowserWindow | null = null;
-const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false, forgeDeviceClientId: process.env.DING_FORGE_DEVICE_CLIENT_ID });
+const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false });
 const { controlPlaneRequest } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let updateCheckInFlight: Promise<void> | undefined;

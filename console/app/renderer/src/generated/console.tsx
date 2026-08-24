@@ -706,6 +706,9 @@ function Template(v: any) {
                   h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394;`) },
                     S(v.forgeStatus)
                   ),
+                  (v.forgeHostedUnavailable ? h("span", { role: `status`, style: sty(`font-size:11px; color:#FFB4AB;`) },
+                      "Forge publishing is desktop-only in hosted mode."
+                    ) : null),
                   A(v.forgeCapabilities).map(($p, $p$i) => R($p$i, h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394;`) },
                       `${S($p.label)}: ${S($p.state)}`
                     ))),
@@ -716,7 +719,7 @@ function Template(v: any) {
                       "Reset visible corruption marker"
                     ) : null),
                   h("div", { style: sty(`flex:1;`) }),
-                  h("button", { onClick: fn(v.forgeLoad), style: sty(`background:#1B4D33; border:0; border-radius:999px; padding:8px 14px; color:#9FF7C4; font:inherit; cursor:pointer;`) },
+                  h("button", { disabled: v.forgeHostedUnavailable, onClick: fn(v.forgeLoad), style: sty(`background:#1B4D33; border:0; border-radius:999px; padding:8px 14px; color:#9FF7C4; font:inherit; cursor:pointer;`) },
                     "Refresh forge data"
                   )
                 ),
@@ -724,20 +727,20 @@ function Template(v: any) {
                     `${S(v.forgeDevice.message)} · Code: ${S(v.forgeDevice.userCode)} · URL: ${S(v.forgeDevice.verificationUri)} · Expires: ${S(v.forgeDevice.expiresAt)}`
                   ) : null),
                 h("div", { style: sty(`display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;`) },
-                  h("input", { type: `search`, "aria-label": `Search forge accounts`, value: v.forgeSearchDisplay, onInput: fn(v.onForgeSearch), placeholder: `Search accounts`, style: sty(`flex:1; min-width:220px; background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#DFE4DC; font:inherit;`) }),
-                  h("button", { onClick: fn(v.openForgeRegex), "aria-label": `Open forge account regex builder`, style: sty(`background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; cursor:pointer;`) },
+                  h("input", { disabled: v.forgeHostedUnavailable, type: `search`, "aria-label": `Search forge accounts`, value: v.forgeSearchDisplay, onInput: fn(v.onForgeSearch), placeholder: `Search accounts`, style: sty(`flex:1; min-width:220px; background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#DFE4DC; font:inherit;`) }),
+                  h("button", { disabled: v.forgeHostedUnavailable, onClick: fn(v.openForgeRegex), "aria-label": `Open forge account regex builder`, style: sty(`background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; cursor:pointer;`) },
                     ".*"
                   ),
                   h("span", { role: `status`, style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394;`) },
                     S(v.forgeSearchStatus)
                   ),
-                  h("button", { onClick: fn(v.forgeAdd), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:8px 14px; color:#C4CBC2; font:inherit; cursor:pointer;`) },
+                  h("button", { disabled: v.forgeHostedUnavailable, onClick: fn(v.forgeAdd), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:8px 14px; color:#C4CBC2; font:inherit; cursor:pointer;`) },
                     "Add account"
                   ),
-                  h("button", { onClick: fn(v.forgeReauth), style: sty(`background:transparent; border:1px solid #6B5A36; border-radius:999px; padding:8px 14px; color:#FFD68A; font:inherit; cursor:pointer;`) },
+                  h("button", { disabled: v.forgeHostedUnavailable, onClick: fn(v.forgeReauth), style: sty(`background:transparent; border:1px solid #6B5A36; border-radius:999px; padding:8px 14px; color:#FFD68A; font:inherit; cursor:pointer;`) },
                     "Re-authenticate"
                   ),
-                  h("button", { onClick: fn(v.forgeCancel), style: sty(`background:transparent; border:1px solid #6B3A36; border-radius:999px; padding:8px 14px; color:#FFB4AB; font:inherit; cursor:pointer;`) },
+                  h("button", { disabled: v.forgeHostedUnavailable, onClick: fn(v.forgeCancel), style: sty(`background:transparent; border:1px solid #6B3A36; border-radius:999px; padding:8px 14px; color:#FFB4AB; font:inherit; cursor:pointer;`) },
                     "Cancel operation"
                   )
                 ),
@@ -756,13 +759,13 @@ function Template(v: any) {
                         S($a.tokenRef)
                       ),
                       h("div", { style: sty(`flex:1;`) }),
-                      h("button", { onClick: fn($a.activate), style: sty(`background:${S($a.activeBg)}; border:0; border-radius:999px; padding:7px 11px; color:#9FF7C4; cursor:pointer;`) },
+                      h("button", { disabled: v.forgeHostedUnavailable, onClick: fn($a.activate), style: sty(`background:${S($a.activeBg)}; border:0; border-radius:999px; padding:7px 11px; color:#9FF7C4; cursor:pointer;`) },
                         S($a.activeLabel)
                       ),
-                      h("button", { onClick: fn($a.refresh), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 11px; color:#C4CBC2; cursor:pointer;`) },
+                      h("button", { disabled: v.forgeHostedUnavailable, onClick: fn($a.refresh), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 11px; color:#C4CBC2; cursor:pointer;`) },
                         "Refresh"
                       ),
-                      h("button", { onClick: fn($a.signOut), style: sty(`background:transparent; border:1px solid #6B3A36; border-radius:999px; padding:7px 11px; color:#FFB4AB; cursor:pointer;`) },
+                      h("button", { disabled: v.forgeHostedUnavailable, onClick: fn($a.signOut), style: sty(`background:transparent; border:1px solid #6B3A36; border-radius:999px; padding:7px 11px; color:#FFB4AB; cursor:pointer;`) },
                         "Sign out"
                       )
                     )))
@@ -770,7 +773,7 @@ function Template(v: any) {
                 h("div", { style: sty(`display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;`) },
                   h("label", { style: sty(`display:grid; gap:6px; color:#C4CBC2; font-size:12px;`) },
                     "Owner from provider data ",
-                    h("select", { "aria-label": `Forge owner`, value: v.forgeOwnerId, onChange: fn(v.onForgeOwner), style: sty(`background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px; color:#DFE4DC; font:inherit;`) },
+                    h("select", { disabled: v.forgeHostedUnavailable, "aria-label": `Forge owner`, value: v.forgeOwnerId, onChange: fn(v.onForgeOwner), style: sty(`background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px; color:#DFE4DC; font:inherit;`) },
                       A(v.forgeOwners).map(($o, $o$i) => R($o$i, h("option", { value: $o.id },
                           S($o.label)
                         )))
@@ -778,35 +781,35 @@ function Template(v: any) {
                   ),
                   h("label", { style: sty(`display:grid; gap:6px; color:#C4CBC2; font-size:12px;`) },
                     "Destination name ",
-                    h("input", { "aria-label": `Forge destination name`, value: v.forgeRepositoryName, onInput: fn(v.onForgeRepositoryName), placeholder: `repository-name`, style: sty(`background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px; color:#DFE4DC; font:inherit;`) })
+                    h("input", { disabled: v.forgeHostedUnavailable, "aria-label": `Forge destination name`, value: v.forgeRepositoryName, onInput: fn(v.onForgeRepositoryName), placeholder: `repository-name`, style: sty(`background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px; color:#DFE4DC; font:inherit;`) })
                   ),
                   h("label", { style: sty(`display:grid; gap:6px; color:#C4CBC2; font-size:12px;`) },
                     "Source remote for fork ",
-                    h("input", { "aria-label": `Forge source remote`, value: v.forgeSourceRemote, onInput: fn(v.onForgeSourceRemote), placeholder: `https://github.com/owner/source`, style: sty(`background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px; color:#DFE4DC; font:inherit;`) })
+                    h("input", { disabled: v.forgeHostedUnavailable, "aria-label": `Forge source remote`, value: v.forgeSourceRemote, onInput: fn(v.onForgeSourceRemote), placeholder: `https://github.com/owner/source`, style: sty(`background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px; color:#DFE4DC; font:inherit;`) })
                   ),
                   h("label", { style: sty(`display:grid; gap:6px; color:#C4CBC2; font-size:12px;`) },
                     "Local source folder for copy and push ",
                     h("div", { style: sty(`display:flex; gap:6px;`) },
-                      h("input", { "aria-label": `Forge local source folder`, value: v.forgeSourcePath, onInput: fn(v.onForgeSourcePath), placeholder: `Choose a local source folder`, style: sty(`flex:1; background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px; color:#DFE4DC; font:inherit;`) }),
-                      h("button", { type: `button`, onClick: fn(v.forgePickSource), "aria-label": `Browse for forge source folder`, style: sty(`background:#1B4D33; border:0; border-radius:10px; padding:10px; color:#9FF7C4; cursor:pointer;`) },
+                      h("input", { disabled: v.forgeHostedUnavailable, "aria-label": `Forge local source folder`, value: v.forgeSourcePath, onInput: fn(v.onForgeSourcePath), placeholder: `Choose a local source folder`, style: sty(`flex:1; background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px; color:#DFE4DC; font:inherit;`) }),
+                      h("button", { disabled: v.forgeHostedUnavailable, type: `button`, onClick: fn(v.forgePickSource), "aria-label": `Browse for forge source folder`, style: sty(`background:#1B4D33; border:0; border-radius:10px; padding:10px; color:#9FF7C4; cursor:pointer;`) },
                         "Browse"
                       )
                     )
                   )
                 ),
                 h("div", { style: sty(`display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;`) },
-                  h("button", { onClick: fn(v.forgeOwnersLoad), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:8px 14px; color:#C4CBC2; cursor:pointer;`) },
+                  h("button", { disabled: v.forgeHostedUnavailable, onClick: fn(v.forgeOwnersLoad), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:8px 14px; color:#C4CBC2; cursor:pointer;`) },
                     "Load personal and organization owners"
                   ),
-                  h("button", { onClick: fn(v.forgeFork), style: sty(`background:#005230; border:0; border-radius:999px; padding:9px 15px; color:#9FF7C4; cursor:pointer;`) },
+                  h("button", { disabled: v.forgeHostedUnavailable, onClick: fn(v.forgeFork), style: sty(`background:#005230; border:0; border-radius:999px; padding:9px 15px; color:#9FF7C4; cursor:pointer;`) },
                     "Fork to selected owner"
                   ),
-                  h("button", { onClick: fn(v.forgeCopyPush), style: sty(`background:#1B4D33; border:0; border-radius:999px; padding:9px 15px; color:#9FF7C4; cursor:pointer;`) },
+                  h("button", { disabled: v.forgeHostedUnavailable, onClick: fn(v.forgeCopyPush), style: sty(`background:#1B4D33; border:0; border-radius:999px; padding:9px 15px; color:#9FF7C4; cursor:pointer;`) },
                     "Copy and push to selected owner"
                   )
                 ),
                 h("div", { style: sty(`margin-top:12px; color:#8FA394; font-size:11.5px; line-height:1.5;`) },
-                  "Tokens remain in the operating-system vault and are referenced only by the label shown above. Provider capability gaps stay visible, and a failed account request keeps its re-auth action beside this surface."
+                  "Credentials remain in gh's secure keyring after verification, and no token is shown here. Provider capability gaps stay visible, and a failed account request keeps its re-auth action beside this surface."
                 ),
                 A(v.forgeReceipts).map(($r, $r$i) => R($r$i, h("div", { style: sty(`border-top:1px solid #262B26; margin-top:12px; padding-top:10px; font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394;`) },
                     `${S($r.status)} · ${S($r.message)} · ${S($r.when)}`

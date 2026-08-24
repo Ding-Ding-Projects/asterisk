@@ -250,7 +250,7 @@ export class App extends Base {
   private forgeSearch = '';
   private forgeAccounts: Array<Record<string, string | boolean>> = [];
   private forgeCapabilities: Array<Record<string, string>> = [];
-  private forgeOperation: Record<string, string | number | boolean> = { status: 'idle', progress: 0, message: 'No forge operation is running.', cancellable: false };
+  private forgeOperation: Record<string, string | number | boolean> = { id: 'idle', status: 'idle', progress: 0, message: 'No forge operation is running.', cancellable: false };
   private forgeDevice: Record<string, string> = { status: 'idle', message: 'No device sign-in is running.' };
   private forgePollTimer: ReturnType<typeof setInterval> | undefined;
   private forgeOwners: Array<Record<string, string>> = [];
@@ -331,10 +331,11 @@ export class App extends Base {
       const id = String(account.id ?? '');
       const login = String(account.login ?? '');
       const active = id === this.forgeActiveAccountId;
-      return { id, login, state: String(account.state ?? 'unknown'), tokenRef: typeof account.tokenRef === 'string' ? account.tokenRef : 'OS credential reference unavailable', active, activeLabel: active ? 'Active' : 'Use this', activeBg: active ? '#005230' : '#1B211C' };
+      const storage = String(account.credentialStorage ?? 'unknown');
+      return { id, login, state: storage === 'keyring' ? String(account.state ?? 'unknown') : 're-auth required: secure keyring not proven', tokenRef: typeof account.tokenRef === 'string' ? account.tokenRef : 'Provider vault reference unavailable', active, activeLabel: active ? 'Active' : 'Use this', activeBg: active ? '#005230' : '#1B211C' };
     });
     this.forgeReceipts = (data?.receipts ?? []).map((receipt) => ({ status: String(receipt.status ?? 'unknown'), message: String(receipt.message ?? ''), when: String(receipt.observedAt ?? '') })).slice(0, 12);
-    if (data?.operation) this.forgeOperation = { status: String(data.operation.status ?? 'idle'), progress: Number(data.operation.progress ?? 0), message: String(data.operation.message ?? ''), cancellable: Boolean(data.operation.cancellable) };
+    if (data?.operation) this.forgeOperation = { id: String(data.operation.id ?? 'idle'), status: String(data.operation.status ?? 'idle'), progress: Number(data.operation.progress ?? 0), message: String(data.operation.message ?? ''), cancellable: Boolean(data.operation.cancellable) };
     if (data?.device) this.forgeDevice = { status: String(data.device.status ?? 'idle'), userCode: String(data.device.userCode ?? ''), verificationUri: String(data.device.verificationUri ?? ''), expiresAt: String(data.device.expiresAt ?? ''), message: String(data.device.message ?? '') };
     if (data?.corruption) this.forgeStatus = data.corruption;
     if (!response?.ok) {
@@ -342,7 +343,7 @@ export class App extends Base {
       this.forceUpdate();
       return;
     }
-    this.forgeStatus = this.forgeAccounts.length > 0 ? `${this.forgeAccounts.length} provider account${this.forgeAccounts.length === 1 ? '' : 's'} loaded. Tokens stay in the operating-system vault.` : (data?.reauthAction ? 'No account is signed in. Re-authenticate beside this surface.' : 'No provider account was returned.');
+    this.forgeStatus = this.forgeAccounts.length > 0 ? `${this.forgeAccounts.length} provider account${this.forgeAccounts.length === 1 ? '' : 's'} loaded. Secure keyring storage is shown only after gh proves it.` : (data?.reauthAction ? 'No account is signed in. Re-authenticate beside this surface.' : 'No provider account was returned.');
     if (data?.corruption) this.forgeStatus = `${data.corruption} ${this.forgeStatus}`;
     if (this.forgeOperation.status === 'running') this.startForgeProgressPolling();
     else if (this.forgeActiveAccountId) await this.forgeLoadOwners();
@@ -359,7 +360,9 @@ export class App extends Base {
     if (!response?.ok) return;
     const operation = (response.data as { operation?: Record<string, unknown> }).operation;
     if (!operation) return;
-    this.forgeOperation = { status: String(operation.status ?? 'idle'), progress: Number(operation.progress ?? 0), message: String(operation.message ?? ''), cancellable: Boolean(operation.cancellable) };
+    const operationId = String(operation.id ?? 'idle');
+    if (String(this.forgeOperation.id ?? 'idle') !== 'idle' && operationId !== String(this.forgeOperation.id)) return;
+    this.forgeOperation = { id: operationId, status: String(operation.status ?? 'idle'), progress: Number(operation.progress ?? 0), message: String(operation.message ?? ''), cancellable: Boolean(operation.cancellable) };
     this.forceUpdate();
     if (this.forgeOperation.status !== 'running') {
       if (this.forgePollTimer) clearInterval(this.forgePollTimer);
@@ -378,7 +381,8 @@ export class App extends Base {
     const owners = ((response.data as { owners?: Array<Record<string, unknown>> }).owners ?? []).map((owner) => {
       const fork = owner.canForkRepository === true ? 'fork proven' : 'fork unknown';
       const create = owner.canCreateRepository === true ? 'create proven' : 'create unknown';
-      return { id: String(owner.id ?? ''), label: `${String(owner.displayName ?? owner.login ?? '')} · ${String(owner.kind ?? '')} · ${fork}, ${create}`, login: String(owner.login ?? ''), kind: String(owner.kind ?? '') };
+      const reason = owner.capabilities && typeof owner.capabilities === 'object' ? String((owner.capabilities as Record<string, unknown>).reason ?? '') : '';
+      return { id: String(owner.id ?? ''), label: `${String(owner.displayName ?? owner.login ?? '')} · ${String(owner.kind ?? '')} · ${fork}, ${create}${reason ? ` · ${reason}` : ''}`, login: String(owner.login ?? ''), kind: String(owner.kind ?? '') };
     });
     this.forgeOwners = owners;
     this.forgeOwnerId = owners.some((owner) => owner.id === this.forgeOwnerId) ? this.forgeOwnerId : owners[0]?.id ?? '';
@@ -2031,6 +2035,7 @@ It is shown once. The phone needs it to register.`);
         branches: [], branchName: '', commitCount: '0 commits',
         compareLabel: NO_HISTORY,
         forgeStatus: this.forgeStatus,
+        forgeHostedUnavailable: bridge?.platform === 'web',
         forgeCorrupt: Boolean(this.forgeCorruption),
         forgeOperation: this.forgeOperation,
         forgeDevice: this.forgeDevice,
@@ -2041,6 +2046,9 @@ It is shown once. The phone needs it to register.`);
           return !query || forgeMatcher(`${String(account.login)} ${String(account.state)} ${String(account.tokenRef)}`);
         }).map((account) => ({ ...account, activate: () => void this.forgeWithAccount(String(account.id)), refresh: () => void this.forgeRefreshAccount(String(account.id)), signOut: () => void this.forgeSignOut(String(account.id)) })),
         forgeSearchStatus: forgeSearchError || `${this.forgeAccounts.filter((account) => !forgeSearchText || forgeMatcher(`${String(account.login)} ${String(account.state)} ${String(account.tokenRef)}`)).length} account match${this.forgeAccounts.filter((account) => !forgeSearchText || forgeMatcher(`${String(account.login)} ${String(account.state)} ${String(account.tokenRef)}`)).length === 1 ? '' : 'es'}`,
+        regexTargetLabel: forgePattern ? 'forge accounts' : values.regexTargetLabel,
+        regexCount: forgePattern ? (forgeSearchError || 'forge account pattern bound') : values.regexCount,
+        regexPreview: forgePattern ? this.forgeAccounts.slice(0, 6).map((account) => { const hit = forgeMatcher(`${String(account.login)} ${String(account.state)} ${String(account.tokenRef)}`); return { text: `${String(account.login)} · ${String(account.state)}`, icon: hit ? 'check_circle' : 'remove_circle_outline', color: hit ? '#82D9A5' : '#778078' }; }) : values.regexPreview,
         forgeCapabilities: this.forgeCapabilities,
         forgeOwners: this.forgeOwners,
         forgeOwnerId: this.forgeOwnerId,

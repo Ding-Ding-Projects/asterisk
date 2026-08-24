@@ -28,6 +28,7 @@ export interface ForgeAccount {
   login: string;
   displayName: string;
   tokenRef?: string;
+  credentialStorage: "keyring" | "plaintext-refused" | "unknown";
   state: "available" | "reauth-required" | "signed-out";
   lastSeenAt: string;
   active?: boolean;
@@ -45,7 +46,7 @@ export interface ForgeOwner {
   capabilities: ForgeProviderCapabilities;
 }
 
-export type ForgeReceiptStatus = "succeeded" | "partial" | "failed" | "cancelled" | "reauth-required" | "unavailable";
+export type ForgeReceiptStatus = "succeeded" | "partial" | "failed" | "cancelled" | "unknown-side-effect" | "reauth-required" | "unavailable";
 
 export interface ForgeAccountReceipt {
   kind: "account";
@@ -76,7 +77,18 @@ export interface ForgePublicationReceipt {
   reauthAction?: "add-account" | "refresh-account" | "sign-in";
 }
 
-export type ForgeReceipt = ForgeAccountReceipt | ForgePublicationReceipt;
+export interface ForgeInterruptedReceipt {
+  kind: "interrupted";
+  operation: ForgeOperation["kind"];
+  id: string;
+  status: "unknown-side-effect";
+  provider: "github";
+  accountId: string;
+  message: string;
+  observedAt: string;
+}
+
+export type ForgeReceipt = ForgeAccountReceipt | ForgePublicationReceipt | ForgeInterruptedReceipt;
 export type ForgeActionStatus = ForgeReceiptStatus | "pending";
 
 export interface ForgeState {
@@ -222,15 +234,23 @@ function parseForgeState(value: unknown): ForgeState {
   if (record.schemaVersion !== FORGE_SCHEMA_VERSION || !Array.isArray(record.accounts) || !Array.isArray(record.receipts)) {
     return { ...defaultState(), corruption: "The saved forge state used an unsupported schema, so no account or receipt data was applied." };
   }
-  const accounts = record.accounts.filter(isForgeAccount).slice(0, 50);
+  const rawAccounts = record.accounts as unknown[];
+  const accounts = rawAccounts.filter(isForgeAccount).slice(0, 50);
   const receipts = record.receipts.filter(isForgeReceipt).slice(0, MAX_RECEIPTS);
   const activeAccountId = typeof record.activeAccountId === "string" && accounts.some((account) => account.id === record.activeAccountId)
     ? record.activeAccountId
     : undefined;
   const storedOperation = isForgeOperation(record.operation) ? record.operation : idleOperation();
-  const operation = storedOperation.status === "running" ? { ...storedOperation, status: "failed" as const, cancellable: false, message: "The previous forge operation stopped before its outcome was recorded." } : storedOperation;
+  const wasInterrupted = storedOperation.status === "running";
+  const operation = wasInterrupted ? { ...storedOperation, status: "failed" as const, cancellable: false, message: "The previous forge operation stopped before its outcome was recorded." } : storedOperation;
   const device = isForgeDeviceState(record.device) ? record.device : { status: "idle" as const, message: "No device sign-in is running." };
-  return { schemaVersion: FORGE_SCHEMA_VERSION, activeAccountId, accounts, receipts, operation, device };
+  const corruptionParts = [] as string[];
+  if (rawAccounts.length !== accounts.length) corruptionParts.push("Some saved forge accounts were invalid and were retained as unavailable rather than applied.");
+  if (!isForgeOperation(record.operation)) corruptionParts.push("The saved forge operation state was missing or invalid and was reset to idle.");
+  if (!isForgeDeviceState(record.device)) corruptionParts.push("The saved device-flow state was missing or invalid and was reset to idle.");
+  const corruption = corruptionParts.length > 0 ? corruptionParts.join(" ") : undefined;
+  const interrupted = wasInterrupted ? [{ kind: "interrupted" as const, operation: storedOperation.kind, id: `forge-interrupted-${storedOperation.id}`, status: "unknown-side-effect" as const, provider: "github" as const, accountId: activeAccountId ?? "github.com:unknown", message: `The ${storedOperation.kind} operation stopped before its external outcome was known. Re-read the provider and local checkout before retrying.`, observedAt: new Date().toISOString() }] : [];
+  return { schemaVersion: FORGE_SCHEMA_VERSION, activeAccountId, accounts, receipts: [...interrupted, ...receipts], operation, device, corruption };
 }
 
 function isForgeAccount(value: unknown): value is ForgeAccount {
@@ -241,6 +261,7 @@ function isForgeAccount(value: unknown): value is ForgeAccount {
     && typeof record.login === "string" && SAFE_LOGIN.test(record.login)
     && typeof record.displayName === "string" && record.displayName.length <= 120
     && (record.tokenRef === undefined || (typeof record.tokenRef === "string" && record.tokenRef.length <= 200))
+    && (record.credentialStorage === "keyring" || record.credentialStorage === "plaintext-refused" || record.credentialStorage === "unknown")
     && (record.state === "available" || record.state === "reauth-required" || record.state === "signed-out")
     && typeof record.lastSeenAt === "string"
     && (record.active === undefined || typeof record.active === "boolean");
@@ -250,11 +271,12 @@ function isForgeReceipt(value: unknown): value is ForgeReceipt {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const record = value as Record<string, unknown>;
   const common = typeof record.id === "string" && record.id.length > 0 && record.id.length <= 100
-    && (record.status === "succeeded" || record.status === "partial" || record.status === "failed" || record.status === "cancelled" || record.status === "reauth-required" || record.status === "unavailable")
+    && (record.status === "succeeded" || record.status === "partial" || record.status === "failed" || record.status === "cancelled" || record.status === "unknown-side-effect" || record.status === "reauth-required" || record.status === "unavailable")
     && record.provider === "github" && typeof record.accountId === "string" && SAFE_ACCOUNT_ID.test(record.accountId)
     && typeof record.message === "string" && record.message.length <= 2000
     && typeof record.observedAt === "string";
   if (!common) return false;
+  if (record.kind === "interrupted") return typeof record.operation === "string" && ["idle", "account-discovery", "sign-in", "publish", "owner-discovery"].includes(record.operation) && record.status === "unknown-side-effect";
   if (record.kind === "account") return record.operation === "sign-in" || record.operation === "sign-out" || record.operation === "refresh" || record.operation === "activate";
   return record.kind === "publication"
     && typeof record.ownerId === "string" && SAFE_OWNER_ID.test(record.ownerId)
@@ -355,13 +377,15 @@ function parseGhAccounts(stdout: string, now: string): ForgeAccount[] {
     if (typeof loginValue !== "string" || !SAFE_LOGIN.test(loginValue)) return [];
     const login = loginValue.trim();
     const signedIn = record.state === undefined || record.state === "logged_in" || record.state === "available";
+    const credentialStorage = record.tokenSource === "keyring" ? "keyring" as const : "plaintext-refused" as const;
     return [{
       id: `github.com:${login}`,
       provider: "github",
       hostname: GITHUB_HOST,
       login,
       displayName: login,
-      state: signedIn ? "available" : "reauth-required",
+      state: signedIn && credentialStorage === "keyring" ? "available" : "reauth-required",
+      credentialStorage,
       lastSeenAt: now,
       active: record.active === true,
     }];
@@ -484,34 +508,46 @@ export class ForgePublisher {
   }
 
   private async devicePost(url: string, body: URLSearchParams, allowError = false): Promise<Record<string, unknown>> {
-    const response = await this.#fetch(url, { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" }, body: body.toString(), signal: this.#abortController?.signal, redirect: "error" });
-    const text = await response.text();
-    if (text.length > 64 * 1024) throw new Error("The provider device response exceeded the bounded response size.");
-    let parsed: unknown;
-    try { parsed = JSON.parse(text); } catch { throw new Error("The provider device response was not valid JSON."); }
-    if ((!response.ok && !allowError) || !parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error(`The provider device request returned HTTP ${response.status}.`);
-    return parsed as Record<string, unknown>;
+    const requestController = new AbortController();
+    const timeout = setTimeout(() => requestController.abort(), 15_000);
+    const parentAbort = () => requestController.abort();
+    this.#abortController?.signal.addEventListener("abort", parentAbort, { once: true });
+    try {
+      const response = await this.#fetch(url, { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" }, body: body.toString(), signal: requestController.signal, redirect: "error" });
+      const text = await response.text();
+      if (text.length > 64 * 1024) throw new Error("The provider device response exceeded the bounded response size.");
+      let parsed: unknown;
+      try { parsed = JSON.parse(text); } catch { throw new Error("The provider device response was not valid JSON."); }
+      if ((!response.ok && !allowError) || !parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error(`The provider device request returned HTTP ${response.status}.`);
+      return parsed as Record<string, unknown>;
+    } catch (error) {
+      if (requestController.signal.aborted) throw new Error(this.#abortController?.signal.aborted ? "Device sign-in was cancelled." : "The provider device request timed out.");
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+      this.#abortController?.signal.removeEventListener("abort", parentAbort);
+    }
   }
 
   private async waitForDevicePoll(ms: number): Promise<void> {
     await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(resolve, ms);
+      const timer = setTimeout(() => { signal?.removeEventListener("abort", abort); resolve(); }, ms);
       const signal = this.#abortController?.signal;
-      const abort = () => { clearTimeout(timer); reject(new Error("Device sign-in was cancelled.")); };
+      const abort = () => { clearTimeout(timer); signal?.removeEventListener("abort", abort); reject(new Error("Device sign-in was cancelled.")); };
       signal?.addEventListener("abort", abort, { once: true });
     });
   }
 
-  private async verifyDestinationIdentity(ownerLogin: string, repositoryName: string, expectedUrl: string): Promise<{ ok: boolean; message: string }> {
+  private async verifyDestinationIdentity(ownerLogin: string, repositoryName: string, expectedUrl: string): Promise<{ ok: boolean; status: ForgeReceiptStatus; message: string }> {
     const result = await this.gh(["repo", "view", `${ownerLogin}/${repositoryName}`, "--json", "nameWithOwner,url"]);
-    if (result.status !== "succeeded") return { ok: false, message: resultFromCommand(result, "Reading the destination repository identity") };
+    if (result.status !== "succeeded") return { ok: false, status: receiptStatus(result, true), message: resultFromCommand(result, "Reading the destination repository identity") };
     try {
       const parsed = JSON.parse(result.stdout) as { nameWithOwner?: unknown; url?: unknown };
       const expectedName = `${ownerLogin}/${repositoryName}`;
-      if (parsed.nameWithOwner !== expectedName || parsed.url !== expectedUrl) return { ok: false, message: `The provider returned destination ${String(parsed.nameWithOwner ?? "unknown")} at ${String(parsed.url ?? "unknown")}, not ${expectedName} at ${expectedUrl}.` };
-      return { ok: true, message: "The provider confirmed the exact destination owner, name, and URL." };
+      if (parsed.nameWithOwner !== expectedName || parsed.url !== expectedUrl) return { ok: false, status: "failed", message: `The provider returned destination ${String(parsed.nameWithOwner ?? "unknown")} at ${String(parsed.url ?? "unknown")}, not ${expectedName} at ${expectedUrl}.` };
+      return { ok: true, status: "succeeded", message: "The provider confirmed the exact destination owner, name, and URL." };
     } catch {
-      return { ok: false, message: "The provider returned invalid destination identity data." };
+      return { ok: false, status: "failed", message: "The provider returned invalid destination identity data." };
     }
   }
 
@@ -594,6 +630,9 @@ export class ForgePublisher {
       if (!accessToken) throw new Error("The provider device code expired before approval.");
       const installed = await this.gh(["auth", "login", "--hostname", GITHUB_HOST, "--git-protocol", "https", "--with-token"], 30_000, false, accessToken, [accessToken]);
       if (installed.status !== "succeeded") throw new Error(resultFromCommand(installed, "Installing the provider credential"));
+      const verified = await this.gh(["auth", "status", "--hostname", GITHUB_HOST, "--json", "hosts"]);
+      const secureAccount = verified.status === "succeeded" ? parseGhAccounts(verified.stdout, this.#now().toISOString()).find((account) => account.active && account.credentialStorage === "keyring") : undefined;
+      if (!secureAccount) throw new Error("gh did not confirm secure keyring storage for the newly installed credential. Plain-text fallback is refused.");
       this.#state.device = { status: "installed", userCode, verificationUri, expiresAt, message: "The provider credential was installed in gh's credential store. The credential value was not retained." };
       this.finishOperation("succeeded", this.#state.device.message);
       this.save();
@@ -702,17 +741,24 @@ export class ForgePublisher {
     if (!this.beginOperation("account-discovery", `Signing out ${account.login} without an interactive confirmation.`)) return { status: "failed", message: "Another forge operation is already running." };
     const result = await this.gh(["auth", "logout", "--hostname", account.hostname, "--user", account.login], 30_000, true, "y\n");
     if (result.status !== "succeeded") {
-      const status = result.status === "cancelled" ? "cancelled" : "failed";
-      const receipt = this.makeAccountReceipt(status, "sign-out", account, resultFromCommand(result, `Signing out ${account.login}`));
+      const status = receiptStatus(result, true);
+      const receipt = this.makeAccountReceipt(status, "sign-out", account, `${resultFromCommand(result, `Signing out ${account.login}`)} The command may have had an unknown side effect. Logout removes local gh authentication only and does not revoke provider authorization.`);
       this.addReceipt(receipt);
-      this.finishOperation(status, receipt.message);
+      this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message);
       return { status, message: receipt.message, receipt };
+    }
+    const reread = await this.gh(["auth", "status", "--hostname", account.hostname, "--json", "hosts"]);
+    const stillPresent = reread.status === "succeeded" && parseGhAccounts(reread.stdout, this.#now().toISOString()).some((candidate) => candidate.login === account.login && candidate.state === "available");
+    if (reread.status !== "succeeded" || stillPresent) {
+      const status = reread.status === "cancelled" || reread.status === "timedOut" ? "unknown-side-effect" : "partial";
+      const receipt = this.makeAccountReceipt(status, "sign-out", account, `${reread.status === "succeeded" ? `The provider still reports ${account.login} as available.` : resultFromCommand(reread, "Re-reading account state after sign-out")} Logout removes local gh authentication only and does not revoke provider authorization.`);
+      this.addReceipt(receipt); this.finishOperation("failed", receipt.message); return { status, message: receipt.message, receipt };
     }
     this.#state.accounts = this.#state.accounts.filter((candidate) => candidate.id !== accountId);
     if (this.#state.activeAccountId === accountId) this.#state.activeAccountId = this.#state.accounts[0]?.id;
     this.save();
     this.finishOperation("succeeded", `Account ${account.login} was signed out.`);
-    const receipt = this.makeAccountReceipt("succeeded", "sign-out", account, `Account ${account.login} was signed out.`);
+    const receipt = this.makeAccountReceipt("succeeded", "sign-out", account, `Account ${account.login} was signed out locally. Logout does not revoke provider authorization.`);
     this.addReceipt(receipt);
     await this.record("deleted", `forge account ${account.login}`, { provider: account.provider, accountId, tokenRef: account.tokenRef });
     return { status: "succeeded", message: receipt.message, data: { accountId }, receipt };
@@ -773,6 +819,7 @@ export class ForgePublisher {
     const account = this.#state.accounts.find((candidate) => candidate.id === accountId);
     if (!account) return { status: "reauth-required", message: "The chosen account is not in the local signed-in account list.", reauthAction: "add-account" };
     if (account.state !== "available") return { status: "reauth-required", message: `Account ${account.login} needs sign-in again before publishing.`, reauthAction: "refresh-account" };
+    if (account.credentialStorage !== "keyring") return { status: "unavailable", message: "The provider account is not backed by gh's secure keyring. Plain-text credential fallback is refused; sign in again through the device flow." , reauthAction: "sign-in" };
     const ownerId = typeof request.ownerId === "string" ? request.ownerId : "";
     if (!SAFE_OWNER_ID.test(ownerId)) return { status: "failed", message: "Choose a personal or organization owner from the provider owner list." };
     const owner = this.#owners.get(ownerId);
@@ -818,15 +865,25 @@ export class ForgePublisher {
       }
       const identity = await this.verifyDestinationIdentity(ownerLogin, repositoryName, repositoryUrl);
       if (!identity.ok) {
-        const receipt = this.makeReceipt("partial", account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, identity.message, observedAt);
-        this.addReceipt(receipt); this.finishOperation("failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
-        return { status: "partial", message: receipt.message, receipt, data: receipt };
+        const receipt = this.makeReceipt(identity.status, account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, identity.message, observedAt);
+        this.addReceipt(receipt); this.finishOperation(identity.status === "cancelled" ? "cancelled" : "failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
+        return { status: identity.status, message: receipt.message, receipt, data: receipt };
       }
       const remote = await this.git(["remote", "get-url", "--push", "forge-publish"], sourcePath!);
-      effectivePushUrl = remote.status === "succeeded" ? remote.stdout.trim() : "";
+      const pushUrls = remote.status === "succeeded" ? remote.stdout.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean) : [];
+      if (pushUrls.length > 1) {
+        const receipt = this.makeReceipt("failed", account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, "The forge-publish remote has more than one push URL, so the destination cannot be proved uniquely.", observedAt);
+        this.addReceipt(receipt); this.finishOperation("failed", receipt.message); return { status: "failed", message: receipt.message, receipt, data: receipt };
+      }
+      effectivePushUrl = pushUrls[0] ?? "";
       if (!effectivePushUrl) {
         const fetchRemote = await this.git(["remote", "get-url", "forge-publish"], sourcePath!);
-        effectivePushUrl = fetchRemote.status === "succeeded" ? fetchRemote.stdout.trim() : "";
+        const fetchUrls = fetchRemote.status === "succeeded" ? fetchRemote.stdout.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean) : [];
+        if (fetchUrls.length > 1) {
+          const receipt = this.makeReceipt("failed", account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, "The forge-publish remote has more than one effective URL, so the destination cannot be proved uniquely.", observedAt);
+          this.addReceipt(receipt); this.finishOperation("failed", receipt.message); return { status: "failed", message: receipt.message, receipt, data: receipt };
+        }
+        effectivePushUrl = fetchUrls[0] ?? "";
       }
       if (!effectivePushUrl) {
         const add = await this.git(["remote", "add", "forge-publish", repositoryUrl], sourcePath!);
@@ -869,8 +926,8 @@ export class ForgePublisher {
       }
       const identity = await this.verifyDestinationIdentity(ownerLogin, repositoryName, repositoryUrl);
       if (!identity.ok) {
-        const receipt = this.makeReceipt("failed", account, ownerId, route, repositoryName, repositoryUrl, undefined, identity.message, observedAt);
-        this.addReceipt(receipt); this.finishOperation("failed", receipt.message); return { status: "failed", message: receipt.message, receipt, data: receipt };
+        const receipt = this.makeReceipt(identity.status, account, ownerId, route, repositoryName, repositoryUrl, undefined, identity.message, observedAt);
+        this.addReceipt(receipt); this.finishOperation(identity.status === "cancelled" ? "cancelled" : "failed", receipt.message); return { status: identity.status, message: receipt.message, receipt, data: receipt };
       }
     }
     const receipt = this.makeReceipt("succeeded", account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, route === "fork" ? "The provider confirmed the fork request." : `The destination accepted commit ${sourceCommit}.`, observedAt);

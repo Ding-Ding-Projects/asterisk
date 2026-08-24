@@ -4,7 +4,7 @@ The History screen contains a desktop forge-publishing surface. It publishes a l
 
 ## Behavior
 
-The surface is backed by the control plane, not by renderer-only state. Refresh discovers signed-in GitHub accounts from the local `gh` sign-in store. Each row shows the provider login, an account id, a stable `gh://` vault reference, active state, refresh, sign-out, and re-authentication status. The renderer never receives a token value. Account activation runs `gh auth switch`, then confirms the provider reports that same login as active.
+The surface is backed by the control plane, not by renderer-only state. Refresh discovers signed-in GitHub accounts from the local `gh` sign-in store. Each row shows the provider login, an account id, a provider-supplied vault reference when one is actually returned, active state, refresh, sign-out, and re-authentication status. The renderer never receives a token value. Account activation runs `gh auth switch`, then confirms the provider reports that same login as active.
 
 Selecting an account activates it through `gh auth switch`, then owner discovery reads the personal owner and paginated organization owners through `gh api`. The owner picker contains only values returned by the provider. It never guesses a personal namespace or accepts an arbitrary organization name.
 
@@ -18,6 +18,8 @@ Every process call uses typed executable and argument arrays, `shell: false`, bo
 ## Configuration
 
 The durable file is `forge-publishing.json` under the application's private data folder. It contains schema version 1, account metadata, the active account id, and redacted publication receipts. It contains no token, password, cookie, private key, or invented vault key. A provider vault reference is displayed only when the provider actually supplies one. Account mutation and publication receipts are also recorded through the app's local append-only history.
+
+Release blocker: the packaged desktop contract currently has no immutable approved public GitHub OAuth client id, so device sign-in reports unavailable until the owner supplies that reviewed public id through the packaged contract. It never reads an arbitrary environment identity and never falls back to a plaintext credential.
 
 The source-folder field has a native folder picker. The account search is plain text by default and has an adjacent anchored full regex builder with bounded pattern length, flags, guided tokens, validation, and match counts. The provider capability list distinguishes GitHub, which currently supports both routes, from GitLab, which remains visible but unavailable until a local CLI and OS-vault adapter are configured. The active operation exposes busy, progress, cancellation, and completion state.
 
@@ -33,7 +35,7 @@ Hosted server mode refuses every `forge.*` action by name because it cannot safe
 
 ## Security and privacy
 
-The renderer accepts account names and owner ids, never provider tokens. Durable state stores only stable vault references. `gh` uses its own operating-system credential store, while `git` uses the configured credential helper. No token is placed in arguments, output, logs, renderer state, receipts, local history, exports, or documentation. The executor allowlist contains only the typed `git` and `gh` executables needed by this surface, and all calls use `shell: false`.
+The renderer accepts account names and owner ids, never provider tokens. Durable state stores only provider-supplied vault references when present. `gh` is accepted only after it reports `keyring` storage, while plaintext credential fallback is refused. `git` uses the configured credential helper after inherited auth variables are cleared. No token is placed in arguments, output, logs, renderer state, receipts, local history, exports, or documentation. The executor allowlist contains only the typed `git` and `gh` executables needed by this surface, and all calls use `shell: false`.
 
 ## Verification
 
