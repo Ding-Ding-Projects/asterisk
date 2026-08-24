@@ -22,7 +22,7 @@ Inspect local WSL and Docker capacity with:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deployer\deployment\preflight.ps1 -Mode all
 ```
 
-The optional host mode requires an exact host, user, port, architecture, thresholds, allowed port, and persistent known-hosts file from the operator's private inventory. It reads architecture, CPU, memory, disk capacity, port listeners, Docker information, and existing workloads only. It refuses a tuple that is not present in that inventory.
+The optional host mode requires an exact host, user, port, architecture, thresholds, allowed port, and persistent known-hosts file from the operator's private inventory. It reads architecture, CPU, memory, disk capacity, port listeners, Docker information, and existing workloads only. It refuses a tuple that is not present in that inventory. Hosted deployment is restricted to the local Yere Dow engine. Approved SSH mode is inventory evidence only and is not an execution route.
 
 ## Failure and recovery
 

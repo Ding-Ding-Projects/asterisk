@@ -9,6 +9,9 @@ $provenancePath = Join-Path $resourceRoot 'asterisk-wsl-rootfs.json'
 $trustedManifestPath = Join-Path $resourceRoot 'asterisk-wsl-trusted-manifest.json'
 $dockerfile = Join-Path $PSScriptRoot 'asterisk-wsl-runtime.Dockerfile'
 $sourceCommit = (& git -C $repoRoot rev-parse HEAD).Trim()
+$dirty = @(& git -C $repoRoot status --porcelain)
+if ($LASTEXITCODE -ne 0 -or $sourceCommit -notmatch '^[0-9a-f]{40}$') { throw 'Could not resolve the exact source commit for the WSL build.' }
+if ($dirty.Count -gt 0) { throw 'The WSL build requires a clean checkout so its git archive context is exact.' }
 $baseDigest = 'sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517'
 
 function Get-Sha256([string]$Path) {
@@ -35,10 +38,17 @@ $suffix = $sourceCommit.Substring(0, 12)
 $image = "ding-pbx-asterisk-runtime:$suffix"
 $container = "ding-pbx-asterisk-export-$suffix-$PID"
 $temporary = Join-Path $resourceRoot "asterisk-wsl-rootfs.$PID.tmp.tar"
+$archive = Join-Path ([System.IO.Path]::GetTempPath()) "ding-pbx-wsl-source.$PID.tar"
+$contextRoot = Join-Path ([System.IO.Path]::GetTempPath()) "ding-pbx-wsl-context.$PID"
 $containerCreated = $false
 
 try {
-    docker build --file $dockerfile --build-arg "ASTERISK_SOURCE_REVISION=$sourceCommit" --tag $image $repoRoot
+    New-Item -ItemType Directory -Force -Path $contextRoot | Out-Null
+    & git -C $repoRoot archive --format=tar --output=$archive HEAD
+    if ($LASTEXITCODE -ne 0) { throw "git archive exited $LASTEXITCODE" }
+    & tar.exe -xf $archive -C $contextRoot
+    if ($LASTEXITCODE -ne 0) { throw "tar extraction exited $LASTEXITCODE" }
+    docker build --file (Join-Path $contextRoot 'console/scripts/asterisk-wsl-runtime.Dockerfile') --build-arg "ASTERISK_SOURCE_REVISION=$sourceCommit" --tag $image $contextRoot
     if ($LASTEXITCODE -ne 0) { throw "docker build exited $LASTEXITCODE" }
     docker create --name $container $image | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "docker create exited $LASTEXITCODE" }
@@ -92,4 +102,6 @@ try {
 } finally {
     if ($containerCreated) { docker rm --force $container | Out-Null }
     if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force }
+    if (Test-Path -LiteralPath $archive) { Remove-Item -LiteralPath $archive -Force }
+    if (Test-Path -LiteralPath $contextRoot) { Remove-Item -LiteralPath $contextRoot -Recurse -Force }
 }

@@ -11,7 +11,8 @@ param(
     [long]$MinimumStorageBytes = 8589934592,
     [int]$RequiredPort = 8088,
     [string]$ProjectName = 'ding-pbx-control-plane',
-    [string]$BindAddress = '127.0.0.1'
+    [string]$BindAddress = '127.0.0.1',
+    [int]$EvidenceExpiresMinutes = 15
 )
 
 $ErrorActionPreference = 'Stop'
@@ -32,6 +33,10 @@ function Add-Check([System.Collections.IDictionary]$Owner, [string]$Name, [bool]
 }
 
 $targetKind = if ($Mode -eq 'host' -or ($Mode -eq 'all' -and $ApprovedHost)) { 'approved-ssh' } else { 'local-docker' }
+$targetHost = if ($targetKind -eq 'approved-ssh') { $ApprovedHost } else { 'local' }
+$targetUser = if ($targetKind -eq 'approved-ssh') { $ApprovedUser } else { 'local' }
+$targetSshPort = if ($targetKind -eq 'approved-ssh') { $ApprovedPort } else { 0 }
+$inventoryPathValue = if ($targetKind -eq 'approved-ssh') { $InventoryPath } else { 'local-engine-facts' }
 
 $result = [ordered]@{
     schemaVersion = 1
@@ -41,6 +46,11 @@ $result = [ordered]@{
     requiredPort = $RequiredPort
     bindAddress = $BindAddress
     target = $targetKind
+    targetHost = $targetHost
+    targetUser = $targetUser
+    targetSshPort = $targetSshPort
+    inventoryPath = $inventoryPathValue
+    expiresAt = [DateTimeOffset]::UtcNow.AddMinutes($EvidenceExpiresMinutes).ToString('o')
     mutation = 'none; this command only reads local or explicitly approved target state'
 }
 
@@ -81,6 +91,10 @@ if ($Mode -in @('docker', 'all')) {
     $workloadOutput = $dockerProbe[2].output
     Add-Check $result 'local-workload-inventory-readable' ($dockerProbe[2].exitCode -eq 0) 'Every local container was enumerated.'
     Add-Check $result 'local-managed-workload-conflict' (-not ($workloadOutput -match 'ding-pbx-control-plane')) 'No existing managed workload conflict was observed.'
+    $workloadLines = @($workloadOutput -split "`r?`n" | Where-Object { $_.Trim() })
+    $workloadJsonOk = $true
+    foreach ($line in $workloadLines) { try { $null = $line | ConvertFrom-Json -ErrorAction Stop } catch { $workloadJsonOk = $false } }
+    Add-Check $result 'local-workload-json-lines' $workloadJsonOk "Parsed workload JSON lines=$($workloadLines.Count)"
 }
 
 if ($Mode -in @('host', 'all') -and -not [string]::IsNullOrWhiteSpace($ApprovedHost)) {
@@ -130,6 +144,10 @@ if ($Mode -in @('host', 'all') -and -not [string]::IsNullOrWhiteSpace($ApprovedH
     Add-Check $result 'approved-host-storage-observed' ($actualFreeBytes -ge $MinimumStorageBytes) "Observed free bytes=$actualFreeBytes required=$MinimumStorageBytes"
     Add-Check $result 'approved-host-port-conflict' (-not ($hostProbe.output -match "[:.]$RequiredPort\b")) "Port $RequiredPort listener check"
     Add-Check $result 'approved-host-workload-inventory' ($hostProbe.output -notmatch 'WORKLOADS=.*ding-pbx-control-plane') 'No existing managed workload conflict was observed.'
+    $hostWorkloadLines = @($hostProbe.output.Substring([Math]::Max(0, $hostProbe.output.IndexOf('WORKLOADS=') + 10)) -split "`r?`n" | Where-Object { $_.Trim() })
+    $hostWorkloadJsonOk = $true
+    foreach ($line in $hostWorkloadLines) { try { $null = $line | ConvertFrom-Json -ErrorAction Stop } catch { $hostWorkloadJsonOk = $false } }
+    Add-Check $result 'approved-host-workload-json-lines' $hostWorkloadJsonOk "Parsed workload JSON lines=$($hostWorkloadLines.Count)"
 } elseif ($Mode -eq 'host') {
     throw '-Mode host requires an explicitly approved host, user, and persistent known-hosts path.'
 }

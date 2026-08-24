@@ -44,19 +44,19 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deployer\deployment\pr
 It reads WSL status and distributions, local Docker version, engine information, containers, and storage usage. It performs no install, start, stop, import, remove, prune, or deployment action. To inspect an explicitly approved private host, supply its persistent known-hosts file and use the same read-only command:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deployer\deployment\preflight.ps1 -Mode host -ApprovedHost <approved-host> -ApprovedPort 22 -ApprovedUser <approved-user> -KnownHostsPath <persistent-known-hosts-file>
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deployer\deployment\preflight.ps1 -Mode host -ApprovedHost <approved-host> -ApprovedPort 22 -ApprovedUser <approved-user> -KnownHostsPath <persistent-known-hosts-file> -InventoryPath <private-inventory-file>
 ```
 
-The host probe reads architecture, CPU count, memory, root filesystem capacity, Docker engine information, port listeners, and every container. It compares the tuple and thresholds with the exact private inventory entry, uses the persistent known-hosts path recorded there, and does not stop or replace an unrelated workload. The host spelling and port must already be approved in the operator's private inventory before this command is run.
+The host probe reads architecture, CPU count, memory, root filesystem capacity, Docker engine information, port listeners, and every container. It compares the tuple and thresholds with the exact private inventory entry, uses the persistent known-hosts path recorded there, and does not stop or replace an unrelated workload. The host spelling and port must already be approved in the operator's private inventory before this command is run. Hosted deployment itself is restricted to the local Yere Dow engine. Approved SSH mode is inventory evidence only until a separate exact SSH execution lane exists.
 
-Capture the command's JSON output to the preflight evidence path named by the external deployment manifest. Plan-only deployment performs image inspection only. It does not pull images, create temporary containers, remove containers, or change Compose state.
+Capture the command's JSON output to the preflight evidence path named by the external deployment manifest. Plan-only deployment requires the immutable image to already exist in the local Yere Dow cache, then performs image inspection only. It does not pull images, create temporary containers, remove containers, or change Compose state.
 
 ## Rollback
 
 Rollback means selecting a previously verified immutable image reference while keeping the data volume:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deployer\deployment\rollback.ps1 -PreviousImage 'registry.example.invalid/ding-pbx-control-plane@sha256:<previous-verified-digest>' -CurrentImage 'registry.example.invalid/ding-pbx-control-plane@sha256:<current-verified-digest>' -TlsCertFile 'C:\private\ding-pbx\tls\fullchain.pem' -TlsKeyFile 'C:\private\ding-pbx\tls\privkey.pem' -ManifestPath 'C:\private\ding-pbx\deployment-manifest.json' -PreflightEvidencePath 'C:\private\ding-pbx\preflight.json'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deployer\deployment\rollback.ps1 -PreviousImage 'registry.example.invalid/ding-pbx-control-plane@sha256:<previous-verified-digest>' -CurrentImage 'registry.example.invalid/ding-pbx-control-plane@sha256:<current-verified-digest>' -TlsCertFile 'C:\private\ding-pbx\tls\fullchain.pem' -TlsKeyFile 'C:\private\ding-pbx\tls\privkey.pem' -PreviousManifestPath 'C:\private\ding-pbx\previous-deployment-manifest.json' -CurrentManifestPath 'C:\private\ding-pbx\current-deployment-manifest.json' -PreflightEvidencePath 'C:\private\ding-pbx\preflight.json'
 ```
 
 That command is plan-only. Review the external deployment manifest, preflight evidence, source commit, embedded provenance, image digest, and TLS paths, then add `-Execute` to run the Compose update. The script waits for liveness and local Asterisk readiness and automatically restores the current image if either check fails. It verifies the live image digest, owned container labels, all six writable volumes, and the internal network. It never removes the named data volumes. If the image fails its healthcheck, inspect `docker compose ps`, `docker compose logs --no-color control-plane`, and the recorded image provenance before choosing another verified image. Do not rebuild an older commit under a new tag and call it a rollback.

@@ -7,6 +7,7 @@ export * from "./ssh.js";
 export * from "./provisioning.js";
 export * from "./config-transaction.js";
 export * from "./asterisk-readings.js";
+export * from "./asterisk-readiness.js";
 export * from "./dialplan-graph.js";
 export * from "./wsl-provisioning.js";
 export * from "./wsl-config-transport.js";

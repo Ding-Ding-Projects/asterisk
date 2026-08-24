@@ -23,6 +23,7 @@
  * polled with a bounded timeout rather than trusted on the first try.
  */
 import { MANAGED_DISTRIBUTION } from "./wsl-provisioning.js";
+import { parseAsteriskReadiness } from "./asterisk-readiness.js";
 import type { ProcessExecutor } from "./executor.js";
 
 export type DaemonState =
@@ -151,14 +152,8 @@ export class AsteriskService {
       const reported = stripNulls(result.stderr).trim() || stripNulls(result.stdout).trim();
       return { ok: false, detail: reported || "Asterisk did not answer." };
     }
-    const stdout = stripNulls(result.stdout).trim();
-    /* `asterisk -rx` exits 0 even when it could not reach the daemon — the failure is
-     * reported as text on stdout, not as an exit code. Read it, exactly as
-     * `asterisk-readings.ts` already has to. */
-    if (/Unable to connect to remote asterisk/iu.test(stdout) || stdout.length === 0) {
-      return { ok: false, detail: firstLine(stdout) || "Asterisk did not answer." };
-    }
-    return { ok: true, detail: stdout };
+    const parsed = parseAsteriskReadiness(stripNulls(result.stdout), stripNulls(result.stderr));
+    return parsed.ok ? { ok: true, detail: parsed.version ?? firstLine(result.stdout) } : { ok: false, detail: parsed.reason ?? "Asterisk did not answer." };
   }
 
   /**

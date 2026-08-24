@@ -11,6 +11,7 @@ import { createServer as createHttpServer, type IncomingMessage, type ServerResp
 import { createServer as createHttpsServer } from 'node:https';
 import { randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
+import { parseAsteriskReadiness } from '../control-plane/asterisk-readiness.js';
 import { readFileSync, existsSync, statSync, createReadStream } from 'node:fs';
 import { join, extname, normalize, sep } from 'node:path';
 import type { Server } from 'node:http';
@@ -226,12 +227,8 @@ export function createServerModeHandler(options: ServerModeOptions) {
           const timer = setTimeout(() => resolve({ ok: false, reason: 'Asterisk readiness timed out.' }), 5_000);
           execFile('asterisk', ['-rx', 'core show version'], { timeout: 4_000, maxBuffer: 64 * 1024 }, (error: Error | null, stdout: string | Buffer, stderr: string | Buffer) => {
             clearTimeout(timer);
-            const version = String(stdout ?? '').trim();
-            if (error || !version || /Unable to connect to remote asterisk/iu.test(version)) {
-              resolve({ ok: false, reason: String(stderr || error?.message || 'Asterisk did not answer.').trim() });
-              return;
-            }
-            resolve({ ok: true, version });
+            const parsed = parseAsteriskReadiness(String(stdout ?? ''), String(stderr || error?.message || ''));
+            resolve(parsed.ok ? { ok: true, version: parsed.version } : { ok: false, reason: parsed.reason });
           });
         });
         return sendJson(res, readiness.ok ? 200 : 503, {

@@ -4,7 +4,8 @@ param(
     [Parameter(Mandatory)] [string]$CurrentImage,
     [Parameter(Mandatory)] [string]$TlsCertFile,
     [Parameter(Mandatory)] [string]$TlsKeyFile,
-    [Parameter(Mandatory)] [string]$ManifestPath,
+    [Parameter(Mandatory)] [string]$PreviousManifestPath,
+    [Parameter(Mandatory)] [string]$CurrentManifestPath,
     [Parameter(Mandatory)] [string]$PreflightEvidencePath,
     [string]$ComposeFile = "$PSScriptRoot\docker-compose.yml",
     [string]$ProjectName = 'ding-pbx-control-plane',
@@ -12,9 +13,18 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'provenance.ps1')
 if (-not (Test-Path -LiteralPath $ComposeFile)) { throw "Compose file does not exist: $ComposeFile" }
+if (-not (Test-Path -LiteralPath $PreviousManifestPath)) { throw "Previous manifest does not exist: $PreviousManifestPath" }
+if (-not (Test-Path -LiteralPath $CurrentManifestPath)) { throw "Current manifest does not exist: $CurrentManifestPath" }
+if (-not (Test-Path -LiteralPath $PreflightEvidencePath)) { throw "Preflight evidence does not exist: $PreflightEvidencePath" }
 if ($PreviousImage -notmatch '@sha256:[0-9a-f]{64}$') { throw 'PreviousImage must be an immutable image@sha256 reference.' }
 if ($CurrentImage -notmatch '@sha256:[0-9a-f]{64}$') { throw 'CurrentImage must be an immutable image@sha256 reference.' }
+$previousManifest = Get-Content -Raw -LiteralPath $PreviousManifestPath | ConvertFrom-Json
+$currentManifest = Get-Content -Raw -LiteralPath $CurrentManifestPath | ConvertFrom-Json
+Assert-ExternalDeploymentManifest -Manifest $previousManifest -ImageReference $PreviousImage -ProjectName $ProjectName -Port 8088 | Out-Null
+Assert-ExternalDeploymentManifest -Manifest $currentManifest -ImageReference $CurrentImage -ProjectName $ProjectName -Port 8088 | Out-Null
+if ($previousManifest.preflightEvidencePath -ne $PreflightEvidencePath -or $currentManifest.preflightEvidencePath -ne $PreflightEvidencePath) { throw 'Rollback manifests do not bind to the supplied preflight evidence.' }
 
 $command = @('compose', '--project-name', $ProjectName, '--file', $ComposeFile, 'up', '--detach', '--no-build')
 Write-Host "Rollback plan: inspect provenance for $PreviousImage, then run: docker $($command -join ' ')"
@@ -31,7 +41,8 @@ if (-not $Execute) {
     -PreviousImageRef $CurrentImage `
     -TlsCertFile $TlsCertFile `
     -TlsKeyFile $TlsKeyFile `
-    -ManifestPath $ManifestPath `
+    -ManifestPath $PreviousManifestPath `
+    -PreviousManifestPath $CurrentManifestPath `
     -PreflightEvidencePath $PreflightEvidencePath `
     -ComposeFile $ComposeFile `
     -ProjectName $ProjectName `

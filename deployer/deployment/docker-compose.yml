@@ -21,6 +21,7 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
       - /run:rw,noexec,nosuid,size=16m
+      - /run/asterisk:rw,noexec,nosuid,size=16m,uid=10001,gid=10001,mode=0750
     ports:
       - "${DING_PBX_BIND_ADDRESS:-127.0.0.1}:${DING_PBX_PORT:-8088}:8088"
     volumes:
@@ -29,7 +30,6 @@ services:
       - ding-pbx-asterisk-lib:/var/lib/asterisk
       - ding-pbx-asterisk-log:/var/log/asterisk
       - ding-pbx-asterisk-spool:/var/spool/asterisk
-      - ding-pbx-asterisk-run:/run/asterisk
     environment:
       DING_HOST: 0.0.0.0
       DING_PORT: 8088
@@ -70,8 +70,6 @@ volumes:
     name: ding-pbx-control-plane-asterisk-log
   ding-pbx-asterisk-spool:
     name: ding-pbx-control-plane-asterisk-spool
-  ding-pbx-asterisk-run:
-    name: ding-pbx-control-plane-asterisk-run
 
 networks:
   control-plane:
