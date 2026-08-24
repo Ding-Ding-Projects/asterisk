@@ -88,5 +88,643 @@
     "system/README",
     "system/security"
   ],
+  "headings": {
+    "agent/hub": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "agent/memory": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "agent/ops": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "agent/README": [],
+    "agent/secrets": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "agent/skills": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "agent/sync": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "agent/vocab": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "app/about": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "app/appearance": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "app/arcade": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "app/customise": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "app/history": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "app/notifications": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "app/README": [],
+    "app/servers": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "changelog/automatic-updater-reliability": [],
+    "data/ami": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "data/cdr": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "data/README": [],
+    "installer-iso": [
+      "what-it-is",
+      "architecture",
+      "what-happens-on-the-target-machine",
+      "first-boot-credential-flow",
+      "requirements",
+      "how-to-boot-and-install-it",
+      "verifying-the-download",
+      "honest-security-posture",
+      "building-it-in-ci",
+      "verification-state"
+    ],
+    "media/codecs": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "media/confbridge": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "media/moh": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "media/README": [],
+    "media/voicemail": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "pbx/canvas": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "pbx/dash": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "pbx/endpoints": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "pbx/ivr": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "pbx/live": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "pbx/queues": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "pbx/README": [],
+    "pbx/trunkauth": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "pbx/trunks": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/accessibility": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/app-display-name": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/app-logo-customization": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/attention-modes": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/automatic-updates": [
+      "behavior",
+      "restart-and-drafts",
+      "configuration-and-safety",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification-boundary",
+      "suggested-articles"
+    ],
+    "platform/automatic-updates-evidence": [
+      "release-and-source-records",
+      "capture-records",
+      "capture-method-and-interaction-evidence",
+      "verification-boundary",
+      "suggested-articles"
+    ],
+    "platform/bounded-overlays": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/browser-extension-download-surfaces": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/browser-style-tabs": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/built-in-authenticator": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/bulk-actions": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/changelog-viewer": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/collapsible-filters": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/command-palette": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/complete-exports": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/context-menu-shortcuts": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/destructive-action-confirmation": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/dialog-emojis": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/dim-sum-surprise": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/external-editor-handoff": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/external-settings-sources": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/forge-publishing": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/funny-levels": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/guided-forms": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/in-context-recovery": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/language-modes": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/local-version-history": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/long-operation-progress": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/material-appearance": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/narration": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/non-blocking-notifications": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/offline-documentation-browser": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/per-element-toy-locks": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/personal-vocabulary-upload": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/provider-markup-rendering": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/README": [
+      "exemptions"
+    ],
+    "platform/regex-builder": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/responsive-sizing": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/scheduled-settings": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/school-mode": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/status-hub": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/support-tickets": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/tab-groups-and-searches": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "platform/unlock-ladder": [
+      "behavior",
+      "configuration",
+      "current-status",
+      "failure-modes",
+      "accessibility-and-localization",
+      "verification",
+      "suggested-articles"
+    ],
+    "README": [
+      "rails",
+      "delivery",
+      "shared-behavior"
+    ],
+    "system/cli": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "system/logger": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "system/modules": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ],
+    "system/README": [],
+    "system/security": [
+      "behavior",
+      "configuration",
+      "failure-modes-and-security",
+      "verification",
+      "suggested-articles"
+    ]
+  },
   "linkChut": "generator-fails-on-missing-target-or-heading-fragment"
 }

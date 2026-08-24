@@ -12,7 +12,7 @@ Exports are UTF-8 and carry every field represented by the selected rows. Coding
 
 ## Current status
 
-**Desktop application:** Partial and mounted. Table bulk export, changelog export, appearance export, app-data History JSON export, and validated ZIP export write real files from the current filtered or selected records. The shared engine exposes the complete coding-format catalog and omission markers. A richer user-facing format picker and a bundled 7z adapter remain open.
+**Desktop application:** Partial and mounted. Table bulk export, changelog export, appearance export, app-data History JSON export, and validated ZIP export write real files from the current filtered or selected records. Each export also invokes the shared VS Code handoff after writing an app-data copy, while leaving the normal download available. The shared engine exposes the complete coding-format catalog and omission markers. A richer user-facing format picker and a bundled 7z adapter remain open.
 
 **Documentation website:** Not changed in this desktop-only lane.
 

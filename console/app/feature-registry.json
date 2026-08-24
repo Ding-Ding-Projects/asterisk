@@ -138,7 +138,7 @@
     },
     "local-version-history": {
       "state": "partial",
-      "note": "Mounted and repaired 2026-08-24. App.tsx records settings, endpoint, onboarding, runtime, server, media, and PBX administration mutations through local-history.record, loads the isolated app-data Git repository through cursor-paginated local-history.list, and exposes a separate OS-vault history-manager credential before browse, inspect, compare, restore, export, or retention. The History screen has inclusive date/search/action filters, real redacted commit-tree diff and compare data, ZIP output validation, bulk restore, editor handoff seam, visible warning and retry states, and append-only complete-tree restore. The hand-written mutation inventory is console/inventories/history-mutations.json. Full 7z output remains disabled until its bundled adapter is shipped.",
+      "note": "Mounted and repaired 2026-08-24. App.tsx records settings, endpoint, onboarding, runtime, server, media, and PBX administration mutations through local-history.record with stable target/resource/kind/object identities, loads the isolated app-data Git repository through cursor-paginated local-history.list, and exposes a separate OS-vault history-manager credential before browse, inspect, compare, restore, export, or retention. Failed writes enter a durable control-plane retry queue and remain visible. The History screen has inclusive local-day date/search/action filters, real redacted commit-tree diff and compare data, ZIP output validation, full shared selection semantics, progress/cancel outcomes, editor handoff, and append-only complete-tree restore. The hand-written mutation inventory is inventories/history-mutations.json. Full 7z output remains disabled until its bundled adapter is shipped.",
       "files": [
         "app/renderer/src/local-history.ts",
         "app/renderer/src/App.tsx",
@@ -168,10 +168,12 @@
     },
     "external-editor-handoff": {
       "state": "implemented",
-      "note": "Implemented 2026-08-23 as app/renderer/src/external-editor.ts with four controls in the design, acted on through App.tsx. Detects installed editors (PATH first, then absolute fallbacks in order), persists the choice, and lets one be added by hand. VS Code is a first-class export rather than a row in a list, because anything exportable has to be openable in it, and opening a folder carries the workspace-root arguments so a file tree appears rather than a bare file. Nothing is launched through a shell: a plan carries an executable and an argument list passed separately and has no joined command line for a target to be interpolated into, so a path with a space stays one argument and a path carrying shell metacharacters is inert. A hand-added editor is validated as a bare executable and refuses operators and quotes. An editor that has been uninstalled is never silently replaced with another. The copy treats an editor as an optional integration rather than a missing prerequisite, since the console is complete without one.",
+      "note": "Implemented 2026-08-23 and consumed by this lane through the shared planner. App.tsx routes History, Changelog, appearance, and table exports through the control-plane external-editor.write-open seam, while the History folder uses external-editor.path plus external-editor.open. The control plane resolves the exact app-data path, validates ownership, launches VS Code without a shell, and writes export bytes into app-data exports before opening them. Detection and editor choice remain owned by external-editor.ts; this lane does not duplicate that implementation.",
       "files": [
         "app/renderer/src/external-editor.ts",
         "app/renderer/src/App.tsx",
+        "control-plane/dispatch.ts",
+        "shared/control-plane.ts",
         "tests/ui/external-editor.test.tsx"
       ]
     },
@@ -274,6 +276,7 @@
         "app/renderer/src/docs-browser.ts",
         "app/renderer/src/docs-markdown.ts",
         "inventories/docs-link-chut.json",
+        "scripts/check-docs-links.mjs",
         "app/renderer/src/generated/docs-bundle.ts",
         "app/renderer/src/generated/docs-bundle-manifest.json",
         "app/renderer/src/App.tsx",

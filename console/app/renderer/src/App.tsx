@@ -259,7 +259,8 @@ export class App extends Base {
   private localHistoryAccess = { configured: false, authorized: false, warning: '' };
   private localHistoryInspection: { commitId: string; files: string[]; diff: string } | undefined;
   private localHistoryComparison: { first: string; second: string; files: string[]; diff: string } | undefined;
-  private pendingHistoryRecords: Array<{ action: HistoryAction; subject: string; payload: unknown; identity?: string }> = [];
+  private pendingHistoryRecords: Array<{ action: HistoryAction; subject: string; payload: unknown; identity: string }> = [];
+  private historyBatch = { running: false, done: 0, total: 0, cancelled: false };
 
   private readonly localHistoryRepositoryLabel = 'App data history';
 
@@ -419,18 +420,19 @@ export class App extends Base {
       [`${prefix}CalendarLabel`]: new Date(`${month}-01T00:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
       [`${prefix}CalendarPrev`]: () => this.setState({ [monthKey]: shiftCalendarMonth(month, -1) }),
       [`${prefix}CalendarNext`]: () => this.setState({ [monthKey]: shiftCalendarMonth(month, 1) }),
+      [`${prefix}CalendarWeekdays`]: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
       [`${prefix}CalendarDays`]: calendarDays(month).map((day) => ({ ...day, bg: day.iso === from || day.iso === to || (from && to && day.iso > from && day.iso < to) ? '#005230' : 'transparent', pick: () => this.chooseDate(prefix, day.iso) })),
     };
   }
 
   /** Record one append-only settings event. Secrets are redacted again by the
    * control-plane history service before anything reaches its local Git repository. */
-  protected recordLocalHistory(action: HistoryAction, subject: string, payload: unknown, identity?: string): void {
+  protected recordLocalHistory(action: HistoryAction, subject: string, payload: unknown, identity: string): void {
     void this.request('local-history.record', {
-      payload: { action, subject, payload, ...(identity ? { identity } : {}) },
+      payload: { action, subject, payload, identity },
     }).then((response) => {
       if (!response?.ok) {
-        this.pendingHistoryRecords.push({ action, subject, payload, identity });
+        if (response.code !== 'HISTORY_WRITE_QUEUED') this.pendingHistoryRecords.push({ action, subject, payload, identity });
         this.localHistoryError = response?.message ?? 'A successful change could not be recorded in local history.';
         this.fire('History recording unavailable', `${this.localHistoryError} The change remains live. Open History and retry the pending record.`);
         this.forceUpdate();
@@ -446,6 +448,11 @@ export class App extends Base {
   }
 
   private retryLocalHistoryWrites = async (): Promise<void> => {
+    const queued = await this.request('local-history.retry');
+    if (queued?.ok) {
+      const result = queued.data as { attempted?: number; recorded?: number; remaining?: number };
+      this.toast(`Durable history retry recorded ${result.recorded ?? 0} of ${result.attempted ?? 0}; ${result.remaining ?? 0} remain.`);
+    }
     const pending = this.pendingHistoryRecords.splice(0);
     const failures: typeof pending = [];
     for (const entry of pending) {
@@ -506,8 +513,8 @@ export class App extends Base {
       this.fire('History retention unavailable', response?.message ?? 'The history manager did not answer.');
       return;
     }
-    const data = response.data as { kept?: number; removed?: number; policy?: string };
-    this.fire('History retention reviewed', `Policy ${data.policy ?? 'unknown'} kept ${data.kept ?? 0} entr${data.kept === 1 ? 'y' : 'ies'} and removed ${data.removed ?? 0}. The immutable policy never rewrites history.`);
+    const data = response.data as { kept?: number; removed?: number; policy?: string; available?: boolean; reason?: string };
+    this.fire('History retention reviewed', `Policy ${data.policy ?? 'unknown'} kept ${data.kept ?? 0} entr${data.kept === 1 ? 'y' : 'ies'} and removed ${data.removed ?? 0}. ${data.available ? 'Rotation is available.' : data.reason ?? 'Rotation is unavailable.'}`);
   };
 
   private exportLocalHistory = (): void => {
@@ -535,6 +542,7 @@ export class App extends Base {
     link.download = `app-data-history.${format === 'markdown' ? 'md' : format}`;
     link.click();
     URL.revokeObjectURL(url);
+    this.handoffTextExportToVscode(link.download, text);
     const omissionManifest = JSON.stringify(exportOmissionMetadata(request), null, 2);
     const manifestUrl = URL.createObjectURL(new Blob([omissionManifest], { type: 'application/json;charset=utf-8' }));
     const manifestLink = document.createElement('a');
@@ -542,6 +550,7 @@ export class App extends Base {
     manifestLink.download = 'app-data-history.omissions.json';
     manifestLink.click();
     URL.revokeObjectURL(manifestUrl);
+    this.handoffTextExportToVscode(manifestLink.download, omissionManifest);
     const omissions = exportOmissionMetadata(request).omissions;
     this.toast(`Exported ${result.entries.length} history entr${result.entries.length === 1 ? 'y' : 'ies'} as ${format.toUpperCase()}${omissions.length ? `. Omission marker: ${omissions.join(' ')}` : ''}`);
   };
@@ -565,6 +574,7 @@ export class App extends Base {
     link.download = 'app-data-history.zip';
     link.click();
     URL.revokeObjectURL(link.href);
+    void this.handoffExportToVscode('app-data-history.zip', archive);
     this.toast(`Exported ${validation.entries} archive entr${validation.entries === 1 ? 'y' : 'ies'} as ZIP`);
   };
 
@@ -580,6 +590,17 @@ export class App extends Base {
     const result = await this.request('external-editor.open', { payload: { editor: 'vscode', kind: 'folder', target: 'history', args: plan.args } });
     if (!result?.ok) this.fire('Editor handoff unavailable', result?.message ?? 'Visual Studio Code is not available on this machine.');
     else this.toast('History folder handed to Visual Studio Code');
+  };
+
+  private handoffExportToVscode = async (filename: string, bytes: Uint8Array): Promise<void> => {
+    let binary = '';
+    for (let offset = 0; offset < bytes.length; offset += 0x8000) binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+    const response = await this.request('external-editor.write-open', { payload: { editor: 'vscode', filename, contentBase64: btoa(binary) } });
+    if (!response?.ok) this.toast(`Visual Studio Code handoff unavailable: ${response?.message ?? 'the export remains available in the download.'}`);
+  };
+
+  private handoffTextExportToVscode = (filename: string, text: string): void => {
+    void this.handoffExportToVscode(filename, new TextEncoder().encode(text));
   };
 
   /** Bounded, allowlisted discovery through the preload bridge. Never a shell command. */
@@ -1176,6 +1197,7 @@ ${resolution.disclosure}`);
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
+      this.handoffTextExportToVscode(filename, text);
       this.set('selected', []);
       const lossNote = loss.length > 0 ? ` ${loss.join(' ')}` : '';
       this.fire('Exported', `${message} Saved as ${filename} — ${format.toUpperCase()}, UTF-8, LF line endings.${lossNote}`);
@@ -1194,16 +1216,25 @@ ${resolution.disclosure}`);
       this.fire('No history entries selected', 'Select one or more history entries first.');
       return;
     }
+    this.historyBatch = { running: true, done: 0, total: ids.length, cancelled: false };
+    this.forceUpdate();
     let done = 0;
     const failures: string[] = [];
     for (const id of ids) {
+      if (this.historyBatch.cancelled) break;
       const response = await this.request('local-history.restore', { payload: { commitId: id } });
       if (response?.ok) done += 1;
       else failures.push(response?.message ?? id.slice(0, 10));
+      this.historyBatch.done = done + failures.length;
+      this.forceUpdate();
     }
+    const cancelled = this.historyBatch.cancelled;
+    this.historyBatch.running = false;
     await this.loadLocalHistory();
-    this.fire('History batch complete', `${done} of ${ids.length} selected entr${ids.length === 1 ? 'y' : 'ies'} restored.${failures.length ? ` ${failures.length} failed: ${failures.join('; ')}` : ''}`);
+    this.fire('History batch complete', `${done} of ${ids.length} selected entr${ids.length === 1 ? 'y' : 'ies'} restored.${cancelled ? ' Cancelled by the user.' : ''}${failures.length ? ` ${failures.length} failed: ${failures.join('; ')}` : ''}`);
   };
+
+  private cancelHistoryBatch = (): void => { this.historyBatch.cancelled = true; this.forceUpdate(); };
 
   /**
    * Selection mechanics for the current table screen, run through `bulk.ts` rather
@@ -2051,6 +2082,7 @@ It is shown once. The phone needs it to register.`);
     a.download = 'asterisk-console-appearance.json';
     a.click();
     URL.revokeObjectURL(url);
+    this.handoffTextExportToVscode(a.download, json);
     this.toast('Appearance exported as JSON');
   }
 
@@ -2256,6 +2288,7 @@ It is shown once. The phone needs it to register.`);
       historySelected?: string;
       historyCompare?: string[];
       historySelectedIds?: string[];
+      historyAnchor?: string;
     };
     const action = isHistoryAction(state.historyAction) ? state.historyAction : undefined;
     const filtered = filterHistory(this.localHistoryEntries, {
@@ -2289,8 +2322,8 @@ It is shown once. The phone needs it to register.`);
       pick: () => { this.setState({ historySelected: entry.id }); void this.inspectLocalHistory(entry.id); },
       select: (event: { stopPropagation?: () => void }) => {
         event?.stopPropagation?.();
-        const next = selectedIds.includes(entry.id) ? selectedIds.filter((id) => id !== entry.id) : selectedIds.concat(entry.id);
-        this.setState({ historySelectedIds: next });
+        const next = bulkClick({ anchor: state.historyAnchor, selected: new Set(selectedIds) }, entry.id, { shift: Boolean((event as { shiftKey?: boolean }).shiftKey) }, filtered.entries.map((item) => item.id));
+        this.setState({ historySelectedIds: [...next.selected], historyAnchor: entry.id });
       },
       compare: (event: { stopPropagation?: () => void }) => {
         event?.stopPropagation?.();
@@ -2332,6 +2365,8 @@ It is shown once. The phone needs it to register.`);
       histActions: [
         { icon: 'refresh', label: this.localHistoryPending ? 'Refreshing…' : 'Refresh history', run: () => void this.loadLocalHistory() },
         { icon: 'sync', label: `Retry pending writes (${this.pendingHistoryRecords.length})`, run: this.retryLocalHistoryWrites },
+        { icon: 'select_all', label: 'Select all visible', run: () => { const next = bulkSelectAll({ anchor: state.historyAnchor, selected: new Set(selectedIds) }, 'page', filtered.entries.map((entry) => entry.id), filtered.entries.map((entry) => entry.id)); this.setState({ historySelectedIds: [...next.state.selected] }); } },
+        { icon: 'flip_camera_android', label: 'Invert visible selection', run: () => { const next = bulkInvert({ anchor: state.historyAnchor, selected: new Set(selectedIds) }, filtered.entries.map((entry) => entry.id)); this.setState({ historySelectedIds: [...next.selected] }); } },
         { icon: 'restore', label: 'Restore selected', run: () => selectedEntry && void this.restoreLocalHistory(selectedEntry.id) },
         { icon: 'playlist_add_check', label: `Restore selected (${selectedIds.length})`, run: () => void this.restoreHistoryBatch(selectedIds) },
         { icon: 'download', label: 'Export history', run: this.exportLocalHistory },
@@ -2381,7 +2416,11 @@ It is shown once. The phone needs it to register.`);
         ? 'Unlocked for this session; the credential remains in the operating-system vault.'
         : 'Locked. Enter the separate history-manager credential. The desktop reports a warning and keeps rows hidden until it is unlocked.',
       historyResultLabel: this.localHistoryError || (this.localHistoryPending ? 'Reading app-data history…' : `${filtered.entries.length} visible entr${filtered.entries.length === 1 ? 'y' : 'ies'}`),
-      historyBulkPreview: selectedIds.length === 0 ? 'No history entries selected.' : `${selectedIds.length} history entr${selectedIds.length === 1 ? 'y is' : 'ies are'} selected for a reviewable restore batch.`,
+      historyBulkPreview: this.historyBatch.running
+        ? `Restoring ${this.historyBatch.done} of ${this.historyBatch.total}. ${this.historyBatch.cancelled ? 'Cancellation requested.' : 'The next entry remains queued.'}`
+        : selectedIds.length === 0 ? 'No history entries selected.' : `${selectedIds.length} history entr${selectedIds.length === 1 ? 'y is' : 'ies are'} selected for a reviewable restore batch.`,
+      cancelHistoryBatch: this.cancelHistoryBatch,
+      historyBatchRunning: this.historyBatch.running,
       historyExportFormat: (this.state as { historyExportFormat?: string }).historyExportFormat ?? 'json',
       setHistoryExportFormat: (event: { target?: { value?: string } }) => this.setState({ historyExportFormat: event.target?.value ?? 'json' }),
       historyExportFormats: suitableFormats(historyExportRows(filtered.entries)).map((format) => ({ label: format.toUpperCase(), value: format })),
@@ -2636,6 +2675,7 @@ It is shown once. The phone needs it to register.`);
     a.download = 'changelog-export.md';
     a.click();
     URL.revokeObjectURL(url);
+    this.handoffTextExportToVscode(a.download, markdown);
   }
 
   /** Applies the current date range and search query to the real bundled changelog. */

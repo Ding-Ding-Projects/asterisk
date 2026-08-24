@@ -111,5 +111,6 @@ export function historyExportRows(entries: readonly HistoryCommit[]): Array<Reco
     action: actionLabel(entry.action),
     subject: entry.subject,
     message: entry.message,
+    omissions: ['credential-shaped payload values are omitted from the history tree'],
   }));
 }

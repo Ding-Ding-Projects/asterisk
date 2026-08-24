@@ -22,7 +22,7 @@ export type ControlPlaneAction =
   /* Prompts and music-on-hold media on the target, so a "custom" choice can be given a file. */
   | 'media.list' | 'media.upload' | 'media.remove'
   /* The console's own append-only record of what it changed, kept locally. */
-  | 'local-history.status' | 'local-history.authorize' | 'local-history.list' | 'local-history.record' | 'local-history.restore'
+  | 'local-history.status' | 'local-history.authorize' | 'local-history.list' | 'local-history.record' | 'local-history.retry' | 'local-history.restore'
   | 'local-history.inspect' | 'local-history.compare' | 'local-history.prune'
   | 'external-editor.path' | 'external-editor.open' | 'external-editor.write-open'
   /* Durable renderer settings (appearance, personal vocabulary) -- see

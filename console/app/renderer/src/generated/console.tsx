@@ -570,6 +570,9 @@ function Template(v: any) {
               h("div", { style: sty(`font-size:11.5px; color:#8FA394; margin:-4px 0 12px;`) },
                 S(v.historyBulkPreview)
               ),
+              (v.historyBatchRunning ? h("button", { onClick: fn(v.cancelHistoryBatch), style: sty(`background:#93000A; border:0; border-radius:999px; padding:7px 14px; color:#fff; font:inherit; font-size:11.5px; cursor:pointer; margin:-4px 0 12px;`) },
+                  "Cancel batch restore"
+                ) : null),
               h("div", { style: sty(`background:#141A15; border:1px solid #333B34; border-radius:12px; padding:10px 14px; margin:-4px 0 12px; max-width:420px;`) },
                 h("div", { style: sty(`display:flex; align-items:center; gap:8px; margin-bottom:7px;`) },
                   h("button", { onClick: fn(v.historyCalendarPrev), title: `Previous month`, style: sty(`background:transparent; border:0; color:#9FF7C4; cursor:pointer;`) },
@@ -585,6 +588,11 @@ function Template(v: any) {
                       "chevron_right"
                     )
                   )
+                ),
+                h("div", { style: sty(`display:grid; grid-template-columns:repeat(7,1fr); gap:3px; margin-bottom:3px;`) },
+                  A(v.historyCalendarWeekdays).map(($d, $d$i) => R($d$i, h("span", { style: sty(`text-align:center; font-size:9px; color:#8FA394;`) },
+                      S($d)
+                    )))
                 ),
                 h("div", { style: sty(`display:grid; grid-template-columns:repeat(7,1fr); gap:3px;`) },
                   A(v.historyCalendarDays).map(($d, $d$i) => R($d$i, h("button", { onClick: fn($d.pick), style: sty(`background:${S($d.bg)}; border:0; border-radius:5px; padding:5px 0; color:#C4CBC2; font:inherit; font-size:11px; cursor:pointer; opacity:${S($d.inMonth ? '1' : '.4')};`) },
@@ -1716,6 +1724,11 @@ function Template(v: any) {
                       "chevron_right"
                     )
                   )
+                ),
+                h("div", { style: sty(`display:grid; grid-template-columns:repeat(7,1fr); gap:3px; margin-bottom:3px;`) },
+                  A(v.changelogCalendarWeekdays).map(($d, $d$i) => R($d$i, h("span", { style: sty(`text-align:center; font-size:9px; color:#8FA394;`) },
+                      S($d)
+                    )))
                 ),
                 h("div", { style: sty(`display:grid; grid-template-columns:repeat(7,1fr); gap:3px;`) },
                   A(v.changelogCalendarDays).map(($d, $d$i) => R($d$i, h("button", { onClick: fn($d.pick), style: sty(`background:${S($d.bg)}; border:0; border-radius:5px; padding:5px 0; color:#C4CBC2; font:inherit; font-size:11px; cursor:pointer; opacity:${S($d.inMonth ? '1' : '.4')};`) },

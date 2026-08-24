@@ -22,7 +22,7 @@
  *    refuses to perform.
  */
 import { createHash } from "node:crypto";
-import { mkdir, stat, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { ProcessExecutor } from "./executor.js";
 
@@ -47,7 +47,7 @@ export interface LocalHistoryEntry {
   /** What changed, named plainly enough to appear in a commit message — never a placeholder. */
   subject: string;
   /** Stable target/resource/kind/object identity, never a display label. */
-  identity?: string;
+  identity: string;
   payload: unknown;
 }
 
@@ -189,11 +189,6 @@ function filenameFor(identity: string): string {
   return `records/${subjectId(identity)}.json`;
 }
 
-function stablePayloadIdentity(entry: LocalHistoryEntry): string {
-  if (entry.identity?.trim()) return entry.identity.trim();
-  return `${entry.action}:${JSON.stringify(redactSecretValues(entry.payload))}`;
-}
-
 function commitMessage(
   action: HistoryAction,
   subject: string,
@@ -319,7 +314,8 @@ export class LocalHistory {
     const redactedPayload = redactSecretValues(entry.payload);
     const serializedPayload = JSON.stringify(redactedPayload);
     if (serializedPayload.length > MAX_PAYLOAD_BYTES) throw new Error(`A history payload exceeds the ${MAX_PAYLOAD_BYTES}-byte limit.`);
-    const identity = stablePayloadIdentity(entry);
+    const identity = entry.identity.trim();
+    if (!identity) throw new Error('A history mutation needs a stable target/resource/kind/object identity.');
     if (identity.length > 512 || /[\u0000-\u001f\u007f]/u.test(identity)) throw new Error("A history identity must be bounded and contain no control characters.");
     const relativePath = filenameFor(identity);
     const absolutePath = join(this.#repositoryPath, relativePath);
@@ -336,6 +332,33 @@ export class LocalHistory {
     return await this.#commit(entry.action, subject, { SubjectId: subjectId(identity) }, { allowEmpty: true });
   }
 
+  private async readRetryQueue(): Promise<LocalHistoryEntry[]> {
+    try {
+      const raw = await readFile(join(this.#repositoryPath, '..', 'history-retry.json'), 'utf8');
+      const parsed = JSON.parse(raw) as unknown;
+      return Array.isArray(parsed) ? parsed.filter((entry): entry is LocalHistoryEntry => Boolean(entry && typeof entry === 'object' && typeof (entry as LocalHistoryEntry).identity === 'string' && typeof (entry as LocalHistoryEntry).subject === 'string')) : [];
+    } catch { return []; }
+  }
+
+  async enqueueRetry(entry: LocalHistoryEntry): Promise<void> {
+    const safe = { ...entry, payload: redactSecretValues(entry.payload) };
+    const queue = await this.readRetryQueue();
+    queue.push(safe);
+    await mkdir(dirname(join(this.#repositoryPath, '..', 'history-retry.json')), { recursive: true });
+    await writeFile(join(this.#repositoryPath, '..', 'history-retry.json'), `${JSON.stringify(queue)}\n`, 'utf8');
+  }
+
+  async retryQueued(): Promise<{ attempted: number; recorded: number; remaining: number }> {
+    const queue = await this.readRetryQueue();
+    const remaining: LocalHistoryEntry[] = [];
+    let recorded = 0;
+    for (const entry of queue) {
+      try { await this.record(entry); recorded += 1; } catch { remaining.push(entry); }
+    }
+    await writeFile(join(this.#repositoryPath, '..', 'history-retry.json'), `${JSON.stringify(remaining)}\n`, 'utf8');
+    return { attempted: queue.length, recorded, remaining: remaining.length };
+  }
+
   /** Compatibility list for callers that need the complete bounded result. */
   async list(options?: LocalHistoryListOptions): Promise<ReadonlyArray<HistoryCommit>> {
     return (await this.listPage(options)).entries;
@@ -344,8 +367,8 @@ export class LocalHistory {
   /** Newest first. Filters compose and cursor pagination is stable by commit id. */
   async listPage(options?: LocalHistoryListOptions): Promise<LocalHistoryPage> {
     if (options?.action !== undefined) assertKnownAction(options.action);
-    const since = options?.since !== undefined ? new Date(options.since) : undefined;
-    const until = options?.until !== undefined ? new Date(options.until) : undefined;
+    const since = options?.since !== undefined ? this.boundary(options.since, false) : undefined;
+    const until = options?.until !== undefined ? this.boundary(options.until, true) : undefined;
 
     let commits = await this.#logAll();
     if (options?.action !== undefined) {
@@ -391,6 +414,17 @@ export class LocalHistory {
   private async treeFiles(commitId: string): Promise<string[]> {
     const output = await this.#run(["ls-tree", "-r", "--name-only", commitId, "--", "records"]);
     return output.split(/\r?\n/u).map((line) => line.trim()).filter((line) => /^records\/[0-9a-f]{32}\.json$/u.test(line));
+  }
+
+  private boundary(value: string, endOfDay: boolean): Date {
+    if (/^\d{4}-\d{2}-\d{2}$/u.test(value)) {
+      const date = new Date(`${value}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}`);
+      if (Number.isNaN(date.getTime())) throw new Error(`Invalid history service date: ${value}`);
+      return date;
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) throw new Error(`Invalid history service date: ${value}`);
+    return date;
   }
 
   async inspect(commitId: string): Promise<HistoryTreeInspection> {
@@ -449,11 +483,11 @@ export class LocalHistory {
    * than destruction. A caller that genuinely wants old snapshots gone needs a
    * separate, explicitly authorized operation outside this append-only store.
    */
-  async prune(keep: number): Promise<{ kept: number; removed: number; policy: string }> {
+  async prune(keep: number): Promise<{ kept: number; removed: number; policy: string; available: boolean; reason: string }> {
     if (!Number.isInteger(keep) || keep < 1) {
       throw new Error(`Retention count must be at least 1, got ${keep}.`);
     }
     const commits = await this.#logAll();
-    return { kept: Math.min(keep, commits.length), removed: 0, policy: "immutable-append-only" };
+    return { kept: Math.min(keep, commits.length), removed: 0, policy: "immutable-append-only", available: false, reason: "History rotation is unavailable because deleting old commits would rewrite the append-only store." };
   }
 }

@@ -4,7 +4,7 @@ A Git-backed, browsable, restorable history of every user-managed record — doc
 
 ## Behavior
 
-Every user-managed setting and record change is recorded through the desktop control plane in an isolated Git repository under app data. The repository is never placed inside a user project and is never synced or pushed. A process-wide serialized history instance owns all mutations, so overlapping writes cannot stage each other's files. The History screen reads cursor-paginated real commits, filters by action and inclusive date range, searches subjects and messages, shows real redacted commit-tree diffs and comparisons, and restores the complete selected tree including removals before appending a new restore commit.
+Every user-managed setting and record change is recorded through the desktop control plane in an isolated Git repository under app data. The repository is never placed inside a user project and is never synced or pushed. A process-wide serialized history instance owns all mutations, so overlapping writes cannot stage each other's files. Each mutation supplies a stable target, resource, kind, and object identity. If a write cannot complete, its redacted payload enters a durable retry queue and the desktop shows a retry route. The History screen reads cursor-paginated real commits, filters by action and inclusive local date range, searches subjects and messages, shows real redacted commit-tree diffs and comparisons, and restores the complete selected tree including removals before appending a new restore commit.
 
 ## Configuration
 

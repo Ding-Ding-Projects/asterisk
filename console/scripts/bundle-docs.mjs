@@ -57,7 +57,9 @@ async function main() {
       id: headingId(m[1].trim()),
     }));
 
-    const links = [...normalizedMd.matchAll(/\[[^\]]*\]\(([^)]+\.md(?:#[^)]*)?)\)/g)].map((m) => m[1]);
+    const links = [...normalizedMd.matchAll(/\[[^\]]*\]\(([^)]+\.md(?:#[^)]*)?)\)/g)]
+      .map((m) => m[1])
+      .filter((href) => !/^(?:[a-z][a-z0-9+.-]*:|\/\/)/iu.test(href));
 
     articles.push({
       id,
@@ -147,7 +149,7 @@ export interface DocsBundle {
 
   await mkdir(dirname(outFile), { recursive: true });
   await writeFile(outFile, `${header}\n${body}`, 'utf8');
-  await writeFile(manifestFile, `${JSON.stringify({ schemaVersion: 1, articleCount: articles.length, articleIds: articles.map((article) => article.id), linkChut: 'generator-fails-on-missing-target-or-heading-fragment' }, null, 2)}\n`, 'utf8');
+  await writeFile(manifestFile, `${JSON.stringify({ schemaVersion: 1, articleCount: articles.length, articleIds: articles.map((article) => article.id), headings: Object.fromEntries(articles.map((article) => [article.id, article.headings.map((heading) => heading.id)])), linkChut: 'generator-fails-on-missing-target-or-heading-fragment' }, null, 2)}\n`, 'utf8');
 
   console.log(
     `docs-bundle: wrote ${articles.length} article(s) from ${relFiles.length} markdown file(s) to ${relative(process.cwd(), outFile)}`,

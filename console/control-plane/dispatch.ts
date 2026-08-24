@@ -58,6 +58,17 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
   let historyAuthorized = false;
   let historyQueue: Promise<unknown> = Promise.resolve();
   const historyAccount = 'history-manager';
+  const launchVscode = async (args: string[], cwd: string) => {
+    let lastError = 'Visual Studio Code is not available on this machine.';
+    for (const executable of ['code', 'code.cmd', 'code-insiders', 'code-insiders.cmd']) {
+      try {
+        const result = await processExecutor.execute({ executable, args, cwd, timeoutMs: 5_000, maxOutputBytes: 64 * 1024 });
+        if (result.status === 'succeeded' || result.status === 'timedOut') return { ok: true as const, result };
+        lastError = result.stderr.trim() || lastError;
+      } catch (error) { lastError = error instanceof Error ? error.message : lastError; }
+    }
+    return { ok: false as const, message: lastError };
+  };
   const runHistory = <T>(operation: () => Promise<T>): Promise<T> => {
     const next = historyQueue.then(operation, operation);
     historyQueue = next.then(() => undefined, () => undefined);
@@ -552,8 +563,8 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const args = kind === 'folder' ? ['--new-window', resolvedTarget] : [resolvedTarget];
         if (plannedArgs && plannedArgs.length !== 2 && kind === 'folder') return { ok: false, requestId: request.requestId, code: 'EDITOR_PLAN_MISMATCH', message: 'The shared external-editor planner did not produce the expected workspace-root plan.' };
         try {
-          const result = await processExecutor.execute({ executable: editor, args, cwd: root, timeoutMs: 5_000, maxOutputBytes: 64 * 1024 });
-          if (result.status !== 'succeeded' && result.status !== 'timedOut') return { ok: false, requestId: request.requestId, code: 'EDITOR_OPEN_FAILED', message: result.stderr.trim() || 'Visual Studio Code did not accept the handoff.' };
+          const launched = await launchVscode(args, root);
+          if (!launched.ok) return { ok: false, requestId: request.requestId, code: 'EDITOR_OPEN_FAILED', message: launched.message };
           return { ok: true, requestId: request.requestId, data: { editor: 'vscode', kind, target: resolvedTarget, launched: true } };
         } catch (error) {
           return { ok: false, requestId: request.requestId, code: 'EDITOR_UNAVAILABLE', message: error instanceof Error ? error.message : 'Visual Studio Code is not available on this machine.' };
@@ -569,8 +580,8 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         mkdirSync(exportRoot, { recursive: true });
         const target = join(exportRoot, filename);
         writeFileSync(target, Buffer.from(contentBase64, 'base64'));
-        const result = await processExecutor.execute({ executable: editor, args: ['--new-window', target], cwd: exportRoot, timeoutMs: 5_000, maxOutputBytes: 64 * 1024 });
-        if (result.status !== 'succeeded' && result.status !== 'timedOut') return { ok: false, requestId: request.requestId, code: 'EDITOR_EXPORT_FAILED', message: result.stderr.trim() || 'Visual Studio Code did not accept the export handoff.' };
+        const launched = await launchVscode(['--new-window', target], exportRoot);
+        if (!launched.ok) return { ok: false, requestId: request.requestId, code: 'EDITOR_EXPORT_FAILED', message: launched.message };
         return { ok: true, requestId: request.requestId, data: { editor: 'vscode', target, launched: true } };
       }
       if (request.action.startsWith('local-history.')) {
@@ -604,7 +615,15 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           }
           if (request.action === 'local-history.record') {
             const entry = request.payload as unknown as Parameters<LocalHistory['record']>[0];
-            return { ok: true, requestId: request.requestId, data: await localHistory.record(entry) };
+            try {
+              return { ok: true, requestId: request.requestId, data: await localHistory.record(entry) };
+            } catch (error) {
+              await localHistory.enqueueRetry(entry);
+              return { ok: false, requestId: request.requestId, code: 'HISTORY_WRITE_QUEUED', message: `${error instanceof Error ? error.message : 'History write failed.'} The redacted mutation was placed in the durable retry queue.`, data: { queued: true } } as ControlPlaneResponse;
+            }
+          }
+          if (request.action === 'local-history.retry') {
+            return { ok: true, requestId: request.requestId, data: await localHistory.retryQueued() };
           }
           if (request.action === 'local-history.restore') {
             const commitId = typeof request.payload?.commitId === 'string' ? request.payload.commitId : '';
