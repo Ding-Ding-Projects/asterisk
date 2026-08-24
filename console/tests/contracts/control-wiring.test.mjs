@@ -22,6 +22,8 @@ const WIRED = [
   { id: 'id_name', acts: 'setDisplayName(' },
   { id: 'id_name_reset', acts: 'resetDisplayName(' },
   { id: 'dlg_emoji', acts: 'setEmojisEnabled(' },
+  { id: 'att_focus', acts: 'setModeEnabled(' },
+  { id: 'att_momentum', acts: 'setModeEnabled(' },
 ];
 
 test('every wired control exists in the compiled design', () => {

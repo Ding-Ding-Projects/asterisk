@@ -3346,6 +3346,13 @@ const SCREENS = {
       ctl('id_name','Display name','text','',{ placeholder:'Ding PBX Console', info:'Changes the title bar, the About screen and notifications. It does not move your data, your saved servers or your credentials, and diagnostics and bug reports still say Ding PBX Console so anyone reading one knows what software it came from.' }),
       ctl('id_name_reset','Restore the shipped name','switch',false,{ info:'Switch this on to go back to Ding PBX Console in one action.' })
     ]},
+    { title:'Attention', desc:'Five accommodations, each independent and each off until you switch it on. They change how the interface behaves, nothing else, and none of them says anything about you.', ctls:[
+      ctl('att_focus','Focus','switch',false,{ info:'Dims everything except what you are working on. Nothing is hidden; the rest is still one click away.' }),
+      ctl('att_low','Low stimulation','switch',false,{ info:'Fewer moving things, quieter colour, and only the notifications that genuinely need a person. If your system already asks for reduced motion, that is honoured whether or not this is on.' }),
+      ctl('att_time','Time awareness','switch',false,{ info:'Shows how long this session has been open and how long since anything changed, where the work is.' }),
+      ctl('att_one','One thing at a time','switch',false,{ info:'Keeps one next action visible, chosen by you. It survives a context switch.' }),
+      ctl('att_momentum','Momentum','switch',false,{ info:'A dismissible prompt when something has been untouched for a while. Saying not now is respected for half an hour, not for thirty seconds.' })
+    ]},
     { title:'Dialogs', desc:'Decoration in dialogs and message boxes.', ctls:[
       ctl('dlg_emoji','Show emojis in dialogs and message boxes','switch',false,{ info:'Adds one relevant emoji to a dialog’s heading and body. Never to a button, an action label or an accessible name: a screen reader announces an emoji by its Unicode description, so a decorated button would be heard on every focus. The wording is identical either way.' })
     ]},

@@ -204,6 +204,14 @@ export const CANTONESE: Catalog = {
   'CLI builder': '指令產生器',
   'Arcade': '遊戲機',
 
+  /* The attention modes. */
+  'Attention': '專注',
+  'Focus': '聚焦',
+  'Low stimulation': '低刺激',
+  'Time awareness': '時間感',
+  'One thing at a time': '一次做一件',
+  'Momentum': '推一推',
+
   /* The identity and dialog-decoration controls. */
   'Identity': '身分',
   'Display name': '顯示名稱',

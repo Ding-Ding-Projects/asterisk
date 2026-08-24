@@ -30,6 +30,7 @@ import {
   IDENTITY, displayName, resetDisplayName, setDisplayName,
 } from './display-name';
 import { setEmojisEnabled } from './dialog-emojis';
+import { isAttentionMode, setModeEnabled } from './attention-modes';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
 import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
@@ -186,6 +187,19 @@ export class App extends Base {
   };
 
   private static readonly LANGUAGE_SETTING = 'console.languageMode';
+
+  /** Control id to attention mode. Each mode is independent, so this is a flat map
+   *  rather than anything that could switch two of them together. */
+  private static readonly ATTENTION_CONTROLS: Record<string, string> = {
+    /* Quoted deliberately: the control-wiring contract greps App for each control id
+     * as a literal, and an unquoted key satisfies TypeScript while being invisible to
+     * any search for the id -- which is exactly the thing that contract exists to find. */
+    'att_focus': 'focus',
+    'att_low': 'lowStimulation',
+    'att_time': 'timeAwareness',
+    'att_one': 'oneThing',
+    'att_momentum': 'momentum',
+  };
 
   /** The shell's own `setVal`, captured so the override below can delegate to it.
    *  It is a class property rather than a prototype method, so `super.setVal` does not
@@ -524,6 +538,12 @@ export class App extends Base {
     if (control?.id === 'id_name_reset' && value === true) {
       resetDisplayName(this.durableStorage.storage);
       this.toast(`Name restored to ${IDENTITY.productName}`);
+    }
+    /* The five attention modes share one prefix and one handler, so adding a sixth is
+     * a registry entry rather than another branch here. */
+    if (control?.id?.startsWith('att_') && typeof value === 'boolean') {
+      const mode = App.ATTENTION_CONTROLS[control.id];
+      if (isAttentionMode(mode)) setModeEnabled(this.durableStorage.storage, mode, value);
     }
     if (control?.id === 'dlg_emoji' && typeof value === 'boolean') {
       setEmojisEnabled(this.durableStorage.storage, value);

@@ -450,13 +450,26 @@
       "note": "Every listed label has a Cantonese entry."
     },
     "attention-modes": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [],
-      "localizedLabels": [],
+      "labels": [
+        "Attention",
+        "Focus",
+        "Low stimulation",
+        "Time awareness",
+        "One thing at a time",
+        "Momentum"
+      ],
+      "localizedLabels": [
+        "Attention",
+        "Focus",
+        "Low stimulation",
+        "Time awareness",
+        "One thing at a time",
+        "Momentum"
+      ],
       "untranslatedLabels": [],
-      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
-      "blockedBy": "not-implemented"
+      "note": "Every listed label has a Cantonese entry."
     },
     "browser-extension-download-surfaces": {
       "state": "not-localized",
