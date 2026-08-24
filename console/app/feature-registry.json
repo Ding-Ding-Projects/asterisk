@@ -88,11 +88,29 @@
       }
     },
     "dialog-emojis": {
-      "status": "absent",
-      "note": "No show-emojis-in-dialogs toggle exists; dialog/toast copy in App.tsx has no emoji decoration control.",
+      "status": "partial",
+      "note": "app/renderer/src/dialog-emojis.ts implements a persisted toggle that defaults off and decorates only dialog headings and bodies. buildDialog keeps emoji out of buttons, action labels, and accessible names. The behavior remains partial because no reachable design control registers or changes the setting yet.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "app/renderer/src/dialog-emojis.ts"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/dialog-emojis.ts",
+            "name": "emojisEnabled",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/dialog-emojis.ts",
+            "name": "setEmojisEnabled",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/dialog-emojis.ts",
+            "name": "buildDialog",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -110,8 +128,16 @@
       },
       "persistence": {
         "state": "unverified",
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "app/renderer/src/dialog-emojis.ts"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/dialog-emojis.ts",
+            "name": "DIALOG_EMOJI_SETTING",
+            "kind": "const"
+          }
+        ]
       },
       "focusedChecks": {
         "state": "not-run",
@@ -2580,11 +2606,34 @@
       }
     },
     "app-display-name": {
-      "status": "absent",
-      "note": "No renameable-display-name setting exists; the product name (Ding PBX Console) is hardcoded in the compiled console with no user-facing rename control.",
+      "status": "partial",
+      "note": "app/renderer/src/display-name.ts implements validation, persistence, one-action reset, and a strict split between the chosen display label and stable installed identity. The behavior remains partial because no reachable design control registers or changes the setting yet.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "app/renderer/src/display-name.ts"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/display-name.ts",
+            "name": "displayName",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/display-name.ts",
+            "name": "setDisplayName",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/display-name.ts",
+            "name": "resetDisplayName",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/display-name.ts",
+            "name": "nameFor",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -2602,8 +2651,16 @@
       },
       "persistence": {
         "state": "unverified",
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "app/renderer/src/display-name.ts"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/display-name.ts",
+            "name": "DISPLAY_NAME_SETTING",
+            "kind": "const"
+          }
+        ]
       },
       "focusedChecks": {
         "state": "not-run",

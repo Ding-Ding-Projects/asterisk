@@ -232,6 +232,87 @@ export function toConfigValueFax(view: FaxView): { fax: ConfigValue; udptl: Conf
 }
 
 // ---------------------------------------------------------------------------------------
+// Built-in HTTP server (http.conf)
+// ---------------------------------------------------------------------------------------
+
+/**
+ * Asterisk's mini-HTTP server, which is what FreePBX's HTTP* advanced settings actually
+ * configure. Three of its keys are spelled differently from the Core setting names that
+ * map to them, and one Core setting has no key of its own at all -- see HttpView.
+ */
+export interface HttpGeneralView {
+  /** http.conf.sample line 29: ";enabled=yes". Default is no. */
+  enabled?: string;
+  /** line 68: ";enable_static=yes". Note the underscore: Core calls this setting
+   *  HTTPENABLESTATIC, and writing "enablestatic" would emit a key Asterisk ignores. */
+  enable_static?: string;
+  /** line 74: ";enable_status=yes". Same spelling divergence as enable_static. */
+  enable_status?: string;
+  /** line 30-ish: "bindaddr=127.0.0.1". */
+  bindaddr?: string;
+  /** ";bindport=8088". */
+  bindport?: string;
+  /** ";prefix=asterisk". */
+  prefix?: string;
+  /** ";tlsenable=yes ; enable tls - default no." */
+  tlsenable?: string;
+  /** ";tlsbindaddr=0.0.0.0:8089 ; address and port to bind to". ONE key carrying both
+   *  the address and the port that Core splits into HTTPTLSBINDADDRESS and
+   *  HTTPTLSBINDPORT. */
+  tlsbindaddr?: string;
+  /** ";tlscertfile=</path/to/certificate.pem>". */
+  tlscertfile?: string;
+  /** ";tlsprivatekey=</path/to/private.pem>". */
+  tlsprivatekey?: string;
+  /** line 112: "tlsdisablev1=yes ; Disable TLSv1 support". */
+  tlsdisablev1?: string;
+  /** line 113: "tlsdisablev11=yes". */
+  tlsdisablev11?: string;
+  /** line 114: "tlsdisablev12=yes". */
+  tlsdisablev12?: string;
+  /** line 50: ";sessionlimit=100". Core calls it HTTPSESSIONLIMIT; the key has no
+   *  underscore, unlike the two session keys below. */
+  sessionlimit?: string;
+  /** ";session_inactivity=30000". */
+  session_inactivity?: string;
+  /** ";session_keep_alive=15000". */
+  session_keep_alive?: string;
+  /** ";redirect = / /static/config/index.html". */
+  redirect?: string;
+}
+
+export interface HttpView {
+  general: HttpGeneralView;
+  readonly rest: ConfigValue;
+}
+
+const HTTP_GENERAL_KEYS: ReadonlyArray<keyof HttpGeneralView> = [
+  "enabled", "enable_static", "enable_status", "bindaddr", "bindport", "prefix",
+  "tlsenable", "tlsbindaddr", "tlscertfile", "tlsprivatekey",
+  "tlsdisablev1", "tlsdisablev11", "tlsdisablev12",
+  "sessionlimit", "session_inactivity", "session_keep_alive", "redirect",
+];
+
+export function parseHttp(value: ConfigValue): HttpView {
+  const general = section(value, "general");
+  const view: HttpGeneralView = {};
+  for (const key of HTTP_GENERAL_KEYS) {
+    const found = entryValue(general, key);
+    if (found !== undefined) view[key] = found;
+  }
+  return { general: view, rest: value };
+}
+
+export function toConfigValueHttp(view: HttpView): ConfigValue {
+  const general = generalSectionFrom(
+    section(view.rest, "general"),
+    view.general as Record<string, string | undefined>,
+    HTTP_GENERAL_KEYS as readonly string[],
+  );
+  return withSections(view.rest, new Map([["general", general]]));
+}
+
+// ---------------------------------------------------------------------------------------
 // Channel Event Logging (cel.conf)
 // ---------------------------------------------------------------------------------------
 
@@ -660,6 +741,29 @@ export interface IaxPeerView {
   trunk?: string;
   /** iax.conf.sample: ";qualify=yes ; Make sure this peer is alive." */
   qualify?: string;
+  /** iax.conf.sample line 533-534: ";transfer=no" / ";transfer=mediaonly". */
+  transfer?: string;
+  /** iax.conf.sample: ";port=5036". */
+  port?: string;
+  /** iax.conf.sample: ";disallow=g723.1" -- repeatable, same as PJSIP. */
+  disallow: string[];
+  /** iax.conf.sample: ";allow=all" -- repeatable and order-significant. */
+  allow: string[];
+  /** iax.conf.sample: ";accountcode=lss0101". */
+  accountcode?: string;
+  /** iax.conf.sample: ";mailbox=1234 ; Notify about mailbox 1234". */
+  mailbox?: string;
+  /** iax.conf.sample line 418-423: ";requirecalltoken=no" / "=auto"; peer/user/friend
+   *  definitions only. Distinct from the [general] key of the same name above. */
+  requirecalltoken?: string;
+  /** iax.conf.sample: ";setvar=NAME=value" -- repeatable, one channel variable each. */
+  setvar: string[];
+  /** iax.conf.sample: ";username=asterisk". */
+  username?: string;
+  /** iax.conf.sample: ";secret=markpasswd". A credential: the console writes it and
+   *  never reads it back to any surface. Parsed only so a save cannot silently drop
+   *  the line already in the file. */
+  secret?: string;
 }
 
 export interface IaxView {
@@ -706,6 +810,16 @@ export function parseIax(value: ConfigValue): IaxView {
       deny: entryValues(peerSection, "deny"),
       trunk: entryValue(peerSection, "trunk"),
       qualify: entryValue(peerSection, "qualify"),
+      transfer: entryValue(peerSection, "transfer"),
+      port: entryValue(peerSection, "port"),
+      disallow: entryValues(peerSection, "disallow"),
+      allow: entryValues(peerSection, "allow"),
+      accountcode: entryValue(peerSection, "accountcode"),
+      mailbox: entryValue(peerSection, "mailbox"),
+      requirecalltoken: entryValue(peerSection, "requirecalltoken"),
+      setvar: entryValues(peerSection, "setvar"),
+      username: entryValue(peerSection, "username"),
+      secret: entryValue(peerSection, "secret"),
     }));
   return { general: { ...view, bindaddr }, peers, rest: value };
 }
@@ -765,7 +879,9 @@ export function validateIax(view: IaxView): Finding[] {
 }
 
 const IAX_GENERAL_MANAGED_KEYS: readonly string[] = [...IAX_GENERAL_SCALAR_KEYS, "bindaddr"];
-const IAX_PEER_MANAGED_KEYS = ["type", "host", "context", "auth", "permit", "deny", "trunk", "qualify"] as const;
+const IAX_PEER_MANAGED_KEYS = ["type", "host", "context", "auth", "permit", "deny", "trunk", "qualify",
+  "transfer", "port", "disallow", "allow", "accountcode", "mailbox", "requirecalltoken", "setvar",
+  "username", "secret"] as const;
 
 export function toConfigValueIax(view: IaxView): ConfigValue {
   const existingGeneral = section(view.rest, "general");
@@ -796,6 +912,26 @@ export function toConfigValueIax(view: IaxView): ConfigValue {
           return peer.trunk !== undefined ? [peer.trunk] : [];
         case "qualify":
           return peer.qualify !== undefined ? [peer.qualify] : [];
+        case "disallow":
+          return peer.disallow;
+        case "allow":
+          return peer.allow;
+        case "setvar":
+          return peer.setvar;
+        case "transfer":
+          return peer.transfer !== undefined ? [peer.transfer] : [];
+        case "port":
+          return peer.port !== undefined ? [peer.port] : [];
+        case "accountcode":
+          return peer.accountcode !== undefined ? [peer.accountcode] : [];
+        case "mailbox":
+          return peer.mailbox !== undefined ? [peer.mailbox] : [];
+        case "requirecalltoken":
+          return peer.requirecalltoken !== undefined ? [peer.requirecalltoken] : [];
+        case "username":
+          return peer.username !== undefined ? [peer.username] : [];
+        case "secret":
+          return peer.secret !== undefined ? [peer.secret] : [];
         default:
           return [];
       }
