@@ -20,15 +20,21 @@ export function UpdateBanner() {
   const [restartError, setRestartError] = useState<string | undefined>();
   const bridge = typeof window !== 'undefined' ? window.dingDesktop : undefined;
 
+  const acceptStatus = (next: UpdaterStatusForRenderer): void => {
+    const revision = next.revision ?? 0;
+    if (revision < acceptedRevision.current) return;
+    const newer = revision > acceptedRevision.current;
+    acceptedRevision.current = revision;
+    setStatus(next);
+    if (newer && next.state === 'ready' && !next.restartPending) setRestartError(undefined);
+  };
+
   useEffect(() => {
     if (!bridge) return;
     let active = true;
     const apply = (next: UpdaterStatusForRenderer) => {
       if (!active) return;
-      const revision = next.revision ?? 0;
-      if (revision < acceptedRevision.current) return;
-      acceptedRevision.current = revision;
-      setStatus(next);
+      acceptStatus(next);
     };
     const unsubscribe = bridge.updater.onStatus(apply);
     void bridge.updater.getStatus().then(apply).catch(() => undefined);
@@ -79,11 +85,7 @@ export function UpdateBanner() {
       )}
       {status.state === 'failed' && (
         <button type="button" onClick={() => void bridge.updater.checkNow().then((next) => {
-          const revision = next.revision ?? 0;
-          if (revision >= acceptedRevision.current) {
-            acceptedRevision.current = revision;
-            setStatus(next);
-          }
+          acceptStatus(next);
         })}>Check for updates</button>
       )}
     </div>
