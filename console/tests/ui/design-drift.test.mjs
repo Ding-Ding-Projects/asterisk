@@ -53,8 +53,8 @@ test('the compiled renderer reproduces every audited design binding plus the PBX
     counts[event] = (counts[event] ?? 0) + 1;
   }
   assert.deepEqual(counts, {
-    onClick: 212 + 3 + 1 + 6,
-    onChange: 10 + 1 + 1 + 1,
+    onClick: 212 + 3 + 1 + 6 + 5, // + 5: changelog screen (regex toggle, copy, export, one date preset button, one regex palette token)
+    onChange: 10 + 1 + 1 + 1 + 3, // + 3: changelog screen (from date, to date, search query)
     onInput: 10 + 1,
     onContextMenu: 9,
     onDragStart: 4,
