@@ -4,29 +4,29 @@ Lets a user schedule when a setting â€” language, theme, density, and the like â
 
 ## Behavior
 
-A schedule editor is meant to let a rule pick an optional start and end date, a start and end time, and either every day or specific weekdays, then apply a chosen setting value only during that window, respecting the user's local timezone including daylight-saving behavior.
+The shared settings schema and renderer runtime validate bounded rules with stable IDs, optional dates, times, weekday sets, local timezone resolution, and deterministic priority plus list-order precedence. `settings-runtime.ts` evaluates rules without mutating persisted base settings. External source activity is kept separate and is applied only as a temporary effective state.
 
 ## Configuration
 
-Rules would be stored with stable identifiers and deterministic precedence for when more than one rule could apply at the same moment.
+Rules are stored in the versioned desktop settings record. Dates use `YYYY-MM-DD`, times use `HH:MM`, `every-day` means all weekdays for the selected window, and a rule with a later effective priority wins; equal priorities resolve by later list position. Cross-midnight windows run through the next local day. A bounded HTTPS API or Home Assistant boolean source may be selected per rule by the validated source contract.
 
 ## Current status
 
-**Desktop application:** Not implemented. No schedule editor and no scheduled-value application logic exist anywhere in the product.
+**Desktop application:** The validated schedule model and renderer evaluation seam are present in `shared/settings-schema.ts`, `app/renderer/src/settings/schedule.ts`, and `app/renderer/src/settings-runtime.ts`. `app/renderer/src/external-settings-runtime.ts` and the privileged `external-settings.*` actions provide source refresh state. The owning UI mount remains separate follow-up work.
 
 **Documentation website:** Implemented for site-owned local settings. Every page exposes one persisted rule with explicit weekdays, start and end times, cross-midnight and equal-time behavior, local-timezone status, and scheduled theme, language, and density values. Base values return when the window ends.
 
 ## Failure modes
 
-An empty weekday selection never matches. Invalid time text never matches. This bounded site implementation has one rule, so overlapping-rule precedence and external sources remain outside the implemented slice.
+Invalid timezones, dates, times, weekday sets, source contracts, duplicate rule IDs, duplicate assignment targets, and out-of-range values are rejected with a specific reason. Overlap is resolved by the documented precedence rather than silently combining assignments. An empty rule list leaves base settings active.
 
 ## Accessibility and localization
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.
+This lane did not run tests, build, or capture verification. The runtime exposes source and schedule state for the owning UI lane to localize and make keyboard accessible.
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+Verification was not run in this lane. The persistence, evaluation, and source-refresh seams are implemented but remain unverified until the owning UI and focused checks land.
 
 ## Suggested articles
 

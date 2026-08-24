@@ -15,6 +15,7 @@ import {
   inspectLogoBytes,
   validateLogoCrop,
   type LogoCacheAssetMetadata,
+  type LogoCacheAssetReadRequest,
   type LogoCacheClearRequest,
   type LogoCacheRecord,
   type LogoCacheWriteRequest,
@@ -202,6 +203,10 @@ export class LogoStore {
 export function logoStoreHandlers(store: LogoStore) {
   return {
     read: async () => store.read(),
+    readAsset: async (request: LogoCacheAssetReadRequest) => {
+      const record = await store.read();
+      return record ? store.readAsset(record, request.filename) : undefined;
+    },
     write: async (request: LogoCacheWriteRequest) => store.write(request),
     clear: async (request: LogoCacheClearRequest) => store.clear(request),
   };

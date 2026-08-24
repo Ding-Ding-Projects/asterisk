@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
-import { stat } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
@@ -9,6 +9,7 @@ import {
   updateFailed, beganDownloading, downloadReady, dismissedForNow, verifyDownload, findDigestForAsset,
 } from '../../control-plane/updater.js';
 import type { UpdaterState } from '../../control-plane/updater.js';
+import { LOGO_MAX_INPUT_BYTES } from '../../shared/logo.js';
 import {
   readCurrentIdentity, fetchReleases, fetchReleaseIdentity, fetchShaSumsText, downloadAsset,
   discardDownload, sweepStaleDownloads, launchInstaller, releaseIdentityDigest,
@@ -170,6 +171,24 @@ ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindow.unmaximize() : mainWindow?.maximize());
 ipcMain.on('window:close', () => mainWindow?.close());
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
+ipcMain.handle('logo:pick-file', async () => {
+  const result = await dialog.showOpenDialog(mainWindow ?? undefined, {
+    properties: ['openFile'],
+    title: 'Choose a local custom logo image',
+    filters: [{ name: 'Logo images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'svg'] }],
+  });
+  const sourcePath = result.canceled ? undefined : result.filePaths[0];
+  if (!sourcePath) return undefined;
+  const info = await stat(sourcePath);
+  if (!Number.isSafeInteger(info.size) || info.size < 1 || info.size > LOGO_MAX_INPUT_BYTES) {
+    throw new Error(`The selected logo must be between 1 and ${LOGO_MAX_INPUT_BYTES} bytes.`);
+  }
+  const bytes = await readFile(sourcePath);
+  const name = sourcePath.slice(Math.max(sourcePath.lastIndexOf('\\'), sourcePath.lastIndexOf('/')) + 1);
+  const extension = name.includes('.') ? name.slice(name.lastIndexOf('.') + 1).toLowerCase() : '';
+  const declaredMime = extension === 'svg' ? 'image/svg+xml' : extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' : extension ? `image/${extension}` : undefined;
+  return { name, bytes: bytes.byteLength, dataBase64: bytes.toString('base64'), declaredMime };
+});
 ipcMain.handle('converter:pick-file', async () => {
   const result = await dialog.showOpenDialog(mainWindow ?? undefined, { properties: ['openFile'], title: 'Choose a local source file' });
   const sourcePath = result.canceled ? undefined : result.filePaths[0];

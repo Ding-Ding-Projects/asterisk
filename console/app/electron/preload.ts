@@ -11,6 +11,9 @@ const api: DingDesktopApi = {
   controlPlane: {
     request: (request: ControlPlaneRequest) => ipcRenderer.invoke('control-plane:request', request) as Promise<ControlPlaneResponse>,
   },
+  logo: {
+    pickFile: () => ipcRenderer.invoke('logo:pick-file'),
+  },
   converter: {
     pickFile: () => ipcRenderer.invoke('converter:pick-file'),
     pickDestination: () => ipcRenderer.invoke('converter:pick-destination'),

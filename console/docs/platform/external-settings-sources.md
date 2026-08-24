@@ -26,13 +26,13 @@ The client is designed for the privileged boundary. It does not read arbitrary f
 
 ## Current status
 
-**Desktop application:** The shared contract, privileged handler factory, in-memory fallback store, and renderer-safe state projection are implemented. Dispatch and UI wiring are intentionally separate so the source can be reviewed before it is connected to the application lifecycle.
+**Desktop application:** The shared contract, privileged handler factory, in-memory fallback store, control-plane actions, and renderer-safe runtime are implemented in `shared/external-settings.ts`, `control-plane/external-settings-client.ts`, `control-plane/external-settings-store.ts`, `control-plane/dispatch.ts`, and `renderer/src/external-settings-runtime.ts`. The desktop dispatcher does not register an OS-vault reader yet, so Home Assistant is honestly unavailable until that host adapter exists.
 
 **Documentation website:** The site does not execute privileged source reads. This article records the contract and the browser boundary without claiming that a static page can access an operating-system credential vault.
 
 ## Verification boundary
 
-This lane adds no network requests, runtime interaction, tests, builds, or captures. The next integration lane should bind the handler through the privileged dispatch path, exercise injected fetch and vault seams, and verify the built application states. The source contract is intentionally dispatch-ready but not a claim that the application already exposes the feature.
+This lane adds no test, build, package, runtime interaction, or capture verification. The dispatch path is wired, but a real OS-vault adapter and built-artifact interaction remain open; absence of either is reported as unavailable rather than success.
 
 ## Suggested articles
 

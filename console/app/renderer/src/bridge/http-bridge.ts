@@ -103,6 +103,11 @@ export function installHttpBridge(): void {
         }
       },
     },
+    logo: {
+      pickFile: async () => {
+        throw new Error('The hosted server cannot open a desktop file picker. Select a local logo through the site surface.');
+      },
+    },
     converter: {
       pickFile: async () => { throw new Error('The hosted server cannot open a desktop file picker. Choose a local file through the site surface.'); },
       pickDestination: async () => { throw new Error('The hosted server cannot open a desktop destination picker.'); },

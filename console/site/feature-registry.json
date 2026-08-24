@@ -390,7 +390,7 @@
     },
     "scheduled-settings": {
       "status": "partial",
-      "note": "site/app.js initSettings() wires a schedule-enabled checkbox to state.scheduleEnabled, but no date/time rule editor, weekday selection, or external source integration was found - the checkbox exists with no scheduling surface behind it.",
+      "note": "The site-owned local schedule remains implemented in site/app.js. This task mounted the desktop schedule schema, renderer evaluator, and privileged external-settings actions; the site does not consume desktop IPC and was not changed here.",
       "implementation": {
         "paths": [
           "site/app.js",
@@ -476,7 +476,7 @@
     },
     "external-settings-sources": {
       "status": "absent",
-      "note": "No HTTPS API or Home Assistant integration exists; same gap as scheduled-settings.",
+      "note": "The desktop control plane now exposes bounded HTTPS and Home Assistant source handlers. The static site does not access desktop IPC or an operating-system credential vault, so its source state remains unavailable rather than simulated.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -960,7 +960,7 @@
     },
     "app-logo-customization": {
       "status": "partial",
-      "note": "site/app.js wires logo-file/logo-clear to loadLogo()/applyLogo() with a logo-status readout, storing the custom logo in localStorage. This is a real local-only upload and clear path, but there is no crop/fit/background editor, no multi-size generation, and no shipped preset gallery beyond the single custom-upload slot.",
+      "note": "The site continues to provide its own local logo path. This task mounted the desktop local picker, bounded logo validation, private converted-asset cache, and renderer lifecycle; the site does not consume desktop IPC and was not changed here.",
       "implementation": {
         "paths": [
           "site/app.js",

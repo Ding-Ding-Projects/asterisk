@@ -1,5 +1,11 @@
 # Ding PBX delivery handoff
 
+## Logo and scheduled-settings mount, 2026-08-23
+
+This linked checkout adds the privileged seams only. `shared/control-plane.ts` now names the logo and external-settings actions. `control-plane/dispatch.ts` registers local logo inspection/cache lifecycle and the bounded external source store. `app/electron/main.ts` and both preload bridges expose the local logo picker without returning a source path. `app/renderer/src/logo-runtime.ts` and `external-settings-runtime.ts` provide live lifecycle clients without inventing success.
+
+The logo decoder is deliberately not registered because no bundled isolated decoder exists in this checkout. Conversion therefore returns an unavailable result and leaves the previous mark active. The Home Assistant path carries only `vaultAccountKey`; the desktop dispatcher has no OS-vault reader yet, so that source returns a typed unavailable state. No tests, lint, type checks, build, package, UI interaction, capture, or release work was run in this lane. The feature registries and three platform articles record these exact boundaries.
+
 ## Surface mount integration, 2026-08-23
 
 The integration lane added `console/app/renderer/src/surface-mounts.tsx` and mounted it from `main.tsx` as an addressable hash route. `#surface=converter` renders the real converter component and reads its catalog and PDF capability evidence through the local control-plane dispatcher. Picker, queue mutation, and packaged-worker proof operations still return explicit unavailable receipts because those handlers are not registered. `#surface=ollama` renders the real Ollama component and reports a typed `bridge-not-registered` state until its privileged dispatcher is registered. `#surface=docs` and `#surface=changelog` render the bundled documentation and changelog components.

@@ -314,15 +314,27 @@
       }
     },
     "scheduled-settings": {
-      "status": "absent",
-      "note": "No scheduled-settings surface, date/time rule editor, or external source integration exists anywhere in the renderer or control-plane.",
+      "status": "implemented-unverified",
+      "note": "Validated persisted schedule schema and renderer evaluation are present. Privileged external-settings refresh, state, and cancellation actions are mounted; the user-facing editor and built-artifact verification remain open.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "shared/settings-schema.ts",
+          "app/renderer/src/settings/schedule.ts",
+          "app/renderer/src/settings-runtime.ts",
+          "app/renderer/src/external-settings-runtime.ts",
+          "control-plane/dispatch.ts"
+        ],
+        "symbols": [
+          {"path": "app/renderer/src/settings/schedule.ts", "name": "evaluateSchedule", "kind": "function"},
+          {"path": "app/renderer/src/settings-runtime.ts", "name": "RendererSettingsRuntime", "kind": "class"}
+        ]
       },
       "registration": {
-        "paths": [],
-        "symbols": []
+        "paths": ["control-plane/dispatch.ts", "app/electron/preload.ts"],
+        "symbols": [
+          {"path": "control-plane/dispatch.ts", "name": "external-settings.refresh", "kind": "action"},
+          {"path": "control-plane/dispatch.ts", "name": "external-settings.state", "kind": "action"}
+        ]
       },
       "route": "desktop://console/main",
       "documentation": {
@@ -385,15 +397,27 @@
       }
     },
     "external-settings-sources": {
-      "status": "absent",
-      "note": "No external settings source (validated HTTPS API or Home Assistant boolean entity) is wired anywhere; same gap as scheduled-settings.",
+      "status": "implemented-unverified",
+      "note": "Bounded HTTPS and Home Assistant source handlers, in-memory fallback state, privileged dispatcher actions, and renderer-safe runtime are mounted. Home Assistant remains unavailable until an OS-vault reader is registered.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "shared/external-settings.ts",
+          "control-plane/external-settings-client.ts",
+          "control-plane/external-settings-store.ts",
+          "control-plane/dispatch.ts",
+          "app/renderer/src/external-settings-runtime.ts"
+        ],
+        "symbols": [
+          {"path": "control-plane/external-settings-client.ts", "name": "createExternalSettingsHandler", "kind": "factory"},
+          {"path": "control-plane/external-settings-store.ts", "name": "createExternalSettingsStore", "kind": "factory"}
+        ]
       },
       "registration": {
-        "paths": [],
-        "symbols": []
+        "paths": ["control-plane/dispatch.ts", "app/renderer/src/external-settings-runtime.ts"],
+        "symbols": [
+          {"path": "control-plane/dispatch.ts", "name": "external-settings.refresh", "kind": "action"},
+          {"path": "app/renderer/src/external-settings-runtime.ts", "name": "ExternalSettingsRuntime", "kind": "class"}
+        ]
       },
       "route": "desktop://console/main",
       "documentation": {
@@ -856,15 +880,31 @@
       }
     },
     "app-logo-customization": {
-      "status": "absent",
-      "note": "No logo preset picker, custom-image upload, or icon-generation pipeline exists.",
+      "status": "implemented-unverified",
+      "note": "Local logo validation, private converted-asset cache, desktop picker, privileged bridge actions, and renderer lifecycle are mounted. No verified image decoder is bundled, so conversion remains explicitly unavailable until one is proven.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "shared/logo.ts",
+          "control-plane/logo-converter.ts",
+          "control-plane/logo-store.ts",
+          "control-plane/dispatch.ts",
+          "app/electron/main.ts",
+          "app/electron/preload.ts",
+          "app/renderer/src/logo-runtime.ts"
+        ],
+        "symbols": [
+          {"path": "control-plane/logo-converter.ts", "name": "createLogoConversionHandlers", "kind": "factory"},
+          {"path": "control-plane/logo-store.ts", "name": "LogoStore", "kind": "class"},
+          {"path": "app/renderer/src/logo-runtime.ts", "name": "LogoRuntime", "kind": "class"}
+        ]
       },
       "registration": {
-        "paths": [],
-        "symbols": []
+        "paths": ["app/electron/main.ts", "app/electron/preload.ts", "control-plane/dispatch.ts"],
+        "symbols": [
+          {"path": "app/electron/main.ts", "name": "logo:pick-file", "kind": "ipc-handler"},
+          {"path": "app/electron/preload.ts", "name": "logo.pickFile", "kind": "bridge"},
+          {"path": "control-plane/dispatch.ts", "name": "logo.convert", "kind": "action"}
+        ]
       },
       "route": "desktop://console/main",
       "documentation": {

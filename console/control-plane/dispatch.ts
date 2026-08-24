@@ -39,6 +39,17 @@ import type { ConverterRequest, ConverterSniffResult } from '../shared/converter
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
 import type { ChangePlan, ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
+import {
+  LOGO_MAX_INPUT_BYTES,
+  type LogoCacheWriteRequest,
+  type LogoConversionResult,
+  type LogoSourceInput,
+} from '../shared/logo.js';
+import { createLogoConversionHandlers, type LogoConversionRequest } from './logo-converter.js';
+import { LogoStore, logoStoreHandlers } from './logo-store.js';
+import { createExternalSettingsHandler, type VaultReferenceReader } from './external-settings-client.js';
+import { createExternalSettingsStore } from './external-settings-store.js';
+import { projectExternalSettingsState, validateExternalSource, validateAssignments } from '../shared/external-settings.js';
 
 /**
  * Actions that fundamentally depend on the Windows desktop (WSL) and cannot be answered
@@ -58,6 +69,8 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'daemon.status', 'daemon.start', 'daemon.stop', 'daemon.restart',
   'history.list', 'history.restore', 'media.list', 'media.upload', 'media.remove',
   'local-history.list', 'local-history.record', 'local-history.restore',
+  'logo.inspect', 'logo.convert', 'logo.cache.read', 'logo.cache.asset.read', 'logo.cache.write', 'logo.cache.clear',
+  'external-settings.refresh', 'external-settings.state', 'external-settings.cancel',
   'converter.catalog', 'converter.pdf-capabilities', 'converter.sniff',
   'converter.queue.create', 'converter.queue.enqueue-one', 'converter.queue.page',
   'converter.queue.start', 'converter.queue.pause', 'converter.queue.resume', 'converter.queue.cancel',
@@ -85,6 +98,69 @@ function validateRequestSchema(request: ControlPlaneRequest): string | undefined
   return undefined;
 }
 
+function decodeBoundedBase64(value: unknown, maxBytes: number): Uint8Array | undefined {
+  if (typeof value !== 'string' || value.length === 0 || value.length > Math.ceil(maxBytes * 4 / 3) + 8 || !/^[A-Za-z0-9+/]*={0,2}$/u.test(value) || value.length % 4 === 1) return undefined;
+  const bytes = Buffer.from(value, 'base64');
+  if (bytes.byteLength === 0 || bytes.byteLength > maxBytes) return undefined;
+  const canonical = bytes.toString('base64').replace(/=+$/u, '');
+  return canonical === value.replace(/=+$/u, '') ? new Uint8Array(bytes) : undefined;
+}
+
+function logoSourceFromPayload(payload: Readonly<Record<string, unknown>> | undefined): LogoSourceInput | undefined {
+  const source = payload?.source;
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return undefined;
+  const value = source as Record<string, unknown>;
+  if (value.kind !== 'local') return undefined;
+  const bytes = decodeBoundedBase64(value.bytesBase64, LOGO_MAX_INPUT_BYTES);
+  if (!bytes) return undefined;
+  const metadata = value.metadata;
+  const safeMetadata = metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+    ? metadata as Record<string, unknown>
+    : undefined;
+  const filename = typeof safeMetadata?.filename === 'string' && safeMetadata.filename.length <= 180 ? safeMetadata.filename : undefined;
+  const declaredMime = typeof safeMetadata?.declaredMime === 'string' && safeMetadata.declaredMime.length <= 128 ? safeMetadata.declaredMime : undefined;
+  const declaredExtension = typeof safeMetadata?.declaredExtension === 'string' && safeMetadata.declaredExtension.length <= 16 ? safeMetadata.declaredExtension : undefined;
+  return { kind: 'local', bytes, metadata: { filename, declaredMime, declaredExtension } };
+}
+
+function logoConversionRequestFromPayload(payload: Readonly<Record<string, unknown>> | undefined): LogoConversionRequest | undefined {
+  const source = logoSourceFromPayload(payload);
+  if (!source || !Array.isArray(payload?.targets)) return undefined;
+  return { source, crop: payload?.crop as LogoConversionRequest['crop'], targets: payload.targets as LogoConversionRequest['targets'] };
+}
+
+function wireLogoResult(result: LogoConversionResult): unknown {
+  if (!result.ok) return result;
+  return {
+    ...result,
+    outputs: result.outputs.map((output) => ({
+      target: output.target,
+      receipt: output.receipt,
+      bytesBase64: Buffer.from(output.bytes).toString('base64'),
+    })),
+  };
+}
+
+function logoResultFromPayload(payload: Readonly<Record<string, unknown>> | undefined): LogoCacheWriteRequest | undefined {
+  const candidate = payload?.result;
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return undefined;
+  const value = candidate as Record<string, unknown>;
+  if (value.ok !== true || !Array.isArray(value.outputs) || !value.inspection || !value.crop || value.packageIdentity !== 'ding-pbx-console') return undefined;
+  const outputs = [];
+  for (const output of value.outputs) {
+    if (!output || typeof output !== 'object' || Array.isArray(output)) return undefined;
+    const item = output as Record<string, unknown>;
+    const bytes = decodeBoundedBase64(item.bytesBase64, 16 * 1024 * 1024);
+    if (!bytes || !item.target || !item.receipt) return undefined;
+    outputs.push({ target: item.target, bytes, receipt: item.receipt });
+  }
+  return {
+    kind: 'write',
+    selectedPresetId: typeof payload?.selectedPresetId === 'string' ? payload.selectedPresetId : undefined,
+    result: { ok: true, packageIdentity: 'ding-pbx-console', inspection: value.inspection, crop: value.crop, outputs } as LogoConversionResult,
+  };
+}
+
 export interface ControlPlaneDispatcherOptions {
   /** Where per-installation state (server inventory, local history) is written. */
   userDataPath: string;
@@ -97,6 +173,8 @@ export interface ControlPlaneDispatcherOptions {
   hosted: boolean;
   converterPickFile?: () => Promise<{ sourcePath: string; name: string; bytes: number; lastModified?: string; mediaType?: string } | undefined>;
   converterPickDestination?: () => Promise<string | undefined>;
+  /** A vault reference reader. The token itself never enters this dispatcher. */
+  externalSettingsVault?: VaultReferenceReader;
 }
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
@@ -112,6 +190,11 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     ...createOllamaPullHandlers(ollamaPullQueue),
     ...createOllamaChatHandlers(ollamaChat),
   };
+  const logoStore = new LogoStore({ rootPath: join(userDataPath, 'logo-cache') });
+  const logoHandlers = createLogoConversionHandlers(undefined, logoStoreHandlers(logoStore));
+  const externalSettingsStore = createExternalSettingsStore({
+    handler: createExternalSettingsHandler({ vault: options.externalSettingsVault }),
+  });
   const ollamaReady = ollamaPullQueue.initialize();
   const converterQueue = converterRegistry.then(async (registry) => {
     const store = new ConverterStore({ rootPath: join(userDataPath, 'converter-queues') });
@@ -550,6 +633,54 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           if (code === 'ENOENT') return { ok: true, requestId: request.requestId, data: { text: null } };
           return { ok: false, requestId: request.requestId, code: 'DIM_SUM_CACHE_UNAVAILABLE', message: 'The local dim-sum cache could not be read.' };
         }
+      }
+      if (request.action === 'logo.inspect') {
+        const source = logoSourceFromPayload(request.payload);
+        if (!source) return { ok: false, requestId: request.requestId, code: 'LOGO_INPUT_INVALID', message: 'Choose a bounded local image; network sources and malformed bytes are refused.' };
+        return { ok: true, requestId: request.requestId, data: logoHandlers.inspect(source) };
+      }
+      if (request.action === 'logo.convert') {
+        const conversion = logoConversionRequestFromPayload(request.payload);
+        if (!conversion) return { ok: false, requestId: request.requestId, code: 'LOGO_INPUT_INVALID', message: 'A local logo source, crop model, and bounded output targets are required.' };
+        return { ok: true, requestId: request.requestId, data: wireLogoResult(await logoHandlers.convert(conversion)) };
+      }
+      if (request.action === 'logo.cache.read') {
+        return { ok: true, requestId: request.requestId, data: await logoHandlers.cache.read({ kind: 'read' }) };
+      }
+      if (request.action === 'logo.cache.asset.read') {
+        const filename = typeof request.payload?.filename === 'string' ? request.payload.filename : '';
+        if (!filename) return { ok: false, requestId: request.requestId, code: 'LOGO_ASSET_REQUIRED', message: 'A cached logo asset name is required.' };
+        const bytes = await logoHandlers.cache.readAsset({ kind: 'read-asset', filename });
+        return { ok: true, requestId: request.requestId, data: bytes ? { filename, bytesBase64: Buffer.from(bytes).toString('base64') } : undefined };
+      }
+      if (request.action === 'logo.cache.write') {
+        const write = logoResultFromPayload(request.payload);
+        if (!write) return { ok: false, requestId: request.requestId, code: 'LOGO_CACHE_INPUT_INVALID', message: 'Only a successful, independently validated local conversion may be cached.' };
+        try {
+          return { ok: true, requestId: request.requestId, data: await logoHandlers.cache.write(write) };
+        } catch (error) {
+          return { ok: false, requestId: request.requestId, code: 'LOGO_CACHE_WRITE_FAILED', message: error instanceof Error ? error.message : 'The previous logo remains active because the cache write failed.' };
+        }
+      }
+      if (request.action === 'logo.cache.clear') {
+        await logoHandlers.cache.clear({ kind: request.payload?.kind === 'reset' ? 'reset' : 'clear' });
+        return { ok: true, requestId: request.requestId, data: { cleared: true } };
+      }
+      if (request.action === 'external-settings.state') {
+        return { ok: true, requestId: request.requestId, data: projectExternalSettingsState(externalSettingsStore.getState()) };
+      }
+      if (request.action === 'external-settings.cancel') {
+        externalSettingsStore.cancel();
+        return { ok: true, requestId: request.requestId, data: projectExternalSettingsState(externalSettingsStore.getState()) };
+      }
+      if (request.action === 'external-settings.refresh') {
+        const sourceResult = validateExternalSource(request.payload?.source);
+        if (!sourceResult.ok) return { ok: false, requestId: request.requestId, code: 'EXTERNAL_SOURCE_INVALID', message: sourceResult.reason };
+        const assignmentsResult = validateAssignments(request.payload?.baseAssignments ?? []);
+        if (!assignmentsResult.ok) return { ok: false, requestId: request.requestId, code: 'EXTERNAL_ASSIGNMENTS_INVALID', message: assignmentsResult.reason };
+        const force = request.payload?.force === true;
+        const state = await externalSettingsStore.refresh(sourceResult.source, assignmentsResult.assignments, { force });
+        return { ok: true, requestId: request.requestId, data: projectExternalSettingsState(state) };
       }
       if (request.action.startsWith('ollama.')) {
         await ollamaReady;

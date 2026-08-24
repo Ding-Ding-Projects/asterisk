@@ -1,5 +1,12 @@
 # Ding PBX delivery roadmap
 
+## 2026-08-23 logo and scheduled-settings mount
+
+- [x] Add bounded local logo inspection, private converted-asset cache, desktop picker, and renderer lifecycle seams.
+- [x] Add privileged scheduled-source refresh, fallback, cancellation, and renderer projection seams for validated HTTPS and Home Assistant references.
+- [x] Record exact documentation and feature-registry status, including the unavailable decoder and absent OS-vault reader.
+- [ ] Register a verified isolated image decoder, an OS-vault reader for Home Assistant, the owning UI surfaces, focused checks, and built-artifact evidence.
+
 ## 2026-08-23 integration lane
 
 - [x] Mount addressable converter, Ollama, offline docs, and changelog surfaces through `console/app/renderer/src/main.tsx` and `surface-mounts.tsx`.

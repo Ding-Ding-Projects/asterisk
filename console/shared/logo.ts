@@ -184,7 +184,7 @@ export type LogoConversionResult = {
 } | LogoValidationFailure;
 
 export interface LogoHandlerDescriptor {
-  readonly action: 'logo.inspect' | 'logo.convert' | 'logo.cache.read' | 'logo.cache.write' | 'logo.cache.clear';
+  readonly action: 'logo.inspect' | 'logo.convert' | 'logo.cache.read' | 'logo.cache.asset.read' | 'logo.cache.write' | 'logo.cache.clear';
   readonly localOnly: true;
   readonly input: string;
   readonly output: string;
@@ -194,6 +194,7 @@ export const LOGO_HANDLER_DESCRIPTORS: readonly LogoHandlerDescriptor[] = Object
   { action: 'logo.inspect', localOnly: true, input: 'LogoSourceInput', output: 'LogoInspectionResult' },
   { action: 'logo.convert', localOnly: true, input: 'LogoConversionRequest', output: 'LogoConversionResult' },
   { action: 'logo.cache.read', localOnly: true, input: 'LogoCacheReadRequest', output: 'LogoCacheRecord | undefined' },
+  { action: 'logo.cache.asset.read', localOnly: true, input: 'LogoCacheAssetReadRequest', output: 'Uint8Array | undefined' },
   { action: 'logo.cache.write', localOnly: true, input: 'LogoCacheWriteRequest', output: 'LogoCacheRecord' },
   { action: 'logo.cache.clear', localOnly: true, input: 'LogoCacheClearRequest', output: 'void' },
 ]);
@@ -406,5 +407,6 @@ export interface LogoCacheRecord {
 }
 
 export interface LogoCacheReadRequest { readonly kind: 'read' }
+export interface LogoCacheAssetReadRequest { readonly kind: 'read-asset'; readonly filename: string }
 export interface LogoCacheWriteRequest { readonly kind: 'write'; readonly result: LogoConversionResult; readonly selectedPresetId?: string }
 export interface LogoCacheClearRequest { readonly kind: 'clear' | 'reset' }

@@ -27,6 +27,11 @@ export type ControlPlaneAction =
    * `control-plane/settings-store.ts`. The renderer's own `localStorage` is in-memory
    * only for a `file://` origin and never survives a relaunch. */
   | 'settings.snapshot' | 'settings.write' | 'settings.remove'
+  /* Local logo bytes and scheduled-source readings cross this bridge only through
+   * bounded, redacted contracts. Logo sources never become URLs or paths in the
+   * renderer, and Home Assistant credentials are vault references only. */
+  | 'logo.inspect' | 'logo.convert' | 'logo.cache.read' | 'logo.cache.asset.read' | 'logo.cache.write' | 'logo.cache.clear'
+  | 'external-settings.refresh' | 'external-settings.state' | 'external-settings.cancel'
   /* Local converter catalog and capability evidence. The queue and file-picker actions
    * use the same namespace so the renderer cannot invent a parallel transport. */
   | 'converter.catalog' | 'converter.pdf-capabilities' | 'converter.sniff'
@@ -90,6 +95,9 @@ export interface DingDesktopApi {
   platform: string;
   window: { minimize(): void; toggleMaximize(): void; close(): void };
   controlPlane: { request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> };
+  logo: {
+    pickFile(): Promise<{ name: string; bytes: number; dataBase64: string; declaredMime?: string } | undefined>;
+  };
   converter: {
     pickFile(): Promise<{ sourcePath: string; name: string; bytes: number; lastModified?: string } | undefined>;
     pickDestination(): Promise<string | undefined>;

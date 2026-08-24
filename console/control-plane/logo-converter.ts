@@ -19,6 +19,7 @@ import {
   validateLogoTargets,
   type LogoCacheClearRequest,
   type LogoCacheReadRequest,
+  type LogoCacheAssetReadRequest,
   type LogoCacheRecord,
   type LogoCacheWriteRequest,
   type LogoConversionResult,
@@ -61,6 +62,7 @@ export interface LogoConversionHandlers {
   readonly convert(request: LogoConversionRequest): Promise<LogoConversionResult>;
   readonly cache: {
     readonly read(request: LogoCacheReadRequest): Promise<LogoCacheRecord | undefined>;
+    readonly readAsset(request: LogoCacheAssetReadRequest): Promise<Uint8Array | undefined>;
     readonly write(request: LogoCacheWriteRequest): Promise<LogoCacheRecord>;
     readonly clear(request: LogoCacheClearRequest): Promise<void>;
   };
