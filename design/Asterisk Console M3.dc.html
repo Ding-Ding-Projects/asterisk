@@ -2224,6 +2224,36 @@ const SCREENS = {
       ctl('h_announce','Announcement every','slider',30,{ min:0, max:300, step:15, unit:'s' }),
       ctl('h_volume','Volume trim','slider',0,{ min:-20, max:10, unit:' dB' })
     ]}] },
+  httpd:{ rail:'sys', icon:'http', label:'HTTP server', badge:'', title:'HTTP server', file:'http.conf', kind:'generic',
+    sub:'Asterisk’s own mini-HTTP server, which ARI, the WebSocket transport and the status page all sit on. Three of these keys are spelled differently from the FreePBX settings that map to them, and this screen writes the spelling Asterisk actually reads.',
+    groups:[{ title:'Listener', desc:'Whether the server runs at all, and where it listens.', ctls:[
+      ctl('ht_enabled','enabled','switch',false,{ info:'Off is the Asterisk default. ARI and the WebSocket transport both need this on.' }),
+      ctl('ht_bindaddr','bindaddr','text','',{ placeholder:'127.0.0.1', info:'The sample binds to loopback. Widening this exposes the server to the network, so change it deliberately.' }),
+      ctl('ht_bindport','bindport','stepper',8088,{ min:1, max:65535 }),
+      ctl('ht_prefix','prefix','text','',{ placeholder:'asterisk', info:'A path prefix every URL sits under.' })
+    ]},
+    { title:'Served content', desc:'What the server hands out beyond the API.', ctls:[
+      ctl('ht_static','enable_static','switch',false,{ info:'Serves the static-http directory. The key has an underscore even though the FreePBX setting name does not; writing enablestatic emits a line Asterisk ignores.' }),
+      ctl('ht_status','enable_status','switch',false,{ info:'Serves a status page describing the running server. Same underscore.' })
+    ]},
+    { title:'TLS', desc:'The HTTPS listener. Asterisk keeps the address and port in one key; this screen edits them separately and recomposes them.', ctls:[
+      ctl('ht_tlsenable','tlsenable','switch',false),
+      ctl('ht_tlsaddr','tlsbindaddr address','text','',{ placeholder:'0.0.0.0' }),
+      ctl('ht_tlsport','tlsbindaddr port','stepper',8089,{ min:1, max:65535 }),
+      ctl('ht_tlscert','tlscertfile','text','',{ placeholder:'/etc/asterisk/keys/asterisk.pem', info:'Turning TLS on without this produces a listener Asterisk refuses to start.' }),
+      ctl('ht_tlskey','tlsprivatekey','text','',{ placeholder:'/etc/asterisk/keys/asterisk.key' })
+    ]},
+    { title:'TLS versions', desc:'All three default to disabled in current Asterisk. Re-enabling one is a deliberate downgrade for a device that cannot do better.', ctls:[
+      ctl('ht_notls1','tlsdisablev1','switch',true),
+      ctl('ht_notls11','tlsdisablev11','switch',true),
+      ctl('ht_notls12','tlsdisablev12','switch',true)
+    ]},
+    { title:'Sessions', desc:'How many HTTP sessions the server keeps, and for how long.', ctls:[
+      ctl('ht_sesslimit','sessionlimit','stepper',100,{ min:1, max:10000, info:'No underscore in this key, unlike the two below it. That inconsistency is Asterisk’s own.' }),
+      ctl('ht_sessinact','session_inactivity','slider',30000,{ min:1000, max:300000, step:1000, unit:' ms' }),
+      ctl('ht_sesskeep','session_keep_alive','slider',15000,{ min:1000, max:120000, step:1000, unit:' ms' })
+    ]}]
+  },
   iaxpeers:{ rail:'pbx', icon:'swap_horiz', label:'IAX peers', badge:'', title:'IAX peers', file:'iax.conf', kind:'generic',
     sub:'IAX2 peers, users and friends. The secret is write-only: this screen can set one and can never show you the one already there, which is why there is no field displaying it.',
     groups:[{ title:'Identity', desc:'What this peer is and where it lives.', ctls:[
@@ -2612,7 +2642,7 @@ const DOCS = {
 
 const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
-const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
+const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','httpd','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },

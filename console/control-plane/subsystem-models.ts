@@ -232,6 +232,87 @@ export function toConfigValueFax(view: FaxView): { fax: ConfigValue; udptl: Conf
 }
 
 // ---------------------------------------------------------------------------------------
+// Built-in HTTP server (http.conf)
+// ---------------------------------------------------------------------------------------
+
+/**
+ * Asterisk's mini-HTTP server, which is what FreePBX's HTTP* advanced settings actually
+ * configure. Three of its keys are spelled differently from the Core setting names that
+ * map to them, and one Core setting has no key of its own at all -- see HttpView.
+ */
+export interface HttpGeneralView {
+  /** http.conf.sample line 29: ";enabled=yes". Default is no. */
+  enabled?: string;
+  /** line 68: ";enable_static=yes". Note the underscore: Core calls this setting
+   *  HTTPENABLESTATIC, and writing "enablestatic" would emit a key Asterisk ignores. */
+  enable_static?: string;
+  /** line 74: ";enable_status=yes". Same spelling divergence as enable_static. */
+  enable_status?: string;
+  /** line 30-ish: "bindaddr=127.0.0.1". */
+  bindaddr?: string;
+  /** ";bindport=8088". */
+  bindport?: string;
+  /** ";prefix=asterisk". */
+  prefix?: string;
+  /** ";tlsenable=yes ; enable tls - default no." */
+  tlsenable?: string;
+  /** ";tlsbindaddr=0.0.0.0:8089 ; address and port to bind to". ONE key carrying both
+   *  the address and the port that Core splits into HTTPTLSBINDADDRESS and
+   *  HTTPTLSBINDPORT. */
+  tlsbindaddr?: string;
+  /** ";tlscertfile=</path/to/certificate.pem>". */
+  tlscertfile?: string;
+  /** ";tlsprivatekey=</path/to/private.pem>". */
+  tlsprivatekey?: string;
+  /** line 112: "tlsdisablev1=yes ; Disable TLSv1 support". */
+  tlsdisablev1?: string;
+  /** line 113: "tlsdisablev11=yes". */
+  tlsdisablev11?: string;
+  /** line 114: "tlsdisablev12=yes". */
+  tlsdisablev12?: string;
+  /** line 50: ";sessionlimit=100". Core calls it HTTPSESSIONLIMIT; the key has no
+   *  underscore, unlike the two session keys below. */
+  sessionlimit?: string;
+  /** ";session_inactivity=30000". */
+  session_inactivity?: string;
+  /** ";session_keep_alive=15000". */
+  session_keep_alive?: string;
+  /** ";redirect = / /static/config/index.html". */
+  redirect?: string;
+}
+
+export interface HttpView {
+  general: HttpGeneralView;
+  readonly rest: ConfigValue;
+}
+
+const HTTP_GENERAL_KEYS: ReadonlyArray<keyof HttpGeneralView> = [
+  "enabled", "enable_static", "enable_status", "bindaddr", "bindport", "prefix",
+  "tlsenable", "tlsbindaddr", "tlscertfile", "tlsprivatekey",
+  "tlsdisablev1", "tlsdisablev11", "tlsdisablev12",
+  "sessionlimit", "session_inactivity", "session_keep_alive", "redirect",
+];
+
+export function parseHttp(value: ConfigValue): HttpView {
+  const general = section(value, "general");
+  const view: HttpGeneralView = {};
+  for (const key of HTTP_GENERAL_KEYS) {
+    const found = entryValue(general, key);
+    if (found !== undefined) view[key] = found;
+  }
+  return { general: view, rest: value };
+}
+
+export function toConfigValueHttp(view: HttpView): ConfigValue {
+  const general = generalSectionFrom(
+    section(view.rest, "general"),
+    view.general as Record<string, string | undefined>,
+    HTTP_GENERAL_KEYS as readonly string[],
+  );
+  return withSections(view.rest, new Map([["general", general]]));
+}
+
+// ---------------------------------------------------------------------------------------
 // Channel Event Logging (cel.conf)
 // ---------------------------------------------------------------------------------------
 
