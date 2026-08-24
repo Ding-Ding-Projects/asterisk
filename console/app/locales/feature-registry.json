@@ -90,8 +90,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
-      "blockedBy": "not-implemented"
+      "note": "Implemented, and deliberately contributes no design label: the feature has no control, because it has no off switch. It is nonetheless bilingual by construction rather than by translation -- every dish renders its English and Traditional Chinese names together in every language mode, and the dish name is data that stays exact rather than copy the catalog should key against.",
+      "blockedBy": "no-label-surface"
     },
     "regex-builder": {
       "state": "localized",
@@ -304,13 +304,24 @@
       "note": "Every listed label has a Cantonese entry."
     },
     "external-editor-handoff": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [],
-      "localizedLabels": [],
+      "labels": [
+        "External editor",
+        "Editor",
+        "Other editor name",
+        "Other editor executable",
+        "Forget the chosen editor"
+      ],
+      "localizedLabels": [
+        "External editor",
+        "Editor",
+        "Other editor name",
+        "Other editor executable",
+        "Forget the chosen editor"
+      ],
       "untranslatedLabels": [],
-      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
-      "blockedBy": "not-implemented"
+      "note": "Every listed label has a Cantonese entry."
     },
     "complete-exports": {
       "state": "localized",
@@ -418,13 +429,24 @@
       "note": "Every listed label has a Cantonese entry."
     },
     "support-tickets": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [],
-      "localizedLabels": [],
+      "labels": [
+        "Support Tickets",
+        "Category",
+        "Severity",
+        "What happened",
+        "Open a ticket"
+      ],
+      "localizedLabels": [
+        "Support Tickets",
+        "Category",
+        "Severity",
+        "What happened",
+        "Open a ticket"
+      ],
       "untranslatedLabels": [],
-      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
-      "blockedBy": "not-implemented"
+      "note": "Every listed label has a Cantonese entry."
     },
     "unlock-ladder": {
       "state": "not-localized",
@@ -450,13 +472,26 @@
       "note": "Every listed label has a Cantonese entry."
     },
     "attention-modes": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [],
-      "localizedLabels": [],
+      "labels": [
+        "Attention",
+        "Focus",
+        "Low stimulation",
+        "Time awareness",
+        "One thing at a time",
+        "Momentum"
+      ],
+      "localizedLabels": [
+        "Attention",
+        "Focus",
+        "Low stimulation",
+        "Time awareness",
+        "One thing at a time",
+        "Momentum"
+      ],
       "untranslatedLabels": [],
-      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
-      "blockedBy": "not-implemented"
+      "note": "Every listed label has a Cantonese entry."
     },
     "browser-extension-download-surfaces": {
       "state": "not-localized",
