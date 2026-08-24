@@ -2114,6 +2114,17 @@ It is shown once. The phone needs it to register.`);
     kind: 'article', articleId: article.id,
   }));
 
+  private assertPaletteArticleInventory(items: Array<Record<string, unknown>>): void {
+    const expected = listArticles(DOCS_BUNDLE).map((article) => article.id).sort();
+    const actual = items.filter((item) => item.kind === 'article').map((item) => String(item.articleId || '')).sort();
+    const unique = [...new Set(actual)].sort();
+    if (actual.length !== unique.length || JSON.stringify(actual) !== JSON.stringify(expected)) {
+      const missing = expected.filter((id) => !actual.includes(id));
+      const extra = actual.filter((id) => !expected.includes(id));
+      throw new Error(`Palette article inventory mismatch: missing=${missing.join(',')} extra=${extra.join(',')}`);
+    }
+  }
+
   renderVals() {
     const screen = (this.state as { screen: string }).screen;
     this.applyRows(screen);
@@ -2129,6 +2140,7 @@ It is shown once. The phone needs it to register.`);
       position: index + 1, count: bundledArticles.length, selected: false, tabIndex: -1, bg: 'transparent', go: () => this.setState({ screen: 'docs', railId: 'app', docsSelectedId: article.id }),
       keyDown: (event: KeyboardEvent) => { if (event.key === 'Enter') { event.preventDefault(); this.setState({ screen: 'docs', railId: 'app', docsSelectedId: article.id }); } },
     }));
+    this.assertPaletteArticleInventory(paletteArticleItems);
     const paletteWithoutStaleArticles = paletteItems.filter((item) => item.kind !== 'article');
     const paletteQuery = String((this.state as { paletteQuery?: string }).paletteQuery || '').trim();
     const paletteRegex = (this.state as { paletteRegexOn?: boolean }).paletteRegexOn === true;
