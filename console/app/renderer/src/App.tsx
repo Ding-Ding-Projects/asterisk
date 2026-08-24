@@ -45,7 +45,7 @@ import {
   click as bulkClick, clearSelection as bulkClearSelection, invert as bulkInvert, planBulk, selectAll as bulkSelectAll,
   summarise as bulkSummarise, type SelectionState,
 } from './bulk';
-import { ARCHIVE_CHOICES, createZipArchive, describeLoss, exportFilename, exportOmissionMetadata, exportRows, suitableFormats, validateArchiveOptions, validateZipArchive, type ExportFormat } from './export';
+import { ARCHIVE_CHOICES, createZipArchive, describeLoss, exportFilename, exportOmissionMetadata, exportRows, reopenZipArchive, suitableFormats, validateArchiveOptions, validateZipArchive, type ExportFormat } from './export';
 import {
   addRule, applyTheme, cssVarFor, exportTheme, importTheme, resetAll, WILDCARD_ELEMENT,
   type AppearanceProperty, type AppearanceTheme,
@@ -570,6 +570,11 @@ export class App extends Base {
     ]);
     const validation = validateZipArchive(archive);
     if (!validation.ok) { this.fire('History archive unavailable', validation.reason); return; }
+    const reopened = reopenZipArchive(archive);
+    if (reopened.length !== 2 || reopened.some((entry) => !['app-data-history.json', 'app-data-history.omissions.json'].includes(entry.name))) {
+      this.fire('History archive unavailable', 'The emitted ZIP did not reopen with the expected entries.');
+      return;
+    }
     const link = document.createElement('a');
     link.href = URL.createObjectURL(new Blob([archive as unknown as BlobPart], { type: 'application/zip' }));
     link.download = 'app-data-history.zip';
@@ -1262,9 +1267,27 @@ ${resolution.disclosure}`);
     const table = screens[screen]?.table;
     if (!table) return {};
     const ids = table.rows.map((r) => r[0]);
-    const state = this.state as { selected?: string[] };
+    const state = this.state as { selected?: string[]; patterns?: { table?: string[] }; tableFilter?: string };
     const selectedArr = state.selected ?? [];
     const bulkScope = ((this.state as { bulkScope?: string }).bulkScope === 'matches' ? 'matches' : 'page') as 'page' | 'matches';
+    const query = (state.patterns?.table ?? []).join('').trim();
+    const filter = state.tableFilter ?? 'All';
+    let matcher: (text: string) => boolean = () => true;
+    if (query) {
+      try {
+        const pattern = new RegExp(query, 'iu');
+        matcher = (text) => pattern.test(text);
+      } catch {
+        matcher = (text) => text.toLocaleLowerCase().includes(query.toLocaleLowerCase());
+      }
+    }
+    const matches = table.rows.filter((row) => {
+      const text = row.join(' ');
+      const filterMatch = filter === 'All' || text.toLocaleLowerCase().includes(filter.toLocaleLowerCase());
+      return filterMatch && matcher(text);
+    });
+    const matchIds = matches.map((row) => row[0]);
+    const scopeIds = bulkScope === 'matches' ? matchIds : ids;
     const sel: SelectionState = {
       anchor: selectedArr.length > 0 ? selectedArr[selectedArr.length - 1] : undefined,
       selected: new Set(selectedArr),
@@ -1290,15 +1313,15 @@ ${resolution.disclosure}`);
       bulkExportFormat: (this.state as { bulkExportFormat?: string }).bulkExportFormat ?? 'csv',
       setBulkExportFormat: (event: { target?: { value?: string } }) => this.setState({ bulkExportFormat: event.target?.value ?? 'csv' }),
       bulkExportFormats: suitableFormats(records).map((format) => ({ value: format, label: format.toUpperCase() })),
-      toggleAll: () => apply(selectedArr.length === ids.length && ids.length > 0
+      toggleAll: () => apply(selectedArr.length === scopeIds.length && scopeIds.length > 0
         ? bulkClearSelection(sel)
-        : bulkSelectAll(sel, bulkScope, ids, ids).state),
+        : bulkSelectAll(sel, bulkScope, ids, matchIds).state),
       bulkScope,
       setBulkScope: (event: { target?: { value?: string } }) => this.setState({ bulkScope: event.target?.value === 'matches' ? 'matches' : 'page' }),
-      bulkScopeLabel: bulkScope === 'matches' ? `All filtered matches (${ids.length})` : `This page (${ids.length})`,
+      bulkScopeLabel: bulkScope === 'matches' ? `All filtered matches (${matchIds.length})` : `This page (${ids.length})`,
       clearSelection: () => apply(bulkClearSelection(sel)),
       bulkActions: existingActions.concat([
-        { icon: 'flip_camera_android', label: 'Invert selection', run: () => apply(bulkInvert(sel, ids)) },
+        { icon: 'flip_camera_android', label: 'Invert selection', run: () => apply(bulkInvert(sel, scopeIds)) },
       ]),
     };
   }
@@ -2385,7 +2408,7 @@ It is shown once. The phone needs it to register.`);
         { icon: 'download', label: 'Export history', run: this.exportLocalHistory },
         { icon: 'archive', label: `Export ZIP (${ARCHIVE_CHOICES[0].label})`, run: this.exportLocalHistoryZip },
         { icon: 'open_in_new', label: 'Open history folder in editor', run: this.openHistoryFolderInEditor },
-        { icon: 'rule', label: this.localHistoryAccess.authorized ? 'Review retention policy' : 'Retention unavailable until unlock', run: this.pruneLocalHistory },
+        { icon: 'rule', label: this.localHistoryAccess.authorized ? 'Retention unavailable: immutable history' : 'Retention unavailable until unlock', run: this.pruneLocalHistory },
       ],
       commitRows,
       diffFile: selectedEntry

@@ -1,11 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, readFileSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { NodeProcessExecutor } from "../../control-plane/executor.js";
 import type { CommandRequest, CommandResult, ProcessExecutor } from "../../control-plane/executor.js";
 import { LocalHistory, HISTORY_ACTIONS } from "../../control-plane/local-history.js";
+import type { HistoryAction } from "../../control-plane/local-history.js";
 
 /** Records every request while still delegating to a real executor, so the tests can
  * both inspect exactly what was run and prove the store's real Git behaviour. */
@@ -29,6 +30,15 @@ function cleanup(dir: string) {
   rmSync(dir, { recursive: true, force: true });
 }
 
+let nextEvent = 0;
+function recordEntry(history: LocalHistory, entry: { action: HistoryAction; payload: unknown; subject: string; identity?: string; eventId?: string }) {
+  return history.record({
+    ...entry,
+    identity: entry.identity ?? `test|records|record|${entry.subject}`,
+    eventId: entry.eventId ?? `abcdef01-0000-4000-8000-${String(++nextEvent).padStart(12, '0')}`,
+  });
+}
+
 const allArgs = (executor: RecordingExecutor): string[] =>
   executor.calls.flatMap((call) => [...call.args]);
 
@@ -49,7 +59,7 @@ test("every fixed action is accepted", async () => {
   try {
     await history.initialize();
     for (const action of HISTORY_ACTIONS) {
-      const commit = await history.record({ action, payload: { ok: true }, subject: `subject for ${action}` });
+      const commit = await recordEntry(history, { action, payload: { ok: true }, subject: `subject for ${action}` });
       assert.equal(commit.action, action);
     }
   } finally {
@@ -61,7 +71,7 @@ test("an unrecognized action is refused before any command runs", async () => {
   const { dir, executor, history } = makeHistory();
   try {
     await assert.rejects(
-      () => history.record({ action: "sideways" as never, payload: {}, subject: "x" }),
+      () => recordEntry(history, { action: "sideways" as never, payload: {}, subject: "x" }),
       /not a recognized history action/u,
     );
     assert.equal(executor.calls.length, 0, "it ran a command for an action it should have refused");
@@ -74,7 +84,7 @@ test("an empty subject is refused before any command runs", async () => {
   const { dir, executor, history } = makeHistory();
   try {
     await assert.rejects(
-      () => history.record({ action: "created", payload: {}, subject: "   " }),
+      () => recordEntry(history, { action: "created", payload: {}, subject: "   " }),
       /non-empty subject/u,
     );
     assert.equal(executor.calls.length, 0, "it ran a command for a subject it should have refused");
@@ -87,9 +97,33 @@ test("the commit message names what changed, not merely that something changed",
   const { dir, history } = makeHistory();
   try {
     await history.initialize();
-    const commit = await history.record({ action: "deleted", payload: {}, subject: "the endpoint 1001" });
+    const commit = await recordEntry(history, { action: "deleted", payload: {}, subject: "the endpoint 1001" });
     assert.match(commit.message, /^Deleted the endpoint 1001$/mu);
     assert.doesNotMatch(commit.message, /^Updated/mu);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("a repeated event id returns the original commit instead of duplicating it", async () => {
+  const { dir, history } = makeHistory();
+  try {
+    await history.initialize();
+    const entry = { action: "updated" as const, payload: { value: "one" }, subject: "same event", identity: "target|resource|kind|object", eventId: "abcdef01-0000-4000-8000-000000000001" };
+    const first = await history.record(entry);
+    const second = await history.record(entry);
+    assert.equal(second.id, first.id);
+    assert.equal((await history.list()).length, 1);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("identity parts are bounded and collision-safe", async () => {
+  const { dir, history } = makeHistory();
+  try {
+    await history.initialize();
+    await assert.rejects(() => history.record({ action: "created", payload: {}, subject: "too long identity", identity: `target|resource|kind|${"x".repeat(129)}`, eventId: "abcdef01-0000-4000-8000-000000000002" }), /identity must contain four parts/u);
   } finally {
     cleanup(dir);
   }
@@ -99,9 +133,9 @@ test("list returns newest first", async () => {
   const { dir, history } = makeHistory();
   try {
     await history.initialize();
-    const first = await history.record({ action: "created", payload: {}, subject: "record one" });
-    const second = await history.record({ action: "created", payload: {}, subject: "record two" });
-    const third = await history.record({ action: "created", payload: {}, subject: "record three" });
+    const first = await recordEntry(history, { action: "created", payload: {}, subject: "record one" });
+    const second = await recordEntry(history, { action: "created", payload: {}, subject: "record two" });
+    const third = await recordEntry(history, { action: "created", payload: {}, subject: "record three" });
     const commits = await history.list();
     assert.deepEqual(commits.map((c) => c.id), [third.id, second.id, first.id]);
   } finally {
@@ -113,9 +147,9 @@ test("list filters by action", async () => {
   const { dir, history } = makeHistory();
   try {
     await history.initialize();
-    await history.record({ action: "created", payload: {}, subject: "record a" });
-    const updated = await history.record({ action: "updated", payload: {}, subject: "record b" });
-    await history.record({ action: "deleted", payload: {}, subject: "record c" });
+    await recordEntry(history, { action: "created", payload: {}, subject: "record a" });
+    const updated = await recordEntry(history, { action: "updated", payload: {}, subject: "record b" });
+    await recordEntry(history, { action: "deleted", payload: {}, subject: "record c" });
     const commits = await history.list({ action: "updated" });
     assert.deepEqual(commits.map((c) => c.id), [updated.id]);
   } finally {
@@ -129,11 +163,11 @@ test("list filters by a date range", async () => {
   const { dir, history } = makeHistory();
   try {
     await history.initialize();
-    const first = await history.record({ action: "created", payload: {}, subject: "record a" });
+    const first = await recordEntry(history, { action: "created", payload: {}, subject: "record a" });
     await sleep(1100);
-    const second = await history.record({ action: "created", payload: {}, subject: "record b" });
+    const second = await recordEntry(history, { action: "created", payload: {}, subject: "record b" });
     await sleep(1100);
-    const third = await history.record({ action: "created", payload: {}, subject: "record c" });
+    const third = await recordEntry(history, { action: "created", payload: {}, subject: "record c" });
     const commits = await history.list({ since: second.timestamp, until: second.timestamp });
     assert.deepEqual(commits.map((c) => c.id), [second.id]);
     assert.notEqual(first.id, second.id);
@@ -147,11 +181,11 @@ test("action and date filters compose together rather than one overriding the ot
   const { dir, history } = makeHistory();
   try {
     await history.initialize();
-    await history.record({ action: "created", payload: {}, subject: "record a" });
+    await recordEntry(history, { action: "created", payload: {}, subject: "record a" });
     await sleep(1100);
-    const target = await history.record({ action: "updated", payload: {}, subject: "record b" });
+    const target = await recordEntry(history, { action: "updated", payload: {}, subject: "record b" });
     await sleep(1100);
-    await history.record({ action: "updated", payload: {}, subject: "record c" });
+    await recordEntry(history, { action: "updated", payload: {}, subject: "record c" });
     const commits = await history.list({ action: "updated", since: target.timestamp, until: target.timestamp });
     assert.deepEqual(commits.map((c) => c.id), [target.id]);
   } finally {
@@ -163,7 +197,7 @@ test("an unknown action filter is refused rather than silently returning everyth
   const { dir, history } = makeHistory();
   try {
     await history.initialize();
-    await history.record({ action: "created", payload: {}, subject: "record a" });
+    await recordEntry(history, { action: "created", payload: {}, subject: "record a" });
     await assert.rejects(() => history.list({ action: "bogus" }), /not a recognized history action/u);
   } finally {
     cleanup(dir);
@@ -174,8 +208,8 @@ test("actionCounts reports a zero for an action with no commits", async () => {
   const { dir, history } = makeHistory();
   try {
     await history.initialize();
-    await history.record({ action: "created", payload: {}, subject: "record a" });
-    await history.record({ action: "created", payload: {}, subject: "record b" });
+    await recordEntry(history, { action: "created", payload: {}, subject: "record a" });
+    await recordEntry(history, { action: "created", payload: {}, subject: "record b" });
     const counts = await history.actionCounts();
     assert.equal(counts.created, 2);
     assert.equal(counts.deleted, 0);
@@ -189,7 +223,7 @@ test("restore records a new commit rather than rewriting history", async () => {
   const { dir, history } = makeHistory();
   try {
     await history.initialize();
-    const original = await history.record({ action: "deleted", payload: { note: "gone" }, subject: "record a" });
+    const original = await recordEntry(history, { action: "deleted", payload: { note: "gone" }, subject: "record a" });
     const before = await history.list();
     const restored = await history.restore(original.id);
     assert.notEqual(restored.id, original.id);
@@ -217,11 +251,11 @@ test("prune keeps N and refuses a non-positive retention count", async () => {
   const { dir, history } = makeHistory();
   try {
     await history.initialize();
-    await history.record({ action: "created", payload: {}, subject: "record a" });
-    await history.record({ action: "created", payload: {}, subject: "record b" });
-    await history.record({ action: "created", payload: {}, subject: "record c" });
-    assert.deepEqual(await history.prune(1), { kept: 1 });
-    assert.deepEqual(await history.prune(100), { kept: 3 });
+    await recordEntry(history, { action: "created", payload: {}, subject: "record a" });
+    await recordEntry(history, { action: "created", payload: {}, subject: "record b" });
+    await recordEntry(history, { action: "created", payload: {}, subject: "record c" });
+    assert.deepEqual(await history.prune(1), { kept: 1, removed: 0, policy: "immutable-append-only", available: false, reason: "History rotation is unavailable because deleting old commits would rewrite the append-only store." });
+    assert.deepEqual(await history.prune(100), { kept: 3, removed: 0, policy: "immutable-append-only", available: false, reason: "History rotation is unavailable because deleting old commits would rewrite the append-only store." });
     await assert.rejects(() => history.prune(0), /at least 1/u);
     await assert.rejects(() => history.prune(-5), /at least 1/u);
   } finally {
@@ -233,12 +267,14 @@ test("a credential-looking payload value is redacted on disk", async () => {
   const { dir, history } = makeHistory();
   try {
     await history.initialize();
-    await history.record({
+    await recordEntry(history, {
       action: "created",
       payload: { username: "1001", password: "hunter2", apiKey: "sk-live-abc", nested: { token: "xyz" } },
       subject: "protected record",
     });
-    const raw = readFileSync(join(dir, "records", "protected-record.json"), "utf8");
+    const recordFile = readdirSync(join(dir, "records")).find((name) => name.endsWith('.json'));
+    assert.ok(recordFile);
+    const raw = readFileSync(join(dir, "records", recordFile), "utf8");
     assert.doesNotMatch(raw, /hunter2/u);
     assert.doesNotMatch(raw, /sk-live-abc/u);
     assert.doesNotMatch(raw, /xyz/u);
@@ -268,7 +304,7 @@ test("every command this class issues avoids shell metacharacters", async () => 
   const { dir, executor, history } = makeHistory();
   try {
     await history.initialize();
-    const original = await history.record({ action: "created", payload: {}, subject: "record a" });
+    const original = await recordEntry(history, { action: "created", payload: {}, subject: "record a" });
     await history.list();
     await history.restore(original.id);
     await history.prune(1);
@@ -284,8 +320,8 @@ test("negative regression: no command this class issues ever rewrites history", 
   const { dir, executor, history } = makeHistory();
   try {
     await history.initialize();
-    const first = await history.record({ action: "created", payload: {}, subject: "record a" });
-    await history.record({ action: "updated", payload: {}, subject: "record b" });
+    const first = await recordEntry(history, { action: "created", payload: {}, subject: "record a" });
+    await recordEntry(history, { action: "updated", payload: {}, subject: "record b" });
     await history.list({ action: "updated" });
     await history.actionCounts();
     await history.restore(first.id);

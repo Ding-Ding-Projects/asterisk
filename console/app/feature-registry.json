@@ -168,8 +168,8 @@
       ]
     },
     "external-editor-handoff": {
-      "state": "implemented",
-      "note": "Implemented 2026-08-23 and consumed by this lane through the shared planner. App.tsx routes History, Changelog, appearance, and table exports through the control-plane external-editor.write-open seam, while the History folder uses external-editor.path plus external-editor.open. The control plane resolves the exact app-data path, validates ownership, launches VS Code without a shell, and writes export bytes into app-data exports before opening them. Detection and editor choice remain owned by external-editor.ts; this lane does not duplicate that implementation.",
+      "state": "partial",
+      "note": "Mounted as a VS Code-only privileged handoff for History, Changelog, appearance, and table exports, plus the History folder. The control plane resolves the exact app-data path, validates ownership, retries the available VS Code command names without a shell, and writes export bytes into app-data exports before opening them. The general installed-editor picker, custom-editor registration, absolute fallback discovery, and selected-editor launch remain outside this mounted seam.",
       "files": [
         "app/renderer/src/external-editor.ts",
         "app/renderer/src/App.tsx",

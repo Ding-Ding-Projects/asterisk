@@ -3,9 +3,12 @@ import test from 'node:test';
 
 import {
   describeLoss,
+  createZipArchive,
   exportFilename,
   exportRows,
+  reopenZipArchive,
   suitableFormats,
+  validateZipArchive,
 } from '../../app/renderer/src/export.ts';
 import type { ExportFormat } from '../../app/renderer/src/export.ts';
 
@@ -234,6 +237,18 @@ test('suitableFormats excludes xml when a column name is not a valid element nam
 test('suitableFormats excludes sql when a column name is not a plain identifier', () => {
   const formats = suitableFormats([{ 'bad col': 1 }]);
   assert.equal(formats.includes('sql'), false);
+});
+
+test('ZIP validation and independent reopen preserve exact names and text', () => {
+  const archive = createZipArchive([
+    { name: 'history.json', text: '{"ok":true}' },
+    { name: 'omissions.json', text: '{"omitted":true}' },
+  ]);
+  assert.deepEqual(validateZipArchive(archive), { ok: true, entries: 2 });
+  assert.deepEqual(reopenZipArchive(archive), [
+    { name: 'history.json', text: '{"ok":true}' },
+    { name: 'omissions.json', text: '{"omitted":true}' },
+  ]);
 });
 
 // ---------------------------------------------------------------- describeLoss

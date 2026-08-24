@@ -149,7 +149,7 @@ export interface DocsBundle {
 
   await mkdir(dirname(outFile), { recursive: true });
   await writeFile(outFile, `${header}\n${body}`, 'utf8');
-  await writeFile(manifestFile, `${JSON.stringify({ schemaVersion: 1, articleCount: articles.length, articleIds: articles.map((article) => article.id), headings: Object.fromEntries(articles.map((article) => [article.id, article.headings.map((heading) => heading.id)])), linkChut: 'generator-fails-on-missing-target-or-heading-fragment' }, null, 2)}\n`, 'utf8');
+  await writeFile(manifestFile, `${JSON.stringify({ schemaVersion: 1, articleCount: articles.length, articleIds: articles.map((article) => article.id), headings: Object.fromEntries(articles.map((article) => [article.id, article.headings.map((heading) => heading.id)])), links: Object.fromEntries(articles.map((article) => [article.id, article.links])), linkChut: 'generator-fails-on-missing-target-or-heading-fragment' }, null, 2)}\n`, 'utf8');
 
   console.log(
     `docs-bundle: wrote ${articles.length} article(s) from ${relFiles.length} markdown file(s) to ${relative(process.cwd(), outFile)}`,

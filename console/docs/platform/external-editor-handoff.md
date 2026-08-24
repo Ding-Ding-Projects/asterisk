@@ -12,13 +12,13 @@ Opening a folder would open it as a workspace root rather than a single unrooted
 
 ## Current status
 
-**Desktop application:** Not implemented. The desktop application has no external editor detection or handoff action anywhere in its interface.
+**Desktop application:** Partial. History, Changelog, appearance, and table exports can hand off a generated file to Visual Studio Code through the privileged control-plane seam, and History can open its app-data folder. The general installed-editor picker, custom-editor registration, and selected-editor launch remain unmounted.
 
 **Documentation website:** Not implemented. The documentation website has no local files of the user's own to hand off to an editor.
 
 ## Failure modes
 
-When no supported editor is installed, the intended behavior is a clear message naming that and an offer to get one, rather than a silently disabled or missing button; there is no handoff action yet to fail this way.
+When Visual Studio Code is unavailable, the handoff reports that the export remains available through its ordinary download. The broader editor picker is not yet mounted, so custom-editor failures are not currently reachable.
 
 ## Accessibility and localization
 
@@ -26,7 +26,7 @@ This feature is expected to follow the product's standing accessibility contract
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+The pure editor planner has focused Chuts, while the privileged handoff still needs built-artifact verification. The Documentation website has no local editor handoff of its own.
 
 ## Suggested articles
 

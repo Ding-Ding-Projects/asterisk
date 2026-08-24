@@ -25,7 +25,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { ProcessExecutor } from "./executor.js";
-import { parseInclusiveBoundary } from "../shared/date-range.js";
+import { normalizeLocalDateInterval } from "../shared/date-range.js";
 
 /** The fixed set of actions a history entry may record. Nothing else is accepted. */
 export const HISTORY_ACTIONS = [
@@ -215,7 +215,7 @@ function parseLogRecord(record: string): HistoryCommit {
   }
   const action = /^History-Action: (.+)$/mu.exec(body)?.[1]?.trim();
   const subject = /^History-Subject: (.+)$/mu.exec(body)?.[1]?.trim();
-  const eventId = /^History-Event-Id: ([0-9a-f-]+)$/mi.exec(body)?.[1]?.trim();
+  const eventId = /^History-Event-?Id: ([0-9a-f-]+)$/mi.exec(body)?.[1]?.trim();
   if (!action || !HISTORY_ACTION_SET.has(action) || !subject) {
     throw new Error(`Commit ${id} does not look like a LocalHistory entry.`);
   }
@@ -316,25 +316,24 @@ export class LocalHistory {
   async record(entry: LocalHistoryEntry): Promise<HistoryCommit> {
     assertKnownAction(entry.action);
     if (!/^[0-9a-f-]{16,128}$/iu.test(entry.eventId)) throw new Error('A history mutation needs a stable event id for retry idempotency.');
-    const existing = (await this.#logAll()).find((commit) => commit.eventId === entry.eventId);
-    if (existing) return existing;
     const subject = requireSubject(entry.subject);
     validatePayload(entry.payload);
     const redactedPayload = redactSecretValues(entry.payload);
-    const serializedPayload = JSON.stringify(redactedPayload);
-    if (serializedPayload.length > MAX_PAYLOAD_BYTES) throw new Error(`A history payload exceeds the ${MAX_PAYLOAD_BYTES}-byte limit.`);
     const identity = entry.identity.trim();
     if (!identity) throw new Error('A history mutation needs a stable target/resource/kind/object identity.');
-    if (identity.length > 512 || /[\u0000-\u001f\u007f]/u.test(identity)) throw new Error("A history identity must be bounded and contain no control characters.");
+    const identityParts = identity.split('|');
+    if (identityParts.length !== 4 || identityParts.some((part) => part.length === 0 || part.length > 128 || /[\u0000-\u001f\u007f]/u.test(part))) throw new Error("A history identity must contain four parts of 1 to 128 characters with no control characters.");
+    const existing = (await this.#logAll()).find((commit) => commit.eventId === entry.eventId);
+    if (existing) return existing;
     const relativePath = filenameFor(identity);
     const absolutePath = join(this.#repositoryPath, relativePath);
     await mkdir(join(this.#repositoryPath, 'records'), { recursive: true });
+    const serialized = `${JSON.stringify({ schemaVersion: 1, identity, eventId: entry.eventId, omitted: ['original payload snapshot', 'credential-shaped payload values'], payload: redactedPayload }, null, 2)}\n`;
+    if (Buffer.byteLength(serialized, 'utf8') > MAX_PAYLOAD_BYTES) throw new Error(`A history payload exceeds the ${MAX_PAYLOAD_BYTES}-byte limit after UTF-8 serialization.`);
     if (entry.action === "deleted") {
       await unlink(absolutePath).catch(() => undefined);
     } else {
       await mkdir(dirname(absolutePath), { recursive: true });
-      const serialized = `${JSON.stringify({ schemaVersion: 1, identity, eventId: entry.eventId, omitted: ['original payload snapshot', 'credential-shaped payload values'], payload: redactedPayload }, null, 2)}\n`;
-      if (Buffer.byteLength(serialized, 'utf8') > MAX_PAYLOAD_BYTES) throw new Error(`A history payload exceeds the ${MAX_PAYLOAD_BYTES}-byte limit after UTF-8 serialization.`);
       await writeFile(absolutePath, serialized, "utf8");
     }
     /* Stage the entire records tree so a delete is a real tree deletion and every
@@ -374,7 +373,11 @@ export class LocalHistory {
         if (attempt < 4) await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)));
       }
     }
-    if (lastError) throw lastError;
+    if (lastError) {
+      await unlink(temporary).catch(() => undefined);
+      const detail = lastError instanceof Error ? lastError.message : String(lastError);
+      throw new Error(`The durable history retry queue could not be replaced after 5 attempts; temporary file was removed. ${detail}`);
+    }
   }
 
   async enqueueRetry(entry: LocalHistoryEntry): Promise<void> {
@@ -406,18 +409,17 @@ export class LocalHistory {
   /** Newest first. Filters compose and cursor pagination is stable by commit id. */
   async listPage(options?: LocalHistoryListOptions): Promise<LocalHistoryPage> {
     if (options?.action !== undefined) assertKnownAction(options.action);
-    const since = options?.since !== undefined ? this.boundary(options.since, false) : undefined;
-    const until = options?.until !== undefined ? this.boundary(options.until, true) : undefined;
+    const interval = normalizeLocalDateInterval(options?.since ?? '', options?.until ?? '');
 
     let commits = await this.#logAll();
     if (options?.action !== undefined) {
       commits = commits.filter((commit) => commit.action === options.action);
     }
-    if (since !== undefined) {
-      commits = commits.filter((commit) => new Date(commit.timestamp) >= since);
+    if (interval.fromMs !== undefined) {
+      commits = commits.filter((commit) => new Date(commit.timestamp).getTime() >= interval.fromMs!);
     }
-    if (until !== undefined) {
-      commits = commits.filter((commit) => new Date(commit.timestamp) <= until);
+    if (interval.toMs !== undefined) {
+      commits = commits.filter((commit) => new Date(commit.timestamp).getTime() <= interval.toMs!);
     }
     if (options?.query) {
       const query = options.query.slice(0, 256);
@@ -453,11 +455,6 @@ export class LocalHistory {
   private async treeFiles(commitId: string): Promise<string[]> {
     const output = await this.#run(["ls-tree", "-r", "--name-only", commitId, "--", "records"]);
     return output.split(/\r?\n/u).map((line) => line.trim()).filter((line) => /^records\/[0-9a-f]{32}\.json$/u.test(line));
-  }
-
-  private boundary(value: string, endOfDay: boolean): Date {
-    try { return parseInclusiveBoundary(value, endOfDay); }
-    catch { throw new Error(`Invalid history service date: ${value}`); }
   }
 
   async inspect(commitId: string): Promise<HistoryTreeInspection> {

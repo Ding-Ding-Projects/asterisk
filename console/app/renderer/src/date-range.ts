@@ -1,4 +1,4 @@
-import { localIsoDay } from '../../../shared/date-range';
+import { localIsoDay, normalizeLocalDateInterval } from '../../../shared/date-range';
 
 /** Shared inclusive ISO date-range semantics for History and Changelog screens. */
 export interface InclusiveDateRange {
@@ -24,8 +24,12 @@ export function validateInclusiveDateRange(from: string, to: string): DateRangeV
   const cleanTo = to.trim();
   if (cleanFrom && !isIsoDate(cleanFrom)) return { ok: false, error: 'From date must use a valid YYYY-MM-DD calendar date.' };
   if (cleanTo && !isIsoDate(cleanTo)) return { ok: false, error: 'To date must use a valid YYYY-MM-DD calendar date.' };
-  if (cleanFrom && cleanTo && cleanFrom > cleanTo) return { ok: false, error: 'From date must be on or before To date.' };
-  return { ok: true, ...(cleanFrom ? { from: cleanFrom } : {}), ...(cleanTo ? { to: cleanTo } : {}) };
+  try {
+    const normalized = normalizeLocalDateInterval(cleanFrom, cleanTo);
+    return { ok: true, ...(normalized.fromDay ? { from: normalized.fromDay } : {}), ...(normalized.toDay ? { to: normalized.toDay } : {}) };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'The date range is invalid.' };
+  }
 }
 
 export function dateRangeContains(date: string, range: InclusiveDateRange): boolean {

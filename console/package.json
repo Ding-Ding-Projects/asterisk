@@ -8,7 +8,7 @@
   "main": "dist-electron/app/electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "npm run compile:design && npm run bundle:docs && npm run bundle:changelog && npm run write:update-manifest && tsc -b && vite build",
+    "build": "npm run compile:design && npm run bundle:docs && npm run check:docs-links && npm run bundle:changelog && npm run write:update-manifest && tsc -b && vite build",
     "write:update-manifest": "node scripts/write-update-manifest.mjs",
     "start": "electron .",
     "test:ui": "node --test tests/ui/*.test.mjs",
@@ -19,7 +19,7 @@
     "package:squirrel": "npm run bundle:asterisk && npm run build && node scripts/package-squirrel.mjs",
     "compile:design": "node scripts/compile-design.mjs && node scripts/extend-pbx-m3.mjs",
     "test:renderer": "tsx --test tests/ui/*.test.tsx",
-    "test:inventories": "node scripts/verify-inventories.mjs --allow-unverified && node scripts/negative-design-parity.mjs && node scripts/negative-surface-completeness.mjs && node scripts/negative-evidence-claims.mjs",
+    "test:inventories": "node scripts/verify-inventories.mjs --allow-unverified && npm run check:docs-links && node scripts/negative-design-parity.mjs && node scripts/negative-surface-completeness.mjs && node scripts/negative-evidence-claims.mjs",
     "test:iso": "node --test tests/iso/*.test.mjs",
     "test": "npm run test:ui && npm run test:renderer && npm run test:control-plane && npm run test:contracts && npm run test:site && npm run test:server && npm run test:iso && npm run test:inventories",
     "bundle:docs": "node scripts/bundle-docs.mjs",

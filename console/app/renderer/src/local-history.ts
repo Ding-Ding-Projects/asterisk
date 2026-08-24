@@ -44,7 +44,7 @@ export interface HistorySearchResult {
  * with the same endpoint name never share a history record path. */
 export function stableHistoryIdentity(targetId: string, resource: string, kind: string, objectId: string): string {
   const parts = [targetId, resource, kind, objectId].map((part) => part.trim());
-  if (parts.some((part) => part.length === 0 || /[\u0000-\u001f\u007f]/u.test(part))) throw new Error('History identity parts must be non-empty and contain no control characters.');
+  if (parts.some((part) => part.length === 0 || part.length > 128 || part.includes('|') || /[\u0000-\u001f\u007f]/u.test(part))) throw new Error('History identity parts must be 1 to 128 characters, contain no pipes, and contain no control characters.');
   return parts.join('|');
 }
 

@@ -726,5 +726,489 @@
       "suggested-articles"
     ]
   },
+  "links": {
+    "agent/hub": [
+      "skills.md",
+      "memory.md",
+      "sync.md"
+    ],
+    "agent/memory": [
+      "sync.md",
+      "vocab.md",
+      "hub.md"
+    ],
+    "agent/ops": [
+      "../app/history.md",
+      "secrets.md",
+      "../app/about.md"
+    ],
+    "agent/README": [
+      "memory.md",
+      "sync.md",
+      "skills.md",
+      "hub.md",
+      "vocab.md",
+      "ops.md",
+      "secrets.md"
+    ],
+    "agent/secrets": [
+      "vocab.md",
+      "../data/ami.md",
+      "ops.md"
+    ],
+    "agent/skills": [
+      "memory.md",
+      "hub.md",
+      "ops.md"
+    ],
+    "agent/sync": [
+      "memory.md",
+      "secrets.md",
+      "../app/history.md"
+    ],
+    "agent/vocab": [
+      "memory.md",
+      "secrets.md",
+      "../app/notifications.md"
+    ],
+    "app/about": [
+      "../agent/ops.md",
+      "../system/security.md",
+      "customise.md"
+    ],
+    "app/appearance": [
+      "customise.md",
+      "history.md",
+      "notifications.md"
+    ],
+    "app/arcade": [
+      "history.md",
+      "customise.md",
+      "notifications.md"
+    ],
+    "app/customise": [
+      "appearance.md",
+      "arcade.md",
+      "notifications.md"
+    ],
+    "app/history": [
+      "servers.md",
+      "../system/security.md",
+      "arcade.md"
+    ],
+    "app/notifications": [
+      "history.md",
+      "arcade.md",
+      "../agent/vocab.md"
+    ],
+    "app/README": [
+      "servers.md",
+      "arcade.md",
+      "notifications.md",
+      "history.md",
+      "customise.md",
+      "appearance.md",
+      "about.md"
+    ],
+    "app/servers": [
+      "../system/security.md",
+      "../data/ami.md",
+      "../agent/ops.md"
+    ],
+    "changelog/automatic-updater-reliability": [],
+    "data/ami": [
+      "cdr.md",
+      "../system/security.md",
+      "../agent/secrets.md"
+    ],
+    "data/cdr": [
+      "ami.md",
+      "../pbx/dash.md",
+      "../system/logger.md"
+    ],
+    "data/README": [
+      "cdr.md",
+      "ami.md"
+    ],
+    "installer-iso": [],
+    "media/codecs": [
+      "../pbx/endpoints.md",
+      "confbridge.md",
+      "moh.md"
+    ],
+    "media/confbridge": [
+      "moh.md",
+      "codecs.md",
+      "../pbx/canvas.md"
+    ],
+    "media/moh": [
+      "confbridge.md",
+      "codecs.md",
+      "voicemail.md"
+    ],
+    "media/README": [
+      "voicemail.md",
+      "confbridge.md",
+      "moh.md",
+      "codecs.md"
+    ],
+    "media/voicemail": [
+      "../pbx/queues.md",
+      "codecs.md",
+      "../agent/secrets.md"
+    ],
+    "pbx/canvas": [
+      "ivr.md",
+      "queues.md",
+      "endpoints.md"
+    ],
+    "pbx/dash": [
+      "live.md",
+      "endpoints.md",
+      "../data/cdr.md"
+    ],
+    "pbx/endpoints": [
+      "trunks.md",
+      "../system/security.md",
+      "../media/codecs.md"
+    ],
+    "pbx/ivr": [
+      "canvas.md",
+      "queues.md",
+      "../media/voicemail.md"
+    ],
+    "pbx/live": [
+      "dash.md",
+      "../system/security.md",
+      "endpoints.md"
+    ],
+    "pbx/queues": [
+      "canvas.md",
+      "ivr.md",
+      "../media/moh.md"
+    ],
+    "pbx/README": [
+      "dash.md",
+      "live.md",
+      "endpoints.md",
+      "trunks.md",
+      "trunkauth.md",
+      "canvas.md",
+      "ivr.md",
+      "queues.md"
+    ],
+    "pbx/trunkauth": [
+      "trunks.md",
+      "../system/security.md",
+      "../app/history.md"
+    ],
+    "pbx/trunks": [
+      "trunkauth.md",
+      "endpoints.md",
+      "../system/security.md"
+    ],
+    "platform/accessibility": [
+      "responsive-sizing.md",
+      "material-appearance.md",
+      "../system/security.md",
+      "README.md"
+    ],
+    "platform/app-display-name": [
+      "app-logo-customization.md",
+      "../app/about.md",
+      "README.md"
+    ],
+    "platform/app-logo-customization": [
+      "material-appearance.md",
+      "app-display-name.md",
+      "../app/appearance.md",
+      "README.md"
+    ],
+    "platform/attention-modes": [
+      "accessibility.md",
+      "non-blocking-notifications.md",
+      "README.md"
+    ],
+    "platform/automatic-updates": [
+      "automatic-updates-evidence.md",
+      "in-context-recovery.md",
+      "non-blocking-notifications.md",
+      "app-display-name.md",
+      "README.md"
+    ],
+    "platform/automatic-updates-evidence": [
+      "automatic-updates.md",
+      "in-context-recovery.md",
+      "non-blocking-notifications.md",
+      "README.md"
+    ],
+    "platform/bounded-overlays": [
+      "material-appearance.md",
+      "command-palette.md",
+      "README.md"
+    ],
+    "platform/browser-extension-download-surfaces": [
+      "long-operation-progress.md",
+      "README.md"
+    ],
+    "platform/browser-style-tabs": [
+      "tab-groups-and-searches.md",
+      "command-palette.md",
+      "material-appearance.md",
+      "../app/appearance.md",
+      "README.md"
+    ],
+    "platform/built-in-authenticator": [
+      "per-element-toy-locks.md",
+      "unlock-ladder.md",
+      "../agent/secrets.md",
+      "README.md"
+    ],
+    "platform/bulk-actions": [
+      "complete-exports.md",
+      "destructive-action-confirmation.md",
+      "README.md"
+    ],
+    "platform/changelog-viewer": [
+      "local-version-history.md",
+      "status-hub.md",
+      "../app/history.md",
+      "README.md"
+    ],
+    "platform/collapsible-filters": [
+      "regex-builder.md",
+      "README.md"
+    ],
+    "platform/command-palette": [
+      "regex-builder.md",
+      "browser-style-tabs.md",
+      "README.md"
+    ],
+    "platform/complete-exports": [
+      "bulk-actions.md",
+      "local-version-history.md",
+      "README.md"
+    ],
+    "platform/context-menu-shortcuts": [
+      "command-palette.md",
+      "README.md"
+    ],
+    "platform/destructive-action-confirmation": [
+      "local-version-history.md",
+      "bulk-actions.md",
+      "../system/security.md",
+      "README.md"
+    ],
+    "platform/dialog-emojis": [
+      "non-blocking-notifications.md",
+      "README.md"
+    ],
+    "platform/dim-sum-surprise": [
+      "school-mode.md",
+      "README.md"
+    ],
+    "platform/external-editor-handoff": [
+      "complete-exports.md",
+      "../agent/ops.md",
+      "README.md"
+    ],
+    "platform/external-settings-sources": [
+      "scheduled-settings.md",
+      "README.md"
+    ],
+    "platform/forge-publishing": [
+      "external-editor-handoff.md",
+      "../agent/ops.md",
+      "README.md"
+    ],
+    "platform/funny-levels": [
+      "language-modes.md",
+      "README.md"
+    ],
+    "platform/guided-forms": [
+      "destructive-action-confirmation.md",
+      "README.md"
+    ],
+    "platform/in-context-recovery": [
+      "long-operation-progress.md",
+      "README.md"
+    ],
+    "platform/language-modes": [
+      "funny-levels.md",
+      "school-mode.md",
+      "../app/customise.md",
+      "README.md"
+    ],
+    "platform/local-version-history": [
+      "changelog-viewer.md",
+      "destructive-action-confirmation.md",
+      "../app/history.md",
+      "README.md"
+    ],
+    "platform/long-operation-progress": [
+      "browser-extension-download-surfaces.md",
+      "README.md"
+    ],
+    "platform/material-appearance": [
+      "app-logo-customization.md",
+      "browser-style-tabs.md",
+      "../app/appearance.md",
+      "README.md"
+    ],
+    "platform/narration": [
+      "language-modes.md",
+      "README.md"
+    ],
+    "platform/non-blocking-notifications": [
+      "dialog-emojis.md",
+      "status-hub.md",
+      "../app/notifications.md",
+      "README.md"
+    ],
+    "platform/offline-documentation-browser": [
+      "command-palette.md",
+      "README.md"
+    ],
+    "platform/per-element-toy-locks": [
+      "support-tickets.md",
+      "unlock-ladder.md",
+      "built-in-authenticator.md",
+      "../system/security.md",
+      "README.md"
+    ],
+    "platform/personal-vocabulary-upload": [
+      "language-modes.md",
+      "README.md"
+    ],
+    "platform/provider-markup-rendering": [
+      "changelog-viewer.md",
+      "offline-documentation-browser.md",
+      "README.md"
+    ],
+    "platform/README": [
+      "language-modes.md",
+      "funny-levels.md",
+      "dialog-emojis.md",
+      "school-mode.md",
+      "narration.md",
+      "scheduled-settings.md",
+      "external-settings-sources.md",
+      "dim-sum-surprise.md",
+      "regex-builder.md",
+      "non-blocking-notifications.md",
+      "status-hub.md",
+      "material-appearance.md",
+      "app-logo-customization.md",
+      "browser-style-tabs.md",
+      "tab-groups-and-searches.md",
+      "command-palette.md",
+      "destructive-action-confirmation.md",
+      "local-version-history.md",
+      "changelog-viewer.md",
+      "external-editor-handoff.md",
+      "complete-exports.md",
+      "bulk-actions.md",
+      "accessibility.md",
+      "responsive-sizing.md",
+      "personal-vocabulary-upload.md",
+      "per-element-toy-locks.md",
+      "support-tickets.md",
+      "unlock-ladder.md",
+      "built-in-authenticator.md",
+      "attention-modes.md",
+      "browser-extension-download-surfaces.md",
+      "offline-documentation-browser.md",
+      "app-display-name.md",
+      "guided-forms.md",
+      "bounded-overlays.md",
+      "context-menu-shortcuts.md",
+      "long-operation-progress.md",
+      "in-context-recovery.md",
+      "provider-markup-rendering.md",
+      "forge-publishing.md",
+      "collapsible-filters.md",
+      "automatic-updates.md"
+    ],
+    "platform/regex-builder": [
+      "command-palette.md",
+      "tab-groups-and-searches.md",
+      "collapsible-filters.md",
+      "README.md"
+    ],
+    "platform/responsive-sizing": [
+      "accessibility.md",
+      "material-appearance.md",
+      "README.md"
+    ],
+    "platform/scheduled-settings": [
+      "external-settings-sources.md",
+      "README.md"
+    ],
+    "platform/school-mode": [
+      "language-modes.md",
+      "funny-levels.md",
+      "dim-sum-surprise.md",
+      "../app/customise.md",
+      "README.md"
+    ],
+    "platform/status-hub": [
+      "non-blocking-notifications.md",
+      "changelog-viewer.md",
+      "../agent/hub.md",
+      "README.md"
+    ],
+    "platform/support-tickets": [
+      "per-element-toy-locks.md",
+      "README.md"
+    ],
+    "platform/tab-groups-and-searches": [
+      "browser-style-tabs.md",
+      "regex-builder.md",
+      "README.md"
+    ],
+    "platform/unlock-ladder": [
+      "per-element-toy-locks.md",
+      "built-in-authenticator.md",
+      "../system/security.md",
+      "README.md"
+    ],
+    "README": [
+      "pbx/README.md",
+      "media/README.md",
+      "data/README.md",
+      "system/README.md",
+      "agent/README.md",
+      "app/README.md",
+      "installer-iso.md",
+      "app/history.md",
+      "app/arcade.md"
+    ],
+    "system/cli": [
+      "modules.md",
+      "logger.md",
+      "security.md"
+    ],
+    "system/logger": [
+      "modules.md",
+      "cli.md",
+      "../app/history.md"
+    ],
+    "system/modules": [
+      "logger.md",
+      "security.md",
+      "cli.md"
+    ],
+    "system/README": [
+      "modules.md",
+      "logger.md",
+      "security.md",
+      "cli.md"
+    ],
+    "system/security": [
+      "../pbx/endpoints.md",
+      "../pbx/trunkauth.md",
+      "../data/ami.md"
+    ]
+  },
   "linkChut": "generator-fails-on-missing-target-or-heading-fragment"
 }
