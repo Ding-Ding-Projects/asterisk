@@ -58,8 +58,8 @@ const authenticatorClient: AuthenticatorClient = {
   codeSnapshot: (id) => bridgeRequest<Awaited<ReturnType<AuthenticatorClient['codeSnapshot']>>>('authenticator.snapshot', { id }),
 };
 const historyClient: AuthenticatorHistoryClient = {
-  record: (entry) => bridgeRequest('local-history.record', { ...entry, snapshot: entry.snapshot ?? { kind: 'authenticator-redacted', stableRecordId: entry.stableRecordId, action: entry.action, subject: entry.subject } }),
-  list: () => bridgeRequest('local-history.list', { limit: 200 }),
+  record: async (entry) => { const result = await bridgeRequest<{ ok: boolean; message?: string }>('local-history.record', { ...entry, snapshot: entry.snapshot ?? { kind: 'authenticator-redacted', stableRecordId: entry.stableRecordId, action: entry.action, subject: entry.subject } }); return result.ok ? { ok: true } : { ok: false, warning: result.message ?? 'The local history receipt was unavailable.' }; },
+  list: async () => { const result = await bridgeRequest<{ entries?: { ok?: boolean; value?: ReadonlyArray<{ commitId: string; timestamp: string; action: string; subject: string }> } }>('local-history.list', { limit: 200 }); return result.entries?.ok ? result.entries.value ?? [] : []; },
   restore: (commitId) => bridgeRequest('authenticator.restore', { commitId }),
 };
 

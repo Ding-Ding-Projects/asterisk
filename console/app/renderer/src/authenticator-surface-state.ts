@@ -22,8 +22,8 @@ export interface AuthenticatorClient {
 }
 
 export interface AuthenticatorHistoryClient {
-  record(entry: { action: 'created' | 'updated' | 'deleted'; subject: string; stableRecordId: string; snapshot?: unknown }): Promise<unknown>;
-  list?(): Promise<unknown>;
+  record(entry: { action: 'created' | 'updated' | 'deleted'; subject: string; stableRecordId: string; snapshot?: unknown }): Promise<{ ok: boolean; warning?: string }>;
+  list?(): Promise<ReadonlyArray<{ commitId: string; timestamp: string; action: string; subject: string }>>;
   restore?(commitId: string): Promise<unknown>;
 }
 
@@ -108,11 +108,10 @@ export function exportAuthenticatorEntries(entries: ReadonlyArray<AuthenticatorE
 export async function recordAuthHistory(
   history: AuthenticatorHistoryClient | undefined,
   entry: { action: 'created' | 'updated' | 'deleted'; subject: string; stableRecordId: string; snapshot?: unknown },
-  onWarning?: (message: string) => void,
-): Promise<void> {
-  if (!history) return;
+): Promise<{ ok: boolean; warning?: string }> {
+  if (!history) return { ok: true };
   try {
     const result = await withDeadline(history.record(entry));
-    if (result && typeof result === 'object' && 'ok' in result && (result as { ok?: boolean }).ok === false) onWarning?.('The live change succeeded, but its local history receipt is unavailable.');
-  } catch { onWarning?.('The live change succeeded, but its local history receipt is unavailable.'); }
+    return result;
+  } catch { return { ok: false, warning: 'The live change succeeded, but its local history receipt is unavailable.' }; }
 }

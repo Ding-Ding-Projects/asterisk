@@ -85,11 +85,14 @@ export class FileAuthenticatorMetadataStore implements AuthenticatorMetadataStor
   async beginRemoval(id: string): Promise<AuthenticatorMetadataResult<undefined>> { return await this.#serialize(async () => { try { const value = await readJson<{ version: 1; entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>; pendingRemovals?: string[] }>(this.#path, { version: 1, entries: [], pendingRemovals: [] }); const pending = new Set(value.pendingRemovals ?? []); pending.add(id); await writeJson(this.#path, { ...value, pendingRemovals: [...pending] }); return { ok: true, value: undefined }; } catch { return { ok: false, code: "metadata-error" }; } }); }
   async completeRemoval(id: string): Promise<AuthenticatorMetadataResult<undefined>> { return await this.#serialize(async () => { try { const value = await readJson<{ version: 1; entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>; pendingRemovals?: string[] }>(this.#path, { version: 1, entries: [], pendingRemovals: [] }); await writeJson(this.#path, { ...value, pendingRemovals: (value.pendingRemovals ?? []).filter((candidate) => candidate !== id), tombstones: [...((value as { tombstones?: string[] }).tombstones ?? []), id].slice(-10_000) }); return { ok: true, value: undefined }; } catch { return { ok: false, code: "metadata-error" }; } }); }
   async rollbackRemoval(id: string): Promise<AuthenticatorMetadataResult<undefined>> { return await this.#serialize(async () => { try { const value = await readJson<{ version: 1; entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>; pendingRemovals?: string[] }>(this.#path, { version: 1, entries: [], pendingRemovals: [] }); await writeJson(this.#path, { ...value, pendingRemovals: (value.pendingRemovals ?? []).filter((candidate) => candidate !== id) }); return { ok: true, value: undefined }; } catch { return { ok: false, code: "metadata-error" }; } }); }
+  async reconcile(vault: AuthLockVault): Promise<void> { if (!vault.available) return; await this.#serialize(async () => { const value = await readJson<{ version: 1; entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>; pendingRemovals?: string[]; tombstones?: string[] }>(this.#path, { version: 1, entries: [], pendingRemovals: [], tombstones: [] }); const pending = new Set(value.pendingRemovals ?? []); const entries = [...value.entries]; for (const id of pending) { const entry = entries.find((candidate) => candidate.id === id); if (!entry) continue; if (await vault.has({ vaultAccount: entry.credentialReference, method: 'totp' })) continue; const index = entries.findIndex((candidate) => candidate.id === id); if (index >= 0) entries.splice(index, 1); value.tombstones = [...(value.tombstones ?? []), id].slice(-10_000); } await writeJson(this.#path, { ...value, entries, pendingRemovals: [...pending].filter((id) => entries.some((entry) => entry.id === id)), tombstones: value.tombstones ?? [] }); }); }
 }
 
 class FileSupportTicketStore {
   readonly #path: string;
+  #mutation: Promise<void> = Promise.resolve();
   constructor(path: string) { this.#path = path; }
+  async #serialize<T>(operation: () => Promise<T>): Promise<T> { const prior = this.#mutation; let release!: () => void; this.#mutation = new Promise<void>((resolve) => { release = resolve; }); await prior; try { return await operation(); } finally { release(); } }
 
   async list(): Promise<ReadonlyArray<SupportTicket>> {
     const value = await readJson<{ version: 1; tickets: ReadonlyArray<SupportTicket> }>(this.#path, { version: 1, tickets: [] });
@@ -101,7 +104,8 @@ class FileSupportTicketStore {
     });
   }
 
-  async create(input: { category: string; description: string; severity: string }): Promise<SupportTicket> {
+  async create(input: { category: string; description: string; severity: string }): Promise<SupportTicket> { return await this.#serialize(() => this.#create(input)); }
+  async #create(input: { category: string; description: string; severity: string }): Promise<SupportTicket> {
     if (!SUPPORT_TICKET_CATEGORIES.includes(input.category as SupportTicketCategory)) throw new Error("Pick a supported ticket category.");
     if (input.description.trim().length < 1 || input.description.length > 2_000) throw new Error("A bounded ticket description is required.");
     if (!SUPPORT_TICKET_SEVERITIES.includes(input.severity as SupportTicketSeverity)) throw new Error("Pick a supported ticket severity.");
@@ -113,7 +117,8 @@ class FileSupportTicketStore {
     return ticket;
   }
 
-  async advance(id: string): Promise<SupportTicket> {
+  async advance(id: string): Promise<SupportTicket> { return await this.#serialize(() => this.#advance(id)); }
+  async #advance(id: string): Promise<SupportTicket> {
     const tickets = [...await this.list()];
     const index = tickets.findIndex((ticket) => ticket.id === id);
     if (index < 0) throw new Error("The local ticket was not found.");
@@ -222,7 +227,7 @@ export function createAuthLockRuntime(options: AuthLockRuntimeOptions) {
   const authenticator = new AuthenticatorStore({ vault, metadata, verifyCode, createEntryId: () => `${Date.now().toString(36)}-${randomBytes(12).toString("hex")}` });
   const persistence: LockRecordPersistence = new FileLockRecordPersistence(join(options.userDataPath, "toy-locks.json"), () => randomUUID().replaceAll("-", ""));
   const locks = new ToyLockStore({ persistence, vault, recovery: options.recovery });
-  const locksReady = locks.initialize();
+  const locksReady = (async () => { await metadata.reconcile(vault); await (persistence as FileLockRecordPersistence).reconcile?.(vault); return await locks.initialize(); })();
   const tickets = new FileSupportTicketStore(join(options.userDataPath, "support-tickets.json"));
   const ladderState = new FileUnlockLadderStateStore(join(options.userDataPath, "unlock-ladder-state.json"));
   const ladder = new UnlockLadder({ now: () => Date.now(), random: randomUnit, createNonce, stateStore: ladderState, hasAuthoritativeWait: (lockoutId) => ladderState.hasWait(lockoutId), clearAuthoritativeWait: (lockoutId) => ladderState.clearWait(lockoutId) });

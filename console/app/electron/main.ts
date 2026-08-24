@@ -19,23 +19,12 @@ import {
 
 let mainWindow: BrowserWindow | null = null;
 const userDataPath = app.getPath('userData');
-async function trustedUpdateTime(): Promise<number | undefined> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 2_000);
-  try {
-    const response = await fetch('https://api.github.com/repos/Ding-Ding-Projects/asterisk/releases?per_page=1', { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'ding-pbx-console-clock' }, redirect: 'error', signal: controller.signal });
-    const date = response.headers.get('date');
-    const parsed = date ? Date.parse(date) : Number.NaN;
-    return response.ok && Number.isFinite(parsed) ? parsed : undefined;
-  } catch { return undefined; } finally { clearTimeout(timer); }
-}
 const dispatcher = createControlPlaneDispatcher({
   userDataPath,
   resourcesPath: process.resourcesPath,
   hosted: false,
   authLockVault: new ElectronCredentialVault(join(userDataPath, 'credential-vault.json')),
   historyProtector: new ElectronHistorySnapshotProtector(join(userDataPath, 'history-key.json')),
-  trustedTime: trustedUpdateTime,
 });
 const { controlPlaneRequest } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
