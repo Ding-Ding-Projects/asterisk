@@ -1,5 +1,20 @@
 # Ding PBX delivery handoff
 
+## Hosted deployment lane, 2026-08-24
+
+### Implemented
+
+- `deployer/deployment/control-plane.Dockerfile` builds Asterisk and the hosted console from the exact checkout commit supplied by `build-control-plane.ps1`. Ubuntu and Node build bases are digest pinned. The runtime has a dedicated non-root UID/GID, explicit port `8088`, a Docker healthcheck, OCI source and version labels, a persistent data volume, and `/opt/ding-pbx-console/provenance.json`.
+- `deployer/deployment/docker-compose.yml` is the hosted runtime contract. It uses a read-only root filesystem, dropped capabilities, `no-new-privileges`, bounded temporary filesystems, `restart: unless-stopped`, named volume `ding-pbx-control-plane-data`, and Docker-mounted TLS secrets. It does not place secret bytes in the image or environment.
+- `deployer/deployment/preflight.ps1` is a read-only inventory for WSL, local Docker, and an explicitly approved private host. It reports architecture, CPU, memory, disk capacity, Docker state, and existing workloads without starting, stopping, pruning, importing, removing, or deploying anything.
+- `deployer/deployment/rollback.ps1` prints a rollback plan by default and retains the persistent volume. It mutates Compose state only when `-Execute` is explicitly supplied.
+- `console/server/http-server.ts` exposes `/api/v1/health` with the observed bundled Asterisk binary version. `console/control-plane/dispatch.ts` rejects a packaged WSL runtime whose provenance schema, source commit shape, runtime identifier, base-image digest, or recorded byte count does not match the rootfs.
+- The hosted deployment article, changelog record, platform index, and both surface feature registries describe the exact implementation and evidence boundary.
+
+### Verification boundary
+
+No Docker build, WSL import, private-host probe, Compose start, installer run, runtime interaction, capture, release, or deployment was performed in this lane. The next owner must run `preflight.ps1` first, build from the intended full commit, verify the image labels and provenance file, and then perform any separately authorized deployment with health and rollback evidence.
+
 ## Scope
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.

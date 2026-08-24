@@ -7,7 +7,7 @@
  * directly now takes those two paths as constructor options instead, so this module has
  * no dependency on Electron and can run inside a plain Node.js process on a VM.
  */
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { WslProvisioning, MANAGED_DISTRIBUTION } from './wsl-provisioning.js';
@@ -152,6 +152,15 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     if (!existsSync(rootfs) || !existsSync(provenance)) return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime is missing.' };
     try {
       const record = JSON.parse(readFileSync(provenance, 'utf8')) as Record<string, unknown>;
+      const sourceCommit = typeof record.sourceCommit === 'string' && /^[0-9a-f]{40}$/iu.test(record.sourceCommit);
+      const digest = typeof record.sha256 === 'string' && /^[0-9a-f]{64}$/iu.test(record.sha256);
+      const bytes = typeof record.bytes === 'number' && Number.isSafeInteger(record.bytes) && record.bytes > 0;
+      const runtime = record.runtime === 'wsl2-linux-amd64';
+      const baseDigest = typeof record.baseDigest === 'string' && /^sha256:[0-9a-f]{64}$/iu.test(record.baseDigest);
+      const actualBytes = statSync(rootfs).size;
+      if (record.schemaVersion !== 1 || !sourceCommit || !digest || !bytes || !runtime || !baseDigest || actualBytes !== record.bytes) {
+        return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime provenance does not match the rootfs bytes.' };
+      }
       return { state: 'available', rootfs, provenance, record };
     } catch {
       return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime provenance is invalid.' };

@@ -5,5 +5,8 @@ console/dist
 console/dist-electron
 console/resources/*.tar
 console/resources/*.json
+deployer/deployment/out
+deployer/deployment/secrets
+deployer/deployment/*.log
 **/*.pyc
 **/__pycache__

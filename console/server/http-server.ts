@@ -9,6 +9,7 @@
  */
 import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { createServer as createHttpsServer } from 'node:https';
+import { execFile } from 'node:child_process';
 import { readFileSync, existsSync, statSync, createReadStream } from 'node:fs';
 import { join, extname, normalize, sep } from 'node:path';
 import type { Server } from 'node:http';
@@ -58,6 +59,19 @@ export const PLAIN_HTTP_WARNING =
   'acceptable only on a network you trust completely, such as a private management VLAN with no other tenants.';
 
 const SESSION_COOKIE = 'ding_session';
+
+function bundledAsteriskVersion(): Promise<string> {
+  return new Promise((resolve) => {
+    execFile('/usr/sbin/asterisk', ['-V'], { timeout: 5_000, maxBuffer: 64 * 1024 }, (error, stdout, stderr) => {
+      if (error) {
+        resolve(`unavailable: ${String(stderr || error.message).trim() || 'Asterisk version was not reported.'}`);
+        return;
+      }
+      const value = String(stdout).trim();
+      resolve(value || 'unavailable: Asterisk version was empty.');
+    });
+  });
+}
 
 export function createServerModeHandler(options: ServerModeOptions) {
   const accountStore: AccountStore = new FileAccountStore(join(options.dataDir, 'admin-account.json'));
@@ -154,6 +168,15 @@ export function createServerModeHandler(options: ServerModeOptions) {
     const path = url.pathname;
 
     try {
+      if (path === '/api/v1/health' && req.method === 'GET') {
+        const asteriskVersion = await bundledAsteriskVersion();
+        const healthy = !asteriskVersion.startsWith('unavailable:');
+        return sendJson(res, healthy ? 200 : 503, {
+          status: healthy ? 'ok' : 'unavailable',
+          asteriskVersion,
+          authRequired: true,
+        });
+      }
       if (path === '/api/setup' && req.method === 'GET') {
         return sendJson(res, 200, { needsSetup: !hasAdminAccount(accountStore), tlsEnabled });
       }

@@ -1,0 +1,53 @@
+name: ding-pbx-control-plane
+
+services:
+  control-plane:
+    image: ${DING_PBX_IMAGE:?Set DING_PBX_IMAGE to the immutable image reference}
+    container_name: ding-pbx-control-plane
+    restart: unless-stopped
+    init: true
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /run:rw,noexec,nosuid,size=16m
+    ports:
+      - "${DING_PBX_BIND_ADDRESS:-127.0.0.1}:${DING_PBX_PORT:-8088}:8088"
+    volumes:
+      - ding-pbx-data:/var/lib/ding-pbx-console
+    environment:
+      DING_HOST: 0.0.0.0
+      DING_PORT: 8088
+      DING_DATA_DIR: /var/lib/ding-pbx-console
+      # TLS paths point at Docker secrets, never at an image layer or a shell
+      # variable containing secret bytes.
+      DING_TLS_CERT: /run/secrets/tls_cert
+      DING_TLS_KEY: /run/secrets/tls_key
+    secrets:
+      - tls_cert
+      - tls_key
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8088/api/v1/health').then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    labels:
+      org.opencontainers.image.title: Ding PBX hosted control plane
+      org.opencontainers.image.revision: ${DING_PBX_SOURCE_COMMIT:?Set the exact source commit}
+      org.opencontainers.image.version: ${DING_PBX_VERSION:?Set the image version}
+      io.ding.pbx.project: ding-pbx
+      io.ding.pbx.service: control-plane
+
+volumes:
+  ding-pbx-data:
+    name: ding-pbx-control-plane-data
+
+secrets:
+  tls_cert:
+    file: ${DING_PBX_TLS_CERT_FILE:?Set a host path to the TLS certificate}
+  tls_key:
+    file: ${DING_PBX_TLS_KEY_FILE:?Set a host path to the TLS private key}

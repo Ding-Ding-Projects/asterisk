@@ -9,6 +9,16 @@
 - [x] Add unique release tags, workflow timing, SHA-256 records, safe failure artifacts, and runner fallback.
 - [x] Add a reproducible committed line counter with project, generated, and inherited-source attribution.
 
+## Hosted deployment foundation
+
+- [x] Add the digest-pinned hosted control-plane Dockerfile with exact source-commit and version labels, non-root runtime, healthcheck, explicit port, persistent data volume, and provenance record.
+- [x] Add the Compose contract with read-only root, dropped capabilities, restart policy, external TLS secrets, and no secret values in image layers, environment files, or logs.
+- [x] Add the Windows build, read-only preflight inventory, and plan-only rollback scripts. They do not deploy or contact a private host unless an operator explicitly executes the supported path.
+- [x] Add the hosted health endpoint and strict packaged WSL provenance shape and byte-count validation.
+- [ ] Build and publish a hosted image from a verified commit.
+- [ ] Run the read-only preflight against the chosen local or approved private target.
+- [ ] Deploy the hosted image, verify the health response and persistent volume, and retain rollback evidence.
+
 ## Design parity
 
 - [x] Compile the checked-in design reference into the renderer instead of hand-writing an approximation of it.

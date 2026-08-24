@@ -327,6 +327,21 @@
         "app/renderer/src/main.tsx",
         "control-plane/updater.ts"
       ]
+    },
+    "hosted-control-plane-deployment": {
+      "state": "implemented",
+      "note": "The deployment contract is committed under deployer/deployment: a digest-pinned multi-stage Dockerfile records the exact source commit and version, docker-compose.yml uses a non-root UID, read-only root, dropped capabilities, explicit port, healthcheck, persistent data volume, external TLS secrets, restart policy, and ownership labels. build-control-plane.ps1 verifies the image revision label, preflight.ps1 reads WSL, local Docker, or an explicitly approved host without mutation, and rollback.ps1 is plan-only unless -Execute is supplied. Deployment itself remains unrun in this lane.",
+      "files": [
+        "deployer/deployment/control-plane.Dockerfile",
+        "deployer/deployment/docker-compose.yml",
+        "deployer/deployment/build-control-plane.ps1",
+        "deployer/deployment/preflight.ps1",
+        "deployer/deployment/rollback.ps1",
+        "console/server/http-server.ts",
+        "console/control-plane/dispatch.ts",
+        "console/docs/platform/hosted-control-plane-deployment.md",
+        "console/docs/changelog/hosted-control-plane-deployment.md"
+      ]
     }
   }
 }
