@@ -2,7 +2,7 @@
 
 ## Behavior
 
-Every non-blocking notification the console has raised, reviewable after the fact so nothing important disappears with a toast. The mounted auth-lock surface injects the same durable `NotificationStore` used by the visible Notification centre, so history warnings are retained in the shared center rather than sent through a private event channel.
+Every non-blocking notification the console has raised is reviewable after the fact so nothing important disappears with a toast. The generated product Notification centre is the canonical destination: `App.tsx` injects live rows and bulk actions from one mounted durable `NotificationStore`, and the authenticator surface publishes history warnings into that same store. There is no auth-only notification center.
 
 ## Configuration
 
@@ -19,6 +19,10 @@ What interrupts you and what merely gets recorded.
 ## Failure modes and security
 
 Every row reflects a real object in console; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen.
+
+The desktop center is implemented-unverified in this lane. Its generated table reads the mounted
+store and exposes mark-read, dismiss, delete, and export actions. Built-artifact interaction remains
+outside this static-only pass.
 
 ## Verification
 

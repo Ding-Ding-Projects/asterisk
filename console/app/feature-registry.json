@@ -608,12 +608,15 @@
       }
     },
     "non-blocking-notifications": {
-      "status": "partial",
-      "note": "The compiled console (ConsoleShell, generated/console.tsx) implements this.fire()/this.toast() as the notification primitives, called extensively from App.tsx (lines 292, 325, 327, 342...) and the compiled UI itself. These read as corner toasts in the design, but there is no reviewable notification centre or history for dismissed notifications.",
+      "status": "implemented-unverified",
+      "note": "The generated ConsoleShell notification destination is backed by one mounted durable NotificationStore. App.tsx injects live history rows and bulk actions into the generated table, while authenticator history warnings publish through the same store. The separate mounted side-center was removed, so the product has one canonical notification center. Built-artifact interaction and focused checks remain unverified in this lane.",
       "implementation": {
         "paths": [
           "app/renderer/src/App.tsx",
-          "app/renderer/src/generated/console.tsx"
+          "app/renderer/src/generated/console.tsx",
+          "app/renderer/src/notification-runtime.ts",
+          "app/renderer/src/notification-store.ts",
+          "app/renderer/src/authenticator-surface.tsx"
         ],
         "symbols": [
           {
@@ -629,7 +632,11 @@
         ]
       },
       "registration": {
-        "paths": [],
+        "paths": [
+          "app/renderer/src/App.tsx",
+          "app/renderer/src/notification-runtime.ts",
+          "app/renderer/src/surface-mounts.tsx"
+        ],
         "symbols": [
           {
             "path": "app/renderer/src/generated/console.tsx",
@@ -650,7 +657,10 @@
       },
       "persistence": {
         "state": "unverified",
-        "paths": [],
+        "paths": [
+          "app/renderer/src/notification-runtime.ts",
+          "app/renderer/src/notification-store.ts"
+        ],
         "symbols": []
       },
       "focusedChecks": {
@@ -2288,7 +2298,7 @@
     },
     "built-in-authenticator": {
       "status": "implemented-unverified",
-      "note": "The built-in authenticator surface is mounted to persisted metadata and an OS-backed vault, exposes only privileged current and next code snapshots, provides typed redacted history restore, and retains history warnings in the shared notification store. Built-artifact interaction and focused checks remain unverified in this lane.",
+      "note": "The built-in authenticator surface is mounted to persisted metadata and an OS-backed vault, exposes only privileged current and next code snapshots, provides typed redacted history restore, blocks mutations while reconciliation is unavailable, and reports secondary history warnings through the same mounted notification store without changing a successful authenticator mutation result. Built-artifact interaction and focused checks remain unverified in this lane.",
       "implementation": {
         "paths": [
           "app/renderer/src/authenticator-surface.tsx",
@@ -2299,6 +2309,7 @@
           "app/electron/credential-vault.ts",
           "app/renderer/src/destructive-action-gate.tsx",
           "app/renderer/src/notification-store.ts",
+          "app/renderer/src/notification-runtime.ts",
           "app/renderer/src/qr.ts"
         ],
         "symbols": [
@@ -2317,7 +2328,8 @@
       "registration": {
         "paths": [
           "app/renderer/src/surface-mounts.tsx",
-          "app/renderer/src/authenticator-surface.tsx"
+          "app/renderer/src/authenticator-surface.tsx",
+          "app/renderer/src/notification-runtime.ts"
         ],
         "symbols": []
       },

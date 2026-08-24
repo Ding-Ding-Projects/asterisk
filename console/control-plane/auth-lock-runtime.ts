@@ -16,6 +16,7 @@ import type {
   ToyLockCredentialReference,
   ToyLockRecord,
   ToyLockRecoveryMetadata,
+  ToyLockReconciliationReceipt,
 } from "../shared/locks.js";
 import { AuthenticatorStore, type AuthenticatorMetadataStore, type AuthenticatorMetadataResult, type TotpCodeVerifier } from "./authenticator-store.js";
 import { FileLockRecordPersistence, ToyLockStore, type LockRecordPersistence, type ToyLockCredentialVault, type LockStoreResult } from "./lock-store.js";
@@ -76,17 +77,75 @@ export class FileAuthenticatorMetadataStore implements AuthenticatorMetadataStor
   async #write(entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>): Promise<AuthenticatorMetadataResult<undefined>> {
     try {
       if (entries.length > 10_000) return { ok: false, code: "metadata-error" };
-      const previous = await readJson<{ version: 1; pendingRemovals?: Array<{ id: string; credential: { vaultAccount: string; method: 'password' | 'totp' } }>; tombstones?: string[] }>(this.#path, { version: 1 });
+      const previous = await readJson<{ version: 1; pendingRemovals?: Array<{ id: string; credential: { vaultAccount: string; method: 'password' | 'totp' } } | string>; tombstones?: string[] }>(this.#path, { version: 1 });
       await writeJson(this.#path, { version: 1, entries, pendingRemovals: previous.pendingRemovals ?? [], tombstones: previous.tombstones ?? [] });
       return { ok: true, value: undefined };
     } catch {
       return { ok: false, code: "metadata-error" };
     }
   }
-  async beginRemoval(id: string, credential: { vaultAccount: string; method: 'password' | 'totp' }): Promise<AuthenticatorMetadataResult<undefined>> { return await this.#serialize(async () => { try { const value = await readJson<{ version: 1; entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>; pendingRemovals?: Array<{ id: string; credential: { vaultAccount: string; method: 'password' | 'totp' }> }>(this.#path, { version: 1, entries: [], pendingRemovals: [] }); const pending = [...(value.pendingRemovals ?? []).filter((item) => item.id !== id), { id, credential }]; await writeJson(this.#path, { ...value, pendingRemovals: pending }); return { ok: true, value: undefined }; } catch { return { ok: false, code: "metadata-error" }; } }); }
-  async completeRemoval(id: string): Promise<AuthenticatorMetadataResult<undefined>> { return await this.#serialize(async () => { try { const value = await readJson<{ version: 1; entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>; pendingRemovals?: Array<{ id: string; credential: { vaultAccount: string; method: 'password' | 'totp' } }>; tombstones?: string[] }>(this.#path, { version: 1, entries: [], pendingRemovals: [] }); await writeJson(this.#path, { ...value, pendingRemovals: (value.pendingRemovals ?? []).filter((candidate) => candidate.id !== id), tombstones: [...(value.tombstones ?? []), id].slice(-10_000) }); return { ok: true, value: undefined }; } catch { return { ok: false, code: "metadata-error" }; } }); }
-  async rollbackRemoval(id: string): Promise<AuthenticatorMetadataResult<undefined>> { return await this.#serialize(async () => { try { const value = await readJson<{ version: 1; entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>; pendingRemovals?: Array<{ id: string; credential: { vaultAccount: string; method: 'password' | 'totp' } }> }>(this.#path, { version: 1, entries: [], pendingRemovals: [] }); await writeJson(this.#path, { ...value, pendingRemovals: (value.pendingRemovals ?? []).filter((candidate) => candidate.id !== id) }); return { ok: true, value: undefined }; } catch { return { ok: false, code: "metadata-error" }; } }); }
-  async reconcile(vault: AuthLockVault): Promise<AuthenticatorReconciliationReceipt> { return await this.#serialize(async () => { const value = await readJson<{ version: 1; entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>; pendingRemovals?: Array<{ id: string; credential: { vaultAccount: string; method: 'password' | 'totp' } } | string>; tombstones?: string[]; unresolvedRemovals?: string[] }>(this.#path, { version: 1, entries: [], pendingRemovals: [], tombstones: [], unresolvedRemovals: [] }); const entries = [...value.entries]; const pending: Array<{ id: string; credential: { vaultAccount: string; method: 'password' | 'totp' } }> = []; const unresolved = [...(value.unresolvedRemovals ?? [])]; const affected: string[] = []; for (const raw of value.pendingRemovals ?? []) { const id = typeof raw === 'string' ? raw : raw.id; const entry = entries.find((candidate) => candidate.id === id); const credential = entry ? { vaultAccount: entry.credentialReference, method: typeof raw === 'string' ? 'totp' as const : raw.credential.method } : typeof raw === 'string' ? undefined : raw.credential; if (!credential) { if (!unresolved.includes(id)) unresolved.push(id); affected.push(id); continue; } if (!vault.available) { pending.push({ id, credential }); affected.push(id); continue; } const present = await vault.has(credential); if (present && !(await vault.remove(credential))) { pending.push({ id, credential }); affected.push(id); continue; } const index = entries.findIndex((candidate) => candidate.id === id); if (index >= 0) entries.splice(index, 1); value.tombstones = [...(value.tombstones ?? []), id].slice(-10_000); affected.push(id); } await writeJson(this.#path, { ...value, entries, pendingRemovals: pending, tombstones: value.tombstones ?? [], unresolvedRemovals: unresolved }); if (unresolved.length > 0) return { status: 'unresolved-legacy', affectedIds: affected, warning: 'Some legacy removal identifiers have no surviving vault reference.' }; if (!vault.available && pending.length > 0) return { status: 'pending-vault-unavailable', affectedIds: affected, warning: 'Pending removals remain until the credential vault is available.' }; return { status: 'reconciled', affectedIds: affected }; }); }
+  async beginRemoval(id: string, credential: { vaultAccount: string; method: 'password' | 'totp' }): Promise<AuthenticatorMetadataResult<undefined>> { return await this.#serialize(async () => { try { const value = await readJson<{ version: 1; entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>; pendingRemovals?: Array<{ id: string; credential: { vaultAccount: string; method: 'password' | 'totp' } } | string>; unresolvedRemovals?: string[] }>(this.#path, { version: 1, entries: [], pendingRemovals: [] }); const pending = [...(value.pendingRemovals ?? []).filter((item) => typeof item === 'string' ? item !== id : item.id !== id), { id, credential }]; await writeJson(this.#path, { ...value, pendingRemovals: pending, unresolvedRemovals: (value.unresolvedRemovals ?? []).filter((candidate) => candidate !== id) }); return { ok: true, value: undefined }; } catch { return { ok: false, code: "metadata-error" }; } }); }
+  async completeRemoval(id: string): Promise<AuthenticatorMetadataResult<undefined>> { return await this.#serialize(async () => { try { const value = await readJson<{ version: 1; entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>; pendingRemovals?: Array<{ id: string; credential: { vaultAccount: string; method: 'password' | 'totp' } } | string>; tombstones?: string[] }>(this.#path, { version: 1, entries: [], pendingRemovals: [] }); await writeJson(this.#path, { ...value, pendingRemovals: (value.pendingRemovals ?? []).filter((candidate) => typeof candidate === 'string' ? candidate !== id : candidate.id !== id), tombstones: [...(value.tombstones ?? []), id].slice(-10_000) }); return { ok: true, value: undefined }; } catch { return { ok: false, code: "metadata-error" }; } }); }
+  async rollbackRemoval(id: string): Promise<AuthenticatorMetadataResult<undefined>> { return await this.#serialize(async () => { try { const value = await readJson<{ version: 1; entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>; pendingRemovals?: Array<{ id: string; credential: { vaultAccount: string; method: 'password' | 'totp' } } | string> }>(this.#path, { version: 1, entries: [], pendingRemovals: [] }); await writeJson(this.#path, { ...value, pendingRemovals: (value.pendingRemovals ?? []).filter((candidate) => typeof candidate === 'string' ? candidate !== id : candidate.id !== id) }); return { ok: true, value: undefined }; } catch { return { ok: false, code: "metadata-error" }; } }); }
+  async reconcile(vault: AuthLockVault): Promise<AuthenticatorReconciliationReceipt> {
+    return await this.#serialize(async () => {
+      const value = await readJson<{ version: 1; entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>; pendingRemovals?: Array<{ id: string; credential: { vaultAccount: string; method: 'password' | 'totp' } } | string>; tombstones?: string[]; unresolvedRemovals?: string[] }>(this.#path, { version: 1, entries: [], pendingRemovals: [], tombstones: [], unresolvedRemovals: [] });
+      const entries = [...value.entries];
+      const pending: Array<{ id: string; credential: { vaultAccount: string; method: 'password' | 'totp' } } | string> = [];
+      const unresolved = [...(value.unresolvedRemovals ?? [])];
+      const affected: string[] = [];
+      let removalFailed = false;
+      for (const raw of value.pendingRemovals ?? []) {
+        const id = typeof raw === 'string' ? raw : raw.id;
+        const entry = entries.find((candidate) => candidate.id === id);
+        const credential = entry ? { vaultAccount: entry.credentialReference, method: typeof raw === 'string' ? 'totp' as const : raw.credential.method } : typeof raw === 'string' ? undefined : raw.credential;
+        if (!credential) {
+          if (!unresolved.includes(id)) unresolved.push(id);
+          pending.push(id);
+          affected.push(id);
+          continue;
+        }
+        if (!vault.available) {
+          pending.push({ id, credential });
+          affected.push(id);
+          continue;
+        }
+        let present = false;
+        try {
+          present = await vault.has(credential);
+        } catch {
+          removalFailed = true;
+          pending.push({ id, credential });
+          affected.push(id);
+          continue;
+        }
+        if (present) {
+          let removed = false;
+          try {
+            removed = await vault.remove(credential);
+          } catch {
+            removed = false;
+          }
+          if (!removed) {
+            removalFailed = true;
+            pending.push({ id, credential });
+            affected.push(id);
+            continue;
+          }
+        }
+        const index = entries.findIndex((candidate) => candidate.id === id);
+        if (index >= 0) entries.splice(index, 1);
+        value.tombstones = [...(value.tombstones ?? []), id].slice(-10_000);
+        affected.push(id);
+      }
+      const allAffected = [...new Set([...affected, ...unresolved])];
+      await writeJson(this.#path, { ...value, entries, pendingRemovals: pending, tombstones: value.tombstones ?? [], unresolvedRemovals: unresolved });
+      if (unresolved.length > 0) return { status: 'unresolved-legacy', affectedIds: allAffected, warning: 'Some legacy removal identifiers have no surviving vault reference.' };
+      if (!vault.available && pending.length > 0) return { status: 'pending-vault-unavailable', affectedIds: allAffected, warning: 'Pending removals remain until the credential vault is available.' };
+      if (removalFailed) return { status: 'pending-removal-failed', affectedIds: allAffected, warning: 'One or more available-vault authenticator credentials could not be removed. Mutations remain blocked until reconciliation succeeds.' };
+      return { status: 'reconciled', affectedIds: allAffected };
+    });
+  }
 }
 
 class FileSupportTicketStore {
@@ -229,8 +288,8 @@ export function createAuthLockRuntime(options: AuthLockRuntimeOptions) {
   const persistence: LockRecordPersistence = new FileLockRecordPersistence(join(options.userDataPath, "toy-locks.json"), () => randomUUID().replaceAll("-", ""));
   const locks = new ToyLockStore({ persistence, vault, recovery: options.recovery });
   let authenticatorReconciliation: AuthenticatorReconciliationReceipt = { status: 'reconciled', affectedIds: [] };
-  let lockReconciliation: unknown = { status: 'reconciled', affectedIds: [] };
-  const locksReady = (async () => { authenticatorReconciliation = await metadata.reconcile(vault); lockReconciliation = await (persistence as FileLockRecordPersistence).reconcileReceipt?.(vault) ?? lockReconciliation; return await locks.initialize(); })();
+  let lockReconciliation: ToyLockReconciliationReceipt = { status: 'reconciled', affectedIds: [] };
+  const locksReady = (async () => { authenticatorReconciliation = await metadata.reconcile(vault); lockReconciliation = await persistence.reconcileReceipt(vault); return await locks.initialize(); })();
   const tickets = new FileSupportTicketStore(join(options.userDataPath, "support-tickets.json"));
   const ladderState = new FileUnlockLadderStateStore(join(options.userDataPath, "unlock-ladder-state.json"));
   const ladder = new UnlockLadder({ now: () => Date.now(), random: randomUnit, createNonce, stateStore: ladderState, hasAuthoritativeWait: (lockoutId) => ladderState.hasWait(lockoutId), clearAuthoritativeWait: (lockoutId) => ladderState.clearWait(lockoutId) });

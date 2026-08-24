@@ -42,7 +42,8 @@ import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../
 import { createAuthLockRuntime, type AuthLockVault } from './auth-lock-runtime.js';
 import type { HistorySnapshotProtector } from '../shared/history.js';
 import type { HistoryRestoreReceipt } from '../shared/history.js';
-import type { ToyLockCredentialReference } from '../shared/locks.js';
+import type { ToyLockCredentialReference, ToyLockUnlockReceipt } from '../shared/locks.js';
+import type { LockStoreResult } from './lock-store.js';
 
 /**
  * Actions that fundamentally depend on the Windows desktop (WSL) and cannot be answered
@@ -77,6 +78,29 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'ollama.chat.sessions', 'ollama.chat.create', 'ollama.chat.rename', 'ollama.chat.delete', 'ollama.chat.send', 'ollama.chat.retry', 'ollama.chat.regenerate', 'ollama.chat.stop',
   'dim-sum.cache.read',
 ]);
+
+function mapToyLockFailure(
+  result: Extract<LockStoreResult<unknown>, { ok: false }>,
+  waitCreated = false,
+): ToyLockUnlockReceipt<never> {
+  switch (result.code) {
+    case 'verification-failed':
+      return { ok: false, code: result.code, message: result.message, waitCreated };
+    case 'duplicate-lock':
+    case 'invalid-record':
+    case 'lock-not-found':
+    case 'persistence-unavailable':
+    case 'vault-unavailable':
+    case 'vault-reference-missing':
+      return { ok: false, code: result.code, message: result.message, waitCreated: false };
+    default:
+      return neverToyLockFailure(result.code);
+  }
+}
+
+function neverToyLockFailure(value: never): never {
+  throw new Error(`Unhandled toy-lock failure code: ${String(value)}`);
+}
 
 function validateRequestSchema(request: ControlPlaneRequest): string | undefined {
   if (!request || typeof request !== 'object') return 'The request body must be an object.';
@@ -957,6 +981,8 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       }
       if (request.action === 'toy-lock.reconciliation') return { ok: true, requestId: request.requestId, data: (await authLocks.awaitReconciliation()).locks };
       if (request.action === 'toy-lock-credential.create') {
+        const reconciliation = (await authLocks.awaitReconciliation()).locks;
+        if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, message: reconciliation.warning } };
         const targetId = typeof request.payload?.targetId === 'string' ? request.payload.targetId.trim() : '';
         const method = request.payload?.method === 'totp' ? 'totp' : request.payload?.method === 'password' ? 'password' : undefined;
         const value = typeof request.payload?.value === 'string' ? request.payload.value : '';
@@ -972,19 +998,19 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         return { ok: true, requestId: request.requestId, data: { vaultAccount, method } };
       }
       if (request.action === 'toy-lock.create') {
-        const reconciliation = (await authLocks.awaitReconciliation()).locks as { status?: string; warning?: string }; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning ?? 'Toy-lock reconciliation is pending.' } };
+        const reconciliation = (await authLocks.awaitReconciliation()).locks; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning } };
         await authLocks.locksReady;
-        const payload = request.payload as never;
+        const payload = request.payload as Omit<import('../shared/locks.js').CreateToyLockInput, 'at'>;
         const result = await authLocks.locks.create(payload);
         if (!result.ok) {
           const credential = (request.payload as { credential?: ToyLockCredentialReference } | undefined)?.credential;
           if (credential) await authLocks.vault.remove(credential).catch(() => false);
         }
-        if (!result.ok) return { ok: true, requestId: request.requestId, data: { ok: false, code: result.code as 'vault-unavailable' | 'persistence-unavailable' | 'lock-not-found' | 'invalid-record' | 'invalid-unlock-scope', message: result.message, waitCreated: false } };
+        if (!result.ok) return { ok: true, requestId: request.requestId, data: mapToyLockFailure(result) };
         return { ok: true, requestId: request.requestId, data: result };
       }
       if (request.action === 'toy-lock.unlock') {
-        const reconciliation = (await authLocks.awaitReconciliation()).locks as { status?: string; warning?: string }; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning ?? 'Toy-lock reconciliation is pending.', waitCreated: false } };
+        const reconciliation = (await authLocks.awaitReconciliation()).locks; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning, waitCreated: false } };
         await authLocks.locksReady;
         const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
         const encoded = typeof request.payload?.candidateBase64 === 'string' ? request.payload.candidateBase64 : '';
@@ -994,15 +1020,15 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const surfaceId = typeof request.payload?.surfaceId === 'string' ? request.payload.surfaceId : undefined;
         const result = await authLocks.locks.unlock(id, candidate, surfaceId);
         if (!result.ok && result.code === 'verification-failed') { await authLocks.createLadderWait(id); return { ok: true, requestId: request.requestId, data: { ...result, waitCreated: true } }; }
-        if (!result.ok) return { ok: true, requestId: request.requestId, data: { ok: false, code: result.code as 'vault-unavailable' | 'persistence-unavailable' | 'lock-not-found' | 'invalid-record' | 'invalid-unlock-scope', message: result.message, waitCreated: false } };
+        if (!result.ok) return { ok: true, requestId: request.requestId, data: mapToyLockFailure(result) };
         return { ok: true, requestId: request.requestId, data: result };
       }
       if (request.action === 'toy-lock.relock' || request.action === 'toy-lock.remove') {
-        const reconciliation = (await authLocks.awaitReconciliation()).locks as { status?: string; warning?: string }; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning ?? 'Toy-lock reconciliation is pending.' } };
+        const reconciliation = (await authLocks.awaitReconciliation()).locks; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning } };
         await authLocks.locksReady;
         const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
         const data = request.action === 'toy-lock.relock' ? await authLocks.locks.relock(id) : await authLocks.locks.remove(id);
-        if (request.action === 'toy-lock.remove') return { ok: true, requestId: request.requestId, data: data.ok ? { status: 'removed', value: data.value } : { status: 'recoverable', message: data.message, recoverable: true } };
+        if (request.action === 'toy-lock.remove') return { ok: true, requestId: request.requestId, data };
         return { ok: true, requestId: request.requestId, data };
       }
       if (request.action === 'support-ticket.list') {

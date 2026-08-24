@@ -37,6 +37,11 @@ There is no plaintext or memory-only fallback.
   persistence failure.
 - If the credential vault is unavailable, lock creation, verification, removal, and history
   snapshot work remain unavailable. Existing metadata is not silently deleted.
+- Reconciliation preserves legacy pending IDs that have no surviving vault reference and reports
+  the exact affected IDs. An available-vault removal failure is `pending-removal-failed`, not a
+  successful reconciliation; lock mutations remain blocked until the pending removal is resolved.
+- Removal receipts distinguish `pending`, `rolledBack`, and `recoverable` outcomes. A rollback or
+  pending journal is never reported as `removed`.
 - If a history snapshot cannot be encrypted, no plaintext file is written and the live operation
   may continue with a separate history warning.
 - If an encrypted revision cannot be opened, restore leaves the live record unchanged.

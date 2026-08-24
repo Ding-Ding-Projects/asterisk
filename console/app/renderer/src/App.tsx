@@ -50,6 +50,7 @@ import {
 import {
   UnlockLadder, type Challenge, type GradeResult,
 } from './unlock-ladder';
+import { initializeMountedNotificationStore, mountedNotificationStore } from './notification-runtime';
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -232,6 +233,7 @@ export class App extends Base {
   /** Consecutive wrong unlock attempts per lock key, so the ladder is offered after
    *  repeated failures rather than on the first typo. */
   private wrongUnlockCounts: Record<string, number> = {};
+  private mountedNotificationUnsubscribe: (() => void) | undefined;
 
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
@@ -239,6 +241,8 @@ export class App extends Base {
 
   componentDidMount() {
     super.componentDidMount?.();
+    this.mountedNotificationUnsubscribe = mountedNotificationStore.subscribe(() => this.forceUpdate());
+    void initializeMountedNotificationStore().catch(() => this.forceUpdate());
     /* The durable-storage snapshot has to load before anything reads or restores
      * persisted state from it (the appearance editor's restore below), so the whole
      * bootstrap-then-restore sequence is awaited before touching either. Everything
@@ -284,6 +288,8 @@ export class App extends Base {
 
   componentWillUnmount() {
     super.componentWillUnmount?.();
+    this.mountedNotificationUnsubscribe?.();
+    this.mountedNotificationUnsubscribe = undefined;
     if (this.refreshTimer) clearInterval(this.refreshTimer);
     this.refreshTimer = undefined;
   }
@@ -1851,8 +1857,10 @@ It is shown once. The phone needs it to register.`);
     const readings = this.readings[screen];
     const note = this.note(screen);
 
+    const notificationValues = screen === 'notifications' ? this.notificationTableValues() : {};
     return {
       ...values,
+      ...notificationValues,
       // The "Edit appearance..." panel's real colour translator and real actions
       // (appearance.ts + colour.ts) -- see the Appearance section above renderVals.
       ...this.appearanceVals(),
@@ -2037,12 +2045,75 @@ It is shown once. The phone needs it to register.`);
       // Real selection mechanics and bulk-action plans (bulk.ts) plus a real file
       // export (export.ts) for every table-like screen -- see bulkSelectionVals above.
       ...(TABLE_SCREENS.includes(screen) ? this.bulkSelectionVals(screen, values) : {}),
+      // The product notification center owns its rows and actions through the same
+      // mounted store, so the generic sample-table overlay cannot replace them.
+      ...(screen === 'notifications' ? this.notificationTableValues() : {}),
 
       // Real TOTP pairing/verification (totp.ts) for the per-element lock, and the real
       // unlock ladder (unlock-ladder.ts) offered after repeated wrong unlock attempts --
       // see authVals below. Unconditional: the lock and unlock dialogs can open from any
       // screen's context menu.
       ...this.authVals(),
+    };
+  }
+
+  private notificationTableValues(): Record<string, unknown> {
+    const state = this.state as { selected?: string[] };
+    const selected = state.selected ?? [];
+    const records = mountedNotificationStore.history();
+    const ids = records.map((record) => record.id);
+    const runBulk = (command: 'dismiss' | 'delete' | 'mark-read') => {
+      void initializeMountedNotificationStore()
+        .then(() => mountedNotificationStore.bulk(command, selected))
+        .then(() => this.forceUpdate())
+        .catch((error) => this.fire('Notification change unavailable', error instanceof Error ? error.message : 'The notification change could not be saved.'));
+    };
+    const exportHistory = () => {
+      const payload = JSON.stringify(mountedNotificationStore.export(), null, 2);
+      const url = URL.createObjectURL(new Blob([payload], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'notification-history.json';
+      link.click();
+      URL.revokeObjectURL(url);
+    };
+    return {
+      tableAddLabel: 'Mark all read',
+      openWizard: () => runBulk('mark-read'),
+      tableCols: ['Source', 'Message', 'When', 'State'],
+      tableGrid: '1fr 2fr 1fr 110px',
+      selectionLabel: `${selected.length} of ${ids.length} selected`,
+      allBorder: selected.length ? '#82D9A5' : '#8B938C',
+      allBg: selected.length ? '#82D9A5' : 'transparent',
+      allIcon: selected.length === ids.length && ids.length ? 'check' : (selected.length ? 'remove' : ''),
+      toggleAll: () => this.set('selected', selected.length === ids.length ? [] : ids),
+      bulkActions: [
+        { icon: 'mark_email_read', label: 'Mark read', run: () => runBulk('mark-read') },
+        { icon: 'notifications_off', label: 'Dismiss', run: () => runBulk('dismiss') },
+        { icon: 'delete', label: 'Delete', run: () => runBulk('delete') },
+        { icon: 'download', label: 'Export', run: exportHistory },
+      ],
+      tableRows: records.map((record, index) => {
+        const isSelected = selected.includes(record.id);
+        const when = new Date(record.createdAt).toLocaleTimeString();
+        const stateLabel = record.state === 'active' ? 'Unread' : 'Dismissed';
+        return {
+          pick: () => this.set('selected', isSelected ? selected.filter((id) => id !== record.id) : [...selected, record.id]),
+          rnd: this.rnd(80 + index),
+          bg: isSelected ? '#1D2A22' : 'transparent',
+          border: isSelected ? '#82D9A5' : '#8B938C',
+          checkBg: isSelected ? '#82D9A5' : 'transparent',
+          checkIcon: isSelected ? 'check' : '',
+          toggle: () => this.set('selected', isSelected ? selected.filter((id) => id !== record.id) : [...selected, record.id]),
+          ctx: (event: MouseEvent) => { event.preventDefault(); this.setState({ ctxOpen: true, ctxX: `${event.clientX}px`, ctxY: `${event.clientY}px`, ctxTarget: record.id, ctxKind: 'row' }); },
+          cells: [
+            { text: record.source, isChip: false, isMono: true, isText: false, bg: 'transparent', fg: '#C4CBC2' },
+            { text: `${record.title}: ${record.body}`, isChip: false, isMono: false, isText: true, bg: 'transparent', fg: '#C4CBC2' },
+            { text: when, isChip: false, isMono: false, isText: true, bg: 'transparent', fg: '#C4CBC2' },
+            { text: stateLabel, isChip: true, isMono: false, isText: false, bg: record.state === 'active' ? '#5C1B18' : '#1B4D33', fg: record.state === 'active' ? '#FFB4AB' : '#9FF7C4' },
+          ],
+        };
+      }),
     };
   }
 

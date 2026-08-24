@@ -9,19 +9,14 @@ import {
   relockToyLock,
   type CreateToyLockInput,
   type ToyLockCredentialReference,
+  type ToyLockFailureCode,
   type ToyLockRecord,
+  type ToyLockRemovalReceipt,
   type ToyLockReconciliationReceipt,
   type ToyLockRecoveryMetadata,
 } from "../shared/locks.js";
 
-export type LockStoreFailureCode =
-  | "duplicate-lock"
-  | "invalid-record"
-  | "lock-not-found"
-  | "persistence-unavailable"
-  | "vault-unavailable"
-  | "vault-reference-missing"
-  | "verification-failed";
+export type LockStoreFailureCode = ToyLockFailureCode;
 
 export type LockStoreResult<T> =
   | { ok: true; value: T }
@@ -44,6 +39,7 @@ export interface LockRecordPersistence {
   beginRemoval?(id: string, credential: ToyLockCredentialReference): Promise<void>;
   completeRemoval?(id: string): Promise<void>;
   rollbackRemoval?(id: string): Promise<void>;
+  reconcileReceipt(vault: ToyLockCredentialVault): Promise<ToyLockReconciliationReceipt>;
 }
 
 interface LockStoreOptions {
@@ -167,8 +163,65 @@ export class FileLockRecordPersistence implements LockRecordPersistence {
   async beginRemoval(id: string, credential: ToyLockCredentialReference): Promise<void> { await this.#serialize(async () => { const document = await this.#readDocument(); await this.#writeDocument({ ...document, pendingRemovals: [...(document.pendingRemovals ?? []).filter((candidate) => candidate.id !== id), { id, credential }] }); }); }
   async completeRemoval(id: string): Promise<void> { await this.#serialize(async () => { const document = await this.#readDocument(); await this.#writeDocument({ ...document, pendingRemovals: (document.pendingRemovals ?? []).filter((candidate) => candidate.id !== id), tombstones: [...(document.tombstones ?? []), id].slice(-10_000) }); }); }
   async rollbackRemoval(id: string): Promise<void> { await this.#serialize(async () => { const document = await this.#readDocument(); await this.#writeDocument({ ...document, pendingRemovals: (document.pendingRemovals ?? []).filter((candidate) => candidate.id !== id) }); }); }
-  async reconcile(vault: ToyLockCredentialVault): Promise<void> { await this.#serialize(async () => { const document = await this.#readDocument(); const records = [...document.records]; const pending: Array<{ id: string; credential: ToyLockCredentialReference }> = []; for (const raw of document.pendingRemovals ?? []) { const item = typeof raw === 'string' ? undefined : raw; const id = typeof raw === 'string' ? raw : raw.id; const record = records.find((candidate) => candidate.id === id); const credential = record?.credential ?? item?.credential; if (!credential) { document.tombstones = [...(document.tombstones ?? []), id].slice(-10_000); continue; } if (!vault.available) { pending.push({ id, credential }); continue; } if (await vault.has(credential) && !(await vault.remove(credential))) { pending.push({ id, credential }); continue; } const index = records.findIndex((candidate) => candidate.id === id); if (index >= 0) records.splice(index, 1); document.tombstones = [...(document.tombstones ?? []), id].slice(-10_000); } await this.#writeDocument({ ...document, records, pendingRemovals: pending }); }); }
-  async reconcileReceipt(vault: ToyLockCredentialVault): Promise<ToyLockReconciliationReceipt> { await this.reconcile(vault); const document = await this.#readDocument(); const unresolved = (document.pendingRemovals ?? []).filter((item) => typeof item === 'string').map((item) => String(item)); if (unresolved.length > 0) return { status: 'unresolved-legacy', affectedIds: unresolved, warning: 'Some legacy lock removals have no surviving vault reference.' }; if ((document.pendingRemovals ?? []).length > 0) return { status: 'pending-vault-unavailable', affectedIds: (document.pendingRemovals ?? []).map((item) => typeof item === 'string' ? item : item.id), warning: 'Pending lock removals remain until the credential vault is available.' }; return { status: 'reconciled', affectedIds: [] }; }
+  async reconcileReceipt(vault: ToyLockCredentialVault): Promise<ToyLockReconciliationReceipt> {
+    return await this.#serialize(async () => {
+      const document = await this.#readDocument();
+      const records = [...document.records];
+      const pending: Array<{ id: string; credential: ToyLockCredentialReference } | string> = [];
+      const affectedIds: string[] = [];
+      let removalFailed = false;
+      for (const raw of document.pendingRemovals ?? []) {
+        const item = typeof raw === 'string' ? undefined : raw;
+        const id = typeof raw === 'string' ? raw : raw.id;
+        const record = records.find((candidate) => candidate.id === id);
+        const credential = record?.credential ?? item?.credential;
+        if (!credential) {
+          // A legacy id has no safe vault reference. Keep it visible and retryable.
+          pending.push(id);
+          affectedIds.push(id);
+          continue;
+        }
+        if (!vault.available) {
+          pending.push({ id, credential });
+          affectedIds.push(id);
+          continue;
+        }
+        let present = false;
+        try {
+          present = await vault.has(credential);
+        } catch {
+          removalFailed = true;
+          pending.push({ id, credential });
+          affectedIds.push(id);
+          continue;
+        }
+        if (present) {
+          let removed = false;
+          try {
+            removed = await vault.remove(credential);
+          } catch {
+            removed = false;
+          }
+          if (!removed) {
+            removalFailed = true;
+            pending.push({ id, credential });
+            affectedIds.push(id);
+            continue;
+          }
+        }
+        const index = records.findIndex((candidate) => candidate.id === id);
+        if (index >= 0) records.splice(index, 1);
+        document.tombstones = [...(document.tombstones ?? []), id].slice(-10_000);
+        affectedIds.push(id);
+      }
+      await this.#writeDocument({ ...document, records, pendingRemovals: pending });
+      const unresolved = pending.filter((item): item is string => typeof item === 'string');
+      if (unresolved.length > 0) return { status: 'unresolved-legacy', affectedIds, warning: 'Some legacy lock removals have no surviving vault reference.' };
+      if (!vault.available && pending.length > 0) return { status: 'pending-vault-unavailable', affectedIds, warning: 'Pending lock removals remain until the credential vault is available.' };
+      if (removalFailed) return { status: 'pending-removal-failed', affectedIds, warning: 'One or more available-vault lock credentials could not be removed. Mutations remain blocked until reconciliation succeeds.' };
+      return { status: 'reconciled', affectedIds };
+    });
+  }
   async #readDocument(): Promise<StoredLockDocument> { try { const raw = await readFile(this.#path, "utf8"); return JSON.parse(raw) as StoredLockDocument; } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return { version: 1, records: [] }; throw error; } }
   async #writeDocument(document: StoredLockDocument): Promise<void> { await mkdir(dirname(this.#path), { recursive: true }); const temporaryPath = `${this.#path}.${this.#createTemporaryId()}.tmp`; await writeFile(temporaryPath, `${JSON.stringify(document, null, 2)}\n`, { encoding: "utf8", flag: "wx" }); try { await renameWithTransientRetry(temporaryPath, this.#path); } catch (error) { await unlink(temporaryPath).catch(() => undefined); throw error; } }
 }
@@ -338,31 +391,63 @@ export class ToyLockStore {
     return { ok: true, value: locked };
   }
 
-  async remove(id: string): Promise<LockStoreResult<{ removed: true }>> { return await this.#serialize(() => this.#remove(id)); }
-  async #remove(id: string): Promise<LockStoreResult<{ removed: true }>> {
-    if (!this.#ready) return failure("persistence-unavailable", "The lock store is unavailable.");
+  async remove(id: string): Promise<ToyLockRemovalReceipt> { return await this.#serialize(() => this.#remove(id)); }
+  async #remove(id: string): Promise<ToyLockRemovalReceipt> {
+    const recoverable = (message: string): ToyLockRemovalReceipt => ({ status: "recoverable", message, recoverable: true });
+    const pending = (message: string): ToyLockRemovalReceipt => ({ status: "pending", message, recoverable: true });
+    const rolledBack = (message: string): ToyLockRemovalReceipt => ({ status: "rolledBack", message, recoverable: true });
+    if (!this.#ready) return recoverable("The lock store is unavailable.");
     const record = this.#records.get(id);
-    if (!record) return failure("lock-not-found", "The requested lock does not exist.", false);
-    if (!this.#vault.available) {
-      return failure("vault-unavailable", "The operating-system credential vault is unavailable.");
+    if (!record) return recoverable("The requested lock does not exist.");
+    if (!this.#vault.available) return recoverable("The operating-system credential vault is unavailable.");
+
+    try {
+      await this.#persistence.beginRemoval?.(id, record.credential);
+    } catch {
+      return recoverable("The removal journal could not be started; the lock record was kept.");
     }
     const next = new Map(this.#records);
     next.delete(id);
-    await this.#persistence.beginRemoval?.(id, record.credential);
     const persisted = await this.#persist(next);
-    if (!persisted.ok) { await this.#persistence.rollbackRemoval?.(id); return persisted; }
-    try {
-      if (!(await this.#vault.remove(record.credential))) {
-        await this.#persistence.save([...this.#records.values()]); await this.#persistence.rollbackRemoval?.(id);
-        return failure("vault-reference-missing", "The credential could not be removed, so the lock record was kept.");
+    if (!persisted.ok) {
+      try {
+        await this.#persistence.rollbackRemoval?.(id);
+        return rolledBack("The lock record could not be staged for removal, so the previous state was restored.");
+      } catch {
+        return pending("The lock removal is pending recovery because its previous state could not be restored.");
       }
-    } catch {
-      await this.#persistence.save([...this.#records.values()]).catch(() => undefined); const rollback = this.#persistence.rollbackRemoval?.(id); if (rollback) await rollback.catch(() => undefined);
-      return failure("vault-unavailable", "The credential vault could not remove this lock.");
     }
+
+    let removed = false;
+    try {
+      removed = await this.#vault.remove(record.credential);
+    } catch {
+      removed = false;
+    }
+    if (!removed) {
+      let restored = false;
+      try {
+        await this.#persistence.save([...this.#records.values()]);
+        restored = true;
+      } catch {
+        restored = false;
+      }
+      try {
+        await this.#persistence.rollbackRemoval?.(id);
+        if (restored) return rolledBack("The credential could not be removed, so the previous lock state was restored.");
+      } catch {
+        // Keep the pending journal for the next reconciliation attempt.
+      }
+      return pending("The credential could not be removed. The lock removal remains pending and recoverable.");
+    }
+
     this.#records = next;
-    await this.#persistence.completeRemoval?.(id);
-    return { ok: true, value: { removed: true } };
+    try {
+      await this.#persistence.completeRemoval?.(id);
+    } catch {
+      return pending("The credential was removed, but the removal receipt remains pending recovery.");
+    }
+    return { status: "removed", value: { removed: true } };
   }
 
   async #persist(next: ReadonlyMap<string, ToyLockRecord>): Promise<LockStoreResult<true>> {

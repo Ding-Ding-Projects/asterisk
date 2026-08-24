@@ -60,6 +60,7 @@ export class NotificationStore {
   private readonly now: () => Date;
   private readonly idFactory: () => string;
   private persistenceTail: Promise<void> = Promise.resolve();
+  private initialization: Promise<void> | undefined;
 
   constructor(private readonly options: NotificationStoreOptions) {
     this.now = options.now ?? (() => new Date());
@@ -71,10 +72,19 @@ export class NotificationStore {
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
-    const loaded = await this.options.persistence.load();
-    if (loaded) this.snapshot = validateSnapshot(loaded);
-    this.initialized = true;
-    this.emit();
+    if (this.initialization) return await this.initialization;
+    this.initialization = (async () => {
+      const loaded = await this.options.persistence.load();
+      if (loaded) this.snapshot = validateSnapshot(loaded);
+      this.initialized = true;
+      this.emit();
+    })();
+    try {
+      await this.initialization;
+    } catch (error) {
+      this.initialization = undefined;
+      throw error;
+    }
   }
 
   isInitialized(): boolean {

@@ -34,6 +34,14 @@ export interface ToyLockRecoveryMetadata {
   deletesAutomatically: false;
   disclosure: string;
 }
+export type ToyLockFailureCode =
+  | 'duplicate-lock'
+  | 'invalid-record'
+  | 'lock-not-found'
+  | 'persistence-unavailable'
+  | 'vault-unavailable'
+  | 'vault-reference-missing'
+  | 'verification-failed';
 export type ToyLockReconciliationReceipt =
   | { status: 'reconciled'; affectedIds: ReadonlyArray<string> }
   | { status: 'pending-vault-unavailable'; affectedIds: ReadonlyArray<string>; warning: string }
@@ -42,7 +50,7 @@ export type ToyLockReconciliationReceipt =
 export type ToyLockUnlockReceipt<T> =
   | { ok: true; value: T }
   | { ok: false; code: 'verification-failed'; message: string; waitCreated: boolean }
-  | { ok: false; code: 'vault-unavailable' | 'persistence-unavailable' | 'lock-not-found' | 'invalid-record' | 'invalid-unlock-scope'; message: string; waitCreated: false };
+  | { ok: false; code: Exclude<ToyLockFailureCode, 'verification-failed'>; message: string; waitCreated: false };
 export type ToyLockRemovalReceipt =
   | { status: 'removed'; value: { removed: true } }
   | { status: 'pending'; message: string; recoverable: true }
