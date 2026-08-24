@@ -36,7 +36,8 @@
       "files": [
         "app/renderer/src/school-mode.ts",
         "tests/ui/school-mode.test.tsx"
-      ]
+      ],
+      "blockedBy": "BLOCKED ON A CREDENTIAL SURFACE. Turning the mode off requires verifying a secret and the design has no field to type one into: its five controls are four switches and a name box. The drafted wiring used window.prompt as a stand-in, which Electron does not support -- it would have thrown at runtime, and no unit test would have caught it because the tests do not run in Electron. Real consumption needs a Material credential dialog in the design, which is the honest next step rather than a native prompt."
     },
     "narration": {
       "state": "partial",
@@ -51,7 +52,8 @@
       "files": [
         "app/renderer/src/scheduled-settings.ts",
         "tests/ui/scheduled-settings.test.tsx"
-      ]
+      ],
+      "blockedBy": "BLOCKED ON AN APPLY PATH. The module deliberately never mutates the base settings, so something has to take the computed effective values and drive the real controls, then restore the base when a window ends. The drafted wiring computed and displayed which rules were active and which keys they would override, and stopped there -- which reads as a working scheduler and schedules nothing. Real consumption needs a scheduler tick in App that calls effectiveSettings against the current instant, applies each overridden key through the same setVal interception a person would, and remembers the pre-override value so it can be put back -- plus a test proving a window ending restores the base rather than leaving the override in place."
     },
     "external-settings-sources": {
       "state": "absent",
@@ -192,7 +194,8 @@
       "files": [
         "app/renderer/src/accessibility-contract.ts",
         "tests/ui/accessibility-contract.test.tsx"
-      ]
+      ],
+      "blockedBy": "BLOCKED ON A CONSUMER. The contract is complete -- contrast, target size, accessible naming, focus, reduced motion -- and nothing calls it. Real consumption means the appearance editor checking a chosen colour pair before accepting it, and the capture harness asserting the shipped surfaces against it. Neither exists yet."
     },
     "responsive-sizing": {
       "state": "partial",
@@ -296,7 +299,8 @@
       "files": [
         "app/renderer/src/bounded-overlays.ts",
         "tests/ui/bounded-overlays.test.tsx"
-      ]
+      ],
+      "blockedBy": "BLOCKED ON A CONSUMER. Nothing in the renderer opens a popover, menu or tooltip through computeOverlayPlacement -- a grep for popover and overlay across the styles and sources finds nothing outside this module and its tests. The drafted wiring was a self-check button running the calculator against a synthetic anchor and viewport and reporting the result, which proves the arithmetic and changes nothing on screen. Real consumption means the compiled design’s own menu and dropdown rendering calling this, which is generated code and cannot be hand-edited."
     },
     "context-menu-shortcuts": {
       "state": "partial",
@@ -304,7 +308,8 @@
       "files": [
         "app/renderer/src/menu-shortcuts.ts",
         "tests/ui/menu-shortcuts.test.tsx"
-      ]
+      ],
+      "blockedBy": "BLOCKED ON THE COMPILED MENUS. The context menus are rendered by the compiled design, which cannot be hand-edited, so displaying a resolved chord on a menu item means the design emitting a shortcut slot the registry can fill. That is a compiler change rather than a wiring change."
     },
     "long-operation-progress": {
       "state": "partial",
@@ -312,7 +317,8 @@
       "files": [
         "app/renderer/src/long-operation-progress.ts",
         "tests/ui/long-operation-progress.test.tsx"
-      ]
+      ],
+      "blockedBy": "BLOCKED ON MAIN-PROCESS PROGRESS EVENTS. The renderer has no way to learn how far along a real deploy is: onboardDeploy awaits one request and shows a toast, and the control plane emits nothing between start and finish. The drafted wiring drove a fixed three-phase fake, which exercises every export and reports progress for an operation that is not happening. Real consumption needs the control plane to emit phase events across the bridge as provisioning runs."
     },
     "in-context-recovery": {
       "state": "absent",
@@ -338,7 +344,8 @@
       "files": [
         "app/renderer/src/collapsible-filters.ts",
         "tests/ui/collapsible-filters.test.tsx"
-      ]
+      ],
+      "blockedBy": "BLOCKED ON A CONSUMER. No surface in the console renders a collapsible panel, so the drafted controls would write real storage keys that nothing reads. Real consumption means a screen with a filter row or a statistics panel calling isCollapsed and setCollapsed with its own surface id, and rendering the active-filter summary when a filtering panel is collapsed. The module also needs to export its per-surface storage-key helper, or an enumeration, before any status readback is possible -- today only the prefix is exported, so a caller cannot reconstruct which panels exist."
     },
     "automatic-updates": {
       "state": "implemented",
