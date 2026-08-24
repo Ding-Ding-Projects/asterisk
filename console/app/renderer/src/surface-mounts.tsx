@@ -29,7 +29,7 @@ function HostedDimSumCacheControl() {
         const result = await validateDimSumCachePayloadAsync(raw);
         if (!active) return;
         setStatus(result.ok
-          ? `Loaded and revalidated ${result.cache.entries.length} visitor-local dish entries.`
+          ? `Loaded and revalidated ${result.cache.entries.length} visitor-local dish entries from catalog revision ${result.cache.source.catalogRevision}, release ${result.cache.source.assetRelease}.`
           : `Stored visitor-local cache is invalid: ${result.reason}`);
       } catch (error) {
         if (active) setStatus(`Stored visitor-local cache could not be read: ${error instanceof Error ? error.message : String(error)}`);
@@ -66,7 +66,7 @@ function HostedDimSumCacheControl() {
         return;
       }
       window.localStorage.setItem(DIM_SUM_CACHE_STORAGE_KEY, raw);
-      setStatus(`Validated and stored ${result.cache.entries.length} visitor-local dish entries. No network request was made.`);
+      setStatus(`Validated and stored ${result.cache.entries.length} visitor-local dish entries from catalog revision ${result.cache.source.catalogRevision}, release ${result.cache.source.assetRelease}. No network request was made.`);
     } catch (error) {
       setStatus(`The selected cache was not stored: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
@@ -77,7 +77,7 @@ function HostedDimSumCacheControl() {
     if (!pendingReplace) return;
     try {
       window.localStorage.setItem(DIM_SUM_CACHE_STORAGE_KEY, pendingReplace.raw);
-      setStatus(`Replacement stored with ${pendingReplace.count} visitor-local dish entries.`);
+      setStatus(`Replacement stored with ${pendingReplace.count} visitor-local dish entries. The startup draw state was not rerun.`);
       setPendingReplace(undefined);
     } catch (error) {
       setStatus(`Replacement was not stored: ${error instanceof Error ? error.message : String(error)}`);

@@ -13,6 +13,7 @@ export const REQUIRED_APPEARANCE_ELEMENT_IDS = [
 ] as const;
 
 export const CONDITIONAL_APPEARANCE_ELEMENT_IDS = new Set(['command-palette', 'appearance-editor']);
+export const REQUIRED_APPEARANCE_ID_FAMILIES = ['control-', 'tab-', 'tab-group-', 'palette-row-', 'window-'] as const;
 
 export function missingAppearanceElementIds(ids: ReadonlySet<string>): string[] {
   return REQUIRED_APPEARANCE_ELEMENT_IDS.filter((id) => !CONDITIONAL_APPEARANCE_ELEMENT_IDS.has(id) && !ids.has(id));

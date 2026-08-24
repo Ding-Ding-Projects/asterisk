@@ -19,6 +19,7 @@ export interface TeleportTarget {
 export interface RichControlDescriptor {
   readonly kind: RichControlKind;
   readonly controlId: string;
+  readonly sourceControlId: string;
   readonly label: string;
   readonly handlerId: string;
   readonly valueReaderId: string;

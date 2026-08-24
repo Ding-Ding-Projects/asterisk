@@ -220,6 +220,7 @@ export function createRichControlRegistration(options: RichControlMountOptions):
         control: {
           kind,
           controlId: controlAppearanceId(controlId),
+          sourceControlId: controlId,
           label: typeof control.label === 'string' ? control.label : controlId,
           handlerId,
           valueReaderId: readerId,
@@ -257,6 +258,7 @@ export function createRichControlRegistration(options: RichControlMountOptions):
       control: {
         kind,
         controlId: controlAppearanceId(`appearance:${property}`),
+        sourceControlId: `appearance:${property}`,
         label: `Appearance ${property}`,
         handlerId,
         valueReaderId: readerId,

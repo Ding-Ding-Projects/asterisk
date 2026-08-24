@@ -154,6 +154,7 @@ export function mountAppearanceModel(
     const state = currentState(element, options);
     const mountedVariables: string[] = [];
     const mountedDirectProperties: string[] = [];
+    const directValues: Record<string, string[]> = {};
     let hasAnimatedRainbow = false;
 
     for (const property of APPEARANCE_PROPERTIES) {
@@ -170,8 +171,7 @@ export function mountAppearanceModel(
       const directProperty = DIRECT_STYLE_PROPERTIES[property];
       if (directProperty) {
         const directValue = property === 'baselineShift' ? `translateY(${serialised.cssValue})` : serialised.cssValue;
-        element.style.setProperty(directProperty, directValue);
-        mountedDirectProperties.push(directProperty);
+        (directValues[directProperty] ??= []).push(directValue);
       }
       hasAnimatedRainbow ||= serialised.animated;
     }
@@ -183,6 +183,17 @@ export function mountAppearanceModel(
     }
     if (mountedVariables.length > 0) {
       element.setAttribute(MOUNTED_PROPERTIES_ATTRIBUTE, mountedVariables.join(','));
+    }
+    for (const [property, values] of Object.entries(directValues)) {
+      const combined = property === 'text-decoration-line'
+        ? [...new Set(values.flatMap((value) => value.split(/\s+/u).filter(Boolean)))].join(' ')
+        : property === 'box-shadow'
+          ? [...new Set(values)].join(', ')
+          : property === 'vertical-align'
+            ? values[0]!
+            : values[values.length - 1]!;
+      element.style.setProperty(property, combined);
+      mountedDirectProperties.push(property);
     }
     if (mountedDirectProperties.length > 0) element.setAttribute(MOUNTED_DIRECT_PROPERTIES_ATTRIBUTE, [...new Set(mountedDirectProperties)].join(','));
   }

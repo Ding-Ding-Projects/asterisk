@@ -456,6 +456,8 @@ export class App extends Base {
   private assertUniqueAppearanceIds(): boolean {
     if (typeof document === 'undefined') return false;
     const seen = new Set<string>();
+    const rootId = document.documentElement.getAttribute('data-appearance-id');
+    if (rootId) seen.add(rootId);
     for (const element of Array.from(document.querySelectorAll<HTMLElement>('[data-appearance-id]'))) {
       const id = element.getAttribute('data-appearance-id');
       if (!id || seen.has(id)) {
@@ -540,7 +542,7 @@ export class App extends Base {
         const numeric = Number(current ?? control.minimum ?? 0);
         base.kind = 'stepper'; base.value = numeric; base.min = control.minimum ?? 0; base.max = control.maximum ?? 100; base.dec = () => execute(Math.max(Number(base.min), numeric - Number(control.step ?? 1))); base.inc = () => execute(Math.min(Number(base.max), numeric + Number(control.step ?? 1))); base.set = (value: unknown) => execute(Number(value));
       } else if (control.kind === 'file') {
-        const originalId = control.controlId.split(':').slice(2).join(':');
+        const originalId = control.sourceControlId;
         base.kind = 'file'; base.fileName = typeof current === 'string' && current ? current : 'No file chosen'; base.hasFile = Boolean(current); base.accept = control.accept ?? '';
         base.onPick = (event: { target?: { files?: FileList | null } }) => { const file = event.target?.files?.[0]; if (file) this.onFilePicked({ id: originalId }, file); };
         base.onClear = () => this.onFileCleared({ id: originalId });
@@ -570,9 +572,15 @@ export class App extends Base {
       return;
     }
     this.setState({ paletteOpen: false });
+    const currentTabs = (this.state as { tabs?: unknown }).tabs;
+    if (Array.isArray(currentTabs) && !currentTabs.includes(entry.target.destinationId)) {
+      this.setState({ tabs: [...currentTabs, entry.target.destinationId], screen: entry.target.destinationId });
+    }
     const openScreen = (this as unknown as { openScreen?: (id: string) => void }).openScreen;
-    if (openScreen) openScreen(entry.target.destinationId);
-    else this.setState({ screen: entry.target.destinationId });
+    if (!Array.isArray(currentTabs) || currentTabs.includes(entry.target.destinationId)) {
+      if (openScreen) openScreen(entry.target.destinationId);
+      else this.setState({ screen: entry.target.destinationId });
+    }
     globalThis.requestAnimationFrame?.(() => {
       const target = document.querySelector<HTMLElement>(`[data-appearance-id="${CSS.escape(instruction.elementId)}"]`);
       if (!target) { this.toast(`Palette target is stale after navigation: ${instruction.elementId}.`); return; }
@@ -868,7 +876,17 @@ export class App extends Base {
       this.fire('Action not run', `The control identity ${canonicalControlId} is stale. Refresh the screen before retrying.`);
       return;
     }
-    if (canonicalControlId) this.fire('Action requested', `${action} from ${canonicalControlId}.`);
+    if (canonicalControlId) {
+      this.fire('Action requested', `${action} from ${canonicalControlId}.`);
+      void this.request('local-history.record', {
+        payload: {
+          action: 'settings-changed',
+          stableRecordId: canonicalControlId,
+          subject: action,
+          snapshot: { controlId: canonicalControlId, action },
+        },
+      }).catch(() => undefined);
+    }
     if (action === 'vocab-clear') { this.onFileCleared({ id: 'va_file' }); return; }
     if (action === 'daemon-start') { void this.daemonAction('start'); return; }
     if (action === 'daemon-stop') { void this.daemonAction('stop'); return; }
