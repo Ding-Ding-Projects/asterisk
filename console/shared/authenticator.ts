@@ -41,6 +41,7 @@ export interface AuthenticatorCodeSnapshot {
 export type AuthenticatorReconciliationReceipt =
   | { status: 'reconciled'; affectedIds: ReadonlyArray<string> }
   | { status: 'pending-vault-unavailable'; affectedIds: ReadonlyArray<string>; warning: string }
+  | { status: 'pending-removal-failed'; affectedIds: ReadonlyArray<string>; warning: string }
   | { status: 'unresolved-legacy'; affectedIds: ReadonlyArray<string>; warning: string };
 
 export interface AuthenticatorRegistration {

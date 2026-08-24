@@ -37,11 +37,12 @@ export interface ToyLockRecoveryMetadata {
 export type ToyLockReconciliationReceipt =
   | { status: 'reconciled'; affectedIds: ReadonlyArray<string> }
   | { status: 'pending-vault-unavailable'; affectedIds: ReadonlyArray<string>; warning: string }
+  | { status: 'pending-removal-failed'; affectedIds: ReadonlyArray<string>; warning: string }
   | { status: 'unresolved-legacy'; affectedIds: ReadonlyArray<string>; warning: string };
 export type ToyLockUnlockReceipt<T> =
   | { ok: true; value: T }
   | { ok: false; code: 'verification-failed'; message: string; waitCreated: boolean }
-  | { ok: false; code: 'vault-unavailable' | 'persistence-unavailable'; message: string; waitCreated: false };
+  | { ok: false; code: 'vault-unavailable' | 'persistence-unavailable' | 'lock-not-found' | 'invalid-record' | 'invalid-unlock-scope'; message: string; waitCreated: false };
 export type ToyLockRemovalReceipt =
   | { status: 'removed'; value: { removed: true } }
   | { status: 'pending'; message: string; recoverable: true }

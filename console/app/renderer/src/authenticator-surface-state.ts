@@ -4,6 +4,7 @@ import type {
   AuthenticatorRegistration,
   AuthenticatorResult,
   AuthenticatorCodeSnapshot,
+  AuthenticatorReconciliationReceipt,
 } from '../../../shared/authenticator';
 import { MAX_AUTHENTICATOR_PAIRING_BYTES } from '../../../shared/authenticator';
 import type { HistoryRestoreReceipt } from '../../../shared/history';
@@ -20,7 +21,7 @@ export interface AuthenticatorClient {
   confirmAndArm(id: string, code: string): Promise<AuthenticatorResult<AuthenticatorEntry>>;
   remove(id: string): Promise<AuthenticatorResult<undefined>>;
   codeSnapshot(id: string): Promise<AuthenticatorResult<AuthenticatorCodeSnapshot>>;
-  reconciliation?(): Promise<{ status: string; affectedIds: ReadonlyArray<string>; warning?: string }>;
+  reconciliation?(): Promise<AuthenticatorReconciliationReceipt>;
 }
 
 export interface AuthenticatorHistoryClient {

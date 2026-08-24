@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { ConverterSurface, type ConverterClient } from './converter-surface';
 import { OllamaSuite, type OllamaSuiteClient } from './ollama-suite';
 import { DocsSurface } from './docs-surface';
@@ -16,7 +16,7 @@ import { createDurableStorage } from './durable-storage';
 import type { AuthenticatorRegistration } from '../../../shared/authenticator';
 import { LockManagerSurface } from './lock-manager-surface';
 import type { ToyLockClient, ToyLockCredentialClient } from './lock-manager-surface';
-import type { ToyLockRecord, ToyLockRecoveryMetadata, ToyLockRemovalReceipt, ToyLockUnlockReceipt } from '../../../shared/locks';
+import type { ToyLockRecord, ToyLockRecoveryMetadata, ToyLockReconciliationReceipt, ToyLockRemovalReceipt, ToyLockUnlockReceipt } from '../../../shared/locks';
 import { SupportTicketsSurface } from './support-tickets-surface';
 import type { SupportTicket, SupportTicketsClient } from './support-tickets-surface';
 import { UnlockLadderSurface } from './unlock-ladder-surface';
@@ -80,11 +80,12 @@ let lockRecovery = { applicationDataPath: '', supportTicketRoute: '#surface=supp
 type LockAction<T> = { ok: true; value: T } | { ok: false; message: string };
 const lockClient: ToyLockClient = {
   initialize: async () => { const [ready, listed, recovery] = await Promise.all([bridgeRequest<LockAction<{ count: number }>>('toy-lock.initialize'), bridgeRequest<LockAction<ReadonlyArray<ToyLockRecord>>>('toy-lock.list'), bridgeRequest<ToyLockRecoveryMetadata>('toy-lock.recovery')]); if (!listed.ok) return listed; lockRecords = listed.value; lockRecovery = recovery; return ready; },
+  reconciliation: () => bridgeRequest<ToyLockReconciliationReceipt>('toy-lock.reconciliation'),
   list: () => ({ ok: true as const, value: lockRecords }),
   create: async (input) => { const result = await bridgeRequest<LockAction<ToyLockRecord>>('toy-lock.create', input); if (result.ok) lockRecords = [...lockRecords, result.value]; return result; },
   unlock: async (id, candidate, surfaceId) => { const result = await bridgeRequest<ToyLockUnlockReceipt<ToyLockRecord>>('toy-lock.unlock', { id, candidateBase64: btoa(String.fromCharCode(...candidate)), surfaceId }); if (result.ok) lockRecords = lockRecords.map((record) => record.id === id ? result.value : record); return result; },
   relock: async (id) => { const result = await bridgeRequest<LockAction<ToyLockRecord>>('toy-lock.relock', { id }); if (result.ok) lockRecords = lockRecords.map((record) => record.id === id ? result.value : record); return result; },
-  remove: async (id) => { const result = await bridgeRequest<LockAction<{ removed: true }>>('toy-lock.remove', { id }); if (result.ok) { lockRecords = lockRecords.filter((record) => record.id !== id); return { status: 'removed' as const, value: result.value }; } return { status: 'recoverable' as const, message: result.message, recoverable: true }; },
+  remove: async (id) => { const result = await bridgeRequest<ToyLockRemovalReceipt>('toy-lock.remove', { id }); if (result.status === 'removed') lockRecords = lockRecords.filter((record) => record.id !== id); return result; },
   get recovery() { return lockRecovery; },
 };
 const lockCredentials: ToyLockCredentialClient = { create: (targetId, method, value) => bridgeRequest('toy-lock-credential.create', { targetId, method, value }) };
@@ -214,12 +215,14 @@ export function SurfaceMounts() {
   const [route, setRoute] = useState<SurfaceRoute | undefined>(() => routeFromHash());
   const [, setRecoveryRevision] = useState(0);
   const lockoutId = new URLSearchParams(window.location.hash.slice(1)).get('lockout') ?? 'console-surface-lockout';
+  const notifications = useSyncExternalStore((listener) => mountedNotificationStore.subscribe(listener), () => mountedNotificationStore.getSnapshot(), () => mountedNotificationStore.getSnapshot());
   useEffect(() => {
     const onHash = () => setRoute(routeFromHash());
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
   useEffect(() => { void bridgeRequest('toy-lock.recovery').then((recovery) => { lockRecovery = recovery; setRecoveryRevision((value) => value + 1); }).catch(() => undefined); }, []);
+  useEffect(() => { void notificationStorage.bootstrap().then(() => mountedNotificationStore.initialize()).catch(() => undefined); }, []);
 
   const links = useMemo(() => window.dingDesktop?.platform === 'web'
     ? (['converter', 'ollama', 'docs', 'changelog'] as const)
@@ -238,6 +241,7 @@ export function SurfaceMounts() {
       {route === 'locks' ? <LockManagerSurface client={lockClient} credentials={lockCredentials} surfaceId="locks" onOpenSupportTickets={() => { window.location.hash = 'surface=support-tickets'; }} onOpenUnlockLadder={(id) => { window.location.hash = `surface=unlock-ladder&lockout=${encodeURIComponent(id)}`; }} /> : null}
       {route === 'support-tickets' ? <SupportTicketsSurface client={supportTicketsClient} applicationDataPath={lockRecovery.applicationDataPath} openApplicationDataFolder={(path) => window.dingDesktop?.localAuth?.openApplicationDataFolder(path) ?? Promise.resolve({ ok: false, message: 'The privileged application bridge is unavailable.' })} /> : null}
       {route === 'unlock-ladder' ? <UnlockLadderSurface client={unlockLadderClient} lockoutId={lockoutId} budgetScopeId="console-surface" /> : null}
+      <aside className="mounted-notification-center" aria-label="Notification centre"><h2>Notification centre</h2>{notifications.records.length === 0 ? <p>No notifications recorded.</p> : notifications.records.map((record) => <article key={record.id} data-severity={record.severity}><strong>{record.title}</strong><p>{record.body}</p><small>{record.state} · {record.createdAt}</small></article>)}</aside>
     </aside>
   );
 }

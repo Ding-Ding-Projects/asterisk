@@ -2,7 +2,7 @@
 
 ## Behavior
 
-Every non-blocking notification the console has raised, reviewable after the fact so nothing important disappears with a toast. It is backed by `console`. The rail badge on this destination currently reads `4`. It lives on the App rail, under the Deploy & application group: Stand up a new server, then appearance, updates and the console itself.
+Every non-blocking notification the console has raised, reviewable after the fact so nothing important disappears with a toast. The mounted auth-lock surface injects the same durable `NotificationStore` used by the visible Notification centre, so history warnings are retained in the shared center rather than sent through a private event channel.
 
 ## Configuration
 

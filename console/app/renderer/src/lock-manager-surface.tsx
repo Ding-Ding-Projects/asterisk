@@ -6,7 +6,7 @@ import type {
   ToyLockRecoveryMetadata,
   ToyLockUnlockDuration,
 } from '../../../shared/locks';
-import type { ToyLockRemovalReceipt, ToyLockUnlockReceipt } from '../../../shared/locks';
+import type { ToyLockReconciliationReceipt, ToyLockRemovalReceipt, ToyLockUnlockReceipt } from '../../../shared/locks';
 import { assertStableLockId, assertToyLockUnlockDuration, isToyLockOpen } from '../../../shared/locks';
 import { withDeadline } from './authenticator-surface-state';
 import './authenticator-surface.css';
@@ -14,6 +14,7 @@ import { DestructiveActionGate } from './destructive-action-gate';
 
 export interface ToyLockClient {
   initialize(): Promise<{ ok: true; value: { count: number } } | { ok: false; message: string }>;
+  reconciliation?(): Promise<ToyLockReconciliationReceipt>;
   list(): { ok: true; value: ReadonlyArray<ToyLockRecord> } | { ok: false; message: string };
   create(input: Omit<CreateToyLockInput, 'at'>): Promise<{ ok: true; value: ToyLockRecord } | { ok: false; message: string }>;
   unlock(id: string, candidate: Uint8Array, surfaceId?: string): Promise<ToyLockUnlockReceipt<ToyLockRecord>>;
@@ -61,6 +62,7 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [removing, setRemoving] = useState<ToyLockRecord | undefined>();
+  const [reconciliation, setReconciliation] = useState<ToyLockReconciliationReceipt | undefined>();
 
   const refresh = async () => {
     try {
@@ -72,6 +74,7 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Toy locks could not be loaded.'); }
   };
   useEffect(() => { void refresh(); }, [client]);
+  useEffect(() => { void client.reconciliation?.().then(setReconciliation).catch(() => undefined); }, [client]);
   useEffect(() => () => { setCredentialValue(''); setCandidateById({}); }, []);
 
   const visible = useMemo(() => {
@@ -140,6 +143,7 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
     <header className="auth-header"><div><p className="auth-kicker">PERSONAL SPEED BUMPS</p><h2 id="lock-manager-title">Toy locks</h2><p>Every element has its own optional password or TOTP lock. Unlock one does not unlock another.</p></div><button type="button" className="auth-button secondary" onClick={onOpenSupportTickets}>Support Tickets</button></header>
     <div className="auth-disclosure" role="note">These locks are for fun. They are not encryption or a security boundary. If a lockout happens, recovery is to open the application-data folder below and remove it yourself.</div>
     {error ? <div className="auth-error" role="alert">{error}</div> : null}
+    {reconciliation && reconciliation.status !== 'reconciled' ? <div className="auth-disclosure" role="status">{reconciliation.warning} Affected elements: {reconciliation.affectedIds.join(', ') || 'unresolved state'}. Contradictory lock changes remain unavailable.</div> : null}
     <div className="auth-grid">
        <form className="auth-card" onSubmit={(event) => void createLock(event)}><h3>Lock one exact element</h3><p className="auth-help">Use the element's stable identity. A fresh vault credential is created for this element only.</p><label>Target identity<input value={targetId} onChange={(event) => setTargetId(event.target.value)} placeholder="settings.appearance.font-size" maxLength={128} required /></label><label>Credential method<select value={method} onChange={(event) => setMethod(event.target.value as 'password' | 'totp')}><option value="password">Password</option><option value="totp">TOTP</option></select></label><label>{method === 'totp' ? 'Base32 TOTP secret' : 'Password'}<input type="password" value={credentialValue} onChange={(event) => setCredentialValue(event.target.value)} maxLength={512} autoComplete="new-password" required /></label><label>Unlock duration<select value={durationChoice} onChange={(event) => setDurationChoice(event.target.value as DurationChoice)}><option value="surface">This surface</option><option value="minutes">Timed</option><option value="until-application-closes">Until the app closes</option></select></label>{durationChoice === 'minutes' ? <label>Minutes<input type="number" min={1} max={1440} value={minutes} onChange={(event) => setMinutes(event.target.value)} /></label> : null}<button className="auth-button" type="submit" disabled={busy}>Create independent lock</button></form>
       <div className="auth-card"><h3>Recovery details</h3><p className="auth-help">The app never deletes this folder for you. Support Tickets can open it in the platform file manager.</p><dl className="auth-facts"><div><dt>Application data</dt><dd><code>{client.recovery.applicationDataPath}</code></dd></div><div><dt>Support route</dt><dd>{client.recovery.supportTicketRoute}</dd></div><div><dt>Auto-delete</dt><dd>No</dd></div></dl><button className="auth-button secondary" type="button" onClick={onOpenSupportTickets}>Open Support Tickets</button></div>
