@@ -32,12 +32,12 @@
     },
     "school-mode": {
       "state": "implemented",
-      "note": "Implemented with a shared durable state, live snapshot refresh, renamable label, hidden optional controls, saved-setting restoration, and Electron safeStorage credential verification.",
+      "note": "Implemented with one shared School predicate covering optional controls, search and palette surfaces, live generation-bounded snapshot refresh, renamable copy propagation, saved language/funny/narration/quiet restoration, an app-owned accessible credential dialog, exact recovery copy, and Electron safeStorage account verification.",
       "files": ["app/renderer/src/school-mode.ts", "app/renderer/src/App.tsx", "app/electron/main.ts", "app/electron/preload.ts", "app/electron/preload.cjs", "design/Asterisk Console M3.dc.html"]
     },
     "narration": {
       "state": "implemented",
-      "note": "Mounted App.tsx now creates the browser speech adapter, persists narrator settings, refreshes installed voice options, reports missing and network-backed voices, and queues localized notifications and dialogs through the serialized narrator.",
+      "note": "Mounted App.tsx now creates the browser speech adapter, splits event copy into independent English and Cantonese tracks before styling and speech, enforces strict language voice matching, disambiguates duplicate labels, persists quiet and explicit screen-reader state, reports no-engine/missing/network-backed voices, catches per-utterance errors and continues the queue.",
       "files": ["app/renderer/src/narration.ts", "app/renderer/src/App.tsx", "design/Asterisk Console M3.dc.html"]
     },
     "scheduled-settings": {

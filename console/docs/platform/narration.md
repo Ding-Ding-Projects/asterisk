@@ -8,7 +8,7 @@ The `Narration` group uses the platform speech engine adapter and queues applica
 
 ## Configuration
 
-The picker begins with `Choose automatically`, then refreshes from voices currently installed on the machine. Stable voice URI identities are persisted, not display names. Rate and pitch are bounded controls from 0.5 to 2 and 0 to 2 respectively.
+The picker begins with `Choose automatically`, then refreshes from voices currently installed on the machine. Stable voice URI identities are persisted, not display names. Duplicate display names are disambiguated with the engine or URI. English accepts English voices, while Cantonese accepts only `zh-HK` or `yue-HK`. Rate and pitch are bounded controls from 0.5 to 2 and 0 to 2 respectively.
 
 ## Current status
 
@@ -18,7 +18,7 @@ The picker begins with `Choose automatically`, then refreshes from voices curren
 
 ## Failure modes
 
-If a voice is missing, the saved choice is retained and the first compatible voice is used when available. A machine with no compatible voice reports that state. Speech errors reject one utterance and never block settings or PBX work. Quiet hours and an active screen-reader state suppress the queue through the narrator API.
+If a voice is missing or does not match its selected language, the saved choice is retained and the first compatible voice is used when available. A machine with no compatible voice reports that state, and a machine with no speech engine renders that state explicitly. Speech errors are reported per utterance and the next queued line continues. Quiet hours and the explicit `Screen reader active` control suppress the queue through the narrator API.
 
 ## Accessibility and localization
 

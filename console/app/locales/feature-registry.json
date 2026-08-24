@@ -85,6 +85,7 @@
         "Choose automatically",
         "Narration rate",
         "Narration pitch",
+        "Screen reader active",
         "Narration status"
       ],
       "localizedLabels": [
@@ -95,6 +96,7 @@
         "Choose automatically",
         "Narration rate",
         "Narration pitch",
+        "Screen reader active",
         "Narration status"
       ],
       "untranslatedLabels": [],

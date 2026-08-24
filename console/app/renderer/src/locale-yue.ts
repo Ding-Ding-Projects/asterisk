@@ -233,7 +233,6 @@ export const CANTONESE: Catalog = {
   'Dialogs': '對話框',
   'Show emojis in dialogs and message boxes': '喺對話框同訊息框顯示 emoji',
   'Language': '語言',
-  'Fun level': '搞笑程度',
   'School mode': '學校模式',
   'School mode name': '學校模式個名',
   'Set unlock credential': '設定解鎖憑證',
@@ -252,6 +251,12 @@ export const CANTONESE: Catalog = {
   'Narration rate': '朗讀速度',
   'Narration pitch': '朗讀音調',
   'Narration status': '朗讀狀態',
+  'Screen reader active': '讀屏器啟用中',
+  'Shared credential': '共享憑證',
+  'Set the shared School mode credential': '設定共享學校模式憑證',
+  'Save credential': '儲存憑證',
+  'Cancel': '取消',
+  'Unlock': '解鎖',
 
   /* The destinations and controls added after the first pass: Feature codes, IAX
    * peers and the HTTP server, plus the tab and appearance labels the sweep found

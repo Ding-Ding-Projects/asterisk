@@ -55,11 +55,11 @@ function Template(v: any) {
             ),
             S(v.credits)
           ),
-          h("button", { onClick: fn(v.togglePalette), title: `Command palette (Ctrl+Shift+F)`, style: sty(`width:32px; height:32px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center;`), className: "k-h4" },
-            h("span", { style: sty(`font-size:19px;`), className: "msym" },
-              "search"
-            )
-          ),
+          (v.schoolCapabilitiesVisible ? h("button", { onClick: fn(v.togglePalette), title: `Command palette (Ctrl+Shift+F)`, style: sty(`width:32px; height:32px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center;`), className: "k-h4" },
+              h("span", { style: sty(`font-size:19px;`), className: "msym" },
+                "search"
+              )
+            ) : null),
           h("div", { style: sty(`display:flex;`) },
             h("div", { style: sty(`width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;`), onClick: fn(v.__window?.minimize), "data-window-button": ``, title: `Minimize`, className: "k-h1" },
               h("span", { style: sty(`font-size:17px;`), className: "msym" },
@@ -187,19 +187,19 @@ function Template(v: any) {
             )
           ),
           h("div", { style: sty(`padding:0 12px 10px;`) },
-            h("div", { onContextMenu: fn(v.ctxSearch), style: sty(`display:flex; align-items:center; gap:8px; background:#1B211C; border-radius:999px; padding:7px 8px 7px 13px;`) },
-              h("span", { style: sty(`font-size:17px; color:#9AA39B;`), className: "msym" },
-                "search"
-              ),
-              h("span", { style: sty(`flex:1; font-family:'Roboto Mono',monospace; font-size:11.5px; color:#C4CBC2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
-                S(v.navSearchLabel)
-              ),
-              h("button", { onClick: fn(v.openNavRegex), title: `Regex builder`, style: sty(`width:26px; height:26px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h11" },
-                h("span", { style: sty(`font-size:15px;`), className: "msym" },
-                  "data_object"
+            (v.schoolSearchVisible ? h("div", { onContextMenu: fn(v.ctxSearch), style: sty(`display:flex; align-items:center; gap:8px; background:#1B211C; border-radius:999px; padding:7px 8px 7px 13px;`) },
+                h("span", { style: sty(`font-size:17px; color:#9AA39B;`), className: "msym" },
+                  "search"
+                ),
+                h("span", { style: sty(`flex:1; font-family:'Roboto Mono',monospace; font-size:11.5px; color:#C4CBC2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
+                  S(v.navSearchLabel)
+                ),
+                h("button", { onClick: fn(v.openNavRegex), title: `Regex builder`, style: sty(`width:26px; height:26px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h11" },
+                  h("span", { style: sty(`font-size:15px;`), className: "msym" },
+                    "data_object"
+                  )
                 )
-              )
-            )
+              ) : null)
           ),
           h("div", { style: sty(`flex:1; overflow-y:auto; padding:0 10px 8px;`) },
             A(v.sections).map(($s, $s$i) => R($s$i, F(
@@ -410,7 +410,7 @@ function Template(v: any) {
                 )
               )
             ) : null),
-            (v.isCustomise ? h("div", { style: sty(`border-radius:26px; padding:22px 26px; margin-bottom:12px; background:linear-gradient(115deg,#0F3D28,#1B4D33,#0F3D28); background-size:200% 100%; animation:m3Sweep 11s linear infinite;`) },
+            (v.customiseFunVisible ? h("div", { style: sty(`border-radius:26px; padding:22px 26px; margin-bottom:12px; background:linear-gradient(115deg,#0F3D28,#1B4D33,#0F3D28); background-size:200% 100%; animation:m3Sweep 11s linear infinite;`) },
                 h("div", { style: sty(`display:flex; align-items:center; gap:18px; flex-wrap:wrap;`) },
                   h("button", { onClick: fn(v.toggleFun), style: sty(`display:flex; align-items:center; gap:14px; background:${S(v.funBtnBg)}; border:0; border-radius:999px; padding:8px 8px 8px 8px; cursor:pointer;`) },
                     h("span", { style: sty(`width:64px; height:64px; border-radius:50%; background:${S(v.funKnobBg)}; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,.4);`) },
@@ -1118,34 +1118,34 @@ function Template(v: any) {
               ) : null),
             (v.isTableLike ? h("div", { style: sty(`background:#1B211C; border-radius:16px; overflow:hidden; margin-bottom:14px;`) },
                 h("div", { style: sty(`display:flex; align-items:center; gap:10px; padding:12px 16px;`) },
-                  h("div", { style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:999px; padding:8px 14px; flex:1;`) },
-                    h("span", { style: sty(`font-size:18px; color:#9AA39B;`), className: "msym" },
-                      "search"
-                    ),
-                    h("span", { style: sty(`flex:1; font-family:'Roboto Mono',monospace; font-size:12px; color:#C4CBC2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
-                      S(v.tableSearchLabel)
-                    ),
-                    h("button", { onClick: fn(v.openTableRegex), title: `Regex builder`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h11" },
-                      h("span", { style: sty(`font-size:16px;`), className: "msym" },
-                        "data_object"
-                      )
-                    ),
-                    h("span", { style: sty(`width:1px; height:20px; background:#333B34; flex:0 0 auto;`) }),
-                    h("span", { style: sty(`font-size:12.5px; color:#9AA39B; flex:0 0 auto;`) },
-                      "Filter"
-                    ),
-                    A(v.tableFilters).map(($f, $f$i) => R($f$i, F(
-                      ($f.on ? h("button", { onClick: fn($f.pick), style: sty(`display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:5px 12px; color:#9FF7C4; font:inherit; font-size:12px; font-weight:500; cursor:pointer;`) },
-                          h("span", { style: sty(`font-size:15px;`), className: "msym" },
-                            "check"
-                          ),
-                          S($f.label)
-                        ) : null),
-                      ($f.off ? h("button", { onClick: fn($f.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:5px 12px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h1" },
-                          S($f.label)
-                        ) : null)
-                    )))
-                  ),
+                  (v.schoolSearchVisible ? h("div", { style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:999px; padding:8px 14px; flex:1;`) },
+                      h("span", { style: sty(`font-size:18px; color:#9AA39B;`), className: "msym" },
+                        "search"
+                      ),
+                      h("span", { style: sty(`flex:1; font-family:'Roboto Mono',monospace; font-size:12px; color:#C4CBC2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
+                        S(v.tableSearchLabel)
+                      ),
+                      h("button", { onClick: fn(v.openTableRegex), title: `Regex builder`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h11" },
+                        h("span", { style: sty(`font-size:16px;`), className: "msym" },
+                          "data_object"
+                        )
+                      ),
+                      h("span", { style: sty(`width:1px; height:20px; background:#333B34; flex:0 0 auto;`) }),
+                      h("span", { style: sty(`font-size:12.5px; color:#9AA39B; flex:0 0 auto;`) },
+                        "Filter"
+                      ),
+                      A(v.tableFilters).map(($f, $f$i) => R($f$i, F(
+                        ($f.on ? h("button", { onClick: fn($f.pick), style: sty(`display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:5px 12px; color:#9FF7C4; font:inherit; font-size:12px; font-weight:500; cursor:pointer;`) },
+                            h("span", { style: sty(`font-size:15px;`), className: "msym" },
+                              "check"
+                            ),
+                            S($f.label)
+                          ) : null),
+                        ($f.off ? h("button", { onClick: fn($f.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:5px 12px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h1" },
+                            S($f.label)
+                          ) : null)
+                      )))
+                    ) : null),
                   h("button", { onClick: fn(v.openWizard), style: sty(`display:flex; align-items:center; gap:7px; background:#1B4D33; border:0; border-radius:999px; padding:10px 18px 10px 14px; color:#9FF7C4; font:inherit; font-size:13px; font-weight:500; cursor:pointer;`), className: "k-h3" },
                     h("span", { style: sty(`font-size:18px;`), className: "msym" },
                       "add"
@@ -1338,27 +1338,27 @@ function Template(v: any) {
               ) : null),
             (v.isDocs ? h("div", { style: sty(`display:grid; grid-template-columns:340px 1fr; gap:12px; margin-bottom:14px;`) },
                 h("div", { style: sty(`display:flex; flex-direction:column; gap:12px;`) },
-                  h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:14px 16px;`) },
-                    h("div", { style: sty(`display:flex; align-items:center; gap:8px; margin-bottom:10px;`) },
-                      h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
-                        "search"
-                      ),
-                      h("input", { value: v.docsQuery, onChange: fn(v.setDocsQuery), placeholder: `Search articles`, style: sty(`flex:1; background:#0C110D; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-size:12.5px;`) }),
-                      h("button", { onClick: fn(v.toggleDocsRegex), title: `Regular expression`, style: sty(`width:28px; height:28px; border-radius:8px; border:1px solid #414942; background:${S(v.docsRegexBg)}; color:${S(v.docsRegexColor)}; cursor:pointer; display:flex; align-items:center; justify-content:center;`) },
-                        h("span", { style: sty(`font-size:15px;`), className: "msym" },
-                          "regular_expression"
+                  (v.schoolSearchVisible ? h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:14px 16px;`) },
+                      h("div", { style: sty(`display:flex; align-items:center; gap:8px; margin-bottom:10px;`) },
+                        h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
+                          "search"
+                        ),
+                        h("input", { value: v.docsQuery, onChange: fn(v.setDocsQuery), placeholder: `Search articles`, style: sty(`flex:1; background:#0C110D; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-size:12.5px;`) }),
+                        h("button", { onClick: fn(v.toggleDocsRegex), title: `Regular expression`, style: sty(`width:28px; height:28px; border-radius:8px; border:1px solid #414942; background:${S(v.docsRegexBg)}; color:${S(v.docsRegexColor)}; cursor:pointer; display:flex; align-items:center; justify-content:center;`) },
+                          h("span", { style: sty(`font-size:15px;`), className: "msym" },
+                            "regular_expression"
+                          )
                         )
-                      )
-                    ),
-                    (v.docsRegexOn ? h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px; margin-bottom:2px;`) },
-                        A(v.docsRegexPalette).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h26" },
-                            S($p.label)
-                          )))
-                      ) : null),
-                    (v.docsQueryError ? h("div", { style: sty(`font-size:11.5px; color:#FFB4AB; margin-top:6px;`) },
-                        S(v.docsQueryError)
-                      ) : null)
-                  ),
+                      ),
+                      (v.docsRegexOn ? h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px; margin-bottom:2px;`) },
+                          A(v.docsRegexPalette).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h26" },
+                              S($p.label)
+                            )))
+                        ) : null),
+                      (v.docsQueryError ? h("div", { style: sty(`font-size:11.5px; color:#FFB4AB; margin-top:6px;`) },
+                          S(v.docsQueryError)
+                        ) : null)
+                    ) : null),
                   h("div", { style: sty(`background:#1B211C; border-radius:16px; overflow:hidden; flex:1; min-height:420px; display:flex; flex-direction:column;`) },
                     h("div", { style: sty(`padding:12px 16px; font-size:12px; color:#9AA39B;`) },
                       S(v.docsResultsLabel)
@@ -1462,17 +1462,17 @@ function Template(v: any) {
                         S($pr.label)
                       )))
                   ),
-                  h("div", { style: sty(`flex:1; min-width:220px; display:flex; align-items:center; gap:8px;`) },
-                    h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
-                      "search"
-                    ),
-                    h("input", { value: v.changelogQuery, onChange: fn(v.setChangelogQuery), placeholder: `Search changelog text`, style: sty(`flex:1; background:#0C110D; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-size:12.5px;`) }),
-                    h("button", { onClick: fn(v.toggleChangelogRegex), title: `Regular expression`, style: sty(`width:28px; height:28px; border-radius:8px; border:1px solid #414942; background:${S(v.changelogRegexBg)}; color:${S(v.changelogRegexColor)}; cursor:pointer; display:flex; align-items:center; justify-content:center;`) },
-                      h("span", { style: sty(`font-size:15px;`), className: "msym" },
-                        "regular_expression"
+                  (v.schoolSearchVisible ? h("div", { style: sty(`flex:1; min-width:220px; display:flex; align-items:center; gap:8px;`) },
+                      h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
+                        "search"
+                      ),
+                      h("input", { value: v.changelogQuery, onChange: fn(v.setChangelogQuery), placeholder: `Search changelog text`, style: sty(`flex:1; background:#0C110D; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-size:12.5px;`) }),
+                      h("button", { onClick: fn(v.toggleChangelogRegex), title: `Regular expression`, style: sty(`width:28px; height:28px; border-radius:8px; border:1px solid #414942; background:${S(v.changelogRegexBg)}; color:${S(v.changelogRegexColor)}; cursor:pointer; display:flex; align-items:center; justify-content:center;`) },
+                        h("span", { style: sty(`font-size:15px;`), className: "msym" },
+                          "regular_expression"
+                        )
                       )
-                    )
-                  ),
+                    ) : null),
                   h("div", { style: sty(`display:flex; gap:8px;`) },
                     h("button", { onClick: fn(v.changelogCopy), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 14px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h1" },
                       h("span", { style: sty(`font-size:15px; color:#82D9A5;`), className: "msym" },
@@ -1863,7 +1863,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.paletteOpen ? F(
+      (v.paletteVisible ? F(
         h("div", { onClick: fn(v.togglePalette), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.5); z-index:70;`) }),
         h("div", { style: sty(`position:absolute; left:50%; top:88px; transform:translateX(-50%); width:620px; background:#252B25; border-radius:20px; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:71; overflow:hidden; animation:dlgPalette .22s cubic-bezier(.2,0,0,1);`) },
           h("div", { style: sty(`display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid #333B34;`) },
@@ -2499,6 +2499,39 @@ function Template(v: any) {
               h("div", { style: sty(`flex:1;`) }),
               h("button", { onClick: fn(v.submitUnlock), style: sty(`background:#82D9A5; border:0; border-radius:999px; padding:11px 24px; color:#00391F; font:inherit; font-size:13px; font-weight:600; cursor:pointer;`) },
                 "Unlock"
+              )
+            )
+          )
+        ) : null),
+      (v.schoolCredentialOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:88; display:flex; align-items:center; justify-content:center;`) },
+          h("div", { role: `dialog`, "aria-modal": `true`, "aria-labelledby": `school-credential-title`, style: sty(`width:440px; background:#252B25; border-radius:24px; padding:24px; box-shadow:0 16px 48px rgba(0,0,0,.7);`) },
+            h("div", { style: sty(`display:flex; align-items:flex-start; gap:12px;`) },
+              h("span", { style: sty(`font-size:28px; color:#82D9A5;`), className: "msym" },
+                "password"
+              ),
+              h("div", { style: sty(`flex:1;`) },
+                h("div", { id: `school-credential-title`, style: sty(`font-size:18px; font-weight:600;`) },
+                  S(v.schoolCredentialTitle)
+                ),
+                h("div", { style: sty(`font-size:12.5px; color:#9AA39B; line-height:1.55; margin-top:6px;`) },
+                  S(v.schoolCredentialDisclosure)
+                )
+              )
+            ),
+            h("label", { htmlFor: `school-credential-input`, style: sty(`display:block; font-size:12px; color:#C4CBC2; margin-top:18px;`) },
+              "Shared credential"
+            ),
+            h("input", { id: `school-credential-input`, type: `password`, value: v.schoolCredentialValue, onChange: fn(v.onSchoolCredential), onInput: fn(v.onSchoolCredential), autoComplete: `new-password`, style: sty(`width:100%; box-sizing:border-box; margin-top:7px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:11px 12px; color:#DFE4DC; font:inherit; font-family:'Roboto Mono',monospace;`) }),
+            h("div", { style: sty(`font-size:11.5px; color:#8FA394; line-height:1.5; margin-top:10px;`) },
+              S(v.schoolRecoveryLine)
+            ),
+            h("div", { style: sty(`display:flex; gap:8px; margin-top:18px;`) },
+              h("button", { onClick: fn(v.cancelSchoolCredential), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; cursor:pointer;`) },
+                "Cancel"
+              ),
+              h("div", { style: sty(`flex:1;`) }),
+              h("button", { onClick: fn(v.submitSchoolCredential), style: sty(`background:#82D9A5; border:0; border-radius:999px; padding:10px 20px; color:#00391F; font:inherit; font-weight:600; cursor:pointer;`) },
+                S(v.schoolCredentialAction)
               )
             )
           )
@@ -3399,6 +3432,7 @@ const SCREENS = {
       ctl('nar_yue_voice','Cantonese voice','select','Choose automatically',{ options:['Choose automatically'], info:'The list is populated from voices installed on this computer. A missing choice is retained and clearly reported rather than silently replaced.' }),
       ctl('nar_rate','Narration rate','slider',1,{ min:0.5, max:2, step:0.1, info:'The platform rate, from 0.5 to 2.0. The voice normal is the default.' }),
       ctl('nar_pitch','Narration pitch','slider',1,{ min:0, max:2, step:0.1, info:'The platform pitch, from 0 to 2. The voice normal is the default.' }),
+      ctl('nar_screen_reader','Screen reader active','switch',false,{ info:'Switch this on when a screen reader is active so narration yields instead of competing for attention. The setting persists.' }),
       ctl('nar_status','Narration status','text','No voice list loaded yet.',{ action:'narration-status', info:'Reports the effective voice, missing voice fallback, network-backed status and offline behavior.' })
     ]},{ title:'Motion', desc:'Global timing. Individual elements can still set their own.', ctls:[
       ctl('mo_speed','Animation speed','slider',100,{ min:0, max:300, unit:'%' }),
@@ -3501,7 +3535,8 @@ const DOCS = {
   sv_hostkey:{ what:'Whether a changed SSH host key aborts the connection.', why:'A changed host key means either a rebuild or an interception. Only one of those is benign.', values:'On, always.', gotcha:'The prompt asking a human to accept a new key is precisely how these attacks succeed. This console refuses instead of asking.' },
   hi_commit:{ what:'Whether every individual control change writes a git commit immediately.', why:'It gives you an exact, attributable history and a one-click revert of any single change.', values:'On is strongly recommended.', gotcha:'Off batches changes until you commit manually, which in practice means nobody remembers what changed between two working states.' },
   fun_random:{ what:'Gives every rendered element its own randomly generated appearance.', why:'Because you asked, and because it makes a dull configuration screen memorable.', values:'A seed, a scope of properties to randomise, a wildness percentage and an optional reroll on every screen change.', gotcha:'At high wildness with rotation enabled, dense tables become genuinely hard to read. That is the intent, but it is worth knowing.' },
-  fun_level:{ what:'How playful the console is allowed to be, from 0 to 4.', why:'One dial that scales celebrations, copy tone, motion and randomness together.', values:'0 Bank, 1 Polite, 2 Balanced, 3 Playful, 4 Unhinged.', gotcha:'Level 4 celebrates trivial changes. It is delightful for a week and then you will want level 2.' }
+  fun_english:{ what:'How playful English copy is allowed to be, from 1 to 5.', why:'The English message voice can be tuned independently.', values:'1 is fully serious and 5 is maximum playfulness.', gotcha:'The facts and technical values never change.' },
+  fun_cantonese:{ what:'How playful Cantonese copy is allowed to be, from 1 to 5.', why:'The Cantonese message voice can be tuned independently.', values:'1 is fully serious and 5 is maximum playfulness.', gotcha:'The facts and technical values never change.' }
 };
 
 const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
@@ -4334,8 +4369,8 @@ class ConsoleShell extends DCLogic {
   randomAppearance = (all) => {
     const r = (a, b) => Math.round(a + Math.random() * (b - a));
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-    const fun = this.state.values.fun_level === undefined ? 2 : this.state.values.fun_level;
-    const wild = fun >= 3;
+    const fun = Math.round(((this.state.values.fun_english === undefined ? 5 : this.state.values.fun_english) + (this.state.values.fun_cantonese === undefined ? 5 : this.state.values.fun_cantonese)) / 2);
+    const wild = fun >= 4;
     const next = {
       ap_hue:r(0, 360), ap_sat:r(wild ? 40 : 20, wild ? 100 : 70), ap_light:r(45, 80),
       ap_weight:pick(['300', '400', '500', '700']), ap_size:r(12, wild ? 26 : 18),
@@ -4991,30 +5026,30 @@ class ConsoleShell extends DCLogic {
       ].map(d => ({ label:d.label, icon:d.icon, on:s.dock === d.v, off:s.dock !== d.v, pick:() => { this.set('dock', d.v); this.toast('Docked ' + d.label.toLowerCase()); } })),
       dockDirection:s.dock === 'right' ? 'row-reverse' : (s.dock === 'top' ? 'column' : 'row'),
       isCustomise:s.screen === 'customise',
-      funLevel:(() => { const l = this.v('fun_level', 2); return String(l); })(),
-      funName:['Bank','Polite','Balanced','Playful','Unhinged'][this.v('fun_level', 2)],
+      funLevel:(() => { const l = Math.round((this.v('fun_english', 5) + this.v('fun_cantonese', 5)) / 2); return String(l); })(),
+      funName:['','Serious','Mild','Balanced','Playful','Maximum'][Math.round((this.v('fun_english', 5) + this.v('fun_cantonese', 5)) / 2)],
       funBlurb:[
         'Zero decoration. No celebration, no jokes, no confetti. Toasts state facts and nothing moves that does not have to.',
         'Quiet competence. Short confirmations, minimal motion, no jokes.',
         'The default. Celebrations for meaningful wins and security improvements, warm copy, motion that helps you follow what changed.',
         'Jokes in the copy, bolder motion, confetti for more things, and the one-click setup narrates itself.',
         'Confetti for moving a slider. Rainbow fills. An app that will not stop congratulating you. Genuinely usable, deeply unserious.'
-      ][this.v('fun_level', 2)],
-      funLevels:[0, 1, 2, 3, 4].map(n => ({ num:String(n), name:['Bank','Polite','Balanced','Playful','Unhinged'][n],
-        desc:['nothing moves','quiet','sensible default','jokes and motion','confetti everywhere'][n],
-        on:this.v('fun_level', 2) === n, off:this.v('fun_level', 2) !== n,
-        pick:() => this.setVal({ id:'fun_level', label:'Fun level' }, n) })),
-      funOn:this.v('fun_level', 2) > 0,
-      funIcon:this.v('fun_level', 2) > 0 ? 'celebration' : 'work',
-      funLabel:this.v('fun_level', 2) > 0 ? 'FUN IS ON' : 'FUN IS OFF',
-      funBtnBg:this.v('fun_level', 2) > 0 ? '#9FF7C4' : 'rgba(0,0,0,.32)',
-      funKnobBg:this.v('fun_level', 2) > 0 ? '#00391F' : '#1B211C',
-      funKnobFg:this.v('fun_level', 2) > 0 ? '#9FF7C4' : '#8FA394',
-      funKnobAnim:this.v('fun_level', 2) > 2 ? 'm3Wiggle 1.6s ease-in-out infinite' : 'none',
-      funLabelFg:this.v('fun_level', 2) > 0 ? '#00391F' : '#9FF7C4',
-      toggleFun:() => { const on = this.v('fun_level', 2) > 0; this.setVal({ id:'fun_level', label:'Fun level' }, on ? 0 : 3); if (!on) this.fire('Fun restored', 'Level 3. Brace yourself.'); },
-      maxFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:4, fun_random:true, fun_confetti:300, fun_copy:'Comedian', th_rainbow:true, fun_random_scope:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'], fun_random_strength:100, fun_random_reroll:true }) })); this.fire('MAXIMUM FUN', 'Every element now has its own random look, rerolling as you go.'); },
-      zeroFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:0, fun_random:false, th_rainbow:false, fun_confetti:0, fun_copy:'Terse' }) })); this.toast('Fun disabled. The console is now a spreadsheet with opinions.'); },
+      ][Math.round((this.v('fun_english', 5) + this.v('fun_cantonese', 5)) / 2)],
+      funLevels:[1, 2, 3, 4, 5].map(n => ({ num:String(n), name:['','Serious','Mild','Balanced','Playful','Maximum'][n],
+        desc:['','Plain facts, no extra sparkle.','A little warmth, no fireworks.','Balanced voice for ordinary work.','Jokes and bolder delight.','Maximum playfulness, facts unchanged.'][n],
+        on:Math.round((this.v('fun_english', 5) + this.v('fun_cantonese', 5)) / 2) === n, off:Math.round((this.v('fun_english', 5) + this.v('fun_cantonese', 5)) / 2) !== n,
+        pick:() => { this.setVal({ id:'fun_english', label:'English funny level' }, n); this.setVal({ id:'fun_cantonese', label:'Cantonese funny level' }, n); } })),
+      funOn:Math.round((this.v('fun_english', 5) + this.v('fun_cantonese', 5)) / 2) > 1,
+      funIcon:Math.round((this.v('fun_english', 5) + this.v('fun_cantonese', 5)) / 2) > 1 ? 'celebration' : 'work',
+      funLabel:Math.round((this.v('fun_english', 5) + this.v('fun_cantonese', 5)) / 2) > 1 ? 'FUN IS ON' : 'FUN IS OFF',
+      funBtnBg:Math.round((this.v('fun_english', 5) + this.v('fun_cantonese', 5)) / 2) > 1 ? '#9FF7C4' : 'rgba(0,0,0,.32)',
+      funKnobBg:Math.round((this.v('fun_english', 5) + this.v('fun_cantonese', 5)) / 2) > 1 ? '#00391F' : '#1B211C',
+      funKnobFg:Math.round((this.v('fun_english', 5) + this.v('fun_cantonese', 5)) / 2) > 1 ? '#9FF7C4' : '#8FA394',
+      funKnobAnim:Math.round((this.v('fun_english', 5) + this.v('fun_cantonese', 5)) / 2) > 3 ? 'm3Wiggle 1.6s ease-in-out infinite' : 'none',
+      funLabelFg:Math.round((this.v('fun_english', 5) + this.v('fun_cantonese', 5)) / 2) > 1 ? '#00391F' : '#9FF7C4',
+      toggleFun:() => { const on = Math.round((this.v('fun_english', 5) + this.v('fun_cantonese', 5)) / 2) > 1; this.setVal({ id:'fun_english', label:'English funny level' }, on ? 1 : 5); this.setVal({ id:'fun_cantonese', label:'Cantonese funny level' }, on ? 1 : 5); },
+      maxFun:() => { this.setVal({ id:'fun_english', label:'English funny level' }, 5); this.setVal({ id:'fun_cantonese', label:'Cantonese funny level' }, 5); this.setState(st => ({ values:Object.assign({}, st.values, { fun_random:true, fun_confetti:300, fun_copy:'Comedian', th_rainbow:true, fun_random_scope:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'], fun_random_strength:100, fun_random_reroll:true }) })); this.fire('MAXIMUM FUN', 'Every element now has its own random look, rerolling as you go.'); },
+      zeroFun:() => { this.setVal({ id:'fun_english', label:'English funny level' }, 1); this.setVal({ id:'fun_cantonese', label:'Cantonese funny level' }, 1); this.setState(st => ({ values:Object.assign({}, st.values, { fun_random:false, th_rainbow:false, fun_confetti:0, fun_copy:'Terse' }) })); this.toast('Fun disabled. The console is now a spreadsheet with opinions.'); },
       toggleRandom:() => { const on = this.v('fun_random', false); this.setVal({ id:'fun_random', label:'Random appearance for every element', kind:'switch' }, !on); if (!on) this.fire('Randomised', 'Every element just got its own look.'); },
       rndBtnBg:this.v('fun_random', false) ? '#1B4D33' : 'rgba(0,0,0,.24)',
       rndBtnBorder:this.v('fun_random', false) ? '#9FF7C4' : 'rgba(159,247,196,.3)',

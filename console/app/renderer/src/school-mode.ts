@@ -5,6 +5,9 @@ export const SCHOOL_NAME_SETTING = 'console.schoolModeName';
 export const SCHOOL_PREVIOUS_SETTINGS = 'console.schoolModePrevious';
 export const DEFAULT_SCHOOL_NAME = 'School mode';
 export const MAX_SCHOOL_NAME_LENGTH = 60;
+export const SCHOOL_CREDENTIAL_ACCOUNT = 'ding-pbx-console:school-mode-shared-unlock';
+export const SCHOOL_RECOVERY_FOLDER = '%APPDATA%\\ding-pbx-console';
+export const SCHOOL_RECOVERY_LINE = `If you forget this credential, delete ${SCHOOL_RECOVERY_FOLDER} to reset School mode and its local settings.`;
 
 export interface SchoolStorage {
   getItem(key: string): string | null | undefined;
@@ -50,20 +53,21 @@ export function renameSchoolMode(storage: SchoolStorage, value: string): string[
   return [];
 }
 
-export function savePreviousSettings(storage: SchoolStorage, language: string, funny: { en: number; yue: number }): void {
-  storage.setItem(SCHOOL_PREVIOUS_SETTINGS, JSON.stringify({ language, funny }));
+export function savePreviousSettings(storage: SchoolStorage, language: string, funny: { en: number; yue: number }, narration?: Record<string, unknown>): void {
+  storage.setItem(SCHOOL_PREVIOUS_SETTINGS, JSON.stringify({ language, funny, narration }));
 }
 
-export function readPreviousSettings(storage: SchoolStorage): { language?: string; funny?: { en?: number; yue?: number } } | undefined {
+export function readPreviousSettings(storage: SchoolStorage): { language?: string; funny?: { en?: number; yue?: number }; narration?: Record<string, unknown> } | undefined {
   const raw = storage.getItem(SCHOOL_PREVIOUS_SETTINGS);
   if (!raw) return undefined;
   try {
-    const parsed = JSON.parse(raw) as { language?: unknown; funny?: { en?: unknown; yue?: unknown } };
+    const parsed = JSON.parse(raw) as { language?: unknown; funny?: { en?: unknown; yue?: unknown }; narration?: Record<string, unknown> };
     return {
       language: typeof parsed.language === 'string' ? parsed.language : undefined,
       funny: parsed.funny && typeof parsed.funny === 'object'
         ? { en: Number(parsed.funny.en), yue: Number(parsed.funny.yue) }
         : undefined,
+      narration: parsed.narration && typeof parsed.narration === 'object' ? parsed.narration : undefined,
     };
   } catch {
     return undefined;

@@ -175,11 +175,12 @@ ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequ
  * store, not the plain settings snapshot. Only success or a neutral reason crosses
  * the renderer boundary, never the stored value or its encrypted bytes. */
 const schoolCredentialPath = (): string => join(app.getPath('userData'), 'school-mode-credential.bin');
+const SCHOOL_CREDENTIAL_ACCOUNT = 'ding-pbx-console:school-mode-shared-unlock';
 ipcMain.handle('school:set-credential', async (_event, candidate: unknown) => {
   if (typeof candidate !== 'string' || candidate.length < 4 || candidate.length > 256) return { ok: false, reason: 'The unlock credential must be between 4 and 256 characters.' };
   if (!safeStorage.isEncryptionAvailable()) return { ok: false, reason: 'The desktop credential store is unavailable.' };
   try {
-    writeFileSync(schoolCredentialPath(), safeStorage.encryptString(candidate));
+    writeFileSync(schoolCredentialPath(), safeStorage.encryptString(JSON.stringify({ account: SCHOOL_CREDENTIAL_ACCOUNT, credential: candidate })));
     return { ok: true };
   } catch {
     return { ok: false, reason: 'The desktop credential store could not save the credential.' };
@@ -190,8 +191,10 @@ ipcMain.handle('school:verify-credential', async (_event, candidate: unknown) =>
   try {
     const file = schoolCredentialPath();
     if (!existsSync(file)) return { ok: false, reason: 'No School mode unlock credential has been set yet.' };
-    const stored = safeStorage.decryptString(readFileSync(file));
-    return stored === candidate ? { ok: true } : { ok: false, reason: 'The shared credential was not accepted.' };
+    const record = JSON.parse(safeStorage.decryptString(readFileSync(file))) as { account?: string; credential?: string };
+    return record.account === SCHOOL_CREDENTIAL_ACCOUNT && record.credential === candidate
+      ? { ok: true }
+      : { ok: false, reason: 'The shared credential was not accepted.' };
   } catch {
     return { ok: false, reason: 'The desktop credential store could not verify the credential.' };
   }

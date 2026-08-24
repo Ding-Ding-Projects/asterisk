@@ -14,6 +14,7 @@ export interface SpeechVoice {
   id: string;
   name: string;
   lang: string;
+  engine?: string;
   /** True when the voice runs locally; false when it depends on a network round-trip. */
   localService: boolean;
 }
@@ -41,14 +42,20 @@ export interface VoiceOption {
   id: string;
   label: string;
   localService?: boolean;
+  engine?: string;
 }
 
 export function voiceOptions(engine: SpeechEngine, language: 'en' | 'zh'): VoiceOption[] {
+  const matching = engine.voices().filter((voice) => voiceMatchesLanguage(voice, language));
+  const duplicateNames = new Set(matching.filter((voice, index) => matching.findIndex((candidate) => candidate.name === voice.name) !== index).map((voice) => voice.name));
   return [
     { id: CHOOSE_AUTOMATICALLY, label: 'Choose automatically' },
-    ...engine.voices()
-      .filter((voice) => voiceMatchesLanguage(voice, language))
-      .map((voice) => ({ id: voice.id, label: voice.name, localService: voice.localService })),
+    ...matching.map((voice) => ({
+      id: voice.id,
+      label: duplicateNames.has(voice.name) ? `${voice.name} (${voice.engine || voice.id})` : voice.name,
+      localService: voice.localService,
+      engine: voice.engine,
+    })),
   ];
 }
 
@@ -60,6 +67,7 @@ export function browserSpeechEngine(): SpeechEngine | undefined {
     id: voice.voiceURI || `${voice.lang}:${voice.name}`,
     name: voice.name,
     lang: voice.lang,
+    engine: voice.voiceURI || undefined,
     localService: voice.localService,
   }));
   return {
@@ -119,7 +127,8 @@ export interface VoiceStatus {
 
 interface QueueItem {
   category: string;
-  text: string;
+  enText: string;
+  yueText: string;
   language: NarrationLanguage;
   isError: boolean;
   enqueuedAtMs: number;
@@ -135,6 +144,7 @@ export interface NarratorOptions {
   clock?: NarratorClock;
   /** Ordinary (non-error) categories get at most one utterance per this many ms. */
   cooldownMs?: number;
+  onSpeechError?: (error: unknown, item: { category: string; language: 'en' | 'zh' }) => void;
 }
 
 const DEFAULT_COOLDOWN_MS = 3000;
@@ -158,6 +168,12 @@ export function resolveVoiceStatus(
   }
 
   const chosen = availableVoices.find((v) => v.id === chosenVoiceId);
+  if (chosen && !voiceMatchesLanguage(chosen, language)) {
+    const fallback = langVoices[0];
+    return fallback
+      ? { kind: 'fallback', chosenVoiceId, effectiveVoiceId: fallback.id, message: `The chosen voice does not read ${languageName(language)}. Falling back to "${fallback.name}" while keeping the choice.` }
+      : { kind: 'no-voice-available', chosenVoiceId, message: `The chosen voice does not read ${languageName(language)}, and no compatible voice is installed. The choice is kept.` };
+  }
   if (!chosen) {
     if (langVoices.length === 0) {
       return {
@@ -187,9 +203,10 @@ export function resolveVoiceStatus(
   return { kind: 'ok', chosenVoiceId, effectiveVoiceId: chosen.id, message: `"${chosen.name}" will speak.` };
 }
 
-function voiceMatchesLanguage(voice: SpeechVoice, language: 'en' | 'zh'): boolean {
-  const prefix = language === 'en' ? 'en' : 'zh';
-  return voice.lang.toLowerCase().startsWith(prefix);
+export function voiceMatchesLanguage(voice: SpeechVoice, language: 'en' | 'zh'): boolean {
+  const normalized = voice.lang.toLowerCase().replace('_', '-');
+  if (language === 'en') return normalized === 'en' || normalized.startsWith('en-');
+  return normalized === 'zh-hk' || normalized === 'yue-hk';
 }
 
 function languageName(language: 'en' | 'zh'): string {
@@ -200,6 +217,7 @@ export class Narrator {
   private readonly engine: SpeechEngine;
   private readonly clock: NarratorClock;
   private readonly cooldownMs: number;
+  private readonly onSpeechError?: NarratorOptions['onSpeechError'];
 
   private settings: NarrationSettings = defaultNarrationSettings();
   private screenReaderActive = false;
@@ -217,6 +235,7 @@ export class Narrator {
     this.engine = engine;
     this.clock = options.clock ?? realClock;
     this.cooldownMs = options.cooldownMs ?? DEFAULT_COOLDOWN_MS;
+    this.onSpeechError = options.onSpeechError;
     this.cachedVoices = engine.voices();
     this.voicesUnsubscribe = engine.onVoicesChanged(() => {
       this.cachedVoices = this.engine.voices();
@@ -269,7 +288,7 @@ export class Narrator {
    * (though they still coalesce within the same category) and are never dropped
    * purely for rate-limiting reasons.
    */
-  enqueue(category: string, text: string, options: { isError?: boolean; language?: NarrationLanguage } = {}): void {
+  enqueue(category: string, text: string, options: { isError?: boolean; language?: NarrationLanguage; enText?: string; yueText?: string } = {}): void {
     if (this.suppressed()) return;
 
     const isError = options.isError ?? false;
@@ -285,7 +304,7 @@ export class Narrator {
 
     // Replace any queued (not-yet-spoken) item of the same category rather than stacking.
     this.queue = this.queue.filter((item) => item.category !== category);
-    this.queue.push({ category, text, language, isError, enqueuedAtMs: now });
+    this.queue.push({ category, enText: options.enText ?? text, yueText: options.yueText ?? text, language, isError, enqueuedAtMs: now });
 
     void this.pump();
   }
@@ -301,7 +320,13 @@ export class Narrator {
         }
         const item = this.queue.shift()!;
         this.lastSpokenAtMs.set(item.category, this.clock.now());
-        await this.speakItem(item);
+        try {
+          await this.speakItem(item);
+        } catch (error) {
+          try {
+            this.onSpeechError?.(error, { category: item.category, language: item.language === 'zh' ? 'zh' : 'en' });
+          } catch { /* an observer cannot strand later queued work */ }
+        }
       }
     } finally {
       this.speaking = false;
@@ -315,12 +340,16 @@ export class Narrator {
     for (const lang of langs) {
       if (this.suppressed()) return;
       const status = this.status(lang);
-      await this.engine.speak({
-        text: item.text,
-        voiceId: status.effectiveVoiceId,
-        rate: this.settings.rate,
-        pitch: this.settings.pitch,
-      });
+      try {
+        await this.engine.speak({
+          text: lang === 'en' ? item.enText : item.yueText,
+          voiceId: status.effectiveVoiceId,
+          rate: this.settings.rate,
+          pitch: this.settings.pitch,
+        });
+      } catch (error) {
+        try { this.onSpeechError?.(error, { category: item.category, language: lang }); } catch { /* status reporting cannot stop the queue */ }
+      }
     }
   }
 

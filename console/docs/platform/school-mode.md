@@ -8,7 +8,7 @@ The state lives in the shared durable settings snapshot. A one-second snapshot r
 
 ## Configuration
 
-`School mode name` is validated and shared. `Set unlock credential` prompts locally and sends the value only to Electron's encrypted desktop credential store. `Unlock School mode` verifies it before restoring the previous language and funny-level values. The credential never enters settings, exports, history, logs or captures.
+`School mode name` is validated and shared. `Set unlock credential` and `Unlock School mode` use an app-owned accessible credential dialog and send the value only to Electron's encrypted desktop credential store. `Unlock School mode` verifies it before restoring the previous language, funny levels, narrator settings and quiet state. The credential never enters settings, exports, history, logs or captures.
 
 ## Current status
 
@@ -18,11 +18,11 @@ The state lives in the shared durable settings snapshot. A one-second snapshot r
 
 ## Failure modes
 
-If a refresh cannot read the shared snapshot, the last known state remains active and the status control reports `refresh-failed`. This is a presentation lock, not a security boundary.
+If a refresh cannot read the shared snapshot, the last known state remains active and the status control reports `refresh-failed`. Search fields, regex controls, the command palette, vocabulary destination, fun destination and dim-sum destination are also suppressed by the same School predicate. This is a presentation lock, not a security boundary.
 
 ## Accessibility and localization
 
-The switch, name field, status line and unlock route are generated accessible controls. School mode's chosen name remains the visible name after activation, while its forced English presentation keeps the hidden capabilities out of the rendered control list.
+The switch, name field, status line and unlock dialog are generated accessible controls. School mode's chosen name replaces the shipped name in labels, descriptions, prompts, notices and accessible names. The forced English presentation keeps hidden capabilities out of the rendered control list.
 
 ## Verification
 

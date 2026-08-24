@@ -69,6 +69,7 @@ export type Catalog = Readonly<Record<string, string>>;
 let catalog: Catalog = {};
 let mode: LanguageMode = 'en';
 let vocabulary: VocabularyStorage | undefined;
+let schoolModeNameProvider: ((text: string) => string) | undefined;
 
 export function setCatalog(next: Catalog): void {
   catalog = next;
@@ -85,6 +86,11 @@ export function languageMode(): LanguageMode {
 /** Wires the vocabulary cache in. Until this is called, vocabulary is simply not applied. */
 export function setVocabularyStorage(storage: VocabularyStorage | undefined): void {
   vocabulary = storage;
+}
+
+/** Lets a shared renamed School mode label reach visible copy and accessible names. */
+export function setSchoolModeNameProvider(provider: ((text: string) => string) | undefined): void {
+  schoolModeNameProvider = provider;
 }
 
 /** The separator between the two halves of a bilingual string. */
@@ -108,7 +114,22 @@ export function localizeText(text: string): string {
 /** The full boundary: language mode, then personal vocabulary over the result. */
 export function transformText(text: string): string {
   const localized = localizeText(text);
-  return vocabulary ? applyVocabularyText(vocabulary, localized) : localized;
+  const renamed = schoolModeNameProvider ? schoolModeNameProvider(localized) : localized;
+  return vocabulary ? applyVocabularyText(vocabulary, renamed) : renamed;
+}
+
+export interface LocalizedEventText {
+  enText: string;
+  yueText: string;
+  bilingualText: string;
+}
+
+/** Split an event into independent language tracks before funny styling or speech. */
+export function localizeEventText(text: string): LocalizedEventText {
+  const separator = BILINGUAL_SEPARATOR;
+  const source = text.includes(separator) ? text.slice(0, text.indexOf(separator)) : text;
+  const yueText = catalog[source] ?? source;
+  return { enText: source, yueText, bilingualText: `${source}${separator}${yueText}` };
 }
 
 /**

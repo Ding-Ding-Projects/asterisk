@@ -22,7 +22,7 @@ import {
 } from './personal-vocabulary';
 import { createDurableStorage, type DurableStorageHandle } from './durable-storage';
 import {
-  isLanguageMode, languageMode, setCatalog, setLanguageMode, setVocabularyStorage,
+  isLanguageMode, languageMode, localizeEventText, setCatalog, setLanguageMode, setSchoolModeNameProvider, setVocabularyStorage,
   type LanguageMode,
 } from './text-boundary';
 import {
@@ -34,7 +34,7 @@ import {
   type FunnyLevels,
 } from './funny-levels';
 import {
-  DEFAULT_SCHOOL_NAME, SCHOOL_MODE_SETTING,
+  DEFAULT_SCHOOL_NAME, SCHOOL_MODE_SETTING, SCHOOL_RECOVERY_LINE,
   readPreviousSettings, renameSchoolMode, schoolModeEnabled,
   schoolModeName, savePreviousSettings, writeSchoolMode,
 } from './school-mode';
@@ -199,11 +199,19 @@ export class App extends Base {
   private schoolStatus: SchoolStatus = 'unknown';
   private schoolRefreshTimer: ReturnType<typeof setInterval> | undefined;
   private schoolCredentialPromptOpen = false;
+  private schoolBootstrapped = false;
+  private schoolRefreshInFlight = false;
+  private schoolRefreshGeneration = 0;
   private narrator: Narrator | undefined;
   private speechEngine: SpeechEngine | undefined;
   private narrationStatusLine = 'No voice list loaded yet.';
   private voiceOptionIds: Record<string, string> = {};
   private voicesChangedUnsubscribe: (() => void) | undefined;
+  private narrationQuiet = false;
+  private narrationScreenReaderActive = false;
+  private schoolCredentialOpen = false;
+  private schoolCredentialKind: 'set' | 'verify' = 'set';
+  private schoolCredentialValue = '';
   private readonly baseToast: (message: string) => void;
   private readonly baseFire: (title: string, body: string) => void;
 
@@ -245,9 +253,19 @@ export class App extends Base {
     this.baseFire = this.fire.bind(this);
     this.toast = this.localizedToast;
     this.fire = this.localizedFire;
+    setSchoolModeNameProvider((text) => {
+      const name = schoolModeName(this.vocabStorage);
+      if (name === DEFAULT_SCHOOL_NAME) return text;
+      return text.replaceAll(DEFAULT_SCHOOL_NAME, name).replaceAll('school mode', name);
+    });
     this.speechEngine = browserSpeechEngine();
     if (this.speechEngine) {
-      this.narrator = new Narrator(this.speechEngine);
+      this.narrator = new Narrator(this.speechEngine, {
+        onSpeechError: (_error, item) => {
+          this.narrationStatusLine = `Speech could not continue for ${item.language === 'en' ? 'English' : 'Cantonese'}; the next queued line will continue.`;
+          this.forceUpdate();
+        },
+      });
       this.voicesChangedUnsubscribe = this.speechEngine.onVoicesChanged(() => this.refreshNarrationVoiceOptions());
     }
   }
@@ -297,9 +315,8 @@ export class App extends Base {
     setVocabularyStorage(this.vocabStorage);
     this.funnyLevels = readFunnyLevels(this.vocabStorage);
     this.refreshNarrationVoiceOptions();
-    void this.refreshSharedSchoolState();
-    this.schoolRefreshTimer = setInterval(() => { void this.refreshSharedSchoolState(); }, 1000);
     void this.durableStorage.bootstrap().then(() => {
+      this.schoolBootstrapped = true;
       this.restoreLanguageMode();
       this.funnyLevels = readFunnyLevels(this.vocabStorage);
       this.restoreNarrationSettings();
@@ -308,7 +325,6 @@ export class App extends Base {
       this.setState((prior: { values?: Record<string, unknown> }) => ({
         values: {
           ...(prior.values ?? {}),
-          fun_level: Math.min(this.funnyLevels.en, this.funnyLevels.yue),
           fun_english: this.funnyLevels.en,
           fun_cantonese: this.funnyLevels.yue,
           school_mode: schoolModeEnabled(this.vocabStorage),
@@ -317,6 +333,8 @@ export class App extends Base {
         },
       }) as never);
       if (schoolModeEnabled(this.vocabStorage)) this.applySchoolMode(true, false);
+      void this.refreshSharedSchoolState();
+      this.schoolRefreshTimer = setInterval(() => { void this.refreshSharedSchoolState(); }, 1000);
       this.forceUpdate();
     });
     /* The configured server list is not a reading from any PBX — it exists before
@@ -342,6 +360,7 @@ export class App extends Base {
     this.narrator = undefined;
     this.voicesChangedUnsubscribe?.();
     this.voicesChangedUnsubscribe = undefined;
+    setSchoolModeNameProvider(undefined);
   }
 
   componentDidUpdate() {
@@ -608,28 +627,35 @@ ${resolution.disclosure}`);
     if (isLanguageMode(saved)) setLanguageMode(saved);
   }
 
-  private currentFunnyText(text: string): string {
-    if (languageMode() === 'both' && text.includes(' · ')) {
-      const [english, cantonese] = text.split(' · ', 2);
-      return `${styleFunnyText(english!, 'en', this.funnyLevels.en)} · ${styleFunnyText(cantonese!, 'yue', this.funnyLevels.yue)}`;
-    }
-    return styleFunnyText(text, languageMode() === 'yue' ? 'yue' : 'en', languageMode() === 'yue' ? this.funnyLevels.yue : this.funnyLevels.en);
+  private currentFunnyEvent(text: string): { display: string; enText: string; yueText: string } {
+    const event = localizeEventText(text);
+    const enText = styleFunnyText(event.enText, 'en', this.funnyLevels.en);
+    const yueText = styleFunnyText(event.yueText, 'yue', this.funnyLevels.yue);
+    return {
+      display: languageMode() === 'yue' ? yueText : languageMode() === 'both' ? `${enText} · ${yueText}` : enText,
+      enText,
+      yueText,
+    };
   }
 
   /** The generated shell owns the actual toast and dialog renderers. This wrapper
    * keeps every app event on the localization and funny-level boundary and queues
    * the same factual text for the optional narrator. */
   private localizedToast = (message: string): void => {
-    const shown = this.currentFunnyText(message);
-    this.baseToast(shown);
-    this.narrator?.enqueue('notification', shown);
+    const event = this.currentFunnyEvent(message);
+    this.baseToast(event.display);
+    this.narrator?.enqueue('notification', event.display, { enText: event.enText, yueText: event.yueText });
   };
 
   private localizedFire = (title: string, body: string): void => {
-    const shownTitle = this.currentFunnyText(title);
-    const shownBody = this.currentFunnyText(body);
-    this.baseFire(shownTitle, shownBody);
-    this.narrator?.enqueue('dialog', `${shownTitle}. ${shownBody}`, { isError: /not |failed|error|cannot|could not|rejected|unavailable/iu.test(body) });
+    const titleEvent = this.currentFunnyEvent(title);
+    const bodyEvent = this.currentFunnyEvent(body);
+    this.baseFire(titleEvent.display, bodyEvent.display);
+    this.narrator?.enqueue('dialog', `${titleEvent.display}. ${bodyEvent.display}`, {
+      isError: /not |failed|error|cannot|could not|rejected|unavailable/iu.test(body),
+      enText: `${titleEvent.enText}. ${bodyEvent.enText}`,
+      yueText: `${titleEvent.yueText}。${bodyEvent.yueText}`,
+    });
   };
 
   private restoreNarrationSettings(): void {
@@ -644,6 +670,10 @@ ${resolution.disclosure}`);
         rate: saved.rate,
         pitch: saved.pitch,
       });
+      this.narrationQuiet = this.vocabStorage.getItem('console.narrationQuiet') === 'on';
+      this.narrationScreenReaderActive = this.vocabStorage.getItem('console.narrationScreenReader') === 'on';
+      this.narrator.setQuiet(this.narrationQuiet);
+      this.narrator.setScreenReaderActive(this.narrationScreenReaderActive);
       this.syncNarrationStateToControls();
       this.updateNarrationStatus();
     } catch {
@@ -664,6 +694,7 @@ ${resolution.disclosure}`);
         nar_yue_voice: this.voiceLabelForId(settings.voices.zh, 'zh'),
         nar_rate: settings.rate,
         nar_pitch: settings.pitch,
+        nar_screen_reader: this.narrationScreenReaderActive,
       },
     }) as never);
   }
@@ -672,6 +703,8 @@ ${resolution.disclosure}`);
     const settings = this.narrator?.getSettings();
     if (!settings) return;
     this.vocabStorage.setItem('console.narration', JSON.stringify(settings));
+    this.vocabStorage.setItem('console.narrationQuiet', this.narrationQuiet ? 'on' : 'off');
+    this.vocabStorage.setItem('console.narrationScreenReader', this.narrationScreenReaderActive ? 'on' : 'off');
     this.updateNarrationStatus();
   }
 
@@ -729,14 +762,29 @@ ${resolution.disclosure}`);
     }
     if (control.id === 'nar_rate' && typeof value === 'number') this.narrator.setSettings({ rate: value });
     if (control.id === 'nar_pitch' && typeof value === 'number') this.narrator.setSettings({ pitch: value });
+    if (control.id === 'nar_screen_reader' && typeof value === 'boolean') {
+      this.narrationScreenReaderActive = value;
+      this.narrator.setScreenReaderActive(value);
+    }
     this.persistNarration();
   }
 
   private async refreshSharedSchoolState(): Promise<void> {
-    const response = await this.request('settings.snapshot');
+    if (!this.schoolBootstrapped || this.schoolRefreshInFlight) return;
+    this.schoolRefreshInFlight = true;
+    const generation = ++this.schoolRefreshGeneration;
+    let response: ControlPlaneResponse | undefined;
+    try { response = await this.request('settings.snapshot'); } catch {
+      this.schoolStatus = 'refresh-failed';
+      this.schoolRefreshInFlight = false;
+      this.forceUpdate();
+      return;
+    }
+    if (generation !== this.schoolRefreshGeneration) { this.schoolRefreshInFlight = false; return; }
     if (!response?.ok) {
       this.schoolStatus = 'refresh-failed';
       this.forceUpdate();
+      this.schoolRefreshInFlight = false;
       return;
     }
     const values = response.data as { values?: Record<string, string> };
@@ -751,6 +799,7 @@ ${resolution.disclosure}`);
     this.setState((prior: { values?: Record<string, unknown> }) => ({
       values: { ...(prior.values ?? {}), school_mode: enabled, school_name: name, school_status: this.schoolStatus },
     }) as never);
+    this.schoolRefreshInFlight = false;
   }
 
   private applySchoolMode(enabled: boolean, persist: boolean): void {
@@ -758,12 +807,22 @@ ${resolution.disclosure}`);
     const currentlyEnabled = schoolModeEnabled(storage);
     if (enabled === currentlyEnabled && this.schoolStatus === (enabled ? 'enabled' : 'disabled')) return;
     if (enabled) {
-      savePreviousSettings(storage, languageMode(), this.funnyLevels);
+      const narration = this.narrator ? {
+        ...this.narrator.getSettings(),
+        quiet: this.narrationQuiet,
+        screenReaderActive: this.narrationScreenReaderActive,
+      } : undefined;
+      savePreviousSettings(storage, languageMode(), this.funnyLevels, narration);
       if (persist) writeSchoolMode(storage, true);
       setLanguageMode('en');
       this.funnyLevels = { en: 1, yue: 1 };
       this.schoolStatus = 'enabled';
       this.narrator?.setSettings({ enabled: false });
+      this.narrator?.setQuiet(true);
+      this.setState((prior: { screen?: string; paletteOpen?: boolean }) => ({
+        screen: prior.screen === 'vocab' || prior.screen === 'arcade' ? 'customise' : prior.screen,
+        paletteOpen: false,
+      }) as never);
     } else {
       if (persist) writeSchoolMode(storage, false);
       const previous = readPreviousSettings(storage);
@@ -777,6 +836,7 @@ ${resolution.disclosure}`);
       };
       writeFunnyLevels(storage, this.funnyLevels);
       this.schoolStatus = 'disabled';
+      this.restoreNarrationFromSchoolSnapshot();
     }
     this.setState((prior: { values?: Record<string, unknown> }) => ({
       values: { ...(prior.values ?? {}), school_mode: enabled, school_status: this.schoolStatus, fun_english: this.funnyLevels.en, fun_cantonese: this.funnyLevels.yue },
@@ -794,37 +854,74 @@ ${resolution.disclosure}`);
 
   private configureSchoolCredential = async (): Promise<void> => {
     if (this.schoolCredentialPromptOpen) return;
+    this.schoolCredentialKind = 'set';
+    this.schoolCredentialValue = '';
+    this.schoolCredentialOpen = true;
+    this.forceUpdate();
+  };
+
+  private unlockSchoolMode = async (): Promise<void> => {
+    if (this.schoolCredentialPromptOpen) return;
+    this.schoolCredentialKind = 'verify';
+    this.schoolCredentialValue = '';
+    this.schoolCredentialOpen = true;
+    this.forceUpdate();
+  };
+
+  private onSchoolCredential = (event: { target?: { value?: unknown } }): void => {
+    this.schoolCredentialValue = String(event.target?.value ?? '');
+    this.forceUpdate();
+  };
+
+  private cancelSchoolCredential = (): void => {
+    this.schoolCredentialOpen = false;
+    this.schoolCredentialValue = '';
+    this.forceUpdate();
+  };
+
+  private submitSchoolCredential = async (): Promise<void> => {
+    if (this.schoolCredentialPromptOpen || this.schoolCredentialValue.length === 0) return;
     this.schoolCredentialPromptOpen = true;
+    const value = this.schoolCredentialValue;
     try {
-      const value = typeof window !== 'undefined' ? window.prompt('Set the shared School mode unlock credential. It is stored only in the desktop credential store.') : null;
-      if (!value) return;
       const bridge = this.bridge() as DesktopBridge | undefined;
-      const result = await bridge?.school?.setCredential(value);
-      if (result?.ok) this.toast('School mode unlock credential saved locally.');
-      else this.fire('School mode credential not saved', result?.reason ?? 'The desktop credential store is unavailable.');
+      const result = this.schoolCredentialKind === 'set'
+        ? await bridge?.school?.setCredential(value)
+        : await bridge?.school?.verifyCredential(value);
+      if (!result?.ok) {
+        this.fire(this.schoolCredentialKind === 'set' ? 'School mode credential not saved' : 'School mode remains on', result?.reason ?? 'The desktop credential store is unavailable.');
+        return;
+      }
+      this.schoolCredentialOpen = false;
+      this.schoolCredentialValue = '';
+      if (this.schoolCredentialKind === 'verify') {
+        this.applySchoolMode(false, true);
+        this.toast(`${schoolModeName(this.vocabStorage)} unlocked. Earlier language and funny levels are back.`);
+      } else {
+        this.toast('School mode unlock credential saved locally.');
+      }
+      this.forceUpdate();
     } finally {
       this.schoolCredentialPromptOpen = false;
     }
   };
 
-  private unlockSchoolMode = async (): Promise<void> => {
-    if (this.schoolCredentialPromptOpen) return;
-    this.schoolCredentialPromptOpen = true;
-    try {
-      const value = typeof window !== 'undefined' ? window.prompt(`Enter the ${schoolModeName(this.vocabStorage)} unlock credential.`) : null;
-      if (!value) return;
-      const bridge = this.bridge() as DesktopBridge | undefined;
-      const result = await bridge?.school?.verifyCredential(value);
-      if (!result?.ok) {
-        this.fire('School mode remains on', result?.reason ?? 'The shared credential was not accepted.');
-        return;
-      }
-      this.applySchoolMode(false, true);
-      this.toast(`${schoolModeName(this.vocabStorage)} unlocked. Earlier language and funny levels are back.`);
-    } finally {
-      this.schoolCredentialPromptOpen = false;
-    }
-  };
+  private restoreNarrationFromSchoolSnapshot(): void {
+    const previous = readPreviousSettings(this.vocabStorage)?.narration;
+    if (!previous || !this.narrator) return;
+    this.narrator.setSettings({
+      enabled: previous.enabled === true,
+      language: previous.language === 'zh' || previous.language === 'both' ? previous.language : 'en',
+      voices: previous.voices as { en?: string; zh?: string } | undefined,
+      rate: Number.isFinite(Number(previous.rate)) ? Number(previous.rate) : undefined,
+      pitch: Number.isFinite(Number(previous.pitch)) ? Number(previous.pitch) : undefined,
+    });
+    this.narrationQuiet = previous.quiet === true;
+    this.narrationScreenReaderActive = previous.screenReaderActive === true;
+    this.narrator.setQuiet(this.narrationQuiet);
+    this.narrator.setScreenReaderActive(this.narrationScreenReaderActive);
+    this.persistNarration();
+  }
 
   /** Every control change routes through the compiled shell's `setVal`; this notices
    *  the language one on its way past, applies it live and persists it, then hands the
@@ -891,24 +988,37 @@ ${resolution.disclosure}`);
         ? writeFunnyLevels(this.vocabStorage, { en: Number(value), yue: this.funnyLevels.yue })
         : writeFunnyLevels(this.vocabStorage, { en: this.funnyLevels.en, yue: Number(value) });
       this.funnyLevels = levels;
-      this.setState((prior: { values?: Record<string, unknown> }) => ({ values: { ...(prior.values ?? {}), fun_level: Math.min(levels.en, levels.yue), fun_english: levels.en, fun_cantonese: levels.yue } }) as never);
+      this.setState((prior: { values?: Record<string, unknown> }) => ({ values: { ...(prior.values ?? {}), fun_english: levels.en, fun_cantonese: levels.yue } }) as never);
     }
     if (control?.id === 'school_mode' && typeof value === 'boolean') {
       if (!value) {
         void this.setSchoolMode(false);
-        this.baseSetVal(control, true);
         return;
       }
       void this.setSchoolMode(true);
     }
     if (control?.id === 'school_name' && typeof value === 'string') {
       const problems = renameSchoolMode(this.vocabStorage, value);
-      if (problems.length > 0) this.fire('School mode name not saved', problems[0]!);
+      if (problems.length > 0) {
+        this.fire('School mode name not saved', problems[0]!);
+        this.baseSetVal(control, schoolModeName(this.vocabStorage));
+        return;
+      }
     }
-    if (control?.id === 'school_set_credential' && value === true) void this.configureSchoolCredential();
-    if (control?.id === 'school_unlock' && value === true) void this.unlockSchoolMode();
+    if (control?.id === 'school_set_credential' && value === true) {
+      void this.configureSchoolCredential();
+      return;
+    }
+    if (control?.id === 'school_unlock' && value === true) {
+      void this.unlockSchoolMode();
+      return;
+    }
     if (control?.id?.startsWith('nar_')) this.applyNarrationControl(control, value);
-    if (control?.id === 'nt_quiet' && typeof value === 'boolean') this.narrator?.setQuiet(value);
+    if (control?.id === 'nt_quiet' && typeof value === 'boolean') {
+      this.narrationQuiet = value;
+      this.narrator?.setQuiet(value);
+      this.persistNarration();
+    }
     this.baseSetVal(control, value);
   };
 
@@ -2049,12 +2159,23 @@ It is shown once. The phone needs it to register.`);
         const hidden = (id: string | undefined): boolean => Boolean(id && (
           id === 'lang_mode' || id === 'dlg_emoji' || id.startsWith('fun_') || id.startsWith('va_') ||
           id === 'nar_enabled' || id === 'nar_language' || id === 'nar_en_voice' || id === 'nar_yue_voice' ||
-          id === 'nar_rate' || id === 'nar_pitch' || id === 'nar_status'
+          id === 'nar_rate' || id === 'nar_pitch' || id === 'nar_screen_reader' || id === 'nar_status'
         ));
         values.groups = groups
           .map((group) => ({ ...group, ctls: (group.ctls ?? []).filter((control) => !hidden(control.id)) }))
           .filter((group) => (group.ctls ?? []).length > 0);
       }
+    }
+    const schoolModeActive = schoolModeEnabled(this.vocabStorage);
+    values.schoolModeActive = schoolModeActive;
+    values.schoolCapabilitiesVisible = !schoolModeActive;
+    values.customiseFunVisible = Boolean(values.isCustomise) && !schoolModeActive;
+    values.schoolSearchVisible = !schoolModeActive;
+    values.paletteVisible = Boolean(values.paletteOpen) && !schoolModeActive;
+    if (schoolModeActive) {
+      const sections = values.sections as Array<{ label?: string }> | undefined;
+      if (sections) values.sections = sections.filter((section) => section.label !== 'Vocabulary & guard' && section.label !== 'Arcade');
+      values.paletteItems = [];
     }
     const bridge = this.bridge();
     const readings = this.readings[screen];
@@ -2062,6 +2183,17 @@ It is shown once. The phone needs it to register.`);
 
     return {
       ...values,
+      schoolCredentialOpen: this.schoolCredentialOpen,
+      schoolCredentialValue: this.schoolCredentialValue,
+      schoolCredentialTitle: this.schoolCredentialKind === 'set' ? 'Set the shared School mode credential' : `Unlock ${schoolModeName(this.vocabStorage)}`,
+      schoolCredentialDisclosure: this.schoolCredentialKind === 'set'
+        ? 'This credential is stored only in the desktop credential store and is shared by this app family. It never enters settings, exports, history, logs or captures.'
+        : 'The credential is checked by the desktop credential store. Winning a challenge never bypasses this credential.',
+      schoolRecoveryLine: SCHOOL_RECOVERY_LINE,
+      schoolCredentialAction: this.schoolCredentialKind === 'set' ? 'Save credential' : 'Unlock',
+      onSchoolCredential: this.onSchoolCredential,
+      cancelSchoolCredential: this.cancelSchoolCredential,
+      submitSchoolCredential: this.submitSchoolCredential,
       // The "Edit appearance..." panel's real colour translator and real actions
       // (appearance.ts + colour.ts) -- see the Appearance section above renderVals.
       ...this.appearanceVals(),
