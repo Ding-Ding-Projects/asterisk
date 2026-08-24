@@ -62,6 +62,7 @@ export interface AppearanceStore {
   getModel(): AppearanceModel;
   subscribe(listener: (model: AppearanceModel) => void): () => void;
   setDraft(target: AppearanceTarget, state: AppearanceInteractionState, property: AppearanceProperty, value: AppearanceValue): AppearanceOperationResult;
+  setExclusive(target: AppearanceTarget, state: AppearanceInteractionState, property: AppearanceProperty, value: AppearanceValue, exclusiveProperties: ReadonlyArray<AppearanceProperty>): AppearanceOperationResult;
   discardDraft(target: AppearanceTarget, state: AppearanceInteractionState, property: AppearanceProperty): AppearanceOperationResult;
   applyDraft(target: AppearanceTarget, state: AppearanceInteractionState, property: AppearanceProperty): AppearanceOperationResult;
   resetProperty(target: AppearanceTarget, state: AppearanceInteractionState, property: AppearanceProperty): AppearanceOperationResult;
@@ -195,6 +196,25 @@ export function createAppearanceStore(
     }, 'Appearance draft');
   }
 
+  function setExclusive(
+    target: AppearanceTarget,
+    state: AppearanceInteractionState,
+    property: AppearanceProperty,
+    value: AppearanceValue,
+    exclusiveProperties: ReadonlyArray<AppearanceProperty>,
+  ): AppearanceOperationResult {
+    const checked = validateAppearanceOverride({ target, state, property, value });
+    if (!checked.ok) return failure(`Appearance value was rejected: ${checked.reason}`);
+    const excluded = new Set([property, ...exclusiveProperties]);
+    const sameTarget = (candidate: AppearanceTarget): boolean => candidate.scope === target.scope && (candidate.scope === 'global' || candidate.elementId === target.elementId);
+    return commit({
+      ...model,
+      overrides: [...model.overrides.filter((item) => !(sameTarget(item.target) && item.state === state && excluded.has(item.property))), { target, state, property, value }],
+      drafts: model.drafts.filter((item) => !(sameTarget(item.target) && item.state === state && excluded.has(item.property))),
+      activePresetId: undefined,
+    }, `Set exclusive appearance ${property}`);
+  }
+
   function discardDraft(
     target: AppearanceTarget,
     state: AppearanceInteractionState,
@@ -323,6 +343,7 @@ export function createAppearanceStore(
       return () => { listeners.delete(listener); };
     },
     setDraft,
+    setExclusive,
     discardDraft,
     applyDraft,
     resetProperty,

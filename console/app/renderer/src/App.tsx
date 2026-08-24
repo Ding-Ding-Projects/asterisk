@@ -505,9 +505,11 @@ export class App extends Base {
       : { kind: 'literal' as const, value: String(value ?? '') };
     if ((property === 'superscript' || property === 'subscript') && String(value).trim().toLowerCase() === 'true') {
       const other: AppearanceProperty = property === 'superscript' ? 'subscript' : 'superscript';
-      const cleared = store.resetProperty({ scope: 'global' }, 'default', other);
-      if (!cleared.ok) { this.toast(cleared.reason); return; }
+      const result = store.setExclusive({ scope: 'global' }, 'default', property, candidate, [other]);
+      if (!result.ok) { this.toast(result.reason); return; }
       this.fire('Appearance adjusted', `${property} is active; ${other} was cleared because the two states are mutually exclusive.`);
+      this.forceUpdate();
+      return;
     }
     const draft = store.setDraft({ scope: 'global' }, 'default', property, candidate);
     if (!draft.ok) { this.toast(draft.reason); return; }

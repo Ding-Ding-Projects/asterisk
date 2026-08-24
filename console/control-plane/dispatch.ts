@@ -910,7 +910,9 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         }
         if (request.action === 'local-history.record') {
           const entry = request.payload as unknown as Parameters<LocalHistory['record']>[0];
-          return { ok: true, requestId: request.requestId, data: await history.record(entry) };
+          const result = await history.record(entry);
+          if (!result.ok) return { ok: false, requestId: request.requestId, code: `LOCAL_HISTORY_${result.code.toUpperCase().replaceAll('-', '_')}`, message: result.message };
+          return { ok: true, requestId: request.requestId, data: result };
         }
         if (request.action === 'local-history.restore') {
           const commitId = typeof request.payload?.commitId === 'string' ? request.payload.commitId : '';
