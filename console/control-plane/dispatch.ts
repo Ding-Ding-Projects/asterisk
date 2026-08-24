@@ -617,6 +617,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           if (request.action === 'local-history.record') {
             const entry = request.payload as unknown as Parameters<LocalHistory['record']>[0];
             if (!entry || typeof entry.identity !== 'string' || entry.identity.trim() === '') return { ok: false, requestId: request.requestId, code: 'HISTORY_IDENTITY_REQUIRED', message: 'A history mutation must name its stable target, resource, kind, and object identity.' };
+            if (typeof entry.eventId !== 'string' || !/^[0-9a-f-]{16,128}$/iu.test(entry.eventId)) return { ok: false, requestId: request.requestId, code: 'HISTORY_EVENT_ID_REQUIRED', message: 'A history mutation must name a stable event id so an ambiguous retry cannot duplicate it.' };
             try {
               return { ok: true, requestId: request.requestId, data: await localHistory.record(entry) };
             } catch (error) {
@@ -626,6 +627,10 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           }
           if (request.action === 'local-history.retry') {
             return { ok: true, requestId: request.requestId, data: await localHistory.retryQueued() };
+          }
+          if (request.action === 'local-history.restore-plan') {
+            const commitId = typeof request.payload?.commitId === 'string' ? request.payload.commitId : '';
+            return { ok: true, requestId: request.requestId, data: await localHistory.restorePlan(commitId) };
           }
           if (request.action === 'local-history.restore') {
             const commitId = typeof request.payload?.commitId === 'string' ? request.payload.commitId : '';

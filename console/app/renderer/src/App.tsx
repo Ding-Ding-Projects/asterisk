@@ -427,8 +427,9 @@ export class App extends Base {
   /** Record one append-only settings event. Secrets are redacted again by the
    * control-plane history service before anything reaches its local Git repository. */
   protected recordLocalHistory(action: HistoryAction, subject: string, payload: unknown, identity: string): void {
+    const eventId = crypto.randomUUID();
     void this.request('local-history.record', {
-      payload: { action, subject, payload, identity },
+      payload: { action, subject, payload, identity, eventId },
     }).then((response) => {
       if (!response?.ok) {
         this.localHistoryError = response?.message ?? 'A successful change could not be recorded in local history.';
@@ -461,6 +462,16 @@ export class App extends Base {
       this.fire('History restore unavailable', 'That history entry has an invalid commit id.');
       return;
     }
+    const plan = await this.request('local-history.restore-plan', { payload: { commitId } });
+    if (!plan?.ok) {
+      this.fire('History restore unavailable', plan?.message ?? 'The selected history tree could not be preflighted.');
+      return;
+    }
+    const restorePlan = plan.data as { targetFiles?: string[]; removals?: string[]; checkoutOrder?: string[] };
+    this.areYouSure('Restore this history entry', `Preflight: ${restorePlan.targetFiles?.length ?? 0} record file(s) will be checked out in order; ${restorePlan.removals?.length ?? 0} current record file(s) will be removed. The current entry finishes before cancellation can stop the next one.`, 3, () => { void this.restoreLocalHistoryConfirmed(commitId); });
+  };
+
+  private restoreLocalHistoryConfirmed = async (commitId: string): Promise<void> => {
     const response = await this.request('local-history.restore', { payload: { commitId } });
     if (!response?.ok) {
       this.fire('History restore failed', response?.message ?? 'The app-data history did not restore the selected entry.');
@@ -1206,6 +1217,14 @@ ${resolution.disclosure}`);
       this.fire('No history entries selected', 'Select one or more history entries first.');
       return;
     }
+    const plans: Array<{ commitId: string; removals: number; files: number }> = [];
+    for (const id of ids) {
+      const response = await this.request('local-history.restore-plan', { payload: { commitId: id } });
+      if (!response?.ok) { this.fire('History batch preflight failed', response?.message ?? id.slice(0, 10)); return; }
+      const plan = response.data as { targetFiles?: string[]; removals?: string[] };
+      plans.push({ commitId: id, files: plan.targetFiles?.length ?? 0, removals: plan.removals?.length ?? 0 });
+    }
+    this.fire('History batch preflight ready', `${plans.length} entr${plans.length === 1 ? 'y' : 'ies'} reviewed, ${plans.reduce((sum, plan) => sum + plan.removals, 0)} record file(s) scheduled for removal, and ${plans.reduce((sum, plan) => sum + plan.files, 0)} for checkout.`);
     this.historyBatch = { running: true, done: 0, total: ids.length, cancelled: false };
     this.forceUpdate();
     let done = 0;
@@ -2411,7 +2430,7 @@ It is shown once. The phone needs it to register.`);
         : `Locked. Enter the separate history-manager credential. Durable retry queue: ${this.localHistoryAccess.queued}. The desktop reports a warning and keeps rows hidden until it is unlocked.`,
       historyResultLabel: this.localHistoryError || (this.localHistoryPending ? 'Reading app-data history…' : `${filtered.entries.length} visible entr${filtered.entries.length === 1 ? 'y' : 'ies'}`),
       historyBulkPreview: this.historyBatch.running
-        ? `Restoring ${this.historyBatch.done} of ${this.historyBatch.total}. ${this.historyBatch.cancelled ? 'Cancellation requested.' : 'The next entry remains queued.'}`
+        ? `Restoring ${this.historyBatch.done} of ${this.historyBatch.total}. ${this.historyBatch.cancelled ? 'Cancellation requested. The current entry is finishing; no next entry will start.' : 'The next entry remains queued.'}`
         : selectedIds.length === 0 ? 'No history entries selected.' : `${selectedIds.length} history entr${selectedIds.length === 1 ? 'y is' : 'ies are'} selected for a reviewable restore batch.`,
       cancelHistoryBatch: this.cancelHistoryBatch,
       historyBatchRunning: this.historyBatch.running,

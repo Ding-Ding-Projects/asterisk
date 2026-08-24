@@ -25,6 +25,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { ProcessExecutor } from "./executor.js";
+import { parseInclusiveBoundary } from "../shared/date-range.js";
 
 /** The fixed set of actions a history entry may record. Nothing else is accepted. */
 export const HISTORY_ACTIONS = [
@@ -48,6 +49,7 @@ export interface LocalHistoryEntry {
   subject: string;
   /** Stable target/resource/kind/object identity, never a display label. */
   identity: string;
+  eventId: string;
   payload: unknown;
 }
 
@@ -58,6 +60,7 @@ export interface HistoryCommit {
   action: HistoryAction;
   subject: string;
   message: string;
+  eventId?: string;
 }
 
 export interface LocalHistoryListOptions {
@@ -212,10 +215,11 @@ function parseLogRecord(record: string): HistoryCommit {
   }
   const action = /^History-Action: (.+)$/mu.exec(body)?.[1]?.trim();
   const subject = /^History-Subject: (.+)$/mu.exec(body)?.[1]?.trim();
+  const eventId = /^History-Event-Id: ([0-9a-f-]+)$/mi.exec(body)?.[1]?.trim();
   if (!action || !HISTORY_ACTION_SET.has(action) || !subject) {
     throw new Error(`Commit ${id} does not look like a LocalHistory entry.`);
   }
-  return { id, timestamp, action: action as HistoryAction, subject, message: body };
+  return { id, timestamp, action: action as HistoryAction, subject, message: body, eventId };
 }
 
 export class LocalHistory {
@@ -311,6 +315,9 @@ export class LocalHistory {
    */
   async record(entry: LocalHistoryEntry): Promise<HistoryCommit> {
     assertKnownAction(entry.action);
+    if (!/^[0-9a-f-]{16,128}$/iu.test(entry.eventId)) throw new Error('A history mutation needs a stable event id for retry idempotency.');
+    const existing = (await this.#logAll()).find((commit) => commit.eventId === entry.eventId);
+    if (existing) return existing;
     const subject = requireSubject(entry.subject);
     validatePayload(entry.payload);
     const redactedPayload = redactSecretValues(entry.payload);
@@ -326,14 +333,14 @@ export class LocalHistory {
       await unlink(absolutePath).catch(() => undefined);
     } else {
       await mkdir(dirname(absolutePath), { recursive: true });
-      const serialized = `${JSON.stringify(redactedPayload, null, 2)}\n`;
+      const serialized = `${JSON.stringify({ schemaVersion: 1, identity, eventId: entry.eventId, omitted: ['original payload snapshot', 'credential-shaped payload values'], payload: redactedPayload }, null, 2)}\n`;
       if (Buffer.byteLength(serialized, 'utf8') > MAX_PAYLOAD_BYTES) throw new Error(`A history payload exceeds the ${MAX_PAYLOAD_BYTES}-byte limit after UTF-8 serialization.`);
       await writeFile(absolutePath, serialized, "utf8");
     }
     /* Stage the entire records tree so a delete is a real tree deletion and every
      * commit carries the complete selected snapshot, not only the changed file. */
     await this.#run(["add", "-A", "--", "records"]);
-    return await this.#commit(entry.action, subject, { SubjectId: subjectId(identity) }, { allowEmpty: true });
+    return await this.#commit(entry.action, subject, { SubjectId: subjectId(identity), EventId: entry.eventId }, { allowEmpty: true });
   }
 
   private async readRetryQueue(): Promise<LocalHistoryEntry[]> {
@@ -345,7 +352,8 @@ export class LocalHistory {
       const entries = (parsed as { entries?: unknown }).entries;
       if (!Array.isArray(entries)) return [];
       return entries.slice(0, MAX_RETRY_ENTRIES).filter((entry): entry is LocalHistoryEntry => {
-        if (!entry || typeof entry !== 'object' || typeof (entry as LocalHistoryEntry).identity !== 'string' || typeof (entry as LocalHistoryEntry).subject !== 'string' || typeof (entry as LocalHistoryEntry).action !== 'string' || !HISTORY_ACTION_SET.has((entry as LocalHistoryEntry).action)) return false;
+        if (!entry || typeof entry !== 'object' || typeof (entry as LocalHistoryEntry).identity !== 'string' || typeof (entry as LocalHistoryEntry).eventId !== 'string' || typeof (entry as LocalHistoryEntry).subject !== 'string' || typeof (entry as LocalHistoryEntry).action !== 'string' || !HISTORY_ACTION_SET.has((entry as LocalHistoryEntry).action)) return false;
+        if (!/^[0-9a-f-]{16,128}$/iu.test((entry as LocalHistoryEntry).eventId)) return false;
         try { validatePayload((entry as LocalHistoryEntry).payload); return true; } catch { return false; }
       });
     } catch { return []; }
@@ -358,13 +366,21 @@ export class LocalHistory {
     const path = join(this.#repositoryPath, '..', 'history-retry.json');
     const temporary = `${path}.${process.pid}.${Date.now()}.tmp`;
     await writeFile(temporary, raw, 'utf8');
-    await rename(temporary, path);
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try { await rename(temporary, path); lastError = undefined; break; }
+      catch (error) {
+        lastError = error;
+        if (attempt < 4) await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)));
+      }
+    }
+    if (lastError) throw lastError;
   }
 
   async enqueueRetry(entry: LocalHistoryEntry): Promise<void> {
     const safe = { ...entry, payload: redactSecretValues(entry.payload) };
     const queue = await this.readRetryQueue();
-    queue.push(safe);
+    if (!queue.some((queued) => queued.eventId === safe.eventId)) queue.push(safe);
     await mkdir(dirname(join(this.#repositoryPath, '..', 'history-retry.json')), { recursive: true });
     await this.writeRetryQueue(queue);
   }
@@ -440,14 +456,8 @@ export class LocalHistory {
   }
 
   private boundary(value: string, endOfDay: boolean): Date {
-    if (/^\d{4}-\d{2}-\d{2}$/u.test(value)) {
-      const date = new Date(`${value}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}`);
-      if (Number.isNaN(date.getTime())) throw new Error(`Invalid history service date: ${value}`);
-      return date;
-    }
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) throw new Error(`Invalid history service date: ${value}`);
-    return date;
+    try { return parseInclusiveBoundary(value, endOfDay); }
+    catch { throw new Error(`Invalid history service date: ${value}`); }
   }
 
   async inspect(commitId: string): Promise<HistoryTreeInspection> {
@@ -456,6 +466,15 @@ export class LocalHistory {
     const files = await this.treeFiles(commitId);
     const diff = await this.#run(["show", "--format=", "--no-ext-diff", "--unified=80", commitId, "--", "records"]);
     return { commit, files, diff: diff.slice(0, 512 * 1024) };
+  }
+
+  async restorePlan(commitId: string): Promise<{ commitId: string; targetFiles: ReadonlyArray<string>; currentFiles: ReadonlyArray<string>; removals: ReadonlyArray<string>; checkoutOrder: ReadonlyArray<string> }> {
+    if (!/^[0-9a-f]{40}$/iu.test(commitId)) throw new Error('History restore requires a full commit id.');
+    const commit = (await this.#logAll()).find((entry) => entry.id === commitId);
+    if (!commit) throw new Error(`Commit ${commitId} is not in the local history.`);
+    const targetFiles = await this.treeFiles(commitId);
+    const currentFiles = (await this.#run(['ls-files', '--', 'records'])).split(/\r?\n/u).map((line) => line.trim()).filter(Boolean);
+    return { commitId, targetFiles, currentFiles, removals: currentFiles.filter((file) => !targetFiles.includes(file)), checkoutOrder: targetFiles };
   }
 
   async compare(first: string, second: string): Promise<{ first: string; second: string; files: ReadonlyArray<string>; diff: string }> {

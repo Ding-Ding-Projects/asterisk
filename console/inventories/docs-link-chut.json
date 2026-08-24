@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "name": "DOCS_BUNDLE internal-link Chut",
   "implementedBy": "scripts/bundle-docs.mjs and app/renderer/src/docs-browser.ts",
+  "generatedBundlePath": "app/renderer/src/generated/docs-bundle.ts",
+  "manifestPath": "app/renderer/src/generated/docs-bundle-manifest.json",
   "greenFixture": { "from": "platform/local-version-history", "href": "changelog-viewer.md", "expectedTarget": "platform/changelog-viewer" },
   "fragmentGreenFixture": { "from": "platform/local-version-history", "href": "../app/history.md", "expectedTarget": "app/history" },
   "redFixtures": [

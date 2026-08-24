@@ -6,6 +6,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
 const fixture = JSON.parse(await readFile(resolve(root, 'inventories/docs-link-chut.json'), 'utf8'));
 const manifest = JSON.parse(await readFile(resolve(root, 'app/renderer/src/generated/docs-bundle-manifest.json'), 'utf8'));
+const bundleText = await readFile(resolve(root, 'app/renderer/src/generated/docs-bundle.ts'), 'utf8');
+const bundleCount = Number(bundleText.match(/"articleCount":\s*(\d+)/u)?.[1] ?? 0);
+if (bundleCount !== manifest.articleCount || !manifest.articleIds.every((id) => bundleText.includes(`"id": "${id}"`))) throw new Error('DOCS_BUNDLE manifest does not match the generated bundle.');
 const ids = new Set(manifest.articleIds);
 
 function targetFor(from, href) {

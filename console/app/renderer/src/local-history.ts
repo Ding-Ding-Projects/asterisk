@@ -5,6 +5,7 @@
  * the mounted screen independent from that implementation, bounds what the UI can
  * display, and makes search and action/date filters compose without inventing rows.
  */
+import { localIsoDay } from '../../../shared/date-range';
 
 export const HISTORY_ACTIONS = [
   'created',
@@ -84,15 +85,9 @@ export function filterHistory(entries: readonly HistoryCommit[], filter: History
     }
   }
 
-  const localDay = (timestamp: string): string => {
-    const date = new Date(timestamp);
-    if (Number.isNaN(date.getTime())) return timestamp.slice(0, 10);
-    const pad = (value: number) => String(value).padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-  };
   const filtered = entries.filter((entry) => {
     if (filter.action && entry.action !== filter.action) return false;
-    const day = localDay(entry.timestamp);
+    const day = localIsoDay(entry.timestamp);
     if (filter.since && day < filter.since) return false;
     if (filter.until && day > filter.until) return false;
     if (matcher && !matcher(`${entry.subject} ${entry.action} ${entry.message}`)) return false;
@@ -119,6 +114,6 @@ export function historyExportRows(entries: readonly HistoryCommit[]): Array<Reco
     action: actionLabel(entry.action),
     subject: entry.subject,
     message: entry.message,
-    omissions: ['credential-shaped payload values are omitted from the history tree'],
+    omissions: ['original payload snapshots are omitted from exports', 'credential-shaped payload values are omitted from the history tree'],
   }));
 }
