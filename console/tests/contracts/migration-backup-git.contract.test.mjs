@@ -10,7 +10,16 @@ function disposableFixture() {
   const executor = {
     async execute(request) {
       calls.push({ executable: request.executable, args: [...request.args], cwd: request.cwd, signal: request.signal });
-      return { status: 'succeeded', exitCode: 0, stdout: '', stderr: '', durationMs: 0 };
+      const [command, subcommand] = request.args;
+      const head = '0123456789012345678901234567890123456789';
+      if (command === 'bundle' && subcommand === 'create') writeFileSync(request.args[2], 'valid disposable bundle', 'utf8');
+      const stdout = command === 'rev-parse' ? head
+        : command === 'symbolic-ref' ? 'refs/heads/main'
+        : command === 'for-each-ref' ? `refs/heads/main\t${head}\tcommit`
+        : command === 'bundle' && subcommand === 'list-heads' ? `${head} refs/heads/main`
+        : command === 'branch' ? 'main'
+        : '';
+      return { status: 'succeeded', exitCode: 0, stdout, stderr: '', durationMs: 0 };
     },
   };
   return { root, calls, executor, dispose: () => rmSync(root, { recursive: true, force: true }) };
@@ -38,10 +47,10 @@ test('real migration service can be instantiated with the disposable executor', 
     const service = new module.MigrationBackupService({ userDataPath: fixture.root, executor: fixture.executor });
     assert.deepEqual(service.recoveryStatus().resolved, true);
     const exportResult = await service.exportMigration();
-    assert.ok(['succeeded', 'failed', 'cancelled'].includes(exportResult.operation.state));
+    assert.equal(exportResult.operation.state, 'succeeded', JSON.stringify(exportResult.operation));
     const backupResult = await service.createBackup();
-    assert.ok(['succeeded', 'failed', 'cancelled'].includes(backupResult.operation.state));
-    assert.equal((await service.listBackups()).every((entry) => typeof entry.status === 'string'), true);
+    assert.equal(backupResult.operation.state, 'succeeded');
+    assert.equal((await service.listBackups()).every((entry) => entry.status === 'verified'), true);
     assert.equal(service.operationStatus('missing-operation').state, 'failed');
   } finally {
     fixture.dispose();

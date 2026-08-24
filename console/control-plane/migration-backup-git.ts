@@ -48,7 +48,7 @@ const APP_OWNED_INVENTORY = Object.freeze([
 ]);
 const UNSAFE_JSON_KEYS = new Set(["__proto__", "prototype", "constructor"]);
 const SECRET_WORD = /(credential|password|passwd|secret|token|totp|pin|passkey|vocabulary)/iu;
-const SOURCE_PATH_KEY = /(?:source|file|config|working)?path$|directory$/iu;
+const SOURCE_PATH_KEY = /(?:source|file|config|working)[-_]?path$|directory$/iu;
 const TRANSIENT_NAMES = /(cache|tmp|temp|lock|socket|session)/iu;
 const REMOTE_NAME = /^[A-Za-z][A-Za-z0-9._-]{0,63}$/u;
 const SHA256 = /^[0-9a-f]{64}$/iu;
@@ -72,6 +72,15 @@ const NESTED_RECORD_SCHEMAS: Readonly<Record<string, ReadonlySet<string>>> = Obj
   groups: new Set(["id", "name", "colour", "collapsed", "tabIds", "appearance"]),
   documents: new Set(["id", "name", "content", "format", "updatedAt"]),
   entries: new Set(["id", "action", "subject", "createdAt", "commit"]),
+});
+const BOOLEAN_FIELDS = new Set(["pinned", "collapsed", "dismissed"]);
+const DATE_FIELDS = new Set(["createdAt", "updatedAt", "lastSeenAt", "observedAt"]);
+const NUMBER_FIELDS = new Set(["port"]);
+const ENUM_FIELDS: Readonly<Record<string, ReadonlySet<string>>> = Object.freeze({
+  connectionKind: new Set(["wsl", "docker", "ssh", "local"]),
+  severity: new Set(["info", "success", "progress", "warning", "error"]),
+  format: new Set(["json", "jsonl", "yaml", "toml", "xml", "csv", "tsv", "markdown", "html"]),
+  state: new Set(["available", "unavailable", "connecting", "connected", "unreachable", "clean", "dirty"]),
 });
 
 export type MigrationOmissionReason =
@@ -294,7 +303,7 @@ function validateSafeJson(value: unknown, path: string, depth = 0): void {
   if (Array.isArray(value)) { if (value.length > MIGRATION_LIMITS.maxEntries) throw new Error(`${path} contains too many entries.`); value.forEach((entry, index) => validateSafeJson(entry, `${path}[${index}]`, depth + 1)); return; }
   if (typeof value !== "object") throw new Error(`${path} contains an unsupported JSON value.`);
   for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-    if (UNSAFE_JSON_KEYS.has(key) || key.length > MIGRATION_LIMITS.maxStringLength || SECRET_WORD.test(key)) throw new Error(`${path} contains an unsafe field name.`);
+    if (UNSAFE_JSON_KEYS.has(key) || key.length > MIGRATION_LIMITS.maxStringLength || SECRET_WORD.test(key) || SOURCE_PATH_KEY.test(key)) throw new Error(`${path} contains an unsafe field name.`);
     validateSafeJson(entry, `${path}.${key}`, depth + 1);
   }
 }
@@ -320,7 +329,8 @@ function sanitizeRecordPayload(path: string, value: unknown): { value: unknown; 
     if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${path} must be an object of string settings.`);
     const output: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
     for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-      if (SECRET_WORD.test(key)) { omissions.push({ field: key, reason: "private-vocabulary" }); continue; }
+      if (/vocab/iu.test(key)) { omissions.push({ field: key, reason: "private-vocabulary" }); continue; }
+      if (SECRET_WORD.test(key)) { omissions.push({ field: key, reason: "credential-vault-secret" }); continue; }
       if (SOURCE_PATH_KEY.test(key)) { omissions.push({ field: key, reason: "source-path" }); continue; }
       if (typeof entry !== "string" || entry.length > MIGRATION_LIMITS.maxStringLength) throw new Error(`${path}.${key} must be a bounded string.`);
       output[key] = entry;
@@ -332,7 +342,7 @@ function sanitizeRecordPayload(path: string, value: unknown): { value: unknown; 
     for (const entry of value) {
       if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error(`${path} contains a non-object record.`);
       if (basename(path) === "git-receipts.json") assertExactKeys(entry as Record<string, unknown>, new Set(["id", "action", "remote", "branch", "status", "observedAt", "detail"]), "Git receipt");
-      if (basename(path) === "migration-operations.json") assertExactKeys(entry as Record<string, unknown>, new Set(["id", "kind", "startedAt", "finishedAt", "state", "completed", "total", "bytesDone", "bytesTotal", "phase", "items", "detail"]), "Migration operation");
+      if (basename(path) === "migration-operations.json") { assertExactKeys(entry as Record<string, unknown>, new Set(["id", "kind", "startedAt", "finishedAt", "state", "completed", "total", "bytesDone", "bytesTotal", "phase", "items", "detail"]), "Migration operation"); const items = (entry as Record<string, unknown>).items; if (!Array.isArray(items) || items.length > MIGRATION_LIMITS.maxEntries) throw new Error(`${path} operation items are invalid.`); for (const item of items) { if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error(`${path} operation item is invalid.`); assertExactKeys(item as Record<string, unknown>, new Set(["path", "state", "bytes", "detail"]), "Migration operation item"); validateSafeJson(item, `${path}.items`); } }
     }
     return { value, omissions };
   }
@@ -340,11 +350,12 @@ function sanitizeRecordPayload(path: string, value: unknown): { value: unknown; 
   if (schema) {
     const output: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
     for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-      if (SECRET_WORD.test(key)) { omissions.push({ field: key, reason: "private-vocabulary" }); continue; }
+      if (/vocab/iu.test(key)) { omissions.push({ field: key, reason: "private-vocabulary" }); continue; }
+      if (SECRET_WORD.test(key)) { omissions.push({ field: key, reason: "credential-vault-secret" }); continue; }
       if (SOURCE_PATH_KEY.test(key)) { omissions.push({ field: key, reason: "source-path" }); continue; }
       if (!schema.has(key)) throw new Error(`${path} contains unsupported field ${key}.`);
       output[key] = entry;
-      const nestedSchema = NESTED_RECORD_SCHEMAS[key]; if (nestedSchema && Array.isArray(entry)) { const safeNested = entry.map((nested, index) => { if (!nested || typeof nested !== "object" || Array.isArray(nested)) throw new Error(`${path}.${key} contains a non-object record.`); const copy: Record<string, unknown> = Object.create(null) as Record<string, unknown>; for (const [nestedKey, nestedValue] of Object.entries(nested as Record<string, unknown>)) { if (SECRET_WORD.test(nestedKey)) { omissions.push({ field: `${key}[${index}].${nestedKey}`, reason: "credential-vault-secret" }); continue; } if (SOURCE_PATH_KEY.test(nestedKey)) { omissions.push({ field: `${key}[${index}].${nestedKey}`, reason: "source-path" }); continue; } copy[nestedKey] = nestedValue; } assertExactKeys(copy, nestedSchema, `${path}.${key}`); return copy; }); output[key] = safeNested; }
+      const nestedSchema = NESTED_RECORD_SCHEMAS[key]; if (nestedSchema && Array.isArray(entry)) { const safeNested = entry.map((nested, index) => { if (!nested || typeof nested !== "object" || Array.isArray(nested)) throw new Error(`${path}.${key} contains a non-object record.`); const copy: Record<string, unknown> = Object.create(null) as Record<string, unknown>; for (const [nestedKey, nestedValue] of Object.entries(nested as Record<string, unknown>)) { if (/vocab/iu.test(nestedKey)) { omissions.push({ field: `${key}[${index}].${nestedKey}`, reason: "private-vocabulary" }); continue; } if (SECRET_WORD.test(nestedKey)) { omissions.push({ field: `${key}[${index}].${nestedKey}`, reason: "credential-vault-secret" }); continue; } if (SOURCE_PATH_KEY.test(nestedKey)) { omissions.push({ field: `${key}[${index}].${nestedKey}`, reason: "source-path" }); continue; } if (BOOLEAN_FIELDS.has(nestedKey) && typeof nestedValue !== "boolean") throw new Error(`${path}.${key}[${index}].${nestedKey} must be boolean.`); if (DATE_FIELDS.has(nestedKey) && (typeof nestedValue !== "string" || !Number.isFinite(Date.parse(nestedValue)))) throw new Error(`${path}.${key}[${index}].${nestedKey} must be an ISO timestamp.`); if (NUMBER_FIELDS.has(nestedKey) && (typeof nestedValue !== "number" || !Number.isSafeInteger(nestedValue) || nestedValue < 0 || nestedValue > 65535)) throw new Error(`${path}.${key}[${index}].${nestedKey} must be a bounded integer.`); if (ENUM_FIELDS[nestedKey] && (typeof nestedValue !== "string" || !ENUM_FIELDS[nestedKey].has(nestedValue))) throw new Error(`${path}.${key}[${index}].${nestedKey} has an unsupported value.`); validateSafeJson(nestedValue, `${path}.${key}[${index}].${nestedKey}`); copy[nestedKey] = nestedValue; } assertExactKeys(copy, nestedSchema, `${path}.${key}`); return copy; }); output[key] = safeNested; }
     }
     return { value: output, omissions };
   }
@@ -445,6 +456,8 @@ function assertManifest(value: unknown): asserts value is MigrationManifest {
 
 async function execute(executor: ProcessExecutor, cwd: string, args: ReadonlyArray<string>, timeoutMs = 30_000, signal?: AbortSignal): Promise<string> {
   const result = await executor.execute({ executable: "git", args, cwd, timeoutMs, maxOutputBytes: 16 * 1024 * 1024, signal });
+  if (result.status === "cancelled") throw new Error("Operation cancelled.");
+  if (result.status === "timedOut") throw new Error("Operation timed out.");
   if (result.status !== "succeeded") throw new Error(result.stderr.trim() || `git exited with ${result.exitCode ?? "no status"}.`);
   return result.stdout;
 }
@@ -517,7 +530,7 @@ export class MigrationBackupService {
     const operationState = (completed.result as { operation?: { state?: string } } | undefined)?.operation?.state; return { operationId, state: operationState === "cancelled" ? "cancelled" : operationState === "succeeded" ? "succeeded" : "failed", result: completed.result, detail: operationState === "succeeded" ? undefined : "Operation completed without a successful state." };
   }
   private finish(operation: MigrationOperation, state: OperationState, detail: string, items: ReadonlyArray<OperationItem> = operation.items): MigrationOperation {
-    if (state === "failed" && (operation.kind === "fetch" || operation.kind === "push") && /cancel/iu.test(detail)) state = "cancelled";
+    if (state === "failed" && /cancel/iu.test(detail)) state = "cancelled";
     const next = { ...operation, state, finishedAt: nowIso(this.#now), detail, items }; this.writeOperations([...this.readOperations().filter((entry) => entry.id !== operation.id), next]); return next;
   }
 
@@ -679,7 +692,7 @@ export class MigrationBackupService {
   async createBackup(signal?: AbortSignal, inheritedOperation?: MigrationOperation): Promise<{ operation: MigrationOperation; path: string; manifest: MigrationManifest }> {
     this.assertReady();
     const backupRoot = join(this.#root, "backups"); assertTreeNoLinks(backupRoot, this.#root); const path = join(backupRoot, `${Date.now()}-${randomUUID()}`); const result = await this.exportMigration(path, signal, backupRoot, inheritedOperation); if (inheritedOperation) return result; const indexPath = backupIndexPath(this.#root);
-    if (result.operation.state !== "succeeded") throw new Error(`Backup was not indexed because its final validation ended in ${result.operation.state}.`);
+    if (result.operation.state !== "succeeded") throw new Error(`Backup was not indexed because its final validation ended in ${result.operation.state}: ${result.operation.detail}`);
     const index = (() => { try { const value = readJsonStrict(indexPath); return Array.isArray(value) ? value as Array<Record<string, unknown>> : []; } catch { return []; } })();
     index.unshift({ path, createdAt: result.manifest.createdAt, kind: "verified-backup", verified: true }); if (index.length > MIGRATION_LIMITS.maxRetention) throw new Error("Backup retention index is full; prune verified backups before creating another."); atomicWriteFileSync(indexPath, `${JSON.stringify(index, null, 2)}\n`);
     const operations = this.readOperations().map((entry) => entry.id === result.operation.id ? { ...entry, kind: "backup" as const } : entry);
@@ -825,7 +838,7 @@ export class MigrationBackupService {
       if (existingFetch) await execute(this.#executor, this.#history, ["remote", "set-url", name, safeUrl], 30_000, signal); else await execute(this.#executor, this.#history, ["remote", "add", name, safeUrl], 30_000, signal);
       if (safePushUrl) await execute(this.#executor, this.#history, ["remote", "set-url", "--push", name, safePushUrl], 30_000, signal);
       const resolvedFetch = (await execute(this.#executor, this.#history, ["remote", "get-url", name], 30_000, signal)).trim(); const resolvedPush = (await execute(this.#executor, this.#history, ["remote", "get-url", "--push", name], 30_000, signal)).trim(); if (resolvedFetch !== safeUrl || (safePushUrl && resolvedPush !== safePushUrl)) throw new Error("Remote configuration readback did not match the validated fetch or push URL.");
-      this.writeReceipt({ id: randomUUID(), action: "remote-set", remote: name, branch: "", status: "success", observedAt: nowIso(this.#now), detail: `Remote replaced transactionally. Previous fetch configuration existed: ${existingFetch ? "yes" : "no"}. Previous push configuration existed: ${existingPush ? "yes" : "no"}.` });
+      this.writeReceipt({ id: randomUUID(), action: "remote-set", remote: name, branch: "", status: "success", observedAt: nowIso(this.#now), detail: `Remote replaced transactionally. Observed fetch URL: ${sanitizeDiagnostic(resolvedFetch)}. Observed push URL: ${sanitizeDiagnostic(resolvedPush)}. Previous fetch configuration existed: ${existingFetch ? "yes" : "no"}. Previous push configuration existed: ${existingPush ? "yes" : "no"}.` });
       return this.gitStatus();
     } catch (error) {
       try {
@@ -836,16 +849,30 @@ export class MigrationBackupService {
       throw error;
     }
   }
-  async removeRemote(name: string, signal?: AbortSignal): Promise<GitStatusRecord> { this.assertReady(); if (!REMOTE_NAME.test(name)) throw new Error("Invalid remote name."); await this.ensureHistoryRepository(signal); this.writeReceipt({ id: randomUUID(), action: "remote-remove", remote: name, branch: "", status: "prepared", observedAt: nowIso(this.#now), detail: "Remote removal prepared; the operation will report the terminal receipt." }); await execute(this.#executor, this.#history, ["remote", "remove", name], 30_000, signal); const resolved = await execute(this.#executor, this.#history, ["remote", "get-url", name], 30_000, signal).then((value) => value.trim()).catch(() => ""); if (resolved) throw new Error("Remote removal readback still returned a URL."); this.writeReceipt({ id: randomUUID(), action: "remote-remove", remote: name, branch: "", status: "success", observedAt: nowIso(this.#now), detail: "Remote removed; no URL was retained." }); return this.gitStatus(); }
+  async removeRemote(name: string, signal?: AbortSignal): Promise<GitStatusRecord> { this.assertReady(); if (!REMOTE_NAME.test(name)) throw new Error("Invalid remote name."); await this.ensureHistoryRepository(signal); this.writeReceipt({ id: randomUUID(), action: "remote-remove", remote: name, branch: "", status: "prepared", observedAt: nowIso(this.#now), detail: "Remote removal prepared; the operation will report the terminal receipt." }); await execute(this.#executor, this.#history, ["remote", "remove", name], 30_000, signal); let resolved = ""; try { resolved = (await execute(this.#executor, this.#history, ["remote", "get-url", name], 30_000, signal)).trim(); } catch (error) { const detail = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); if (!/no such remote|does not appear to be a git repository|not found/iu.test(detail)) throw new Error(`Remote removal readback failed: ${detail}`); } if (resolved) throw new Error("Remote removal readback still returned a URL."); try { this.writeReceipt({ id: randomUUID(), action: "remote-remove", remote: name, branch: "", status: "success", observedAt: nowIso(this.#now), detail: "Remote removed; no URL was retained." }); } catch (error) { throw new Error(`Remote was removed but its terminal receipt could not be written: ${error instanceof Error ? error.message : String(error)}`); } return this.gitStatus(); }
   async fetchRemote(name: string, signal?: AbortSignal): Promise<{ receipt: GitReceipt; status: GitStatusRecord }> {
     this.assertReady();
-    if (!REMOTE_NAME.test(name)) throw new Error("Invalid remote name."); const start = nowIso(this.#now); this.writeReceipt({ id: randomUUID(), action: "fetch", remote: name, branch: "", status: "prepared", observedAt: start, detail: "Fetch prepared; terminal status will be recorded after the normal fetch." }); try { if (signal?.aborted) throw new Error("Fetch cancelled."); await execute(this.#executor, this.#history, ["fetch", "--prune", name], 120_000, signal); const receipt: GitReceipt = { id: randomUUID(), action: "fetch", remote: name, branch: "", status: "success", observedAt: start, detail: "Fetch completed; no local refs were checked out or rewritten." }; this.writeReceipt(receipt); return { receipt, status: await this.gitStatus() }; } catch (error) { const detail = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); const status: GitReceipt["status"] = signal?.aborted ? "cancelled" : /receipt|history/iu.test(detail) ? "receipt-write-failure" : /auth|permission|denied/iu.test(detail) ? "auth-failure" : "rejected"; const receipt = { id: randomUUID(), action: "fetch" as const, remote: name, branch: "", status, observedAt: start, detail: status === "auth-failure" ? `${detail} Re-authenticate through the operating-system credential manager, then retry.` : detail }; try { this.writeReceipt(receipt); } catch { /* terminal receipt persistence failure remains in the returned operation result */ } return { receipt, status: await this.gitStatus() }; }
+    if (!REMOTE_NAME.test(name)) throw new Error("Invalid remote name."); const start = nowIso(this.#now); let prepared = false; try { this.writeReceipt({ id: randomUUID(), action: "fetch", remote: name, branch: "", status: "prepared", observedAt: start, detail: "Fetch prepared; terminal status will be recorded after the normal fetch." }); prepared = true; if (signal?.aborted) throw new Error("Fetch cancelled."); await execute(this.#executor, this.#history, ["fetch", "--prune", name], 120_000, signal); const receipt: GitReceipt = { id: randomUUID(), action: "fetch", remote: name, branch: "", status: "success", observedAt: start, detail: "Fetch completed; no local refs were checked out or rewritten." }; this.writeReceipt(receipt); return { receipt, status: await this.gitStatus() }; } catch (error) { const detail = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); const status: GitReceipt["status"] = signal?.aborted ? "cancelled" : prepared && /receipt|history/iu.test(detail) ? "receipt-write-failure" : /auth|permission|denied/iu.test(detail) ? "auth-failure" : "rejected"; const receipt = { id: randomUUID(), action: "fetch" as const, remote: name, branch: "", status, observedAt: start, detail: status === "auth-failure" ? `${detail} Re-authenticate through the operating-system credential manager, then retry.` : detail }; try { this.writeReceipt(receipt); } catch { /* terminal receipt persistence failure remains in the returned operation result */ } return { receipt, status: await this.gitStatus() }; }
   }
   async pushRemote(name: string, branch: string, signal?: AbortSignal): Promise<{ receipt: GitReceipt; status: GitStatusRecord }> {
     this.assertReady();
-    if (false) {
-    if (!REMOTE_NAME.test(name) || !REMOTE_NAME.test(branch)) throw new Error("Remote and branch names must use safe Git ref characters."); const start = nowIso(this.#now); let mutated = false; try { if (signal?.aborted) throw new Error("Push cancelled."); const before = await this.gitStatus(name, branch); if (before.divergence) { const receipt = { id: randomUUID(), action: "push" as const, remote: name, branch, status: "divergence" as const, observedAt: start, detail: "Push refused because local and remote history diverge." }; this.writeReceipt(receipt); return { receipt, status: before }; } const pushUrl = (await execute(this.#executor, this.#history, ["remote", "get-url", "--push", name], 30_000, signal)).trim(); const localObject = (await execute(this.#executor, this.#history, ["rev-parse", branch], 30_000, signal)).trim(); await execute(this.#executor, this.#history, ["push", name, branch], 120_000, signal); mutated = true; const remoteLine = (await execute(this.#executor, this.#history, ["ls-remote", pushUrl, `refs/heads/${branch}`], 120_000, signal)).trim(); const [remoteObject] = remoteLine.split(/\s+/u); if (!OBJECT_ID.test(remoteObject ?? "") || remoteObject !== localObject) throw new Error("The push completed but ls-remote did not verify the intended ref and object at the configured push URL."); const receipt = { id: randomUUID(), action: "push" as const, remote: name, branch, status: "success" as const, observedAt: start, detail: "Normal push completed and ls-remote verified the configured push URL, ref, and object." }; this.writeReceipt(receipt); return { receipt, status: await this.gitStatus(name, branch) }; } catch (error) { const detail = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); const status: GitReceipt["status"] = signal?.aborted ? "cancelled" : mutated && /receipt|history/iu.test(detail) ? "receipt-write-failure" : /auth|permission|denied/iu.test(detail) ? "auth-failure" : /non-fast-forward|rejected|diverg/iu.test(detail) ? "divergence" : "rejected"; const receipt = { id: randomUUID(), action: "push" as const, remote: name, branch, status, observedAt: start, detail: status === "auth-failure" ? `${detail} Re-authenticate through the operating-system credential manager, then retry.` : detail }; try { this.writeReceipt(receipt); } catch { /* receipt persistence failure remains in the returned operation result */ } return { receipt, status: await this.gitStatus(name, branch) }; }
+    if (!REMOTE_NAME.test(name) || !REMOTE_NAME.test(branch)) throw new Error("Remote and branch names must use safe Git ref characters.");
+    const start = nowIso(this.#now); let mutated = false;
+    try {
+      if (signal?.aborted) throw new Error("Push cancelled.");
+      const before = await this.gitStatus(name, branch);
+      if (before.comparison !== "verified" || !before.remotes.some((remote) => remote.name === name)) throw new Error("Select and verify the remote and target branch before preparing a push.");
+      const pushUrl = validRemoteUrl((await execute(this.#executor, this.#history, ["remote", "get-url", "--push", name], 30_000, signal)).trim());
+      const localObject = (await execute(this.#executor, this.#history, ["rev-parse", branch], 30_000, signal)).trim();
+      this.writeReceipt({ id: randomUUID(), action: "push", remote: name, branch, status: "prepared", observedAt: start, detail: `Push prepared for ${sanitizeDiagnostic(pushUrl)}, refs/heads/${branch}, and object ${localObject}.` });
+      if (before.divergence) { const receipt = { id: randomUUID(), action: "push" as const, remote: name, branch, status: "divergence" as const, observedAt: start, detail: "Push refused because local and remote history diverge." }; this.writeReceipt(receipt); return { receipt, status: before }; }
+      await execute(this.#executor, this.#history, ["push", name, branch], 120_000, signal); mutated = true;
+      const remoteLine = (await execute(this.#executor, this.#history, ["ls-remote", pushUrl, `refs/heads/${branch}`], 120_000, signal)).trim(); const [remoteObject] = remoteLine.split(/\s+/u);
+      if (!OBJECT_ID.test(remoteObject ?? "") || remoteObject !== localObject) throw new Error("The push completed but ls-remote did not verify the intended ref and object at the configured push URL.");
+      const receipt = { id: randomUUID(), action: "push" as const, remote: name, branch, status: "success" as const, observedAt: start, detail: "Normal push completed and ls-remote verified the configured push URL, ref, and object." }; this.writeReceipt(receipt); return { receipt, status: await this.gitStatus(name, branch) };
+    } catch (error) {
+      const detail = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); const status: GitReceipt["status"] = signal?.aborted ? "cancelled" : mutated && /receipt|history/iu.test(detail) ? "receipt-write-failure" : /auth|permission|denied/iu.test(detail) ? "auth-failure" : /non-fast-forward|rejected|diverg/iu.test(detail) ? "divergence" : "rejected";
+      const receipt = { id: randomUUID(), action: "push" as const, remote: name, branch, status, observedAt: start, detail: status === "auth-failure" ? `${detail} Re-authenticate through the operating-system credential manager, then retry.` : detail }; try { this.writeReceipt(receipt); } catch { /* receipt persistence failure remains in the returned operation result */ } return { receipt, status: await this.gitStatus(name, branch) };
     }
-    if (!REMOTE_NAME.test(name) || !REMOTE_NAME.test(branch)) throw new Error("Remote and branch names must use safe Git ref characters."); const start = nowIso(this.#now); let mutated = false; try { if (signal?.aborted) throw new Error("Push cancelled."); const before = await this.gitStatus(name, branch); if (before.comparison !== "verified" || !before.remotes.some((remote) => remote.name === name)) throw new Error("Select and verify the remote and target branch before preparing a push."); const pushUrl = validRemoteUrl((await execute(this.#executor, this.#history, ["remote", "get-url", "--push", name], 30_000, signal)).trim()); const localObject = (await execute(this.#executor, this.#history, ["rev-parse", branch], 30_000, signal)).trim(); this.writeReceipt({ id: randomUUID(), action: "push", remote: name, branch, status: "prepared", observedAt: start, detail: `Push prepared for ${pushUrl}, refs/heads/${branch}, and object ${localObject}.` }); if (before.divergence) { const receipt = { id: randomUUID(), action: "push" as const, remote: name, branch, status: "divergence" as const, observedAt: start, detail: "Push refused because local and remote history diverge." }; this.writeReceipt(receipt); return { receipt, status: before }; } await execute(this.#executor, this.#history, ["push", name, branch], 120_000, signal); mutated = true; const remoteLine = (await execute(this.#executor, this.#history, ["ls-remote", pushUrl, `refs/heads/${branch}`], 120_000, signal)).trim(); const [remoteObject] = remoteLine.split(/\s+/u); if (!OBJECT_ID.test(remoteObject ?? "") || remoteObject !== localObject) throw new Error("The push completed but ls-remote did not verify the intended ref and object at the configured push URL."); const receipt = { id: randomUUID(), action: "push" as const, remote: name, branch, status: "success" as const, observedAt: start, detail: "Normal push completed and ls-remote verified the configured push URL, ref, and object." }; this.writeReceipt(receipt); return { receipt, status: await this.gitStatus(name, branch) }; } catch (error) { const detail = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); const status: GitReceipt["status"] = signal?.aborted ? "cancelled" : mutated && /receipt|history/iu.test(detail) ? "receipt-write-failure" : /auth|permission|denied/iu.test(detail) ? "auth-failure" : /non-fast-forward|rejected|diverg/iu.test(detail) ? "divergence" : "rejected"; const receipt = { id: randomUUID(), action: "push" as const, remote: name, branch, status, observedAt: start, detail: status === "auth-failure" ? `${detail} Re-authenticate through the operating-system credential manager, then retry.` : detail }; try { this.writeReceipt(receipt); } catch { /* receipt persistence failure remains in the returned operation result */ } return { receipt, status: await this.gitStatus(name, branch) }; }
   }
 }
