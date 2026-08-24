@@ -5,7 +5,7 @@ import {
   CONTROL_BINDINGS,
   applyControlValues,
   readControlValues,
-  unmappedControls,
+  isUninventoried, unmappedControls,
 } from '../../app/renderer/src/control-keys.ts';
 import type { ControlBinding } from '../../app/renderer/src/control-keys.ts';
 import type { ConfigValue } from '../../app/renderer/src/configuration.ts';
@@ -271,8 +271,15 @@ test('unmappedControls returns everything for a screen with no bindings at all',
   assert.deepEqual(remainder, ['i_timeout', 'i_retries', 'i_invalid', 'i_direct', 'i_lang', 'i_barge']);
 });
 
-test('unmappedControls returns nothing for a screen this table has no knowledge of', () => {
-  assert.deepEqual(unmappedControls('does_not_exist'), []);
+test('a screen this table has no knowledge of says so, rather than answering nothing', () => {
+  /* This used to assert an empty list, which encoded the defect: the caller warns only when
+   * the list is non-empty, so "nobody has inventoried this screen" and "every control on it
+   * is bound" were the same answer. Three real screens took that path and read as more
+   * finished than the ones being honest about their gaps. */
+  const answer = unmappedControls('does_not_exist');
+  assert.equal(isUninventoried(answer), true);
+  assert.notDeepEqual(answer, []);
+  assert.equal(isUninventoried(unmappedControls('ivr')), false, 'a known screen must not answer this way');
 });
 
 // -------------------------------------------------- second-pass bindings: a_origin

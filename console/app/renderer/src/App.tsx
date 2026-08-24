@@ -10,7 +10,7 @@ import { buildCodecGraph, layoutCodecs, unreachable as unreachableCodecs } from 
 import { buildEndpointGraph, brokenLinks as brokenEndpointLinks, layoutTopology, summarise as summariseEndpointGraph } from './endpoint-graph';
 import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
 import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, type ConfigValue } from './configuration';
-import { readControlValues, unmappedControls } from './control-keys';
+import { readControlValues, isUninventoried, unmappedControls } from './control-keys';
 import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
 import { ServerSwitcher } from './servers';
@@ -2158,9 +2158,17 @@ It is shown once. The phone needs it to register.`);
        * that reads its file but leaves half its switches on design defaults must not let
        * a reader assume every control below is live — that is the same untruth as the
        * dialog that used to announce work it had not done, just quieter. */
-      const unmapped = unmappedControls(screen).length;
-      if (this.configs[screen]?.state === 'read' && unmapped > 0) {
-        return `${summary} ${unmapped} control(s) on this screen are not yet bound to a setting in it and still show shipped defaults.`;
+      const unmapped = unmappedControls(screen);
+      if (this.configs[screen]?.state === 'read') {
+        /* A screen nobody has inventoried is not a screen with nothing left to bind, and the
+         * two used to be indistinguishable here -- an empty list meant both, so three whole
+         * screens said nothing and read as more finished than the honest ones. */
+        if (isUninventoried(unmapped)) {
+          return `${summary} None of the controls on this screen are bound to it yet: they change what you see here and are not written to the file.`;
+        }
+        if (unmapped.length > 0) {
+          return `${summary} ${unmapped.length} control(s) on this screen are not yet bound to a setting in it and still show shipped defaults.`;
+        }
       }
       return summary;
     }

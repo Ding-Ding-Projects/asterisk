@@ -469,16 +469,63 @@ export function applyControlValues(
 
 /** The controls on this screen with no real-key binding, so the UI can say so honestly. */
 export function unmappedControls(screen: string): ReadonlyArray<string> {
-  return SCREEN_CONTROL_IDS[screen]?.filter((id) => !bindingsFor(screen).some((b) => b.control === id)) ?? [];
+  const known = SCREEN_CONTROL_IDS[screen];
+  if (known === undefined) {
+    /* A screen this table has never heard of is not a screen with nothing unmapped -- it is
+     * a screen nobody has looked at. Returning an empty list here made three of them read as
+     * fully wired, because the caller warns only when the list is non-empty, so silence and
+     * "all bound" were indistinguishable. UNKNOWN_SCREEN says which it is; the caller can
+     * then tell somebody the truth instead of nothing. */
+    return UNKNOWN_SCREEN;
+  }
+  return known.filter((id) => !bindingsFor(screen).some((b) => b.control === id));
+}
+
+/**
+ * The answer for a screen the table does not cover.
+ *
+ * A distinct value rather than an empty array, so a caller cannot mistake "nothing left to
+ * bind" for "nothing known about this at all". Compared by identity, so it survives being
+ * passed around.
+ */
+export const UNKNOWN_SCREEN: ReadonlyArray<string> = Object.freeze(['(this screen is not in the binding inventory)']);
+
+/** Whether that screen is one nobody has inventoried yet. */
+export function isUninventoried(result: ReadonlyArray<string>): boolean {
+  return result === UNKNOWN_SCREEN;
 }
 
 /**
  * Every control id declared on each screen in the generated design, independent of
- * `CONTROL_BINDINGS`. Kept separate (rather than derived from the bindings table) so
- * `unmappedControls` reports the real remainder — a control this table does not know
- * about yet is simply absent from its result, never wrongly reported as mapped.
+ * `CONTROL_BINDINGS`. Kept separate (rather than derived from the bindings table) because a
+ * list derived from the bindings could never report anything as unmapped -- everything in it
+ * would be, by construction.
+ *
+ * It used to say that a control this table does not know about is "simply absent from its
+ * result, never wrongly reported as mapped". That was backwards, and it hid three whole
+ * screens: absent from the unmapped list IS reported as mapped, because the caller warns
+ * only when the list is non-empty. A screen missing from here now answers UNKNOWN_SCREEN
+ * and a test refuses the omission outright.
  */
 const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
+  /* http.conf. None of these are bound yet; the screen now says so rather than staying silent. */
+  httpd: [
+    'ht_enabled', 'ht_bindaddr', 'ht_bindport', 'ht_prefix', 'ht_static', 'ht_status',
+    'ht_tlsenable', 'ht_tlsaddr', 'ht_tlsport', 'ht_tlscert', 'ht_tlskey', 'ht_notls1',
+    'ht_notls11', 'ht_notls12', 'ht_sesslimit', 'ht_sessinact', 'ht_sesskeep'
+  ],
+  /* features.conf. None bound yet, and the screen says so. */
+  fcodes: [
+    'fc_blindxfer', 'fc_atxfer', 'fc_disconnect', 'fc_automixmon', 'fc_parkcall',
+    'fc_atxferabort', 'fc_atxfercomplete', 'fc_atxferthreeway', 'fc_atxferswap',
+    'fc_pickupexten', 'fc_featuredigittimeout', 'fc_transferdigittimeout',
+    'fc_atxfernoanswertimeout', 'fc_atxferdropcall'
+  ],
+  /* iax.conf. None bound yet, and the screen says so. ix_secret_set in particular looks like it generates a credential and does not. */
+  iaxpeers: [
+    'ix_type', 'ix_host', 'ix_username', 'ix_port', 'ix_transfer', 'ix_qualify', 'ix_trunk',
+    'ix_calltoken', 'ix_codecs', 'ix_context', 'ix_accountcode', 'ix_mailbox', 'ix_secret_set'
+  ],
   live: ['m_spy', 'm_format', 'm_beep', 'm_retain'],
   endpoints: [
     'e_transport', 'e_context', 'e_callerid', 'e_trust',
