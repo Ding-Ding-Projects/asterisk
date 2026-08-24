@@ -44,6 +44,14 @@
 
 ## Cover Asterisk's real capability surface
 
+### Source-derived capability catalogue
+
+- [x] Generate a deterministic catalogue for every loadable module in `apps/`, `bridges/`, `cdr/`, `cel/`, `channels/`, `codecs/`, `formats/`, `funcs/`, `pbx/`, `res/`, and `main/`.
+- [x] Generate records for every checked-in configuration resource under `configs/`, including source path, family, build-condition signal, configuration names, source-detected CLI/AMI/ARI/AGI/media surfaces, documentation source, and explicit unavailable reasons.
+- [x] Reconcile source records with live `module show`, `core show help`, `manager show commands`, and `ari show apps` observations through `pbx.catalog`; retain installed modules absent from source as unverified records with actions outside the supported boundary.
+- [x] Add a hand-written catalogue inventory and negative regression that turns red when a family, record, documentation article, runtime command, action binding, or unverified boundary is removed.
+- [ ] Run the catalogue against a final live WSL or container target and promote runtime states from unverified to evidence-backed.
+
 A survey against this checkout measured the console at roughly **12%** of Asterisk's
 configurable surface: 106 shippable sample configuration files, about 13 the console
 could name. The owner's direction is that every gap below is closed, partials included.

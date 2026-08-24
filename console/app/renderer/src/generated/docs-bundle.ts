@@ -24,7 +24,7 @@ export interface DocsBundle {
 
 export const DOCS_BUNDLE: DocsBundle = {
   "generatedAt": "1970-01-01T00:00:00.000Z",
-  "articleCount": 85,
+  "articleCount": 86,
   "articles": [
     {
       "id": "agent/hub",
@@ -2929,6 +2929,40 @@ export const DOCS_BUNDLE: DocsBundle = {
       "body": "# Ding PBX Console documentation\n\nDing PBX Console is a Windows desktop administration experience for Asterisk. The renderer is compiled directly from the design's navigation model, so this documentation follows the same structure: six rails and 32 destinations, one article per destination, grouped and ordered exactly as the app presents them.\n\nThe documentation map contains 32 destinations in six rails. Every article covers behavior, configuration, failure modes and security, verification, and suggested reading.\n\n## Rails\n\n- [PBX](pbx/README.md) — Telephony: endpoints, routing and everything a call touches while it is alive.\n- [Media](media/README.md) — Media & voice: codecs, RTP, recordings, prompts and conferencing.\n- [Data](data/README.md) — Records & APIs: call records, event logging and the machine interfaces.\n- [System](system/README.md) — Runtime & security: modules, logging, certificates and the CLI.\n- [Agent](agent/README.md) — Agent global memory: memory, sync, skills, hub sessions and the emission guard.\n- [App](app/README.md) — Deploy & application: stand up a new server, then appearance, updates and the console itself.\n\n## Delivery\n\n- [The Ding PBX installer ISO](installer-iso.md) — a bootable, unattended-install ISO that turns a bare machine into a working server.\n\n## Shared behavior\n\nConfiguration controls are pickers, switches, sliders and steppers wired to real keys in the owning Asterisk configuration file — never free-text fields that could drift from what Asterisk actually does. Where an article shows a default value or an option list, it is the same default the design and the renderer ship with; nothing here is a simulated call, a sample statistic, or an invented extension. Destructive actions run the full confirmation ceremony described in [History & git](app/history.md) and [Arcade](app/arcade.md).\n"
     },
     {
+      "id": "system/asterisk-capability-catalog",
+      "category": "system",
+      "title": "Dynamic Asterisk capability catalogue",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Runtime reconciliation",
+          "id": "runtime-reconciliation"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "modules.md",
+        "cli.md",
+        "security.md",
+        "../app/history.md"
+      ],
+      "body": "# Dynamic Asterisk capability catalogue\n\n## Behavior\n\n`console/scripts/generate-asterisk-catalog.mjs` scans the checked-in Asterisk source families `apps/`, `bridges/`, `cdr/`, `cel/`, `channels/`, `codecs/`, `formats/`, `funcs/`, `pbx/`, `res/`, and `main/`. Every source file carrying an Asterisk module registration becomes a stable module record. Every checked-in configuration sample under `configs/` becomes a stable configuration-resource record. The checked-in generated files are `console/control-plane/generated/asterisk-catalog.json` and `asterisk-catalog.ts`.\n\nEach record names its family, source path, loadable name, description, build-condition signal, configuration files, source-detected CLI/AMI/ARI/AGI and media surfaces, documentation source, and exact reasons a build or documentation result is unavailable. The generator uses a fixed timestamp so repeated runs are byte-stable.\n\n## Runtime reconciliation\n\nThe control-plane action `pbx.catalog` reads the target's real `module show`, `core show help`, `manager show commands`, and `ari show apps` output through the allowlisted executable-argument path. `reconcileAsteriskCatalog` joins those observations to the generated records. An unread surface is `unknown`, a missing module is `unavailable`, and an observed module is `available`; no state is inferred from a checked-in sample or from a shipped default. A module present on a target but absent from the source catalogue is retained as an explicit `unverified-installed-module` record with actions outside the supported boundary.\n\nThe catalogue is read-only evidence. Configuration writes continue through the existing typed plan, backup, validation, atomic apply, post-read and rollback transaction. Runtime values are observed per target and are never committed into the generated source record.\n\n## Failure modes and security\n\nAn absent or stopped Asterisk runtime produces a refusal or an `unknown` result with the target's observed reason. It does not produce sample rows, a guessed module count, or a generic success message. Commands remain separate executable arguments, with bounded output and cancellation inherited from `NodeProcessExecutor`; no shell concatenation is used. Runtime output is kept as typed, redacted control-plane data.\n\n## Verification\n\nRun `node console/scripts/generate-asterisk-catalog.mjs` and confirm the reported module and resource counts match the generated JSON. Run `node --check console/scripts/generate-asterisk-catalog.mjs`. Runtime reconciliation remains implemented-unverified until a final live WSL/container and headless pass reads a real target. No runtime, package, UI, capture, or release claim is made by this source-only check.\n\n## Suggested articles\n\n[Modules](modules.md), [CLI builder](cli.md), [Security](security.md), and [Configuration history](../app/history.md).\n"
+    },
+    {
       "id": "system/cli",
       "category": "system",
       "title": "CLI builder",
@@ -3025,7 +3059,7 @@ export const DOCS_BUNDLE: DocsBundle = {
         "security.md",
         "cli.md"
       ],
-      "body": "# Modules\n\n## Behavior\n\nEvery loadable module with its live state. Loading and unloading are real actions and run the full confirmation ceremony. It is backed by `modules.conf`. The rail badge on this destination currently reads `214`. It lives on the System rail, under the Runtime & security group: Modules, logging, certificates and the CLI.\n\n## Configuration\n\n### Load policy\n\nWhat Asterisk does with modules it was not explicitly told about.\n\n- **autoload** (`mo_auto`) — a switch control, default `true`.\n  - *What it is:* Whether Asterisk loads every module it finds at startup.\n  - *Why it exists:* Convenient, but it means an unused module with a vulnerability is loaded anyway.\n  - *Choosing a value:* On for a lab. Off with an explicit load list for a hardened deployment.\n  - *Gotcha:* Turning it off without listing what you actually need produces a PBX that starts cleanly and does nothing.\n- **Preload** (`mo_preload`) — a chips control, default `res_odbc.so`, `res_config_odbc.so`, choices `res_odbc.so`, `res_config_odbc.so`, `res_curl.so`, `res_crypto.so`.\n- **Never load** (`mo_noload`) — a chips control, default `chan_sip.so`, choices `chan_sip.so`, `chan_mobile.so`, `app_meetme.so`, `res_snmp.so`.\n- **Fail startup on missing module** (`mo_require`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery row reflects a real object in modules.conf; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen. Turning it off without listing what you actually need produces a PBX that starts cleanly and does nothing.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in modules.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Logger](logger.md), [Security](security.md), and [CLI builder](cli.md).\n"
+      "body": "# Modules\n\n## Behavior\n\nEvery loadable module is represented by the generated source catalogue and reconciled with the target's live `module show` result. Loading and unloading are real actions and run the full confirmation ceremony. It is backed by `modules.conf`. The rail badge is populated only from the target's observed module count, and stays unavailable when no target has answered. It lives on the System rail, under the Runtime & security group: Modules, logging, certificates and the CLI.\n\n## Configuration\n\n### Load policy\n\nWhat Asterisk does with modules it was not explicitly told about.\n\n- **autoload** (`mo_auto`) — a switch control, default `true`.\n  - *What it is:* Whether Asterisk loads every module it finds at startup.\n  - *Why it exists:* Convenient, but it means an unused module with a vulnerability is loaded anyway.\n  - *Choosing a value:* On for a lab. Off with an explicit load list for a hardened deployment.\n  - *Gotcha:* Turning it off without listing what you actually need produces a PBX that starts cleanly and does nothing.\n- **Preload** (`mo_preload`) — a chips control, default `res_odbc.so`, `res_config_odbc.so`, choices `res_odbc.so`, `res_config_odbc.so`, `res_curl.so`, `res_crypto.so`.\n- **Never load** (`mo_noload`) — a chips control, default `chan_sip.so`, choices `chan_sip.so`, `chan_mobile.so`, `app_meetme.so`, `res_snmp.so`.\n- **Fail startup on missing module** (`mo_require`) — a switch control, default `true`.\n\n## Failure modes and security\n\nEvery row reflects a real object in modules.conf; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen. Turning it off without listing what you actually need produces a PBX that starts cleanly and does nothing.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in modules.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Logger](logger.md), [Security](security.md), and [CLI builder](cli.md).\n"
     },
     {
       "id": "system/README",
@@ -3034,11 +3068,12 @@ export const DOCS_BUNDLE: DocsBundle = {
       "headings": [],
       "links": [
         "modules.md",
+        "asterisk-capability-catalog.md",
         "logger.md",
         "security.md",
         "cli.md"
       ],
-      "body": "# System\n\nRuntime & security: modules, logging, certificates and the CLI.\n\n- [Modules](modules.md)\n- [Logger](logger.md)\n- [Security](security.md)\n- [CLI builder](cli.md)\n"
+      "body": "# System\n\nRuntime & security: modules, logging, certificates and the CLI.\n\n- [Modules](modules.md)\n- [Dynamic Asterisk capability catalogue](asterisk-capability-catalog.md)\n- [Logger](logger.md)\n- [Security](security.md)\n- [CLI builder](cli.md)\n"
     },
     {
       "id": "system/security",

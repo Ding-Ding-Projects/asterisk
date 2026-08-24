@@ -19,6 +19,7 @@ export const READ_ONLY_COMMANDS = [
   "core show uptime seconds",
   "core show sysinfo",
   "core show version",
+  "core show help",
   "pjsip show endpoints",
   "pjsip show contacts",
   "pjsip show registrations",

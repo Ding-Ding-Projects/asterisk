@@ -2,7 +2,7 @@
 
 ## Behavior
 
-Every loadable module with its live state. Loading and unloading are real actions and run the full confirmation ceremony. It is backed by `modules.conf`. The rail badge on this destination currently reads `214`. It lives on the System rail, under the Runtime & security group: Modules, logging, certificates and the CLI.
+Every loadable module is represented by the generated source catalogue and reconciled with the target's live `module show` result. Loading and unloading are real actions and run the full confirmation ceremony. It is backed by `modules.conf`. The rail badge is populated only from the target's observed module count, and stays unavailable when no target has answered. It lives on the System rail, under the Runtime & security group: Modules, logging, certificates and the CLI.
 
 ## Configuration
 

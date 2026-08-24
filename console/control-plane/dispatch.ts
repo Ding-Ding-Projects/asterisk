@@ -24,6 +24,7 @@ import { atomicWriteFileSync } from './atomic-file.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
 import type { ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
+import { reconcileAsteriskCatalog } from './asterisk-runtime-catalog.js';
 
 /**
  * Actions that fundamentally depend on the Windows desktop (WSL) and cannot be answered
@@ -537,6 +538,29 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (!request.view) return { ok: false, requestId: request.requestId, code: 'VIEW_REQUIRED', message: 'A read must name the screen it is for.' };
         const target = await resolveTarget(request.serverId);
         return { ok: true, requestId: request.requestId, data: await readView(target, request.view) };
+      }
+      if (request.action === 'pbx.catalog') {
+        const target = await resolveTarget(request.serverId);
+        const [modules, cli, ami, ari] = await Promise.all([
+          readings.modules(target),
+          readings.raw(target, 'core show help'),
+          readings.raw(target, 'manager show commands'),
+          readings.raw(target, 'ari show apps'),
+        ]);
+        const observedAt = new Date().toISOString();
+        const rawValues = (reading: { result: { state: string; value?: string } }): ReadonlyArray<string> | undefined =>
+          reading.result.state === 'available' ? String(reading.result.value ?? '').split(/\r?\n/u).map((line) => line.trim()).filter(Boolean) : undefined;
+        return {
+          ok: true,
+          requestId: request.requestId,
+          data: reconcileAsteriskCatalog({
+            observedAt,
+            modules: modules.result.state === 'available' ? modules.result.value : undefined,
+            cliCommands: rawValues(cli),
+            amiActions: rawValues(ami),
+            ariResources: rawValues(ari),
+          }),
+        };
       }
       return { ok: false, requestId: request.requestId, code: 'ACTION_NOT_AVAILABLE', message: 'This operation is unavailable until a reviewed target-specific plan is connected.' };
     } catch (error) {

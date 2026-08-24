@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "sourceFamilies": [
+    "apps",
+    "bridges",
+    "cdr",
+    "cel",
+    "channels",
+    "codecs",
+    "formats",
+    "funcs",
+    "pbx",
+    "res",
+    "main"
+  ],
+  "requiredRuntimeActions": [
+    "pbx.catalog"
+  ],
+  "requiredRuntimeCommands": [
+    "module show",
+    "core show help",
+    "manager show commands",
+    "ari show apps"
+  ],
+  "requiredDocs": [
+    "console/docs/system/asterisk-capability-catalog.md"
+  ],
+  "requiredGeneratedFiles": [
+    "console/control-plane/generated/asterisk-catalog.json",
+    "console/control-plane/generated/asterisk-catalog.ts"
+  ],
+  "expectedCounts": {
+    "modules": 383,
+    "resources": 119
+  },
+  "requiredBoundaries": [
+    "unknown when a live surface was not read",
+    "unverified-installed-module for a module absent from source"
+  ]
+}

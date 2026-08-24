@@ -371,6 +371,14 @@ option carries a mark and its text is not the bare value.
 
 ## Next owner actions
 
+### Source-derived Asterisk capability catalogue
+
+The complete-surface lane added a deterministic source catalogue at `console/control-plane/generated/asterisk-catalog.json` and `asterisk-catalog.ts`. It currently contains **383 source modules and 119 configuration resources**, for **502 records**, generated from the 11 Asterisk source families and the checked-in `configs/` resources. The generator is `console/scripts/generate-asterisk-catalog.mjs` and uses a fixed timestamp for byte-stable output.
+
+`console/control-plane/asterisk-runtime-catalog.ts` reconciles those records with target observations. The `pbx.catalog` action reads the real `module show`, `core show help`, `manager show commands`, and `ari show apps` responses through the existing allowlisted executable-argument path. Unread surfaces remain `unknown`, absent modules are `unavailable`, observed modules are `available`, and newly installed modules that are not in source remain visible as `unverified-installed-module` records with a read-only action boundary. No source-only run claims runtime verification.
+
+The hand-written inventory is `console/inventories/asterisk-capability-catalog.json`, with negative regression `console/scripts/negative-asterisk-catalog.mjs`. Narrow checks run in this lane were `node --check` for the three catalog scripts, generator output, catalog validator, and the negative regression. No full build, test suite, package, runtime deployment, or UI capture was run here. The remaining evidence boundary is a final live WSL or container observation and the built desktop interaction pass.
+
 Ordered by what actually blocks the next claim.
 
 1. **Write to a disposable PBX target through an explicitly approved plan.** The read path

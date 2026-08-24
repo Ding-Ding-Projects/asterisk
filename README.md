@@ -7,6 +7,8 @@ Documentation and downloads: **https://ding-ding-projects.github.io/asterisk/**
 
 **Contents:** [What it is](#what-ding-pbx-console-is) · [Reaching a PBX](#reaching-a-pbx) · [Build and installer scripts](#build-and-installer-scripts) · [The bundled WSL runtime](#the-bundled-wsl-runtime) · [Safety model](#the-control-planes-safety-model) · [Testing](#testing) · [Documentation](#documentation) · [Contributing](#contributing) · [What is not done yet](#what-is-not-done-yet) · [This is a fork of Asterisk](#this-is-a-fork-of-asterisk) · [How long this would take a person](#how-long-this-would-take-a-person-to-write)
 
+The source-derived Asterisk capability catalogue is generated with `node console/scripts/generate-asterisk-catalog.mjs`. It covers every loadable module in the Asterisk source families and every checked-in configuration resource. The live `pbx.catalog` action reconciles that catalogue with target observations and keeps newly installed modules visible as unverified until their source and action boundary are reviewed. See [the catalogue article](console/docs/system/asterisk-capability-catalog.md) for the exact evidence boundary.
+
 ---
 
 <details>
