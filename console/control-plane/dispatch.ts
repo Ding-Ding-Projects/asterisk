@@ -37,6 +37,9 @@ import freePbxCatalogJson from '../catalog/freepbx-module-catalog.json' with { t
 export const HOSTED_UNSUPPORTED_ACTIONS = new Set<string>([
   'runtime.status', 'runtime.provision', 'runtime.stop', 'runtime.remove',
   'freepbx.modules', 'freepbx.module.state', 'freepbx.module.action',
+  'freepbx.handshake',
+  'freepbx.backup',
+  'freepbx.backup.list',
 ]);
 
 export interface ControlPlaneDispatcherOptions {
@@ -81,6 +84,10 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     if (!requested) throw new Error('Select a server first.');
 
     const registered = serverInventory().get(requested);
+    if (registered && (registered.connectionKind === 'localDocker' || registered.connectionKind === 'remoteDocker')) {
+      if (!registered.dockerContext?.trim()) throw new Error('The container target has no discovered container id.');
+      return serverInventory().toTargetProfile(registered.id);
+    }
     const distribution = (registered?.wslDistribution ?? requested).trim();
     if (!distribution) throw new Error('Select a discovered WSL distribution first.');
 
@@ -458,15 +465,30 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const target = await resolveTarget(request.serverId);
         return { ok: true, requestId: request.requestId, data: await new FreePbxRuntimeAdapter({
           executor: processExecutor,
-          distribution: target.wslDistribution!,
+          target,
           catalog: freePbxCatalogEntries(),
         }).listModules() };
+      }
+      if (request.action === 'freepbx.handshake') {
+        const target = await resolveTarget(request.serverId);
+        return { ok: true, requestId: request.requestId, data: await new FreePbxRuntimeAdapter({ executor: processExecutor, target, catalog: freePbxCatalogEntries() }).handshake() };
+      }
+      if (request.action === 'freepbx.backup') {
+        const target = await resolveTarget(request.serverId);
+        const jobId = typeof request.payload?.jobId === 'string' ? request.payload.jobId.trim() : '';
+        if (!jobId) return { ok: false, requestId: request.requestId, code: 'FREEPBX_BACKUP_JOB_REQUIRED', message: 'Choose a backup job from the target backup catalog before a module action.' };
+        const receipt = await new FreePbxRuntimeAdapter({ executor: processExecutor, target, catalog: freePbxCatalogEntries() }).createBackup(jobId);
+        return { ok: true, requestId: request.requestId, data: receipt };
+      }
+      if (request.action === 'freepbx.backup.list') {
+        const target = await resolveTarget(request.serverId);
+        return { ok: true, requestId: request.requestId, data: { jobs: await new FreePbxRuntimeAdapter({ executor: processExecutor, target, catalog: freePbxCatalogEntries() }).listBackupJobs() } };
       }
       if (request.action === 'freepbx.module.state' || request.action === 'freepbx.module.action') {
         const target = await resolveTarget(request.serverId);
         const runtime = new FreePbxRuntimeAdapter({
           executor: processExecutor,
-          distribution: target.wslDistribution!,
+          target,
           catalog: freePbxCatalogEntries(),
         });
         const moduleId = typeof request.payload?.moduleId === 'string' ? request.payload.moduleId.trim() : '';
@@ -474,7 +496,13 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const action = request.payload?.action;
         const confirmed = request.payload?.confirmed === true;
         if (typeof action !== 'string' || !['install', 'enable', 'disable', 'update', 'remove'].includes(action)) return { ok: false, requestId: request.requestId, code: 'FREEPBX_ACTION_REQUIRED', message: 'Choose one allowlisted FreePBX module action.' };
-        const result = await runtime.action({ moduleId, action: action as 'install' | 'enable' | 'disable' | 'update' | 'remove', confirmed, expectedRevision: typeof request.payload?.expectedRevision === 'string' ? request.payload.expectedRevision : null });
+        const backup = request.payload?.backup;
+        const typedBackup = backup && typeof backup === 'object' && (backup as Record<string, unknown>).source === 'official-freepbx-backup'
+          && typeof (backup as Record<string, unknown>).filesReceipt === 'string'
+          && typeof (backup as Record<string, unknown>).databaseReceipt === 'string'
+          ? backup as { filesReceipt: string; databaseReceipt: string; source: 'official-freepbx-backup'; observedAt: string }
+          : undefined;
+        const result = await runtime.action({ moduleId, action: action as 'install' | 'enable' | 'disable' | 'update' | 'remove', confirmed, expectedRevision: typeof request.payload?.expectedRevision === 'string' ? request.payload.expectedRevision : null, backup: typedBackup });
         return { ok: result.status === 'applied' || result.status === 'rolledBack', requestId: request.requestId, code: result.status === 'applied' || result.status === 'rolledBack' ? undefined : `FREEPBX_${result.status.toUpperCase()}`, message: result.message, data: result } as ControlPlaneResponse;
       }
       if (request.action === 'pbx.config') {

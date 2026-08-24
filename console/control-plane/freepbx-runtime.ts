@@ -1,4 +1,6 @@
+import { createHash } from 'node:crypto';
 import type { ProcessExecutor, CommandResult } from './executor.js';
+import type { TargetProfile } from './contracts.js';
 
 export type FreePbxModuleAction = 'install' | 'enable' | 'disable' | 'update' | 'remove';
 
@@ -39,12 +41,37 @@ export interface FreePbxModuleActionResult {
   before: FreePbxRuntimeModule;
   after: FreePbxRuntimeModule;
   rollback?: { attempted: boolean; status: 'verified' | 'failed' | 'not-applicable'; reason: string };
+  backup?: FreePbxBackupReceipt;
   message: string;
+}
+
+export interface FreePbxBackupReceipt {
+  filesReceipt: string;
+  databaseReceipt: string;
+  source: 'official-freepbx-backup';
+  observedAt: string;
+}
+
+export interface FreePbxHandshake {
+  targetId: string;
+  targetKind: 'wsl' | 'localDocker' | 'remoteDocker' | 'remoteLinux';
+  frameworkVersion: string | null;
+  moduleAdmin: 'available' | 'unavailable' | 'unknown';
+  database: 'available' | 'unavailable' | 'unknown';
+  webService: 'available' | 'unavailable' | 'unknown';
+  backup: 'available' | 'unavailable' | 'unknown';
+  observedAt: string;
+  reason: string;
+}
+
+export interface FreePbxBackupJob {
+  jobId: string;
+  label: string;
 }
 
 export interface FreePbxRuntimeOptions {
   executor: ProcessExecutor;
-  distribution: string;
+  target: Pick<TargetProfile, 'id' | 'displayName' | 'connectionKind' | 'wslDistribution' | 'dockerContext' | 'dockerProject'>;
   catalog: ReadonlyArray<FreePbxCatalogModule>;
   now?: () => string;
 }
@@ -80,6 +107,20 @@ function parseInstalled(value: string): boolean | null {
 function parseVersion(value: string): string | null {
   const match = /\b(\d+\.\d+(?:\.\d+)*(?:[-+][0-9a-z.-]+)?)\b/iu.exec(value);
   return match?.[1] ?? null;
+}
+
+function versionParts(value: string | null): number[] {
+  return (value ?? '').split('.').slice(0, 4).map((part) => Number.parseInt(part.replace(/\D.*$/u, ''), 10)).map((part) => Number.isFinite(part) ? part : 0);
+}
+
+function compareVersions(left: string | null, right: string | null): number {
+  const a = versionParts(left);
+  const b = versionParts(right);
+  for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
+    const difference = (a[index] ?? 0) - (b[index] ?? 0);
+    if (difference !== 0) return difference;
+  }
+  return 0;
 }
 
 function parseModuleRows(output: string): Map<string, { version: string | null; enabled: boolean | null; detail: string }> {
@@ -120,14 +161,16 @@ function parseModuleDetails(output: string): { installed: boolean | null; versio
 
 export class FreePbxRuntimeAdapter {
   readonly #executor: ProcessExecutor;
-  readonly #distribution: string;
+  readonly #target: FreePbxRuntimeOptions['target'];
   readonly #catalog: ReadonlyArray<FreePbxCatalogModule>;
   readonly #now: () => string;
 
   constructor(options: FreePbxRuntimeOptions) {
-    if (!options.distribution.trim()) throw new Error('A WSL distribution is required.');
+    if (!options.target.id.trim()) throw new Error('A FreePBX target is required.');
+    if (options.target.connectionKind === 'wsl' && !options.target.wslDistribution?.trim()) throw new Error('A WSL distribution is required.');
+    if ((options.target.connectionKind === 'localDocker' || options.target.connectionKind === 'remoteDocker') && !options.target.dockerContext?.trim()) throw new Error('A container target requires a discovered container id.');
     this.#executor = options.executor;
-    this.#distribution = options.distribution.trim();
+    this.#target = options.target;
     this.#catalog = options.catalog;
     this.#now = options.now ?? (() => new Date().toISOString());
   }
@@ -137,9 +180,15 @@ export class FreePbxRuntimeAdapter {
   }
 
   async #run(args: ReadonlyArray<string>): Promise<CommandResult> {
+    const command = this.#target.connectionKind === 'wsl'
+      ? ['wsl.exe', ['-d', this.#target.wslDistribution!, '--', 'fwconsole', ...args]] as const
+      : this.#target.connectionKind === 'localDocker' || this.#target.connectionKind === 'remoteDocker'
+        ? ['docker', ['exec', this.#target.dockerContext!, 'fwconsole', ...args]] as const
+        : null;
+    if (!command) throw new Error('This target kind has no approved local FreePBX fwconsole transport.');
     return this.#executor.execute({
-      executable: 'wsl.exe',
-      args: ['-d', this.#distribution, '--', 'fwconsole', ...args],
+      executable: command[0],
+      args: command[1],
       timeoutMs: 30_000,
       maxOutputBytes: 2 * 1024 * 1024,
     });
@@ -174,6 +223,47 @@ export class FreePbxRuntimeAdapter {
     return { observedAt: this.#now(), modules: modules.sort((a, b) => a.moduleId.localeCompare(b.moduleId)), source: 'fwconsole ma list' };
   }
 
+  async handshake(): Promise<FreePbxHandshake> {
+    const version = await this.#run(['--version']);
+    const modules = await this.#run(['ma', 'list']);
+    const backup = await this.#run(['backup', '--list']);
+    const frameworkVersion = version.status === 'succeeded' ? parseVersion(version.stdout) : null;
+    return {
+      targetId: this.#target.id,
+      targetKind: this.#target.connectionKind,
+      frameworkVersion,
+      moduleAdmin: modules.status === 'succeeded' ? 'available' : 'unavailable',
+      database: 'unknown',
+      webService: 'unknown',
+      backup: backup.status === 'succeeded' ? 'available' : 'unavailable',
+      observedAt: this.#now(),
+      reason: modules.status !== 'succeeded'
+        ? resultMessage(modules, ['fwconsole', 'ma', 'list'])
+        : 'Framework version and module manager were read. Database and web-service health require their published target APIs; no direct SQL probe is used.',
+    };
+  }
+
+  async createBackup(jobId: string): Promise<FreePbxBackupReceipt> {
+    if (!/^[a-z0-9][a-z0-9_-]{0,63}$/iu.test(jobId)) throw new Error('A backup job ID must be a bounded identifier from the target backup catalog.');
+    const result = await this.#run(['backup', '--run', jobId]);
+    if (result.status !== 'succeeded') throw new Error(resultMessage(result, ['fwconsole', 'backup', '--run', jobId]));
+    const output = result.stdout.trim();
+    if (!/\b(?:file|files)\b[^\r\n]*(?:ok|complete|success)/iu.test(output) || !/\b(?:database|db)\b[^\r\n]*(?:ok|complete|success)/iu.test(output)) {
+      throw new Error('The official backup command returned without independently identifying completed file and database backups.');
+    }
+    const digest = createHash('sha256').update(output).digest('hex');
+    return { filesReceipt: `fwconsole-backup:${digest}:files`, databaseReceipt: `fwconsole-backup:${digest}:database`, source: 'official-freepbx-backup', observedAt: this.#now() };
+  }
+
+  async listBackupJobs(): Promise<FreePbxBackupJob[]> {
+    const result = await this.#run(['backup', '--list']);
+    if (result.status !== 'succeeded') throw new Error(resultMessage(result, ['fwconsole', 'backup', '--list']));
+    return result.stdout.split(/\r?\n/u).map((line) => line.replaceAll('|', ' ').trim()).flatMap((line) => {
+      const match = /^([a-z0-9][a-z0-9_-]{0,63})\s+(.*)$/iu.exec(line);
+      return match && !/^(job|id|name)\b/iu.test(match[1]) ? [{ jobId: match[1], label: match[2].trim() || match[1] }] : [];
+    });
+  }
+
   async readModule(moduleId: string): Promise<FreePbxRuntimeModule> {
     if (!MODULE_ID.test(moduleId)) throw new Error('Module ID must be a bounded FreePBX module identifier.');
     const result = await this.#run(['ma', 'show', moduleId]);
@@ -199,33 +289,40 @@ export class FreePbxRuntimeAdapter {
     return this.#merge(moduleId, undefined, details);
   }
 
-  async action(request: { moduleId: string; action: FreePbxModuleAction; confirmed: boolean; expectedRevision?: string | null }): Promise<FreePbxModuleActionResult> {
+  async action(request: { moduleId: string; action: FreePbxModuleAction; confirmed: boolean; expectedRevision?: string | null; backup?: FreePbxBackupReceipt }): Promise<FreePbxModuleActionResult> {
     if (!MODULE_ID.test(request.moduleId)) throw new Error('Module ID must be a bounded FreePBX module identifier.');
     if (!ACTIONS.has(request.action)) throw new Error(`Unsupported FreePBX module action: ${request.action}`);
     const catalog = this.#catalogEntry(request.moduleId);
     const before = await this.readModule(request.moduleId);
+    if (!request.backup || request.backup.source !== 'official-freepbx-backup' || !request.backup.filesReceipt || !request.backup.databaseReceipt) {
+      return { action: request.action, moduleId: request.moduleId, status: 'refused', before, after: before, message: 'A verified official FreePBX file and database backup receipt is required before a module action can be sent.' };
+    }
     if (!request.confirmed && (request.action === 'remove' || request.action === 'disable')) {
       return { action: request.action, moduleId: request.moduleId, status: 'refused', before, after: before, message: 'Confirmation is required before a destructive or availability-changing module action.' };
     }
     if (catalog?.entitlementClass === 'commercial') {
-      return { action: request.action, moduleId: request.moduleId, status: 'refused', before, after: before, message: 'The published module metadata declares commercial entitlement. No license or vendor account was supplied, so the action was not sent.' };
+      return { action: request.action, moduleId: request.moduleId, status: 'refused', before, after: before, backup: request.backup, message: 'The published module metadata declares commercial entitlement. No license or vendor account was supplied, so the action was not sent.' };
+    }
+    if (before.installed && before.version && catalog?.version && versionParts(before.version)[0] !== versionParts(catalog.version)[0] && request.action !== 'update') {
+      return { action: request.action, moduleId: request.moduleId, status: 'refused', before, after: before, backup: request.backup, message: `Installed version ${before.version} is from a different major version than catalog version ${catalog.version}. Update or reconcile the target before this action.` };
     }
     if (request.expectedRevision && catalog?.sourceRevision && request.expectedRevision !== catalog.sourceRevision) {
-      return { action: request.action, moduleId: request.moduleId, status: 'refused', before, after: before, message: 'The catalog revision changed. Refresh the module catalog before attempting this action.' };
+      return { action: request.action, moduleId: request.moduleId, status: 'refused', before, after: before, backup: request.backup, message: 'The catalog revision changed. Refresh the module catalog before attempting this action.' };
     }
     const command = ['ma', ACTION_COMMANDS[request.action], request.moduleId];
     const result = await this.#run(command);
     if (result.status !== 'succeeded') {
-      return { action: request.action, moduleId: request.moduleId, status: 'failed', before, after: before, message: resultMessage(result, ['fwconsole', ...command]) };
+      return { action: request.action, moduleId: request.moduleId, status: 'failed', before, after: before, backup: request.backup, message: resultMessage(result, ['fwconsole', ...command]) };
     }
     const after = await this.readModule(request.moduleId);
     const expectedInstalled = request.action === 'remove' ? false : request.action === 'install' || request.action === 'update' ? true : before.installed;
     const expectedEnabled = request.action === 'enable' ? true : request.action === 'disable' ? false : after.enabled;
-    const matches = after.installed === expectedInstalled && (request.action === 'enable' || request.action === 'disable' ? after.enabled === expectedEnabled : true);
-    if (matches) return { action: request.action, moduleId: request.moduleId, status: 'applied', before, after, message: result.stdout.trim() || 'fwconsole confirmed the module action.' };
+    const versionMatches = request.action !== 'update' || compareVersions(after.version, catalog?.version ?? null) >= 0;
+    const matches = after.installed === expectedInstalled && versionMatches && (request.action === 'enable' || request.action === 'disable' ? after.enabled === expectedEnabled : true);
+    if (matches) return { action: request.action, moduleId: request.moduleId, status: 'applied', before, after, backup: request.backup, message: result.stdout.trim() || 'fwconsole confirmed the module action.' };
 
     const rollbackAction: FreePbxModuleAction | undefined = request.action === 'install' ? 'remove' : request.action === 'remove' ? 'install' : request.action === 'enable' ? 'disable' : request.action === 'disable' ? 'enable' : undefined;
-    if (!rollbackAction) return { action: request.action, moduleId: request.moduleId, status: 'failed', before, after, rollback: { attempted: false, status: 'not-applicable', reason: 'The update command changed state but no safe inverse action is available.' }, message: 'fwconsole returned success, but the readback did not match the requested state.' };
+    if (!rollbackAction) return { action: request.action, moduleId: request.moduleId, status: 'failed', before, after, backup: request.backup, rollback: { attempted: false, status: 'not-applicable', reason: 'The update command changed state but no safe inverse action is available.' }, message: 'fwconsole returned success, but the readback did not match the requested state.' };
     const rollback = await this.#run(['ma', ACTION_COMMANDS[rollbackAction], request.moduleId]);
     const restored = await this.readModule(request.moduleId);
     const restoredMatch = restored.installed === before.installed && (before.enabled === null || restored.enabled === before.enabled);
@@ -235,6 +332,7 @@ export class FreePbxRuntimeAdapter {
       status: restoredMatch ? 'rolledBack' : 'failed',
       before,
       after: restored,
+      backup: request.backup,
       rollback: { attempted: true, status: restoredMatch ? 'verified' : 'failed', reason: rollback.status === 'succeeded' ? 'Inverse fwconsole action was sent and read back.' : resultMessage(rollback, ['fwconsole', 'ma', ACTION_COMMANDS[rollbackAction], request.moduleId]) },
       message: restoredMatch ? 'The requested state did not read back, so the inverse action restored the prior state.' : 'The requested state did not read back and rollback did not restore the prior state.',
     };

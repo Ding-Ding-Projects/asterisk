@@ -1,4 +1,5 @@
 import catalogJson from '../../../catalog/freepbx-module-catalog.json';
+import { boundedRegexTest, compileBoundedRegex } from './bounded-regex';
 
 export type FreePbxAvailabilityState = 'metadata-only' | 'unavailable';
 export type FreePbxEntitlementClass = 'open' | 'commercial' | 'unknown';
@@ -66,7 +67,7 @@ export interface FreePbxModuleCatalog {
     total: number;
     exclusions: number;
   };
-  exclusions: Array<{ moduleId: string; reason: string; source: string }>;
+  exclusions: Array<{ recordId: string; moduleId: string; reason: string; source: string; actionable: false }>;
   modules: FreePbxModuleCatalogEntry[];
 }
 
@@ -113,11 +114,7 @@ export function modulesForUiFamily(family: string): FreePbxModuleCatalogEntry[] 
 export function searchableFreePbxModules(query: string, regex = false, flags = 'i'): FreePbxModuleCatalogEntry[] {
   const value = query.trim();
   if (!value) return [...FREEPBX_MODULE_CATALOG.modules];
-  let matcher: RegExp;
-  try {
-    matcher = regex ? new RegExp(value, flags) : new RegExp(value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), flags);
-  } catch {
-    return [];
-  }
-  return FREEPBX_MODULE_CATALOG.modules.filter((module) => matcher.test(`${module.moduleId} ${module.name} ${module.category} ${module.description}`));
+  const compiled = compileBoundedRegex(value, { regex, flags });
+  if (!compiled.ok) return [];
+  return FREEPBX_MODULE_CATALOG.modules.filter((module) => boundedRegexTest(compiled.matcher, `${module.moduleId} ${module.name} ${module.category} ${module.description}`));
 }

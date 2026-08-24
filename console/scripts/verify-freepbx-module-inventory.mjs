@@ -6,6 +6,7 @@ const root = resolve(import.meta.dirname, '..', '..');
 const catalog = JSON.parse(readFileSync(resolve(root, 'console/catalog/freepbx-module-catalog.json'), 'utf8'));
 const inventory = JSON.parse(readFileSync(resolve(root, 'console/inventories/freepbx-module-surface.json'), 'utf8'));
 const runtimeSource = readFileSync(resolve(root, 'console/control-plane/freepbx-runtime.ts'), 'utf8');
+const adapterSource = readFileSync(resolve(root, 'console/app/renderer/src/freepbx-module-adapters.ts'), 'utf8');
 
 function unique(values, label) {
   const duplicates = values.filter((value, index) => values.indexOf(value) !== index);
@@ -23,6 +24,8 @@ function verify(catalogValue, inventoryValue) {
   const stale = [...inventoryIds].filter((id) => !catalogIds.has(id));
   if (missing.length || stale.length) throw new Error(`catalog/inventory mismatch; missing=${missing.join(',') || 'none'} stale=${stale.join(',') || 'none'}`);
   const families = unique(inventoryValue.families, 'inventory families');
+  for (const family of families) if (!adapterSource.includes(family)) throw new Error(`FreePBX family ${family} has no explicit adapter policy.`);
+  if (!adapterSource.includes('FREEPBX_MODULE_CATALOG.modules.map(moduleAdapterFor)')) throw new Error('FreePBX per-module adapters are not derived from the complete catalog.');
   const nativeTaskOwners = new Map();
   for (const module of catalogValue.modules) {
     if (!module.source || typeof module.source.revision !== 'string' || !/^[0-9a-f]{40}$/u.test(module.source.revision)) throw new Error(`${module.moduleId} has no pinned source revision.`);
@@ -39,15 +42,17 @@ function verify(catalogValue, inventoryValue) {
     if (!module.availability || typeof module.availability.reason !== 'string' || module.availability.reason.length < 20) throw new Error(`${module.moduleId} is missing an exact availability reason.`);
   }
   for (const [taskId, owners] of nativeTaskOwners) if (owners.length > 1) throw new Error(`native task ${taskId} has colliding owners: ${owners.join(', ')}`);
+  const exclusionIds = unique(catalogValue.exclusions.map((exclusion) => exclusion.recordId), 'catalog exclusion record ids');
   for (const exclusion of catalogValue.exclusions) {
-    if (typeof exclusion.moduleId !== 'string' || typeof exclusion.reason !== 'string' || typeof exclusion.source !== 'string') throw new Error('FreePBX exclusion records require moduleId, reason, and source.');
+    if (typeof exclusion.recordId !== 'string' || catalogIds.has(exclusion.recordId) || typeof exclusion.moduleId !== 'string' || typeof exclusion.reason !== 'string' || typeof exclusion.source !== 'string' || exclusion.actionable !== false) throw new Error('FreePBX exclusion records must be disjoint non-actionable records with recordId, moduleId, reason, and source.');
   }
   return { modules: catalogIds.size, families: families.size, unavailable: catalogValue.counts.unavailableModules, exclusions: catalogValue.exclusions.length };
 }
 
 function verifyRuntime(source) {
   const required = [
-    "args: ['-d', this.#distribution, '--', 'fwconsole', ...args]",
+    "'wsl.exe', ['-d', this.#target.wslDistribution!, '--', 'fwconsole', ...args]",
+    "'docker', ['exec', this.#target.dockerContext!, 'fwconsole', ...args]",
     "const ACTIONS = new Set<FreePbxModuleAction>",
     "!request.confirmed &&",
     "expectedRevision",
@@ -59,8 +64,15 @@ function verifyRuntime(source) {
   if (/\bSELECT\s+.+\s+FROM\b|\bDELETE\s+FROM\b|\bINSERT\s+INTO\b|\bUPDATE\s+\w+\s+SET\b/iu.test(source)) throw new Error('FreePBX runtime adapter must not contain direct SQL.');
 }
 
+function verifyAdapters(source) {
+  for (const marker of ['moduleAdapterFor', 'FREEPBX_FAMILY_ADAPTERS', 'files-and-database', 'published-api-transaction', 'metadata-only']) {
+    if (!source.includes(marker)) throw new Error(`FreePBX adapter source is missing ${marker}.`);
+  }
+}
+
 const result = verify(catalog, inventory);
 verifyRuntime(runtimeSource);
+verifyAdapters(adapterSource);
 if (process.argv.includes('--probe-negative')) {
   const broken = { ...inventory, modules: inventory.modules.slice(1) };
   let failedClosed = false;

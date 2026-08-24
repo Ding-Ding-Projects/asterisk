@@ -325,7 +325,10 @@
       "files": [
         "catalog/freepbx-module-catalog.json",
         "app/renderer/src/freepbx-module-catalog.ts",
+        "app/renderer/src/freepbx-module-adapters.ts",
         "app/renderer/src/freepbx-module-form.ts",
+        "app/renderer/src/freepbx-catalog-export.ts",
+        "app/renderer/src/bounded-regex.ts",
         "app/renderer/src/PbxAdminApp.tsx",
         "control-plane/freepbx-runtime.ts",
         "control-plane/dispatch.ts",

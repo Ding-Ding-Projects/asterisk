@@ -15,5 +15,10 @@ allowlisted `fwconsole` arguments, performs entitlement and confirmation checks,
 after each action, and attempts a safe inverse action when readback does not match. No live target
 was contacted in this lane, so runtime and built-artifact evidence remain unverified.
 
+The follow-up adds declarative adapter policies for every catalog family and derives one module
+adapter for every public module. It models target configuration, target entities, published APIs,
+files and database backup receipts, version checks, action history, and metadata-only refusal states.
+Exports cover JSON, JSONL, YAML, TOML, XML, CSV, TSV, Markdown, and HTML while stating omissions.
+
 This entry documents implementation and static generation only. Runtime actions, target writes,
 packaging, built-artifact interaction, and screen captures remain unverified.

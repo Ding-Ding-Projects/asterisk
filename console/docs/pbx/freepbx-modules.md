@@ -18,6 +18,10 @@ metadata only and never changes the published license or source claims.
 when a host uses a different approved Python launcher. A malformed document fails generation rather
 than being partially cataloged by a tag-matching heuristic.
 
+For each repository, the generator resolves the branch head commit first, validates the 40-character
+revision, and fetches `module.xml` by that immutable revision. A moving branch cannot therefore
+change the XML between revision capture and metadata parsing.
+
 The catalog records the module identifier, display name, version, source revision, license and
 entitlement class, dependencies, mapped Asterisk resources, published fwconsole command metadata,
 API capability metadata, menu items, UI family, documentation links, local installation state, and
@@ -29,6 +33,13 @@ and commercial records, includes explicit historical exclusions on request, expo
 records, and reads installed state through the target runtime adapter. The catalog destination also
 exposes structured action controls for the selected module. Every action is refused when the target,
 module metadata, entitlement, confirmation, or expected source revision is not acceptable.
+
+`console/app/renderer/src/freepbx-module-adapters.ts` carries one declarative adapter policy for
+every catalog UI family and derives one module adapter for every catalog entry. Each policy names
+its entity shape, target configuration fields, published API fields where applicable, readback
+source, and backup requirement. An adapter with no bounded target resource remains metadata-only.
+The form renderer uses the adapter to keep module-specific identity and multi-resource fields
+separate.
 
 ## Native module families
 

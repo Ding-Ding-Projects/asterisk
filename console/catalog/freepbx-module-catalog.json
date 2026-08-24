@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "generatedBy": "console/scripts/generate-freepbx-module-catalog.mjs",
-  "generatedAt": "2026-08-24T06:32:28.184Z",
+  "generatedAt": "2026-08-24T06:53:43.320Z",
   "source": {
     "provider": "GitHub CLI gh api",
     "organization": "FreePBX",
@@ -16,78 +16,113 @@
     "locallyInstalledModules": 0,
     "unavailableModules": 83,
     "total": 83,
-    "exclusions": 14
+    "exclusions": 15
   },
   "exclusions": [
     {
       "moduleId": "sms-plus",
       "reason": "Historical parity label is not a published FreePBX module repository; it is retained only as an explicit exclusion record.",
-      "source": "historical FreePBX parity disposition"
+      "source": "historical FreePBX parity disposition",
+      "recordId": "exclude-sms-plus",
+      "actionable": false
     },
     {
       "moduleId": "sms-webhook",
       "reason": "Historical parity label is not a published FreePBX module repository; it is retained only as an explicit exclusion record.",
-      "source": "historical FreePBX parity disposition"
+      "source": "historical FreePBX parity disposition",
+      "recordId": "exclude-sms-webhook",
+      "actionable": false
+    },
+    {
+      "moduleId": "sms",
+      "reason": "FreePBX publishes SMS as a commercial UCP-dependent module. It is retained as an explicit disposition record, but no license, account, or end-user portal is claimed.",
+      "source": "official FreePBX module metadata and historical parity disposition",
+      "recordId": "exclude-sms",
+      "actionable": false
     },
     {
       "moduleId": "framework",
       "reason": "FreePBX framework plumbing has no distinct native Asterisk configuration surface in this console.",
-      "source": "historical FreePBX parity disposition"
+      "source": "historical FreePBX parity disposition",
+      "recordId": "exclude-framework",
+      "actionable": false
     },
     {
       "moduleId": "pm2",
       "reason": "FreePBX process-manager plumbing is not a user-facing Asterisk configuration module.",
-      "source": "historical FreePBX parity disposition"
+      "source": "historical FreePBX parity disposition",
+      "recordId": "exclude-pm2",
+      "actionable": false
     },
     {
       "moduleId": "phpinfo",
       "reason": "PHP diagnostic output is not a native Asterisk configuration surface.",
-      "source": "historical FreePBX parity disposition"
+      "source": "historical FreePBX parity disposition",
+      "recordId": "exclude-phpinfo",
+      "actionable": false
     },
     {
       "moduleId": "versionupgrade",
       "reason": "FreePBX updater plumbing is not represented as a native module action without a bounded runtime adapter.",
-      "source": "historical FreePBX parity disposition"
+      "source": "historical FreePBX parity disposition",
+      "recordId": "exclude-versionupgrade",
+      "actionable": false
     },
     {
       "moduleId": "fw_langpacks",
       "reason": "Language-pack download plumbing is not an offline native configuration surface.",
-      "source": "historical FreePBX parity disposition"
+      "source": "historical FreePBX parity disposition",
+      "recordId": "exclude-fw_langpacks",
+      "actionable": false
     },
     {
       "moduleId": "digium_phones",
       "reason": "Vendor cloud provisioning is not claimed as a native local capability.",
-      "source": "historical FreePBX parity disposition"
+      "source": "historical FreePBX parity disposition",
+      "recordId": "exclude-digium_phones",
+      "actionable": false
     },
     {
       "moduleId": "digiumaddoninstaller",
       "reason": "Vendor add-on catalog installation is not claimed without the vendor entitlement service.",
-      "source": "historical FreePBX parity disposition"
+      "source": "historical FreePBX parity disposition",
+      "recordId": "exclude-digiumaddoninstaller",
+      "actionable": false
     },
     {
       "moduleId": "cxpanel",
       "reason": "Third-party commercial call-center UI is not copied or presented as native functionality.",
-      "source": "historical FreePBX parity disposition"
+      "source": "historical FreePBX parity disposition",
+      "recordId": "exclude-cxpanel",
+      "actionable": false
     },
     {
       "moduleId": "synologyabb",
       "reason": "Vendor-specific backup integration is not claimed; generic backup remains separately cataloged.",
-      "source": "historical FreePBX parity disposition"
+      "source": "historical FreePBX parity disposition",
+      "recordId": "exclude-synologyabb",
+      "actionable": false
     },
     {
       "moduleId": "irc",
       "reason": "Online support chat is not an Asterisk administration capability.",
-      "source": "historical FreePBX parity disposition"
+      "source": "historical FreePBX parity disposition",
+      "recordId": "exclude-irc",
+      "actionable": false
     },
     {
       "moduleId": "ucp",
       "reason": "The separate end-user portal is outside the administrator console boundary.",
-      "source": "historical FreePBX parity disposition"
+      "source": "historical FreePBX parity disposition",
+      "recordId": "exclude-ucp",
+      "actionable": false
     },
     {
       "moduleId": "webrtc",
       "reason": "The UCP-embedded browser phone is not claimed without the separate end-user portal.",
-      "source": "historical FreePBX parity disposition"
+      "source": "historical FreePBX parity disposition",
+      "recordId": "exclude-webrtc",
+      "actionable": false
     }
   ],
   "modules": [
@@ -106,7 +141,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "ba615de915c94a66a93b6b5827c073996b65905a",
         "repositoryUrl": "https://github.com/FreePBX/amd",
-        "moduleXmlUrl": "https://github.com/FreePBX/amd/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/amd/blob/7c3b931845270662a542d8f85b76fef6e4359b03/module.xml"
       },
       "publisher": "Sangoma Technologies Inc.",
       "license": "GPLv3+",
@@ -128,7 +163,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/amd",
-        "moduleXml": "https://github.com/FreePBX/amd/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/amd/blob/7c3b931845270662a542d8f85b76fef6e4359b03/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -152,7 +187,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "3a65a34018cd02c72cdf66aa6d947e8312f91849",
         "repositoryUrl": "https://github.com/FreePBX/announcement",
-        "moduleXmlUrl": "https://github.com/FreePBX/announcement/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/announcement/blob/085ab0df7ede3d40073135b31b12f9757dde3f0a/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -178,7 +213,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/announcement",
-        "moduleXml": "https://github.com/FreePBX/announcement/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/announcement/blob/085ab0df7ede3d40073135b31b12f9757dde3f0a/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -202,7 +237,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "ec87f26e5dd07dacfbcc545d6d2975acefeee7df",
         "repositoryUrl": "https://github.com/FreePBX/api",
-        "moduleXmlUrl": "https://github.com/FreePBX/api/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/api/blob/f0474de246ebd6eaef9962a3a6344adacd009ce1/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "AGPLv3+",
@@ -236,7 +271,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/api",
-        "moduleXml": "https://github.com/FreePBX/api/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/api/blob/f0474de246ebd6eaef9962a3a6344adacd009ce1/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -260,7 +295,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "0ffedda3765482433d6a9342b2dd3ac164e134ce",
         "repositoryUrl": "https://github.com/FreePBX/arimanager",
-        "moduleXmlUrl": "https://github.com/FreePBX/arimanager/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/arimanager/blob/71b727802dcd06905f9152afd85bb3289dc2cf8c/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -284,7 +319,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/arimanager",
-        "moduleXml": "https://github.com/FreePBX/arimanager/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/arimanager/blob/71b727802dcd06905f9152afd85bb3289dc2cf8c/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -308,7 +343,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "500cf49b1ec54203aaf02ff41f3d80b48807e85c",
         "repositoryUrl": "https://github.com/FreePBX/asterisk-cli",
-        "moduleXmlUrl": "https://github.com/FreePBX/asterisk-cli/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/asterisk-cli/blob/2a31993e21aa46f20aefa461ddf91e5dd1c525b9/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -327,7 +362,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/asterisk-cli",
-        "moduleXml": "https://github.com/FreePBX/asterisk-cli/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/asterisk-cli/blob/2a31993e21aa46f20aefa461ddf91e5dd1c525b9/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -351,7 +386,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "14db3c85baac2a03afee638986da9c439c1cd421",
         "repositoryUrl": "https://github.com/FreePBX/asteriskinfo",
-        "moduleXmlUrl": "https://github.com/FreePBX/asteriskinfo/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/asteriskinfo/blob/623baa606db9d0a29f07eec5d3e3e1f92117e168/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -377,7 +412,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/asteriskinfo",
-        "moduleXml": "https://github.com/FreePBX/asteriskinfo/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/asteriskinfo/blob/623baa606db9d0a29f07eec5d3e3e1f92117e168/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -401,7 +436,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "13ceb2ca1d922377b702ff1184139a08bfb7d68d",
         "repositoryUrl": "https://github.com/FreePBX/backup",
-        "moduleXmlUrl": "https://github.com/FreePBX/backup/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/backup/blob/4c8c9e380271702a02caf34763a7620e34b43a37/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -431,7 +466,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/backup",
-        "moduleXml": "https://github.com/FreePBX/backup/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/backup/blob/4c8c9e380271702a02caf34763a7620e34b43a37/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -455,7 +490,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "3ab5c899f519c2418933815f3635931ae3cfb844",
         "repositoryUrl": "https://github.com/FreePBX/blacklist",
-        "moduleXmlUrl": "https://github.com/FreePBX/blacklist/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/blacklist/blob/26439d970bfa5a9da7388e6a932919ca513c4c94/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -486,7 +521,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/blacklist",
-        "moduleXml": "https://github.com/FreePBX/blacklist/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/blacklist/blob/26439d970bfa5a9da7388e6a932919ca513c4c94/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -510,7 +545,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "7c3552040e29f3cf7e7d1f44f93b9c152716f2d0",
         "repositoryUrl": "https://github.com/FreePBX/bulkhandler",
-        "moduleXmlUrl": "https://github.com/FreePBX/bulkhandler/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/bulkhandler/blob/b334ba0c70eb127851d2d030b6f43b8208730161/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -534,7 +569,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/bulkhandler",
-        "moduleXml": "https://github.com/FreePBX/bulkhandler/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/bulkhandler/blob/b334ba0c70eb127851d2d030b6f43b8208730161/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -558,7 +593,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "a6270f4e44d2c7aae93d4015a0f830855d2e3762",
         "repositoryUrl": "https://github.com/FreePBX/calendar",
-        "moduleXmlUrl": "https://github.com/FreePBX/calendar/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/calendar/blob/4be2fdf2f2bb070d9cbb1861d2fb2c38760fc02a/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -586,7 +621,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/calendar",
-        "moduleXml": "https://github.com/FreePBX/calendar/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/calendar/blob/4be2fdf2f2bb070d9cbb1861d2fb2c38760fc02a/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -610,7 +645,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "5e114ee735f2a3bbb6a0c6b622d30dce18d92250",
         "repositoryUrl": "https://github.com/FreePBX/callback",
-        "moduleXmlUrl": "https://github.com/FreePBX/callback/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/callback/blob/57d35e6ec2825dabeffee9c64bfcf221b04a4c73/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -632,7 +667,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/callback",
-        "moduleXml": "https://github.com/FreePBX/callback/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/callback/blob/57d35e6ec2825dabeffee9c64bfcf221b04a4c73/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -656,7 +691,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "20bf1c289c08c34f836d3728731e08328af8761b",
         "repositoryUrl": "https://github.com/FreePBX/callforward",
-        "moduleXmlUrl": "https://github.com/FreePBX/callforward/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/callforward/blob/1ea69534d2fd3236e376e2f278f91153a01d90db/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "AGPLv3+",
@@ -675,7 +710,7 @@
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/callforward",
-        "moduleXml": "https://github.com/FreePBX/callforward/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/callforward/blob/1ea69534d2fd3236e376e2f278f91153a01d90db/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -699,7 +734,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "b966078460851a161251c9173b144978efe1a840",
         "repositoryUrl": "https://github.com/FreePBX/callrecording",
-        "moduleXmlUrl": "https://github.com/FreePBX/callrecording/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/callrecording/blob/5576a07c061aa68358918c5d032cd8ef430fdfee/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "AGPLv3+",
@@ -727,7 +762,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/callrecording",
-        "moduleXml": "https://github.com/FreePBX/callrecording/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/callrecording/blob/5576a07c061aa68358918c5d032cd8ef430fdfee/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -751,7 +786,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "7d63963c394620640923bd429a56f75826510224",
         "repositoryUrl": "https://github.com/FreePBX/callwaiting",
-        "moduleXmlUrl": "https://github.com/FreePBX/callwaiting/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/callwaiting/blob/1560d9b1ffe533c2a442f1638b75fe9d53088f57/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -771,7 +806,7 @@
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/callwaiting",
-        "moduleXml": "https://github.com/FreePBX/callwaiting/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/callwaiting/blob/1560d9b1ffe533c2a442f1638b75fe9d53088f57/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -795,7 +830,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "023177537b9c4b69da75958bfb78b4bc55224767",
         "repositoryUrl": "https://github.com/FreePBX/cdr",
-        "moduleXmlUrl": "https://github.com/FreePBX/cdr/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/cdr/blob/49b7517e62e01e81344fdeeead5d99cac29ad1b9/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -828,7 +863,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/cdr",
-        "moduleXml": "https://github.com/FreePBX/cdr/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/cdr/blob/49b7517e62e01e81344fdeeead5d99cac29ad1b9/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -852,7 +887,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "efea2a576fff5da21010e701ccd7c5616021605e",
         "repositoryUrl": "https://github.com/FreePBX/cel",
-        "moduleXmlUrl": "https://github.com/FreePBX/cel/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/cel/blob/41f2a16c764fc866b2805e8c2968e262fbfe8ef5/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -871,7 +906,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/cel",
-        "moduleXml": "https://github.com/FreePBX/cel/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/cel/blob/41f2a16c764fc866b2805e8c2968e262fbfe8ef5/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -895,7 +930,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "12765bea240bb085a5f52e5294dd94ebebc85fba",
         "repositoryUrl": "https://github.com/FreePBX/certman",
-        "moduleXmlUrl": "https://github.com/FreePBX/certman/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/certman/blob/95b1e485c7320238e9f2929e64cc35c8b9c89436/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "AGPLv3+",
@@ -924,7 +959,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/certman",
-        "moduleXml": "https://github.com/FreePBX/certman/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/certman/blob/95b1e485c7320238e9f2929e64cc35c8b9c89436/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -948,7 +983,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "33df1aeff483d085af1830a2757e57adabc92270",
         "repositoryUrl": "https://github.com/FreePBX/cidlookup",
-        "moduleXmlUrl": "https://github.com/FreePBX/cidlookup/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/cidlookup/blob/4cd8f0223ea9d5c36ccc2e2f297ed807dda75b0d/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -978,7 +1013,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/cidlookup",
-        "moduleXml": "https://github.com/FreePBX/cidlookup/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/cidlookup/blob/4cd8f0223ea9d5c36ccc2e2f297ed807dda75b0d/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1002,7 +1037,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "5ee8b5d93c9b4c0b498fa93121da4b503ca4c4fc",
         "repositoryUrl": "https://github.com/FreePBX/conferences",
-        "moduleXmlUrl": "https://github.com/FreePBX/conferences/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/conferences/blob/01c9bab78908c72bc7432899ffb47a7d0c96f024/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -1029,7 +1064,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/conferences",
-        "moduleXml": "https://github.com/FreePBX/conferences/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/conferences/blob/01c9bab78908c72bc7432899ffb47a7d0c96f024/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1053,7 +1088,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "0e134bf5f6c4fb9dd348de23263cb7910aab05a9",
         "repositoryUrl": "https://github.com/FreePBX/configedit",
-        "moduleXmlUrl": "https://github.com/FreePBX/configedit/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/configedit/blob/09065210a2aa0d76088eca52515ffe5b0a61203c/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "AGPLv3+",
@@ -1072,7 +1107,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/configedit",
-        "moduleXml": "https://github.com/FreePBX/configedit/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/configedit/blob/09065210a2aa0d76088eca52515ffe5b0a61203c/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1096,7 +1131,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "97a61cb2b65cf8e7b253847ac5e457b2fe1f4b18",
         "repositoryUrl": "https://github.com/FreePBX/contactmanager",
-        "moduleXmlUrl": "https://github.com/FreePBX/contactmanager/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/contactmanager/blob/21f1960873c823850dc5864e78900354e50388af/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -1125,7 +1160,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/contactmanager",
-        "moduleXml": "https://github.com/FreePBX/contactmanager/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/contactmanager/blob/21f1960873c823850dc5864e78900354e50388af/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1149,7 +1184,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "8f85ef4905bf86636552593f661228247514e641",
         "repositoryUrl": "https://github.com/FreePBX/core",
-        "moduleXmlUrl": "https://github.com/FreePBX/core/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/core/blob/c844adb4cdea1042e0e966d1e596d3c27664443d/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -1187,7 +1222,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/core",
-        "moduleXml": "https://github.com/FreePBX/core/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/core/blob/c844adb4cdea1042e0e966d1e596d3c27664443d/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1211,7 +1246,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "f575b3b7fbc9131ea767567135a153275ca5d2b2",
         "repositoryUrl": "https://github.com/FreePBX/customappsreg",
-        "moduleXmlUrl": "https://github.com/FreePBX/customappsreg/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/customappsreg/blob/22dcad6dab338d5d94f9a53e39c85a18a6ed441b/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -1233,7 +1268,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/customappsreg",
-        "moduleXml": "https://github.com/FreePBX/customappsreg/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/customappsreg/blob/22dcad6dab338d5d94f9a53e39c85a18a6ed441b/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1257,7 +1292,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "780b759ab24710df0d40336f565ea7e8a6612e87",
         "repositoryUrl": "https://github.com/FreePBX/cxpanel",
-        "moduleXmlUrl": "https://github.com/FreePBX/cxpanel/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/cxpanel/blob/47d6a8b15bff2d764bb385e8e3840c6af1949eb7/module.xml"
       },
       "publisher": "i9 Technologies",
       "license": "GPLv3",
@@ -1290,7 +1325,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/cxpanel",
-        "moduleXml": "https://github.com/FreePBX/cxpanel/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/cxpanel/blob/47d6a8b15bff2d764bb385e8e3840c6af1949eb7/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1314,7 +1349,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "d1a89eb9ad9202d2f018c83e67bd82d49cca1772",
         "repositoryUrl": "https://github.com/FreePBX/dahdiconfig",
-        "moduleXmlUrl": "https://github.com/FreePBX/dahdiconfig/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/dahdiconfig/blob/849fd204f8545ac47436494608a7bc71ec4318d8/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -1333,7 +1368,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/dahdiconfig",
-        "moduleXml": "https://github.com/FreePBX/dahdiconfig/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/dahdiconfig/blob/849fd204f8545ac47436494608a7bc71ec4318d8/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1357,7 +1392,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "446fabded0ae9e33f0c43c85d23e6f26aee3c96d",
         "repositoryUrl": "https://github.com/FreePBX/dashboard",
-        "moduleXmlUrl": "https://github.com/FreePBX/dashboard/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/dashboard/blob/c5f260359f0a8aaadf5d480a3ac5b47580e5a560/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "AGPLv3+",
@@ -1376,7 +1411,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/dashboard",
-        "moduleXml": "https://github.com/FreePBX/dashboard/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/dashboard/blob/c5f260359f0a8aaadf5d480a3ac5b47580e5a560/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1400,7 +1435,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "82edbe94f87f8c34f25fee360ddcbd4cf3c6e088",
         "repositoryUrl": "https://github.com/FreePBX/daynight",
-        "moduleXmlUrl": "https://github.com/FreePBX/daynight/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/daynight/blob/e7ee1e7b0b9c41068f2163a5e7907249ca444586/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -1421,7 +1456,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/daynight",
-        "moduleXml": "https://github.com/FreePBX/daynight/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/daynight/blob/e7ee1e7b0b9c41068f2163a5e7907249ca444586/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1445,7 +1480,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "6793aa744465f701b8f40ed8e0ac1b1cb84d977f",
         "repositoryUrl": "https://github.com/FreePBX/dbmanager",
-        "moduleXmlUrl": "https://github.com/FreePBX/dbmanager/blob/master/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/dbmanager/blob/c87b3be0ffbd265c0fb3cd8762b994a5c4691d7f/module.xml"
       },
       "publisher": "Generated Module",
       "license": "AGPLv3",
@@ -1464,7 +1499,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/dbmanager",
-        "moduleXml": "https://github.com/FreePBX/dbmanager/blob/master/module.xml"
+        "moduleXml": "https://github.com/FreePBX/dbmanager/blob/c87b3be0ffbd265c0fb3cd8762b994a5c4691d7f/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1488,7 +1523,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "fd1bdcc192e61909064cdea414664056b8fe64fa",
         "repositoryUrl": "https://github.com/FreePBX/dictate",
-        "moduleXmlUrl": "https://github.com/FreePBX/dictate/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/dictate/blob/b753b3757c44ff7d33eee4f59d27ed6ef7942bca/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -1507,7 +1542,7 @@
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/dictate",
-        "moduleXml": "https://github.com/FreePBX/dictate/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/dictate/blob/b753b3757c44ff7d33eee4f59d27ed6ef7942bca/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1531,7 +1566,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "c28a4711ab5ec66379278de3335781adf6e4bda2",
         "repositoryUrl": "https://github.com/FreePBX/digium_phones",
-        "moduleXmlUrl": "https://github.com/FreePBX/digium_phones/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/digium_phones/blob/ffd6458a8ee00ef965d2932068dbdf486aeba1de/module.xml"
       },
       "publisher": "Digium",
       "license": "GPLv2",
@@ -1550,7 +1585,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/digium_phones",
-        "moduleXml": "https://github.com/FreePBX/digium_phones/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/digium_phones/blob/ffd6458a8ee00ef965d2932068dbdf486aeba1de/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1574,7 +1609,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "009d900c8d89ab3e04b9eb6914ce9947db97b34c",
         "repositoryUrl": "https://github.com/FreePBX/digiumaddoninstaller",
-        "moduleXmlUrl": "https://github.com/FreePBX/digiumaddoninstaller/blob/master/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/digiumaddoninstaller/blob/11069696067d21caaee9ac228932adb0877faa94/module.xml"
       },
       "publisher": "Digium",
       "license": "GPLv2",
@@ -1593,7 +1628,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/digiumaddoninstaller",
-        "moduleXml": "https://github.com/FreePBX/digiumaddoninstaller/blob/master/module.xml"
+        "moduleXml": "https://github.com/FreePBX/digiumaddoninstaller/blob/11069696067d21caaee9ac228932adb0877faa94/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1617,7 +1652,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "1ea576ac4c58cc52e57d1224b06b4377492e7420",
         "repositoryUrl": "https://github.com/FreePBX/directory",
-        "moduleXmlUrl": "https://github.com/FreePBX/directory/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/directory/blob/ccb41c130ffd18570921f5010fb583578f966b20/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -1643,7 +1678,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/directory",
-        "moduleXml": "https://github.com/FreePBX/directory/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/directory/blob/ccb41c130ffd18570921f5010fb583578f966b20/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1667,7 +1702,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "6598c3bca2b312d97c072fb488d55a590bb2478f",
         "repositoryUrl": "https://github.com/FreePBX/disa",
-        "moduleXmlUrl": "https://github.com/FreePBX/disa/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/disa/blob/f39be072252ef23077d12e14de28edc6248536ed/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "AGPLv3+",
@@ -1688,7 +1723,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/disa",
-        "moduleXml": "https://github.com/FreePBX/disa/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/disa/blob/f39be072252ef23077d12e14de28edc6248536ed/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1712,7 +1747,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "5ac819a9e7e9d4c7995a54c76b045ad1d3604493",
         "repositoryUrl": "https://github.com/FreePBX/donotdisturb",
-        "moduleXmlUrl": "https://github.com/FreePBX/donotdisturb/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/donotdisturb/blob/aea52652171e4cd4f43412f7b4d42f64c864e973/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -1731,7 +1766,7 @@
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/donotdisturb",
-        "moduleXml": "https://github.com/FreePBX/donotdisturb/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/donotdisturb/blob/aea52652171e4cd4f43412f7b4d42f64c864e973/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1755,7 +1790,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "5c105ddf6d414d1c35ae6788c8929a628d0f2c99",
         "repositoryUrl": "https://github.com/FreePBX/dundicheck",
-        "moduleXmlUrl": "https://github.com/FreePBX/dundicheck/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/dundicheck/blob/6260e6364f361d33a1096ced6a536a5d8f99ec2e/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -1774,7 +1809,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/dundicheck",
-        "moduleXml": "https://github.com/FreePBX/dundicheck/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/dundicheck/blob/6260e6364f361d33a1096ced6a536a5d8f99ec2e/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1798,7 +1833,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "1b6555601f34fd13eb37292c68cfe7e7a6a13a00",
         "repositoryUrl": "https://github.com/FreePBX/extensionsettings",
-        "moduleXmlUrl": "https://github.com/FreePBX/extensionsettings/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/extensionsettings/blob/af57f415c210ede92502b3e1ab0e0e316b657733/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -1819,7 +1854,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/extensionsettings",
-        "moduleXml": "https://github.com/FreePBX/extensionsettings/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/extensionsettings/blob/af57f415c210ede92502b3e1ab0e0e316b657733/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1843,7 +1878,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "1527fef477523bdec039257750d906dc90020159",
         "repositoryUrl": "https://github.com/FreePBX/fax",
-        "moduleXmlUrl": "https://github.com/FreePBX/fax/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/fax/blob/d913d2562b47574ae43a3bfbbafee85ca727042d/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -1870,7 +1905,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/fax",
-        "moduleXml": "https://github.com/FreePBX/fax/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/fax/blob/d913d2562b47574ae43a3bfbbafee85ca727042d/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1894,7 +1929,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "be28f5f8916c54fa8ddc20bb32e55363ca674296",
         "repositoryUrl": "https://github.com/FreePBX/featurecodeadmin",
-        "moduleXmlUrl": "https://github.com/FreePBX/featurecodeadmin/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/featurecodeadmin/blob/fc7f8a5ac4ed02c24852488eb615e52f9c827fcc/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -1921,7 +1956,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/featurecodeadmin",
-        "moduleXml": "https://github.com/FreePBX/featurecodeadmin/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/featurecodeadmin/blob/fc7f8a5ac4ed02c24852488eb615e52f9c827fcc/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1945,7 +1980,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "e9aacdc6f20942016ddc7b79b05e884c41afec1d",
         "repositoryUrl": "https://github.com/FreePBX/filestore",
-        "moduleXmlUrl": "https://github.com/FreePBX/filestore/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/filestore/blob/786a7f3ef71df14524be8c2ff6665baf93f1824c/module.xml"
       },
       "publisher": "Sangoma Technologies",
       "license": "AGPLv3",
@@ -1964,7 +1999,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/filestore",
-        "moduleXml": "https://github.com/FreePBX/filestore/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/filestore/blob/786a7f3ef71df14524be8c2ff6665baf93f1824c/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -1988,7 +2023,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "3df1861b770df4abb1c7f33d56c0d8638ca9719b",
         "repositoryUrl": "https://github.com/FreePBX/findmefollow",
-        "moduleXmlUrl": "https://github.com/FreePBX/findmefollow/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/findmefollow/blob/94203267e220b0529d17841bb00c948e33c63bef/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -2027,7 +2062,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/findmefollow",
-        "moduleXml": "https://github.com/FreePBX/findmefollow/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/findmefollow/blob/94203267e220b0529d17841bb00c948e33c63bef/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2051,7 +2086,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "004ab3c199fd39fb0bf498ee88542da4cf6a964e",
         "repositoryUrl": "https://github.com/FreePBX/firewall",
-        "moduleXmlUrl": "https://github.com/FreePBX/firewall/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/firewall/blob/087d6ce4a5955bebcc8e746e9d2bfd6b72cb86cd/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "AGPLv3+",
@@ -2086,7 +2121,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/firewall",
-        "moduleXml": "https://github.com/FreePBX/firewall/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/firewall/blob/087d6ce4a5955bebcc8e746e9d2bfd6b72cb86cd/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2110,7 +2145,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "63ae8642c310f6914b0f93ac19a71b2c17ec2f2f",
         "repositoryUrl": "https://github.com/FreePBX/framework",
-        "moduleXmlUrl": "https://github.com/FreePBX/framework/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/framework/blob/7ac8e40097f4764b447f3c5c434f94039547cbf9/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv2+",
@@ -2220,7 +2255,7 @@
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/framework",
-        "moduleXml": "https://github.com/FreePBX/framework/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/framework/blob/7ac8e40097f4764b447f3c5c434f94039547cbf9/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2244,7 +2279,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "f827b43293c18ea54db837aa63a944e3271b44a3",
         "repositoryUrl": "https://github.com/FreePBX/freepbx-gh-test",
-        "moduleXmlUrl": "https://github.com/FreePBX/freepbx-gh-test/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/freepbx-gh-test/blob/ca151254ce425d5e27f11a6f37cb810c55f828dd/module.xml"
       },
       "publisher": "Sangoma US Inc.",
       "license": "GPLv3+",
@@ -2268,7 +2303,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/freepbx-gh-test",
-        "moduleXml": "https://github.com/FreePBX/freepbx-gh-test/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/freepbx-gh-test/blob/ca151254ce425d5e27f11a6f37cb810c55f828dd/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2292,7 +2327,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "0c372e21c487e91856c513c3d777cba30dcfae67",
         "repositoryUrl": "https://github.com/FreePBX/hotelwakeup",
-        "moduleXmlUrl": "https://github.com/FreePBX/hotelwakeup/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/hotelwakeup/blob/9bc6eef532cc9c2a3b9c69c64023a4829ae22b75/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv2",
@@ -2325,7 +2360,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/hotelwakeup",
-        "moduleXml": "https://github.com/FreePBX/hotelwakeup/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/hotelwakeup/blob/9bc6eef532cc9c2a3b9c69c64023a4829ae22b75/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2349,7 +2384,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "dd0978ca8bd251795505717bc8d637bd5279468a",
         "repositoryUrl": "https://github.com/FreePBX/iaxsettings",
-        "moduleXmlUrl": "https://github.com/FreePBX/iaxsettings/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/iaxsettings/blob/11df2c998cb093011047562aa5207d78b33fa6f9/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "AGPLv3",
@@ -2370,7 +2405,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/iaxsettings",
-        "moduleXml": "https://github.com/FreePBX/iaxsettings/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/iaxsettings/blob/11df2c998cb093011047562aa5207d78b33fa6f9/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2394,7 +2429,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "7b0abd8cda1736e89ebc4c657bc4a3fcf214d831",
         "repositoryUrl": "https://github.com/FreePBX/infoservices",
-        "moduleXmlUrl": "https://github.com/FreePBX/infoservices/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/infoservices/blob/16f5fa1f8286f78b44ac545bdd129c358c85bf71/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv2+",
@@ -2413,7 +2448,7 @@
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/infoservices",
-        "moduleXml": "https://github.com/FreePBX/infoservices/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/infoservices/blob/16f5fa1f8286f78b44ac545bdd129c358c85bf71/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2437,7 +2472,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "d4c92008374b74439d975b88b3cdbbce3f42a051",
         "repositoryUrl": "https://github.com/FreePBX/ivr",
-        "moduleXmlUrl": "https://github.com/FreePBX/ivr/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/ivr/blob/edf57a28e5872a5a24064e65830a21b5c7a113c2/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -2467,7 +2502,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/ivr",
-        "moduleXml": "https://github.com/FreePBX/ivr/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/ivr/blob/edf57a28e5872a5a24064e65830a21b5c7a113c2/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2491,7 +2526,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "fbd7c441fcdd3e132c56523240f575451680834e",
         "repositoryUrl": "https://github.com/FreePBX/languages",
-        "moduleXmlUrl": "https://github.com/FreePBX/languages/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/languages/blob/88d81e7782d242d94ff8233307ebe07471665565/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -2512,7 +2547,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/languages",
-        "moduleXml": "https://github.com/FreePBX/languages/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/languages/blob/88d81e7782d242d94ff8233307ebe07471665565/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2536,7 +2571,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "28567200eba2694c720ca359bf5f64223925347f",
         "repositoryUrl": "https://github.com/FreePBX/logfiles",
-        "moduleXmlUrl": "https://github.com/FreePBX/logfiles/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/logfiles/blob/b43d93f443aaf21a1da1bf7f200bda5888fe955d/module.xml"
       },
       "publisher": "Schmooze Com. Inc.",
       "license": "GPLv3+",
@@ -2556,7 +2591,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/logfiles",
-        "moduleXml": "https://github.com/FreePBX/logfiles/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/logfiles/blob/b43d93f443aaf21a1da1bf7f200bda5888fe955d/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2580,7 +2615,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "e0ae34f047ddf3c73ec86e6748b5ae73b3ea2161",
         "repositoryUrl": "https://github.com/FreePBX/manager",
-        "moduleXmlUrl": "https://github.com/FreePBX/manager/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/manager/blob/dca526fc94dfef598d82def74e88e5e4fe528070/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv2+",
@@ -2601,7 +2636,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/manager",
-        "moduleXml": "https://github.com/FreePBX/manager/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/manager/blob/dca526fc94dfef598d82def74e88e5e4fe528070/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2625,7 +2660,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "edfc998ccfc08d51403db3466895cd98da5d5ceb",
         "repositoryUrl": "https://github.com/FreePBX/miscapps",
-        "moduleXmlUrl": "https://github.com/FreePBX/miscapps/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/miscapps/blob/9c7cc504faa57e61b70a294dd4f89ea21645c912/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -2646,7 +2681,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/miscapps",
-        "moduleXml": "https://github.com/FreePBX/miscapps/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/miscapps/blob/9c7cc504faa57e61b70a294dd4f89ea21645c912/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2670,7 +2705,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "64a72593a64fe1e63a0c9b51ec3a79d2277ea002",
         "repositoryUrl": "https://github.com/FreePBX/miscdests",
-        "moduleXmlUrl": "https://github.com/FreePBX/miscdests/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/miscdests/blob/a15c4988699d381e471005b3cc54aa3bffa1d0c7/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -2691,7 +2726,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/miscdests",
-        "moduleXml": "https://github.com/FreePBX/miscdests/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/miscdests/blob/a15c4988699d381e471005b3cc54aa3bffa1d0c7/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2715,7 +2750,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "9e49fe82f85de617aabc97257ec8d21371aea233",
         "repositoryUrl": "https://github.com/FreePBX/missedcall",
-        "moduleXmlUrl": "https://github.com/FreePBX/missedcall/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/missedcall/blob/58012c08330ca485edf7b6371ed4a13e036ba11a/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -2751,7 +2786,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/missedcall",
-        "moduleXml": "https://github.com/FreePBX/missedcall/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/missedcall/blob/58012c08330ca485edf7b6371ed4a13e036ba11a/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2775,7 +2810,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "706157cd30cefc497b88e37e0af97ec52824d59d",
         "repositoryUrl": "https://github.com/FreePBX/music",
-        "moduleXmlUrl": "https://github.com/FreePBX/music/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/music/blob/7f8ff5fe04f24d1a928743f7e6a09333d7e306a9/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -2801,7 +2836,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/music",
-        "moduleXml": "https://github.com/FreePBX/music/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/music/blob/7f8ff5fe04f24d1a928743f7e6a09333d7e306a9/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2825,7 +2860,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "a4fd2dc649a07c2997f16bfd44d6639048b42e0f",
         "repositoryUrl": "https://github.com/FreePBX/outroutemsg",
-        "moduleXmlUrl": "https://github.com/FreePBX/outroutemsg/blob/master/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/outroutemsg/blob/92a8ffcb617de543578e5c769610bf5bf522c708/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -2853,7 +2888,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/outroutemsg",
-        "moduleXml": "https://github.com/FreePBX/outroutemsg/blob/master/module.xml"
+        "moduleXml": "https://github.com/FreePBX/outroutemsg/blob/92a8ffcb617de543578e5c769610bf5bf522c708/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2877,7 +2912,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "9e5724dd29e7dc645eb74fc3af275dc62ab05692",
         "repositoryUrl": "https://github.com/FreePBX/paging",
-        "moduleXmlUrl": "https://github.com/FreePBX/paging/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/paging/blob/31265fedcbee1f085355635f12f2f3362adfdbbc/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -2912,7 +2947,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/paging",
-        "moduleXml": "https://github.com/FreePBX/paging/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/paging/blob/31265fedcbee1f085355635f12f2f3362adfdbbc/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2936,7 +2971,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "dd4c7c1bff57efd646227e028b6d5d624172fd1f",
         "repositoryUrl": "https://github.com/FreePBX/parking",
-        "moduleXmlUrl": "https://github.com/FreePBX/parking/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/parking/blob/342a357a993a98670bdaadbe14f343b936c4e791/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -2970,7 +3005,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/parking",
-        "moduleXml": "https://github.com/FreePBX/parking/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/parking/blob/342a357a993a98670bdaadbe14f343b936c4e791/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2994,7 +3029,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "562fe43e315e049aecc1fa34e74853db053800fd",
         "repositoryUrl": "https://github.com/FreePBX/pbdirectory",
-        "moduleXmlUrl": "https://github.com/FreePBX/pbdirectory/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/pbdirectory/blob/911de24b29ce4ca9d948f3900eafd14b6e36cd26/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -3022,7 +3057,7 @@
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/pbdirectory",
-        "moduleXml": "https://github.com/FreePBX/pbdirectory/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/pbdirectory/blob/911de24b29ce4ca9d948f3900eafd14b6e36cd26/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3046,7 +3081,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "c156527f61def73bf8d7f526b3aaedb8d2e96443",
         "repositoryUrl": "https://github.com/FreePBX/phonebook",
-        "moduleXmlUrl": "https://github.com/FreePBX/phonebook/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/phonebook/blob/2810f28563d1720b8863bdd0e01f433e0bdb9997/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -3067,7 +3102,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/phonebook",
-        "moduleXml": "https://github.com/FreePBX/phonebook/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/phonebook/blob/2810f28563d1720b8863bdd0e01f433e0bdb9997/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3091,7 +3126,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "6f01feac4862504b4f6f51e972eb5805afd1ad53",
         "repositoryUrl": "https://github.com/FreePBX/pinsets",
-        "moduleXmlUrl": "https://github.com/FreePBX/pinsets/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/pinsets/blob/4362857b11e5d1b96336218071becd271f2c2375/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -3117,7 +3152,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/pinsets",
-        "moduleXml": "https://github.com/FreePBX/pinsets/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/pinsets/blob/4362857b11e5d1b96336218071becd271f2c2375/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3141,7 +3176,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "dcfe1e308a33c3bfe91fbb9ed463ac35fac10491",
         "repositoryUrl": "https://github.com/FreePBX/pm2",
-        "moduleXmlUrl": "https://github.com/FreePBX/pm2/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/pm2/blob/663d0795d6aac70cb0f11f898c7f3e10635d7009/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "AGPLv3+",
@@ -3163,7 +3198,7 @@
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/pm2",
-        "moduleXml": "https://github.com/FreePBX/pm2/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/pm2/blob/663d0795d6aac70cb0f11f898c7f3e10635d7009/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3187,7 +3222,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "9e857eafbb54a73bf2854746275b97617c1b01a6",
         "repositoryUrl": "https://github.com/FreePBX/presencestate",
-        "moduleXmlUrl": "https://github.com/FreePBX/presencestate/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/presencestate/blob/3834f8d4ebeb20e9723d64e048302fa331da3dd3/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -3208,7 +3243,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/presencestate",
-        "moduleXml": "https://github.com/FreePBX/presencestate/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/presencestate/blob/3834f8d4ebeb20e9723d64e048302fa331da3dd3/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3232,7 +3267,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "8f8999427552ae2ab8cb4ef8a446ade5d7a17da9",
         "repositoryUrl": "https://github.com/FreePBX/printextensions",
-        "moduleXmlUrl": "https://github.com/FreePBX/printextensions/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/printextensions/blob/e234307c2e280e06828d5c8b41a4486652001e86/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -3256,7 +3291,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/printextensions",
-        "moduleXml": "https://github.com/FreePBX/printextensions/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/printextensions/blob/e234307c2e280e06828d5c8b41a4486652001e86/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3280,7 +3315,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "0c798e8110218afa4e2d905363d2fbf6b2e6afe9",
         "repositoryUrl": "https://github.com/FreePBX/queueprio",
-        "moduleXmlUrl": "https://github.com/FreePBX/queueprio/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/queueprio/blob/11d5755255af72206f7b3cf3318e102b7b2351a5/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -3299,7 +3334,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/queueprio",
-        "moduleXml": "https://github.com/FreePBX/queueprio/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/queueprio/blob/11d5755255af72206f7b3cf3318e102b7b2351a5/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3323,7 +3358,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "ef643af41f5e3b9db73d149567cf16152a98e931",
         "repositoryUrl": "https://github.com/FreePBX/queues",
-        "moduleXmlUrl": "https://github.com/FreePBX/queues/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/queues/blob/f18a34f250cfe766f65349eb4efd562655a7ec5d/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv2+",
@@ -3354,7 +3389,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/queues",
-        "moduleXml": "https://github.com/FreePBX/queues/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/queues/blob/f18a34f250cfe766f65349eb4efd562655a7ec5d/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3378,7 +3413,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "8c1837521c5eaace75019ac5fc6146d1d8c49fa8",
         "repositoryUrl": "https://github.com/FreePBX/recordings",
-        "moduleXmlUrl": "https://github.com/FreePBX/recordings/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/recordings/blob/5603b05f4ceed64e6fa80eefca84d646b5651feb/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -3406,7 +3441,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/recordings",
-        "moduleXml": "https://github.com/FreePBX/recordings/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/recordings/blob/5603b05f4ceed64e6fa80eefca84d646b5651feb/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3430,7 +3465,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "4e6d2b43c0b34133f0ad846b1b8b7d26ef73f8da",
         "repositoryUrl": "https://github.com/FreePBX/restart",
-        "moduleXmlUrl": "https://github.com/FreePBX/restart/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/restart/blob/19f09f9d9da4187a28ec4ff4960e9f43ddc5dadc/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -3449,7 +3484,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/restart",
-        "moduleXml": "https://github.com/FreePBX/restart/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/restart/blob/19f09f9d9da4187a28ec4ff4960e9f43ddc5dadc/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3473,7 +3508,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "1a6a81f2193441558d9bddc6fd0bc91e8e40ba84",
         "repositoryUrl": "https://github.com/FreePBX/ringgroups",
-        "moduleXmlUrl": "https://github.com/FreePBX/ringgroups/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/ringgroups/blob/3b6f9a90c3fe56d27d460fdc74a4dda24390fecc/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -3503,7 +3538,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/ringgroups",
-        "moduleXml": "https://github.com/FreePBX/ringgroups/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/ringgroups/blob/3b6f9a90c3fe56d27d460fdc74a4dda24390fecc/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3527,7 +3562,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "e0dde1011f8968217f849a961bd3a5b477d6e1f7",
         "repositoryUrl": "https://github.com/FreePBX/setcid",
-        "moduleXmlUrl": "https://github.com/FreePBX/setcid/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/setcid/blob/114c02f9e117c6e336d4b519259a8189b636151c/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -3548,7 +3583,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/setcid",
-        "moduleXml": "https://github.com/FreePBX/setcid/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/setcid/blob/114c02f9e117c6e336d4b519259a8189b636151c/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3572,7 +3607,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "f5de98c2ccd9a7880e440a56ada03bc13945cda9",
         "repositoryUrl": "https://github.com/FreePBX/sipsettings",
-        "moduleXmlUrl": "https://github.com/FreePBX/sipsettings/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/sipsettings/blob/f847dba0967ddaf164c5c3267b92f74a9574176b/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "AGPLv3+",
@@ -3602,7 +3637,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/sipsettings",
-        "moduleXml": "https://github.com/FreePBX/sipsettings/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/sipsettings/blob/f847dba0967ddaf164c5c3267b92f74a9574176b/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3626,7 +3661,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "500cecf94db6cdfdc1f4f69af258567b9e5c9d65",
         "repositoryUrl": "https://github.com/FreePBX/soundlang",
-        "moduleXmlUrl": "https://github.com/FreePBX/soundlang/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/soundlang/blob/a255a869f38d9609c8c3eb34624e5b5d1b0c70d3/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -3652,7 +3687,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/soundlang",
-        "moduleXml": "https://github.com/FreePBX/soundlang/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/soundlang/blob/a255a869f38d9609c8c3eb34624e5b5d1b0c70d3/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3676,7 +3711,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "ff795f5e03bd10ec54582277af795bfb05fd6e2d",
         "repositoryUrl": "https://github.com/FreePBX/speeddial",
-        "moduleXmlUrl": "https://github.com/FreePBX/speeddial/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/speeddial/blob/c280f87af4605bf51c4eb81ea9892646d827a808/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -3700,7 +3735,7 @@
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/speeddial",
-        "moduleXml": "https://github.com/FreePBX/speeddial/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/speeddial/blob/c280f87af4605bf51c4eb81ea9892646d827a808/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3724,7 +3759,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "1dce120b8f658d13221a4785b6d64f626de46885",
         "repositoryUrl": "https://github.com/FreePBX/superfecta",
-        "moduleXmlUrl": "https://github.com/FreePBX/superfecta/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/superfecta/blob/76538ba63b7bf89c9dab244c423011da32cab951/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv2+",
@@ -3752,7 +3787,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/superfecta",
-        "moduleXml": "https://github.com/FreePBX/superfecta/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/superfecta/blob/76538ba63b7bf89c9dab244c423011da32cab951/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3776,7 +3811,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "fb2ab30087b464fdf016c0c8eb8cd93ef7c6180d",
         "repositoryUrl": "https://github.com/FreePBX/timeconditions",
-        "moduleXmlUrl": "https://github.com/FreePBX/timeconditions/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/timeconditions/blob/c801ce3de757fd207f597f0364ebe523fedb79b8/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -3807,7 +3842,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/timeconditions",
-        "moduleXml": "https://github.com/FreePBX/timeconditions/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/timeconditions/blob/c801ce3de757fd207f597f0364ebe523fedb79b8/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3831,7 +3866,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "fc57f47e79624a38e71c78f6ece352d21fc6ae84",
         "repositoryUrl": "https://github.com/FreePBX/tts",
-        "moduleXmlUrl": "https://github.com/FreePBX/tts/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/tts/blob/ff77d31a741b98a412da0c3dc15bd9ba27d31c39/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -3857,7 +3892,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/tts",
-        "moduleXml": "https://github.com/FreePBX/tts/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/tts/blob/ff77d31a741b98a412da0c3dc15bd9ba27d31c39/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3881,7 +3916,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "97b28c4f4707540e0b0a8a10dc325130c4f12287",
         "repositoryUrl": "https://github.com/FreePBX/ttsengines",
-        "moduleXmlUrl": "https://github.com/FreePBX/ttsengines/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/ttsengines/blob/5dc86268774d937dc1da588fe7550b4922528e3f/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "AGPLv3",
@@ -3902,7 +3937,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/ttsengines",
-        "moduleXml": "https://github.com/FreePBX/ttsengines/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/ttsengines/blob/5dc86268774d937dc1da588fe7550b4922528e3f/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3926,7 +3961,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "e2d66e82b54d01df4e31127d9439b3095ce62fdd",
         "repositoryUrl": "https://github.com/FreePBX/ucp",
-        "moduleXmlUrl": "https://github.com/FreePBX/ucp/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/ucp/blob/562f66671455acde6f6d750792f8e0775d510c29/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "AGPLv3+",
@@ -3962,7 +3997,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/ucp",
-        "moduleXml": "https://github.com/FreePBX/ucp/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/ucp/blob/562f66671455acde6f6d750792f8e0775d510c29/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -3986,7 +4021,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "6b6345a93c6eee8e5cf465d3ba7f270f7e770573",
         "repositoryUrl": "https://github.com/FreePBX/userman",
-        "moduleXmlUrl": "https://github.com/FreePBX/userman/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/userman/blob/40765708de614b3e49f2dcff7e00132875cfdb6f/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "AGPLv3+",
@@ -4015,7 +4050,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/userman",
-        "moduleXml": "https://github.com/FreePBX/userman/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/userman/blob/40765708de614b3e49f2dcff7e00132875cfdb6f/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -4039,7 +4074,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "355b586e57541bf1694c4f2ec8d9a45798e494bc",
         "repositoryUrl": "https://github.com/FreePBX/vmblast",
-        "moduleXmlUrl": "https://github.com/FreePBX/vmblast/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/vmblast/blob/6bc7d56b0d38a2907dc01d3c7da29dabf0af54e8/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -4060,7 +4095,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/vmblast",
-        "moduleXml": "https://github.com/FreePBX/vmblast/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/vmblast/blob/6bc7d56b0d38a2907dc01d3c7da29dabf0af54e8/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -4084,7 +4119,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "b9488b9e693843f4120f883ce3b56b973774087b",
         "repositoryUrl": "https://github.com/FreePBX/voicemail",
-        "moduleXmlUrl": "https://github.com/FreePBX/voicemail/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/voicemail/blob/b1afb16de3dcd00774162dbfce8d58a9b9597bdc/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -4115,7 +4150,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/voicemail",
-        "moduleXml": "https://github.com/FreePBX/voicemail/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/voicemail/blob/b1afb16de3dcd00774162dbfce8d58a9b9597bdc/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -4139,7 +4174,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "c1358003a7d90fae19520f8c3d640f290a47db90",
         "repositoryUrl": "https://github.com/FreePBX/weakpasswords",
-        "moduleXmlUrl": "https://github.com/FreePBX/weakpasswords/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/weakpasswords/blob/d854315c8077d98480ced832ad39e7f70be3f6c8/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -4158,7 +4193,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/weakpasswords",
-        "moduleXml": "https://github.com/FreePBX/weakpasswords/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/weakpasswords/blob/d854315c8077d98480ced832ad39e7f70be3f6c8/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -4182,7 +4217,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "1db54fe6b9806e0ca473b2057b432559b9fcc5a6",
         "repositoryUrl": "https://github.com/FreePBX/webrtc",
-        "moduleXmlUrl": "https://github.com/FreePBX/webrtc/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/webrtc/blob/eb3230021918c82f08fd32f7eeccb8b391b92413/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -4212,7 +4247,7 @@
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/webrtc",
-        "moduleXml": "https://github.com/FreePBX/webrtc/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/webrtc/blob/eb3230021918c82f08fd32f7eeccb8b391b92413/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -4236,7 +4271,7 @@
         "moduleXmlPath": "module.xml",
         "moduleXmlSha": "dcac4fb4c2ad518424d4adc5ed71702378ce71b5",
         "repositoryUrl": "https://github.com/FreePBX/xmpp",
-        "moduleXmlUrl": "https://github.com/FreePBX/xmpp/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/xmpp/blob/8967ab03b1b3e2814944cbb6e75785025c31274a/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "AGPLv3",
@@ -4266,7 +4301,7 @@
       ],
       "documentation": {
         "repository": "https://github.com/FreePBX/xmpp",
-        "moduleXml": "https://github.com/FreePBX/xmpp/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/xmpp/blob/8967ab03b1b3e2814944cbb6e75785025c31274a/module.xml"
       },
       "availability": {
         "state": "unavailable",

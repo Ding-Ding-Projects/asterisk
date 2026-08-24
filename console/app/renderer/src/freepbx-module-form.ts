@@ -2,6 +2,7 @@ import type { ConfigValue } from './configuration';
 import type { PbxFeatureDefinition } from './pbx-admin-model';
 import { findFreePbxModule, type FreePbxCommand, type FreePbxModuleCatalogEntry } from './freepbx-module-catalog';
 import { lookupFieldControl } from '../../../control-plane/field-control-catalog';
+import { moduleAdapterFor, type FreePbxModuleAdapter } from './freepbx-module-adapters';
 
 export type FreePbxFieldKind = 'text' | 'select' | 'switch' | 'number';
 export type FreePbxModuleAction = 'install' | 'enable' | 'disable' | 'update' | 'remove';
@@ -27,6 +28,7 @@ export interface FreePbxModuleFormSchema {
   commands: FreePbxCommand[];
   actions: Array<{ action: FreePbxModuleAction; enabled: boolean; reason: string }>;
   status: { state: 'metadata-only' | 'unavailable'; reason: string };
+  familyAdapter: FreePbxModuleAdapter;
 }
 
 export interface FreePbxModuleActionRequest {
@@ -88,6 +90,7 @@ export function buildFreePbxModuleForm(
 ): FreePbxModuleFormSchema | undefined {
   const module = findFreePbxModule(moduleId);
   if (!module) return undefined;
+  const familyAdapter = moduleAdapterFor(module);
   const effectiveResources = [...new Set(resources.length > 0 ? resources : module.configurationResources)];
   const fields: FreePbxModuleField[] = [];
   const valuesByResource: Readonly<Record<string, ConfigValue>> = Array.isArray(liveValues)
@@ -123,6 +126,7 @@ export function buildFreePbxModuleForm(
     commands: module.fwconsoleCommands,
     actions: safeModuleActionState(module),
     status: module.availability,
+    familyAdapter,
   };
 }
 

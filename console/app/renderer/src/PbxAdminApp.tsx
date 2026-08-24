@@ -16,7 +16,9 @@ import { featureForAdvancedScreen, registerPbxAdminScreens } from './pbx-admin-s
 import { lookupFieldControl } from '../../../control-plane/field-control-catalog';
 import { FREEPBX_MODULE_CATALOG, searchableFreePbxModules, type FreePbxModuleCatalogEntry } from './freepbx-module-catalog';
 import { buildFreePbxModuleForm } from './freepbx-module-form';
-import type { FreePbxRuntimeModule } from '../../../control-plane/freepbx-runtime';
+import type { FreePbxBackupJob, FreePbxBackupReceipt, FreePbxRuntimeModule } from '../../../control-plane/freepbx-runtime';
+import { boundedRegexTest, compileBoundedRegex } from './bounded-regex';
+import { exportFreePbxCatalog as buildFreePbxCatalogExport, type FreePbxExportFormat } from './freepbx-catalog-export';
 import { SCREENS } from './generated/console';
 
 registerPbxAdminScreens();
@@ -32,6 +34,7 @@ type MediaFile = { name: string; path: string; extension: string; bytes: number 
 type MediaRoot = 'prompts' | 'musicOnHold';
 
 type StateValues = { screen: string; values: Record<string, unknown> };
+type FreePbxCatalogHistoryEntry = { observedAt: string; moduleId: string; action: string; status: string; message: string };
 
 const AUDIO_ACCEPT = '.wav,.gsm,.ulaw,.alaw,.g722,.sln,.sln16,.ogg,.opus';
 
@@ -138,6 +141,12 @@ export class PbxAdminApp extends App {
   private publishedDraftCount = -1;
   private freePbxRuntimeModules = new Map<string, FreePbxRuntimeModule>();
   private freePbxCatalogStatus = 'Runtime module state has not been read.';
+  private freePbxCatalogStateLoaded = false;
+  private freePbxCatalogPersisted = '';
+  private freePbxCatalogHistory: FreePbxCatalogHistoryEntry[] = [];
+  private freePbxBackupJobs: FreePbxBackupJob[] = [];
+  private freePbxBackupReceipt: FreePbxBackupReceipt | undefined;
+  private freePbxBackupJobId = 'freepbx-catalog:backup-job';
 
   private adminRequest = async (action: string, extra: Record<string, unknown> = {}): Promise<ControlPlaneResponse | undefined> => {
     const bridge = window.dingDesktop;
@@ -226,6 +235,7 @@ export class PbxAdminApp extends App {
   private freePbxCatalogCommercialId = 'freepbx-catalog:commercial';
   private freePbxCatalogExclusionsId = 'freepbx-catalog:exclusions';
   private freePbxCatalogRecordId = 'freepbx-catalog:record';
+  private freePbxCatalogFormatId = 'freepbx-catalog:format';
   private historyControlId(screen: string) { return `pbxadm:${screen}:history`; }
   private mediaRootControlId(screen: string) { return `pbxadm:${screen}:media-root`; }
   private mediaFileControlId(screen: string) { return `pbxadm:${screen}:media-file`; }
@@ -386,8 +396,9 @@ export class PbxAdminApp extends App {
       return true;
     }).map((module) => ({ id: module.moduleId, label: `${module.moduleId} · ${module.name} · ${module.version}`, excluded: false, module }));
     if (!includeExclusions) return modules;
+    const exclusionMatcher = compileBoundedRegex(query, { regex, flags: 'i' });
     const exclusions = FREEPBX_MODULE_CATALOG.exclusions
-      .filter((entry) => !query || `${entry.moduleId} ${entry.reason}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
+      .filter((entry) => !query || (exclusionMatcher.ok && boundedRegexTest(exclusionMatcher.matcher, `${entry.moduleId} ${entry.reason}`)))
       .map((entry) => ({ id: entry.moduleId, label: `[excluded] ${entry.moduleId} · ${entry.reason}`, excluded: true }));
     return [...modules, ...exclusions];
   }
@@ -414,6 +425,84 @@ export class PbxAdminApp extends App {
     this.forceUpdate();
   };
 
+  private readFreePbxBackupJobs = async (): Promise<void> => {
+    const target = this.selectedTarget(this.stateValues().screen);
+    if (!target) { this.fire('FreePBX backup jobs unavailable', 'Select a discovered target first.'); return; }
+    const response = await this.adminRequest('freepbx.backup.list', { serverId: target });
+    if (!response?.ok) { this.fire('FreePBX backup jobs unavailable', response?.message ?? 'The target backup catalog did not answer.'); return; }
+    this.freePbxBackupJobs = (response.data as { jobs?: FreePbxBackupJob[] }).jobs ?? [];
+    this.freePbxCatalogStatus = `${this.freePbxBackupJobs.length} official backup job${this.freePbxBackupJobs.length === 1 ? '' : 's'} read from the target.`;
+    this.forceUpdate();
+  };
+
+  private createFreePbxBackup = async (): Promise<void> => {
+    const target = this.selectedTarget(this.stateValues().screen);
+    const jobId = String(this.stateValues().values[this.freePbxBackupJobId] ?? '').split(' · ')[0]!.trim();
+    if (!target || !jobId) { this.fire('FreePBX backup unavailable', 'Read the target backup jobs and select one before creating a receipt.'); return; }
+    const response = await this.adminRequest('freepbx.backup', { serverId: target, payload: { jobId } });
+    if (!response?.ok) { this.fire('FreePBX backup unavailable', response?.message ?? 'The official backup did not confirm both file and database coverage.'); return; }
+    this.freePbxBackupReceipt = response.data as FreePbxBackupReceipt;
+    this.freePbxCatalogStatus = 'Official file and database backup receipt is ready for one module action.';
+    this.forceUpdate();
+  };
+
+  private freePbxCatalogSelectionSnapshot(): string {
+    const values = this.stateValues().values;
+    return JSON.stringify({
+      query: String(values[this.freePbxCatalogQueryId] ?? ''),
+      regex: values[this.freePbxCatalogRegexId] === true,
+      installed: values[this.freePbxCatalogInstalledId] === true,
+      commercial: values[this.freePbxCatalogCommercialId] === true,
+      exclusions: values[this.freePbxCatalogExclusionsId] === true,
+      record: String(values[this.freePbxCatalogRecordId] ?? ''),
+      format: String(values[this.freePbxCatalogFormatId] ?? 'json'),
+      backupJob: String(values[this.freePbxBackupJobId] ?? ''),
+    });
+  }
+
+  private persistFreePbxCatalogSelection(): void {
+    if (!this.freePbxCatalogStateLoaded) return;
+    const snapshot = this.freePbxCatalogSelectionSnapshot();
+    if (snapshot === this.freePbxCatalogPersisted) return;
+    this.freePbxCatalogPersisted = snapshot;
+    void this.adminRequest('settings.write', { payload: { key: 'freepbx.catalog.selection', value: snapshot } });
+  }
+
+  private loadFreePbxCatalogSelection = async (): Promise<void> => {
+    const response = await this.adminRequest('settings.snapshot');
+    const savedValues = response?.ok ? (response.data as { values?: Record<string, string> }).values : undefined;
+    const raw = savedValues?.['freepbx.catalog.selection'];
+    const historyRaw = savedValues?.['freepbx.catalog.history'];
+    if (historyRaw) {
+      try {
+        const history = JSON.parse(historyRaw) as unknown;
+        if (Array.isArray(history)) this.freePbxCatalogHistory = history.filter((entry): entry is FreePbxCatalogHistoryEntry => Boolean(entry && typeof entry === 'object' && typeof (entry as Record<string, unknown>).moduleId === 'string' && typeof (entry as Record<string, unknown>).action === 'string' && typeof (entry as Record<string, unknown>).status === 'string' && typeof (entry as Record<string, unknown>).message === 'string')).slice(-200);
+      } catch {
+        this.freePbxCatalogStatus = 'Saved catalog history was invalid and was ignored.';
+      }
+    }
+    if (raw) {
+      try {
+        const saved = JSON.parse(raw) as Record<string, unknown>;
+        this.setState((state: { values: Record<string, unknown> }) => ({ values: {
+          ...state.values,
+          [this.freePbxCatalogQueryId]: typeof saved.query === 'string' ? saved.query : '',
+          [this.freePbxCatalogRegexId]: saved.regex === true,
+          [this.freePbxCatalogInstalledId]: saved.installed === true,
+          [this.freePbxCatalogCommercialId]: saved.commercial === true,
+          [this.freePbxCatalogExclusionsId]: saved.exclusions === true,
+          [this.freePbxCatalogRecordId]: typeof saved.record === 'string' ? saved.record : '',
+          [this.freePbxCatalogFormatId]: typeof saved.format === 'string' ? saved.format : 'json',
+          [this.freePbxBackupJobId]: typeof saved.backupJob === 'string' ? saved.backupJob : '',
+        } }));
+      } catch {
+        this.freePbxCatalogStatus = 'Saved catalog filters were invalid and were ignored.';
+      }
+    }
+    this.freePbxCatalogStateLoaded = true;
+    this.freePbxCatalogPersisted = this.freePbxCatalogSelectionSnapshot();
+  };
+
   private exportFreePbxCatalog = (): void => {
     const records = this.freePbxCatalogRecords().map((record) => ({
       recordType: record.excluded ? 'exclusion' : 'module',
@@ -421,15 +510,19 @@ export class PbxAdminApp extends App {
       label: record.label,
       catalog: record.module ?? FREEPBX_MODULE_CATALOG.exclusions.find((entry) => entry.moduleId === record.id) ?? null,
       runtime: this.freePbxRuntimeModules.get(record.id) ?? null,
+      history: this.freePbxCatalogHistory.filter((entry) => entry.moduleId === record.id),
     }));
-    const blob = new Blob([`${JSON.stringify({ schemaVersion: 1, source: 'freepbx-module-catalog.json', records }, null, 2)}\n`], { type: 'application/json' });
+    const rawFormat = String(this.stateValues().values[this.freePbxCatalogFormatId] ?? 'json');
+    const format = (['json', 'jsonl', 'yaml', 'toml', 'xml', 'csv', 'tsv', 'markdown', 'html'] as const).includes(rawFormat as FreePbxExportFormat) ? rawFormat as FreePbxExportFormat : 'json';
+    const exported = buildFreePbxCatalogExport(records, format);
+    const blob = new Blob([exported.body], { type: exported.contentType });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = 'freepbx-module-catalog.json';
+    anchor.download = exported.filename;
     anchor.click();
     URL.revokeObjectURL(url);
-    this.fire('FreePBX catalog exported', `${records.length} filtered module or exclusion record${records.length === 1 ? '' : 's'} exported. Private runtime credentials are not included.`);
+    this.fire('FreePBX catalog exported', `${records.length} filtered module or exclusion record${records.length === 1 ? '' : 's'} exported as ${format}. ${exported.omitted.join(' ')}`);
   };
 
   private refreshAdminScreen = async (screen: string, feature: PbxFeatureDefinition): Promise<void> => {
@@ -447,9 +540,15 @@ export class PbxAdminApp extends App {
 
   componentDidUpdate() {
     super.componentDidUpdate();
+    this.persistFreePbxCatalogSelection();
     const screen = this.stateValues().screen;
     const feature = featureForAdvancedScreen(screen);
     if (feature) void this.refreshAdminScreen(screen, feature);
+  }
+
+  componentDidMount() {
+    super.componentDidMount();
+    void this.loadFreePbxCatalogSelection();
   }
 
   private prepareAdminScreen(screen: string, feature: PbxFeatureDefinition): void {
@@ -490,6 +589,10 @@ export class PbxAdminApp extends App {
           switchControl(this.freePbxCatalogCommercialId, 'Commercial entitlement only', this.stateValues().values[this.freePbxCatalogCommercialId] === true),
           switchControl(this.freePbxCatalogExclusionsId, 'Include explicit exclusions', this.stateValues().values[this.freePbxCatalogExclusionsId] === true),
           selectControl(this.freePbxCatalogRecordId, 'Catalog record', selected, options.length > 0 ? options : [selected], 'freepbx-catalog-record'),
+          selectControl(this.freePbxCatalogFormatId, 'Export format', String(this.stateValues().values[this.freePbxCatalogFormatId] ?? 'json'), ['json', 'jsonl', 'yaml', 'toml', 'xml', 'csv', 'tsv', 'markdown', 'html']),
+          selectControl(this.freePbxBackupJobId, 'Official backup job', String(this.stateValues().values[this.freePbxBackupJobId] ?? this.freePbxBackupJobs[0]?.jobId ?? ''), this.freePbxBackupJobs.length > 0 ? this.freePbxBackupJobs.map((job) => `${job.jobId} · ${job.label}`) : ['No backup job has been read']),
+          actionControl('freepbx-catalog:backup-list', 'Read official backup jobs', 'freepbx-catalog-backup-list', 'The target must publish the backup job list before a receipt can be created.'),
+          actionControl('freepbx-catalog:backup-create', 'Create file and database backup receipt', 'freepbx-catalog-backup-create', 'An action cannot be sent without this receipt.'),
           actionControl('freepbx-catalog:refresh', 'Read installed module state', 'freepbx-catalog-refresh', 'Reads the target through fwconsole and does not change it.'),
           actionControl('freepbx-catalog:export', 'Export filtered catalog records', 'freepbx-catalog-export', 'Exports catalog metadata and readback state only. Credentials and private paths are omitted.'),
           actionControl('freepbx-catalog:bulk-export', `Export all ${records.length} visible records`, 'freepbx-catalog-bulk-export', 'Bulk export uses the current filters and includes exclusions when selected.'),
@@ -957,17 +1060,40 @@ export class PbxAdminApp extends App {
       return;
     }
     const execute = async (confirmed: boolean): Promise<void> => {
+      if (!this.freePbxBackupReceipt) {
+        const jobId = String(this.stateValues().values[this.freePbxBackupJobId] ?? '').split(' · ')[0]!.trim();
+        if (!jobId) {
+          const message = 'Create an official file and database backup receipt before this module action.';
+          this.freePbxCatalogHistory = [...this.freePbxCatalogHistory, { observedAt: new Date().toISOString(), moduleId, action, status: 'refused', message }].slice(-200);
+          void this.adminRequest('settings.write', { payload: { key: 'freepbx.catalog.history', value: JSON.stringify(this.freePbxCatalogHistory) } });
+          this.fire('FreePBX module action refused', message);
+          return;
+        }
+        const backupResponse = await this.adminRequest('freepbx.backup', { serverId: target, payload: { jobId } });
+        if (!backupResponse?.ok) {
+          const message = backupResponse?.message ?? 'The official backup did not confirm both file and database coverage.';
+          this.fire('FreePBX module action refused', message);
+          return;
+        }
+        this.freePbxBackupReceipt = backupResponse.data as FreePbxBackupReceipt;
+      }
       const response = await this.adminRequest('freepbx.module.action', {
         serverId: target,
-        payload: { moduleId, action, confirmed, expectedRevision: module.source.revision },
+        payload: { moduleId, action, confirmed, expectedRevision: module.source.revision, backup: this.freePbxBackupReceipt },
       });
+      this.freePbxBackupReceipt = undefined;
       if (!response?.ok) {
-        this.fire('FreePBX module action refused', response?.message ?? 'The FreePBX runtime did not confirm the action.');
+        const message = response?.message ?? 'The FreePBX runtime did not confirm the action.';
+        this.freePbxCatalogHistory = [...this.freePbxCatalogHistory, { observedAt: new Date().toISOString(), moduleId, action, status: 'refused', message }].slice(-200);
+        void this.adminRequest('settings.write', { payload: { key: 'freepbx.catalog.history', value: JSON.stringify(this.freePbxCatalogHistory) } });
+        this.fire('FreePBX module action refused', message);
         return;
       }
       const result = response.data as { after?: FreePbxRuntimeModule; status?: string; message?: string };
       if (result.after) this.freePbxRuntimeModules.set(moduleId, result.after);
       this.freePbxCatalogStatus = result.message ?? `fwconsole returned ${result.status ?? 'an unknown result'}.`;
+      this.freePbxCatalogHistory = [...this.freePbxCatalogHistory, { observedAt: new Date().toISOString(), moduleId, action, status: result.status ?? 'unknown', message: this.freePbxCatalogStatus }].slice(-200);
+      void this.adminRequest('settings.write', { payload: { key: 'freepbx.catalog.history', value: JSON.stringify(this.freePbxCatalogHistory) } });
       this.fire('FreePBX module action result', this.freePbxCatalogStatus);
       this.forceUpdate();
     };
@@ -985,6 +1111,8 @@ export class PbxAdminApp extends App {
       return;
     }
     if (action === 'freepbx-catalog-refresh') { void this.refreshFreePbxCatalog(); return; }
+    if (action === 'freepbx-catalog-backup-list') { void this.readFreePbxBackupJobs(); return; }
+    if (action === 'freepbx-catalog-backup-create') { void this.createFreePbxBackup(); return; }
     if (action === 'freepbx-catalog-export' || action === 'freepbx-catalog-bulk-export') { this.exportFreePbxCatalog(); return; }
     if (action === 'freepbx-catalog-record') { this.forceUpdate(); return; }
     if (action === 'freepbx-catalog-state') {

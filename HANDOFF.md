@@ -450,7 +450,7 @@ evidence remain unverified for the parent integration lane.
 ## FreePBX runtime and catalog follow-up on 2026-08-24
 
 The catalog follow-up adds explicit historical exclusion records, a native `freepbx-catalog`
-destination, and typed runtime actions. The catalog now records 14 exclusion records in addition to
+destination, and typed runtime actions. The catalog now records 15 exclusion records in addition to
 the 83 public module entries. The native catalog destination supports filtered search, bounded regex
 mode, installed-only and commercial-entitlement filters, explicit exclusions, filtered export, and
 target module-state refresh.
@@ -474,3 +474,34 @@ inventory, runtime boundary markers, no direct process or SQL path, and delibera
 negative regressions. The static result is green. No live target was contacted, and WSL, container,
 database, web service, fwconsole, permissions, entitlement, built-artifact, UI interaction, and
 capture evidence remain unverified.
+
+## FreePBX adapter and target-contract follow-up on 2026-08-24
+
+The adapter lane now declares one family policy for all 55 inventory families and derives one
+module-specific adapter for each of the 83 public catalog entries. Policies distinguish target
+configuration, target entities, published API resources, module metadata, files-and-database
+backup requirements, readback source, and metadata-only refusal states. Multi-resource field IDs
+include the resource path, module ID, section, and entry position.
+
+The runtime target accepts WSL, local container, and remote container target profiles. WSL uses
+`wsl.exe -d <distribution> -- fwconsole ...`; container targets use `docker exec <container> fwconsole ...`.
+The new `freepbx.handshake` action reads framework version and module-manager state and reports
+database, web-service, backup, and target-kind states without direct SQL. `freepbx.backup.list` and
+`freepbx.backup` provide the official backup-job and file/database receipt path. Module actions now
+require that receipt, validate the catalog revision and major version, refuse commercial entitlement
+without a license, read back state, and attempt a safe inverse rollback when needed.
+
+The catalog has 15 disjoint, non-actionable exclusion records, including the official commercial
+SMS disposition. Each has a separate `recordId`, original module ID, source, reason, and
+`actionable: false`, so exclusion records cannot collide with module IDs or become action targets.
+Catalog selection, filters, export format, backup-job selection, and action history persist through
+the existing settings store. Exports cover JSON, JSONL, YAML, TOML, XML, CSV, TSV, Markdown, and
+HTML, with explicit omission of credentials, private paths, and raw command payloads.
+
+The catalog generator resolves an immutable commit before fetching `module.xml`, then parses the XML
+with the approved Python standard-library parser. The shared bounded regex evaluator limits pattern
+and input lengths and is used for module and exclusion search.
+
+Static inventory, adapter, runtime-boundary, source syntax, JSON, and documentation checks remain
+green. No live target, WSL, container, database, web service, fwconsole, built artifact, UI
+interaction, or capture was run in this lane.

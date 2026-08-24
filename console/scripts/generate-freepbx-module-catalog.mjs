@@ -17,6 +17,7 @@ const preferredBranch = 'release/17.0';
 const exclusions = [
   { moduleId: 'sms-plus', reason: 'Historical parity label is not a published FreePBX module repository; it is retained only as an explicit exclusion record.', source: 'historical FreePBX parity disposition' },
   { moduleId: 'sms-webhook', reason: 'Historical parity label is not a published FreePBX module repository; it is retained only as an explicit exclusion record.', source: 'historical FreePBX parity disposition' },
+  { moduleId: 'sms', reason: 'FreePBX publishes SMS as a commercial UCP-dependent module. It is retained as an explicit disposition record, but no license, account, or end-user portal is claimed.', source: 'official FreePBX module metadata and historical parity disposition' },
   { moduleId: 'framework', reason: 'FreePBX framework plumbing has no distinct native Asterisk configuration surface in this console.', source: 'historical FreePBX parity disposition' },
   { moduleId: 'pm2', reason: 'FreePBX process-manager plumbing is not a user-facing Asterisk configuration module.', source: 'historical FreePBX parity disposition' },
   { moduleId: 'phpinfo', reason: 'PHP diagnostic output is not a native Asterisk configuration surface.', source: 'historical FreePBX parity disposition' },
@@ -29,7 +30,7 @@ const exclusions = [
   { moduleId: 'irc', reason: 'Online support chat is not an Asterisk administration capability.', source: 'historical FreePBX parity disposition' },
   { moduleId: 'ucp', reason: 'The separate end-user portal is outside the administrator console boundary.', source: 'historical FreePBX parity disposition' },
   { moduleId: 'webrtc', reason: 'The UCP-embedded browser phone is not claimed without the separate end-user portal.', source: 'historical FreePBX parity disposition' },
-];
+].map((entry) => ({ ...entry, recordId: `exclude-${entry.moduleId}`, actionable: false }));
 
 function gh(args) {
   return execFileSync('gh', ['api', ...args], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -161,12 +162,13 @@ function readPublishedModule(repo) {
   const branches = [preferredBranch, repo.default_branch, 'master'].filter((value, index, array) => value && array.indexOf(value) === index);
   for (const branch of branches) {
     try {
-      const file = ghJson([`repos/${organization}/${repo.name}/contents/module.xml?ref=${encodeURIComponent(branch)}`]);
+      const commit = ghJson([`repos/${organization}/${repo.name}/commits/${encodeURIComponent(branch)}`]);
+      if (!commit?.sha || !/^[0-9a-f]{40}$/u.test(commit.sha)) continue;
+      const file = ghJson([`repos/${organization}/${repo.name}/contents/module.xml?ref=${encodeURIComponent(commit.sha)}`]);
       if (!file || file.type !== 'file' || file.encoding !== 'base64') continue;
       const xml = Buffer.from(file.content.replace(/\s/gu, ''), 'base64').toString('utf8');
       const parsed = parseModuleXml(xml);
       if (!parsed.rawname) continue;
-      const commit = ghJson([`repos/${organization}/${repo.name}/commits/${encodeURIComponent(branch)}`]);
       return { branch, file, xml, parsed, revision: commit.sha };
     } catch {
       // A repository without a module.xml is not a module and is omitted deliberately.
