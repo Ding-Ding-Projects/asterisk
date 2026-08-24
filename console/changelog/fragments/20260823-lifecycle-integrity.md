@@ -6,6 +6,7 @@
 - Required operating-system and Asterisk identity probes before reporting a connection.
 - Bound daemon actions and configuration transactions to the selected target, with reload and runtime verification before success.
 - Added the missing AoR section to onboarding, exposed endpoint save and delete actions, and refused endpoint creation before a successful `pjsip.conf` read.
+- Preserved configuration file uid, gid, and mode across atomic staging and apply, with restrictive `root:root` and `0600` defaults for new resources, independent live metadata verification, and metadata-preserving rollback.
 
 ## Verification
 
