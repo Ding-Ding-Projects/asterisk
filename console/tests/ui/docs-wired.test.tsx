@@ -89,3 +89,13 @@ test('BREAK CHECK — an empty article catalogue is caught by the guard above, p
   const emptyBundle = { generatedAt: DOCS_BUNDLE.generatedAt, articleCount: 0, articles: [] };
   assert.equal(listArticles(emptyBundle as typeof DOCS_BUNDLE).length, 0);
 });
+
+test('the search field shows what was typed into it', () => {
+  /* The compiled design defaults every input to an empty string, so a field whose value
+   * is not mirrored back from state renders empty however much was typed - the search
+   * reads as though it cleared itself on every keystroke. The changelog had the same
+   * fault; this asserts the docs browser does not. */
+  const markup = renderDocsScreen({ docsQuery: 'voicemail' });
+  assert.ok(markup.includes('value="voicemail"'),
+    'the typed query never reached the rendered control, so the field would look empty');
+});

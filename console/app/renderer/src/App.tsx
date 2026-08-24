@@ -1157,6 +1157,13 @@ It is shown once. The phone needs it to register.`);
       docsResultsLabel: query.trim().length === 0
         ? `${results.length} article${results.length === 1 ? '' : 's'}`
         : `${results.length} match${results.length === 1 ? '' : 'es'}`,
+      // The compiled design defaults every input to a literal empty string, so a field
+      // whose value is not mirrored back here renders empty no matter what was typed:
+      // the search reads as though it had been cleared on every keystroke. Found on the
+      // changelog first and fixed there; this is the same fault on the same shape of
+      // control, which is why it is worth naming rather than quietly repairing.
+      docsQuery: query,
+      docsRegexOn: !!(this.state as { docsRegexOn?: boolean }).docsRegexOn,
       docsQueryError: queryError,
       docsSelectedTitle: article?.title ?? 'No article',
       docsSelectedCategory: article?.category ?? '',
