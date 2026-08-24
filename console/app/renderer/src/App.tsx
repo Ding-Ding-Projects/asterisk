@@ -11,7 +11,7 @@ import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
 import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, type ConfigValue } from './configuration';
 import { readControlValues, unmappedControls } from './control-keys';
 import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
-import type { ControlPlaneResponse, ExternalEditorLaunchResult, ExternalEditorLatestExport, ExternalEditorStatus, PbxReadView } from '../../../shared/control-plane';
+import type { ControlPlaneResponse, ExternalEditorLaunchResult, ExternalEditorLatestExport, ExternalEditorPickerReceipt, ExternalEditorStatus, PbxReadView } from '../../../shared/control-plane';
 import { ServerSwitcher } from './servers';
 import { buildEndpointDraft, endpointDocument, PJSIP_RESOURCE, WIZARD_CONTROLS } from './endpoint-create';
 import {
@@ -342,26 +342,29 @@ export class App extends Base {
     if (!bridge?.externalEditor) { this.fire('Editor not reached', 'The desktop bridge is unavailable, so nothing was opened.'); return; }
     if (action === 'editor-browse') {
       const picked = await bridge.externalEditor.pickExecutable();
+      this.externalEditorStatus = { ...this.externalEditorStatus, operation: picked.operation };
       if (picked.canceled) { if (picked.reason === 'busy') this.fire('Editor picker busy', 'Another native picker is already open.'); else this.toast('Executable picker cancelled.'); return; }
-      if (!picked.canceled && picked.executable) {
-        this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, 'pbxadm:ed_custom_path': picked.executable } }));
+      if (!picked.canceled && picked.value) {
+        this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, 'pbxadm:ed_custom_path': picked.value } }));
         this.toast('Executable selected. Save the custom editor to keep it.');
       }
       return;
     }
     if (action === 'editor-pick-portable') {
       const picked = await bridge.externalEditor.pickExecutable();
+      this.externalEditorStatus = { ...this.externalEditorStatus, operation: picked.operation };
       if (picked.canceled) { if (picked.reason === 'busy') this.fire('Editor picker busy', 'Another native picker is already open.'); else this.toast('Portable executable picker cancelled.'); return; }
-      if (!picked.canceled && picked.executable) {
-        try { this.externalEditorStatus = await bridge.externalEditor.savePortable(picked.executable); this.toast('Portable Visual Studio Code path saved and selected.'); this.forceUpdate(); }
+      if (!picked.canceled && picked.value) {
+        try { this.externalEditorStatus = await bridge.externalEditor.savePortable(picked.value); this.toast('Portable Visual Studio Code path saved and selected.'); this.forceUpdate(); }
         catch (error) { this.fire('Portable editor not saved', error instanceof Error ? error.message : String(error)); }
       }
       return;
     }
     if (action === 'editor-pick-project') {
       const picked = await bridge.externalEditor.pickFolder();
+      this.externalEditorStatus = { ...this.externalEditorStatus, operation: picked.operation };
       if (picked.canceled) { if (picked.reason === 'busy') this.fire('Project folder picker busy', 'Another native picker is already open.'); else this.toast('Project folder picker cancelled.'); return; }
-      if (!picked.canceled && picked.folder) { this.externalProjectFolder = picked.folder; this.toast(`Project folder selected: ${picked.folder}`); this.forceUpdate(); }
+      if (!picked.canceled && picked.value) { this.externalProjectFolder = picked.value; this.toast(`Project folder selected: ${picked.value}`); this.forceUpdate(); }
       return;
     }
     if (action === 'editor-reset-project') {
@@ -2442,8 +2445,8 @@ interface DesktopBridge {
     saveCustom: (record: { name: string; executable: string; supportsFolderWorkspace?: boolean }) => Promise<ExternalEditorStatus>;
     removeCustom: (editorId: string) => Promise<ExternalEditorStatus>;
     savePortable: (executable: string) => Promise<ExternalEditorStatus>;
-    pickExecutable: () => Promise<{ operationId: string; canceled: boolean; executable?: string; reason?: 'user-cancelled' | 'busy' | 'picked' }>;
-    pickFolder: () => Promise<{ operationId: string; canceled: boolean; folder?: string; reason?: 'user-cancelled' | 'busy' | 'picked' }>;
+    pickExecutable: () => Promise<ExternalEditorPickerReceipt>;
+    pickFolder: () => Promise<ExternalEditorPickerReceipt>;
     openDownload: (editorId?: string) => Promise<{ ok: boolean; message: string }>;
     openProjectFolder: (folder: string, editorId?: string) => Promise<ExternalEditorLaunchResult>;
     launch: (target: { kind: 'file' | 'folder'; path: string }, editorId?: string) => Promise<ExternalEditorLaunchResult>;

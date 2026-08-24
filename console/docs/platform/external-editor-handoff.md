@@ -6,9 +6,9 @@ Open the current project folder, a selected configuration file, or an export in 
 
 The desktop process detects real executables and returns normalized absolute paths to the renderer. Detection covers Visual Studio Code stable, Visual Studio Code Insiders, Visual Studio Code Portable, user and machine installation paths, Notepad++, Sublime Text, and Notepad. A saved choice remains visible when its executable is unavailable, and the console never substitutes another editor without an explicit choice.
 
-Every picker, persistence write, launch, and materialization receives an operation id. Native pickers report `picked`, `user-cancelled`, or `busy` separately. Launch and materialization operations report bounded progress, refuse re-entry while another operation is active, and distinguish launch cancellation from materialization cancellation.
+Every picker, persistence write, launch, and materialization receives an operation id in the same `ExternalEditorStatus.operation` contract. Native pickers report `picked`, `user-cancelled`, or `busy` separately, with their terminal operation receipt carrying the same id and progress state. Launch and materialization operations report bounded progress, refuse re-entry while another operation is active, and distinguish launch cancellation from materialization cancellation. Picker busy state is held by the runtime operation itself, not by a second main-process flag.
 
-The settings surface can cancel the active operation. Cancellation kills the child process when one exists, removes an in-flight local materialization, clears the timeout, and returns a typed cancelled result carrying the operation id and stage.
+The settings surface can cancel the active operation. Cancellation kills the child process when one exists, removes an in-flight local materialization, clears the timeout, and returns a typed cancelled result carrying the operation id and stage. A pending native picker is marked cancelled through the same main-process IPC path and finishes with a `programmatic-cancelled` picker receipt when the native dialog returns.
 
 The settings surface provides these actions:
 

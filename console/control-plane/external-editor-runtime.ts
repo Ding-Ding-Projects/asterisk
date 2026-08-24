@@ -6,7 +6,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { atomicWriteFileSync } from './atomic-file.js';
 import type {
   ExternalEditorCandidate, ExternalEditorCustomRecord, ExternalEditorLaunchResult,
-  ExternalEditorLaunchTarget, ExternalEditorOperation, ExternalEditorStatus,
+  ExternalEditorLaunchTarget, ExternalEditorOperation, ExternalEditorPickerReceipt, ExternalEditorStatus,
 } from '../shared/control-plane.js';
 
 type RuntimeDefinition = ExternalEditorCandidate & { command: string; fallbackPaths: string[]; folderArgs: string[]; fileArgs: string[] };
@@ -177,7 +177,8 @@ export class ExternalEditorRuntime {
 
   private beginOperation(kind: ExternalEditorOperation['kind']): ExternalEditorOperation | undefined {
     if (this.activeOperation?.state === 'running') return undefined;
-    this.activeOperation = { operationId: randomUUID(), kind, state: 'running', progress: 0, message: `${kind} started.` };
+    if (this.activeOperation?.pending) return undefined;
+    this.activeOperation = { operationId: randomUUID(), kind, state: 'running', progress: 0, message: `${kind} started.`, pending: true };
     return this.activeOperation;
   }
 
@@ -186,16 +187,56 @@ export class ExternalEditorRuntime {
   }
 
   private finishOperation(operation: ExternalEditorOperation, state: ExternalEditorOperation['state'], message: string): ExternalEditorOperation {
-    const finished = { ...operation, state, progress: state === 'completed' ? 1 : operation.progress, message };
+    const finished = { ...operation, state, progress: state === 'completed' ? 1 : operation.progress, message, pending: false };
     this.activeOperation = finished;
     return finished;
   }
 
   cancelOperation(operationId: string): ExternalEditorStatus {
     if (!this.activeOperation || this.activeOperation.operationId !== operationId || this.activeOperation.state !== 'running') return this.status();
-    if (this.activeCancel) this.activeCancel();
+    if (this.activeOperation.kind === 'pick-executable' || this.activeOperation.kind === 'pick-folder') {
+      this.activeOperation = { ...this.activeOperation, state: 'cancelled', message: 'Picker cancellation requested. Waiting for the native picker to close.', pending: true };
+    } else if (this.activeCancel) this.activeCancel();
     else this.finishOperation(this.activeOperation, 'cancelled', 'Operation cancelled.');
     return this.status();
+  }
+
+  beginPicker(kind: 'pick-executable' | 'pick-folder'): ExternalEditorOperation | undefined {
+    return this.beginOperation(kind);
+  }
+
+  busyPickerReceipt(kind: 'pick-executable' | 'pick-folder'): ExternalEditorPickerReceipt {
+    const operation: ExternalEditorOperation = { operationId: randomUUID(), kind, state: 'failed', progress: 1, message: 'Another editor operation is already running.', pending: false };
+    return { operationId: operation.operationId, kind, canceled: true, reason: 'busy', operation };
+  }
+
+  completePicker(operationId: string, kind: 'pick-executable' | 'pick-folder', value: string | undefined, userCancelled: boolean): ExternalEditorPickerReceipt {
+    const active = this.activeOperation;
+    if (!active || active.operationId !== operationId || active.kind !== kind) {
+      const operation: ExternalEditorOperation = { operationId, kind, state: 'failed', progress: 1, message: 'Picker operation was not found.', pending: false };
+      return { operationId, kind, canceled: true, reason: 'failed', operation };
+    }
+    if (active.state === 'cancelled') {
+      const operation = this.finishOperation(active, 'cancelled', 'Picker cancelled by the user.');
+      return { operationId, kind, canceled: true, reason: 'programmatic-cancelled', operation };
+    }
+    if (userCancelled || !value) {
+      const operation = this.finishOperation(active, 'cancelled', 'Picker cancelled by the user.');
+      return { operationId, kind, canceled: true, reason: 'user-cancelled', operation };
+    }
+    this.updateOperation(active, 0.8, `${kind} selection received.`);
+    const operation = this.finishOperation(this.activeOperation!, 'completed', `${kind} completed.`);
+    return { operationId, kind, canceled: false, value, reason: 'picked', operation };
+  }
+
+  failPicker(operationId: string, kind: 'pick-executable' | 'pick-folder', message: string): ExternalEditorPickerReceipt {
+    const active = this.activeOperation;
+    if (!active || active.operationId !== operationId || active.kind !== kind) {
+      const operation: ExternalEditorOperation = { operationId, kind, state: 'failed', progress: 1, message, pending: false };
+      return { operationId, kind, canceled: true, reason: 'failed', operation };
+    }
+    const operation = this.finishOperation(active, 'failed', message);
+    return { operationId, kind, canceled: true, reason: 'failed', operation };
   }
 
   choose(editorId: string): ExternalEditorStatus {

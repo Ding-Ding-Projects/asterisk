@@ -92,6 +92,7 @@ export interface ExternalEditorOperation {
   state: 'running' | 'completed' | 'failed' | 'cancelled';
   progress: number;
   message: string;
+  pending: boolean;
 }
 
 export interface ExternalEditorStatus {
@@ -139,6 +140,15 @@ export interface ExternalEditorLaunchFailure {
   cancelled?: boolean;
 }
 
+export interface ExternalEditorPickerReceipt {
+  operationId: string;
+  kind: 'pick-executable' | 'pick-folder';
+  canceled: boolean;
+  value?: string;
+  reason: 'picked' | 'user-cancelled' | 'busy' | 'programmatic-cancelled' | 'failed';
+  operation: ExternalEditorOperation;
+}
+
 export type ExternalEditorLaunchResult = ExternalEditorLaunchReceipt | ExternalEditorLaunchFailure;
 
 export interface ExternalEditorCustomRecord {
@@ -156,8 +166,8 @@ export interface ExternalEditorApi {
   cancelOperation(operationId: string): Promise<ExternalEditorStatus>;
   saveCustom(record: ExternalEditorCustomRecord): Promise<ExternalEditorStatus>;
   removeCustom(editorId: string): Promise<ExternalEditorStatus>;
-  pickExecutable(): Promise<{ operationId: string; canceled: boolean; executable?: string; reason?: 'user-cancelled' | 'busy' | 'picked' }>;
-  pickFolder(): Promise<{ operationId: string; canceled: boolean; folder?: string; reason?: 'user-cancelled' | 'busy' | 'picked' }>;
+  pickExecutable(): Promise<ExternalEditorPickerReceipt>;
+  pickFolder(): Promise<ExternalEditorPickerReceipt>;
   savePortable(executable: string): Promise<ExternalEditorStatus>;
   openDownload(editorId?: string): Promise<{ ok: boolean; message: string }>;
   openProjectFolder(folder: string, editorId?: string): Promise<ExternalEditorLaunchResult>;

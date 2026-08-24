@@ -65,3 +65,23 @@ test('synchronous spawn failure returns a typed failure and removes its material
     assert.equal(existsSync(join(root, 'external-editor-exports', 'sync-failure.json')), false);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test('picker operation status, busy refusal, and cancellation share one runtime contract', () => {
+  const root = mkdtempSync(join(tmpdir(), 'external-editor-runtime-'));
+  try {
+    const runtime = new ExternalEditorRuntime({ userDataPath: root });
+    const operation = runtime.beginPicker('pick-folder');
+    assert.ok(operation);
+    assert.equal(runtime.status().operation?.operationId, operation.operationId);
+    assert.equal(runtime.status().operation?.pending, true);
+    assert.equal(runtime.beginPicker('pick-executable'), undefined);
+    const cancelledStatus = runtime.cancelOperation(operation.operationId);
+    assert.equal(cancelledStatus.operation?.state, 'cancelled');
+    assert.equal(cancelledStatus.operation?.pending, true);
+    const receipt = runtime.completePicker(operation.operationId, 'pick-folder', undefined, true);
+    assert.equal(receipt.reason, 'programmatic-cancelled');
+    assert.equal(receipt.canceled, true);
+    assert.equal(receipt.operation.pending, false);
+    assert.equal(runtime.status().operation?.pending, false);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
