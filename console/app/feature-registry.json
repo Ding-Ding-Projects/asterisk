@@ -164,6 +164,7 @@
         "control-plane/external-editor-runtime.ts",
         "control-plane/atomic-file.ts",
         "control-plane/settings-store.ts",
+        "tests/control-plane/external-editor-runtime.test.ts",
         "app/electron/main.ts",
         "app/electron/preload.ts",
         "app/electron/preload.cjs",

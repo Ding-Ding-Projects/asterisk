@@ -44,7 +44,7 @@ All editor actions are rendered through the design reference's existing Material
 
 ## Verification
 
-The pure policy is covered by the existing focused renderer test file. This lane did not run tests, lint, a broad build, packaging, UI driving or captures by design. The design compiler was run after editing the checked-in design source, and the generated console output was inspected for every external-editor control and action. The next verification lane should launch the packaged desktop artifact and prove detection, native picking, persistence, folder capability refusal, Visual Studio Code handoff, export handoff, and typed launch failure receipts.
+The pure policy is covered by the existing focused renderer test file. Narrow control-plane regressions in `tests/control-plane/external-editor-runtime.test.ts` cover synchronous spawn failure cleanup, materialization cleanup after a typed failure, and active-child cancellation with a typed cancelled receipt. This lane did not run tests, lint, a broad build, packaging, UI driving or captures by design. The design compiler was run after editing the checked-in design source, and the generated console output was inspected for every external-editor control and action. The next verification lane should launch the packaged desktop artifact and prove detection, native picking, persistence, folder capability refusal, Visual Studio Code handoff, export handoff, and typed launch failure receipts.
 
 ## Suggested articles
 

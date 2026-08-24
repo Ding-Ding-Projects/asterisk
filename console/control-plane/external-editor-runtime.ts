@@ -86,11 +86,12 @@ function validCustom(record: ExternalEditorCustomRecord): boolean {
     && !/[&|;<>^`\n\r]/u.test(executable) && !/^".*"$/u.test(executable);
 }
 
-export interface ExternalEditorRuntimeOptions { userDataPath: string; env?: NodeJS.ProcessEnv; }
+export interface ExternalEditorRuntimeOptions { userDataPath: string; env?: NodeJS.ProcessEnv; spawnProcess?: typeof spawn; }
 
 export class ExternalEditorRuntime {
   private readonly file: string;
   private readonly env: NodeJS.ProcessEnv;
+  private readonly spawnProcess: typeof spawn;
   private config: Persisted;
   private persistenceState: 'valid' | 'missing' | 'invalid' = 'missing';
   private persistenceMessage: string | undefined;
@@ -102,6 +103,7 @@ export class ExternalEditorRuntime {
   constructor(options: ExternalEditorRuntimeOptions) {
     this.file = join(options.userDataPath, 'external-editors.json');
     this.env = options.env ?? process.env;
+    this.spawnProcess = options.spawnProcess ?? spawn;
     this.config = this.read();
   }
 
@@ -285,9 +287,11 @@ export class ExternalEditorRuntime {
     const args = [...(target.kind === 'folder' ? candidate.folderArgs : candidate.fileArgs), target.path];
     return new Promise((resolveResult) => {
       let settled = false;
-      const child = spawn(executable, args, { shell: false, windowsHide: true, detached: false, stdio: 'ignore' });
+      let child: ReturnType<typeof spawn>;
       let timer: ReturnType<typeof setTimeout> | undefined;
       const finish = (resultFactory: (progress: ExternalEditorOperation) => ExternalEditorLaunchResult, state: ExternalEditorOperation['state'], message: string) => { if (settled) return; settled = true; if (timer !== undefined) clearTimeout(timer); this.activeCancel = undefined; this.activeChild = undefined; const progress = this.finishOperation(operation, state, message); resolveResult(resultFactory(progress)); };
+      try { child = this.spawnProcess(executable, args, { shell: false, windowsHide: true, detached: false, stdio: 'ignore' }); }
+      catch (error) { const message = error instanceof Error ? error.message : String(error); finish(() => ({ ok: false, code: 'SPAWN_FAILED', message: `The editor could not be started: ${message}`, operationId: operation.operationId, stage }), 'failed', message); return; }
       this.activeCancel = () => {
         try { this.activeChild?.kill(); } catch { /* best effort */ }
         if (stage === 'materialization' && this.activeMaterializedPath) { try { unlinkSync(this.activeMaterializedPath); } catch { /* best effort */ } this.activeMaterializedPath = undefined; }
