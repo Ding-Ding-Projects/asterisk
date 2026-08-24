@@ -44,6 +44,7 @@ export interface LogoConversionRequest {
 export interface IsolatedLogoDecoderOutput {
   readonly bytes: Uint8Array;
   readonly roundTripVerified: boolean;
+  readonly cropDigest?: string;
   readonly lossNotes?: readonly string[];
   readonly peakMemoryBytes?: number;
 }
@@ -209,6 +210,7 @@ export function createLogoConversionHandlers(decoder: IsolatedLogoDecoder | unde
       }
       if (!(decoded.bytes instanceof Uint8Array)) return failure('DECODER_FAILED', 'The isolated image decoder returned no byte buffer.');
       if (!decoded.roundTripVerified) return failure('OUTPUT_INVALID', 'The decoder did not verify its output by reopening it.');
+      if (decoded.cropDigest !== cropDigest(crop)) return failure('OUTPUT_INVALID', 'The isolated decoder did not return the exact applied crop policy.');
       if ((decoded.peakMemoryBytes ?? 0) > LOGO_MAX_MEMORY_BYTES) return failure('MEMORY_LIMIT', 'The decoder exceeded the bounded memory budget.');
       if (decoded.bytes.byteLength > LOGO_MAX_OUTPUT_BYTES) return failure('OUTPUT_TOO_LARGE', 'A converted logo exceeds the bounded output size.');
       totalOutputBytes += decoded.bytes.byteLength;

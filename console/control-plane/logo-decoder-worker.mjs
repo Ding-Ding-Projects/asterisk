@@ -3,6 +3,8 @@ import { createInterface } from 'node:readline';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 if (!process.argv.includes('--no-network')) process.exit(78);
 const WORKER_REVISION = 'logo-worker-2026-08-23-v4';
@@ -15,6 +17,22 @@ function nativeBinding() {
   const path = require.resolve(`${packageName}/sharp.${process.platform}-${process.arch}.node`);
   return { path, sha256: createHash('sha256').update(readFileSync(path)).digest('hex') };
 }
+function cropDigest(crop) {
+  return createHash('sha256').update(JSON.stringify({ fit: crop.fit, crop: { x: crop.crop.x, y: crop.crop.y, width: crop.crop.width, height: crop.crop.height }, focalPoint: { x: crop.focalPoint.x, y: crop.focalPoint.y }, safeArea: { top: crop.safeArea.top, right: crop.safeArea.right, bottom: crop.safeArea.bottom, left: crop.safeArea.left }, background: crop.background.kind === 'solid' ? { kind: 'solid', color: crop.background.color } : { kind: 'transparent' } }), 'utf8').digest('hex');
+}
+function verifyStartupResources() {
+  const root = dirname(fileURLToPath(import.meta.url));
+  const manifest = JSON.parse(readFileSync(join(root, 'logo-decoder-manifest.json'), 'utf8'));
+  readFileSync(join(root, 'package-lock.json'));
+  if (!Array.isArray(manifest.nativeFiles) || manifest.nativeFiles.length === 0) throw new Error('The decoder startup manifest has no native runtime files.');
+  for (const entry of manifest.nativeFiles) {
+    if (typeof entry.path !== 'string' || !/^node_modules\/(?:sharp|@img)\/.+\.(?:js|mjs|cjs|node|dll|exe|so|dylib|wasm)$/iu.test(entry.path)) throw new Error('The decoder startup manifest contains an invalid native runtime path.');
+    readFileSync(join(root, entry.path.replaceAll('/', '\\')));
+  }
+  nativeBinding();
+}
+verifyStartupResources();
+process.stdout.write('READY\n');
 const signature = (format) => format === 'png' ? 'png-signature' : format === 'jpeg' ? 'jpeg-signature' : 'webp-riff-signature';
 const alphaFor = (format, channels) => format !== 'jpeg' && (channels === 2 || channels === 4);
 
@@ -74,7 +92,7 @@ async function convert(input) {
   image = target.alpha ? image.ensureAlpha() : image.removeAlpha();
   const bytes = target.format === 'png' ? await image.png({ compressionLevel: 9 }).toBuffer() : target.format === 'jpeg' ? await image.jpeg({ quality: 90, chromaSubsampling: '4:4:4' }).toBuffer() : await image.webp({ quality: 90, alphaQuality: 100 }).toBuffer();
   if (bytes.byteLength > 16 * 1024 * 1024) throw new Error('The output exceeds the bounded byte limit.');
-  return { ...(await reopen(bytes, target)), bytesBase64: bytes.toString('base64'), lossNotes: ['focal point applied', 'safe area applied'] };
+  return { ...(await reopen(bytes, target)), bytesBase64: bytes.toString('base64'), cropDigest: cropDigest(crop), lossNotes: ['focal point applied', 'safe area applied'] };
 }
 
 const input = createInterface({ input: process.stdin, crlfDelay: Infinity });

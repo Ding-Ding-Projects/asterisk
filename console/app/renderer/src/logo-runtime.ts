@@ -168,12 +168,12 @@ export class LogoRuntime {
     const peekResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.cache.peek-stored' });
     if (!current()) return this.state;
     const peekRecord = peekResponse.ok ? peekResponse.data as LogoCacheRecord | undefined : undefined;
-    const hasValidatedCache = Boolean(peekRecord?.customLogoActive === true);
+    const hasStoredCache = Boolean(peekRecord?.customLogoActive === true);
     const settingsResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'settings.snapshot' });
     if (!current()) return this.state;
     const settingsValues = settingsResponse.ok ? (settingsResponse.data as { values?: Record<string, string> } | undefined)?.values : undefined;
     if (this.state.decoderAvailable !== true) {
-      this.publish({ ...this.state, status: 'unavailable', cacheStatus: hasValidatedCache ? 'decoder-unavailable' : 'none', detail: typeof (decoderData as { reason?: unknown } | undefined)?.reason === 'string' ? String((decoderData as { reason: string }).reason) : hasValidatedCache ? 'The validated custom-logo cache is retained until the decoder can retry.' : 'The isolated logo decoder is unavailable; the shipped mark remains active.' });
+      this.publish({ ...this.state, status: 'unavailable', cacheStatus: hasStoredCache ? 'decoder-unavailable' : 'none', detail: typeof (decoderData as { reason?: unknown } | undefined)?.reason === 'string' ? String((decoderData as { reason: string }).reason) : hasStoredCache ? 'A stored custom-logo record is retained until the decoder can retry.' : 'The isolated logo decoder is unavailable; the shipped mark remains active.' });
       return this.state;
     }
     const stored = settingsValues?.['logo.ui-v1'];
@@ -189,12 +189,12 @@ export class LogoRuntime {
     if (!current()) return this.state;
     const error = responseError(response);
     if (error) {
-      this.publish({ ...this.state, status: 'unavailable', cacheStatus: hasValidatedCache ? 'invalid' : 'none', detail: hasValidatedCache ? 'The saved custom-logo cache could not be reopened; it remains retained for retry.' : error });
+      this.publish({ ...this.state, status: 'unavailable', cacheStatus: hasStoredCache ? 'invalid' : 'none', detail: hasStoredCache ? 'The stored custom-logo record could not be reopened; it remains retained for retry.' : error });
       return this.state;
     }
     const record = response.data as LogoCacheRecord | undefined;
     if (!record) {
-      this.publish({ ...this.state, status: 'active', cacheStatus: hasValidatedCache ? 'invalid' : 'none', detail: hasValidatedCache ? 'The saved custom-logo cache could not be reopened; the shipped preset remains active for retry.' : 'No custom cache is present; the shipped preset remains active.' });
+      this.publish({ ...this.state, status: 'active', cacheStatus: hasStoredCache ? 'invalid' : 'none', detail: hasStoredCache ? 'The stored custom-logo record could not be reopened; the shipped preset remains active for retry.' : 'No custom cache is present; the shipped preset remains active.' });
       return this.state;
     }
     const assets = new Map<string, Uint8Array>();

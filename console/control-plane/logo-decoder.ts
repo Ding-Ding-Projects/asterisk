@@ -69,7 +69,7 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
     const minimalEnv: NodeJS.ProcessEnv = { ELECTRON_RUN_AS_NODE: '1', PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, TEMP: process.env.TEMP, TMP: process.env.TMP };
     const launcher = process.platform === 'win32' && options.jobScriptPath;
     const child = launcher
-      ? spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', options.jobScriptPath!, '-NodePath', process.execPath, '-WorkerPath', options.workerPath, '-MemoryBytes', String(MAX_WORKER_OS_BYTES), '-ManifestPath', options.manifestPath, '-PackageLockPath', options.packageLockPath], { windowsHide: true, shell: false, env: minimalEnv, stdio: ['pipe', 'pipe', 'ignore'] })
+      ? spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', options.jobScriptPath!, '-NodePath', process.execPath, '-WorkerPath', options.workerPath, '-MemoryBytes', String(MAX_WORKER_OS_BYTES), '-ManifestPath', options.manifestPath, '-PackageLockPath', options.packageLockPath, '-WorkerTimeoutMs', String(options.timeoutMs ?? 2_000)], { windowsHide: true, shell: false, env: minimalEnv, stdio: ['pipe', 'pipe', 'ignore'] })
       : spawn(process.execPath, ['--max-old-space-size=64', options.workerPath, '--no-network'], { windowsHide: true, shell: false, env: minimalEnv, stdio: ['pipe', 'pipe', 'ignore'] });
     const limit = MAX_WORKER_RESPONSE_BYTES;
     let output = '';
@@ -87,7 +87,7 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
     let cleanupFailure: string | undefined;
     let finish: (error?: Error, value?: Record<string, unknown>) => void;
     const sendRequestIfReady = () => {
-      if (launcher && !inputSent && workerPid && baselinePid === workerPid && baselineWorkingSetBytes !== undefined) {
+      if (launcher && !inputSent && readySeen && workerPid && baselinePid === workerPid && baselineWorkingSetBytes !== undefined) {
         inputSent = true;
         child.stdin.end(`${JSON.stringify({ id: randomUUID(), ...request })}\n`);
       }
@@ -112,18 +112,14 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
         try {
           let workerTerminated = await waitForTermination(workerPid, 2_000);
           let childExited = await waitForChildExit(child, 2_000);
-          if (!childExited && child.exitCode === null) {
-            child.kill();
-            childExited = await waitForChildExit(child, 2_000);
-          }
+          if (!childExited && child.exitCode === null) childExited = await waitForChildExit(child, 2_000);
           if (!workerTerminated) workerTerminated = await waitForTermination(workerPid, 2_000);
           if (!childExited || child.exitCode === null) throw new Error('The isolated decoder launcher did not terminate after cancellation.');
           if (!workerTerminated) throw new Error('The isolated decoder worker termination could not be proven.');
           if (launcher && (!readySeen || !workerExitAcknowledged || !jobCleanupAcknowledged || !cleanupComplete || cleanupFailure)) throw new Error(cleanupFailure ?? 'The isolated decoder cleanup acknowledgement was incomplete.');
         } catch (cause) {
           cleanupError = cause instanceof Error ? cause : new Error('The isolated decoder cleanup failed.');
-          if (child.exitCode === null) child.kill();
-          if (!(await waitForChildExit(child, 2_000)) && child.exitCode === null) cleanupError = new Error('The isolated decoder launcher termination could not be proven.', { cause: cleanupError });
+          if (!(await waitForChildExit(child, 2_000)) && child.exitCode === null) cleanupError = new Error('The isolated decoder launcher termination could not be proven by its supervisor receipt.', { cause: cleanupError });
         }
         if (error) reject(error); else if (cleanupError) reject(cleanupError); else if (launcher && (workerPid === undefined || baselinePid !== workerPid)) reject(new Error('The isolated decoder working-set baseline was not bound to the worker PID.')); else resolve({ ...value!, workerPid, baselinePid, peakWorkingSetBytes, baselineWorkingSetBytes, workingSetIncrementBytes: baselineWorkingSetBytes === undefined ? undefined : peakWorkingSetBytes - baselineWorkingSetBytes });
       })();
@@ -138,18 +134,29 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
       while (newline >= 0) {
         const line = output.slice(0, newline).replace(/\r$/u, '');
         output = output.slice(newline + 1);
-        if (launcher && !readySeen) {
-          if (line === 'READY') readySeen = true;
-          else if (line.startsWith('ERROR:')) cleanupFailure = line;
-          else if (line.length > 0) { finish(new Error('The isolated decoder launcher did not emit exact READY framing.')); return; }
+        if (launcher && !workerPid && line === 'READY') {
+          readySeen = true;
           newline = output.indexOf('\n');
           continue;
         }
         if (launcher && !workerPid) {
           const pidMatch = /^WORKER_PID:(\d+)$/u.exec(line);
-          if (!pidMatch || !Number.isSafeInteger(Number(pidMatch[1])) || Number(pidMatch[1]) < 1) { finish(new Error('The isolated decoder launcher did not emit an exact worker PID frame.')); return; }
-          workerPid = Number(pidMatch[1]);
-          monitorPid = workerPid;
+          if (pidMatch) {
+            if (!Number.isSafeInteger(Number(pidMatch[1])) || Number(pidMatch[1]) < 1) { finish(new Error('The isolated decoder launcher did not emit an exact worker PID frame.')); return; }
+            workerPid = Number(pidMatch[1]);
+            monitorPid = workerPid;
+            newline = output.indexOf('\n');
+            continue;
+          }
+          if (line.startsWith('ERROR:')) cleanupFailure = line;
+          else if (line.length > 0) { finish(new Error('The isolated decoder launcher did not emit an exact worker PID frame.')); return; }
+          newline = output.indexOf('\n');
+          continue;
+        }
+        if (launcher && !readySeen) {
+          if (line === 'READY') readySeen = true;
+          else if (line.startsWith('ERROR:')) cleanupFailure = line;
+          else if (line.length > 0) { finish(new Error('The isolated decoder worker did not emit exact READY framing.')); return; }
           newline = output.indexOf('\n');
           continue;
         }
@@ -179,7 +186,8 @@ export function createIsolatedLogoDecoder(options: IsolatedLogoDecoderOptions): 
       if (typeof result.bytesBase64 !== 'string' || Buffer.byteLength(result.bytesBase64, 'utf8') > MAX_WORKER_RESPONSE_BYTES) throw new Error('The isolated decoder response exceeded its mathematically bounded Base64 envelope.');
       const bytes = new Uint8Array(Buffer.from(result.bytesBase64, 'base64'));
       if (bytes.byteLength > 16 * 1024 * 1024 || result.roundTripVerified !== true) throw new Error('The isolated logo decoder returned no independently reopened output.');
-      return { bytes, roundTripVerified: true, lossNotes: Array.isArray(result.lossNotes) ? result.lossNotes.filter((note): note is string => typeof note === 'string' && note.length <= 512) : [], peakMemoryBytes: typeof result.workingSetIncrementBytes === 'number' ? result.workingSetIncrementBytes : undefined };
+      if (typeof result.cropDigest !== 'string' || !/^[0-9a-f]{64}$/iu.test(result.cropDigest)) throw new Error('The isolated decoder did not return an applied crop digest.');
+      return { bytes, roundTripVerified: true, cropDigest: result.cropDigest, lossNotes: Array.isArray(result.lossNotes) ? result.lossNotes.filter((note): note is string => typeof note === 'string' && note.length <= 512) : [], peakMemoryBytes: typeof result.workingSetIncrementBytes === 'number' ? result.workingSetIncrementBytes : undefined };
     },
     async health(): Promise<IsolatedLogoDecoderHealth> {
       const result = await runWorker(options, { operation: 'health' });

@@ -3,7 +3,8 @@ param(
   [Parameter(Mandatory = $true)][string]$WorkerPath,
   [Parameter(Mandatory = $true)][long]$MemoryBytes,
   [Parameter(Mandatory = $true)][string]$ManifestPath,
-  [Parameter(Mandatory = $true)][string]$PackageLockPath
+  [Parameter(Mandatory = $true)][string]$PackageLockPath,
+  [Parameter(Mandatory = $true)][long]$WorkerTimeoutMs
 )
 
 function Read-ProvenPath([string]$Path) {
@@ -34,6 +35,9 @@ try {
     if ($entry.path -notmatch '^node_modules/(sharp|@img)/.+\.(js|mjs|cjs|node|dll|exe|so|dylib|wasm)$') { throw "The decoder manifest contains an invalid runtime path: $($entry.path)" }
     $candidate = [IO.Path]::GetFullPath((Join-Path ([IO.Path]::GetDirectoryName($PackageLockPath)) ($entry.path -replace '/', '\')))
     [void](Read-ProvenPath $candidate)
+    $expected = [string]$entry.sha256
+    $actual = (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actual -ne $expected) { throw "The decoder native runtime digest does not match the manifest: $($entry.path)" }
   }
 } catch {
   Write-Output "ERROR:STARTUP:$($_.Exception.Message)"
@@ -47,7 +51,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 public static class LogoWorkerAppContainerLauncher {
   const uint CREATE_SUSPENDED=0x4, EXTENDED_STARTUPINFO_PRESENT=0x80000, CREATE_UNICODE_ENVIRONMENT=0x400, STARTF_USESTDHANDLES=0x100, INFINITE=0xffffffff, HANDLE_FLAG_INHERIT=1;
-  const uint PROCESS_MEMORY=0x100, KILL_ON_CLOSE=0x2000;
+  const uint PROCESS_MEMORY=0x100, KILL_ON_CLOSE=0x2000, WAIT_TIMEOUT=0x102;
   const uint SE_FILE_OBJECT=1, DACL_SECURITY_INFORMATION=4, GENERIC_READ=0x80000000, GENERIC_EXECUTE=0x20000000, OBJECT_INHERIT=1, CONTAINER_INHERIT=2, SET_ACCESS=2;
   [StructLayout(LayoutKind.Sequential)] struct SECURITY_CAPABILITIES { public IntPtr AppContainerSid; public IntPtr Capabilities; public uint CapabilityCount; public uint Reserved; }
   [StructLayout(LayoutKind.Sequential)] struct STARTUPINFO { public uint cb; public string lpReserved; public string lpDesktop; public string lpTitle; public uint dwX; public uint dwY; public uint dwXSize; public uint dwYSize; public uint dwXCountChars; public uint dwYCountChars; public uint dwFillAttribute; public uint dwFlags; public IntPtr hStdInput; public IntPtr hStdOutput; public IntPtr hStdError; }
@@ -88,7 +92,7 @@ public static class LogoWorkerAppContainerLauncher {
   }
   static void RestoreResourceDacl(string path,IntPtr originalDacl){ var result=SetNamedSecurityInfo(path,SE_FILE_OBJECT,DACL_SECURITY_INFORMATION,IntPtr.Zero,IntPtr.Zero,originalDacl,IntPtr.Zero); if(result!=0) throw new Win32Exception((int)result,"Restoring decoder resource ACL failed"); }
   static void Capture(ref Exception first,Action action){ try{action();}catch(Exception error){if(first==null)first=error;} }
-  public static int Run(string node,string worker,long memoryBytes){
+  public static int Run(string node,string worker,long memoryBytes,long workerTimeoutMs){
     var profile="DingLogoDecoder_"+Guid.NewGuid().ToString("N"); IntPtr sid=IntPtr.Zero,job=IntPtr.Zero,attributes=IntPtr.Zero,resourceDescriptor=IntPtr.Zero,addedDacl=IntPtr.Zero,originalDacl=IntPtr.Zero,nodeDescriptor=IntPtr.Zero,nodeAddedDacl=IntPtr.Zero,nodeOriginalDacl=IntPtr.Zero; var resourceRoot=System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(worker)); if(String.IsNullOrEmpty(resourceRoot)) throw new InvalidOperationException("The decoder resource directory is unavailable"); PROCESS_INFORMATION pi=new PROCESS_INFORMATION(); int workerExit=1; Exception setupError=null,cleanupError=null;
     try{
       var hr=CreateAppContainerProfile(profile,profile,"Ding PBX Console local logo decoder",IntPtr.Zero,0,out sid);
@@ -111,7 +115,7 @@ public static class LogoWorkerAppContainerLauncher {
       if(!CreateProcess(null,command,IntPtr.Zero,IntPtr.Zero,true,CREATE_SUSPENDED|EXTENDED_STARTUPINFO_PRESENT|CREATE_UNICODE_ENVIRONMENT,IntPtr.Zero,null,ref startup,out pi)) throw new Win32Exception(Marshal.GetLastWin32Error(),"CreateProcess AppContainer worker failed");
       if(!AssignProcessToJobObject(job,pi.hProcess)) throw new Win32Exception(Marshal.GetLastWin32Error(),"AssignProcessToJobObject failed");
       if(ResumeThread(pi.hThread)==unchecked((uint)-1)) throw new Win32Exception(Marshal.GetLastWin32Error(),"ResumeThread failed");
-      Console.Out.WriteLine("READY"); Console.Out.WriteLine("WORKER_PID:"+pi.dwProcessId); Console.Out.Flush(); WaitForSingleObject(pi.hProcess,INFINITE); uint exit; if(!GetExitCodeProcess(pi.hProcess,out exit)) throw new Win32Exception(Marshal.GetLastWin32Error(),"GetExitCodeProcess failed"); workerExit=(int)exit; Console.Out.WriteLine("WORKER_EXIT:"+workerExit); Console.Out.Flush();
+      Console.Out.WriteLine("WORKER_PID:"+pi.dwProcessId); Console.Out.Flush(); var waitResult=WaitForSingleObject(pi.hProcess,(uint)Math.Max(1,workerTimeoutMs)); if(waitResult==WAIT_TIMEOUT){if(!TerminateProcess(pi.hProcess,124)) throw new Win32Exception(Marshal.GetLastWin32Error(),"Terminating timed-out decoder worker failed"); if(WaitForSingleObject(pi.hProcess,3000)==WAIT_TIMEOUT) throw new TimeoutException("The timed-out decoder worker did not exit.");} else if(waitResult!=0) throw new Win32Exception("WaitForSingleObject failed"); uint exit; if(!GetExitCodeProcess(pi.hProcess,out exit)) throw new Win32Exception(Marshal.GetLastWin32Error(),"GetExitCodeProcess failed"); workerExit=(int)exit; Console.Out.WriteLine("WORKER_EXIT:"+workerExit); Console.Out.Flush();
     }catch(Exception error){setupError=error;}
     finally{
       Capture(ref cleanupError,()=>{if(pi.hProcess!=IntPtr.Zero){uint current; if(GetExitCodeProcess(pi.hProcess,out current) && current==259){if(!TerminateProcess(pi.hProcess,1)) throw new Win32Exception(Marshal.GetLastWin32Error(),"Terminating decoder worker failed"); if(WaitForSingleObject(pi.hProcess,3000)==0x102) throw new TimeoutException("The decoder worker did not exit after native termination.");}}});
@@ -135,5 +139,5 @@ public static class LogoWorkerAppContainerLauncher {
 }
 "@
 
-$exitCode = [LogoWorkerAppContainerLauncher]::Run($NodePath, $WorkerPath, $MemoryBytes)
+$exitCode = [LogoWorkerAppContainerLauncher]::Run($NodePath, $WorkerPath, $MemoryBytes, $WorkerTimeoutMs)
 exit $exitCode
