@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, type WebContents } from 'electron';
 import { stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
@@ -18,9 +18,9 @@ import {
 } from './updater-runtime.js';
 
 let mainWindow: BrowserWindow | null = null;
-const downloadWindows = new Map<DownloadSurfaceKind, BrowserWindow>();
+interface DownloadWindowRecord { window: BrowserWindow; handoffId?: string; transferId?: string; origin?: BrowserWindow | null; }
+const downloadWindows = new Map<DownloadSurfaceKind, DownloadWindowRecord>();
 let downloadOriginWindow: BrowserWindow | null = null;
-let pendingHandoffId: string | undefined;
 function vaultReferenceFromEnvironment(name: string) {
   const value = process.env[name];
   if (!value) return undefined;
@@ -209,14 +209,21 @@ ipcMain.handle('download:submit-handoff', async (_event, handoff: ExtensionDownl
   }
   if (!chosenPath) return { accepted: false, detail: 'No approved destination path is available.' };
   const result = downloadTransfers.registerHandoff({ ...handoff, destinationPath: chosenPath });
-  if (result.accepted && result.handoff) { pendingHandoffId = result.handoff.handoffId; openDownloadWindow('start', senderWindow ?? undefined); broadcastDownload('download:handoff', result.handoff); }
+  if (result.accepted && result.handoff) openNextPendingStart(senderWindow);
   return result;
 });
 
-function openDownloadWindow(kind: DownloadSurfaceKind, origin?: BrowserWindow): BrowserWindow {
+function windowRecordForContents(contents: WebContents): DownloadWindowRecord | undefined {
+  return [...downloadWindows.values()].find((record) => record.window.webContents === contents);
+}
+function windowEntryForContents(contents: WebContents): [DownloadSurfaceKind, DownloadWindowRecord] | undefined {
+  return [...downloadWindows.entries()].find(([, record]) => record.window.webContents === contents);
+}
+
+function openDownloadWindow(kind: DownloadSurfaceKind, binding: { handoffId?: string; transferId?: string; origin?: BrowserWindow | null } = {}): BrowserWindow {
   const existing = downloadWindows.get(kind);
-  if (existing && !existing.isDestroyed()) { existing.show(); existing.focus(); return existing; }
-  downloadOriginWindow = origin ?? downloadOriginWindow ?? mainWindow;
+  if (existing && !existing.window.isDestroyed()) { existing.window.show(); existing.window.focus(); return existing.window; }
+  downloadOriginWindow = binding.origin ?? downloadOriginWindow ?? mainWindow;
   const window = new BrowserWindow({
     width: kind === 'complete' ? 620 : 760,
     height: kind === 'complete' ? 220 : 720,
@@ -230,54 +237,98 @@ function openDownloadWindow(kind: DownloadSurfaceKind, origin?: BrowserWindow): 
     title: kind === 'start' ? 'Start download' : kind === 'progress' ? 'Downloading' : 'Download complete',
     webPreferences: { preload: join(import.meta.dirname, '../../../app/electron/preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
-  downloadWindows.set(kind, window);
+  const record: DownloadWindowRecord = { window, handoffId: binding.handoffId, transferId: binding.transferId, origin: downloadOriginWindow };
+  downloadWindows.set(kind, record);
   window.once('ready-to-show', () => { window.show(); window.focus(); });
   window.on('closed', () => {
-    if (downloadWindows.get(kind) === window) downloadWindows.delete(kind);
-    if (kind === 'start' && pendingHandoffId) {
-      const handoffId = pendingHandoffId; pendingHandoffId = undefined;
-      void downloadTransfers.cancelHandoff(handoffId).then((receipt) => { if (receipt.accepted) broadcastDownload('download:handoff-cancelled', handoffId); });
+    if (downloadWindows.get(kind) === record) downloadWindows.delete(kind);
+    if (kind === 'start' && record.handoffId) {
+      const handoffId = record.handoffId;
+      void downloadTransfers.cancelHandoff(handoffId).then(() => openNextPendingStart(record.origin));
     }
-    downloadOriginWindow?.focus();
+    if (kind === 'complete') openNextPendingStart(record.origin);
+    record.origin?.focus();
   });
   if (process.env.VITE_DEV_SERVER_URL) {
     const url = new URL(process.env.VITE_DEV_SERVER_URL);
     url.searchParams.set('downloadWindow', kind);
+    if (binding.handoffId) url.searchParams.set('downloadHandoffId', binding.handoffId);
+    if (binding.transferId) url.searchParams.set('downloadTransferId', binding.transferId);
     void window.loadURL(url.href);
-  } else void window.loadFile(join(import.meta.dirname, '../../../dist/index.html'), { query: { downloadWindow: kind } });
+  } else void window.loadFile(join(import.meta.dirname, '../../../dist/index.html'), { query: { downloadWindow: kind, ...(binding.handoffId ? { downloadHandoffId: binding.handoffId } : {}), ...(binding.transferId ? { downloadTransferId: binding.transferId } : {}) });
   return window;
 }
 
 function closeDownloadWindow(kind: DownloadSurfaceKind): void {
-  const window = downloadWindows.get(kind);
-  if (window && !window.isDestroyed()) window.close();
-  if (kind === 'start') downloadOriginWindow?.focus();
+  const record = downloadWindows.get(kind);
+  if (record && !record.window.isDestroyed()) record.window.close();
+  if (kind === 'start') record?.origin?.focus();
 }
 
-function broadcastDownload(channel: string, payload: unknown): void {
-  for (const window of downloadWindows.values()) if (!window.isDestroyed()) window.webContents.send(channel, payload);
+function closeDownloadRecord(kind: DownloadSurfaceKind, handoffId?: string, transferId?: string): void {
+  const record = downloadWindows.get(kind);
+  if (!record) return;
+  if (handoffId && record.handoffId !== handoffId) return;
+  if (transferId && record.transferId !== transferId) return;
+  closeDownloadWindow(kind);
+}
+
+function sendDownload(kind: DownloadSurfaceKind, handoffId: string | undefined, channel: string, payload: unknown): void {
+  const record = downloadWindows.get(kind);
+  if (!record || (handoffId && record.handoffId !== handoffId) || record.window.isDestroyed()) return;
+  record.window.webContents.send(channel, payload);
+}
+
+function openNextPendingStart(origin?: BrowserWindow | null): void {
+  if (downloadWindows.has('start')) return;
+  const handoff = downloadTransfers.nextPendingHandoff();
+  if (!handoff) return;
+  openDownloadWindow('start', { handoffId: handoff.handoffId, origin });
+  sendDownload('start', handoff.handoffId, 'download:handoff', handoff);
 }
 ipcMain.handle('download:handoffs', async () => downloadTransfers.listPendingHandoffs());
 ipcMain.handle('download:start', async (_event, handoff: ExtensionDownloadHandoff) => {
   const senderWindow = BrowserWindow.fromWebContents(_event.sender) ?? mainWindow;
+  const senderRecord = windowRecordForContents(_event.sender);
+  const senderEntry = windowEntryForContents(_event.sender);
+  if (senderEntry && senderEntry[0] !== 'start') return { accepted: false, handoffId: handoff.handoffId, command: 'start', observedAt: new Date().toISOString(), status: 'rejected', code: 'DOWNLOAD_WINDOW_ACTION_MISMATCH', detail: 'Only the bound Start window may start its handoff.' };
+  if (senderRecord?.handoffId && senderRecord.handoffId !== handoff.handoffId) return { accepted: false, handoffId: handoff.handoffId, command: 'start', observedAt: new Date().toISOString(), status: 'rejected', code: 'DOWNLOAD_WINDOW_HANDOFF_MISMATCH', detail: 'The Start window is bound to a different handoff.' };
   const receipt = await downloadTransfers.start(handoff);
-  if (receipt.accepted) { pendingHandoffId = undefined; closeDownloadWindow('start'); openDownloadWindow('progress', senderWindow ?? undefined); }
+  if (receipt.accepted) { const record = windowRecordForContents(_event.sender); const startRecord = downloadWindows.get('start'); if (startRecord?.handoffId === handoff.handoffId) startRecord.handoffId = undefined; closeDownloadRecord('start', record?.handoffId); closeDownloadRecord('start', handoff.handoffId); openDownloadWindow('progress', { handoffId: handoff.handoffId, transferId: receipt.transferId, origin: senderWindow }); }
   return receipt;
 });
 ipcMain.handle('download:cancel-handoff', async (_event, handoffId: string) => {
+  const record = windowRecordForContents(_event.sender);
+  const entry = windowEntryForContents(_event.sender);
+  if (entry && entry[0] !== 'start') return { accepted: false, handoffId, command: 'cancel', observedAt: new Date().toISOString(), status: 'rejected', code: 'DOWNLOAD_WINDOW_ACTION_MISMATCH', detail: 'Only the bound Start window may cancel its pending handoff.' };
+  if (record?.handoffId && record.handoffId !== handoffId) return { accepted: false, handoffId, command: 'cancel', observedAt: new Date().toISOString(), status: 'rejected', code: 'DOWNLOAD_WINDOW_HANDOFF_MISMATCH', detail: 'The Start window is bound to a different handoff.' };
   const receipt = await downloadTransfers.cancelHandoff(handoffId);
-  if (receipt.accepted) { if (pendingHandoffId === handoffId) pendingHandoffId = undefined; closeDownloadWindow('start'); broadcastDownload('download:handoff-cancelled', handoffId); }
+  if (receipt.accepted) { const startRecord = downloadWindows.get('start'); if (startRecord?.handoffId === handoffId) startRecord.handoffId = undefined; closeDownloadRecord('start', handoffId); openNextPendingStart(record?.origin); }
   return receipt;
 });
-ipcMain.handle('download:command', async (_event, transferId: string, command: Exclude<DownloadCommand, 'start'>) => downloadTransfers.command(transferId, command));
-ipcMain.handle('download:snapshot', async (_event, transferId: string) => downloadTransfers.getSnapshot(transferId));
+ipcMain.handle('download:command', async (_event, transferId: string, command: Exclude<DownloadCommand, 'start'>) => {
+  const record = windowRecordForContents(_event.sender);
+  if (record && record.transferId !== transferId) return { accepted: false, handoffId: record.handoffId ?? '', command, observedAt: new Date().toISOString(), status: 'rejected', code: 'DOWNLOAD_WINDOW_TRANSFER_MISMATCH', detail: 'The window is bound to a different transfer.' };
+  return downloadTransfers.command(transferId, command);
+});
+ipcMain.handle('download:snapshot', async (_event, transferId: string) => {
+  const record = windowRecordForContents(_event.sender);
+  if (record && record.transferId !== transferId) return undefined;
+  return downloadTransfers.getSnapshot(transferId);
+});
 ipcMain.handle('download:latest-snapshot', async () => downloadTransfers.getLatestSnapshot());
-ipcMain.handle('download:close-window', async (_event, kind: DownloadSurfaceKind) => { closeDownloadWindow(kind); });
-ipcMain.handle('download:open-window', async (_event, kind: DownloadSurfaceKind) => { openDownloadWindow(kind, BrowserWindow.fromWebContents(_event.sender) ?? mainWindow ?? undefined); });
+ipcMain.handle('download:close-window', async (_event, kind: DownloadSurfaceKind) => { const entry = windowEntryForContents(_event.sender); if (entry?.[0] === kind) closeDownloadWindow(kind); });
+ipcMain.handle('download:open-window', async (_event, kind: DownloadSurfaceKind) => { const entry = windowEntryForContents(_event.sender); const record = entry?.[1]; if (kind === 'start' && !entry) openNextPendingStart(BrowserWindow.fromWebContents(_event.sender) ?? mainWindow); else if (entry?.[0] === kind && (record?.handoffId || record?.transferId)) openDownloadWindow(kind, { handoffId: record.handoffId, transferId: record.transferId, origin: record.origin }); });
 downloadTransfers.subscribeGlobal((snapshot) => {
-  broadcastDownload('download:snapshot', snapshot);
-  if (snapshot.status === 'queued' || snapshot.status === 'downloading' || snapshot.status === 'paused' || snapshot.status === 'partial') { closeDownloadWindow('complete'); openDownloadWindow('progress'); }
-  if (snapshot.status === 'completed' || snapshot.status === 'failed' || snapshot.status === 'cancelled') { closeDownloadWindow('progress'); openDownloadWindow('complete'); }
+  sendDownload('progress', snapshot.handoffId, 'download:snapshot', snapshot);
+  sendDownload('complete', snapshot.handoffId, 'download:snapshot', snapshot);
+  if (snapshot.status === 'queued' || snapshot.status === 'downloading' || snapshot.status === 'paused' || snapshot.status === 'partial') { closeDownloadRecord('complete', snapshot.handoffId); openDownloadWindow('progress', { handoffId: snapshot.handoffId, transferId: snapshot.transferId }); }
+  if (snapshot.status === 'completed' || snapshot.status === 'failed' || snapshot.status === 'cancelled') {
+    const progressRecord = downloadWindows.get('progress');
+    const origin = progressRecord?.origin;
+    closeDownloadRecord('progress', snapshot.handoffId, snapshot.transferId);
+    openDownloadWindow('complete', { handoffId: snapshot.handoffId, transferId: snapshot.transferId, origin });
+  }
 });
 ipcMain.handle('converter:pick-file', async () => {
   const result = await dialog.showOpenDialog(mainWindow ?? undefined, { properties: ['openFile'], title: 'Choose a local source file' });
@@ -316,7 +367,7 @@ if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
     if (latest?.status === 'failed' && latest.publicationPending) openDownloadWindow('complete');
     else {
       const handoffs = downloadTransfers.listPendingHandoffs();
-      if (handoffs.length > 0) { pendingHandoffId = handoffs.at(-1)?.handoffId; openDownloadWindow('start'); }
+      if (handoffs.length > 0) openNextPendingStart(mainWindow);
     }
   }).then(scheduleUpdateChecks);
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });

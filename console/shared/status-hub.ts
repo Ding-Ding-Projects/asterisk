@@ -170,6 +170,7 @@ export interface StatusHubClientState {
   nextCursor?: string;
   observedAt?: string;
   error?: StatusHubErrorShape;
+  persistenceWarning?: StatusHubErrorShape;
   generation: number;
 }
 

@@ -27,9 +27,12 @@ export interface StatusHubPersistedRegistration {
 }
 
 export interface StatusHubRegistrationPersistence {
-  load(): Promise<StatusHubPersistedRegistration | undefined>;
-  save(value: StatusHubPersistedRegistration): Promise<void>;
+  load(): Promise<StatusHubPersistenceResult<StatusHubPersistedRegistration | undefined>>;
+  save(value: StatusHubPersistedRegistration): Promise<StatusHubPersistenceResult<void>>;
+  clear(): Promise<StatusHubPersistenceResult<void>>;
 }
+
+export type StatusHubPersistenceResult<T> = { ok: true; value: T } | { ok: false; error: StatusHubErrorShape };
 
 export type StatusHubStoreListener = () => void;
 
@@ -87,9 +90,18 @@ export class StatusHubStore {
     await this.hydrateRegistration();
     if (this.disposed || !generation.isCurrent()) return;
     this.update({ availability: 'loading', error: undefined, generation: generation.id });
-    const projectResult = this.state.project || !this.registration
+    let projectResult = this.state.project || !this.registration
       ? await this.client.getProject(this.projectId, generation)
       : await this.client.registerProject(this.registration, generation);
+    if (!projectResult.ok && this.registration && this.persistence && ['NOT_FOUND', 'STALE_RECEIPT', 'RECEIPT_STALE'].includes(projectResult.error.code) && generation.isCurrent()) {
+      const cleared = await this.persistence.clear();
+      if (cleared.ok) {
+        this.update({ project: undefined, persistenceWarning: undefined, generation: generation.id });
+        projectResult = await this.client.registerProject(this.registration, generation);
+      } else {
+        this.update({ persistenceWarning: cleared.error, generation: generation.id });
+      }
+    }
     if (projectResult.ok) {
       this.projectId = projectResult.value.projectId;
       await this.persistRegistration(projectResult.value);
@@ -130,6 +142,15 @@ export class StatusHubStore {
 
   async refresh(): Promise<void> {
     await this.mount();
+  }
+
+  async reregister(): Promise<StatusHubResult<StatusHubProjectRegistration>> {
+    if (!this.registration) return { ok: false, error: { state: 'refused', code: 'REGISTRATION_NOT_CONFIGURED', message: 'No Status Hub registration descriptor is configured.', retryable: false }, generation: this.generation };
+    if (this.persistence) {
+      const cleared = await this.persistence.clear();
+      if (!cleared.ok) this.update({ persistenceWarning: cleared.error, generation: this.generation });
+    }
+    return this.registerProject(this.registration);
   }
 
   async dispatchQuestion(sessionId: string, questionId: string, answer: string): Promise<StatusHubResult<StatusHubQuestionDeliveryReceipt>> {
@@ -183,12 +204,14 @@ export class StatusHubStore {
     this.hydrationPromise = (async () => {
       if (!this.persistence) return;
       try {
-        const persisted = await this.persistence.load();
-        if (!persisted || !isPersistedRegistration(persisted)) return;
-        this.projectId = persisted.projectId;
-        this.update({ project: persisted.registration, generation: this.generation });
+        const result = await this.persistence.load();
+        if (!result.ok) { this.update({ persistenceWarning: result.error, generation: this.generation }); return; }
+        if (result.value === undefined) return;
+        if (!isPersistedRegistration(result.value)) { this.update({ persistenceWarning: { state: 'error', code: 'PERSISTED_RECEIPT_INVALID', message: 'The saved Status Hub registration receipt was invalid and was ignored.', retryable: false }, generation: this.generation }); return; }
+        this.projectId = result.value.projectId;
+        this.update({ project: result.value.registration, persistenceWarning: undefined, generation: this.generation });
       } catch {
-        // A malformed or unavailable receipt is ignored and the real registration path remains available.
+        this.update({ persistenceWarning: { state: 'error', code: 'PERSISTED_RECEIPT_UNAVAILABLE', message: 'The saved Status Hub registration receipt could not be read.', retryable: true }, generation: this.generation });
       } finally {
         this.hydrated = true;
       }
@@ -198,7 +221,11 @@ export class StatusHubStore {
 
   private async persistRegistration(registration: StatusHubProjectRegistration): Promise<void> {
     if (!this.persistence) return;
-    try { await this.persistence.save({ schemaVersion: 1, projectId: registration.projectId, registration }); } catch { /* Live status remains authoritative. */ }
+    try {
+      const result = await this.persistence.save({ schemaVersion: 1, projectId: registration.projectId, registration });
+      if (result.ok) this.update({ persistenceWarning: undefined, generation: this.generation });
+      else this.update({ persistenceWarning: result.error, generation: this.generation });
+    } catch { this.update({ persistenceWarning: { state: 'error', code: 'PERSISTED_RECEIPT_WRITE_FAILED', message: 'The live Status Hub receipt is current, but it could not be saved locally.', retryable: true }, generation: this.generation }); }
   }
 
   private startPolling(sessionId: string, generation: ReturnType<StatusHubClient['beginGeneration']>): void {

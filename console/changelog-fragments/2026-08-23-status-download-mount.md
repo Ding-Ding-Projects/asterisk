@@ -8,4 +8,6 @@
 - Electron now creates dedicated always-on-top Start, Downloading, and Complete windows, including failed and cancelled terminal outcomes.
 - The primary shell now offers only a passive open-window action. It no longer mounts duplicate transfer routes or listens to transfer events.
 - Persisted Status Hub registration receipts hydrate before first mount, while malformed transfer snapshots are rejected field by field. Full-body publication failures retain the same complete temporary file for retry or discard and never request Range at EOF.
+- Pending handoffs now use a durable ordered queue, and every dedicated window action and close is bound to its exact handoff or transfer id. Complete publication records an exact size and SHA-256 digest before retry publication.
+- Status Hub receipt persistence returns typed failures and keeps live registration visible with a warning. Stale or not-found receipts get one bounded clear and re-registration attempt.
 - Verification remains pending. This lane ran no tests, lint, type checks, builds, packaging, runtime interaction, extension launch, or captures.

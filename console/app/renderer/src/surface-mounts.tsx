@@ -7,7 +7,7 @@ import { DOCS_BUNDLE } from './generated/docs-bundle';
 import { CHANGELOG_MARKDOWN, CHANGELOG_REPOSITORY_URL } from './generated/changelog-bundle';
 import { StatusHubSurface } from './status-hub-surface';
 import { createStatusHubClient, type StatusHubFetch } from '../../../control-plane/status-hub-client';
-import { createStatusHubStore, type StatusHubRegistrationPersistence, type StatusHubPersistedRegistration } from '../../../control-plane/status-hub-store';
+import { createStatusHubStore, type StatusHubPersistenceResult, type StatusHubRegistrationPersistence, type StatusHubPersistedRegistration } from '../../../control-plane/status-hub-store';
 import { DownloadWindowMount, dedicatedDownloadWindowKind } from './download-window-mount';
 import type { BackendResponse, ChatSession, OllamaRuntimeEvidence, OllamaSuiteSnapshot, PullQueueEvidence } from './ollama-suite-model';
 import type { ConverterBackendHandlers } from '../../../shared/converter';
@@ -182,15 +182,23 @@ export function SurfaceMounts() {
 function PrimarySurfaceMounts() {
   const [route, setRoute] = useState<SurfaceRoute | undefined>(() => routeFromHash());
   const statusPersistence = useMemo<StatusHubRegistrationPersistence>(() => ({
-    async load(): Promise<StatusHubPersistedRegistration | undefined> {
+    async load(): Promise<StatusHubPersistenceResult<StatusHubPersistedRegistration | undefined>> {
       const response = await window.dingDesktop?.controlPlane.request({ requestId: crypto.randomUUID(), action: 'settings.snapshot' });
-      if (!response?.ok) return undefined;
+      if (!response) return { ok: false, error: { state: 'offline', code: 'SETTINGS_BRIDGE_UNAVAILABLE', message: 'The durable settings bridge is unavailable.', retryable: true } };
+      if (!response.ok) return { ok: false, error: { state: 'error', code: response.code, message: response.message, retryable: true } };
       const raw = (response.data as { values?: Record<string, string> } | undefined)?.values?.['status-hub.registration'];
-      if (!raw) return undefined;
-      try { return JSON.parse(raw) as StatusHubPersistedRegistration; } catch { return undefined; }
+      if (!raw) return { ok: true, value: undefined };
+      try { return { ok: true, value: JSON.parse(raw) as StatusHubPersistedRegistration }; } catch { return { ok: false, error: { state: 'error', code: 'PERSISTED_RECEIPT_JSON_INVALID', message: 'The durable Status Hub receipt is not valid JSON.', retryable: false } }; }
     },
-    async save(value: StatusHubPersistedRegistration): Promise<void> {
-      await window.dingDesktop?.controlPlane.request({ requestId: crypto.randomUUID(), action: 'settings.write', payload: { key: 'status-hub.registration', value: JSON.stringify(value) } });
+    async save(value: StatusHubPersistedRegistration): Promise<StatusHubPersistenceResult<void>> {
+      const response = await window.dingDesktop?.controlPlane.request({ requestId: crypto.randomUUID(), action: 'settings.write', payload: { key: 'status-hub.registration', value: JSON.stringify(value) } });
+      if (!response) return { ok: false, error: { state: 'offline', code: 'SETTINGS_BRIDGE_UNAVAILABLE', message: 'The durable settings bridge is unavailable.', retryable: true } };
+      return response.ok ? { ok: true, value: undefined } : { ok: false, error: { state: 'error', code: response.code, message: response.message, retryable: true } };
+    },
+    async clear(): Promise<StatusHubPersistenceResult<void>> {
+      const response = await window.dingDesktop?.controlPlane.request({ requestId: crypto.randomUUID(), action: 'settings.remove', payload: { key: 'status-hub.registration' } });
+      if (!response) return { ok: false, error: { state: 'offline', code: 'SETTINGS_BRIDGE_UNAVAILABLE', message: 'The durable settings bridge is unavailable.', retryable: true } };
+      return response.ok ? { ok: true, value: undefined } : { ok: false, error: { state: 'error', code: response.code, message: response.message, retryable: true } };
     },
   }), []);
   const statusStore = useMemo(() => createStatusHubStore({

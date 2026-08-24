@@ -78,6 +78,8 @@ export interface DownloadTransferSnapshot {
   timeoutKind?: TransferTimeoutKind;
   bodyComplete?: boolean;
   publicationPending?: boolean;
+  publicationSize?: number;
+  publicationSha256?: string;
   partial?: PartialTransferOutcome;
   resume?: DownloadResumeSupport;
   resumeDisabledReason?: string;

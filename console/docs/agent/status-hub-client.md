@@ -10,7 +10,7 @@ The client provides a typed, renderer-safe connection to the project's live stat
 - read each session's question list and reply inbox; and
 - submit a question answer and expose the server's delivery receipt.
 
-The client and store are mount-ready but are not mounted by this lane. The later application wiring can use `createStatusHubClient`, `createStatusHubStore`, and `createStatusHubHandlerFactory` without changing the generated design renderer.
+The desktop primary shell mounts the Status Hub surface through `createStatusHubClient` and `createStatusHubStore`. Before the first mount, the store hydrates a strictly validated project id and registration receipt from the durable settings store. A missing receipt triggers one registration attempt, and the returned receipt is persisted. A typed not-found or stale receipt clears the saved value and performs at most one bounded re-registration. Other refusals remain visible with Retry and Re-register actions.
 
 The renderer surface derives rows only from server observations. It has no sample project, sample session, or optimistic delivery state. A question remains without a receipt until the server returns one. Polling is non-blocking, bounded, single-flight, and cancellable.
 
@@ -39,7 +39,7 @@ All responses are bounded before JSON parsing. Redirects are refused, cross-orig
 
 ## Failure modes
 
-The store reports the observed availability state instead of converting a failure into an empty success:
+The store reports the observed availability state instead of converting a failure into an empty success. Durable receipt read and write failures remain visible as a persistence warning while the live registration remains usable:
 
 - `unavailable`: the route or service is not reachable;
 - `offline`: a network or deadline failure occurred;
@@ -48,6 +48,8 @@ The store reports the observed availability state instead of converting a failur
 - `stale`: a newer generation superseded the request;
 - `partial`: some project, session, or inbox data arrived while another read did not; and
 - `error`: the response shape or JSON was invalid.
+
+The surface exposes Retry and Re-register actions for refusals. A not-found or stale receipt is cleared and replaced at most once per mount. A failed durable settings write never deletes the live registration or claims that persistence succeeded.
 
 An answer submission that receives a transport error does not create a receipt. A refusal returned by the server is shown only when it is part of the typed server receipt.
 

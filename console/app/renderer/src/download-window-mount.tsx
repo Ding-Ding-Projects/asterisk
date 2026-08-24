@@ -13,6 +13,9 @@ export function dedicatedDownloadWindowKind(): DedicatedDownloadWindowKind | und
 
 export function DownloadWindowMount({ kind }: { kind: DedicatedDownloadWindowKind }) {
   const client = window.dingDesktop?.downloads;
+  const query = new URLSearchParams(window.location.search);
+  const boundHandoffId = query.get('downloadHandoffId') ?? undefined;
+  const boundTransferId = query.get('downloadTransferId') ?? undefined;
   const [handoff, setHandoff] = useState<ExtensionDownloadHandoff | undefined>();
   const [transferId, setTransferId] = useState<string | undefined>();
   const [snapshot, setSnapshot] = useState<DownloadTransferSnapshot | undefined>();
@@ -20,13 +23,17 @@ export function DownloadWindowMount({ kind }: { kind: DedicatedDownloadWindowKin
   useEffect(() => {
     if (!client) return;
     if (kind === 'start') {
-      const unsubscribe = client.onHandoff(setHandoff);
+      const unsubscribe = client.onHandoff((next) => { if (!boundHandoffId || next.handoffId === boundHandoffId) setHandoff(next); });
       void window.dingDesktop?.controlPlane.request({ requestId: crypto.randomUUID(), action: 'download.handoffs' }).then((response) => {
-        if (response?.ok && Array.isArray(response.data) && response.data.length > 0) setHandoff(response.data[response.data.length - 1] as ExtensionDownloadHandoff);
+        if (response?.ok && Array.isArray(response.data)) {
+          const handoffs = response.data as ExtensionDownloadHandoff[];
+          setHandoff(handoffs.find((candidate) => !boundHandoffId || candidate.handoffId === boundHandoffId));
+        }
       });
       return unsubscribe;
     }
-    void client.getLatestSnapshot().then((latest) => {
+    const snapshotPromise = boundTransferId ? client.getSnapshot(boundTransferId) : client.getLatestSnapshot();
+    void snapshotPromise.then((latest) => {
       if (!latest) return;
       setTransferId(latest.transferId);
       setSnapshot(latest);
