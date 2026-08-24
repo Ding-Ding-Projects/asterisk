@@ -124,7 +124,7 @@
     },
     "local-version-history": {
       "state": "implemented",
-      "note": "history-delivery.js renders a schema-versioned local append-only visitor history panel with explicit older-state migration and future-version refusal, immediate redacted migration auditing exposed separately, a safe structured event enum and allowlisted parameters that refuse paths, URLs, private values, and content-bearing summaries, strict recursive redaction, captured append results, search, anchored regex, real calendar date and action filters, validated presets, retention preview, prune-event reservation, restore-as-new-event, and redacted JSON/Markdown export. The history.html route and delivery rail make it reachable from every primary page.",
+      "note": "history-delivery.js renders a schema-versioned local append-only visitor history panel with explicit older-state migration and future-version refusal, immediate redacted migration auditing exposed separately, a safe structured event enum and allowlisted parameters with localized sentence rendering, no persisted free-form summary or content field, strict recursive redaction, captured append results, search, anchored regex, real calendar date and action filters, validated presets, retention preview, prune-event reservation, restore-as-new-event, and redacted JSON/Markdown export. Prepared-export editor fields and selected-file transfer fields are separate. The history.html route and delivery rail make it reachable from every primary page.",
       "files": ["site/history-delivery.js", "site/history.html", "site/app.js", "site/build.mjs"]
     },
     "changelog-viewer": {

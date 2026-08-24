@@ -4,7 +4,7 @@ The published documentation surface now carries a local delivery workspace at `h
 
 ## Behavior
 
-- Visitor-owned history is append-only in browser storage. Each event has a timestamp, action, factual summary, and redacted details. Search, date range, and action filters compose, and a full anchored regex builder is available beside each search field.
+- Visitor-owned history is append-only in browser storage. Each event has a timestamp, a registered action enum, and bounded allowlisted parameters. Localized sentences are rendered from those parameters, while no free-form summary or content field is persisted. Search, date range, and action filters compose, and a full anchored regex builder is available beside each search field.
 - Restore does not rewrite an earlier event. It appends a new `restored` event that names the source event identifier. Redacted JSON and Markdown exports state that personal vocabulary, credentials, paths, and file contents were omitted.
 - The changelog viewer shows the 89 product release tags by default. Optional upstream tag history is clearly separated behind an explicit local choice. Every record has a valid full object identifier, date, category, factual summary, and full commit URL. Its filtered view can be copied or exported to Markdown.
 - Provider-authored Markdown is escaped before the small supported subset is rendered. Script, image, raw HTML, and executable links are not interpreted.
@@ -14,7 +14,7 @@ The published documentation surface now carries a local delivery workspace at `h
 - The update surface reads the bundled release-manifest equivalent and reports `unavailable`, `available`, `downloading`, `ready`, or `failed` only when the manifest carries that state and a valid full commit identifier. A static page cannot install an application or claim that an update was applied.
 - The shared delivery rail exposes ordinary persisted route navigation with pinning. Static-host limitations are stated beside it: grouping and reordering are not offered by this route, and the markup does not claim incomplete navigation is a full tab implementation.
 - Every select control receives its own local filter field and adjacent anchored regex builder. Date filters also provide validated ISO ranges and named presets.
-- A bounded local export operation disables re-entry, exposes real cancellation, and reports preparation progress while processing the current event set. Its versioned delivery state distinguishes `preparing`, `prepared`, `handoff-started`, `handoff-unverified`, and `handoff-failed`. A browser handoff never becomes a 100 percent completion claim merely because the browser accepted a click.
+- A bounded local export operation disables re-entry, exposes real cancellation, and reports preparation progress while processing the current event set. Prepared-export editor fields are separate from selected-file transfer fields. Its versioned delivery state distinguishes `preparing`, `prepared`, `handoff-started`, `handoff-unverified`, `handoff-cancelled`, and `handoff-failed`. A browser handoff never becomes a 100 percent completion claim merely because the browser accepted a click.
 
 ## Configuration
 

@@ -32,7 +32,7 @@
   }
 
   function defaultState() {
-    return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: 'none', sourceVersion: STATE_SCHEMA_VERSION, recorded: false }, history: [], tabs: TAB_ROUTES.map(([idValue], index) => ({ id: idValue, pinned: index < 2 })), forge: { account: 'browser', owner: '', repository: '', route: 'copy', source: 'current-site', destination: 'new-repository' }, editor: { lastPreparedExport: '', lastHandoffState: 'idle', lastExport: '' }, delivery: { status: 'idle', reason: '' }, transfer: { status: 'idle', name: '', startedAt: '', completedAt: '', totalBytes: 0, bytesWritten: 0, interruptionRecorded: false, resume: 'never' }, update: { status: 'ready', checkedAt: '' } };
+    return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: 'none', sourceVersion: STATE_SCHEMA_VERSION, recorded: false }, history: [], tabs: TAB_ROUTES.map(([idValue], index) => ({ id: idValue, pinned: index < 2 })), forge: { account: 'browser', owner: '', repository: '', route: 'copy', source: 'current-site', destination: 'new-repository' }, editor: { lastPreparedExport: '', lastHandoffState: 'idle', lastExport: '' }, delivery: { status: 'idle', reason: '' }, transfer: { status: 'idle', handoffState: 'idle', name: '', startedAt: '', completedAt: '', totalBytes: 0, bytesWritten: 0, interruptionRecorded: false, resume: 'never' }, update: { status: 'ready', checkedAt: '' } };
   }
   function readState() {
     try {
@@ -40,14 +40,15 @@
       const defaults = defaultState();
       const persistedVersion = Number(parsed.schemaVersion ?? 1);
       if (!Number.isInteger(persistedVersion) || persistedVersion > STATE_SCHEMA_VERSION) return { ...defaults, migration: { status: 'future-version-refused', sourceVersion: persistedVersion, recorded: false } };
-      const history = Array.isArray(parsed.history) ? parsed.history.filter(event => event && typeof event === 'object' && typeof event.id === 'string' && typeof event.timestamp === 'string' && typeof event.action === 'string' && typeof event.summary === 'string' && safeEventSummary(event.summary)).slice(-MAX_HISTORY).map(event => ({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: text(event.action).slice(0, 80), summary: safeEventSummary(event.summary), details: redactDetails(event.details || {}) })) : [];
+      const history = Array.isArray(parsed.history) ? parsed.history.filter(event => event && typeof event === 'object' && typeof event.id === 'string' && typeof event.timestamp === 'string' && typeof event.action === 'string' && normalizeEventParams(event.action, event.params)).slice(-MAX_HISTORY).map(event => ({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: event.action, params: normalizeEventParams(event.action, event.params) })) : [];
       const allowedTabs = new Set(TAB_ROUTES.map(([idValue]) => idValue));
       const tabs = Array.isArray(parsed.tabs) ? parsed.tabs.filter(tab => tab && allowedTabs.has(tab.id)).map(tab => ({ id: tab.id, pinned: Boolean(tab.pinned) })) : defaults.tabs;
       const forge = parsed.forge && typeof parsed.forge === 'object' ? { account: ['browser', 'manual'].includes(parsed.forge.account) ? parsed.forge.account : 'browser', owner: scrubSummary(parsed.forge.owner).slice(0, 80), repository: scrubSummary(parsed.forge.repository).slice(0, 100), route: ['copy', 'fork'].includes(parsed.forge.route) ? parsed.forge.route : 'copy', source: ['current-site', 'local-export', 'selected-file'].includes(parsed.forge.source) ? parsed.forge.source : 'current-site', destination: ['new-repository', 'existing-repository'].includes(parsed.forge.destination) ? parsed.forge.destination : 'new-repository' } : defaults.forge;
       const transferStatus = ['idle', 'started', 'complete', 'cancelled', 'unavailable', 'interrupted'].includes(parsed.transfer?.status) ? parsed.transfer.status : 'idle';
       const updateStatus = ['ready', 'unavailable', 'available', 'downloading', 'failed'].includes(parsed.update?.status) ? parsed.update.status : 'ready';
       const deliveryStatus = DELIVERY_STATES.has(parsed.delivery?.status) ? parsed.delivery.status : 'idle';
-      return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: persistedVersion < STATE_SCHEMA_VERSION ? 'migrated' : 'none', sourceVersion: persistedVersion, recorded: parsed.migration?.recorded === true }, history, tabs: tabs.length ? tabs : defaults.tabs, forge, editor: { lastPreparedExport: scrubSummary(parsed.editor?.lastPreparedExport).slice(0, 120), lastHandoffState: ['idle', 'handoff-started', 'handoff-unverified', 'handoff-failed', 'handoff-cancelled'].includes(parsed.editor?.lastHandoffState) ? parsed.editor.lastHandoffState : 'idle', lastExport: scrubSummary(parsed.editor?.lastExport).slice(0, 120) }, delivery: { status: deliveryStatus, reason: scrubSummary(parsed.delivery?.reason).slice(0, 240) }, transfer: { status: transferStatus === 'started' ? 'interrupted' : transferStatus, name: scrubSummary(parsed.transfer?.name).slice(0, 160), startedAt: text(parsed.transfer?.startedAt).slice(0, 40), completedAt: text(parsed.transfer?.completedAt).slice(0, 40), totalBytes: Number.isFinite(parsed.transfer?.totalBytes) ? Math.max(0, parsed.transfer.totalBytes) : 0, bytesWritten: Number.isFinite(parsed.transfer?.bytesWritten) ? Math.max(0, parsed.transfer.bytesWritten) : 0, interruptionRecorded: transferStatus === 'started' ? false : parsed.transfer?.interruptionRecorded === true, resume: 'never' }, update: { status: updateStatus, checkedAt: text(parsed.update?.checkedAt).slice(0, 40) } };
+      const transferHandoffState = ['idle', 'handoff-started', 'prepared', 'handoff-cancelled', 'handoff-failed'].includes(parsed.transfer?.handoffState) ? parsed.transfer.handoffState : 'idle';
+      return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: persistedVersion < STATE_SCHEMA_VERSION ? 'migrated' : 'none', sourceVersion: persistedVersion, recorded: parsed.migration?.recorded === true }, history, tabs: tabs.length ? tabs : defaults.tabs, forge, editor: { lastPreparedExport: scrubSummary(parsed.editor?.lastPreparedExport).slice(0, 120), lastHandoffState: ['idle', 'handoff-started', 'handoff-unverified', 'handoff-failed', 'handoff-cancelled'].includes(parsed.editor?.lastHandoffState) ? parsed.editor.lastHandoffState : 'idle', lastExport: scrubSummary(parsed.editor?.lastExport).slice(0, 120) }, delivery: { status: deliveryStatus, reason: scrubSummary(parsed.delivery?.reason).slice(0, 240) }, transfer: { status: transferStatus === 'started' ? 'interrupted' : transferStatus, handoffState: transferHandoffState, name: scrubSummary(parsed.transfer?.name).slice(0, 160), startedAt: text(parsed.transfer?.startedAt).slice(0, 40), completedAt: text(parsed.transfer?.completedAt).slice(0, 40), totalBytes: Number.isFinite(parsed.transfer?.totalBytes) ? Math.max(0, parsed.transfer.totalBytes) : 0, bytesWritten: Number.isFinite(parsed.transfer?.bytesWritten) ? Math.max(0, parsed.transfer.bytesWritten) : 0, interruptionRecorded: transferStatus === 'started' ? false : parsed.transfer?.interruptionRecorded === true, resume: 'never' }, update: { status: updateStatus, checkedAt: text(parsed.update?.checkedAt).slice(0, 40) } };
     } catch {
       return defaultState();
     }
@@ -101,25 +102,44 @@
   function scrubSummary(value) {
     return text(value).replace(/(?:bearer|token|password|passwd|secret|api[-_]?key)\s*[:=]\s*\S+/gi, '[redacted]').replace(/https?:\/\/\S+/gi, '[url omitted]').replace(/(?:[A-Za-z]:\\|\\\\|\/(?:Users|home|private|tmp)\/)[^\s]+/gi, '[path omitted]').replace(/\b[0-9a-f]{32,}\b/gi, '[redacted]').slice(0, 240);
   }
-  function safeEventSummary(value) {
-    const raw = text(value).trim();
-    if (!raw || raw.length > 240 || /https?:\/\/|file:|custom:|data:|^[A-Za-z]:[\\/]|^\\\\|(?:^|\s)\.{1,2}[\\/]|(?:^|\s)\/(?:Users|home|private|tmp)\//i.test(raw) || /(?:content|body|payload|clipboard|html|markdown)\s*[:=]/i.test(raw)) return null;
-    const safe = scrubSummary(raw);
-    return safe.includes('[url omitted]') || safe.includes('[path omitted]') || safe.includes('[redacted]') ? null : safe;
-  }
-  function summaryRefusalReason(value) {
-    const raw = text(value).trim();
-    if (!raw) return 'the summary is empty';
-    if (/https?:\/\/|file:|custom:|data:/i.test(raw)) return 'the summary contains a URL or non-local scheme';
-    if (/^[A-Za-z]:[\\/]|^\\\\|(?:^|\s)\.{1,2}[\\/]|(?:^|\s)\/(?:Users|home|private|tmp)\//i.test(raw)) return 'the summary contains a forward or backslash path';
-    if (/(?:content|body|payload|clipboard|html|markdown)\s*[:=]/i.test(raw)) return 'the summary contains content-bearing input';
-    if (/(?:bearer|token|password|passwd|secret|api[-_]?key)\s*[:=]|\b[0-9a-f]{32,}\b/i.test(raw)) return 'the summary contains a private value';
-    if (raw.length > 240) return 'the summary exceeds 240 characters';
-    return 'the summary is not within the safe event contract';
-  }
-
   const REDACTED_DETAIL_KEYS = new Set(['source', 'route', 'action', 'bytes', 'progress', 'owner', 'repository', 'protocol', 'restore', 'completion', 'installation', 'content', 'privateVocabulary', 'credentials', 'mode', 'status', 'name', 'tag', 'commit', 'provider', 'account', 'destination', 'eventCount', 'sourceEvent']);
   const EVENT_ACTIONS = new Set(['updated', 'restored', 'pruned', 'download-started', 'download-complete', 'download-cancelled', 'download-interrupted', 'update-check', 'update-reload', 'recovery-opened', 'forge-preview', 'forge-handoff', 'tab-pin', 'provider-preview', 'state-migration']);
+  const EVENT_ENUMS = {
+    updatedField: new Set(['settings', 'history', 'appearance', 'delivery']),
+    updatedStatus: new Set(['changed', 'reset', 'imported']),
+    deliveryStatus: new Set(['writing', 'stream-closed', 'cancelled', 'interrupted']),
+    recoveryAction: new Set(['retry', 'settings', 'vscode']),
+    source: new Set(['current-site', 'local-export', 'selected-file']),
+    destination: new Set(['new-repository', 'existing-repository']),
+    account: new Set(['browser', 'manual']),
+    route: new Set(['copy', 'fork']),
+    updateStatus: new Set(['unavailable', 'available', 'downloading', 'ready', 'failed']),
+    forgeStatus: new Set(['preview-ready', 'preview-opened']),
+    tab: new Set(TAB_ROUTES.map(([idValue]) => idValue)),
+  };
+  function normalizeEventParams(action, params = {}) {
+    if (!EVENT_ACTIONS.has(action) || !params || typeof params !== 'object' || Array.isArray(params)) return null;
+    const integer = value => Number.isInteger(value) && value >= 0 ? value : null;
+    if (action === 'updated') return EVENT_ENUMS.updatedField.has(params.field) && EVENT_ENUMS.updatedStatus.has(params.status) ? { field: params.field, status: params.status } : null;
+    if (action === 'restored') return EVENT_ACTIONS.has(params.sourceAction) && /^[a-z0-9_-]{1,100}$/i.test(params.sourceEvent || '') ? { sourceAction: params.sourceAction, sourceEvent: params.sourceEvent } : null;
+    if (action === 'pruned') return integer(params.count) !== null && integer(params.retention) !== null ? { count: integer(params.count), retention: integer(params.retention) } : null;
+    if (['download-started', 'download-complete', 'download-cancelled'].includes(action)) return integer(params.bytes) !== null && EVENT_ENUMS.deliveryStatus.has(params.status) ? { bytes: integer(params.bytes), status: params.status } : null;
+    if (action === 'download-interrupted') return params.status === 'interrupted' ? { status: params.status } : null;
+    if (action === 'update-check') return EVENT_ENUMS.updateStatus.has(params.status) ? { status: params.status } : null;
+    if (action === 'update-reload') return params.status === 'requested' ? { status: params.status } : null;
+    if (action === 'recovery-opened') return EVENT_ENUMS.recoveryAction.has(params.action) ? { action: params.action } : null;
+    if (['forge-preview', 'forge-handoff'].includes(action)) return EVENT_ENUMS.source.has(params.source) && EVENT_ENUMS.destination.has(params.destination) && EVENT_ENUMS.account.has(params.account) && EVENT_ENUMS.route.has(params.route) && EVENT_ENUMS.forgeStatus.has(params.status) ? { source: params.source, destination: params.destination, account: params.account, route: params.route, status: params.status } : null;
+    if (action === 'tab-pin') return EVENT_ENUMS.tab.has(params.tab) && typeof params.pinned === 'boolean' ? { tab: params.tab, pinned: params.pinned } : null;
+    if (action === 'provider-preview') return params.status === 'rendered' ? { status: params.status } : null;
+    if (action === 'state-migration') return integer(params.fromVersion) !== null && params.toVersion === STATE_SCHEMA_VERSION && params.status === 'migrated' ? { fromVersion: integer(params.fromVersion), toVersion: STATE_SCHEMA_VERSION, status: params.status } : null;
+    return null;
+  }
+  function eventSentence(event) {
+    const p = event.params || {};
+    const en = { updated: `Updated ${p.field} settings`, restored: `Restored a ${p.sourceAction} event as a new event`, pruned: `Pruned ${p.count} older events, retaining ${p.retention}`, 'download-started': `Started writing ${p.bytes} bytes`, 'download-complete': `Finished writing ${p.bytes} bytes`, 'download-cancelled': `Cancelled after writing ${p.bytes} bytes`, 'download-interrupted': 'Marked a previous write as interrupted', 'update-check': `Checked update state: ${p.status}`, 'update-reload': 'Requested a page reload', 'recovery-opened': `Opened recovery action: ${p.action}`, 'forge-preview': `Prepared a ${p.route} provider preview`, 'forge-handoff': `Opened a ${p.route} provider preview`, 'tab-pin': `${p.pinned ? 'Pinned' : 'Unpinned'} the ${p.tab} route`, 'provider-preview': 'Rendered a safe provider preview', 'state-migration': `Migrated saved state from version ${p.fromVersion} to ${p.toVersion}` }[event.action] || 'Recorded a local event';
+    const zh = { updated: `更新咗 ${p.field} 設定`, restored: `將 ${p.sourceAction} 記錄另存成新記錄`, pruned: `清理咗 ${p.count} 個舊記錄，保留 ${p.retention} 個`, 'download-started': `開始寫入 ${p.bytes} bytes`, 'download-complete': `完成寫入 ${p.bytes} bytes`, 'download-cancelled': `寫入 ${p.bytes} bytes 後取消`, 'download-interrupted': '標記上一個寫入為中斷', 'update-check': `檢查更新狀態：${p.status}`, 'update-reload': '要求重新載入頁面', 'recovery-opened': `開啟恢復動作：${p.action}`, 'forge-preview': `準備咗 ${p.route} provider preview`, 'forge-handoff': `開啟咗 ${p.route} provider preview`, 'tab-pin': `${p.pinned ? '釘選' : '取消釘選'} ${p.tab} 路線`, 'provider-preview': '安全顯示 provider preview', 'state-migration': `將 state 由版本 ${p.fromVersion} 遷移到 ${p.toVersion}` }[event.action] || '記錄咗一項本地事件';
+    try { const mode = JSON.parse(localStorage.getItem('ding-pbx-pages-v2') || '{}').language; return mode === 'zh' ? zh : mode === 'both' ? `${en} · ${zh}` : en; } catch { return en; }
+  }
   function redactDetails(value, depth = 0) {
     if (depth > 3 || value === null || value === undefined) return undefined;
     if (typeof value === 'string') return scrubSummary(value).slice(0, 240);
@@ -139,16 +159,15 @@
 
   state = readState();
 
-  function record(action, summary, details = {}) {
+  function record(action, params = {}) {
     if (!EVENT_ACTIONS.has(action)) { const reason = `Refused event action "${text(action).slice(0, 80)}": it is not a registered event type.`; document.querySelector('#history-status')?.replaceChildren(document.createTextNode(reason)); return { ok: false, reason }; }
-    const safeSummary = safeEventSummary(summary);
-    if (!safeSummary) { const reason = `Refused event summary: ${summaryRefusalReason(summary)}. The original input remains in the field and was not stored.`; const status = document.querySelector('#history-status'); if (status) status.textContent = reason; return { ok: false, reason }; }
+    const normalizedParams = normalizeEventParams(action, params);
+    if (!normalizedParams) { const reason = `Refused ${action} event parameters: values did not match the registered structured event contract. Nothing was stored.`; const status = document.querySelector('#history-status'); if (status) status.textContent = reason; return { ok: false, reason }; }
     const event = {
       id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       timestamp: new Date().toISOString(),
-      action: text(action).slice(0, 80),
-      summary: safeSummary,
-      details: redactDetails({ ...details, privateVocabulary: 'omitted', credentials: 'omitted' }),
+      action,
+      params: normalizedParams,
     };
     state.history = [...state.history, event].slice(-MAX_HISTORY);
     persist();
@@ -193,7 +212,7 @@
     if (!validDateRange(historyQuery)) return [];
     return state.history.filter(event => withinDate(event.timestamp, historyQuery.from, historyQuery.to)
       && (historyQuery.action === 'all' || event.action === historyQuery.action)
-      && matchesQuery(`${event.action} ${event.summary}`, historyQuery));
+      && matchesQuery(`${event.action} ${eventSentence(event)}`, historyQuery));
   }
 
   function filterChangelog() {
@@ -288,7 +307,7 @@
     const select = panel.querySelector('#history-retention-value'); const status = panel.querySelector('#history-prune-status'); const apply = panel.querySelector('#history-prune-apply');
     const preview = () => { const keep = select.value === 'all' ? state.history.length : Number(select.value); const remove = select.value === 'all' ? 0 : Math.max(0, state.history.length - Math.max(0, keep - 1)); status.textContent = remove ? `Preview: ${remove} older event${remove === 1 ? '' : 's'} will be removed, reserving one slot for the prune event.` : 'Preview: nothing will be removed.'; apply.disabled = remove === 0; };
     panel.querySelector('#history-prune-preview').addEventListener('click', preview);
-    apply.addEventListener('click', () => { const keep = Number(select.value); const retain = Math.max(0, keep - 1); const remove = Math.max(0, state.history.length - retain); if (!remove) return; state.history = state.history.slice(-retain); persist(); const result = record('pruned', `Pruned ${remove} older local history event${remove === 1 ? '' : 's'} under the selected retention`, { eventCount: remove, mode: 'explicit-retention' }); if (!result?.ok) { status.textContent = result?.reason || 'The prune event was not appended, so success was not reported.'; return; } status.textContent = `Pruned ${remove} older event${remove === 1 ? '' : 's'} and recorded the action. The prune event occupies the reserved slot.`; apply.disabled = true; });
+    apply.addEventListener('click', () => { const keep = Number(select.value); const retain = Math.max(0, keep - 1); const remove = Math.max(0, state.history.length - retain); if (!remove) return; state.history = state.history.slice(-retain); persist(); const result = record('pruned', { count: remove, retention: keep }); if (!result?.ok) { status.textContent = result?.reason || 'The prune event was not appended, so success was not reported.'; return; } status.textContent = `Pruned ${remove} older event${remove === 1 ? '' : 's'} and recorded the action. The prune event occupies the reserved slot.`; apply.disabled = true; });
   }
 
   function downloadFile(name, body, type) {
@@ -297,10 +316,10 @@
     persist();
     setDeliveryState('handoff-started', `Browser handoff started for ${name}`);
     const link = document.createElement('a');
-    const url = URL.createObjectURL(new Blob([body], { type }));
-    try { link.href = url; link.download = name; link.click(); state.editor.lastHandoffState = 'handoff-unverified'; state.editor.lastExport = scrubSummary(name); setDeliveryState('handoff-unverified', `Browser handoff accepted for ${name}; completion is not observable here.`); }
+    let url = '';
+    try { const blob = new Blob([body], { type }); url = URL.createObjectURL(blob); link.href = url; link.download = name; link.click(); state.editor.lastHandoffState = 'handoff-unverified'; state.editor.lastExport = scrubSummary(name); setDeliveryState('handoff-unverified', `Browser handoff accepted for ${name}; completion is not observable here.`); }
     catch (error) { state.editor.lastHandoffState = 'handoff-failed'; setDeliveryState('handoff-failed', `Browser handoff failed: ${error.message || 'unknown error'}`); }
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    if (url) setTimeout(() => URL.revokeObjectURL(url), 1000);
     persist();
     renderEditorStatus();
   }
@@ -312,7 +331,7 @@
   }
 
   function historyExportRows() {
-    return filterHistory().map(event => ({ id: event.id, timestamp: event.timestamp, action: event.action, summary: event.summary, details: { privateVocabulary: 'omitted', credentials: 'omitted' } }));
+    return filterHistory().map(event => ({ id: event.id, timestamp: event.timestamp, action: event.action, text: eventSentence(event), params: event.params }));
   }
 
   function exportHistory(format = 'json') {
@@ -337,11 +356,11 @@
       actionSelect.value = current;
       actionSelect._deliveryRefresh?.();
     }
-    host.innerHTML = rows.length ? rows.map(event => `<article class="delivery-history-row" data-event-id="${escapeHtml(event.id)}" data-delivery-context="history-row"><div><span class="card-kicker">${escapeHtml(event.action)}</span><h3>${escapeHtml(event.summary)}</h3><p>${escapeHtml(formatDate(event.timestamp))}</p></div><div class="delivery-row-actions"><button type="button" class="text-button" data-restore-event="${escapeHtml(event.id)}">Restore as new event</button><details><summary>Redacted details</summary><pre>${escapeHtml(JSON.stringify(event.details, null, 2))}</pre></details></div></article>`).join('') : '<p class="empty-state">No local events match this filter. Changes made on this page will appear here.</p>';
+    host.innerHTML = rows.length ? rows.map(event => `<article class="delivery-history-row" data-event-id="${escapeHtml(event.id)}" data-delivery-context="history-row"><div><span class="card-kicker">${escapeHtml(event.action)}</span><h3>${escapeHtml(eventSentence(event))}</h3><p>${escapeHtml(formatDate(event.timestamp))}</p></div><div class="delivery-row-actions"><button type="button" class="text-button" data-restore-event="${escapeHtml(event.id)}">Restore as new event</button><details><summary>Structured parameters</summary><pre>${escapeHtml(JSON.stringify(event.params, null, 2))}</pre></details></div></article>`).join('') : '<p class="empty-state">No local events match this filter. Changes made on this page will appear here.</p>';
     host.querySelectorAll('[data-restore-event]').forEach(button => button.addEventListener('click', () => {
       const source = state.history.find(event => event.id === button.dataset.restoreEvent);
       if (!source) return;
-      record('restored', `Restored “${source.summary}” as a new local event`, { sourceEvent: source.id, restore: 'new-event-only' });
+      record('restored', { sourceAction: source.action, sourceEvent: source.id });
       const status = document.querySelector('#history-status');
       if (status) status.textContent = 'Restore recorded as a new event. The earlier event remains unchanged.';
     }));
@@ -492,6 +511,8 @@
   }
 
   function bindHistory() {
+    ensureStructuredEventControls();
+    ensureDropdownSearches();
     const action = document.querySelector('#history-action');
     bindDateRange(historyQuery, 'history-from', 'history-to', renderHistory);
     action?.addEventListener('change', () => { historyQuery.action = action.value; renderHistory(); });
@@ -501,15 +522,21 @@
     document.querySelector('#history-export-markdown')?.addEventListener('click', () => exportHistory('markdown'));
     document.querySelector('#history-copy')?.addEventListener('click', () => copyText(JSON.stringify(historyExportRows(), null, 2), document.querySelector('#history-status')));
     document.querySelector('#history-record')?.addEventListener('click', () => {
-      const input = document.querySelector('#history-event-summary');
-      const value = text(input?.value).trim();
-      if (!value) { document.querySelector('#history-status').textContent = 'Enter a factual local event summary before recording it.'; input?.focus(); return; }
-      const result = record('updated', value, { source: 'local-browser-form' });
-      if (!result?.ok) { input.focus(); return; }
-      input.value = '';
+      const field = document.querySelector('#history-event-field'); const eventStatus = document.querySelector('#history-event-status');
+      const result = record('updated', { field: field?.value, status: eventStatus?.value });
+      if (!result?.ok) { field?.focus(); return; }
+      field.value = 'settings'; eventStatus.value = 'changed';
       document.querySelector('#history-status').textContent = 'The append-only event was recorded locally.';
     });
     renderHistory();
+  }
+
+  function ensureStructuredEventControls() {
+    const input = document.querySelector('#history-event-summary');
+    if (!input || document.querySelector('#history-event-field')) return;
+    const label = input.closest('label'); if (!label) return;
+    const wrapper = document.createElement('div'); wrapper.className = 'delivery-form-row'; wrapper.innerHTML = '<label>Event type<select id="history-event-field"><option value="settings">Settings</option><option value="history">History</option><option value="appearance">Appearance</option><option value="delivery">Delivery</option></select></label><label>Change<select id="history-event-status"><option value="changed">Changed</option><option value="reset">Reset</option><option value="imported">Imported</option></select></label>';
+    label.replaceWith(wrapper);
   }
 
   function bindChangelog() {
@@ -553,14 +580,14 @@
       if (!file) return;
       transferDestinationName = '';
       setDeliveryState('preparing', `Preparing a local write for ${file.name}`);
-      if (typeof window.showSaveFilePicker !== 'function') { transferDestinationName = ''; state.editor.lastHandoffState = 'handoff-failed'; setDeliveryState('handoff-failed', 'API unavailable: the browser does not expose a verified local output handle.'); status.textContent = 'Unavailable: this browser does not expose a verified local output handle, so no transfer was started.'; state.transfer = { ...state.transfer, status: 'unavailable', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; persist(); renderTransfer(); return; }
+      if (typeof window.showSaveFilePicker !== 'function') { transferDestinationName = ''; state.transfer.handoffState = 'handoff-failed'; setDeliveryState('handoff-failed', 'API unavailable: the browser does not expose a verified local output handle.'); status.textContent = 'Unavailable: this browser does not expose a verified local output handle, so no transfer was started.'; state.transfer = { ...state.transfer, status: 'unavailable', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; persist(); renderTransfer(); return; }
       let handle;
-      try { handle = await window.showSaveFilePicker({ suggestedName: file.name, types: [{ description: 'Selected file', accept: { [file.type || 'application/octet-stream']: [`.${file.name.split('.').pop() || 'bin'}`] } }] }); transferDestinationName = scrubSummary(handle.name || 'selected destination'); transferWriter = await handle.createWritable(); setDeliveryState('handoff-started', 'Writable destination accepted; measured output is beginning.'); }
-      catch (error) { transferDestinationName = ''; const pickerReason = error?.name === 'AbortError' ? 'picker-cancelled' : error?.name === 'NotAllowedError' ? 'destination-failed' : 'writable-failed'; setDeliveryState(pickerReason === 'picker-cancelled' ? 'handoff-cancelled' : 'handoff-failed', pickerReason); state.editor.lastHandoffState = pickerReason === 'picker-cancelled' ? 'handoff-cancelled' : 'handoff-failed'; persist(); status.textContent = `The local destination step ended with ${pickerReason}. Nothing was written.`; state.transfer = { ...state.transfer, status: 'idle', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; renderTransfer(); return; }
+      try { handle = await window.showSaveFilePicker({ suggestedName: file.name, types: [{ description: 'Selected file', accept: { [file.type || 'application/octet-stream']: [`.${file.name.split('.').pop() || 'bin'}`] } }] }); transferDestinationName = scrubSummary(handle.name || 'selected destination'); transferWriter = await handle.createWritable(); state.transfer.handoffState = 'handoff-started'; setDeliveryState('handoff-started', 'Writable destination accepted; measured output is beginning.'); }
+      catch (error) { transferDestinationName = ''; const pickerReason = error?.name === 'AbortError' ? 'picker-cancelled' : error?.name === 'NotAllowedError' ? 'destination-failed' : 'writable-failed'; state.transfer.handoffState = pickerReason === 'picker-cancelled' ? 'handoff-cancelled' : 'handoff-failed'; setDeliveryState(pickerReason === 'picker-cancelled' ? 'handoff-cancelled' : 'handoff-failed', pickerReason); persist(); status.textContent = `The local destination step ended with ${pickerReason}. Nothing was written.`; state.transfer = { ...state.transfer, status: 'idle', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; renderTransfer(); return; }
       transferAbort = new AbortController();
       state.transfer = { ...state.transfer, status: 'started', name: scrubSummary(file.name), startedAt: new Date().toISOString(), totalBytes: file.size, bytesWritten: 0, interruptionRecorded: false };
       persist(); renderTransfer();
-      record('download-started', `Started a local file write for ${file.name}`, { bytes: file.size, progress: 'measured', destination: 'omitted' });
+      record('download-started', { bytes: file.size, status: 'writing' });
       try {
         const chunkSize = 1024 * 1024;
         for (let offset = 0; offset < file.size; offset += chunkSize) {
@@ -571,13 +598,13 @@
           const progress = document.querySelector('#transfer-progress'); if (progress) progress.value = file.size ? Math.round((state.transfer.bytesWritten / file.size) * 100) : 100;
         }
         await transferWriter.close(); transferWriter = null;
-        setDeliveryState('prepared', 'Measured writable stream closed successfully.'); transferDestinationName = ''; state.transfer.status = 'complete'; state.transfer.completedAt = new Date().toISOString(); persist(); renderTransfer();
-        record('download-complete', `Completed the local file write for ${file.name}`, { bytes: file.size, completion: 'stream-close-confirmed' });
+        setDeliveryState('prepared', 'Measured writable stream closed successfully.'); transferDestinationName = ''; state.transfer.handoffState = 'prepared'; state.transfer.status = 'complete'; state.transfer.completedAt = new Date().toISOString(); persist(); renderTransfer();
+        record('download-complete', { bytes: file.size, status: 'stream-closed' });
       } catch (error) {
         try { await transferWriter?.abort(); } catch { /* abort is best effort after a failed write */ }
         transferWriter = null; transferDestinationName = ''; state.transfer.status = 'cancelled'; persist(); renderTransfer();
-        setDeliveryState(error.name === 'AbortError' ? 'handoff-cancelled' : 'handoff-failed', error.name === 'AbortError' ? 'voluntary-cancelled' : 'writable-failed'); state.editor.lastHandoffState = error.name === 'AbortError' ? 'handoff-cancelled' : 'handoff-failed'; persist();
-        record('download-cancelled', `Cancelled the local file write for ${file.name}`, { bytes: state.transfer.bytesWritten, completion: 'not-complete' });
+        setDeliveryState(error.name === 'AbortError' ? 'handoff-cancelled' : 'handoff-failed', error.name === 'AbortError' ? 'voluntary-cancelled' : 'writable-failed'); state.transfer.handoffState = error.name === 'AbortError' ? 'handoff-cancelled' : 'handoff-failed'; persist();
+        record('download-cancelled', { bytes: state.transfer.bytesWritten, status: 'cancelled' });
         status.textContent = error.name === 'AbortError' ? 'Cancelled before the local stream closed.' : `The local write failed: ${error.message || 'unknown error'}. No completion claim was made.`;
       } finally { transferAbort = null; }
     });
@@ -622,7 +649,7 @@
       if (action === 'retry') { if (status) status.textContent = 'Retry is ready. Choose the action again and the browser will report whether it accepted the handoff.'; }
       if (action === 'settings') { window.location.href = siteAsset('settings.html'); }
       if (action === 'vscode') { window.open('https://code.visualstudio.com/download', '_blank', 'noopener'); if (status) status.textContent = 'The official Visual Studio Code download page was opened in a new browser tab.'; }
-      record('recovery-opened', `Opened the in-context recovery action: ${action}`, { action });
+      record('recovery-opened', { action });
     }));
   }
 
@@ -644,7 +671,7 @@
       const owner = state.forge.owner.trim(), repository = state.forge.repository.trim();
       const status = document.querySelector('#forge-status');
       if (!owner || !repository) { status.textContent = 'Enter the destination owner and repository name before previewing the provider handoff.'; document.querySelector('#forge-owner').focus(); return; }
-      const result = record('forge-preview', `Prepared a provider handoff preview for ${owner}/${repository}`, { owner, repository, source: state.forge.source, destination: state.forge.destination, account: state.forge.account, route: state.forge.route });
+      const result = record('forge-preview', { source: state.forge.source, destination: state.forge.destination, account: state.forge.account, route: state.forge.route, status: 'preview-ready' });
       if (!result?.ok) { document.querySelector('#forge-open').disabled = true; status.textContent = result?.reason || 'The preview event was not appended, so success was not reported.'; return; }
       preview.textContent = `Preview: source ${state.forge.source}; destination ${state.forge.destination}; account ${state.forge.account}; owner ${owner}; repository ${repository}; route ${state.forge.route}. Credentials stay in the provider flow.`;
       document.querySelector('#forge-open').disabled = false;
@@ -658,7 +685,7 @@
       const url = state.forge.route === 'fork' ? `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/fork` : `https://github.com/new?name=${encodeURIComponent(repository)}&owner=${encodeURIComponent(owner)}`;
       window.open(url, '_blank', 'noopener');
       status.textContent = `A generic provider preview page was opened for source ${state.forge.source}, destination ${state.forge.destination}, account ${state.forge.account}, and owner ${owner}. No source or destination operation occurred here. This page did not authenticate, publish, fork, or store credentials.`;
-      record('forge-handoff', `Opened a browser-mediated ${state.forge.route} flow for ${owner}/${repository}`, { owner, repository, source: state.forge.source, destination: state.forge.destination, account: state.forge.account, credentials: 'omitted' });
+      record('forge-handoff', { source: state.forge.source, destination: state.forge.destination, account: state.forge.account, route: state.forge.route, status: 'preview-opened' });
     });
     renderForge();
   }
@@ -668,9 +695,9 @@
       const valid = validReleaseManifest(RELEASE_MANIFEST);
       state.update = { status: valid ? RELEASE_MANIFEST.state : 'unavailable', checkedAt: new Date().toISOString() };
       persist(); renderUpdate();
-      record('update-check', `Checked the bundled release manifest: ${valid ? RELEASE_MANIFEST.state : 'unavailable'}`, { installation: 'not supported by a static page', status: valid ? RELEASE_MANIFEST.state : 'unavailable' });
+      record('update-check', { status: valid ? RELEASE_MANIFEST.state : 'unavailable' });
     });
-    document.querySelector('#update-reload')?.addEventListener('click', () => { record('update-reload', 'Requested a browser reload for the current published site'); location.reload(); });
+    document.querySelector('#update-reload')?.addEventListener('click', () => { record('update-reload', { status: 'requested' }); location.reload(); });
     renderUpdate();
   }
 
@@ -695,7 +722,7 @@
     filter.addEventListener('input', () => { contextQuery.text = filter.value.slice(0, 160); contextQuery.pattern = filter.dataset.regexPattern || ''; contextQuery.flags = filter.dataset.regexFlags || 'iu'; contextQuery.regex = Boolean(contextQuery.pattern); menu.querySelectorAll('[data-context-action]').forEach(item => { item.hidden = !matchesQuery(item.textContent, contextQuery); }); });
     menu.querySelector('#delivery-context-regex').addEventListener('click', () => openRegex(filter));
     menu.addEventListener('keydown', keyEvent => { if (keyEvent.key === 'ArrowDown' || keyEvent.key === 'ArrowUp') { keyEvent.preventDefault(); const items = [...menu.querySelectorAll('[data-context-action]:not([hidden])')]; const index = items.indexOf(document.activeElement); items[(index + (keyEvent.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus(); } if (keyEvent.key === 'Escape') { keyEvent.preventDefault(); closeContextMenu(); } });
-    menu.querySelectorAll('[data-context-action]').forEach(button => button.addEventListener('click', () => { const rowEvent = contextOrigin.closest?.('[data-event-id]'); if (button.dataset.contextAction === 'palette') openPaletteRoute(); if (button.dataset.contextAction === 'record') document.querySelector('#history-event-summary')?.focus(); if (button.dataset.contextAction === 'focus-panel') contextOrigin.scrollIntoView({ block: 'start' }); if (button.dataset.contextAction === 'start-operation') document.querySelector('#operation-start')?.click(); if (button.dataset.contextAction === 'restore') rowEvent?.querySelector('[data-restore-event]')?.click(); if (button.dataset.contextAction === 'copy-row') copyText(rowEvent?.querySelector('h3')?.textContent || '', document.querySelector('#history-status')); if (button.dataset.contextAction === 'copy-panel') copyText(contextOrigin.textContent.slice(0, 2000), document.querySelector('#history-status')); closeContextMenu(); }));
+    menu.querySelectorAll('[data-context-action]').forEach(button => button.addEventListener('click', () => { const rowEvent = contextOrigin.closest?.('[data-event-id]'); if (button.dataset.contextAction === 'palette') openPaletteRoute(); if (button.dataset.contextAction === 'record') document.querySelector('#history-event-field')?.focus(); if (button.dataset.contextAction === 'focus-panel') contextOrigin.scrollIntoView({ block: 'start' }); if (button.dataset.contextAction === 'start-operation') document.querySelector('#operation-start')?.click(); if (button.dataset.contextAction === 'restore') rowEvent?.querySelector('[data-restore-event]')?.click(); if (button.dataset.contextAction === 'copy-row') copyText(rowEvent?.querySelector('h3')?.textContent || '', document.querySelector('#history-status')); if (button.dataset.contextAction === 'copy-panel') copyText(contextOrigin.textContent.slice(0, 2000), document.querySelector('#history-status')); closeContextMenu(); }));
     document.addEventListener('click', closeContextMenu, { once: true });
     event.preventDefault();
   }
@@ -735,7 +762,7 @@
     TAB_ROUTES.forEach(([idValue]) => { if (!known.has(idValue)) state.tabs.push({ id: idValue, pinned: false }); });
     const ordered = [...state.tabs].sort((a, b) => Number(b.pinned) - Number(a.pinned));
     host.innerHTML = `<span class="delivery-tabs-note">Shared route navigation. Route switching and pinning persist locally; grouping and reordering are unavailable on this static host.</span>${ordered.map(tab => { const route = TAB_ROUTES.find(item => item[0] === tab.id); if (!route) return ''; return `<span class="delivery-tab"><a href="${siteAsset(route[2])}" aria-current="${tab.id === current ? 'page' : 'false'}">${escapeHtml(route[1])}</a><button type="button" data-tab-pin="${escapeHtml(tab.id)}" aria-label="${tab.pinned ? 'Unpin' : 'Pin'} ${escapeHtml(route[1])} route">${tab.pinned ? '★' : '☆'}</button></span>`; }).join('')}`;
-    host.querySelectorAll('[data-tab-pin]').forEach(button => button.addEventListener('click', () => { const tab = state.tabs.find(item => item.id === button.dataset.tabPin); if (!tab) return; tab.pinned = !tab.pinned; persist(); renderTabs(); record('tab-pin', `${tab.pinned ? 'Pinned' : 'Unpinned'} the ${button.dataset.tabPin} delivery tab`, { mode: 'shared-global-tabs', status: tab.pinned ? 'pinned' : 'unpinned' }); }));
+    host.querySelectorAll('[data-tab-pin]').forEach(button => button.addEventListener('click', () => { const tab = state.tabs.find(item => item.id === button.dataset.tabPin); if (!tab) return; tab.pinned = !tab.pinned; persist(); renderTabs(); record('tab-pin', { tab: button.dataset.tabPin, pinned: tab.pinned }); }));
     persist();
   }
 
@@ -781,7 +808,7 @@
     host.querySelector('#transfer-complete')?.remove();
     ensureDatePreset('history-preset', 'history-to'); ensureDatePreset('changelog-preset', 'changelog-to'); ensureRetentionControls(); ensureMigrationAuditPanel(); ensureDropdownSearches();
     bindHistory(); bindChangelog(); bindEditor(); bindTransfer(); bindOperation(); bindRecovery(); bindForge(); bindUpdate();
-    document.querySelector('#provider-render')?.addEventListener('click', () => { const value = document.querySelector('#provider-markdown').value.slice(0, 20000); document.querySelector('#provider-preview').innerHTML = parseProviderMarkdown(value) || '<p>No provider-authored text is loaded.</p>'; record('provider-preview', 'Rendered provider-authored Markdown in the isolated local preview', { content: 'omitted' }); });
+    document.querySelector('#provider-render')?.addEventListener('click', () => { const value = document.querySelector('#provider-markdown').value.slice(0, 20000); document.querySelector('#provider-preview').innerHTML = parseProviderMarkdown(value) || '<p>No provider-authored text is loaded.</p>'; record('provider-preview', { status: 'rendered' }); });
     document.querySelector('#provider-clear')?.addEventListener('click', () => { document.querySelector('#provider-markdown').value = ''; document.querySelector('#provider-preview').innerHTML = '<p>No provider-authored text is loaded.</p>'; });
   }
 
@@ -790,13 +817,13 @@
     document.documentElement.dataset.historyDeliveryReady = 'true';
     ensureNavigation(); ensureRail(); ensureRegexDialog(); ensureDropdownSearches();
     bindContextTargets();
-    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeContextMenu(); if (event.ctrlKey && event.shiftKey && event.key.toLocaleLowerCase() === 'f') { event.preventDefault(); openPaletteRoute(); } if (event.ctrlKey && event.key === 'Enter' && document.activeElement?.id === 'history-event-summary') { event.preventDefault(); document.querySelector('#history-record')?.click(); } });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeContextMenu(); if (event.ctrlKey && event.shiftKey && event.key.toLocaleLowerCase() === 'f') { event.preventDefault(); openPaletteRoute(); } if (event.ctrlKey && event.key === 'Enter' && ['history-event-field', 'history-event-status'].includes(document.activeElement?.id)) { event.preventDefault(); document.querySelector('#history-record')?.click(); } });
     renderPage();
     ensureRail();
-    if (state.migration?.status === 'migrated' && !state.migration.recorded) { state.migration.recorded = true; persist(); record('state-migration', `Migrated saved state version ${state.migration.sourceVersion} to version ${STATE_SCHEMA_VERSION}`, { source: 'schema-migration', status: 'migrated', sourceEvent: 'redacted' }); }
+    if (state.migration?.status === 'migrated' && !state.migration.recorded) { state.migration.recorded = true; persist(); record('state-migration', { fromVersion: state.migration.sourceVersion, toVersion: STATE_SCHEMA_VERSION, status: 'migrated' }); }
     if (state.migration?.status === 'future-version-refused') { appendMigrationAudit('future-version-refused', state.migration.sourceVersion); renderMigrationAudit(); }
     ensurePaletteOpener();
-    if (state.transfer.status === 'interrupted' && !state.transfer.interruptionRecorded) { state.transfer.interruptionRecorded = true; persist(); record('download-interrupted', `Recovered an interrupted local write for ${state.transfer.name || 'the selected file'}`, { status: 'interrupted', completion: 'not-complete' }); }
+    if (state.transfer.status === 'interrupted' && !state.transfer.interruptionRecorded) { state.transfer.interruptionRecorded = true; persist(); record('download-interrupted', { status: 'interrupted' }); }
     document.querySelectorAll('#history-delivery-page .delivery-panel, #history-delivery-mount .delivery-panel').forEach(panel => { panel.dataset.deliveryContext = 'panel'; });
     bindContextTargets();
     ensureTabs();
