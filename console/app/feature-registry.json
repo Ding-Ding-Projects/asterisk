@@ -329,9 +329,13 @@
       "blockedBy": "BLOCKED ON A PLAN-SHAPE MISMATCH, which is a sharper statement than the previous \"no progress events exist\" -- those now exist. As of 2026-08-24 provisioning emits every step live through an onStep callback, the dispatcher threads it through, main sends it on the same IPC channel the updater uses, and App renders it. What still does not fit is this module: planOperation needs its phases known before the first one arrives, and reportProgress refuses a phase that skips more than one ahead. Provisioning legitimately skips -- with a packaged payload present, \"download base image\" and \"verify base image\" never happen at all -- so a plan listing them would throw partway through a perfectly normal deploy. Real consumption needs the plan built per run from what the deploy will actually do, most likely by marking the download phases optional and declining them once the first step reports the payload present, which is what planOperation’s declined-optional mechanism is for. Doing that carelessly means catching the throw, which would hide a real ordering bug behind a progress line, so it is left undone rather than done badly. The deploy-progress line on screen today is App counting steps itself, deliberately not this module."
     },
     "in-context-recovery": {
-      "state": "absent",
-      "note": "No surface-level recovery route (for example re-authentication offered directly beside a refused push/credential error) was found.",
-      "files": []
+      "state": "implemented",
+      "note": "Implemented 2026-08-24 as app/renderer/src/in-context-recovery.ts, consumed by App on the deploy-failure path -- a failing provisioning step now offers a route out rather than leaving somebody holding an error string. The property that matters is what it refuses: a rejected push has remedies that look fast and destroy commits (force-push, reset, dropping the branch, switching mid-conflict), and those are named as forbidden rather than merely left out, so a caller handing the situation to a coding agent passes the prohibition on rather than only the goal. A refused permission offers no retry, because repeating a refused action changes nothing and reads as the console not having understood the answer. An unrecognised failure says so and shows the full error instead of a cheerful \"Try again\" that fails the same way. The real error is carried through every branch rather than replaced by the summary, since a summary that swallowed it leaves somebody unable to search for what happened. Failures are classified on the reported detail rather than the step name, because the name says what was attempted and the detail says why it did not work.",
+      "files": [
+        "app/renderer/src/in-context-recovery.ts",
+        "app/renderer/src/App.tsx",
+        "tests/ui/in-context-recovery.test.tsx"
+      ]
     },
     "provider-markup-rendering": {
       "state": "partial",

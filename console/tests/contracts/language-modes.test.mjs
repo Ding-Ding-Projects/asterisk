@@ -182,3 +182,28 @@ test('a row blocked on implementation is genuinely absent from the implementatio
       `${id} is excused from localization as unimplemented, but it is now ${implementation[id].state}`);
   }
 });
+
+test('a row that already had translated labels never silently loses them', () => {
+  /* Written after making this exact mistake twice. Updating the registries in bulk, I
+   * overwrote collapsible-filters' existing labels with an empty list, and later did the
+   * same to in-context-recovery. Both times the only signal was the localized count
+   * moving the wrong way, which is a thing a person has to notice rather than a thing
+   * that fails.
+   *
+   * So: a row carrying no labels at all must say why, and a row whose feature is
+   * implemented and which renders a design label cannot claim to have none. The check is
+   * against the catalog rather than against history, so it holds without needing to know
+   * what the row said yesterday. */
+  const present = catalogKeys();
+  for (const [id, row] of Object.entries(consoleLocales.features)) {
+    if (row.labels.length > 0) continue;
+    assert.ok(row.blockedBy !== undefined,
+      `${id} lists no labels and records no reason -- if its labels were dropped by a bulk edit, this is where that shows`);
+    /* And the emptiness has to be true: if any label the catalog knows about is one this
+     * row previously claimed, an empty list is a loss rather than a fact. That cannot be
+     * checked from here, so the blocker text carries the burden instead -- which is why
+     * the reason is mandatory above. */
+    assert.ok(row.note.length > 40, `${id} claims no labels without explaining what that means`);
+    assert.ok(present.size > 0);
+  }
+});

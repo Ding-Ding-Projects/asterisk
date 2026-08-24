@@ -615,7 +615,7 @@
         "Explain this…"
       ],
       "untranslatedLabels": [],
-      "note": "Every listed label has a Cantonese entry."
+      "note": "Every listed label has a Cantonese entry. The Explain-this affordance was already translated before the module landed. The per-failure recovery copy the module generates is not catalog-keyed, because it is composed per failure rather than being a fixed label -- localizing that means giving each failure kind its own entry, which is a different shape from every other row here and is worth doing deliberately rather than by pretending the labels already exist."
     },
     "provider-markup-rendering": {
       "state": "not-localized",

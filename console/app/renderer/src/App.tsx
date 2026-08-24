@@ -40,6 +40,7 @@ import {
 } from './school-mode';
 import { attemptMessage, consumeCredential } from './credential-field';
 import { isFunnyLevel, setFunnyLevel, type CopyLanguage } from './funny-levels';
+import { recoveryFor, type FailureKind } from './in-context-recovery';
 import {
   AA_LARGE_TEXT_RATIO, AA_NORMAL_TEXT_RATIO, contrastLevel, contrastRatioFromHex,
 } from './accessibility-contract';
@@ -607,11 +608,38 @@ ${resolution.disclosure}`);
     this.deploySteps.push(step);
     const done = this.deploySteps.filter((candidate) => candidate.ok).length;
     if (!step.ok) {
-      this.deployProgressLine = `Stopped at ${step.name}: ${step.detail}`;
+      /* A failure is where a recovery route is worth having, so it is offered here rather
+       * than leaving somebody at a dead end holding an error string. The route never
+       * includes a remedy that loses work -- see in-context-recovery.ts. */
+      const recovery = recoveryFor(App.classifyStepFailure(step), step.detail, { target: step.name });
+      const offered = recovery.actions.map((entry) => entry.label).join(', ');
+      this.deployProgressLine = `Stopped at ${step.name}. ${recovery.summary}`;
+      this.fire(`Deploy stopped at ${step.name}`,
+        `${recovery.summary}
+
+${recovery.detail}${offered ? `
+
+What you can do: ${offered}.` : ''}`);
     } else {
       this.deployProgressLine = `${done} step${done === 1 ? '' : 's'} done -- ${step.name}: ${step.detail}`;
     }
     this.forceUpdate();
+  }
+
+  /**
+   * Which kind of failure a provisioning step represents.
+   *
+   * Matched on the reported detail rather than the step name, because the name says what
+   * was being attempted and the detail says why it did not work -- and a step can fail for
+   * more than one reason. Anything unrecognised falls to `unknown`, which offers the full
+   * error rather than inventing a route.
+   */
+  private static classifyStepFailure(step: { name: string; detail: string }): FailureKind {
+    const detail = step.detail.toLowerCase();
+    if (/permission|denied|not permitted|elevat/u.test(detail)) return 'permission-denied';
+    if (/no space|disk full|enospc/u.test(detail)) return 'disk-full';
+    if (/unreachable|refused|timed out|not running|no such host/u.test(detail)) return 'target-unreachable';
+    return 'unknown';
   }
 
   /** Clears the record so a second deploy does not read as a continuation of the first. */
