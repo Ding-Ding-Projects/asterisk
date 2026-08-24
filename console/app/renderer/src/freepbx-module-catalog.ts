@@ -116,5 +116,8 @@ export function searchableFreePbxModules(query: string, regex = false, flags = '
   if (!value) return [...FREEPBX_MODULE_CATALOG.modules];
   const compiled = compileBoundedRegex(value, { regex, flags });
   if (!compiled.ok) return [];
-  return FREEPBX_MODULE_CATALOG.modules.filter((module) => boundedRegexTest(compiled.matcher, `${module.moduleId} ${module.name} ${module.category} ${module.description}`));
+  return FREEPBX_MODULE_CATALOG.modules.filter((module) => {
+    try { return boundedRegexTest(compiled.matcher, `${module.moduleId} ${module.name} ${module.category} ${module.description}`); }
+    catch { return false; }
+  });
 }

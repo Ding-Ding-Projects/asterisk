@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "moduleEvidenceTemplate": {
+    "implementation": "console/app/renderer/src/freepbx-module-adapters.ts#moduleAdapterFor({moduleId})",
+    "docs": "console/docs/pbx/freepbx-modules.md#module-{moduleId}",
+    "localization": "console/app/locales/feature-registry.json#freepbx-module-surface",
+    "actionBinding": "console/control-plane/dispatch.ts#freepbx.module.action",
+    "runtimeProof": "unverified until a target handshake and readback exists",
+    "capture": "unverified until the built-artifact capture exists"
+  },
+  "exclusionEvidenceTemplate": {
+    "implementation": "console/catalog/freepbx-module-catalog.json#exclusions[{recordId}]",
+    "docs": "console/docs/pbx/freepbx-modules.md#exclusions",
+    "localization": "console/app/locales/feature-registry.json#freepbx-module-surface",
+    "actionBinding": "non-actionable record, no module action route",
+    "runtimeProof": "not applicable",
+    "capture": "not applicable"
+  },
+  "familyEvidenceTemplate": {
+    "implementation": "console/app/renderer/src/freepbx-module-adapters.ts#FREEPBX_FAMILY_ADAPTERS[{familyId}]",
+    "docs": "console/docs/pbx/freepbx-modules.md#family-{familyId}",
+    "localization": "console/app/locales/feature-registry.json#freepbx-module-surface",
+    "actionBinding": "console/control-plane/dispatch.ts#freepbx.family.*",
+    "runtimeProof": "unverified until the family capability route is exercised",
+    "capture": "unverified until the built-artifact family form is captured"
+  },
+  "modules": [
+    "amd", "announcement", "api", "arimanager", "asterisk-cli", "asteriskinfo", "backup", "blacklist", "bulkhandler", "calendar", "callback", "callforward", "callrecording", "callwaiting", "cdr", "cel", "certman", "cidlookup", "conferences", "configedit", "contactmanager", "core", "customappsreg", "cxpanel", "dahdiconfig", "dashboard", "daynight", "dbmanager", "dictate", "digium_phones", "digiumaddoninstaller", "directory", "disa", "donotdisturb", "dundicheck", "extensionsettings", "fax", "featurecodeadmin", "filestore", "findmefollow", "firewall", "framework", "ghtest", "hotelwakeup", "iaxsettings", "infoservices", "ivr", "languages", "logfiles", "manager", "miscapps", "miscdests", "missedcall", "music", "outroutemsg", "paging", "parking", "pbdirectory", "phonebook", "pinsets", "pm2", "presencestate", "printextensions", "queueprio", "queues", "recordings", "restart", "ringgroups", "setcid", "sipsettings", "soundlang", "speeddial", "superfecta", "timeconditions", "tts", "ttsengines", "ucp", "userman", "vmblast", "voicemail", "weakpasswords", "webrtc", "xmpp"
+  ],
+  "exclusions": [
+    "exclude-sms-plus", "exclude-sms-webhook", "exclude-sms", "exclude-framework", "exclude-pm2", "exclude-phpinfo", "exclude-versionupgrade", "exclude-fw_langpacks", "exclude-digium_phones", "exclude-digiumaddoninstaller", "exclude-cxpanel", "exclude-synologyabb", "exclude-irc", "exclude-ucp", "exclude-webrtc"
+  ],
+  "families": [
+    "extensions-users-devices", "trunks", "inbound-routes", "outbound-routes", "dial-patterns", "feature-codes", "ivr", "queues", "ring-groups", "announcements", "recordings", "music-on-hold", "time-groups-conditions", "call-flow-day-night", "conferences", "paging-intercom", "parking", "voicemail", "directory", "follow-me-find-me", "dnd", "call-waiting", "call-forwarding", "blacklist", "caller-id", "languages", "misc-apps", "misc-destinations", "call-recording", "contacts", "calendar-presence", "cdr-cel-reports", "certificates-tls", "firewall-security", "sip-settings", "dahdi-iax-pjsip", "backup-restore", "module-admin", "system-admin", "ucp-webrtc", "api", "jobs-scheduler", "notifications", "diagnostics", "dashboard", "development", "iax-settings", "ami-api", "applications", "admin", "connectivity", "reports", "settings", "uncategorized", "other"
+  ]
+}

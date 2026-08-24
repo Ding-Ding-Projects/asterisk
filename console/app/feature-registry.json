@@ -321,9 +321,10 @@
     },
     "freepbx-module-surface": {
       "state": "partial",
-      "note": "The generated public FreePBX module catalog, native schema-driven form model, catalog destination registration, and typed fwconsole action boundary are wired. Runtime state, entitlement behavior on a real target, built-artifact interaction, and captures remain unverified.",
+      "note": "The generated public FreePBX module catalog, 55-family adapter registry, catalog destination, typed WSL/local-Docker fwconsole boundary, target-bound backup receipt, bounded export, and persisted filters are wired. Entity and published-API families remain explicitly non-actionable until typed target routes exist. Runtime state, entitlement behavior on a real target, built-artifact interaction, and captures remain unverified.",
       "files": [
         "catalog/freepbx-module-catalog.json",
+        "docs/platform/freepbx-module-surface.md",
         "app/renderer/src/freepbx-module-catalog.ts",
         "app/renderer/src/freepbx-module-adapters.ts",
         "app/renderer/src/freepbx-module-form.ts",
@@ -333,6 +334,7 @@
         "control-plane/freepbx-runtime.ts",
         "control-plane/dispatch.ts",
         "inventories/freepbx-module-surface.json",
+        "inventories/freepbx-module-evidence.json",
         "scripts/verify-freepbx-module-inventory.mjs"
       ]
     },

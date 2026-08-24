@@ -2,6 +2,7 @@ export type FreePbxExportFormat = 'json' | 'jsonl' | 'yaml' | 'toml' | 'xml' | '
 
 export interface FreePbxExportRecord {
   recordType: 'module' | 'exclusion';
+  recordId: string;
   moduleId: string;
   label: string;
   catalog: unknown;
@@ -17,7 +18,7 @@ export interface FreePbxExportResult {
   omitted: string[];
 }
 
-const FIELDS = ['recordType', 'moduleId', 'label', 'catalog', 'runtime', 'history'] as const;
+const FIELDS = ['recordType', 'recordId', 'moduleId', 'label', 'catalog', 'runtime', 'history'] as const;
 
 function safe(value: unknown): string {
   return JSON.stringify(value) ?? 'null';
@@ -43,6 +44,7 @@ function toml(records: FreePbxExportRecord[]): string {
     `[[records]]`,
     `index = ${index}`,
     `recordType = ${JSON.stringify(record.recordType)}`,
+    `recordId = ${JSON.stringify(record.recordId)}`,
     `moduleId = ${JSON.stringify(record.moduleId)}`,
     `label = ${JSON.stringify(record.label)}`,
     `catalog = ${JSON.stringify(safe(record.catalog))}`,
@@ -76,6 +78,6 @@ export function exportFreePbxCatalog(records: ReadonlyArray<FreePbxExportRecord>
     const delimiter = format === 'csv' ? ',' : '\t';
     return { format, contentType: format === 'csv' ? 'text/csv' : 'text/tab-separated-values', filename: `freepbx-module-catalog.${format}`, body: `${FIELDS.join(delimiter)}\n${plain.map((record) => FIELDS.map((field) => format === 'csv' ? csvCell(record[field]) : String(record[field] ?? '').replaceAll('\t', ' ')).join(delimiter)).join('\n')}\n`, omitted };
   }
-  if (format === 'markdown') return { format, contentType: 'text/markdown', filename: 'freepbx-module-catalog.md', body: `# FreePBX module catalog export\n\nOmitted: ${omitted.join(' ')}\n\n| Record | Module | Label | Runtime | History |\n| --- | --- | --- | --- | --- |\n${plain.map((record) => `| ${record.recordType} | ${record.moduleId} | ${record.label.replaceAll('|', '\\|')} | ${safe(record.runtime).replaceAll('|', '\\|')} | ${safe(record.history).replaceAll('|', '\\|')} |`).join('\n')}\n`, omitted };
+  if (format === 'markdown') return { format, contentType: 'text/markdown', filename: 'freepbx-module-catalog.md', body: `# FreePBX module catalog export\n\nOmitted: ${omitted.join(' ')}\n\n| Record | Record ID | Module | Label | Runtime | History |\n| --- | --- | --- | --- | --- | --- |\n${plain.map((record) => `| ${record.recordType} | ${record.recordId} | ${record.moduleId} | ${record.label.replaceAll('|', '\\|')} | ${safe(record.runtime).replaceAll('|', '\\|')} | ${safe(record.history).replaceAll('|', '\\|')} |`).join('\n')}\n`, omitted };
   return { format, contentType: 'text/html', filename: 'freepbx-module-catalog.html', body: `<!doctype html><meta charset="utf-8"><title>FreePBX module catalog export</title><p>Omitted: ${htmlEscape(omitted.join(' '))}</p><table><thead><tr>${FIELDS.map((field) => `<th>${field}</th>`).join('')}</tr></thead><tbody>${plain.map((record) => `<tr>${FIELDS.map((field) => `<td>${htmlEscape(safe(record[field]))}</td>`).join('')}</tr>`).join('')}</tbody></table>\n`, omitted };
 }

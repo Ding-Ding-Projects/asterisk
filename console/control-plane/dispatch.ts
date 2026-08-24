@@ -24,7 +24,7 @@ import { atomicWriteFileSync } from './atomic-file.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
 import type { ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
-import { FreePbxRuntimeAdapter } from './freepbx-runtime.js';
+import { FreePbxRuntimeAdapter, type FreePbxBackupReceipt, type FreePbxBackupReceiptStore, type FreePbxModuleAction } from './freepbx-runtime.js';
 import freePbxCatalogJson from '../catalog/freepbx-module-catalog.json' with { type: 'json' };
 
 /**
@@ -72,7 +72,28 @@ function freePbxCatalogEntries() {
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
   const { userDataPath, resourcesPath, hosted } = options;
-  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
+  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker', 'git'] });
+  const freePbxReceipts = new Map<string, FreePbxBackupReceipt>();
+  const receiptStore: FreePbxBackupReceiptStore = {
+    issue(receipt) { freePbxReceipts.set(receipt.nonce, receipt); },
+    consume(binding) {
+      const receipt = freePbxReceipts.get(binding.nonce);
+      if (!receipt) return undefined;
+      freePbxReceipts.delete(binding.nonce);
+      if (Date.parse(receipt.expiresAt) < Date.now()) return undefined;
+      if (receipt.targetId !== binding.targetId || receipt.jobId !== binding.jobId || receipt.moduleId !== binding.moduleId || receipt.action !== binding.action || receipt.catalogRevision !== binding.catalogRevision) return undefined;
+      return receipt;
+    },
+  };
+  async function recordFreePbxActionHistory(moduleId: string, action: string, result: unknown): Promise<unknown> {
+    const history = new LocalHistory({ executor: processExecutor, repositoryPath: join(userDataPath, 'history') });
+    await history.initialize();
+    return await history.record({
+      action: 'updated',
+      subject: `FreePBX module ${moduleId} ${action}`,
+      payload: { moduleId, action, result },
+    });
+  }
   const asteriskService = new AsteriskService({ executor: processExecutor });
   const targetDiscovery = new TargetDiscovery(processExecutor);
   const cliGateway = new LocalAsteriskCliGateway(processExecutor);
@@ -466,30 +487,36 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         return { ok: true, requestId: request.requestId, data: await new FreePbxRuntimeAdapter({
           executor: processExecutor,
           target,
-          catalog: freePbxCatalogEntries(),
+           catalog: freePbxCatalogEntries(),
+           receipts: receiptStore,
         }).listModules() };
       }
       if (request.action === 'freepbx.handshake') {
         const target = await resolveTarget(request.serverId);
-        return { ok: true, requestId: request.requestId, data: await new FreePbxRuntimeAdapter({ executor: processExecutor, target, catalog: freePbxCatalogEntries() }).handshake() };
+         return { ok: true, requestId: request.requestId, data: await new FreePbxRuntimeAdapter({ executor: processExecutor, target, catalog: freePbxCatalogEntries(), receipts: receiptStore }).handshake() };
       }
       if (request.action === 'freepbx.backup') {
         const target = await resolveTarget(request.serverId);
         const jobId = typeof request.payload?.jobId === 'string' ? request.payload.jobId.trim() : '';
         if (!jobId) return { ok: false, requestId: request.requestId, code: 'FREEPBX_BACKUP_JOB_REQUIRED', message: 'Choose a backup job from the target backup catalog before a module action.' };
-        const receipt = await new FreePbxRuntimeAdapter({ executor: processExecutor, target, catalog: freePbxCatalogEntries() }).createBackup(jobId);
+         const moduleId = typeof request.payload?.moduleId === 'string' ? request.payload.moduleId.trim() : '';
+         const action = request.payload?.action;
+         const catalogRevision = typeof request.payload?.catalogRevision === 'string' ? request.payload.catalogRevision : null;
+         if (!moduleId || typeof action !== 'string' || !['install', 'enable', 'disable', 'update', 'remove'].includes(action)) return { ok: false, requestId: request.requestId, code: 'FREEPBX_BACKUP_BINDING_REQUIRED', message: 'A backup receipt must name the selected module, action, and catalog revision.' };
+         const receipt = await new FreePbxRuntimeAdapter({ executor: processExecutor, target, catalog: freePbxCatalogEntries(), receipts: receiptStore }).createBackup({ jobId, moduleId, action: action as FreePbxModuleAction, catalogRevision });
         return { ok: true, requestId: request.requestId, data: receipt };
       }
       if (request.action === 'freepbx.backup.list') {
         const target = await resolveTarget(request.serverId);
-        return { ok: true, requestId: request.requestId, data: { jobs: await new FreePbxRuntimeAdapter({ executor: processExecutor, target, catalog: freePbxCatalogEntries() }).listBackupJobs() } };
+         return { ok: true, requestId: request.requestId, data: { jobs: await new FreePbxRuntimeAdapter({ executor: processExecutor, target, catalog: freePbxCatalogEntries(), receipts: receiptStore }).listBackupJobs() } };
       }
       if (request.action === 'freepbx.module.state' || request.action === 'freepbx.module.action') {
         const target = await resolveTarget(request.serverId);
         const runtime = new FreePbxRuntimeAdapter({
           executor: processExecutor,
           target,
-          catalog: freePbxCatalogEntries(),
+           catalog: freePbxCatalogEntries(),
+           receipts: receiptStore,
         });
         const moduleId = typeof request.payload?.moduleId === 'string' ? request.payload.moduleId.trim() : '';
         if (request.action === 'freepbx.module.state') return { ok: true, requestId: request.requestId, data: await runtime.readModule(moduleId) };
@@ -502,8 +529,11 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           && typeof (backup as Record<string, unknown>).databaseReceipt === 'string'
           ? backup as { filesReceipt: string; databaseReceipt: string; source: 'official-freepbx-backup'; observedAt: string }
           : undefined;
-        const result = await runtime.action({ moduleId, action: action as 'install' | 'enable' | 'disable' | 'update' | 'remove', confirmed, expectedRevision: typeof request.payload?.expectedRevision === 'string' ? request.payload.expectedRevision : null, backup: typedBackup });
-        return { ok: result.status === 'applied' || result.status === 'rolledBack', requestId: request.requestId, code: result.status === 'applied' || result.status === 'rolledBack' ? undefined : `FREEPBX_${result.status.toUpperCase()}`, message: result.message, data: result } as ControlPlaneResponse;
+         const result = await runtime.action({ moduleId, action: action as 'install' | 'enable' | 'disable' | 'update' | 'remove', confirmed, expectedRevision: typeof request.payload?.expectedRevision === 'string' ? request.payload.expectedRevision : null, backup: typedBackup });
+         let history: unknown;
+         try { history = await recordFreePbxActionHistory(moduleId, action, result); }
+         catch (error) { history = { recorded: false, reason: error instanceof Error ? error.message : 'Local history could not record this module action.' }; }
+         return { ok: result.status === 'applied' || result.status === 'rolledBack', requestId: request.requestId, code: result.status === 'applied' || result.status === 'rolledBack' ? undefined : `FREEPBX_${result.status.toUpperCase()}`, message: result.message, data: { ...result, history } } as ControlPlaneResponse;
       }
       if (request.action === 'pbx.config') {
         const resource = typeof request.payload?.resource === 'string' ? request.payload.resource : '';

@@ -16,7 +16,8 @@ import { featureForAdvancedScreen, registerPbxAdminScreens } from './pbx-admin-s
 import { lookupFieldControl } from '../../../control-plane/field-control-catalog';
 import { FREEPBX_MODULE_CATALOG, searchableFreePbxModules, type FreePbxModuleCatalogEntry } from './freepbx-module-catalog';
 import { buildFreePbxModuleForm } from './freepbx-module-form';
-import type { FreePbxBackupJob, FreePbxBackupReceipt, FreePbxRuntimeModule } from '../../../control-plane/freepbx-runtime';
+import { moduleAdapterFor } from './freepbx-module-adapters';
+import type { FreePbxBackupJob, FreePbxBackupReceipt, FreePbxHandshake, FreePbxRuntimeModule } from '../../../control-plane/freepbx-runtime';
 import { boundedRegexTest, compileBoundedRegex } from './bounded-regex';
 import { exportFreePbxCatalog as buildFreePbxCatalogExport, type FreePbxExportFormat } from './freepbx-catalog-export';
 import { SCREENS } from './generated/console';
@@ -62,8 +63,8 @@ function actionControl(id: string, label: string, action: string, info?: string)
   };
 }
 
-function textControl(id: string, label: string, value: string, info?: string): AdminControl {
-  return { id, label, kind: 'text', value, ...(info ? { info } : {}) };
+function textControl(id: string, label: string, value: string, info?: string, readOnly = false): AdminControl {
+  return { id, label, kind: 'text', value, ...(info ? { info } : {}), ...(readOnly ? { readOnly: true } : {}) };
 }
 
 /**
@@ -140,6 +141,7 @@ export class PbxAdminApp extends App {
   private adminPickedFileNames = new Map<string, string>();
   private publishedDraftCount = -1;
   private freePbxRuntimeModules = new Map<string, FreePbxRuntimeModule>();
+  private freePbxHandshake: FreePbxHandshake | undefined;
   private freePbxCatalogStatus = 'Runtime module state has not been read.';
   private freePbxCatalogStateLoaded = false;
   private freePbxCatalogPersisted = '';
@@ -280,7 +282,10 @@ export class PbxAdminApp extends App {
   private discoverAdminTargets = async (): Promise<void> => {
     if (this.adminDiscoveryPending) return;
     this.adminDiscoveryPending = true;
-    const response = await this.adminRequest('server.list');
+    const [response, inventoryResponse] = await Promise.all([
+      this.adminRequest('server.list'),
+      this.adminRequest('server.inventory.list'),
+    ]);
     this.adminDiscoveryPending = false;
     if (!response?.ok) {
       this.adminTargets = [];
@@ -292,12 +297,14 @@ export class PbxAdminApp extends App {
       return;
     }
     const data = response.data as { wsl?: string[] | { unavailable?: string } };
-    const targets = Array.isArray(data.wsl) ? data.wsl.filter((item) => typeof item === 'string' && item.trim().length > 0) : [];
+    const discoveredWsl = Array.isArray(data.wsl) ? data.wsl.filter((item) => typeof item === 'string' && item.trim().length > 0) : [];
+    const registeredTargets = inventoryResponse?.ok ? ((inventoryResponse.data as { servers?: Array<{ id?: string }> }).servers ?? []).map((server) => server.id).filter((id): id is string => typeof id === 'string' && id.trim().length > 0) : [];
+    const targets = [...new Set([...registeredTargets, ...discoveredWsl])];
     this.adminTargets = targets;
     this.adminTargetId = targets.includes(this.adminTargetId) ? this.adminTargetId : targets[0] ?? '';
     const screen = this.stateValues().screen;
     if (targets.length === 0) {
-      const reason = Array.isArray(data.wsl) ? 'No local WSL PBX target was discovered.' : data.wsl?.unavailable ?? 'No PBX target was discovered.';
+      const reason = Array.isArray(data.wsl) ? 'No registered or discovered PBX target was found.' : data.wsl?.unavailable ?? 'No PBX target was discovered.';
       this.adminStatus.set(screen, reason);
     } else {
       this.adminStatus.set(screen, `${targets.length} PBX target${targets.length === 1 ? '' : 's'} discovered. Nothing has been changed.`);
@@ -378,12 +385,12 @@ export class PbxAdminApp extends App {
     this.forceUpdate();
   };
 
-  private selectedFreePbxCatalogModule(): string {
-    const value = String(this.stateValues().values[this.freePbxCatalogRecordId] ?? '');
-    return value.split(' · ')[0]!.replace(/^\[excluded\]\s+/u, '').trim();
+  private selectedFreePbxCatalogRecord(): { recordId: string; moduleId: string; excluded: boolean; module?: FreePbxModuleCatalogEntry } | undefined {
+    const recordId = String(this.stateValues().values[this.freePbxCatalogRecordId] ?? '').split(' · ')[0]!.trim();
+    return this.freePbxCatalogRecords().find((record) => record.id === recordId);
   }
 
-  private freePbxCatalogRecords(): Array<{ id: string; label: string; excluded: boolean; module?: FreePbxModuleCatalogEntry }> {
+  private freePbxCatalogRecords(): Array<{ id: string; moduleId: string; label: string; excluded: boolean; module?: FreePbxModuleCatalogEntry }> {
     const values = this.stateValues().values;
     const query = String(values[this.freePbxCatalogQueryId] ?? '');
     const regex = values[this.freePbxCatalogRegexId] === true;
@@ -394,12 +401,12 @@ export class PbxAdminApp extends App {
       if (installedOnly && !this.freePbxRuntimeModules.get(module.moduleId)?.installed) return false;
       if (commercialOnly && module.entitlementClass !== 'commercial') return false;
       return true;
-    }).map((module) => ({ id: module.moduleId, label: `${module.moduleId} · ${module.name} · ${module.version}`, excluded: false, module }));
+    }).map((module) => ({ id: module.moduleId, moduleId: module.moduleId, label: `${module.moduleId} · ${module.name} · ${module.version}`, excluded: false, module }));
     if (!includeExclusions) return modules;
     const exclusionMatcher = compileBoundedRegex(query, { regex, flags: 'i' });
     const exclusions = FREEPBX_MODULE_CATALOG.exclusions
       .filter((entry) => !query || (exclusionMatcher.ok && boundedRegexTest(exclusionMatcher.matcher, `${entry.moduleId} ${entry.reason}`)))
-      .map((entry) => ({ id: entry.moduleId, label: `[excluded] ${entry.moduleId} · ${entry.reason}`, excluded: true }));
+      .map((entry) => ({ id: entry.recordId, moduleId: entry.moduleId, label: `[excluded] ${entry.moduleId} · ${entry.reason}`, excluded: true }));
     return [...modules, ...exclusions];
   }
 
@@ -411,8 +418,21 @@ export class PbxAdminApp extends App {
       this.forceUpdate();
       return;
     }
-    this.freePbxCatalogStatus = 'Reading installed and enabled module state from fwconsole…';
+    this.freePbxCatalogStatus = 'Reading the FreePBX capability handshake and installed module state from fwconsole…';
     this.forceUpdate();
+    const handshakeResponse = await this.adminRequest('freepbx.handshake', { serverId: target });
+    if (!handshakeResponse?.ok) {
+      this.freePbxHandshake = undefined;
+      this.freePbxCatalogStatus = handshakeResponse?.message ?? 'The FreePBX capability handshake did not answer.';
+      this.forceUpdate();
+      return;
+    }
+    this.freePbxHandshake = handshakeResponse.data as FreePbxHandshake;
+    if (this.freePbxHandshake.moduleAdmin !== 'available' || this.freePbxHandshake.backup !== 'available') {
+      this.freePbxCatalogStatus = `FreePBX capability state is not ready: module admin ${this.freePbxHandshake.moduleAdmin}, backup ${this.freePbxHandshake.backup}, database ${this.freePbxHandshake.database}, web service ${this.freePbxHandshake.webService}.`;
+      this.forceUpdate();
+      return;
+    }
     const response = await this.adminRequest('freepbx.modules', { serverId: target });
     if (!response?.ok) {
       this.freePbxCatalogStatus = response?.message ?? 'The FreePBX runtime did not answer module discovery.';
@@ -472,15 +492,6 @@ export class PbxAdminApp extends App {
     const response = await this.adminRequest('settings.snapshot');
     const savedValues = response?.ok ? (response.data as { values?: Record<string, string> }).values : undefined;
     const raw = savedValues?.['freepbx.catalog.selection'];
-    const historyRaw = savedValues?.['freepbx.catalog.history'];
-    if (historyRaw) {
-      try {
-        const history = JSON.parse(historyRaw) as unknown;
-        if (Array.isArray(history)) this.freePbxCatalogHistory = history.filter((entry): entry is FreePbxCatalogHistoryEntry => Boolean(entry && typeof entry === 'object' && typeof (entry as Record<string, unknown>).moduleId === 'string' && typeof (entry as Record<string, unknown>).action === 'string' && typeof (entry as Record<string, unknown>).status === 'string' && typeof (entry as Record<string, unknown>).message === 'string')).slice(-200);
-      } catch {
-        this.freePbxCatalogStatus = 'Saved catalog history was invalid and was ignored.';
-      }
-    }
     if (raw) {
       try {
         const saved = JSON.parse(raw) as Record<string, unknown>;
@@ -506,11 +517,12 @@ export class PbxAdminApp extends App {
   private exportFreePbxCatalog = (): void => {
     const records = this.freePbxCatalogRecords().map((record) => ({
       recordType: record.excluded ? 'exclusion' : 'module',
-      moduleId: record.id,
+      recordId: record.id,
+      moduleId: record.moduleId,
       label: record.label,
-      catalog: record.module ?? FREEPBX_MODULE_CATALOG.exclusions.find((entry) => entry.moduleId === record.id) ?? null,
-      runtime: this.freePbxRuntimeModules.get(record.id) ?? null,
-      history: this.freePbxCatalogHistory.filter((entry) => entry.moduleId === record.id),
+      catalog: record.module ?? FREEPBX_MODULE_CATALOG.exclusions.find((entry) => entry.recordId === record.id) ?? null,
+      runtime: this.freePbxRuntimeModules.get(record.moduleId) ?? null,
+      history: this.freePbxCatalogHistory.filter((entry) => entry.moduleId === record.moduleId),
     }));
     const rawFormat = String(this.stateValues().values[this.freePbxCatalogFormatId] ?? 'json');
     const format = (['json', 'jsonl', 'yaml', 'toml', 'xml', 'csv', 'tsv', 'markdown', 'html'] as const).includes(rawFormat as FreePbxExportFormat) ? rawFormat as FreePbxExportFormat : 'json';
@@ -578,7 +590,8 @@ export class PbxAdminApp extends App {
     if (feature.id === 'freepbx-catalog') {
       const records = this.freePbxCatalogRecords();
       const options = records.map((record) => record.label);
-      const selected = options[0] ?? 'No catalog record matches the current filters.';
+      const selectedRecord = this.selectedFreePbxCatalogRecord();
+      const selected = selectedRecord ? `${selectedRecord.id} · ${selectedRecord.label}` : records[0] ? `${records[0].id} · ${records[0].label}` : 'No catalog record matches the current filters.';
       groups.push({
         title: 'FreePBX module catalog',
         desc: `${records.length} catalog record${records.length === 1 ? '' : 's'} match. ${this.freePbxCatalogStatus}`,
@@ -588,20 +601,19 @@ export class PbxAdminApp extends App {
           switchControl(this.freePbxCatalogInstalledId, 'Installed only', this.stateValues().values[this.freePbxCatalogInstalledId] === true),
           switchControl(this.freePbxCatalogCommercialId, 'Commercial entitlement only', this.stateValues().values[this.freePbxCatalogCommercialId] === true),
           switchControl(this.freePbxCatalogExclusionsId, 'Include explicit exclusions', this.stateValues().values[this.freePbxCatalogExclusionsId] === true),
-          selectControl(this.freePbxCatalogRecordId, 'Catalog record', selected, options.length > 0 ? options : [selected], 'freepbx-catalog-record'),
+          selectControl(this.freePbxCatalogRecordId, 'Catalog record', selected, records.length > 0 ? records.map((record) => `${record.id} · ${record.label}`) : [selected], 'freepbx-catalog-record'),
           selectControl(this.freePbxCatalogFormatId, 'Export format', String(this.stateValues().values[this.freePbxCatalogFormatId] ?? 'json'), ['json', 'jsonl', 'yaml', 'toml', 'xml', 'csv', 'tsv', 'markdown', 'html']),
           selectControl(this.freePbxBackupJobId, 'Official backup job', String(this.stateValues().values[this.freePbxBackupJobId] ?? this.freePbxBackupJobs[0]?.jobId ?? ''), this.freePbxBackupJobs.length > 0 ? this.freePbxBackupJobs.map((job) => `${job.jobId} · ${job.label}`) : ['No backup job has been read']),
           actionControl('freepbx-catalog:backup-list', 'Read official backup jobs', 'freepbx-catalog-backup-list', 'The target must publish the backup job list before a receipt can be created.'),
-          actionControl('freepbx-catalog:backup-create', 'Create file and database backup receipt', 'freepbx-catalog-backup-create', 'An action cannot be sent without this receipt.'),
           actionControl('freepbx-catalog:refresh', 'Read installed module state', 'freepbx-catalog-refresh', 'Reads the target through fwconsole and does not change it.'),
           actionControl('freepbx-catalog:export', 'Export filtered catalog records', 'freepbx-catalog-export', 'Exports catalog metadata and readback state only. Credentials and private paths are omitted.'),
           actionControl('freepbx-catalog:bulk-export', `Export all ${records.length} visible records`, 'freepbx-catalog-bulk-export', 'Bulk export uses the current filters and includes exclusions when selected.'),
         ],
       });
-      const selectedId = this.selectedFreePbxCatalogModule();
-      const selectedModule = FREEPBX_MODULE_CATALOG.modules.find((module) => module.moduleId === selectedId);
+      const selectedModule = selectedRecord?.excluded ? undefined : selectedRecord?.module;
       if (selectedModule) {
         const runtime = this.freePbxRuntimeModules.get(selectedModule.moduleId);
+        const adapter = moduleAdapterFor(selectedModule);
         groups.push({
           title: 'Selected module state and actions',
           desc: runtime?.reason ?? selectedModule.availability.reason,
@@ -613,6 +625,13 @@ export class PbxAdminApp extends App {
             actionControl(`freepbx:${selectedModule.moduleId}:update`, 'Update selected module', 'freepbx-catalog-update', 'Structured action. Readback verifies the resulting version.'),
             actionControl(`freepbx:${selectedModule.moduleId}:remove`, 'Remove selected module', 'freepbx-catalog-remove', 'Requires confirmation and readback with inverse rollback when safe.'),
           ],
+        });
+        groups.push({
+          title: 'Family form schema',
+          desc: adapter.unavailableReason,
+          ctls: adapter.adapter.fields.length > 0
+            ? adapter.adapter.fields.map((field) => textControl(`freepbx-family:${selectedModule.moduleId}:${field.key}`, field.label, '', `${field.source}; ${field.required ? 'Required' : 'Optional'}. ${adapter.unavailableReason}`, true))
+            : [actionControl(`freepbx-family:${selectedModule.moduleId}:unavailable`, 'No executable family fields', 'freepbx-family-unavailable', adapter.unavailableReason)],
         });
       }
     }
@@ -1065,11 +1084,10 @@ export class PbxAdminApp extends App {
         if (!jobId) {
           const message = 'Create an official file and database backup receipt before this module action.';
           this.freePbxCatalogHistory = [...this.freePbxCatalogHistory, { observedAt: new Date().toISOString(), moduleId, action, status: 'refused', message }].slice(-200);
-          void this.adminRequest('settings.write', { payload: { key: 'freepbx.catalog.history', value: JSON.stringify(this.freePbxCatalogHistory) } });
           this.fire('FreePBX module action refused', message);
           return;
         }
-        const backupResponse = await this.adminRequest('freepbx.backup', { serverId: target, payload: { jobId } });
+        const backupResponse = await this.adminRequest('freepbx.backup', { serverId: target, payload: { jobId, moduleId, action, catalogRevision: module.source.revision } });
         if (!backupResponse?.ok) {
           const message = backupResponse?.message ?? 'The official backup did not confirm both file and database coverage.';
           this.fire('FreePBX module action refused', message);
@@ -1085,7 +1103,6 @@ export class PbxAdminApp extends App {
       if (!response?.ok) {
         const message = response?.message ?? 'The FreePBX runtime did not confirm the action.';
         this.freePbxCatalogHistory = [...this.freePbxCatalogHistory, { observedAt: new Date().toISOString(), moduleId, action, status: 'refused', message }].slice(-200);
-        void this.adminRequest('settings.write', { payload: { key: 'freepbx.catalog.history', value: JSON.stringify(this.freePbxCatalogHistory) } });
         this.fire('FreePBX module action refused', message);
         return;
       }
@@ -1093,7 +1110,6 @@ export class PbxAdminApp extends App {
       if (result.after) this.freePbxRuntimeModules.set(moduleId, result.after);
       this.freePbxCatalogStatus = result.message ?? `fwconsole returned ${result.status ?? 'an unknown result'}.`;
       this.freePbxCatalogHistory = [...this.freePbxCatalogHistory, { observedAt: new Date().toISOString(), moduleId, action, status: result.status ?? 'unknown', message: this.freePbxCatalogStatus }].slice(-200);
-      void this.adminRequest('settings.write', { payload: { key: 'freepbx.catalog.history', value: JSON.stringify(this.freePbxCatalogHistory) } });
       this.fire('FreePBX module action result', this.freePbxCatalogStatus);
       this.forceUpdate();
     };
@@ -1116,9 +1132,10 @@ export class PbxAdminApp extends App {
     if (action === 'freepbx-catalog-export' || action === 'freepbx-catalog-bulk-export') { this.exportFreePbxCatalog(); return; }
     if (action === 'freepbx-catalog-record') { this.forceUpdate(); return; }
     if (action === 'freepbx-catalog-state') {
-      const moduleId = this.selectedFreePbxCatalogModule();
+      const selected = this.selectedFreePbxCatalogRecord();
+      const moduleId = selected && !selected.excluded ? selected.moduleId : '';
       const target = this.selectedTarget(context.screen);
-      if (!moduleId || !target) { this.fire('FreePBX module state unavailable', 'Select a module and discovered target first.'); return; }
+      if (!moduleId || !target) { this.fire('FreePBX module state unavailable', selected?.excluded ? 'Excluded catalog records are non-actionable dispositions.' : 'Select a module and discovered target first.'); return; }
       void this.adminRequest('freepbx.module.state', { serverId: target, payload: { moduleId } }).then((response) => {
         if (!response?.ok) { this.fire('FreePBX module state unavailable', response?.message ?? 'The target did not answer module state.'); return; }
         const module = response.data as FreePbxRuntimeModule;
@@ -1130,7 +1147,9 @@ export class PbxAdminApp extends App {
     }
     if (action.startsWith('freepbx-catalog-')) {
       const match = /^freepbx-catalog-(install|enable|disable|update|remove)$/u.exec(action);
-      if (match) { this.runFreePbxModuleAction(this.selectedFreePbxCatalogModule(), match[1] as 'install' | 'enable' | 'disable' | 'update' | 'remove'); return; }
+      const selected = this.selectedFreePbxCatalogRecord();
+      if (match && selected && !selected.excluded) { this.runFreePbxModuleAction(selected.moduleId, match[1] as 'install' | 'enable' | 'disable' | 'update' | 'remove'); return; }
+      if (selected?.excluded) { this.fire('FreePBX module action unavailable', 'Excluded catalog records are non-actionable dispositions.'); return; }
     }
     if (action.startsWith('freepbx-module-')) {
       const module = this.freePbxModuleForFeature(context.feature);

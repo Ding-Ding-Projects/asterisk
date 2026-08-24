@@ -264,7 +264,7 @@
     },
     "freepbx-module-surface": {
       "state": "partial",
-      "note": "The documentation site exposes the FreePBX catalog article and its explicit runtime and capture boundary. It does not claim a browser-hosted FreePBX runtime.",
+      "note": "The documentation site exposes the FreePBX catalog article, exclusion dispositions, export schema, and explicit runtime and capture boundary. It does not claim a browser-hosted FreePBX runtime or remote target action path.",
       "files": [
         "docs/pbx/freepbx-modules.md",
         "docs/changelog/freepbx-module-catalog.md"

@@ -44,7 +44,8 @@
     "provider-markup-rendering",
     "forge-publishing",
     "collapsible-filters",
-    "automatic-updates"
+    "automatic-updates",
+    "freepbx-module-surface"
   ],
   "surfaces": [
     {
@@ -232,6 +233,10 @@
         },
         {
           "id": "automatic-updates",
+          "status": "unverified"
+        },
+        {
+          "id": "freepbx-module-surface",
           "status": "unverified"
         }
       ]
@@ -422,6 +427,10 @@
         {
           "id": "automatic-updates",
           "status": "unverified"
+        },
+        {
+          "id": "freepbx-module-surface",
+          "status": "partial"
         }
       ]
     }

@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '..', '..');
 const catalog = JSON.parse(readFileSync(resolve(root, 'console/catalog/freepbx-module-catalog.json'), 'utf8'));
 const inventory = JSON.parse(readFileSync(resolve(root, 'console/inventories/freepbx-module-surface.json'), 'utf8'));
+const evidence = JSON.parse(readFileSync(resolve(root, 'console/inventories/freepbx-module-evidence.json'), 'utf8'));
 const runtimeSource = readFileSync(resolve(root, 'console/control-plane/freepbx-runtime.ts'), 'utf8');
 const adapterSource = readFileSync(resolve(root, 'console/app/renderer/src/freepbx-module-adapters.ts'), 'utf8');
 
@@ -18,13 +19,24 @@ function verify(catalogValue, inventoryValue) {
   if (catalogValue.schemaVersion !== 1 || inventoryValue.schemaVersion !== 1) throw new Error('FreePBX catalog and inventory must use schemaVersion 1.');
   if (inventoryValue.catalogDestination !== 'freepbx-catalog' || inventoryValue.runtimeAdapter !== 'console/control-plane/freepbx-runtime.ts' || typeof inventoryValue.sourceAuthority !== 'string' || inventoryValue.exclusionRecords !== 'catalog.exclusions') throw new Error('FreePBX inventory is missing the native catalog destination, runtime adapter, source authority, or exclusion records.');
   if (!Array.isArray(catalogValue.exclusions) || catalogValue.counts?.exclusions !== catalogValue.exclusions.length) throw new Error('FreePBX catalog exclusions are missing or miscounted.');
+  if (inventoryValue.expectedCounts?.publishedModules !== catalogValue.modules.length || inventoryValue.expectedCounts?.exclusions !== catalogValue.exclusions.length || inventoryValue.expectedCounts?.families !== inventoryValue.families.length || inventoryValue.expectedCounts?.actionableRecords !== catalogValue.modules.length || inventoryValue.expectedCounts?.nonActionableRecords !== catalogValue.exclusions.length) throw new Error('FreePBX catalog counts no longer match the hand-written expected counts.');
   const catalogIds = unique(catalogValue.modules.map((module) => module.moduleId), 'catalog module ids');
   const inventoryIds = unique(inventoryValue.modules, 'inventory module ids');
+  const families = unique(inventoryValue.families, 'inventory families');
+  if (evidence.schemaVersion !== 1) throw new Error('FreePBX evidence inventory must use schemaVersion 1.');
+  const evidenceModuleIds = unique(evidence.modules, 'evidence module ids');
+  if (JSON.stringify([...catalogIds].sort()) !== JSON.stringify([...evidenceModuleIds].sort())) throw new Error('FreePBX module evidence does not enumerate exactly the catalog module IDs.');
+  const evidenceFamilies = unique(evidence.families, 'evidence family ids');
+  if (JSON.stringify([...families].sort()) !== JSON.stringify([...evidenceFamilies].sort())) throw new Error('FreePBX evidence does not enumerate exactly the family IDs.');
+  const exclusionIds = unique(catalogValue.exclusions.map((exclusion) => exclusion.recordId), 'catalog exclusion record ids');
+  const evidenceExclusionIds = unique(evidence.exclusions, 'evidence exclusion record ids');
+  if (JSON.stringify([...exclusionIds].sort()) !== JSON.stringify([...evidenceExclusionIds].sort())) throw new Error('FreePBX exclusion evidence does not enumerate exactly the exclusion record IDs.');
   const missing = [...catalogIds].filter((id) => !inventoryIds.has(id));
   const stale = [...inventoryIds].filter((id) => !catalogIds.has(id));
   if (missing.length || stale.length) throw new Error(`catalog/inventory mismatch; missing=${missing.join(',') || 'none'} stale=${stale.join(',') || 'none'}`);
-  const families = unique(inventoryValue.families, 'inventory families');
-  for (const family of families) if (!adapterSource.includes(family)) throw new Error(`FreePBX family ${family} has no explicit adapter policy.`);
+  const familyPolicySource = adapterSource.slice(adapterSource.indexOf('const FAMILY_POLICIES'), adapterSource.indexOf('const FALLBACK'));
+  const familyPolicyKeys = unique([...familyPolicySource.matchAll(/^\s*["']?([a-z0-9-]+)["']?\s*:\s*\{/gimu)].map((match) => match[1]), 'adapter policy keys');
+  if (JSON.stringify([...families].sort()) !== JSON.stringify([...familyPolicyKeys].sort())) throw new Error('FreePBX adapter policy keys do not exactly match the hand-written family inventory.');
   if (!adapterSource.includes('FREEPBX_MODULE_CATALOG.modules.map(moduleAdapterFor)')) throw new Error('FreePBX per-module adapters are not derived from the complete catalog.');
   const nativeTaskOwners = new Map();
   for (const module of catalogValue.modules) {
@@ -42,7 +54,6 @@ function verify(catalogValue, inventoryValue) {
     if (!module.availability || typeof module.availability.reason !== 'string' || module.availability.reason.length < 20) throw new Error(`${module.moduleId} is missing an exact availability reason.`);
   }
   for (const [taskId, owners] of nativeTaskOwners) if (owners.length > 1) throw new Error(`native task ${taskId} has colliding owners: ${owners.join(', ')}`);
-  const exclusionIds = unique(catalogValue.exclusions.map((exclusion) => exclusion.recordId), 'catalog exclusion record ids');
   for (const exclusion of catalogValue.exclusions) {
     if (typeof exclusion.recordId !== 'string' || catalogIds.has(exclusion.recordId) || typeof exclusion.moduleId !== 'string' || typeof exclusion.reason !== 'string' || typeof exclusion.source !== 'string' || exclusion.actionable !== false) throw new Error('FreePBX exclusion records must be disjoint non-actionable records with recordId, moduleId, reason, and source.');
   }
@@ -58,6 +69,10 @@ function verifyRuntime(source) {
     "expectedRevision",
     "readModule(request.moduleId)",
     "rollbackAction",
+    "await this.handshake()",
+    "this.#receipts.consume",
+    "database: 'unknown'",
+    "webService: 'unknown'",
   ];
   for (const marker of required) if (!source.includes(marker)) throw new Error(`FreePBX runtime adapter is missing exact contract marker: ${marker}`);
   if (/child_process|(?<![.\w])spawn\s*\(/u.test(source)) throw new Error('FreePBX runtime adapter must use the typed ProcessExecutor, not a direct process or shell path.');
@@ -78,6 +93,9 @@ if (process.argv.includes('--probe-negative')) {
   let failedClosed = false;
   try { verify(catalog, broken); } catch { failedClosed = true; }
   if (!failedClosed) throw new Error('negative inventory regression did not fail closed.');
+  let familyFailedClosed = false;
+  try { verify(catalog, { ...inventory, families: inventory.families.slice(1) }); } catch { familyFailedClosed = true; }
+  if (!familyFailedClosed) throw new Error('negative family-adapter regression did not fail closed.');
   let runtimeFailedClosed = false;
   try { verifyRuntime(runtimeSource.replace("!request.confirmed &&", "!request.confirmedRemoved &&")); } catch { runtimeFailedClosed = true; }
   if (!runtimeFailedClosed) throw new Error('negative runtime regression did not fail closed.');

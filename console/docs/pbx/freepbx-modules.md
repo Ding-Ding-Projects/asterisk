@@ -30,16 +30,19 @@ an exact availability reason. A module with no verified target is not presented 
 The **FreePBX Module Catalog** destination is a native PBX Admin destination. It searches all public
 catalog records with plain text by default, offers the shared bounded regex mode, filters installed
 and commercial records, includes explicit historical exclusions on request, exports the filtered
-records, and reads installed state through the target runtime adapter. The catalog destination also
-exposes structured action controls for the selected module. Every action is refused when the target,
-module metadata, entitlement, confirmation, or expected source revision is not acceptable.
+records in lossless structured and tabular formats, and reads installed state through the target
+runtime adapter. Exclusion records retain a distinct `recordId` and are never actionable. The
+catalog destination also exposes structured action controls for the selected module. Every action is
+refused when the target handshake, module metadata, entitlement, dependency state, backup receipt,
+confirmation, or expected source revision is not acceptable.
 
 `console/app/renderer/src/freepbx-module-adapters.ts` carries one declarative adapter policy for
 every catalog UI family and derives one module adapter for every catalog entry. Each policy names
 its entity shape, target configuration fields, published API fields where applicable, readback
 source, and backup requirement. An adapter with no bounded target resource remains metadata-only.
 The form renderer uses the adapter to keep module-specific identity and multi-resource fields
-separate.
+separate, while entity and published-API fields remain explicitly non-actionable until their typed
+target route exists.
 
 ## Native module families
 
@@ -147,13 +150,15 @@ service, missing license, and invalid credential state each remain distinct. A f
 leaves the current draft intact and offers the existing recovery-point route. Destructive module
 removal uses the native confirmation flow and never runs from a free-form command string.
 
-The runtime adapter invokes the official `fwconsole` executable through `wsl.exe` with separate,
-allowlisted arguments. It reads `fwconsole ma list` and `fwconsole ma show <module>` with bounded
-output, then uses `install`, `enable`, `disable`, `upgrade`, or `uninstall` only after module ID,
-entitlement, confirmation, and source-revision checks. Every action reads the module back. A mismatch
-returns a failed result and attempts the safe inverse action for install, enable, disable, and remove;
-updates report that no inverse version operation is assumed. A rollback is not reported as success
-unless the prior installed and enabled state reads back.
+The runtime adapter invokes the official `fwconsole` executable through WSL or local Docker with
+separate, allowlisted arguments. It reads the capability handshake, `fwconsole ma list`, and
+`fwconsole ma show <module>` with bounded output, then uses `install`, `enable`, `disable`, `upgrade`,
+or `uninstall` only after module ID, open entitlement, dependency, confirmation, source-revision,
+known-capability, and one-time target-bound backup-receipt checks. Every action reads the module back.
+A mismatch attempts the safe inverse action for install, enable, disable, and remove. Updates require
+an exact catalog-version readback. The receipt is bound to the target, selected backup job, module,
+action, catalog revision, nonce, and short expiry. Database or web-service state that remains
+unknown keeps mutation refused rather than being treated as healthy.
 
 ## Verification boundary
 
