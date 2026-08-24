@@ -48,7 +48,7 @@
     return null;
   }
   function migrateLegacyHistory(events) {
-    const counts = { imported: 0, omitted: 0, refused: 0 };
+    const counts = { imported: 0, omitted: 0, refused: 0, retentionOmitted: 0 };
     const migrated = [];
     for (const event of Array.isArray(events) ? events : []) {
       if (!event || typeof event !== 'object' || typeof event.id !== 'string' || typeof event.timestamp !== 'string' || typeof event.action !== 'string') { counts.omitted += 1; continue; }
@@ -56,7 +56,20 @@
       if (!params) { counts.refused += 1; continue; }
       migrated.push({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: event.action, params }); counts.imported += 1;
     }
-    return { events: migrated.slice(-MAX_HISTORY), counts };
+    const retained = migrated.slice(-MAX_HISTORY); counts.retentionOmitted = migrated.length - retained.length; counts.imported = retained.length;
+    return { events: retained, counts };
+  }
+  function normalizeCurrentHistory(events) {
+    const counts = { imported: 0, omitted: 0, refused: 0, retentionOmitted: 0 };
+    const normalized = [];
+    for (const event of Array.isArray(events) ? events : []) {
+      if (!event || typeof event !== 'object' || typeof event.id !== 'string' || typeof event.timestamp !== 'string' || typeof event.action !== 'string') { counts.omitted += 1; continue; }
+      const params = normalizeEventParams(event.action, event.params);
+      if (!params) { counts.refused += 1; continue; }
+      normalized.push({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: event.action, params });
+    }
+    const retained = normalized.slice(-MAX_HISTORY); counts.retentionOmitted = normalized.length - retained.length; counts.imported = retained.length;
+    return { events: retained, counts };
   }
 
   function defaultState() {
@@ -68,7 +81,7 @@
       const defaults = defaultState();
       const persistedVersion = Number(parsed.schemaVersion ?? 1);
       if (!Number.isInteger(persistedVersion) || persistedVersion > STATE_SCHEMA_VERSION) return { ...defaults, migration: { status: 'future-version-refused', sourceVersion: persistedVersion, recorded: false } };
-      const migratedLegacy = persistedVersion < STATE_SCHEMA_VERSION ? migrateLegacyHistory(parsed.history) : { events: Array.isArray(parsed.history) ? parsed.history.filter(event => event && typeof event === 'object' && typeof event.id === 'string' && typeof event.timestamp === 'string' && typeof event.action === 'string' && normalizeEventParams(event.action, event.params)).slice(-MAX_HISTORY).map(event => ({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: event.action, params: normalizeEventParams(event.action, event.params) })) : [], counts: { imported: 0, omitted: 0, refused: 0 } };
+      const migratedLegacy = persistedVersion < STATE_SCHEMA_VERSION ? migrateLegacyHistory(parsed.history) : normalizeCurrentHistory(parsed.history);
       const history = migratedLegacy.events;
       const allowedTabs = new Set(TAB_ROUTES.map(([idValue]) => idValue));
       const tabs = Array.isArray(parsed.tabs) ? parsed.tabs.filter(tab => tab && allowedTabs.has(tab.id)).map(tab => ({ id: tab.id, pinned: Boolean(tab.pinned) })) : defaults.tabs;
@@ -77,9 +90,11 @@
       const updateStatus = ['ready', 'unavailable', 'available', 'downloading', 'failed'].includes(parsed.update?.status) ? parsed.update.status : 'ready';
       const deliveryStatus = DELIVERY_STATES.has(parsed.delivery?.status) ? parsed.delivery.status : 'idle';
       const transferHandoffState = ['idle', 'handoff-started', 'prepared', 'handoff-cancelled', 'handoff-failed'].includes(parsed.transfer?.handoffState) ? parsed.transfer.handoffState : 'idle';
-      const persistedCounts = parsed.migration?.counts && typeof parsed.migration.counts === 'object' ? { imported: Number.isInteger(parsed.migration.counts.imported) ? parsed.migration.counts.imported : 0, omitted: Number.isInteger(parsed.migration.counts.omitted) ? parsed.migration.counts.omitted : 0, refused: Number.isInteger(parsed.migration.counts.refused) ? parsed.migration.counts.refused : 0 } : { imported: 0, omitted: 0, refused: 0 };
-      const migrationStatus = persistedVersion < STATE_SCHEMA_VERSION ? (migratedLegacy.counts.refused || migratedLegacy.counts.omitted ? 'migrated-with-loss' : 'migrated') : ['migrated', 'migrated-with-loss'].includes(parsed.migration?.status) ? parsed.migration.status : 'none';
+      const persistedCounts = parsed.migration?.counts && typeof parsed.migration.counts === 'object' ? { imported: Number.isInteger(parsed.migration.counts.imported) ? parsed.migration.counts.imported : 0, omitted: Number.isInteger(parsed.migration.counts.omitted) ? parsed.migration.counts.omitted : 0, refused: Number.isInteger(parsed.migration.counts.refused) ? parsed.migration.counts.refused : 0, retentionOmitted: Number.isInteger(parsed.migration.counts.retentionOmitted) ? parsed.migration.counts.retentionOmitted : 0 } : { imported: 0, omitted: 0, refused: 0, retentionOmitted: 0 };
+      const hasLoss = migratedLegacy.counts.refused || migratedLegacy.counts.omitted || migratedLegacy.counts.retentionOmitted;
+      const migrationStatus = persistedVersion < STATE_SCHEMA_VERSION ? (hasLoss ? 'migrated-with-loss' : 'migrated') : hasLoss ? 'normalized-with-loss' : ['migrated', 'migrated-with-loss', 'normalized-with-loss'].includes(parsed.migration?.status) ? parsed.migration.status : 'none';
       const migrationCounts = persistedVersion < STATE_SCHEMA_VERSION ? migratedLegacy.counts : persistedCounts;
+      if (persistedVersion === STATE_SCHEMA_VERSION && migrationStatus === 'normalized-with-loss') appendMigrationAudit('normalized-with-loss', persistedVersion, migrationCounts);
       return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: migrationStatus, sourceVersion: persistedVersion < STATE_SCHEMA_VERSION ? persistedVersion : parsed.migration?.sourceVersion || persistedVersion, recorded: parsed.migration?.recorded === true, counts: migrationCounts }, history, tabs, forge, editor: { lastPreparedExport: scrubSummary(parsed.editor?.lastPreparedExport).slice(0, 120), lastHandoffState: ['idle', 'handoff-started', 'handoff-unverified', 'handoff-failed', 'handoff-cancelled'].includes(parsed.editor?.lastHandoffState) ? parsed.editor.lastHandoffState : 'idle', lastExport: scrubSummary(parsed.editor?.lastExport).slice(0, 120) }, delivery: { status: deliveryStatus, reason: scrubSummary(parsed.delivery?.reason).slice(0, 240) }, transfer: { status: transferStatus === 'started' ? 'interrupted' : transferStatus, handoffState: transferHandoffState, name: scrubSummary(parsed.transfer?.name).slice(0, 160), startedAt: text(parsed.transfer?.startedAt).slice(0, 40), completedAt: text(parsed.transfer?.completedAt).slice(0, 40), totalBytes: Number.isFinite(parsed.transfer?.totalBytes) ? Math.max(0, parsed.transfer.totalBytes) : 0, bytesWritten: Number.isFinite(parsed.transfer?.bytesWritten) ? Math.max(0, parsed.transfer.bytesWritten) : 0, interruptionRecorded: transferStatus === 'started' ? false : parsed.transfer?.interruptionRecorded === true, resume: 'never' }, update: { status: updateStatus, checkedAt: text(parsed.update?.checkedAt).slice(0, 40) } };
     } catch {
       return defaultState();
@@ -107,12 +122,12 @@
     const output = document.querySelector('#delivery-state'); if (output) output.textContent = `Delivery state: ${status}. ${state.delivery.reason || 'No additional detail.'}`;
     return true;
   }
-  function appendMigrationAudit(status, sourceVersion, counts = { imported: 0, omitted: 0, refused: 0 }) {
+  function appendMigrationAudit(status, sourceVersion, counts = { imported: 0, omitted: 0, refused: 0, retentionOmitted: 0 }) {
     try {
       const key = `${STORAGE_KEY}-migration-audit`;
       const audit = JSON.parse(localStorage.getItem(key) || '[]');
       if (!audit.some(item => item.status === status && item.sourceVersion === sourceVersion)) {
-        audit.push({ schemaVersion: 1, status, sourceVersion, imported: counts.imported, omitted: counts.omitted, refused: counts.refused, timestamp: new Date().toISOString() });
+        audit.push({ schemaVersion: 1, status, sourceVersion, imported: counts.imported, omitted: counts.omitted, refused: counts.refused, retentionOmitted: counts.retentionOmitted || 0, timestamp: new Date().toISOString() });
         localStorage.setItem(key, JSON.stringify(audit.slice(-20)));
       }
     } catch { /* refusal remains visible even when audit storage is unavailable */ }
@@ -121,7 +136,7 @@
     const host = document.querySelector('#migration-audit-list'); if (!host) return;
     try {
       const audit = JSON.parse(localStorage.getItem(`${STORAGE_KEY}-migration-audit`) || '[]');
-      host.innerHTML = audit.length ? audit.slice().reverse().map(item => `<li>${escapeHtml(item.status)} · saved state version ${escapeHtml(item.sourceVersion)} · imported ${escapeHtml(item.imported || 0)}, omitted ${escapeHtml(item.omitted || 0)}, refused ${escapeHtml(item.refused || 0)} · ${escapeHtml(formatDate(item.timestamp))}</li>`).join('') : '<li>No migration refusal audit records.</li>';
+      host.innerHTML = audit.length ? audit.slice().reverse().map(item => `<li>${escapeHtml(item.status)} · saved state version ${escapeHtml(item.sourceVersion)} · imported ${escapeHtml(item.imported || 0)}, omitted ${escapeHtml(item.omitted || 0)}, refused ${escapeHtml(item.refused || 0)}, retention omitted ${escapeHtml(item.retentionOmitted || 0)} · ${escapeHtml(formatDate(item.timestamp))}</li>`).join('') : '<li>No migration refusal audit records.</li>';
     } catch { host.textContent = 'Migration audit is unavailable because local audit storage could not be read.'; }
   }
   function ensureMigrationAuditPanel() {
@@ -149,6 +164,9 @@
     forgeStatus: new Set(['preview-ready', 'preview-opened']),
     tab: new Set(TAB_ROUTES.map(([idValue]) => idValue)),
   };
+  const ACTION_LABELS = { updated: ['Updated', '更新'], restored: ['Restored', '還原'], pruned: ['Pruned', '清理'], 'download-started': ['Download started', '開始下載'], 'download-complete': ['Download complete', '下載完成'], 'download-cancelled': ['Download cancelled', '取消下載'], 'download-interrupted': ['Download interrupted', '下載中斷'], 'update-check': ['Update check', '檢查更新'], 'update-reload': ['Reload requested', '要求重新載入'], 'recovery-opened': ['Recovery opened', '開啟恢復'], 'forge-preview': ['Forge preview', '發佈預覽'], 'forge-handoff': ['Forge handoff', '發佈交接'], 'tab-pin': ['Route pin', '路線釘選'], 'provider-preview': ['Provider preview', '供應商預覽'], 'state-migration': ['State migration', '狀態遷移'] };
+  const ENUM_LABELS = { field: { settings: ['Settings', '設定'], history: ['History', '歷史'], appearance: ['Appearance', '外觀'], delivery: ['Delivery', '交付'] }, status: { changed: ['Changed', '改動'], reset: ['Reset', '重設'], imported: ['Imported', '匯入'] }, action: ACTION_LABELS, source: { 'current-site': ['Current site', '目前頁面'], 'local-export': ['Local export', '本地匯出'], 'selected-file': ['Selected file', '已選檔案'] }, destination: { 'new-repository': ['New repository', '新專案庫'], 'existing-repository': ['Existing repository', '現有專案庫'] }, account: { browser: ['Browser account', '瀏覽器帳戶'], manual: ['Provider selection', '供應商選擇'] }, route: { copy: ['Copy and publish', '複製及發佈'], fork: ['Fork flow', '分叉流程'] } };
+  function localizedEnumLabel(kind, value) { const pair = ENUM_LABELS[kind]?.[value] || [value, value]; try { const mode = JSON.parse(localStorage.getItem('ding-pbx-pages-v2') || '{}').language; return mode === 'zh' ? pair[1] : mode === 'both' ? `${pair[0]} · ${pair[1]}` : pair[0]; } catch { return pair[0]; } }
   function normalizeEventParams(action, params = {}) {
     if (!EVENT_ACTIONS.has(action) || !params || typeof params !== 'object' || Array.isArray(params)) return null;
     const integer = value => Number.isInteger(value) && value >= 0 ? value : null;
@@ -163,17 +181,24 @@
     if (['forge-preview', 'forge-handoff'].includes(action)) return EVENT_ENUMS.source.has(params.source) && EVENT_ENUMS.destination.has(params.destination) && EVENT_ENUMS.account.has(params.account) && EVENT_ENUMS.route.has(params.route) && EVENT_ENUMS.forgeStatus.has(params.status) ? { source: params.source, destination: params.destination, account: params.account, route: params.route, status: params.status } : null;
     if (action === 'tab-pin') return EVENT_ENUMS.tab.has(params.tab) && typeof params.pinned === 'boolean' ? { tab: params.tab, pinned: params.pinned } : null;
     if (action === 'provider-preview') return params.status === 'rendered' ? { status: params.status } : null;
-    if (action === 'state-migration') return integer(params.fromVersion) !== null && params.toVersion === STATE_SCHEMA_VERSION && ['migrated', 'migrated-with-loss'].includes(params.status) && integer(params.imported) !== null && integer(params.omitted) !== null && integer(params.refused) !== null ? { fromVersion: integer(params.fromVersion), toVersion: STATE_SCHEMA_VERSION, status: params.status, imported: integer(params.imported), omitted: integer(params.omitted), refused: integer(params.refused) } : null;
+    if (action === 'state-migration') return integer(params.fromVersion) !== null && params.toVersion === STATE_SCHEMA_VERSION && ['migrated', 'migrated-with-loss', 'normalized-with-loss'].includes(params.status) && integer(params.imported) !== null && integer(params.omitted) !== null && integer(params.refused) !== null && integer(params.retentionOmitted) !== null ? { fromVersion: integer(params.fromVersion), toVersion: STATE_SCHEMA_VERSION, status: params.status, imported: integer(params.imported), omitted: integer(params.omitted), refused: integer(params.refused), retentionOmitted: integer(params.retentionOmitted) } : null;
     return null;
   }
   function eventSentence(event) {
     const p = event.params || {};
-    const en = { updated: `Updated ${p.field} settings`, restored: `Restored a ${p.sourceAction} event as a new event`, pruned: `Pruned ${p.count} older events, retaining ${p.retention}`, 'download-started': `Started writing ${p.bytes} bytes`, 'download-complete': `Finished writing ${p.bytes} bytes`, 'download-cancelled': `Cancelled after writing ${p.bytes} bytes`, 'download-interrupted': 'Marked a previous write as interrupted', 'update-check': `Checked update state: ${p.status}`, 'update-reload': 'Requested a page reload', 'recovery-opened': `Opened recovery action: ${p.action}`, 'forge-preview': `Prepared a ${p.route} provider preview`, 'forge-handoff': `Opened a ${p.route} provider preview`, 'tab-pin': `${p.pinned ? 'Pinned' : 'Unpinned'} the ${p.tab} route`, 'provider-preview': 'Rendered a safe provider preview', 'state-migration': `${p.status === 'migrated-with-loss' ? 'Migrated with recorded refusals' : 'Migrated'} saved state from version ${p.fromVersion} to ${p.toVersion}, imported ${p.imported}, omitted ${p.omitted}, refused ${p.refused}` }[event.action] || 'Recorded a local event';
-    const zh = { updated: `更新咗 ${p.field} 設定`, restored: `將 ${p.sourceAction} 記錄另存成新記錄`, pruned: `清理咗 ${p.count} 個舊記錄，保留 ${p.retention} 個`, 'download-started': `開始寫入 ${p.bytes} bytes`, 'download-complete': `完成寫入 ${p.bytes} bytes`, 'download-cancelled': `寫入 ${p.bytes} bytes 後取消`, 'download-interrupted': '標記上一個寫入為中斷', 'update-check': `檢查更新狀態：${p.status}`, 'update-reload': '要求重新載入頁面', 'recovery-opened': `開啟恢復動作：${p.action}`, 'forge-preview': `準備咗 ${p.route} provider preview`, 'forge-handoff': `開啟咗 ${p.route} provider preview`, 'tab-pin': `${p.pinned ? '釘選' : '取消釘選'} ${p.tab} 路線`, 'provider-preview': '安全顯示 provider preview', 'state-migration': `${p.status === 'migrated-with-loss' ? '遷移時有記錄拒絕' : '完成遷移'} state 由版本 ${p.fromVersion} 到 ${p.toVersion}，匯入 ${p.imported}、省略 ${p.omitted}、拒絕 ${p.refused}` }[event.action] || '記錄咗一項本地事件';
-    try { const prefs = JSON.parse(localStorage.getItem('ding-pbx-pages-v2') || '{}'); const mode = prefs.language; const enLevel = Number.isInteger(prefs.englishFunny) ? prefs.englishFunny : 0; const zhLevel = Number.isInteger(prefs.cantoneseFunny) ? prefs.cantoneseFunny : 0; const style = (sentence, level, language) => level >= 3 ? `${sentence}${language === 'zh' ? '，本地記低喇。' : ' Logged locally.'}` : level === 2 ? `${sentence}${language === 'zh' ? '。' : '.'}` : sentence; const styledEn = style(en, enLevel, 'en'); const styledZh = style(zh, zhLevel, 'zh'); return mode === 'zh' ? styledZh : mode === 'both' ? `${styledEn} · ${styledZh}` : styledEn; } catch { return en; }
+    const labels = { field: { settings: ['settings', '設定'], history: ['history', '歷史'], appearance: ['appearance', '外觀'], delivery: ['delivery', '交付'] }, status: { changed: ['changed', '改動'], reset: ['reset', '重設'], imported: ['imported', '匯入'], writing: ['writing', '寫入中'], 'stream-closed': ['stream closed', '串流已關閉'], cancelled: ['cancelled', '已取消'], interrupted: ['interrupted', '已中斷'], unavailable: ['unavailable', '不可用'], available: ['available', '可用'], downloading: ['downloading', '下載中'], ready: ['ready', '已準備'], failed: ['failed', '失敗'], requested: ['requested', '已要求'], 'preview-ready': ['preview ready', '預覽已準備'], 'preview-opened': ['preview opened', '預覽已開啟'], rendered: ['rendered', '已顯示'], migrated: ['migrated', '已遷移'], 'migrated-with-loss': ['migrated with recorded loss', '遷移但有記錄損失'] }, action: { retry: ['retry', '重試'], settings: ['settings', '設定'], vscode: ['editor download', '編輯器下載'] }, source: { 'current-site': ['current site', '目前頁面'], 'local-export': ['local export', '本地匯出'], 'selected-file': ['selected file', '已選檔案'] }, destination: { 'new-repository': ['new repository', '新專案庫'], 'existing-repository': ['existing repository', '現有專案庫'] }, account: { browser: ['browser account', '瀏覽器帳戶'], manual: ['provider selection', '供應商選擇'] }, route: { copy: ['copy and publish', '複製及發佈'], fork: ['fork flow', '分叉流程'] }, tab: Object.fromEntries(TAB_ROUTES.map(([idValue, label]) => [idValue, [label, label]])) };
+    const label = (kind, value, language) => labels[kind]?.[value]?.[language === 'zh' ? 1 : 0] || value;
+    const en = { updated: `Updated ${label('field', p.field, 'en')} settings`, restored: `Restored a ${label('action', p.sourceAction, 'en')} event as a new event`, pruned: `Pruned ${p.count} older events, retaining ${p.retention}`, 'download-started': `Started ${label('status', p.status, 'en')} ${p.bytes} bytes`, 'download-complete': `Finished writing ${p.bytes} bytes`, 'download-cancelled': `Cancelled after writing ${p.bytes} bytes`, 'download-interrupted': `Marked the write ${label('status', p.status, 'en')}`, 'update-check': `Checked update state: ${label('status', p.status, 'en')}`, 'update-reload': 'Requested a page reload', 'recovery-opened': `Opened recovery action: ${label('action', p.action, 'en')}`, 'forge-preview': `Prepared a ${label('route', p.route, 'en')} preview from ${label('source', p.source, 'en')} to ${label('destination', p.destination, 'en')} for ${label('account', p.account, 'en')}`, 'forge-handoff': `Opened a ${label('route', p.route, 'en')} preview`, 'tab-pin': `${p.pinned ? 'Pinned' : 'Unpinned'} the ${label('tab', p.tab, 'en')} route`, 'provider-preview': 'Rendered a safe provider preview', 'state-migration': `${label('status', p.status, 'en')} saved state from version ${p.fromVersion} to ${p.toVersion}, imported ${p.imported}, omitted ${p.omitted}, refused ${p.refused}, retention omitted ${p.retentionOmitted}` }[event.action] || 'Recorded a local event';
+    const zh = { updated: `更新咗 ${label('field', p.field, 'zh')} 設定`, restored: `將 ${label('action', p.sourceAction, 'zh')} 記錄另存成新記錄`, pruned: `清理咗 ${p.count} 個舊記錄，保留 ${p.retention} 個`, 'download-started': `開始${label('status', p.status, 'zh')} ${p.bytes} bytes`, 'download-complete': `完成寫入 ${p.bytes} bytes`, 'download-cancelled': `寫入 ${p.bytes} bytes 後取消`, 'download-interrupted': `標記寫入為${label('status', p.status, 'zh')}`, 'update-check': `檢查更新狀態：${label('status', p.status, 'zh')}`, 'update-reload': '要求重新載入頁面', 'recovery-opened': `開啟恢復動作：${label('action', p.action, 'zh')}`, 'forge-preview': `準備由${label('source', p.source, 'zh')} 到${label('destination', p.destination, 'zh')} 嘅${label('route', p.route, 'zh')}預覽，使用${label('account', p.account, 'zh')}`, 'forge-handoff': `開啟咗${label('route', p.route, 'zh')}預覽`, 'tab-pin': `${p.pinned ? '釘選' : '取消釘選'} ${label('tab', p.tab, 'zh')} 路線`, 'provider-preview': '安全顯示 provider preview', 'state-migration': `${label('status', p.status, 'zh')} state 由版本 ${p.fromVersion} 到 ${p.toVersion}，匯入 ${p.imported}、省略 ${p.omitted}、拒絕 ${p.refused}、保留上限省略 ${p.retentionOmitted}` }[event.action] || '記錄咗一項本地事件';
+    try { const prefs = JSON.parse(localStorage.getItem('ding-pbx-pages-v2') || '{}'); const mode = prefs.language; const enLevel = Math.max(0, Math.min(4, Number.isInteger(prefs.englishFunny) ? prefs.englishFunny : 0)); const zhLevel = Math.max(0, Math.min(4, Number.isInteger(prefs.cantoneseFunny) ? prefs.cantoneseFunny : 0)); const enVariants = [sentence => sentence, sentence => `${sentence} (local record)`, sentence => `${sentence}. The tiny ledger agrees.`, sentence => `${sentence}. The paper trail has shown up.`, sentence => `${sentence}. The evidence drawer is wearing a tie.`]; const zhVariants = [sentence => sentence, sentence => `${sentence}（本地記錄）`, sentence => `${sentence}，細細本 ledger 都認同。`, sentence => `${sentence}，紙仔路線出現喇。`, sentence => `${sentence}，證據櫃今日戴咗呔。`]; const styledEn = enVariants[enLevel](en); const styledZh = zhVariants[zhLevel](zh); return mode === 'zh' ? styledZh : mode === 'both' ? `${styledEn} · ${styledZh}` : styledEn; } catch { return en; }
   }
   function eventSearchProjection(event) {
     return `${event.action} ${eventSentence(event)} ${JSON.stringify(event.params || {}).slice(0, 500)}`.slice(0, 900);
+  }
+  function localizeStructuredControls() {
+    const localize = (idValue, kind) => { const select = document.querySelector(`#${idValue}`); if (!select) return; [...select.options].forEach(option => { if (ENUM_LABELS[kind]?.[option.value]) option.textContent = localizedEnumLabel(kind, option.value); }); };
+    localize('history-event-field', 'field'); localize('history-event-status', 'status'); localize('forge-source', 'source'); localize('forge-destination', 'destination'); localize('forge-account', 'account'); localize('forge-route', 'route');
+    const actions = document.querySelector('#history-action'); if (actions) [...actions.options].forEach(option => { if (ACTION_LABELS[option.value]) option.textContent = localizedEnumLabel('action', option.value); });
   }
   function redactDetails(value, depth = 0) {
     if (depth > 3 || value === null || value === undefined) return undefined;
@@ -390,6 +415,7 @@
       actionSelect.innerHTML = `<option value="all">All actions (${state.history.length})</option>${actions.map(action => `<option value="${escapeHtml(action)}">${escapeHtml(action)} (${state.history.filter(event => event.action === action).length})</option>`).join('')}`;
       actionSelect.value = current;
       actionSelect._deliveryRefresh?.();
+      [...actionSelect.options].forEach(option => { if (ACTION_LABELS[option.value]) option.textContent = localizedEnumLabel('action', option.value); });
     }
     host.innerHTML = rows.length ? rows.map(event => `<article class="delivery-history-row" data-event-id="${escapeHtml(event.id)}" data-delivery-context="history-row"><div><span class="card-kicker">${escapeHtml(event.action)}</span><h3>${escapeHtml(eventSentence(event))}</h3><p>${escapeHtml(formatDate(event.timestamp))}</p></div><div class="delivery-row-actions"><button type="button" class="text-button" data-restore-event="${escapeHtml(event.id)}">Restore as new event</button><details><summary>Structured parameters</summary><pre>${escapeHtml(JSON.stringify(event.params, null, 2))}</pre></details></div></article>`).join('') : '<p class="empty-state">No local events match this filter. Changes made on this page will appear here.</p>';
     host.querySelectorAll('[data-restore-event]').forEach(button => button.addEventListener('click', () => {
@@ -404,7 +430,7 @@
     if (status) status.textContent = validDateRange(historyQuery) ? `${rows.length} of ${state.history.length} local events shown` : 'Invalid date range. Use ISO dates and ensure From is not after To.';
     const migration = document.querySelector('#history-status');
     if (migration && state.migration?.status === 'future-version-refused') migration.textContent = `Saved state version ${state.migration.sourceVersion} is newer than this page understands, so it was refused and no saved events were applied.`;
-    else if (migration && state.migration?.status === 'migrated-with-loss') { const counts = state.migration.counts || { imported: 0, omitted: 0, refused: 0 }; migration.textContent = `Saved state version ${state.migration.sourceVersion} was migrated with recorded loss. Imported ${counts.imported}, omitted ${counts.omitted}, refused ${counts.refused}. This is not a lossless migration.`; }
+    else if (migration && state.migration?.status === 'migrated-with-loss') { const counts = state.migration.counts || { imported: 0, omitted: 0, refused: 0, retentionOmitted: 0 }; migration.textContent = `Saved state version ${state.migration.sourceVersion} was migrated with recorded loss. Imported ${counts.imported}, omitted ${counts.omitted}, refused ${counts.refused}, retention omitted ${counts.retentionOmitted}. This is not a lossless migration.`; }
     else if (migration && state.migration?.status === 'migrated') migration.textContent = `Saved state version ${state.migration.sourceVersion} was migrated to version ${STATE_SCHEMA_VERSION} with no omitted or refused records.`;
   }
 
@@ -573,6 +599,7 @@
     const label = input.closest('label'); if (!label) return;
     const wrapper = document.createElement('div'); wrapper.className = 'delivery-form-row'; wrapper.innerHTML = '<label>Event type<select id="history-event-field"><option value="settings">Settings</option><option value="history">History</option><option value="appearance">Appearance</option><option value="delivery">Delivery</option></select></label><label>Change<select id="history-event-status"><option value="changed">Changed</option><option value="reset">Reset</option><option value="imported">Imported</option></select></label>';
     label.replaceWith(wrapper);
+    localizeStructuredControls();
   }
 
   function bindChangelog() {
@@ -695,6 +722,7 @@
     const fields = document.createElement('div'); fields.className = 'delivery-form'; fields.innerHTML = '<label>Source<select id="forge-source"><option value="current-site">Current published site</option><option value="local-export">A downloaded local export</option><option value="selected-file">A selected local file</option></select></label><label>Destination<select id="forge-destination"><option value="new-repository">New repository</option><option value="existing-repository">Existing repository</option></select></label>';
     form.prepend(fields);
     ensureDropdownSearches();
+    localizeStructuredControls();
     const preview = document.createElement('div'); preview.id = 'forge-preview'; preview.className = 'delivery-preview'; preview.setAttribute('role', 'status');
     const previewButton = document.createElement('button'); previewButton.id = 'forge-preview-button'; previewButton.type = 'button'; previewButton.className = 'secondary-button'; previewButton.textContent = 'Preview provider handoff';
     document.querySelector('#forge-open').before(previewButton); document.querySelector('#forge-open').disabled = true; document.querySelector('#forge-open').before(preview);
@@ -724,6 +752,7 @@
       record('forge-handoff', { source: state.forge.source, destination: state.forge.destination, account: state.forge.account, route: state.forge.route, status: 'preview-opened' });
     });
     renderForge();
+    localizeStructuredControls();
   }
 
   function bindUpdate() {
@@ -856,9 +885,9 @@
     document.addEventListener('keydown', event => { if (event.key === 'Escape') closeContextMenu(); if (event.ctrlKey && event.shiftKey && event.key.toLocaleLowerCase() === 'f') { event.preventDefault(); openPaletteRoute(); } if (event.ctrlKey && event.key === 'Enter' && ['history-event-field', 'history-event-status'].includes(document.activeElement?.id)) { event.preventDefault(); document.querySelector('#history-record')?.click(); } });
     renderPage();
     ensureRail();
-    if (['migrated', 'migrated-with-loss'].includes(state.migration?.status) && !state.migration.recorded) { state.migration.recorded = true; persist(); const counts = state.migration.counts || { imported: 0, omitted: 0, refused: 0 }; record('state-migration', { fromVersion: state.migration.sourceVersion, toVersion: STATE_SCHEMA_VERSION, status: state.migration.status, imported: counts.imported, omitted: counts.omitted, refused: counts.refused }); }
+    if (['migrated', 'migrated-with-loss', 'normalized-with-loss'].includes(state.migration?.status) && !state.migration.recorded) { state.migration.recorded = true; persist(); const counts = state.migration.counts || { imported: 0, omitted: 0, refused: 0, retentionOmitted: 0 }; record('state-migration', { fromVersion: state.migration.sourceVersion, toVersion: STATE_SCHEMA_VERSION, status: state.migration.status, imported: counts.imported, omitted: counts.omitted, refused: counts.refused, retentionOmitted: counts.retentionOmitted }); }
     if (state.migration?.status === 'future-version-refused') { appendMigrationAudit('future-version-refused', state.migration.sourceVersion); renderMigrationAudit(); }
-    if (state.migration?.status === 'migrated-with-loss') { appendMigrationAudit('migrated-with-loss', state.migration.sourceVersion, state.migration.counts); renderMigrationAudit(); }
+    if (['migrated-with-loss', 'normalized-with-loss'].includes(state.migration?.status)) { appendMigrationAudit(state.migration.status, state.migration.sourceVersion, state.migration.counts); renderMigrationAudit(); }
     ensurePaletteOpener();
     if (state.transfer.status === 'interrupted' && !state.transfer.interruptionRecorded) { state.transfer.interruptionRecorded = true; persist(); record('download-interrupted', { status: 'interrupted' }); }
     document.querySelectorAll('#history-delivery-page .delivery-panel, #history-delivery-mount .delivery-panel').forEach(panel => { panel.dataset.deliveryContext = 'panel'; });
