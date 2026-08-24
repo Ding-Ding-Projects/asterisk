@@ -13,6 +13,12 @@ const api: DingDesktopApi = {
   },
   externalEditor: {
     detect: () => ipcRenderer.invoke('external-editor:detect'),
+    getStatus: () => ipcRenderer.invoke('external-editor:detect'),
+    onStatus: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, status) => listener(status);
+      ipcRenderer.on('external-editor:status', handler);
+      return () => ipcRenderer.removeListener('external-editor:status', handler);
+    },
     choose: (editorId: string) => ipcRenderer.invoke('external-editor:choose', editorId),
     clearChoice: () => ipcRenderer.invoke('external-editor:clear-choice'),
     resetStorage: () => ipcRenderer.invoke('external-editor:reset-storage'),

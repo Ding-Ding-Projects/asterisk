@@ -160,6 +160,8 @@ export interface ExternalEditorCustomRecord {
 
 export interface ExternalEditorApi {
   detect(): Promise<ExternalEditorStatus>;
+  getStatus(): Promise<ExternalEditorStatus>;
+  onStatus(listener: (status: ExternalEditorStatus) => void): () => void;
   choose(editorId: string): Promise<ExternalEditorStatus>;
   clearChoice(): Promise<ExternalEditorStatus>;
   resetStorage(): Promise<ExternalEditorStatus>;

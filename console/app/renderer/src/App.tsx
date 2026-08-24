@@ -184,6 +184,7 @@ export class App extends Base {
   private externalEditorStatus: ExternalEditorStatus = { editors: [], persistenceState: 'missing' };
   private latestExport: ExternalEditorLatestExport | undefined;
   private externalProjectFolder = '';
+  private externalEditorUnsubscribe: (() => void) | undefined;
 
   /* The design's `lang_mode` control, mapped to the boundary's own mode names. The
    * control names each language in that language, which is the one label a person
@@ -274,6 +275,8 @@ export class App extends Base {
      * anything is reachable and must be on screen whether or not discovery finds a
      * target, so it is loaded independently of it. */
     void this.servers.load().then(() => this.forceUpdate());
+    const editorBridge = this.bridge()?.externalEditor;
+    if (editorBridge) this.externalEditorUnsubscribe = editorBridge.onStatus((status) => { this.externalEditorStatus = status; this.forceUpdate(); });
     void this.refreshExternalEditors();
     void this.discover();
     this.refreshTimer = setInterval(() => {
@@ -288,6 +291,8 @@ export class App extends Base {
     super.componentWillUnmount?.();
     if (this.refreshTimer) clearInterval(this.refreshTimer);
     this.refreshTimer = undefined;
+    this.externalEditorUnsubscribe?.();
+    this.externalEditorUnsubscribe = undefined;
   }
 
   componentDidUpdate() {
@@ -2438,6 +2443,8 @@ interface DesktopBridge {
   controlPlane: { request: (request: Record<string, unknown>) => Promise<ControlPlaneResponse | undefined> };
   externalEditor: {
     detect: () => Promise<ExternalEditorStatus>;
+    getStatus: () => Promise<ExternalEditorStatus>;
+    onStatus: (listener: (status: ExternalEditorStatus) => void) => () => void;
     choose: (editorId: string) => Promise<ExternalEditorStatus>;
     clearChoice: () => Promise<ExternalEditorStatus>;
     resetStorage: () => Promise<ExternalEditorStatus>;

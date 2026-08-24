@@ -85,3 +85,21 @@ test('picker operation status, busy refusal, and cancellation share one runtime 
     assert.equal(runtime.status().operation?.pending, false);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test('empty file and folder targets cancel before normalization or child start', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'external-editor-runtime-'));
+  let spawnCalls = 0;
+  const forbiddenSpawn = (() => { spawnCalls += 1; throw new Error('child start should not happen'); }) as unknown as typeof import('node:child_process').spawn;
+  try {
+    const runtime = new ExternalEditorRuntime({ userDataPath: root, spawnProcess: forbiddenSpawn });
+    const editor = await runtime.saveCustom({ name: 'No-start editor', executable: process.execPath });
+    const fileResult = await runtime.launch({ kind: 'file', path: '   ' }, editor.selectedId);
+    const folderResult = await runtime.launch({ kind: 'folder', path: '' }, editor.selectedId);
+    assert.equal(fileResult.ok, false);
+    assert.equal(folderResult.ok, false);
+    if (fileResult.ok || folderResult.ok) throw new Error('Expected empty targets to cancel');
+    assert.equal(fileResult.code, 'LAUNCH_CANCELLED');
+    assert.equal(folderResult.code, 'LAUNCH_CANCELLED');
+    assert.equal(spawnCalls, 0);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

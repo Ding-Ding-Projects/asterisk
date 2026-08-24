@@ -99,6 +99,7 @@ export class ExternalEditorRuntime {
   private activeChild: ReturnType<typeof spawn> | undefined;
   private activeCancel: (() => void) | undefined;
   private activeMaterializedPath: string | undefined;
+  private readonly statusListeners = new Set<(status: ExternalEditorStatus) => void>();
 
   constructor(options: ExternalEditorRuntimeOptions) {
     this.file = join(options.userDataPath, 'external-editors.json');
@@ -175,20 +176,34 @@ export class ExternalEditorRuntime {
     };
   }
 
+  subscribeStatus(listener: (status: ExternalEditorStatus) => void): () => void {
+    this.statusListeners.add(listener);
+    listener(this.status());
+    return () => this.statusListeners.delete(listener);
+  }
+
+  private emitStatus(): void {
+    const status = this.status();
+    for (const listener of this.statusListeners) { try { listener(status); } catch { /* status observers cannot break the operation */ } }
+  }
+
   private beginOperation(kind: ExternalEditorOperation['kind']): ExternalEditorOperation | undefined {
     if (this.activeOperation?.state === 'running') return undefined;
     if (this.activeOperation?.pending) return undefined;
     this.activeOperation = { operationId: randomUUID(), kind, state: 'running', progress: 0, message: `${kind} started.`, pending: true };
+    this.emitStatus();
     return this.activeOperation;
   }
 
   private updateOperation(operation: ExternalEditorOperation, progress: number, message: string): void {
     this.activeOperation = { ...operation, progress: Math.max(0, Math.min(1, progress)), message };
+    this.emitStatus();
   }
 
   private finishOperation(operation: ExternalEditorOperation, state: ExternalEditorOperation['state'], message: string): ExternalEditorOperation {
     const finished = { ...operation, state, progress: state === 'completed' ? 1 : operation.progress, message, pending: false };
     this.activeOperation = finished;
+    this.emitStatus();
     return finished;
   }
 
@@ -196,6 +211,7 @@ export class ExternalEditorRuntime {
     if (!this.activeOperation || this.activeOperation.operationId !== operationId || this.activeOperation.state !== 'running') return this.status();
     if (this.activeOperation.kind === 'pick-executable' || this.activeOperation.kind === 'pick-folder') {
       this.activeOperation = { ...this.activeOperation, state: 'cancelled', message: 'Picker cancellation requested. Waiting for the native picker to close.', pending: true };
+      this.emitStatus();
     } else if (this.activeCancel) this.activeCancel();
     else this.finishOperation(this.activeOperation, 'cancelled', 'Operation cancelled.');
     return this.status();
@@ -311,12 +327,15 @@ export class ExternalEditorRuntime {
       this.finishOperation(operation, 'failed', 'The editor target was not a valid file or folder.');
       return Promise.resolve({ ok: false, code: 'INVALID_EDITOR', message: 'The editor target was not a valid file or folder.', operationId: operation.operationId, stage });
     }
+    if (target.path.trim() === '') {
+      this.finishOperation(operation, 'cancelled', 'Launch cancelled because no target was supplied.');
+      return Promise.resolve({ ok: false, code: stage === 'materialization' ? 'MATERIALIZATION_CANCELLED' : 'LAUNCH_CANCELLED', message: 'Launch cancelled because there is no file or folder to open.', operationId: operation.operationId, stage, cancelled: true });
+    }
     target = { ...target, path: safePath(target.path) };
     this.updateOperation(operation, stage === 'materialization' ? 0.7 : 0.1, 'Checking the selected editor and target.');
     const id = editorId ?? this.config.choiceId;
     const candidate = this.candidates().find((entry) => entry.id === id && entry.available);
     if (!candidate) { this.finishOperation(operation, 'failed', 'No selected editor is available.'); return Promise.resolve({ ok: false, code: 'NO_EDITOR', message: 'No selected editor is available. Choose one in settings, or install Visual Studio Code.', downloadUrl: 'https://code.visualstudio.com/', operationId: operation.operationId, stage }); }
-    if (!target.path.trim()) { this.finishOperation(operation, 'cancelled', 'Launch cancelled because no target was supplied.'); return Promise.resolve({ ok: false, code: stage === 'materialization' ? 'MATERIALIZATION_CANCELLED' : 'LAUNCH_CANCELLED', message: 'Launch cancelled because there is no file or folder to open.', operationId: operation.operationId, stage, cancelled: true }); }
     if (!existsSync(target.path)) { this.finishOperation(operation, 'failed', `The selected ${target.kind} is not available at the reported path.`); return Promise.resolve({ ok: false, code: 'EMPTY_TARGET', message: `The selected ${target.kind} is not available at the reported path.`, operationId: operation.operationId, stage }); }
     let targetStat: ReturnType<typeof statSync>;
     try { targetStat = statSync(target.path); } catch { this.finishOperation(operation, 'failed', `The selected ${target.kind} is not available at the reported path.`); return Promise.resolve({ ok: false, code: 'EMPTY_TARGET', message: `The selected ${target.kind} is not available at the reported path.`, operationId: operation.operationId, stage }); }

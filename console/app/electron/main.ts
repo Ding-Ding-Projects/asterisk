@@ -17,6 +17,7 @@ import {
 let mainWindow: BrowserWindow | null = null;
 const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false });
 const externalEditor = new ExternalEditorRuntime({ userDataPath: app.getPath('userData') });
+externalEditor.subscribeStatus((status) => mainWindow?.webContents.send('external-editor:status', status));
 const { controlPlaneRequest } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let updateCheckInFlight: Promise<void> | undefined;
