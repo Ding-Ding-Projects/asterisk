@@ -877,21 +877,22 @@ export class App extends Base {
       return;
     }
     if (canonicalControlId) {
-      this.fire('Action requested', `${action} from ${canonicalControlId}.`);
-      void this.request('local-history.record', {
-        payload: {
-          action: 'settings-changed',
-          stableRecordId: canonicalControlId,
-          subject: action,
-          snapshot: { controlId: canonicalControlId, action },
-        },
-      }).catch(() => undefined);
+      this.fire('Action started', `${action} from ${canonicalControlId}. History acknowledgement is pending.`);
+      void this.recordControlActionHistory(canonicalControlId, action);
     }
     if (action === 'vocab-clear') { this.onFileCleared({ id: 'va_file' }); return; }
     if (action === 'daemon-start') { void this.daemonAction('start'); return; }
     if (action === 'daemon-stop') { void this.daemonAction('stop'); return; }
     if (action === 'daemon-restart') { void this.daemonAction('restart'); return; }
   };
+
+  private async recordControlActionHistory(controlId: string, action: string): Promise<void> {
+    const response = await this.request('local-history.record', {
+      payload: { action: 'settings-changed', stableRecordId: controlId, subject: action, snapshot: { controlId, action } },
+    }).catch(() => undefined);
+    if (response?.ok) this.fire('Action history recorded', `${action} from ${controlId} was acknowledged by local history.`);
+    else this.fire('Action started', `${action} from ${controlId} is running, but local history is unavailable.`);
+  }
 
   // ---------------------------------------------------------------- server add / remove
 

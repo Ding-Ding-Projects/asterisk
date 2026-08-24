@@ -14,6 +14,7 @@ export const REQUIRED_APPEARANCE_ELEMENT_IDS = [
 
 export const CONDITIONAL_APPEARANCE_ELEMENT_IDS = new Set(['command-palette', 'appearance-editor']);
 export const REQUIRED_APPEARANCE_ID_FAMILIES = ['control-', 'tab-', 'tab-group-', 'palette-row-', 'window-'] as const;
+export const CONDITIONAL_APPEARANCE_ID_FAMILIES = new Set(['palette-row-', 'tab-group-']);
 
 export function missingAppearanceElementIds(ids: ReadonlySet<string>): string[] {
   return REQUIRED_APPEARANCE_ELEMENT_IDS.filter((id) => !CONDITIONAL_APPEARANCE_ELEMENT_IDS.has(id) && !ids.has(id));
@@ -21,6 +22,10 @@ export function missingAppearanceElementIds(ids: ReadonlySet<string>): string[] 
 
 export function appearanceFamilyDefects(root: ParentNode): string[] {
   const defects: string[] = [];
+  for (const prefix of REQUIRED_APPEARANCE_ID_FAMILIES) {
+    const matches = root.querySelectorAll(`[data-appearance-id^="${prefix}"]`);
+    if (matches.length === 0 && !CONDITIONAL_APPEARANCE_ID_FAMILIES.has(prefix)) defects.push(`No rendered target exposes the required ${prefix} appearance-id family.`);
+  }
   const checks: Array<[string, string]> = [
     ['[data-control-kind]', 'control-'],
     ['[role="tab"]', 'tab-'],

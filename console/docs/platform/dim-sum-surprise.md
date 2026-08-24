@@ -16,7 +16,7 @@ There is deliberately no setting to turn this off; the only configurable aspect 
 
 **Documentation website:** Not implemented. A static documentation site has no startup event to attach this to.
 
-The hosted documentation-site equivalent is a browser-local cache surface: a visible file picker validates a user-selected cache JSON locally, stores it per visitor, and offers replace and clear actions. It makes no control-plane request and vendors no consumer photo.
+The hosted documentation-site equivalent is a browser-local cache surface: a visible file picker validates a user-selected cache JSON locally, stores it per visitor, and offers replace and clear actions. Replacing or clearing the cache updates the next eligible launch only; it never reruns the current launch draw. It makes no control-plane request and vendors no consumer photo.
 
 ## Failure modes
 

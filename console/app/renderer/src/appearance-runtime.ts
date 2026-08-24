@@ -67,7 +67,22 @@ function serialiseAppearanceValue(
   value: AppearanceValue,
   reducedMotion: boolean,
 ): { cssValue?: string; animated: boolean; warning?: string } {
-  if (value.kind === 'literal') return { cssValue: value.value, animated: false };
+  if (value.kind === 'literal') {
+    const raw = value.value.trim();
+    const booleanToken = raw === 'true' || raw === 'false' ? raw === 'true' : undefined;
+    const booleanTokens: Partial<Record<AppearanceProperty, [string, string]>> = {
+      underline: ['underline', 'none'], strikethrough: ['line-through', 'none'], doubleStrikethrough: ['line-through', 'none'],
+      overline: ['overline', 'none'], smallCaps: ['small-caps', 'normal'], superscript: ['super', 'baseline'], subscript: ['sub', 'baseline'],
+      fontStyle: ['italic', 'normal'],
+    };
+    const pair = booleanTokens[property];
+    if (pair && booleanToken !== undefined) return { cssValue: booleanToken ? pair[0] : pair[1], animated: false };
+    if (property === 'elevation' && /^\d+(?:\.\d+)?$/u.test(raw)) {
+      const level = Math.max(0, Math.min(24, Number(raw)));
+      return { cssValue: level === 0 ? 'none' : `0 ${Math.ceil(level / 3)}px ${Math.ceil(level * 1.5)}px rgba(0,0,0,.28)`, animated: false };
+    }
+    return { cssValue: raw, animated: false };
+  }
   if (value.kind === 'colour') {
     const parsed = parseColour(value.value);
     if (!parsed) return { animated: false, warning: `Colour '${value.value}' could not be parsed.` };
@@ -170,7 +185,11 @@ export function mountAppearanceModel(
       mountedVariables.push(cssVariable);
       const directProperty = DIRECT_STYLE_PROPERTIES[property];
       if (directProperty) {
-        const directValue = property === 'baselineShift' ? `translateY(${serialised.cssValue})` : serialised.cssValue;
+        const directValue = property === 'baselineShift'
+          ? `translateY(${serialised.cssValue})`
+          : property === 'highlight'
+            ? `linear-gradient(${serialised.cssValue}, ${serialised.cssValue})`
+            : serialised.cssValue;
         (directValues[directProperty] ??= []).push(directValue);
       }
       hasAnimatedRainbow ||= serialised.animated;
