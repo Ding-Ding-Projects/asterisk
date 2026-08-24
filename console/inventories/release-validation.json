@@ -6,7 +6,7 @@
   "checks": [
     {
       "id": "keytar-native-rebuild",
-      "command": "npm run rebuild:native",
+      "command": "electron-builder install-app-deps --platform win32 --arch x64",
       "source": "console/scripts/package-squirrel.mjs",
       "status": "implemented-unverified",
       "evidence": "The packaging path runs electron-builder install-app-deps for win32 x64."
@@ -25,14 +25,20 @@
     },
     {
       "id": "keytar-packaged-load",
-      "command": "npm run verify:keytar:packaged",
+      "command": "node scripts/verify-keytar-packaged.mjs",
       "source": "console/scripts/verify-keytar-packaged.mjs",
       "status": "implemented-unverified",
       "evidence": "Loads keytar from app.asar.unpacked and checks the vault API."
     },
     {
+      "id": "candidate-provenance",
+      "source": "console/scripts/package-squirrel.mjs",
+      "status": "implemented-unverified",
+      "evidence": "Writes school-mode-provenance.json into win-unpacked before the packaged probe, which reads and compares product, app id, package version and candidate commit."
+    },
+    {
       "id": "keytar-vault-roundtrip",
-      "command": "npm run verify:keytar:packaged",
+      "command": "node scripts/verify-keytar-packaged.mjs",
       "source": "console/scripts/verify-keytar-packaged.mjs",
       "status": "implemented-unverified",
       "evidence": "Binds the probe service to package version and candidate commit, writes and reads an ephemeral value, deletes it, then requires post-delete absence."

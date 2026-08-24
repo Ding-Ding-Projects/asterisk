@@ -10,6 +10,12 @@ const unpacked = join(consoleRoot, 'dist', 'squirrel-windows', 'win-unpacked', '
 const packageIdentity = JSON.parse(readFileSync(join(consoleRoot, 'package.json'), 'utf8'));
 const packageVersion = process.env.DING_PBX_VERSION || packageIdentity.version;
 const candidateCommit = process.env.DING_PBX_CANDIDATE_COMMIT || spawnSync('git', ['-C', join(consoleRoot, '..'), 'rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout.trim();
+const provenancePath = join(consoleRoot, 'dist', 'squirrel-windows', 'win-unpacked', 'resources', 'school-mode-provenance.json');
+if (!existsSync(provenancePath)) throw new Error('Packaged School provenance is missing from the unpacked artifact.');
+const provenance = JSON.parse(readFileSync(provenancePath, 'utf8'));
+if (provenance.schemaVersion !== 1 || provenance.product !== packageIdentity.name || provenance.packageVersion !== packageVersion || provenance.candidateCommit !== candidateCommit || provenance.appId !== 'org.dingdingprojects.dingpbxconsole') {
+  throw new Error('Packaged School provenance does not match the candidate commit, package version, product identity, and app id.');
+}
 const packageJson = join(unpacked, 'node_modules', 'keytar', 'package.json');
 const nativeBinary = join(unpacked, 'node_modules', 'keytar', 'build', 'Release', 'keytar.node');
 if (!existsSync(packageJson) || !existsSync(nativeBinary)) {

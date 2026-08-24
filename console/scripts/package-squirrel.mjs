@@ -38,6 +38,15 @@ const result = spawnSync(process.execPath, [cli, '--win', 'squirrel', '--config'
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
 
+const unpackedProvenance = join(unpackedOutput, 'resources', 'school-mode-provenance.json');
+writeFileSync(unpackedProvenance, JSON.stringify({
+  schemaVersion: 1,
+  product: packageJson.name,
+  packageVersion: version,
+  candidateCommit,
+  appId: 'org.dingdingprojects.dingpbxconsole',
+}, null, 2) + '\n', 'utf8');
+
 const packagedProbe = spawnSync(process.execPath, [join(consoleRoot, 'scripts', 'verify-keytar-packaged.mjs')], { cwd: consoleRoot, env: process.env, stdio: 'inherit', shell: false });
 if (packagedProbe.error) throw packagedProbe.error;
 if (packagedProbe.status !== 0) process.exit(packagedProbe.status ?? 1);

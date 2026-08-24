@@ -8,6 +8,7 @@
       "files": [
         "app/renderer/src/text-boundary.ts",
         "app/renderer/src/event-copy-inventory.ts",
+        "inventories/event-copy-census.json",
         "app/renderer/src/locale-yue.ts",
         "app/renderer/src/dc-runtime.tsx",
         "app/renderer/src/App.tsx",

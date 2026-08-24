@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "status": "implemented-unverified",
+  "purpose": "Exact census contract for dynamic toast and dialog call forms across the source, design input, generated renderer and runtime helpers.",
+  "sources": [
+    {
+      "path": "console/app/renderer/src/App.tsx",
+      "mode": "direct-inventory",
+      "literalStatus": "inventory-key-required",
+      "templateStatus": "template-key-required"
+    },
+    {
+      "path": "design/Asterisk Console M3.dc.html",
+      "mode": "generated-helper-route",
+      "literalStatus": "localized-runtime-helper",
+      "templateStatus": "template-key-required"
+    },
+    {
+      "path": "console/app/renderer/src/generated/console.tsx",
+      "mode": "generated-helper-route",
+      "literalStatus": "localized-runtime-helper",
+      "templateStatus": "template-key-required"
+    }
+  ],
+  "helpers": [
+    {
+      "key": "localizedToast",
+      "path": "console/app/renderer/src/App.tsx",
+      "fallback": "untranslated-yue-track-plain-english"
+    },
+    {
+      "key": "localizedFire",
+      "path": "console/app/renderer/src/App.tsx",
+      "fallback": "untranslated-yue-track-plain-english"
+    }
+  ],
+  "templates": [
+    {
+      "key": "<dynamic-title>",
+      "placeholders": ["title"],
+      "fallback": "plain-english-track"
+    },
+    {
+      "key": "<dynamic-body>",
+      "placeholders": ["body"],
+      "fallback": "plain-english-track"
+    }
+  ]
+}

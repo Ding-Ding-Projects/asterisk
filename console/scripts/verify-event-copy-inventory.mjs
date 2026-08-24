@@ -8,6 +8,12 @@ const appSource = readFileSync(join(root, 'app', 'renderer', 'src', 'App.tsx'), 
 const designSource = readFileSync(join(root, '..', 'design', 'Asterisk Console M3.dc.html'), 'utf8');
 const inventorySource = readFileSync(join(root, 'app', 'renderer', 'src', 'event-copy-inventory.ts'), 'utf8');
 const localeSource = readFileSync(join(root, 'app', 'renderer', 'src', 'locale-yue.ts'), 'utf8');
+const census = JSON.parse(readFileSync(join(root, 'inventories', 'event-copy-census.json'), 'utf8'));
+if (census.status !== 'implemented-unverified' || census.sources.length !== 3 || census.templates.length !== 2) throw new Error('Dynamic event census is missing its exact source or template rows.');
+for (const source of census.sources) {
+  const sourceText = readFileSync(join(root, '..', source.path), 'utf8');
+  if (!/this\.(?:toast|fire)\(/u.test(sourceText)) throw new Error(`Dynamic event census source has no toast or dialog call form: ${source.path}`);
+}
 const records = new Map([...inventorySource.matchAll(/key: '([^']+)'[^\n]*status: '(localized|english-fallback)'/g)].map((match) => [match[1], match[2]]));
 if (!records.has('<dynamic-title>') || !records.has('<dynamic-body>')) throw new Error('Dynamic event inventory is missing its explicit template fallback records.');
 const localeKeys = new Set([...localeSource.matchAll(/^  '([^']+)':/gm)].map((match) => match[1]));
@@ -20,4 +26,4 @@ const missing = [...new Set(callSites)].filter((key) => !records.has(key));
 if (missing.length > 0) throw new Error(`Dynamic event call sites are not covered: ${missing.join(', ')}`);
 const templateCalls = [appSource, designSource].filter((source) => /this\.(?:toast|fire)\(\s*`/u.test(source));
 if (templateCalls.length > 0 && !records.has('<dynamic-body>')) throw new Error('Template event call sites have no explicit fallback inventory row.');
-console.log(`Dynamic event inventory verified: ${records.size} rows, ${new Set(callSites).size} exact call-site keys, ${templateCalls.length} template source(s).`);
+console.log(`Dynamic event census verified: ${records.size} rows, ${new Set(callSites).size} App call-site keys, ${templateCalls.length} template source(s), ${census.sources.length} censused source files.`);

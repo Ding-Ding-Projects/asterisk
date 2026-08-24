@@ -45,6 +45,22 @@ export function validateSurfaceInventory(data, { allowUnverified = false } = {})
   return { surfaces: data.surfaces.length, featuresPerSurface: data.requiredFeatureIds.length };
 }
 
+export function validateReleaseValidationInventory(data) {
+  if (data?.schemaVersion !== 1) throw new Error('release validation inventory: schemaVersion 1 required');
+  if (data.surface !== 'windows-console') throw new Error('release validation inventory: windows-console surface required');
+  if (data.status !== 'implemented-unverified') throw new Error('release validation inventory: status must remain implemented-unverified until packaged proof runs');
+  const expected = ['keytar-native-rebuild', 'keytar-asar-unpack', 'clear-win-unpacked', 'keytar-packaged-load', 'candidate-provenance', 'keytar-vault-roundtrip', 'candidate-package-identity'];
+  if (!Array.isArray(data.checks) || data.checks.length !== expected.length) throw new Error('release validation inventory: exact check count drift');
+  exactSet(data.checks.map((check) => check.id), expected, 'release validation check identifiers');
+  for (const check of data.checks) {
+    if (check.status !== 'implemented-unverified') throw new Error(`release validation ${check.id}: status must remain implemented-unverified`);
+    if (typeof check.source !== 'string' || check.source.length === 0) throw new Error(`release validation ${check.id}: source path required`);
+    if (typeof check.evidence !== 'string' || check.evidence.length === 0) throw new Error(`release validation ${check.id}: evidence text required`);
+    if ('command' in check && typeof check.command !== 'string') throw new Error(`release validation ${check.id}: command must be string`);
+  }
+  return { checks: data.checks.length };
+}
+
 const destinationIds = [
   'dash','live','endpoints','trunks','trunkauth','canvas','ivr','queues',
   'voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli',
