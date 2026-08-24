@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "source": "Ding-Ding-Projects/dim-sum-photos catalog names, cached locally for the static page equivalent",
+  "sourceUrl": "https://raw.githubusercontent.com/Ding-Ding-Projects/dim-sum-photos/main/catalog/index.json",
+  "sourceRevision": "main",
+  "imagePolicy": "local CSS plate illustration only; no copied photo or network image",
+  "localImage": "CSS .global-dimsum-plate",
+  "dishes": [
+    { "name": { "en": "Shrimp dumpling", "zhHant": "蝦餃" }, "image": "local-plate" },
+    { "name": { "en": "Barbecue pork bun", "zhHant": "叉燒包" }, "image": "local-plate" },
+    { "name": { "en": "Steamed rice noodle roll", "zhHant": "腸粉" }, "image": "local-plate" },
+    { "name": { "en": "Egg custard tart", "zhHant": "蛋撻" }, "image": "local-plate" },
+    { "name": { "en": "Turnip cake", "zhHant": "蘿蔔糕" }, "image": "local-plate" }
+  ]
+}

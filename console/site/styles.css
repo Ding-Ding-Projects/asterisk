@@ -598,6 +598,18 @@ body.attn-focus .topbar:hover,body.attn-focus .topbar:focus-within,body.attn-foc
 .global-regex-popover h3{margin:0;font-size:.95rem}
 .global-regex-popover label{display:grid;gap:5px;font-size:.78rem;color:var(--muted)}
 .global-regex-popover input[type=text]{min-height:40px;padding:8px 10px;border:1px solid var(--outline-variant);border-radius:var(--radius-sm);background:var(--surface-0);color:var(--on-surface);font:inherit}
+.global-confirm-popover{margin-top:14px;padding:14px;border:2px solid var(--danger);border-radius:var(--radius);background:var(--surface-2);display:grid;gap:10px}
+.global-confirm-popover[hidden]{display:none}
+.global-confirm-popover h3,.global-confirm-popover p{margin:0}
+.global-confirm-popover p{color:var(--muted);font-size:.8rem;line-height:1.45}
+.global-confirm-popover label:not(.switch-row){display:grid;gap:5px;color:var(--muted);font-size:.78rem}
+.global-confirm-popover input[type=password]{min-height:40px;padding:8px 10px;border:1px solid var(--outline-variant);border-radius:var(--radius-sm);background:var(--surface-0);color:var(--on-surface);font:inherit}
+.global-confirm-popover input[type=range]{width:100%;accent-color:var(--danger)}
+.global-dropdown-tools{display:flex;align-items:center;gap:6px;margin:5px 0}
+.global-dropdown-search{width:100%;min-height:34px;padding:6px 9px;border:1px solid var(--outline-variant);border-radius:var(--radius-sm);background:var(--surface-0);color:var(--on-surface);font:inherit;font-size:.78rem}
+.global-dialog-emoji{display:inline-block;margin-inline-end:6px}
+.global-schedule-rule{display:grid;gap:4px;padding:9px 10px;border:1px solid var(--outline-variant);border-radius:var(--radius-sm);background:var(--surface-2);font-size:.76rem}
+.global-schedule-rule span{color:var(--muted);font-family:var(--font-mono);font-size:.68rem}
 .global-dimsum-toast{position:fixed;z-index:31;right:18px;bottom:18px;display:flex;align-items:center;gap:12px;max-width:min(420px,calc(100vw - 36px));padding:14px 16px;border:1px solid var(--primary);border-radius:var(--radius-lg);background:var(--surface-1);box-shadow:0 18px 50px rgba(0,0,0,.3);animation:global-toast-in .25s ease-out}
 .global-dimsum-toast>div{display:grid;gap:3px}
 .global-dimsum-toast strong{font-size:.86rem}

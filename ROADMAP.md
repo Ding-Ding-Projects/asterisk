@@ -183,3 +183,5 @@ is a wish rather than a proposal. Two survived on merit.
 - [x] Provide local schedule rules plus explicit, validated HTTPS and Home Assistant-equivalent source checks with bounded failure handling and no automatic network request.
 - [x] Provide the later-visit ten-percent local dim-sum surprise, display-name rename and reset, and truthful static-page update/download state.
 - [x] Document the page contract in `console/docs/app/site-global-settings.md` and record the feature rows in `console/site/feature-registry.json`.
+- [x] Repair generated documentation article asset depth paths, explicit School-mode suppression inventory, localized page-owned copy consumers, accessible super confirmation, versioned schedule rules, bounded external and Home Assistant checks, late yue-HK voice handling, local dim-sum cache metadata, per-dropdown regex builders, and keyboard tab movement.
+- [ ] Publish a verified release manifest before adding a real installer download control to the static page. The current update panel stays partial and reports that no verified installer exists.

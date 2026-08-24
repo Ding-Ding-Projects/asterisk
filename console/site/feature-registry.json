@@ -267,8 +267,8 @@
       ]
     },
     "automatic-updates": {
-      "state": "implemented",
-      "note": "The static-page equivalent in global-settings.js reports the truthful local state that no verified installer is published for this page. Its refresh action records a local timestamp only, performs no network request, and never fabricates a download.",
+      "state": "partial",
+      "note": "The static-page equivalent in global-settings.js reports the truthful local state that no verified release manifest or installer is published for this page. Its refresh action records a local timestamp only, performs no network request, and never fabricates a download. It remains partial until a verified release manifest can drive a real download control.",
       "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     }
   }

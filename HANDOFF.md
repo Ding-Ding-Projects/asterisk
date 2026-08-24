@@ -435,3 +435,30 @@ Verification was limited to `node --check` for `console/site/global-settings.js`
 `console/site/app.js`, plus `git diff --check`. No tests, lint, build, browser, UI, capture,
 hosting, or release work was run in this lane. The source remains uncommitted on the task branch
 until the owning agent reviews and commits it.
+
+## Pages global settings refutation repair, 2026-08-24
+
+The repair extends the first lane commit without changing its boundary. Generated documentation
+articles now reference the shared assets through their computed depth. The page module has a
+hand-written School-mode suppression inventory covering language, funny levels, vocabulary,
+dim-sum output, narration, schedules, and page search results, while the renamed mode and its
+storage-clear recovery path remain visible. Panel, notice, and narration copy now flow through the
+language and funny-level consumers. Dialog emoji decoration is aria-hidden and a mutation observer
+covers real dialogs. Prompt and confirm calls were replaced by an anchored, keyboard-operable
+two-key plus full-slider confirmation with emergency exit and focus return.
+
+Schedules are versioned and bounded, with target, value, dates, times, weekdays or Every day,
+timezone, cross-midnight matching, precedence, apply, and remove behavior. External endpoints
+reject credentials, queries, fragments, unsafe hosts, oversized or deeply nested responses, and
+unknown fields. Home Assistant accepts only an explicit on or off state shape and states the
+browser credential limitation. Narration keeps missing voice identities visible, restricts
+Cantonese voices to yue-HK, and applies debounce, category cooldown, quiet, reduced-sound, and
+screen-reader suppression. The dim-sum cache records its authoritative catalog URL and revision,
+uses a local CSS plate image equivalent, and suppresses first-visit, School, quiet, error, update,
+active-work, hidden-page, and screen-reader states. Every dropdown receives its own filter and
+anchored regex builder, and the settings tabs support arrow, Home, End, and focus return.
+
+The static update panel remains partial because no verified release manifest or installer asset is
+available for this page. No download control is invented. Verification remained limited to
+`node --check` for the changed JavaScript files and `git diff --check`; no tests, lint, build,
+browser, UI, capture, hosting, release, or cleanup work ran.
