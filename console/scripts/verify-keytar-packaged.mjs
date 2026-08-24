@@ -37,7 +37,14 @@ let child;
 let childExitProven = false;
 const cleanup = { childExit: null, childExitProven: false, childKillRequested: false, resultRead: false, resultDeleted: false, profileDeleted: false, profileRetainedForensics: false };
 try {
-  child = spawn(executable, [`--user-data-dir=${profilePath}`, `--school-vault-probe-result=${resultPath}`], { cwd: unpackedRoot, windowsHide: true, stdio: 'ignore' });
+  child = spawn(executable, [
+    `--user-data-dir=${profilePath}`,
+    `--school-vault-probe-result=${resultPath}`,
+    `--school-vault-expected-product=${expected.product}`,
+    `--school-vault-expected-version=${expected.packageVersion}`,
+    `--school-vault-expected-commit=${expected.candidateCommit}`,
+    `--school-vault-expected-app-id=${expected.appId}`,
+  ], { cwd: unpackedRoot, windowsHide: true, stdio: 'ignore' });
   const exitCode = await new Promise((resolve, reject) => {
     let deadline;
     let killDeadline;

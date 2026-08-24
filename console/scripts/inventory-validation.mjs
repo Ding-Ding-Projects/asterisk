@@ -49,7 +49,7 @@ export function validateReleaseValidationInventory(data) {
   if (data?.schemaVersion !== 1) throw new Error('release validation inventory: schemaVersion 1 required');
   if (data.surface !== 'windows-console') throw new Error('release validation inventory: windows-console surface required');
   if (data.status !== 'implemented-unverified') throw new Error('release validation inventory: status must remain implemented-unverified until packaged proof runs');
-  const expected = ['keytar-native-rebuild', 'keytar-asar-unpack', 'clear-win-unpacked', 'keytar-packaged-load', 'candidate-provenance', 'keytar-vault-roundtrip', 'candidate-package-identity'];
+  const expected = ['keytar-native-rebuild', 'keytar-asar-unpack', 'clear-win-unpacked', 'keytar-packaged-load', 'probe-preload-isolation', 'candidate-provenance', 'keytar-vault-roundtrip', 'candidate-package-identity'];
   if (!Array.isArray(data.checks) || data.checks.length !== expected.length) throw new Error('release validation inventory: exact check count drift');
   exactSet(data.checks.map((check) => check.id), expected, 'release validation check identifiers');
   for (const check of data.checks) {

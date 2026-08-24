@@ -288,14 +288,27 @@ function packagedProbeResultPath(): string | undefined {
   return argument ? argument.slice(prefix.length) : undefined;
 }
 
+function expectedProbeIdentity(): { product: string; packageVersion: string; candidateCommit: string; appId: string } {
+  const read = (prefix: string): string | undefined => {
+    const argument = process.argv.find((value) => value.startsWith(prefix));
+    return argument?.slice(prefix.length);
+  };
+  const product = read('--school-vault-expected-product=');
+  const packageVersion = read('--school-vault-expected-version=');
+  const candidateCommit = read('--school-vault-expected-commit=');
+  const appId = read('--school-vault-expected-app-id=');
+  if (!product || !packageVersion || !candidateCommit || !appId) throw new Error('Probe mode requires the independent packaging-controller identity.');
+  return { product, packageVersion, candidateCommit, appId };
+}
+
 function runPackagedProbeWhenRequested(): void {
   const resultPath = packagedProbeResultPath();
   if (!resultPath || !mainWindow) return;
   mainWindow.webContents.once('did-finish-load', () => {
     void (async () => {
       try {
-        const provenance = JSON.parse(readFileSync(join(process.resourcesPath, 'school-mode-provenance.json'), 'utf8'));
-        const result = await mainWindow?.webContents.executeJavaScript(`window.dingDesktop.school.packagedVaultProbe(${JSON.stringify({ product: provenance.product, packageVersion: provenance.packageVersion, candidateCommit: provenance.candidateCommit, appId: provenance.appId })})`, true);
+        const expected = expectedProbeIdentity();
+        const result = await mainWindow?.webContents.executeJavaScript(`window.dingDesktop.school.packagedVaultProbe(${JSON.stringify(expected)})`, true);
         writeFileSync(resultPath, JSON.stringify(result) + '\n', 'utf8');
       } catch (error) {
         writeFileSync(resultPath, JSON.stringify({ error: error instanceof Error ? error.message : String(error) }) + '\n', 'utf8');
