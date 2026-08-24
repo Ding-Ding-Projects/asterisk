@@ -75,7 +75,7 @@ export async function mountApplicationRuntime(): Promise<ApplicationRuntime> {
     const generation = ++cycleGeneration;
     const rules = runtime.settings.snapshot().base.schedule.rules.filter((rule) => rule.source.kind !== 'local');
     const ids = rules.map((rule) => rule.id);
-    await runtime.external.readState(ids);
+    await runtime.external.readState(ids, generation);
     if (generation !== cycleGeneration) return;
     for (const rule of rules) {
       if (generation !== cycleGeneration) return;

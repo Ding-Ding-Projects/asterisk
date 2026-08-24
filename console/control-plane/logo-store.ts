@@ -218,6 +218,20 @@ export class LogoStore {
     return candidate;
   }
 
+  async peek(): Promise<LogoCacheRecord | undefined> {
+    const manifestBytes = await readExactFile(join(this.root, 'manifest.json'), LOGO_MAX_MANIFEST_BYTES);
+    if (!manifestBytes) return undefined;
+    let raw: string;
+    try { raw = new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes); } catch { return undefined; }
+    if (hasDuplicateJsonKeys(raw)) return undefined;
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (!cacheShape(parsed)) return undefined;
+      const cropCheck = validateLogoCrop(parsed.crop);
+      return cropCheck.ok ? parsed : undefined;
+    } catch { return undefined; }
+  }
+
   async read(): Promise<LogoCacheRecord | undefined> {
     const manifestBytes = await readExactFile(join(this.root, 'manifest.json'), LOGO_MAX_MANIFEST_BYTES);
     if (!manifestBytes) return undefined;

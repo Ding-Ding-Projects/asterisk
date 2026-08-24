@@ -72,7 +72,7 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'daemon.status', 'daemon.start', 'daemon.stop', 'daemon.restart',
   'history.list', 'history.restore', 'media.list', 'media.upload', 'media.remove',
   'local-history.list', 'local-history.record', 'local-history.restore',
-  'logo.decoder.status', 'logo.inspect', 'logo.convert', 'logo.cache.read', 'logo.cache.asset.read', 'logo.cache.write', 'logo.cache.clear',
+  'logo.decoder.status', 'logo.inspect', 'logo.convert', 'logo.cache.peek', 'logo.cache.read', 'logo.cache.asset.read', 'logo.cache.write', 'logo.cache.clear',
   'external-settings.refresh', 'external-settings.state', 'external-settings.cancel',
   'converter.catalog', 'converter.pdf-capabilities', 'converter.sniff',
   'converter.queue.create', 'converter.queue.enqueue-one', 'converter.queue.page',
@@ -170,7 +170,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     : join(import.meta.dirname, 'logo-decoder-worker.mjs');
   const candidateManifestPath = options.logoDecoderManifestPath ?? join(import.meta.dirname, 'logo-decoder-manifest.json');
   const candidatePackageLockPath = options.logoDecoderPackageLockPath ?? join(import.meta.dirname, 'package-lock.json');
-  const boundaryReady = process.platform !== 'win32' || (Boolean(options.logoDecoderJobScriptPath) && existsSync(options.logoDecoderJobScriptPath!));
+  const boundaryReady = process.platform === 'win32' && Boolean(options.logoDecoderJobScriptPath) && existsSync(options.logoDecoderJobScriptPath!);
   const logoDecoder = boundaryReady && existsSync(candidateDecoderPath) && existsSync(candidateManifestPath) && existsSync(candidatePackageLockPath)
     ? createIsolatedLogoDecoder({ workerPath: candidateDecoderPath, manifestPath: candidateManifestPath, packageLockPath: candidatePackageLockPath, jobScriptPath: options.logoDecoderJobScriptPath })
     : undefined;
@@ -677,7 +677,6 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (!result.ok) return { ok: true, requestId: request.requestId, data: result };
         try {
           const record = await logoHandlers.cache.write({ kind: 'write', result, selectedPresetId: typeof request.payload?.selectedPresetId === 'string' ? request.payload.selectedPresetId : undefined });
-          settingsRegistry().set('logo.cache-status', JSON.stringify({ hasValidatedCustomLogo: true, selectedPresetId: record.selectedPresetId, crop: record.crop, updatedAt: record.updatedAt }));
           return { ok: true, requestId: request.requestId, data: { cached: true, record } };
         } catch (error) {
           return { ok: false, requestId: request.requestId, code: 'LOGO_CACHE_WRITE_FAILED', message: error instanceof Error ? error.message : 'The previous logo remains active because the cache write failed.' };
@@ -685,6 +684,9 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       }
       if (request.action === 'logo.cache.read') {
         return { ok: true, requestId: request.requestId, data: await logoHandlers.cache.read({ kind: 'read' }) };
+      }
+      if (request.action === 'logo.cache.peek') {
+        return { ok: true, requestId: request.requestId, data: await logoStore.peek() };
       }
       if (request.action === 'logo.cache.asset.read') {
         const filename = typeof request.payload?.filename === 'string' ? request.payload.filename : '';
@@ -697,7 +699,6 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       }
       if (request.action === 'logo.cache.clear') {
         await logoHandlers.cache.clear({ kind: request.payload?.kind === 'reset' ? 'reset' : 'clear' });
-        settingsRegistry().remove('logo.cache-status');
         return { ok: true, requestId: request.requestId, data: { cleared: true } };
       }
       if (request.action === 'external-settings.state') {

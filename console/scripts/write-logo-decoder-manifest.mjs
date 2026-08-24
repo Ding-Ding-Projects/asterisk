@@ -8,7 +8,9 @@ const worker = join(root, 'control-plane', 'logo-decoder-worker.mjs');
 const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'));
 const sharp = lock.packages?.['node_modules/sharp'];
 if (!sharp?.version || !sharp.integrity) throw new Error('The locked sharp package is missing version or integrity.');
-const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+const dirty = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim();
+if (dirty) throw new Error('The decoder manifest refuses a lat tat input tree; commit the candidate before packaging.');
+const sourceCommit = (process.env.GITHUB_SHA && /^[0-9a-f]{40}$/iu.test(process.env.GITHUB_SHA)) ? process.env.GITHUB_SHA.toLowerCase() : execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
 if (!/^[0-9a-f]{40}$/iu.test(sourceCommit)) throw new Error('The decoder manifest could not bind to an exact source commit.');
 const files = [];
 function walk(directory) {

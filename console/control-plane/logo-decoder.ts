@@ -21,6 +21,15 @@ function workingSet(pid: number): Promise<number> {
   });
 }
 
+async function waitForTermination(pid: number | undefined, timeoutMs = 500): Promise<void> {
+  if (!pid || process.platform !== 'win32') return;
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try { await workingSet(pid); } catch { return; }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+}
+
 async function runtimeFiles(root: string): Promise<string[]> {
   const output: string[] = [];
   const walk = async (directory: string) => {
@@ -50,10 +59,12 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
     let peakWorkingSetBytes = 0;
     let baselineWorkingSetBytes: number | undefined;
     let inputSent = false;
+    let workerPid: number | undefined;
+    let monitorPid = child.pid;
     let finish: (error?: Error, value?: Record<string, unknown>) => void;
     const monitor = setInterval(() => {
-      if (!child.pid) return;
-      void workingSet(child.pid).then((value) => {
+      if (!monitorPid) return;
+      void workingSet(monitorPid).then((value) => {
         baselineWorkingSetBytes ??= value;
         peakWorkingSetBytes = Math.max(peakWorkingSetBytes, value);
         if (value > baselineWorkingSetBytes + MAX_DECODE_ALLOWANCE_BYTES) finish(new Error('The isolated decoder exceeded its native working-set ceiling.'));
@@ -64,8 +75,7 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
       settled = true;
       clearTimeout(timer);
       clearInterval(monitor);
-      child.kill();
-      if (error) reject(error); else resolve({ ...value!, peakWorkingSetBytes, baselineWorkingSetBytes, workingSetIncrementBytes: baselineWorkingSetBytes === undefined ? undefined : peakWorkingSetBytes - baselineWorkingSetBytes });
+      void waitForTermination(workerPid).finally(() => { child.kill(); if (error) reject(error); else resolve({ ...value!, workerPid, peakWorkingSetBytes, baselineWorkingSetBytes, workingSetIncrementBytes: baselineWorkingSetBytes === undefined ? undefined : peakWorkingSetBytes - baselineWorkingSetBytes }); });
     };
     const timer = setTimeout(() => finish(new Error('The isolated logo decoder exceeded its bounded deadline.')), options.timeoutMs ?? 2_000);
     child.once('error', () => finish(new Error('The isolated logo decoder could not be started.')));
@@ -84,6 +94,8 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
       const newline = output.indexOf('\n');
       if (newline < 0) return;
       const line = output.slice(0, newline);
+      const pidMatch = /^WORKER_PID:(\d+)\r?$/u.exec(line.trim());
+      if (pidMatch) { workerPid = Number(pidMatch[1]); monitorPid = workerPid; output = output.slice(newline + 1); return; }
       try {
         const value = JSON.parse(line) as Record<string, unknown>;
         if (value.ok === false) finish(new Error(typeof value.reason === 'string' ? value.reason : 'The isolated logo decoder refused the operation.'));

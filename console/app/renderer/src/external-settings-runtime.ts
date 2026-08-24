@@ -60,6 +60,7 @@ export class ExternalSettingsRuntime {
   private readonly inFlight = new Map<string, Promise<ExternalRuleState>>();
   private readonly generations = new Map<string, number>();
   private readonly fingerprints = new Map<string, string>();
+  private readCycleGeneration = 0;
   private readonly listeners = new Set<(states: ReadonlyArray<ExternalRuleState>) => void>();
   constructor(private readonly bridge: ExternalSettingsRuntimeBridge) {}
 
@@ -98,14 +99,18 @@ export class ExternalSettingsRuntime {
     try { return await task; } finally { if (this.inFlight.get(ruleId) === task) this.inFlight.delete(ruleId); }
   }
 
-  async readState(ruleIds: readonly string[] = this.all().map((item) => item.ruleId)): Promise<ReadonlyArray<ExternalRuleState>> {
+  async readState(ruleIds: readonly string[] = this.all().map((item) => item.ruleId), cycleGeneration = this.readCycleGeneration + 1): Promise<ReadonlyArray<ExternalRuleState>> {
+    if (cycleGeneration < this.readCycleGeneration) return this.all();
+    this.readCycleGeneration = cycleGeneration;
     for (const ruleId of ruleIds) {
+      if (cycleGeneration !== this.readCycleGeneration) return this.all();
       if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u.test(ruleId)) {
         this.states.set(ruleId, { ruleId, status: 'failed', active: false, isFallback: true, isStale: false, assignmentCount: 0, lastError: 'The rule id was invalid, so no external read was attempted.' });
         this.emit();
         continue;
       }
       const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'external-settings.state', payload: { ruleId } });
+      if (cycleGeneration !== this.readCycleGeneration) return this.all();
       const parsed = response.ok ? parseWireState(response.data) : undefined;
       this.states.set(ruleId, parsed ?? { ruleId, status: 'offline', active: false, isFallback: true, isStale: false, assignmentCount: 0, lastError: response.message ?? 'No valid external state was returned for this rule.' });
       this.emit();

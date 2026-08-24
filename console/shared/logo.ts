@@ -185,7 +185,7 @@ export type LogoConversionResult = {
 } | LogoValidationFailure;
 
 export interface LogoHandlerDescriptor {
-  readonly action: 'logo.decoder.status' | 'logo.inspect' | 'logo.convert' | 'logo.cache.read' | 'logo.cache.asset.read' | 'logo.cache.write' | 'logo.cache.clear';
+  readonly action: 'logo.decoder.status' | 'logo.inspect' | 'logo.convert' | 'logo.cache.peek' | 'logo.cache.read' | 'logo.cache.asset.read' | 'logo.cache.write' | 'logo.cache.clear';
   readonly localOnly: true;
   readonly input: string;
   readonly output: string;
@@ -195,6 +195,7 @@ export const LOGO_HANDLER_DESCRIPTORS: readonly LogoHandlerDescriptor[] = Object
   { action: 'logo.decoder.status', localOnly: true, input: 'void', output: '{ available: boolean }' },
   { action: 'logo.inspect', localOnly: true, input: 'LogoSourceInput', output: 'LogoInspectionResult' },
   { action: 'logo.convert', localOnly: true, input: 'LogoConversionRequest', output: 'LogoConversionResult' },
+  { action: 'logo.cache.peek', localOnly: true, input: 'LogoCacheReadRequest', output: 'LogoCacheRecord | undefined' },
   { action: 'logo.cache.read', localOnly: true, input: 'LogoCacheReadRequest', output: 'LogoCacheRecord | undefined' },
   { action: 'logo.cache.asset.read', localOnly: true, input: 'LogoCacheAssetReadRequest', output: 'Uint8Array | undefined' },
   { action: 'logo.cache.write', localOnly: true, input: 'LogoCacheWriteRequest', output: 'LogoCacheRecord' },
