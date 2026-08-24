@@ -114,7 +114,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     return await history.record({
       action: 'updated',
       subject: `FreePBX module ${moduleId} ${action}`,
-      payload: { moduleId, action, result },
+      payload: { schemaVersion: 1, recordType: 'freepbx-action', moduleId, action, result, typedResult: result },
     });
   }
   const asteriskService = new AsteriskService({ executor: processExecutor });
@@ -674,7 +674,9 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
 
         if (request.action === 'local-history.list') {
           const opts = (request.payload ?? {}) as { action?: string; since?: string; until?: string; limit?: number };
-          return { ok: true, requestId: request.requestId, data: { entries: await history.list(opts), counts: await history.actionCounts() } };
+          const entries = await history.list(opts);
+          const withPayload = await Promise.all(entries.map(async (entry) => ({ ...entry, payload: await history.payload(entry.id, entry.subject) })));
+          return { ok: true, requestId: request.requestId, data: { entries: withPayload, counts: await history.actionCounts() } };
         }
         if (request.action === 'local-history.record') {
           const entry = request.payload as unknown as Parameters<LocalHistory['record']>[0];

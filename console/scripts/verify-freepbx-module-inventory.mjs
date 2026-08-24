@@ -15,6 +15,7 @@ const generatedDocsSource = readFileSync(resolve(root, 'console/app/renderer/src
 const rendererSource = readFileSync(resolve(root, 'console/app/renderer/src/PbxAdminApp.tsx'), 'utf8');
 const regexWorkerSource = readFileSync(resolve(root, 'console/app/renderer/src/bounded-regex-worker.ts'), 'utf8');
 const localeSource = readFileSync(resolve(root, 'console/app/renderer/src/locale-yue.ts'), 'utf8');
+const historyTestSource = readFileSync(resolve(root, 'console/tests/ui/freepbx-catalog-history.test.mjs'), 'utf8');
 
 function unique(values, label) {
   const duplicates = values.filter((value, index) => values.indexOf(value) !== index);
@@ -109,9 +110,13 @@ function verifyDocumentationAnchors(catalogValue, inventoryValue, source) {
 }
 
 function verifyProductionBindings(source) {
-  for (const marker of ['freepbx.family.schema', 'freepbx.family.read', 'freepbx.family.plan', 'freepbx.family.apply', 'freepbx-family-read', 'freepbx-family-plan', 'freepbx-family-apply', 'freePbxFamilySchemaKey', 'local-history.list', 'freePbxFire', 'boundedRegexWorkerAvailable']) {
+  for (const marker of ['freepbx.family.schema', 'freepbx.family.read', 'freepbx.family.plan', 'freepbx.family.apply', 'freepbx-family-read', 'freepbx-family-plan', 'freepbx-family-apply', 'freePbxFamilySchemaKey', 'local-history.list', 'freePbxFire', 'boundedRegexWorkerAvailable', 'typedResult', 'freePbxCatalogHistory']) {
     if (!source.includes(marker)) throw new Error(`FreePBX renderer is missing production binding ${marker}.`);
   }
+}
+
+function verifyHistoryRegression(source) {
+  for (const marker of ['typed result', 'rollback', 'credentials,private paths']) if (!source.toLowerCase().includes(marker.toLowerCase())) throw new Error(`FreePBX history regression is missing ${marker}.`);
 }
 
 function verifyRegexWorker(source) {
@@ -140,6 +145,7 @@ verifyProductionBindings(rendererSource);
 verifyRegexWorker(regexWorkerSource);
 verifyDynamicLocalization(rendererSource, localeSource);
 verifyGeneratedDocs(generatedDocsSource);
+verifyHistoryRegression(historyTestSource);
 if (process.argv.includes('--probe-negative')) {
   const broken = { ...inventory, modules: inventory.modules.slice(1) };
   let failedClosed = false;
@@ -166,6 +172,9 @@ if (process.argv.includes('--probe-negative')) {
   let generatedDocsFailedClosed = false;
   try { verifyGeneratedDocs(generatedDocsSource.replace('platform/freepbx-module-surface', 'removed-freepbx-surface')); } catch { generatedDocsFailedClosed = true; }
   if (!generatedDocsFailedClosed) throw new Error('negative generated-docs regression did not fail closed.');
+  let historyFailedClosed = false;
+  try { verifyHistoryRegression(historyTestSource.replaceAll('typed result', 'missing result')); } catch { historyFailedClosed = true; }
+  if (!historyFailedClosed) throw new Error('negative history regression did not fail closed.');
   console.log('negative inventory regression: red on one removed module, restored catalog: green');
 }
 console.log(`FreePBX module inventory verified structurally: ${result.modules} modules, ${result.families} families, ${result.exclusions} exclusion records, ${result.unavailable} unavailable or unverified entries, documentation anchors ${result.modules} module/${result.families} family.`);

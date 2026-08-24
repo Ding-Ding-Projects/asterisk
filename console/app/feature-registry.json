@@ -321,7 +321,7 @@
     },
     "freepbx-module-surface": {
       "state": "partial",
-      "note": "The generated public FreePBX module catalog, 55-family adapter registry, catalog destination, typed WSL/local-Docker fwconsole boundary, target-bound backup receipt, bounded export, and persisted filters are wired. Entity and published-API families remain explicitly non-actionable until typed target routes exist. Runtime state, entitlement behavior on a real target, built-artifact interaction, and captures remain unverified.",
+      "note": "The generated public FreePBX module catalog, 55-family adapter registry, typed WSL/local-Docker fwconsole and configuration-family routes, target-bound backup receipt, bounded export, persisted filters, and durable action-history reload are wired. Entity and published-API family policies remain explicitly unavailable until official endpoint, operation, authentication, and readback metadata exists. Runtime state, entitlement behavior on a real target, built-artifact interaction, and captures remain unverified.",
       "files": [
         "catalog/freepbx-module-catalog.json",
         "docs/platform/freepbx-module-surface.md",
@@ -335,9 +335,11 @@
         "control-plane/freepbx-runtime.ts",
         "control-plane/freepbx-family-runtime.ts",
         "control-plane/dispatch.ts",
+        "control-plane/local-history.ts",
         "inventories/freepbx-module-surface.json",
         "inventories/freepbx-module-evidence.json",
-        "scripts/verify-freepbx-module-inventory.mjs"
+        "scripts/verify-freepbx-module-inventory.mjs",
+        "tests/ui/freepbx-catalog-history.test.mjs"
       ]
     },
     "automatic-updates": {

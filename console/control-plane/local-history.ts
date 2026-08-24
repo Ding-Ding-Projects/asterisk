@@ -281,6 +281,14 @@ export class LocalHistory {
     return commits;
   }
 
+  /** Reads the redacted payload that belongs to one history commit without exposing secrets. */
+  async payload(commitId: string, subject: string): Promise<unknown | undefined> {
+    if (!/^[0-9a-f]{40}$/iu.test(commitId)) throw new Error(`"${commitId}" is not a 40-character commit id.`);
+    const result = await this.#git(["show", `${commitId}:${filenameFor(subject)}`]);
+    if (result.status !== "succeeded") return undefined;
+    try { return JSON.parse(result.stdout) as unknown; } catch { return undefined; }
+  }
+
   /** How many commits exist per action, derived from the history itself. */
   async actionCounts(): Promise<Readonly<Record<string, number>>> {
     const counts: Record<string, number> = {};

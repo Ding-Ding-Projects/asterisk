@@ -36,7 +36,7 @@ type MediaFile = { name: string; path: string; extension: string; bytes: number 
 type MediaRoot = 'prompts' | 'musicOnHold';
 
 type StateValues = { screen: string; values: Record<string, unknown> };
-type FreePbxCatalogHistoryEntry = { observedAt: string; moduleId: string; action: string; status: string; message: string };
+type FreePbxCatalogHistoryEntry = { schemaVersion: 1; recordType: 'freepbx-action'; observedAt: string; moduleId: string; action: string; status: string; message: string; result?: unknown; backup?: unknown; before?: unknown; after?: unknown; rollback?: unknown };
 
 const AUDIO_ACCEPT = '.wav,.gsm,.ulaw,.alaw,.g722,.sln,.sln16,.ogg,.opus';
 const FREEPBX_FAMILY_ACTIONS = ['freepbx.family.schema', 'freepbx.family.read', 'freepbx.family.plan', 'freepbx.family.apply'] as const;
@@ -627,12 +627,14 @@ export class PbxAdminApp extends App {
     this.freePbxCatalogPersisted = this.freePbxCatalogSelectionSnapshot();
     const historyResponse = await this.adminRequest('local-history.list', { payload: { action: 'updated', limit: 200 } });
     if (historyResponse?.ok) {
-      const entries = (historyResponse.data as { entries?: Array<{ timestamp?: string; action?: string; subject?: string }> }).entries ?? [];
+      const entries = (historyResponse.data as { entries?: Array<{ timestamp?: string; action?: string; subject?: string; payload?: unknown }> }).entries ?? [];
       this.freePbxCatalogHistory = entries
         .filter((entry) => typeof entry.subject === 'string' && entry.subject.startsWith('FreePBX module '))
         .map((entry) => {
           const parts = entry.subject!.slice('FreePBX module '.length).split(' ');
-          return { observedAt: entry.timestamp ?? '', moduleId: parts.shift() ?? '', action: parts.join(' '), status: 'recorded', message: entry.subject! };
+          const payload = entry.payload && typeof entry.payload === 'object' ? entry.payload as { typedResult?: Record<string, unknown>; result?: Record<string, unknown> } : undefined;
+          const result = payload?.typedResult ?? payload?.result;
+          return { schemaVersion: 1, recordType: 'freepbx-action', observedAt: entry.timestamp ?? '', moduleId: String(result?.moduleId ?? parts.shift() ?? ''), action: String(result?.action ?? parts.join(' ')), status: String(result?.status ?? 'recorded'), message: String(result?.message ?? entry.subject), result, backup: result?.backup, before: result?.before, after: result?.after, rollback: result?.rollback };
         });
     }
   };
@@ -1240,7 +1242,7 @@ export class PbxAdminApp extends App {
         const jobId = String(this.stateValues().values[this.freePbxBackupJobId] ?? '').split(' · ')[0]!.trim();
         if (!jobId) {
           const message = 'Create an official file and database backup receipt before this module action.';
-          this.freePbxCatalogHistory = [...this.freePbxCatalogHistory, { observedAt: new Date().toISOString(), moduleId, action, status: 'refused', message }].slice(-200);
+          this.freePbxCatalogHistory = [...this.freePbxCatalogHistory, { schemaVersion: 1, recordType: 'freepbx-action', observedAt: new Date().toISOString(), moduleId, action, status: 'refused', message }].slice(-200);
           this.freePbxFire('FreePBX module action refused', message);
           return;
         }
@@ -1259,14 +1261,14 @@ export class PbxAdminApp extends App {
       this.freePbxBackupReceipt = undefined;
       if (!response?.ok) {
         const message = response?.message ?? 'The FreePBX runtime did not confirm the action.';
-        this.freePbxCatalogHistory = [...this.freePbxCatalogHistory, { observedAt: new Date().toISOString(), moduleId, action, status: 'refused', message }].slice(-200);
+        this.freePbxCatalogHistory = [...this.freePbxCatalogHistory, { schemaVersion: 1, recordType: 'freepbx-action', observedAt: new Date().toISOString(), moduleId, action, status: 'refused', message }].slice(-200);
         this.freePbxFire('FreePBX module action refused', message);
         return;
       }
-      const result = response.data as { after?: FreePbxRuntimeModule; status?: string; message?: string };
+      const result = response.data as { moduleId?: string; action?: string; after?: FreePbxRuntimeModule; before?: FreePbxRuntimeModule; status?: string; message?: string; backup?: FreePbxBackupReceipt; rollback?: unknown };
       if (result.after) this.freePbxRuntimeModules.set(moduleId, result.after);
       this.freePbxCatalogStatus = result.message ?? `fwconsole returned ${result.status ?? 'an unknown result'}.`;
-      this.freePbxCatalogHistory = [...this.freePbxCatalogHistory, { observedAt: new Date().toISOString(), moduleId, action, status: result.status ?? 'unknown', message: this.freePbxCatalogStatus }].slice(-200);
+      this.freePbxCatalogHistory = [...this.freePbxCatalogHistory, { schemaVersion: 1, recordType: 'freepbx-action', observedAt: new Date().toISOString(), moduleId, action, status: result.status ?? 'unknown', message: this.freePbxCatalogStatus, result, backup: result.backup, before: result.before, after: result.after, rollback: result.rollback }].slice(-200);
       this.freePbxFire('FreePBX module action result', this.freePbxCatalogStatus);
       this.forceUpdate();
     };
