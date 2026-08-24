@@ -41,11 +41,11 @@ test('contains exactly 32 destination definitions in six declared groups', () =>
     'arcade','notifications','history','customise','appearance','about',
   ]);
 });
-test('provides 74 complete feature articles plus checked evidence records', async () => {
+test('provides 75 complete feature articles plus checked evidence records', async () => {
   const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app','platform'];
   const articles=[];
   for(const category of categories)for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')articles.push(join(docsRoot,category,name));
-  assert.equal(articles.length,74); // 32 destination articles (pbx/media/data/system/agent/app) plus 42 platform articles
+  assert.equal(articles.length,75); // 32 destination articles (pbx/media/data/system/agent/app) plus 43 platform articles
   // An evidence record is a different genre from a feature article: it says what was
   // captured, from which commit, and by what method, and forcing "## Behavior" onto it
   // would distort a document that is doing its job. So it lives in its own category --
@@ -101,7 +101,10 @@ test('build composes deterministic local output without fetches', async () => {
   // fails and gets explained rather than quietly widened. It last moved on 2026-08-24, by
   // two, for two articles that had been committed without it: the updater capture evidence
   // and the updater reliability changelog entry. Each contributes one page.
-  assert.equal(manifest.outputFiles.length, 145);
+  // 146 from 2026-08-24, for docs/platform/unbound-controls.md: the record of which controls
+  // do not write to a file and why, so nobody reads "unbound" as "unfinished" and wires one
+  // to the nearest plausible key.
+  assert.equal(manifest.outputFiles.length, 146);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');

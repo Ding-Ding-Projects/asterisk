@@ -493,6 +493,10 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   // falls. a_deny is unmapped because the real `deny=` key takes a CIDR string, not a
   // boolean.
   ami: [
+    // manager.conf.sample line 34: ;tlsbindaddr=0.0.0.0:5039 -- address and port in one
+    // value, the same shape as http.conf, so the port owns its half and leaves the address.
+    { control: 'a_tlsport', section: 'general', key: 'tlsbindaddr', kind: 'number',
+      composite: { separator: ':', part: 'after' } },
     b('a_http', 'general', 'enabled'),
     n('a_port', 'general', 'bindport'),
     b('a_tls', 'general', 'tlsenable'),

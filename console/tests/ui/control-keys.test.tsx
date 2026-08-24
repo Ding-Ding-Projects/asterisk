@@ -54,7 +54,10 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // And 126 once section-by-type arrived, which let the IAX peers screen be bound at all:
   // iax.conf writes a peer as a named section with type=peer or type=friend inside, so a
   // binding looking for a section called peer could never have matched one.
-  assert.equal(controlCount, 126);
+  // And 127 with the manager TLS port, which is the same address:port shape as http.conf.
+  // The remainder is recorded in docs/platform/unbound-controls.md: most of them are not
+  // waiting for a key, they are shapes no single binding can carry.
+  assert.equal(controlCount, 127);
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -365,8 +368,14 @@ test('an unrecognised s_failaction control value is refused on write rather than
 test('unmappedControls reflects the two controls bound on this second look', () => {
   assert.ok(!unmappedControls('ami').includes('a_origin'));
   assert.ok(!unmappedControls('security').includes('s_failaction'));
-  // and every deliberately-refused-on-a-second-look control is still refused
-  for (const stillUnbound of ['a_tlsport', 'a_deny']) {
+  /* a_tlsport left this list on 2026-08-24: manager.conf writes tlsbindaddr as address:port,
+   * the same shape as http.conf, so a composite binding gives the port its own half. It was
+   * refused before because the model had no way to own half a value, which is a different
+   * thing from the setting being unbindable -- and worth separating, because one is a
+   * decision and the other is a gap. */
+  assert.ok(!unmappedControls('ami').includes('a_tlsport'));
+  // and every control genuinely refused on a second look is still refused
+  for (const stillUnbound of ['a_deny']) {
     assert.ok(unmappedControls('ami').includes(stillUnbound), `expected ${stillUnbound} to remain unmapped`);
   }
   for (const stillUnbound of [
