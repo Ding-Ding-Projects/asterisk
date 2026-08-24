@@ -521,7 +521,7 @@
   const RAINBOW='__rainbow__';
 
   const BASE = document.documentElement.dataset.base || './';
-  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},scheduleEnabled:false,notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false}};
+  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:5,cantoneseFunny:5,tabEdge:'left',logoPreset:'default',logoFit:'contain',attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},schedule:{enabled:false,start:'09:00',end:'17:00',weekdays:[1,2,3,4,5],theme:'dark',language:'en',density:'comfortable'},notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false}};
   const STORAGE_KEY = 'ding-pbx-pages-v2';
   const regexState = new Map();
   let regexTarget = '';
@@ -530,13 +530,42 @@
   const $ = id => document.getElementById(id);
   const all = selector => [...document.querySelectorAll(selector)];
   function escapeHtml(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-  function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');return{...DEFAULTS,...saved,attention:{...DEFAULTS.attention,...(saved.attention||{})},collapsed:{...DEFAULTS.collapsed,...(saved.collapsed||{})}}}catch{return{...DEFAULTS,attention:{...DEFAULTS.attention},collapsed:{...DEFAULTS.collapsed}}}}
+  function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');return{...DEFAULTS,...saved,attention:{...DEFAULTS.attention,...(saved.attention||{})},schedule:{...DEFAULTS.schedule,...(saved.schedule||{}),weekdays:Array.isArray(saved.schedule?.weekdays)?saved.schedule.weekdays:[...DEFAULTS.schedule.weekdays]},collapsed:{...DEFAULTS.collapsed,...(saved.collapsed||{})}}}catch{return{...DEFAULTS,attention:{...DEFAULTS.attention},schedule:{...DEFAULTS.schedule,weekdays:[...DEFAULTS.schedule.weekdays]},collapsed:{...DEFAULTS.collapsed}}}}
   const state=loadState();
   function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
   function update(key,value){state[key]=value;save();applyState();notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`))}
-  function applyState(){document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyVocabulary();updateSessionTimer();updateOneThingBanner()}
+  function scheduleMatches(schedule,date=new Date()){
+    if(!schedule?.enabled||!Array.isArray(schedule.weekdays)||!schedule.weekdays.includes(date.getDay()))return false;
+    if(!/^\d{2}:\d{2}$/.test(schedule.start||'')||!/^\d{2}:\d{2}$/.test(schedule.end||''))return false;
+    const minute=date.getHours()*60+date.getMinutes(),toMinute=value=>{const[h,m]=value.split(':').map(Number);return h*60+m},start=toMinute(schedule.start),end=toMinute(schedule.end);
+    if(start===end)return true;
+    return start<end?minute>=start&&minute<end:minute>=start||minute<end;
+  }
+  function effectiveState(){return scheduleMatches(state.schedule)?{...state,theme:state.schedule.theme,language:state.schedule.language,density:state.schedule.density}:state}
+  function syncValue(id,value,property='value'){const element=$(id);if(element)element[property]=value}
+  function applyState(){
+    const effective=effectiveState();
+    document.documentElement.dataset.theme=effective.theme;
+    document.documentElement.dataset.density=effective.density;
+    document.documentElement.dataset.tabEdge=state.tabEdge;
+    document.documentElement.style.setProperty('--primary',state.accent);
+    document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));
+    document.body.classList.toggle('low-stimulation',state.lowMotion);
+    document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);
+    document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);
+    document.body.classList.toggle('attn-focus',state.attention.focus);
+    syncValue('theme-mode',state.theme);syncValue('language-mode',state.language);syncValue('density-mode',state.density);syncValue('accent-color',state.accent);syncValue('font-scale',state.fontScale);syncValue('font-scale-output',`${state.fontScale}%`,'textContent');syncValue('motion-mode',state.lowMotion,'checked');syncValue('english-funny',String(state.englishFunny));syncValue('cantonese-funny',String(state.cantoneseFunny));syncValue('schedule-enabled',state.schedule.enabled,'checked');
+    syncValue('attention-reduce-flashing',state.attention.reduceFlashing,'checked');syncValue('attention-simplified-language',state.attention.simplifiedLanguage,'checked');syncValue('attention-extended-timeouts',state.attention.extendedTimeouts,'checked');syncValue('attention-focus',state.attention.focus,'checked');syncValue('attention-time-awareness',state.attention.timeAwareness,'checked');syncValue('attention-one-thing',state.attention.oneThing,'checked');syncValue('attention-momentum',state.attention.momentum,'checked');syncValue('attention-current-task',state.attention.currentTask||'');
+    syncUniversalControls();
+    applyLanguage(effective.language);applyCopy();applyLogo();applyVocabulary();updateSessionTimer();updateOneThingBanner();updateScheduleStatus();
+  }
   function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`))}
-  function applyLanguage(){if(!$('language-preview'))return;document.documentElement.lang=state.language==='zh'?'zh-Hant':'en';$('language-preview').textContent=state.language==='en'?'English presentation active.':state.language==='zh'?'廣東話顯示已啟用。':'Bilingual presentation active. / 雙語顯示已啟用。'}
+  function applyLanguage(language=effectiveState().language){
+    document.documentElement.lang=language==='zh'?'zh-Hant':'en';
+    if($('language-preview'))$('language-preview').textContent=language==='en'?'English presentation active.':language==='zh'?'廣東話顯示已啟用。':'Bilingual presentation active. / 雙語顯示已啟用。';
+    all('[data-en][data-zh]').forEach(element=>{element.textContent=language==='zh'?element.dataset.zh:language==='both'?`${element.dataset.en} / ${element.dataset.zh}`:element.dataset.en});
+    const notice=$('language-coverage-note');if(notice)notice.textContent=language==='en'?'Interface controls use English. Article prose remains the authored source text.':language==='zh'?'介面控制使用廣東話；文章正文保留原文。':'Interface controls are bilingual; article prose remains the authored source text. / 介面控制以雙語顯示；文章正文保留原文。';
+  }
 
   // Funny-level copy: voice changes with the slider, facts never do. Each key holds
   // four English variants (Plain..Maximum) and four Cantonese variants at the same
@@ -638,7 +667,7 @@
     const table=COPY[key];if(!table)return '';
     const arr=table[lang]||table.en;
     const level=lang==='zh'?state.cantoneseFunny:state.englishFunny;
-    return arr[Math.min(arr.length-1,Math.max(0,Number(level)||0))]||arr[0];
+    return arr[Math.min(arr.length-1,Math.max(0,(Number(level)||1)-1))]||arr[0];
   }
   function copyText(key){
     if(!COPY[key])return '';
@@ -653,13 +682,28 @@
   }
   function applyCopy(){all('[data-copy]').forEach(el=>{const key=el.dataset.copy;if(COPY[key])el.textContent=copyText(key)})}
 
+  const UNSAFE_VOCABULARY_KEYS=new Set(['__proto__','prototype','constructor']);
+  function validateVocabularyPayload(parsed){
+    if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw new Error('the vocabulary root must be an object');
+    const allowed=new Set(['version','replacements']);for(const key of Object.keys(parsed))if(!allowed.has(key))throw new Error(`unexpected field ${key}`);
+    if(parsed.version!==1)throw new Error('expected schema version 1');
+    if(!Array.isArray(parsed.replacements))throw new Error('replacements must be a list');
+    if(parsed.replacements.length>256)throw new Error(`the file has ${parsed.replacements.length} replacements and the limit is 256`);
+    const seen=new Set();
+    const replacements=parsed.replacements.map((item,index)=>{
+      if(!item||typeof item!=='object'||Array.isArray(item))throw new Error(`replacement ${index+1} must be an object`);
+      if(Object.keys(item).some(key=>!['from','to'].includes(key)))throw new Error(`replacement ${index+1} contains an unexpected field`);
+      if(typeof item.from!=='string'||typeof item.to!=='string')throw new Error(`replacement ${index+1} needs string from and to values`);
+      if(item.from.length<1||item.from.length>128||item.to.length>256)throw new Error(`replacement ${index+1} is outside the 1–128 from and 0–256 to character bounds`);
+      if(UNSAFE_VOCABULARY_KEYS.has(item.from))throw new Error(`replacement ${index+1} uses an unsafe key`);
+      if(seen.has(item.from))throw new Error(`replacement ${index+1} duplicates an earlier from value`);seen.add(item.from);
+      return {from:item.from,to:item.to};
+    });
+    return {version:1,replacements};
+  }
   function vocabularyReplacements(){
-    try{
-      const raw=localStorage.getItem('ding-pbx-vocabulary-cache');
-      if(!raw)return null;
-      const parsed=JSON.parse(raw);
-      return Array.isArray(parsed.replacements)?parsed.replacements:null;
-    }catch{return null}
+    try{const raw=localStorage.getItem('ding-pbx-vocabulary-cache');if(!raw)return null;return validateVocabularyPayload(JSON.parse(raw)).replacements}
+    catch{localStorage.removeItem('ding-pbx-vocabulary-cache');return null}
   }
   function applyVocabularyText(text){
     const list=vocabularyReplacements();
