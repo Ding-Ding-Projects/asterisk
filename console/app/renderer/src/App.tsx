@@ -41,6 +41,11 @@ import {
 import { attemptMessage, consumeCredential } from './credential-field';
 import { isFunnyLevel, setFunnyLevel, type CopyLanguage } from './funny-levels';
 import { recoveryFor, type FailureKind } from './in-context-recovery';
+import {
+  DEFAULT_PITCH, DEFAULT_RATE, MAX_PITCH, MAX_RATE, MIN_PITCH, MIN_RATE,
+  defaultNarrationSettings, resolveVoiceStatus,
+  type NarrationLanguage, type NarrationSettings, type SpeechVoice,
+} from './narration';
 import { applyResponse, isRejected, MIN_REFRESH_MS } from './external-settings-sources';
 import {
   buildSource, loadSources, saveSources, sourcesStatusLine,
@@ -215,6 +220,18 @@ export class App extends Base {
    *  so a faster interval cannot be set by editing this one number. */
   private static readonly SOURCE_POLL_MS = MIN_REFRESH_MS;
 
+  private static readonly NARRATION_SETTING = 'console.narration';
+
+  private narration: NarrationSettings = defaultNarrationSettings();
+
+  /** What the platform reports it can speak with. Empty until enumeration fills in. */
+  private voices: SpeechVoice[] = [];
+
+  /** Read by the compiled `text`-kind control marked `action:'narration-status'`. */
+  private narrationStatusLine = 'Not started.';
+
+  private stopVoiceListener: (() => void) | undefined;
+
   private sourceReports: SourceReport[] = [];
 
   /** Read by the compiled `text`-kind control marked `action:'source-status'`. */
@@ -332,6 +349,7 @@ export class App extends Base {
       this.restoreDisplayName();
       this.startScheduler();
       this.startSourcePolling();
+      this.restoreNarration();
       this.refreshSchoolStatus();
       this.restoreAppearance();
       this.forceUpdate();
@@ -341,6 +359,7 @@ export class App extends Base {
      * that had already started. Everything above it does depend on the snapshot having
      * loaded, which is why it stays inside. */
     this.listenForProvisionSteps();
+    this.startVoiceEnumeration();
     /* The configured server list is not a reading from any PBX — it exists before
      * anything is reachable and must be on screen whether or not discovery finds a
      * target, so it is loaded independently of it. */
@@ -366,6 +385,8 @@ export class App extends Base {
      * component fires into a dead tree on the next reload. */
     this.stopProvisionListener?.();
     this.stopProvisionListener = undefined;
+    this.stopVoiceListener?.();
+    this.stopVoiceListener = undefined;
   }
 
   componentDidUpdate() {
@@ -763,6 +784,102 @@ What you can do: ${offered}.` : ''}`);
     this.forceUpdate();
   }
 
+  // ---------------------------------------------------------------- spoken narration
+
+  /**
+   * Reads the voices the platform actually has.
+   *
+   * Enumeration commonly returns nothing on the first call and fills in a moment later
+   * behind an event. A picker that reads it once reports "no voices installed" on a
+   * machine with forty, and looks broken rather than slow -- so this subscribes as well
+   * as reading, and unsubscribes on unmount.
+   */
+  private startVoiceEnumeration(): void {
+    const speech = (globalThis as { speechSynthesis?: SpeechSynthesis }).speechSynthesis;
+    if (!speech) {
+      this.narrationStatusLine = 'This computer has no speech synthesis, so nothing can be spoken.';
+      return;
+    }
+    const read = () => {
+      this.voices = speech.getVoices().map((voice) => ({
+        id: voice.voiceURI, name: voice.name, lang: voice.lang, localService: voice.localService,
+      }));
+      this.refreshNarrationStatus();
+    };
+    read();
+    const handler = () => read();
+    speech.addEventListener('voiceschanged', handler);
+    this.stopVoiceListener = () => speech.removeEventListener('voiceschanged', handler);
+  }
+
+  private applyNarrationControl(id: string, value: unknown): void {
+    const next: NarrationSettings = { ...this.narration, voices: { ...this.narration.voices } };
+    if (id === 'nar_enabled' && typeof value === 'boolean') next.enabled = value;
+    if (id === 'nar_language' && typeof value === 'string') next.language = value as NarrationLanguage;
+    /* "Choose automatically" is stored as no choice at all rather than as a voice named
+     * that, so a machine gaining a better voice starts using it. */
+    if (id === 'nar_voice_en' && typeof value === 'string') {
+      next.voices.en = value === 'Choose automatically' ? undefined : this.voiceIdByName(value);
+    }
+    if (id === 'nar_voice_zh' && typeof value === 'string') {
+      next.voices.zh = value === 'Choose automatically' ? undefined : this.voiceIdByName(value);
+    }
+    /* Clamped rather than refused: a slider cannot produce an out-of-range value through
+     * the interface, so one arriving here came from a hand-edited profile and the nearest
+     * usable value is friendlier than a refusal nobody can act on. */
+    if (id === 'nar_rate' && typeof value === 'number') {
+      next.rate = Math.min(MAX_RATE, Math.max(MIN_RATE, value));
+    }
+    if (id === 'nar_pitch' && typeof value === 'number') {
+      next.pitch = Math.min(MAX_PITCH, Math.max(MIN_PITCH, value));
+    }
+    this.narration = next;
+    this.durableStorage.storage.setItem(App.NARRATION_SETTING, JSON.stringify(next));
+    this.refreshNarrationStatus();
+  }
+
+  /** Names are not unique -- one machine can carry several voices with the same name from
+   *  different engines -- so the stable identity is stored and the name only displayed. */
+  private voiceIdByName(name: string): string | undefined {
+    return this.voices.find((voice) => voice.name === name)?.id;
+  }
+
+  private restoreNarration(): void {
+    const raw = this.durableStorage.storage.getItem(App.NARRATION_SETTING);
+    if (typeof raw !== 'string' || raw === '') return;
+    try {
+      const parsed = JSON.parse(raw) as NarrationSettings;
+      if (parsed && typeof parsed === 'object') {
+        this.narration = { ...defaultNarrationSettings(), ...parsed };
+      }
+    } catch {
+      /* A hand-edited profile falls back to the shipped settings rather than failing to
+       * start. Narration off is the safe direction for something that makes noise. */
+      this.narration = defaultNarrationSettings();
+    }
+    this.refreshNarrationStatus();
+  }
+
+  /**
+   * Says what will ACTUALLY speak.
+   *
+   * A picker merely showing a value implies that value will be heard, which is exactly
+   * the state that needs saying out loud when it is not true -- a chosen voice that is
+   * not installed, a network-backed one that goes quiet offline, or a language nothing
+   * on this machine can read.
+   */
+  private refreshNarrationStatus(): void {
+    const languages: ('en' | 'zh')[] = this.narration.language === 'both'
+      ? ['en', 'zh']
+      : [this.narration.language === 'zh' ? 'zh' : 'en'];
+    const lines = languages.map((language) =>
+      resolveVoiceStatus(language, this.narration.voices[language], this.voices).message);
+    this.narrationStatusLine = this.narration.enabled
+      ? lines.join(' ')
+      : `Narration is off. ${lines.join(' ')}`;
+    this.forceUpdate();
+  }
+
   // ---------------------------------------------------------------- settings sources
 
   /** Adds what is currently typed, or says every reason it cannot be added. */
@@ -951,6 +1068,10 @@ What you can do: ${offered}.` : ''}`);
       const language: CopyLanguage = control.id === 'fun_level_yue' ? 'yue' : 'en';
       if (isFunnyLevel(value)) setFunnyLevel(this.durableStorage.storage, language, value);
     }
+    if (control?.id?.startsWith('nar_')) {
+      this.applyNarrationControl(control.id, value);
+      return;
+    }
     if (control?.id === 'src_add' && value === true) {
       this.addSettingsSource();
       return;
@@ -1019,6 +1140,7 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'contrast-status') return this.contrastStatus();
     if (action === 'deploy-progress') return this.deployProgressLine;
     if (action === 'source-status') return this.sourceStatusLine;
+    if (action === 'narration-status') return this.narrationStatusLine;
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
     return '';
   };

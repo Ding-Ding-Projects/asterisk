@@ -204,6 +204,16 @@ export const CANTONESE: Catalog = {
   'CLI builder': '指令產生器',
   'Arcade': '遊戲機',
 
+  /* Spoken narration. */
+  'Spoken narration': '語音旁白',
+  'Speak what happens': '講返發生咩事',
+  'Spoken language': '講嘅語言',
+  'English voice': '英文聲',
+  '廣東話 voice': '廣東話聲',
+  'Speaking rate': '語速',
+  'Pitch': '音調',
+  'Voice status': '語音狀態',
+
   /* Settings sources. */
   'Settings sources': '設定來源',
   'Source URL': '來源網址',

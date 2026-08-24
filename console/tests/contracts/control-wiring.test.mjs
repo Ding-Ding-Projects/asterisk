@@ -35,6 +35,8 @@ const WIRED = [
   { id: 'fun_level_yue', acts: 'setFunnyLevel(' },
   { id: 'src_add', acts: 'buildSource(' },
   { id: 'src_clear', acts: 'saveSources(' },
+  { id: 'nar_enabled', acts: 'applyNarrationControl(' },
+  { id: 'nar_voice_en', acts: 'resolveVoiceStatus(' },
 ];
 
 test('every wired control exists in the compiled design', () => {

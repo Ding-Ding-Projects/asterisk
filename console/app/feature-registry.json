@@ -46,9 +46,10 @@
       ]
     },
     "narration": {
-      "state": "partial",
-      "note": "app/renderer/src/narration.ts implements TTS narration logic (queue, per-category cooldown, language selection) and is covered by tests/ui/narration.test.tsx, but the module is never imported by App.tsx, PbxAdminApp.tsx, or PbxAdminIntegratedApp.tsx, so it never runs inside the mounted application.",
+      "state": "implemented",
+      "note": "app/renderer/src/narration.ts implements TTS narration logic (queue, per-category cooldown, language selection) and is covered by tests/ui/narration.test.tsx, but the module is never imported by App.tsx, PbxAdminApp.tsx, or PbxAdminIntegratedApp.tsx, so it never runs inside the mounted application.Wired 2026-08-24 with seven controls. Each narrated language has ITS OWN voice picker, because choosing an English voice says nothing about which Cantonese voice should read the other half of a bilingual line. Pickers list the voices the platform actually reports rather than a fixed set, and \"Choose automatically\" is stored as no choice at all rather than as a voice named that, so a machine gaining a better voice starts using it. Voice enumeration commonly returns nothing on the first call and fills in behind an event, so this subscribes as well as reading -- a picker that reads once says \"no voices installed\" on a machine with forty and looks broken rather than slow. The stable voice identity is stored and only the name displayed, since names are not unique and platforms localize them. The status line says what will ACTUALLY speak: a picker showing a value implies that value will be heard, which is precisely what needs saying out loud when the chosen voice is not installed, is network-backed and goes quiet offline, or when nothing on the machine can read the language.",
       "files": [
+        "app/renderer/src/App.tsx",
         "app/renderer/src/narration.ts"
       ]
     },

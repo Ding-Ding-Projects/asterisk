@@ -75,13 +75,30 @@
       "note": "Every listed label has a Cantonese entry."
     },
     "narration": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [],
-      "localizedLabels": [],
+      "labels": [
+        "Spoken narration",
+        "Speak what happens",
+        "Spoken language",
+        "English voice",
+        "廣東話 voice",
+        "Speaking rate",
+        "Pitch",
+        "Voice status"
+      ],
+      "localizedLabels": [
+        "Spoken narration",
+        "Speak what happens",
+        "Spoken language",
+        "English voice",
+        "廣東話 voice",
+        "Speaking rate",
+        "Pitch",
+        "Voice status"
+      ],
       "untranslatedLabels": [],
-      "note": "Implemented as partial, but it contributes no label to the compiled design, so there is no string for the catalog to key against. The boundary already reaches any copy it does render; this is a missing surface rather than a missing translation.",
-      "blockedBy": "no-label-surface"
+      "note": "Every listed label has a Cantonese entry."
     },
     "scheduled-settings": {
       "state": "localized",
