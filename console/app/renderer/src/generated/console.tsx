@@ -3239,7 +3239,9 @@ const SCREENS = {
     ]}] },
   customise:{ rail:'app', icon:'auto_awesome', label:'Customise everything', badge:'∞', title:'Customise everything', file:'console profile', kind:'generic',
     sub:'The global layer. Every one of these reaches across the whole console, and every individual element can still override it from its own right-click menu.',
-    groups:[{ title:'Fun', desc:'How playful the console is allowed to be. This is a real setting, not a joke — it scales celebrations, copy and randomness together.', ctls:[
+    groups:[{ title:'Language', desc:'Which language the console speaks. Bilingual keeps English primary and adds the Cantonese beside it. Technical identifiers -- codecs, config keys, section names, SIP URIs -- stay literal in every mode, because they have to survive being read back and typed.', ctls:[
+      ctl('lang_mode','Language','segmented','English',{ options:['English','廣東話','English + 廣東話'], info:'A string with no translation yet renders as English rather than as a placeholder, so an incomplete catalog looks unfinished instead of broken.' }),
+    ]},{ title:'Fun', desc:'How playful the console is allowed to be. This is a real setting, not a joke — it scales celebrations, copy and randomness together.', ctls:[
       ctl('fun_level','Fun level','slider',2,{ min:0, max:4, info:'0 is a bank. 1 is polite. 2 is the default — celebrations on meaningful wins. 3 adds jokes and bolder motion. 4 is confetti for changing a slider, rainbow fills and an app that will not stop congratulating you.' }),
       ctl('fun_copy','Copy tone','segmented','Warm',{ options:['Terse','Neutral','Warm','Comedian'] }),
       ctl('fun_celebrate','Celebrate on','chips',['Big wins','Security improvements'],{ options:['Every change','Big wins','Security improvements','Minigame wins','Nothing'] }),
