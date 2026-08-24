@@ -14,7 +14,10 @@ import {
 } from './updater-runtime.js';
 
 let mainWindow: BrowserWindow | null = null;
-const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false });
+const dispatcher = createControlPlaneDispatcher({
+  /* Straight onto the same channel the updater already uses: one send, no new
+   * privilege, and the renderer decides what to do with it. */
+  onProvisionStep: (step) => mainWindow?.webContents.send('provision:step', step), userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false })
 const { controlPlaneRequest } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let updateCheckInFlight: Promise<void> | undefined;

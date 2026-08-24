@@ -23,6 +23,14 @@ const api: DingDesktopApi = {
       return () => ipcRenderer.removeListener('updater:status', handler);
     },
   },
+  provisioning: {
+    /** Returns its own unsubscribe, so a caller cannot leak a listener across reloads. */
+    onStep: (listener: (step: { name: string; ok: boolean; detail: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, step: { name: string; ok: boolean; detail: string }) => listener(step);
+      ipcRenderer.on('provision:step', handler);
+      return () => ipcRenderer.removeListener('provision:step', handler);
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld('dingDesktop', api);

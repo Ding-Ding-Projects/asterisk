@@ -11,6 +11,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { WslProvisioning, MANAGED_DISTRIBUTION } from './wsl-provisioning.js';
+import type { ProvisionStep } from './wsl-provisioning.js';
 import { AsteriskService } from './asterisk-service.js';
 import {
   parseVoicemailUsers, parseVoicemailZones, parseConfbridgeList, parseMohClasses, parseCodecs,
@@ -46,10 +47,16 @@ export interface ControlPlaneDispatcherOptions {
   /** True when running under the hosted HTTP server rather than the desktop app. Gates
    *  the WSL-only actions above with an honest, named refusal instead of a stack trace. */
   hosted: boolean;
+  /**
+   * Called as each provisioning step finishes, so a caller can show progress while a
+   * deploy runs rather than only when it ends. Optional: the hosted server passes
+   * nothing and behaves exactly as before.
+   */
+  onProvisionStep?: (step: ProvisionStep) => void;
 }
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
-  const { userDataPath, resourcesPath, hosted } = options;
+  const { userDataPath, resourcesPath, hosted, onProvisionStep } = options;
   const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
   const asteriskService = new AsteriskService({ executor: processExecutor });
   const targetDiscovery = new TargetDiscovery(processExecutor);
@@ -195,6 +202,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         installDirectory,
         baseImage: pinnedBaseImage(),
         downloader: rootfsDownloader,
+        onStep: onProvisionStep,
       }),
     };
   }

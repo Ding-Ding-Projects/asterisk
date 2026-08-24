@@ -92,6 +92,25 @@ export interface DingDesktopApi {
     /** Subscribes to every state change; returns an unsubscribe function. */
     onStatus(listener: (status: UpdaterStatusForRenderer) => void): () => void;
   };
+  /**
+   * Live provisioning progress.
+   *
+   * Optional on the interface because the hosted HTTP bridge has no privileged process
+   * to report from, and a renderer that assumed it was always there would fail on that
+   * surface rather than degrading. Callers check before subscribing.
+   */
+  provisioning?: {
+    /** Subscribes to each step as it finishes; returns an unsubscribe function. */
+    onStep(listener: (step: ProvisionStepForRenderer) => void): () => void;
+  };
+}
+
+/** One provisioning step, as the renderer sees it. Structurally the control plane's own
+ *  ProvisionStep, restated here so the shared contract does not import the control plane. */
+export interface ProvisionStepForRenderer {
+  name: string;
+  ok: boolean;
+  detail: string;
 }
 
 declare global { interface Window { dingDesktop?: DingDesktopApi } }

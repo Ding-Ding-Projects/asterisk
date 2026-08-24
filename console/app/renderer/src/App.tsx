@@ -212,6 +212,16 @@ export class App extends Base {
    *  against what is actually behind the text. */
   private static readonly SURFACE_HEX = '#0B0F0C';
 
+  /** Read by the compiled `text`-kind control marked `action:'deploy-progress'`. */
+  private deployProgressLine = 'No deploy has run in this session.';
+
+  /** Steps seen this run, so the line can say how many have completed rather than only
+   *  naming the latest -- "3 done, importing runtime" is a position, "importing runtime"
+   *  alone is not. */
+  private deploySteps: { name: string; ok: boolean; detail: string }[] = [];
+
+  private stopProvisionListener: (() => void) | undefined;
+
   /** What the runner is holding between ticks: the base value of every key it has
    *  overridden, and what it last applied. */
   private scheduleState: RunnerState = EMPTY_RUNNER_STATE;
@@ -303,6 +313,11 @@ export class App extends Base {
       this.restoreAppearance();
       this.forceUpdate();
     });
+    /* Outside the bootstrap chain deliberately: this subscribes to a live channel and
+     * reads no persisted state, so making it wait would delay the first steps of a deploy
+     * that had already started. Everything above it does depend on the snapshot having
+     * loaded, which is why it stays inside. */
+    this.listenForProvisionSteps();
     /* The configured server list is not a reading from any PBX — it exists before
      * anything is reachable and must be on screen whether or not discovery finds a
      * target, so it is loaded independently of it. */
@@ -322,6 +337,10 @@ export class App extends Base {
     this.refreshTimer = undefined;
     if (this.scheduleTimer) clearInterval(this.scheduleTimer);
     this.scheduleTimer = undefined;
+    /* Torn down with the unsubscribe the bridge returns. A listener that outlives the
+     * component fires into a dead tree on the next reload. */
+    this.stopProvisionListener?.();
+    this.stopProvisionListener = undefined;
   }
 
   componentDidUpdate() {
@@ -565,6 +584,42 @@ ${resolution.consequence}
 ${resolution.disclosure}`);
   }
 
+  // ---------------------------------------------------------------- deploy progress
+
+  /**
+   * Subscribes to provisioning steps, when the surface running this has a privileged
+   * process to report from.
+   *
+   * The hosted HTTP bridge does not, so the capability is checked rather than assumed --
+   * a renderer that took it for granted would fail on that surface instead of simply
+   * having no live progress there.
+   */
+  private listenForProvisionSteps(): void {
+    const provisioning = window.dingDesktop?.provisioning;
+    if (!provisioning) return;
+    this.stopProvisionListener = provisioning.onStep((step) => this.onProvisionStep(step));
+  }
+
+  /** One step has finished. Says what happened, and stops at the first failure rather
+   *  than continuing to count as though the deploy were still going. */
+  private onProvisionStep(step: { name: string; ok: boolean; detail: string }): void {
+    this.deploySteps.push(step);
+    const done = this.deploySteps.filter((candidate) => candidate.ok).length;
+    if (!step.ok) {
+      this.deployProgressLine = `Stopped at ${step.name}: ${step.detail}`;
+    } else {
+      this.deployProgressLine = `${done} step${done === 1 ? '' : 's'} done -- ${step.name}: ${step.detail}`;
+    }
+    this.forceUpdate();
+  }
+
+  /** Clears the record so a second deploy does not read as a continuation of the first. */
+  private resetDeployProgress(): void {
+    this.deploySteps = [];
+    this.deployProgressLine = 'Starting...';
+    this.forceUpdate();
+  }
+
   // ---------------------------------------------------------------- readability
 
   /**
@@ -799,6 +854,7 @@ ${resolution.disclosure}`);
     if (action === 'schedule-status') return this.scheduleStatusLine;
     if (action === 'school-status') return this.schoolStatusLine;
     if (action === 'contrast-status') return this.contrastStatus();
+    if (action === 'deploy-progress') return this.deployProgressLine;
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
     return '';
   };

@@ -590,13 +590,18 @@
       "blockedBy": "no-label-surface"
     },
     "long-operation-progress": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [],
-      "localizedLabels": [],
+      "labels": [
+        "Deploy progress",
+        "Latest deploy step"
+      ],
+      "localizedLabels": [
+        "Deploy progress",
+        "Latest deploy step"
+      ],
       "untranslatedLabels": [],
-      "note": "Implemented as partial, and contributes no label to the compiled design because no surface consumes it yet. The boundary will reach its copy the moment one does; this is a missing surface rather than a missing translation.",
-      "blockedBy": "no-label-surface"
+      "note": "The surface this feature now has -- the live deploy-progress line -- is translated. The module itself is still unconsumed for the reason its implementation row records, but the progress reporting it was meant to drive does exist and does render, so the labels are real."
     },
     "in-context-recovery": {
       "state": "localized",

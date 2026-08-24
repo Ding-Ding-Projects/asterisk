@@ -204,6 +204,10 @@ export const CANTONESE: Catalog = {
   'CLI builder': '指令產生器',
   'Arcade': '遊戲機',
 
+  /* Deploy progress. */
+  'Deploy progress': '部署進度',
+  'Latest deploy step': '最新嗰步',
+
   /* Readability. */
   'Readability': '可讀性',
   'Contrast of the current accent': '而家個主色嘅對比度',

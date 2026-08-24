@@ -2537,6 +2537,9 @@ const SCREENS = {
       ctl('sup_description','What happened','text','',{ placeholder:'I cannot remember the PIN', info:'Nobody will read it, but the form insists.' }),
       ctl('sup_open','Open a ticket','switch',false,{ info:'Files the ticket locally and shows the resolution: this console opens your application-data folder so you can delete it yourself. Deleting it clears every toy lock on this machine, not only the one you are locked out of, along with your saved settings. Toy locks were never security, and this is the reset that was always available.' })
     ]},
+    { title:'Deploy progress', desc:'What a running deploy is doing, reported step by step as it happens rather than announced when it finishes.', ctls:[
+      ctl('dp_progress','Latest deploy step','text','No deploy has run in this session.',{ action:'deploy-progress', info:'Each step is reported after its work, never before, so a line here describes something that has already happened. A failure stops the count rather than continuing as though the deploy were still going.' })
+    ]},
     { title:'Readability', desc:'Whether the colour you have chosen can actually be read against the console’s own surface. Measured, not guessed: this is the WCAG contrast ratio for the current accent, and it changes as you move the colour.', ctls:[
       ctl('ap_contrast','Contrast of the current accent','text','Not measured yet.',{ action:'contrast-status', info:'The ratio and the level it reaches. AA needs 4.5 for ordinary text and 3 for large text; AAA needs 7 and 4.5. A colour that fails is still yours to keep -- this reports, it does not refuse.' })
     ]},
