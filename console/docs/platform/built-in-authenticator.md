@@ -12,13 +12,13 @@ A new pairing would be confirmed by entering one live code back before the entry
 
 ## Current status
 
-**Desktop application:** Not implemented. The desktop application has no authenticator surface of any kind.
+**Desktop application:** Implemented-unverified. The mounted authenticator surface uses persisted redacted metadata, an operating-system vault, local QR pairing, privileged code snapshots, redacted history, explicit reconciliation receipts, mutation blocking during unresolved state, and bounded Retry reconciliation. Built-artifact interaction remains unverified.
 
 **Documentation website:** Not implemented. The documentation website has no accounts of its own for an authenticator to pair with.
 
 ## Failure modes
 
-A clock skewed far enough that generated codes would be rejected everywhere is meant to be reported to the user in plain words; there is no authenticator yet to encounter that condition.
+A clock skewed far enough that generated codes would be rejected everywhere is reported in plain words. Available-vault removal failures remain `pending-removal-failed` with affected IDs, and the authenticator remains mutation-blocked until reconciliation succeeds. Notification initialization or publication failure is secondary and cannot change a successful authenticator mutation result.
 
 ## Accessibility and localization
 

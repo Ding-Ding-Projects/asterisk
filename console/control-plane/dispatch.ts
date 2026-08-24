@@ -42,7 +42,7 @@ import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../
 import { createAuthLockRuntime, type AuthLockVault } from './auth-lock-runtime.js';
 import type { HistorySnapshotProtector } from '../shared/history.js';
 import type { HistoryRestoreReceipt } from '../shared/history.js';
-import type { ToyLockCredentialReference, ToyLockUnlockReceipt } from '../shared/locks.js';
+import type { ToyLockCreateReceipt, ToyLockCredentialReference, ToyLockRelockReceipt, ToyLockRemovalReceipt, ToyLockUnlockReceipt } from '../shared/locks.js';
 import type { LockStoreResult } from './lock-store.js';
 
 /**
@@ -96,6 +96,28 @@ function mapToyLockFailure(
     default:
       return neverToyLockFailure(result.code);
   }
+}
+
+function mapToyLockMutationFailure(
+  result: Extract<LockStoreResult<unknown>, { ok: false }>,
+): Exclude<ToyLockCreateReceipt | ToyLockRelockReceipt, { ok: true }> {
+  switch (result.code) {
+    case 'duplicate-lock':
+    case 'invalid-record':
+    case 'lock-not-found':
+    case 'persistence-unavailable':
+    case 'vault-unavailable':
+    case 'vault-reference-missing':
+      return { ok: false, code: result.code, message: result.message, recoverable: result.recoverable };
+    case 'verification-failed':
+      throw new Error('Verification failure is not a valid create or relock result.');
+    default:
+      return neverToyLockFailure(result.code);
+  }
+}
+
+function blockedToyLockRemoval(message: string): ToyLockRemovalReceipt {
+  return { status: 'recoverable', message, recoverable: true };
 }
 
 function neverToyLockFailure(value: never): never {
@@ -998,7 +1020,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         return { ok: true, requestId: request.requestId, data: { vaultAccount, method } };
       }
       if (request.action === 'toy-lock.create') {
-        const reconciliation = (await authLocks.awaitReconciliation()).locks; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning } };
+        const reconciliation = (await authLocks.awaitReconciliation()).locks; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning, recoverable: true } satisfies Exclude<ToyLockCreateReceipt, { ok: true }> };
         await authLocks.locksReady;
         const payload = request.payload as Omit<import('../shared/locks.js').CreateToyLockInput, 'at'>;
         const result = await authLocks.locks.create(payload);
@@ -1006,7 +1028,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           const credential = (request.payload as { credential?: ToyLockCredentialReference } | undefined)?.credential;
           if (credential) await authLocks.vault.remove(credential).catch(() => false);
         }
-        if (!result.ok) return { ok: true, requestId: request.requestId, data: mapToyLockFailure(result) };
+        if (!result.ok) return { ok: true, requestId: request.requestId, data: mapToyLockMutationFailure(result) };
         return { ok: true, requestId: request.requestId, data: result };
       }
       if (request.action === 'toy-lock.unlock') {
@@ -1023,13 +1045,19 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (!result.ok) return { ok: true, requestId: request.requestId, data: mapToyLockFailure(result) };
         return { ok: true, requestId: request.requestId, data: result };
       }
-      if (request.action === 'toy-lock.relock' || request.action === 'toy-lock.remove') {
-        const reconciliation = (await authLocks.awaitReconciliation()).locks; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning } };
+      if (request.action === 'toy-lock.relock') {
+        const reconciliation = (await authLocks.awaitReconciliation()).locks; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning, recoverable: true } satisfies Exclude<ToyLockRelockReceipt, { ok: true }> };
         await authLocks.locksReady;
         const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
-        const data = request.action === 'toy-lock.relock' ? await authLocks.locks.relock(id) : await authLocks.locks.remove(id);
-        if (request.action === 'toy-lock.remove') return { ok: true, requestId: request.requestId, data };
-        return { ok: true, requestId: request.requestId, data };
+        const result = await authLocks.locks.relock(id);
+        return { ok: true, requestId: request.requestId, data: result.ok ? result : mapToyLockMutationFailure(result) };
+      }
+      if (request.action === 'toy-lock.remove') {
+        const reconciliation = (await authLocks.awaitReconciliation()).locks;
+        if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: blockedToyLockRemoval(reconciliation.warning) };
+        await authLocks.locksReady;
+        const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
+        return { ok: true, requestId: request.requestId, data: await authLocks.locks.remove(id) };
       }
       if (request.action === 'support-ticket.list') {
         return { ok: true, requestId: request.requestId, data: await authLocks.tickets.list() };

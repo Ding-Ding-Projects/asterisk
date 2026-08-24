@@ -609,14 +609,16 @@
     },
     "non-blocking-notifications": {
       "status": "implemented-unverified",
-      "note": "The generated ConsoleShell notification destination is backed by one mounted durable NotificationStore. App.tsx injects live history rows and bulk actions into the generated table, while authenticator history warnings publish through the same store. The separate mounted side-center was removed, so the product has one canonical notification center. Built-artifact interaction and focused checks remain unverified in this lane.",
+      "note": "The generated ConsoleShell notification destination is backed by one mounted durable NotificationStore. Bootstrap and subscription are registered in notification-runtime.ts, App.tsx injects live history rows and source-level action readiness into the generated table, while authenticator history warnings publish through the same store. Loading, ready-empty, ready, and unavailable states are explicit. Bulk delete routes through the shared destructive two-key/full-slider gate with an exact record preview and Emergency exit. The separate mounted side-center was removed, so the product has one canonical notification center. Built-artifact interaction and focused checks remain unverified in this lane.",
       "implementation": {
         "paths": [
           "app/renderer/src/App.tsx",
           "app/renderer/src/generated/console.tsx",
           "app/renderer/src/notification-runtime.ts",
           "app/renderer/src/notification-store.ts",
-          "app/renderer/src/authenticator-surface.tsx"
+          "app/renderer/src/authenticator-surface.tsx",
+          "app/renderer/src/notification-delete-gate.tsx",
+          "app/renderer/src/destructive-action-gate.tsx"
         ],
         "symbols": [
           {
@@ -635,7 +637,8 @@
         "paths": [
           "app/renderer/src/App.tsx",
           "app/renderer/src/notification-runtime.ts",
-          "app/renderer/src/surface-mounts.tsx"
+          "app/renderer/src/surface-mounts.tsx",
+          "app/renderer/src/notification-delete-gate.tsx"
         ],
         "symbols": [
           {
@@ -2035,7 +2038,7 @@
     },
     "per-element-toy-locks": {
       "status": "implemented-unverified",
-      "note": "The mounted toy-lock surface now uses the typed control-plane lock store, one credential-vault reference per element, persisted lock metadata, and explicit recovery metadata. Built-artifact interaction and focused checks remain unverified in this lane.",
+      "note": "The mounted toy-lock surface now uses the typed control-plane lock store, one credential-vault reference per element, persisted lock metadata, explicit recovery metadata, exact create/unlock/relock/removal receipts, mutation blocking during unavailable reconciliation, and a bounded Retry reconciliation action. Built-artifact interaction and focused checks remain unverified in this lane.",
       "implementation": {
         "paths": [
           "app/renderer/src/generated/console.tsx",
@@ -2043,6 +2046,7 @@
           "app/renderer/src/surface-mounts.tsx",
           "control-plane/auth-lock-runtime.ts",
           "control-plane/lock-store.ts",
+          "shared/locks.ts",
           "app/electron/credential-vault.ts",
           "app/renderer/src/destructive-action-gate.tsx"
         ],
@@ -2298,7 +2302,7 @@
     },
     "built-in-authenticator": {
       "status": "implemented-unverified",
-      "note": "The built-in authenticator surface is mounted to persisted metadata and an OS-backed vault, exposes only privileged current and next code snapshots, provides typed redacted history restore, blocks mutations while reconciliation is unavailable, and reports secondary history warnings through the same mounted notification store without changing a successful authenticator mutation result. Built-artifact interaction and focused checks remain unverified in this lane.",
+      "note": "The built-in authenticator surface is mounted to persisted metadata and an OS-backed vault, exposes only privileged current and next code snapshots, provides typed redacted history restore, blocks mutations while reconciliation is unavailable, preserves pending identifiers, reports available-vault removal failure as pending-removal-failed, offers bounded Retry reconciliation, and reports secondary history warnings through the same mounted notification store without changing a successful authenticator mutation result. Built-artifact interaction and focused checks remain unverified in this lane.",
       "implementation": {
         "paths": [
           "app/renderer/src/authenticator-surface.tsx",

@@ -32,6 +32,11 @@ export interface NotificationStoreOptions {
 }
 
 export type NotificationStoreListener = (snapshot: NotificationSnapshot) => void;
+export type NotificationAvailabilityState = 'loading' | 'ready-empty' | 'ready' | 'unavailable';
+export interface NotificationAvailability {
+  readonly state: NotificationAvailabilityState;
+  readonly reason?: string;
+}
 
 const NO_QUIET_HOURS: NotificationQuietHoursPolicy = {
   enabled: false,
@@ -61,6 +66,7 @@ export class NotificationStore {
   private readonly idFactory: () => string;
   private persistenceTail: Promise<void> = Promise.resolve();
   private initialization: Promise<void> | undefined;
+  private availability: NotificationAvailability = { state: 'loading' };
 
   constructor(private readonly options: NotificationStoreOptions) {
     this.now = options.now ?? (() => new Date());
@@ -73,15 +79,20 @@ export class NotificationStore {
   async initialize(): Promise<void> {
     if (this.initialized) return;
     if (this.initialization) return await this.initialization;
+    this.availability = { state: 'loading' };
+    this.emit();
     this.initialization = (async () => {
       const loaded = await this.options.persistence.load();
       if (loaded) this.snapshot = validateSnapshot(loaded);
       this.initialized = true;
+      this.availability = { state: this.snapshot.records.length === 0 ? 'ready-empty' : 'ready' };
       this.emit();
     })();
     try {
       await this.initialization;
     } catch (error) {
+      this.availability = { state: 'unavailable', reason: errorMessage(error) };
+      this.emit();
       this.initialization = undefined;
       throw error;
     }
@@ -89,6 +100,10 @@ export class NotificationStore {
 
   isInitialized(): boolean {
     return this.initialized;
+  }
+
+  getAvailability(): NotificationAvailability {
+    return { ...this.availability };
   }
 
   subscribe(listener: NotificationStoreListener): () => void {
@@ -154,6 +169,7 @@ export class NotificationStore {
       nextStackOrder: existing ? this.snapshot.nextStackOrder : this.snapshot.nextStackOrder + 1,
       records,
     };
+    this.availability = { state: this.snapshot.records.length === 0 ? 'ready-empty' : 'ready' };
     this.emit();
     return this.persistMutation('publish', [record.id], []);
   }
@@ -202,6 +218,7 @@ export class NotificationStore {
       revision: this.snapshot.revision + 1,
       records: result.records,
     };
+    this.availability = { state: this.snapshot.records.length === 0 ? 'ready-empty' : 'ready' };
     this.emit();
     return this.persistMutation(command, result.changedIds, result.skipped);
   }

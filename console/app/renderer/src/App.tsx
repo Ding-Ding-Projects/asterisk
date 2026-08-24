@@ -50,7 +50,7 @@ import {
 import {
   UnlockLadder, type Challenge, type GradeResult,
 } from './unlock-ladder';
-import { initializeMountedNotificationStore, mountedNotificationStore } from './notification-runtime';
+import { initializeMountedNotificationStore, mountedNotificationStore, requestNotificationDelete } from './notification-runtime';
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -1857,6 +1857,7 @@ It is shown once. The phone needs it to register.`);
     const readings = this.readings[screen];
     const note = this.note(screen);
 
+    const notificationAvailability = screen === 'notifications' ? mountedNotificationStore.getAvailability() : undefined;
     const notificationValues = screen === 'notifications' ? this.notificationTableValues() : {};
     return {
       ...values,
@@ -1977,7 +1978,9 @@ It is shown once. The phone needs it to register.`);
       connLabel: this.target.label,
       connUptime: this.target.detail,
       openConnection: () => this.showInfo('Connection', BOUNDARY, BOUNDARY_PLAIN, '38%', '70px'),
-      screenSub: note ? `${values.screenSub as string}\n\n${note}` : values.screenSub,
+      screenSub: screen === 'notifications'
+        ? `${values.screenSub as string}\n\nNotification centre state: ${notificationAvailability?.state ?? 'loading'}${notificationAvailability?.reason ? `\n${notificationAvailability.reason}` : ''}`
+        : (note ? `${values.screenSub as string}\n\n${note}` : values.screenSub),
 
       // Dashboard tiles, live rows and health bars come only from observed readings.
       stats: dashboardStats(readings),
@@ -2060,9 +2063,20 @@ It is shown once. The phone needs it to register.`);
   private notificationTableValues(): Record<string, unknown> {
     const state = this.state as { selected?: string[] };
     const selected = state.selected ?? [];
+    const availability = mountedNotificationStore.getAvailability();
+    const ready = availability.state === 'ready' || availability.state === 'ready-empty';
     const records = mountedNotificationStore.history();
     const ids = records.map((record) => record.id);
     const runBulk = (command: 'dismiss' | 'delete' | 'mark-read') => {
+      if (!ready) {
+        this.fire('Notification centre unavailable', availability.reason ?? 'Notification history is still loading.');
+        return;
+      }
+      if (command === 'delete') {
+        const preview = records.filter((record) => selected.includes(record.id)).map((record) => `${record.id} · ${record.title} · ${record.body}`).join('\n') || 'No notification records selected.';
+        void requestNotificationDelete(selected, preview).then((confirmed) => { if (confirmed) { this.set('selected', []); this.forceUpdate(); } });
+        return;
+      }
       void initializeMountedNotificationStore()
         .then(() => mountedNotificationStore.bulk(command, selected))
         .then(() => this.forceUpdate())
@@ -2078,7 +2092,7 @@ It is shown once. The phone needs it to register.`);
       URL.revokeObjectURL(url);
     };
     return {
-      tableAddLabel: 'Mark all read',
+      tableAddLabel: availability.state === 'loading' ? 'Loading notifications…' : availability.state === 'unavailable' ? 'Notifications unavailable' : availability.state === 'ready-empty' ? 'No notifications' : 'Mark all read',
       openWizard: () => runBulk('mark-read'),
       tableCols: ['Source', 'Message', 'When', 'State'],
       tableGrid: '1fr 2fr 1fr 110px',
@@ -2087,13 +2101,13 @@ It is shown once. The phone needs it to register.`);
       allBg: selected.length ? '#82D9A5' : 'transparent',
       allIcon: selected.length === ids.length && ids.length ? 'check' : (selected.length ? 'remove' : ''),
       toggleAll: () => this.set('selected', selected.length === ids.length ? [] : ids),
-      bulkActions: [
+      bulkActions: ready ? [
         { icon: 'mark_email_read', label: 'Mark read', run: () => runBulk('mark-read') },
         { icon: 'notifications_off', label: 'Dismiss', run: () => runBulk('dismiss') },
         { icon: 'delete', label: 'Delete', run: () => runBulk('delete') },
         { icon: 'download', label: 'Export', run: exportHistory },
-      ],
-      tableRows: records.map((record, index) => {
+      ] : [],
+      tableRows: ready ? records.map((record, index) => {
         const isSelected = selected.includes(record.id);
         const when = new Date(record.createdAt).toLocaleTimeString();
         const stateLabel = record.state === 'active' ? 'Unread' : 'Dismissed';
@@ -2113,7 +2127,9 @@ It is shown once. The phone needs it to register.`);
             { text: stateLabel, isChip: true, isMono: false, isText: false, bg: record.state === 'active' ? '#5C1B18' : '#1B4D33', fg: record.state === 'active' ? '#FFB4AB' : '#9FF7C4' },
           ],
         };
-      }),
+      }) : [],
+      notificationAvailability: availability.state,
+      notificationAvailabilityReason: availability.reason ?? '',
     };
   }
 

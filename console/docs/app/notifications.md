@@ -21,8 +21,11 @@ What interrupts you and what merely gets recorded.
 Every row reflects a real object in console; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen.
 
 The desktop center is implemented-unverified in this lane. Its generated table reads the mounted
-store and exposes mark-read, dismiss, delete, and export actions. Built-artifact interaction remains
-outside this static-only pass.
+store and exposes mark-read, dismiss, delete, and export actions. Its state is explicit: loading,
+ready-empty, ready, or unavailable with the persisted-load reason. Actions stay unavailable until
+the store is ready. Delete opens the shared two-key/full-slider destructive gate with an exact
+record preview and Emergency exit, and a failed persistence receipt keeps the gate outcome honest.
+Built-artifact interaction remains outside this static-only pass.
 
 ## Verification
 

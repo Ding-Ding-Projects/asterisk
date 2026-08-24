@@ -140,9 +140,9 @@ export class FileAuthenticatorMetadataStore implements AuthenticatorMetadataStor
       }
       const allAffected = [...new Set([...affected, ...unresolved])];
       await writeJson(this.#path, { ...value, entries, pendingRemovals: pending, tombstones: value.tombstones ?? [], unresolvedRemovals: unresolved });
+      if (removalFailed) return { status: 'pending-removal-failed', affectedIds: allAffected, warning: 'One or more available-vault authenticator credentials could not be removed. Mutations remain blocked until reconciliation succeeds.' };
       if (unresolved.length > 0) return { status: 'unresolved-legacy', affectedIds: allAffected, warning: 'Some legacy removal identifiers have no surviving vault reference.' };
       if (!vault.available && pending.length > 0) return { status: 'pending-vault-unavailable', affectedIds: allAffected, warning: 'Pending removals remain until the credential vault is available.' };
-      if (removalFailed) return { status: 'pending-removal-failed', affectedIds: allAffected, warning: 'One or more available-vault authenticator credentials could not be removed. Mutations remain blocked until reconciliation succeeds.' };
       return { status: 'reconciled', affectedIds: allAffected };
     });
   }
@@ -259,6 +259,11 @@ export interface AuthLockRuntimeOptions {
   trustedTime?: () => Promise<number | undefined>;
 }
 
+export interface AuthLockReconciliationReceipt {
+  readonly authenticator: AuthenticatorReconciliationReceipt;
+  readonly locks: ToyLockReconciliationReceipt;
+}
+
 export function createAuthLockRuntime(options: AuthLockRuntimeOptions) {
   const vault = options.vault ?? UNAVAILABLE_VAULT;
   const metadata = new FileAuthenticatorMetadataStore(join(options.userDataPath, "authenticator-records.json"));
@@ -324,7 +329,7 @@ export function createAuthLockRuntime(options: AuthLockRuntimeOptions) {
     async issueLadder(request: { lockoutId: string; budgetScopeId: string; schoolMode: boolean }): Promise<UnlockLadderIssueResult> { return await ladder.issue(request); },
     async hitLadder(nonce: string, spawnId: number, cell: number): Promise<{ ok: true; value: MoleHitReceipt } | { ok: false; reason: string }> { return await ladder.recordMoleHit(nonce, spawnId, cell); },
     async createLadderWait(lockoutId: string, durationMs?: number): Promise<void> { await ladderState.createWait(lockoutId, durationMs); },
-    async awaitReconciliation() { await locksReady; return { authenticator: authenticatorReconciliation, locks: lockReconciliation }; },
+    async awaitReconciliation(): Promise<AuthLockReconciliationReceipt> { await locksReady; return { authenticator: authenticatorReconciliation, locks: lockReconciliation }; },
     async gradeLadder(nonce: string, answer: UnlockLadderAnswer): Promise<UnlockLadderGradeResult> { return await ladder.grade(nonce, answer); },
   };
 }

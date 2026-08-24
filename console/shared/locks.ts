@@ -51,6 +51,12 @@ export type ToyLockUnlockReceipt<T> =
   | { ok: true; value: T }
   | { ok: false; code: 'verification-failed'; message: string; waitCreated: boolean }
   | { ok: false; code: Exclude<ToyLockFailureCode, 'verification-failed'>; message: string; waitCreated: false };
+export type ToyLockCreateReceipt =
+  | { ok: true; value: ToyLockRecord }
+  | { ok: false; code: Exclude<ToyLockFailureCode, 'verification-failed'>; message: string; recoverable: boolean };
+export type ToyLockRelockReceipt =
+  | { ok: true; value: ToyLockRecord }
+  | { ok: false; code: Exclude<ToyLockFailureCode, 'verification-failed'>; message: string; recoverable: boolean };
 export type ToyLockRemovalReceipt =
   | { status: 'removed'; value: { removed: true } }
   | { status: 'pending'; message: string; recoverable: true }

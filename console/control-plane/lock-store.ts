@@ -216,9 +216,9 @@ export class FileLockRecordPersistence implements LockRecordPersistence {
       }
       await this.#writeDocument({ ...document, records, pendingRemovals: pending });
       const unresolved = pending.filter((item): item is string => typeof item === 'string');
+      if (removalFailed) return { status: 'pending-removal-failed', affectedIds, warning: 'One or more available-vault lock credentials could not be removed. Mutations remain blocked until reconciliation succeeds.' };
       if (unresolved.length > 0) return { status: 'unresolved-legacy', affectedIds, warning: 'Some legacy lock removals have no surviving vault reference.' };
       if (!vault.available && pending.length > 0) return { status: 'pending-vault-unavailable', affectedIds, warning: 'Pending lock removals remain until the credential vault is available.' };
-      if (removalFailed) return { status: 'pending-removal-failed', affectedIds, warning: 'One or more available-vault lock credentials could not be removed. Mutations remain blocked until reconciliation succeeds.' };
       return { status: 'reconciled', affectedIds };
     });
   }

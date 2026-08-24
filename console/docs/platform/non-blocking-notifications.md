@@ -8,17 +8,17 @@ Informational, success, progress, and non-decision error messages are meant to a
 
 ## Configuration
 
-Notifications would carry an optional title, body, and action links, and remain reviewable afterward in a notification history rather than vanishing without a trace.
+Notifications carry an optional title, body, and action links, and remain reviewable afterward in one shared notification history rather than vanishing without a trace. The generated product Notification centre and mounted auth surface share one durable store.
 
 ## Current status
 
-**Desktop application:** Partial. The desktop application shows a small number of transient status messages during build and deployment actions, but they are not consistently corner-anchored, do not stack predictably, and there is no notification history panel to review a dismissed one.
+**Desktop application:** Implemented-unverified. The generated product Notification centre reads one mounted store and exposes explicit loading, ready-empty, ready, and unavailable states. Actions remain unavailable until ready. Bulk delete uses the shared two-key/full-slider destructive gate, exact preview, and Emergency exit. Built-artifact interaction remains unverified.
 
 **Documentation website:** Implemented. Every top-level and composed article page uses the same corner notifications and persisted history, with search, an adjacent regex builder, real multi-select dismissal, and selected-record export. A filtered no-match state is distinct from a truly empty history.
 
 ## Failure modes
 
-A notification that cannot be shown in the corner remains in local history. History is bounded to 30 entries, and destructive bulk dismissal requires a reviewable confirmation before records are removed.
+A notification that cannot be shown in the corner remains in local history. Loading or malformed persisted history is visible as unavailable and disables notification actions. Destructive bulk deletion requires a reviewable exact preview and the shared two-key/full-slider confirmation before records are removed.
 
 ## Accessibility and localization
 

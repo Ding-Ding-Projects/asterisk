@@ -12,13 +12,13 @@ This is explicitly a user-experience convenience, not a security boundary: it wo
 
 ## Current status
 
-**Desktop application:** Partial. A single application-wide password lock exists on launch, which is a coarser mechanism than a per-element lock; there is no per-control locking, no independent per-element credentials, and no lock context-menu entry anywhere.
+**Desktop application:** Implemented-unverified. The mounted lock surface uses persisted per-element records, independent vault references, typed create/unlock/relock/removal receipts, explicit reconciliation blocking, recovery metadata, and a bounded Retry reconciliation action. Built-artifact interaction remains unverified.
 
 **Documentation website:** Not implemented. The documentation website has no user-editable elements to lock.
 
 ## Failure modes
 
-A forgotten per-element credential is meant to be recoverable only by deleting the local application-data folder, never by a support process; the existing whole-application launch lock does not yet document or implement that specific recovery path either.
+A forgotten per-element credential is recoverable only by deleting the local application-data folder, never by a support process. Reconciliation preserves legacy pending IDs, reports available-vault removal failures as `pending-removal-failed`, and keeps create, unlock, relock, and remove unavailable until the receipt is `reconciled`.
 
 ## Accessibility and localization
 

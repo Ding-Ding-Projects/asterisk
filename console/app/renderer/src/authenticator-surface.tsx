@@ -61,6 +61,7 @@ export function AuthenticatorSurface({ client, history, onNotice, notificationSt
   const [historyNotice, setHistoryNotice] = useState<string | undefined>();
   const [historyEntries, setHistoryEntries] = useState<ReadonlyArray<{ commitId: string; timestamp: string; action: string; subject: string }>>([]);
   const [reconciliationNotice, setReconciliationNotice] = useState<string | undefined>();
+  const [reconciliationBusy, setReconciliationBusy] = useState(false);
 
   const refresh = async () => {
     try {
@@ -73,7 +74,18 @@ export function AuthenticatorSurface({ client, history, onNotice, notificationSt
     }
   };
   useEffect(() => { void refresh(); }, [client]);
-  useEffect(() => { void client.reconciliation?.().then((receipt) => { if (receipt.status !== 'reconciled') setReconciliationNotice(receipt.warning ?? 'Authenticator reconciliation is pending.'); }).catch(() => setReconciliationNotice('Authenticator reconciliation is unavailable.')); }, [client]);
+  const refreshReconciliation = async () => {
+    if (!client.reconciliation || reconciliationBusy) return;
+    setReconciliationBusy(true);
+    try {
+      const receipt = await withDeadline(client.reconciliation());
+      setReconciliationNotice(receipt.status === 'reconciled' ? undefined : `${receipt.warning} Affected entries: ${receipt.affectedIds.join(', ') || 'unresolved state'}.`);
+      if (receipt.status === 'reconciled') await refresh();
+    } catch (reason) {
+      setReconciliationNotice(reason instanceof Error ? `Authenticator reconciliation is unavailable: ${reason.message}` : 'Authenticator reconciliation is unavailable.');
+    } finally { setReconciliationBusy(false); }
+  };
+  useEffect(() => { void refreshReconciliation(); }, [client]);
   useEffect(() => { void history?.list?.().then((receipt) => { setHistoryEntries(receipt.entries); if (receipt.warning) setHistoryNotice(receipt.warning); }).catch(() => setHistoryNotice('History list was unavailable.')); }, [history]);
 
   useEffect(() => {
@@ -173,7 +185,7 @@ export function AuthenticatorSurface({ client, history, onNotice, notificationSt
     </header>
     <div className="auth-disclosure" role="note">Ordinary exports omit secret material and vault references. A deliberate secret export is not part of this surface.</div>
     {error ? <div className="auth-error" role="alert">{error}</div> : null}
-    {reconciliationNotice ? <div className="auth-disclosure" role="status">{reconciliationNotice} Contradictory authenticator changes remain unavailable until reconciliation completes.</div> : null}
+    {reconciliationNotice ? <div className="auth-disclosure" role="status">{reconciliationNotice} Contradictory authenticator changes remain unavailable until reconciliation completes. <button type="button" className="auth-button secondary" onClick={() => void refreshReconciliation()} disabled={reconciliationBusy}>{reconciliationBusy ? 'Retrying reconciliation…' : 'Retry reconciliation'}</button></div> : null}
     <div className="auth-grid">
       <form className="auth-card" onSubmit={(event) => { event.preventDefault(); beginPairing(); }}>
         <h3>Pair an account</h3><p className="auth-help">Create a local pairing, review the QR payload and manual value, then confirm one current code before arming.</p>

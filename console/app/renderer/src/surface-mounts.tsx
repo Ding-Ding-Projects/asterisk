@@ -11,10 +11,11 @@ import { AuthenticatorSurface } from './authenticator-surface';
 import type { AuthenticatorClient, AuthenticatorHistoryClient } from './authenticator-surface-state';
 import type { HistoryRestoreReceipt } from '../../../shared/history';
 import { initializeMountedNotificationStore, mountedNotificationStore } from './notification-runtime';
+import { NotificationDeleteGate } from './notification-delete-gate';
 import type { AuthenticatorRegistration } from '../../../shared/authenticator';
 import { LockManagerSurface } from './lock-manager-surface';
 import type { ToyLockClient, ToyLockCredentialClient } from './lock-manager-surface';
-import type { ToyLockRecord, ToyLockRecoveryMetadata, ToyLockReconciliationReceipt, ToyLockRemovalReceipt, ToyLockUnlockReceipt } from '../../../shared/locks';
+import type { ToyLockCreateReceipt, ToyLockRecord, ToyLockRecoveryMetadata, ToyLockReconciliationReceipt, ToyLockRemovalReceipt, ToyLockRelockReceipt, ToyLockUnlockReceipt } from '../../../shared/locks';
 import { SupportTicketsSurface } from './support-tickets-surface';
 import type { SupportTicket, SupportTicketsClient } from './support-tickets-surface';
 import { UnlockLadderSurface } from './unlock-ladder-surface';
@@ -68,15 +69,14 @@ const historyClient: AuthenticatorHistoryClient = {
 
 let lockRecords: ReadonlyArray<ToyLockRecord> = [];
 let lockRecovery = { applicationDataPath: '', supportTicketRoute: '#surface=support-tickets', deletesAutomatically: false as const, disclosure: 'The recovery folder is opened for you, never deleted for you.' };
-type LockAction<T> = { ok: true; value: T } | { ok: false; message: string };
 const lockClient: ToyLockClient = {
-  initialize: async () => { const [ready, listed, recovery] = await Promise.all([bridgeRequest<LockAction<{ count: number }>>('toy-lock.initialize'), bridgeRequest<LockAction<ReadonlyArray<ToyLockRecord>>>('toy-lock.list'), bridgeRequest<ToyLockRecoveryMetadata>('toy-lock.recovery')]); if (!listed.ok) return listed; lockRecords = listed.value; lockRecovery = recovery; return ready; },
+  initialize: async () => { const [ready, listed, recovery] = await Promise.all([bridgeRequest<{ ok: true; value: { count: number } } | { ok: false; message: string }>('toy-lock.initialize'), bridgeRequest<{ ok: true; value: ReadonlyArray<ToyLockRecord> } | { ok: false; message: string }>('toy-lock.list'), bridgeRequest<ToyLockRecoveryMetadata>('toy-lock.recovery')]); if (!listed.ok) return listed; lockRecords = listed.value; lockRecovery = recovery; return ready; },
   reconciliation: () => bridgeRequest<ToyLockReconciliationReceipt>('toy-lock.reconciliation'),
   list: () => ({ ok: true as const, value: lockRecords }),
-  create: async (input) => { const result = await bridgeRequest<LockAction<ToyLockRecord>>('toy-lock.create', input); if (result.ok) lockRecords = [...lockRecords, result.value]; return result; },
+  create: async (input) => { const result = await bridgeRequest<ToyLockCreateReceipt>('toy-lock.create', input); if (result.ok) lockRecords = [...lockRecords, result.value]; return result; },
   unlock: async (id, candidate, surfaceId) => { const result = await bridgeRequest<ToyLockUnlockReceipt<ToyLockRecord>>('toy-lock.unlock', { id, candidateBase64: btoa(String.fromCharCode(...candidate)), surfaceId }); if (result.ok) lockRecords = lockRecords.map((record) => record.id === id ? result.value : record); return result; },
-  relock: async (id) => { const result = await bridgeRequest<LockAction<ToyLockRecord>>('toy-lock.relock', { id }); if (result.ok) lockRecords = lockRecords.map((record) => record.id === id ? result.value : record); return result; },
-  remove: async (id) => { const result = await bridgeRequest<ToyLockRemovalReceipt>('toy-lock.remove', { id }); if (result.status === 'removed') lockRecords = lockRecords.filter((record) => record.id !== id); return result; },
+  relock: async (id) => { const result = await bridgeRequest<ToyLockRelockReceipt>('toy-lock.relock', { id }); if (result.ok) lockRecords = lockRecords.map((record) => record.id === id ? result.value : record); return result; },
+  remove: async (id) => { try { const result = await bridgeRequest<ToyLockRemovalReceipt>('toy-lock.remove', { id }); if (result.status === 'removed') lockRecords = lockRecords.filter((record) => record.id !== id); return result; } catch (error) { return { status: 'recoverable', message: error instanceof Error ? error.message : 'The lock removal bridge was unavailable.', recoverable: true }; } },
   get recovery() { return lockRecovery; },
 };
 const lockCredentials: ToyLockCredentialClient = { create: (targetId, method, value) => bridgeRequest('toy-lock-credential.create', { targetId, method, value }) };
@@ -231,6 +231,7 @@ export function SurfaceMounts() {
       {route === 'locks' ? <LockManagerSurface client={lockClient} credentials={lockCredentials} surfaceId="locks" onOpenSupportTickets={() => { window.location.hash = 'surface=support-tickets'; }} onOpenUnlockLadder={(id) => { window.location.hash = `surface=unlock-ladder&lockout=${encodeURIComponent(id)}`; }} /> : null}
       {route === 'support-tickets' ? <SupportTicketsSurface client={supportTicketsClient} applicationDataPath={lockRecovery.applicationDataPath} openApplicationDataFolder={(path) => window.dingDesktop?.localAuth?.openApplicationDataFolder(path) ?? Promise.resolve({ ok: false, message: 'The privileged application bridge is unavailable.' })} /> : null}
       {route === 'unlock-ladder' ? <UnlockLadderSurface client={unlockLadderClient} lockoutId={lockoutId} budgetScopeId="console-surface" /> : null}
+      <NotificationDeleteGate />
     </aside>
   );
 }
