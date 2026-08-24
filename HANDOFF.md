@@ -2,6 +2,10 @@
 
 ## Surface mount integration, 2026-08-23
 
+### Authenticator and lock mount lane, 2026-08-23
+
+The auth-lock lane mounted `#surface=authenticator`, `#surface=locks`, `#surface=support-tickets`, and `#surface=unlock-ladder` through `console/app/renderer/src/surface-mounts.tsx`. The privileged dispatcher now persists redacted authenticator metadata, toy-lock metadata, Support Tickets, and unlock-ladder progression under application data. Desktop Electron wiring supplies an OS-backed `safeStorage` credential adapter, encrypted history snapshots, and a constrained file-manager action for recovery. A missing credential vault or history protector remains an explicit unavailable result. No tests, lint, type checks, builds, packaging, UI runs, captures, or Lowlevel work ran in this lane, so the mount is implementation-ready but unverified.
+
 The integration lane added `console/app/renderer/src/surface-mounts.tsx` and mounted it from `main.tsx` as an addressable hash route. `#surface=converter` renders the real converter component and reads its catalog and PDF capability evidence through the local control-plane dispatcher. Picker, queue mutation, and packaged-worker proof operations still return explicit unavailable receipts because those handlers are not registered. `#surface=ollama` renders the real Ollama component and reports a typed `bridge-not-registered` state until its privileged dispatcher is registered. `#surface=docs` and `#surface=changelog` render the bundled documentation and changelog components.
 
 The desktop and Pages feature registries, plus `console/inventories/surface-completeness.json`, record the converter and Ollama rows as `implemented-unverified`. No tests, lint, type checks, builds, packaging, UI runs, captures, or Lowlevel work ran in this lane. The next owner must register the remaining converter and Ollama handlers, then run the focused checks and built-artifact interaction proof.

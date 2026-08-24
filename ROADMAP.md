@@ -6,6 +6,7 @@
 - [x] Register the converter catalog and PDF capability read seam in the local control plane, with unavailable picker and queue operations reported explicitly.
 - [x] Keep the Ollama mount honest when its privileged dispatcher is not registered, with no model, health, pull, chat, harness, or sample values assumed.
 - [x] Record converter and Ollama desktop and site rows as `implemented-unverified` in the feature registries and generated completeness matrix.
+- [ ] Mount authenticator, toy locks, Support Tickets, and unlock ladder through persisted control-plane state and the desktop credential-vault adapter. Implementation landed in the auth-lock mount lane; focused checks and built-artifact proof remain unrun.
 - [ ] Register the remaining converter queue and file-picker handlers, then register the full local Ollama dispatcher and run the focused built-artifact verification.
 
 ## Delivery foundation

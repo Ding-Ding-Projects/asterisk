@@ -10,6 +10,9 @@ const api = Object.freeze({
   controlPlane: Object.freeze({
     request: request => ipcRenderer.invoke('control-plane:request', request),
   }),
+  localAuth: Object.freeze({
+    openApplicationDataFolder: path => ipcRenderer.invoke('auth:open-data-folder', { path }),
+  }),
   converter: Object.freeze({
     pickFile: () => ipcRenderer.invoke('converter:pick-file'),
     pickDestination: () => ipcRenderer.invoke('converter:pick-destination'),

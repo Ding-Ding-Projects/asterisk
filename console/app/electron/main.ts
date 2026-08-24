@@ -1,8 +1,11 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { shell } from 'electron';
 import { stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
+import { ElectronCredentialVault } from './credential-vault.js';
+import { ElectronHistorySnapshotProtector } from './history-protector.js';
 import type { ControlPlaneRequest, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
 import {
   parseVersion, resolveLatestUpdate, validateReleaseIdentity, initialUpdaterState, beganChecking, checkSucceeded,
@@ -15,7 +18,14 @@ import {
 } from './updater-runtime.js';
 
 let mainWindow: BrowserWindow | null = null;
-const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false });
+const userDataPath = app.getPath('userData');
+const dispatcher = createControlPlaneDispatcher({
+  userDataPath,
+  resourcesPath: process.resourcesPath,
+  hosted: false,
+  authLockVault: new ElectronCredentialVault(join(userDataPath, 'credential-vault.json')),
+  historyProtector: new ElectronHistorySnapshotProtector(join(userDataPath, 'history-key.json')),
+});
 const { controlPlaneRequest } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let updateCheckInFlight: Promise<void> | undefined;
@@ -170,6 +180,12 @@ ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindow.unmaximize() : mainWindow?.maximize());
 ipcMain.on('window:close', () => mainWindow?.close());
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
+ipcMain.handle('auth:open-data-folder', async (_event, request: { path?: unknown }) => {
+  const requested = typeof request?.path === 'string' ? request.path : '';
+  if (!requested || requested !== userDataPath) return { ok: false, message: 'The requested application-data path was not accepted.' };
+  const error = await shell.openPath(requested);
+  return error ? { ok: false, message: 'The platform file manager could not open the application-data folder.' } : { ok: true };
+});
 ipcMain.handle('converter:pick-file', async () => {
   const result = await dialog.showOpenDialog(mainWindow ?? undefined, { properties: ['openFile'], title: 'Choose a local source file' });
   const sourcePath = result.canceled ? undefined : result.filePaths[0];

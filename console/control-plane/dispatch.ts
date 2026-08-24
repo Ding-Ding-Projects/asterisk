@@ -39,6 +39,9 @@ import type { ConverterRequest, ConverterSniffResult } from '../shared/converter
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
 import type { ChangePlan, ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
+import { createAuthLockRuntime, type AuthLockVault } from './auth-lock-runtime.js';
+import type { HistorySnapshotProtector } from '../shared/history.js';
+import type { ToyLockCredentialReference } from '../shared/locks.js';
 
 /**
  * Actions that fundamentally depend on the Windows desktop (WSL) and cannot be answered
@@ -58,6 +61,12 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'daemon.status', 'daemon.start', 'daemon.stop', 'daemon.restart',
   'history.list', 'history.restore', 'media.list', 'media.upload', 'media.remove',
   'local-history.list', 'local-history.record', 'local-history.restore',
+  'authenticator.list', 'authenticator.register', 'authenticator.confirm', 'authenticator.remove', 'authenticator.secret',
+  'toy-lock.initialize', 'toy-lock.list', 'toy-lock.create', 'toy-lock.unlock', 'toy-lock.relock', 'toy-lock.remove',
+  'toy-lock.recovery',
+  'toy-lock-credential.create',
+  'support-ticket.list', 'support-ticket.create', 'support-ticket.advance',
+  'unlock-ladder.issue', 'unlock-ladder.grade',
   'converter.catalog', 'converter.pdf-capabilities', 'converter.sniff',
   'converter.queue.create', 'converter.queue.enqueue-one', 'converter.queue.page',
   'converter.queue.start', 'converter.queue.pause', 'converter.queue.resume', 'converter.queue.cancel',
@@ -97,11 +106,25 @@ export interface ControlPlaneDispatcherOptions {
   hosted: boolean;
   converterPickFile?: () => Promise<{ sourcePath: string; name: string; bytes: number; lastModified?: string; mediaType?: string } | undefined>;
   converterPickDestination?: () => Promise<string | undefined>;
+  authLockVault?: AuthLockVault;
+  historyProtector?: HistorySnapshotProtector;
 }
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
   const { userDataPath, resourcesPath, hosted } = options;
-  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
+  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker', 'git'] });
+  const authLocks = createAuthLockRuntime({
+    userDataPath,
+    executor: processExecutor,
+    vault: options.authLockVault,
+    historyProtector: options.historyProtector,
+    recovery: {
+      applicationDataPath: hosted ? '#browser-storage' : userDataPath,
+      supportTicketRoute: '#surface=support-tickets',
+      deletesAutomatically: false,
+      disclosure: 'This is a personal speed bump, not encryption or an access-control boundary. The recovery flow opens the application-data folder and never deletes it for you.',
+    },
+  });
   const converterRegistry = ConverterRegistry.create();
   const ollamaClient = new OllamaClient();
   const ollamaStore = new OllamaStore(join(userDataPath, 'ollama-state.json'));
@@ -882,8 +905,96 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (!contentBase64) return { ok: false, requestId: request.requestId, code: 'CONTENT_REQUIRED', message: 'No file content was supplied.' };
         return { ok: true, requestId: request.requestId, data: await library.upload(root, name, contentBase64) };
       }
+      if (request.action === 'authenticator.list') {
+        return { ok: true, requestId: request.requestId, data: await authLocks.authenticator.list() };
+      }
+      if (request.action === 'authenticator.register') {
+        const input = request.payload as never;
+        return { ok: true, requestId: request.requestId, data: await authLocks.authenticator.register(input) };
+      }
+      if (request.action === 'authenticator.confirm') {
+        const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
+        const code = typeof request.payload?.code === 'string' ? request.payload.code : '';
+        const atMs = typeof request.payload?.atMs === 'number' ? request.payload.atMs : Date.now();
+        return { ok: true, requestId: request.requestId, data: await authLocks.authenticator.confirmAndArm(id, code, atMs, 1) };
+      }
+      if (request.action === 'authenticator.remove') {
+        const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
+        return { ok: true, requestId: request.requestId, data: await authLocks.authenticator.remove(id) };
+      }
+      if (request.action === 'authenticator.secret') {
+        const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
+        return { ok: true, requestId: request.requestId, data: await authLocks.secret(id) };
+      }
+      if (request.action === 'toy-lock.initialize') {
+        return { ok: true, requestId: request.requestId, data: await authLocks.locksReady };
+      }
+      if (request.action === 'toy-lock.list') {
+        await authLocks.locksReady;
+        return { ok: true, requestId: request.requestId, data: authLocks.locks.list() };
+      }
+      if (request.action === 'toy-lock.recovery') {
+        return { ok: true, requestId: request.requestId, data: authLocks.locks.recovery };
+      }
+      if (request.action === 'toy-lock-credential.create') {
+        const targetId = typeof request.payload?.targetId === 'string' ? request.payload.targetId.trim() : '';
+        const method = request.payload?.method === 'totp' ? 'totp' : request.payload?.method === 'password' ? 'password' : undefined;
+        const value = typeof request.payload?.value === 'string' ? request.payload.value : '';
+        if (!targetId || !method || !value) return { ok: false, requestId: request.requestId, code: 'TOY_LOCK_CREDENTIAL_INVALID', message: 'A target, credential method, and credential value are required.' };
+        if (value.length > 512 || (method === 'password' && value.length < 8)) return { ok: false, requestId: request.requestId, code: 'TOY_LOCK_CREDENTIAL_INVALID', message: method === 'password' ? 'A toy-lock password must contain at least 8 characters.' : 'The TOTP secret is outside its bound.' };
+        if (method === 'totp') {
+          const normalized = value.replace(/\s+/gu, '').replace(/=+$/u, '').toUpperCase();
+          if (!/^[A-Z2-7]+$/u.test(normalized) || [1, 3, 6].includes(normalized.length % 8)) return { ok: false, requestId: request.requestId, code: 'TOY_LOCK_CREDENTIAL_INVALID', message: 'The TOTP secret is not a bounded base32 value.' };
+        }
+        const vaultAccount = `toy-lock/${targetId}/${randomUUID()}`;
+        const saved = await authLocks.vault.setSecret(vaultAccount, value);
+        if (!saved.ok) return { ok: false, requestId: request.requestId, code: saved.code, message: saved.message };
+        return { ok: true, requestId: request.requestId, data: { vaultAccount, method } };
+      }
+      if (request.action === 'toy-lock.create') {
+        await authLocks.locksReady;
+        const payload = request.payload as never;
+        const result = await authLocks.locks.create(payload);
+        if (!result.ok) {
+          const credential = (request.payload as { credential?: ToyLockCredentialReference } | undefined)?.credential;
+          if (credential) await authLocks.vault.remove(credential).catch(() => false);
+        }
+        return { ok: true, requestId: request.requestId, data: result };
+      }
+      if (request.action === 'toy-lock.unlock') {
+        await authLocks.locksReady;
+        const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
+        const candidate = typeof request.payload?.candidateBase64 === 'string' ? Uint8Array.from(Buffer.from(request.payload.candidateBase64, 'base64')) : new Uint8Array();
+        const surfaceId = typeof request.payload?.surfaceId === 'string' ? request.payload.surfaceId : undefined;
+        return { ok: true, requestId: request.requestId, data: await authLocks.locks.unlock(id, candidate, surfaceId) };
+      }
+      if (request.action === 'toy-lock.relock' || request.action === 'toy-lock.remove') {
+        await authLocks.locksReady;
+        const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
+        const data = request.action === 'toy-lock.relock' ? await authLocks.locks.relock(id) : await authLocks.locks.remove(id);
+        return { ok: true, requestId: request.requestId, data };
+      }
+      if (request.action === 'support-ticket.list') {
+        return { ok: true, requestId: request.requestId, data: await authLocks.tickets.list() };
+      }
+      if (request.action === 'support-ticket.create') {
+        const payload = request.payload as { category?: string; description?: string; severity?: string } | undefined;
+        return { ok: true, requestId: request.requestId, data: await authLocks.tickets.create({ category: payload?.category ?? '', description: payload?.description ?? '', severity: payload?.severity ?? '' }) };
+      }
+      if (request.action === 'support-ticket.advance') {
+        const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
+        return { ok: true, requestId: request.requestId, data: await authLocks.tickets.advance(id) };
+      }
+      if (request.action === 'unlock-ladder.issue') {
+        const payload = request.payload as { lockoutId?: string; budgetScopeId?: string; schoolMode?: boolean } | undefined;
+        return { ok: true, requestId: request.requestId, data: await authLocks.issueLadder({ lockoutId: payload?.lockoutId ?? '', budgetScopeId: payload?.budgetScopeId ?? '', schoolMode: payload?.schoolMode === true }) };
+      }
+      if (request.action === 'unlock-ladder.grade') {
+        const nonce = typeof request.payload?.nonce === 'string' ? request.payload.nonce : '';
+        return { ok: true, requestId: request.requestId, data: await authLocks.gradeLadder(nonce, request.payload?.answer as never) };
+      }
       if (request.action.startsWith('local-history.')) {
-        const history = new LocalHistory({ executor: processExecutor, repositoryPath: join(userDataPath, 'history') });
+        const history = authLocks.history;
         await history.initialize();
 
         if (request.action === 'local-history.list') {

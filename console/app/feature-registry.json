@@ -2024,11 +2024,16 @@
       ]
     },
     "per-element-toy-locks": {
-      "status": "partial",
-      "note": "The compiled console implements a real per-element lock/unlock mechanism (state.locks keyed by element id, tryUnlock() checking PIN or password, generated/console.tsx near line 3963) that is wired and functional. Missing against the contract: no OTP/TOTP option, no per-element lock-creation wizard reachable from a documented context-menu command, and no OS credential-vault storage - credentials live in plain component state.",
+      "status": "implemented-unverified",
+      "note": "The mounted toy-lock surface now uses the typed control-plane lock store, one credential-vault reference per element, persisted lock metadata, and explicit recovery metadata. Built-artifact interaction and focused checks remain unverified in this lane.",
       "implementation": {
         "paths": [
-          "app/renderer/src/generated/console.tsx"
+          "app/renderer/src/generated/console.tsx",
+          "app/renderer/src/lock-manager-surface.tsx",
+          "app/renderer/src/surface-mounts.tsx",
+          "control-plane/auth-lock-runtime.ts",
+          "control-plane/lock-store.ts",
+          "app/electron/credential-vault.ts"
         ],
         "symbols": [
           {
@@ -2039,7 +2044,10 @@
         ]
       },
       "registration": {
-        "paths": [],
+        "paths": [
+          "app/renderer/src/surface-mounts.tsx",
+          "app/renderer/src/lock-manager-surface.tsx"
+        ],
         "symbols": [
           {
             "path": "app/renderer/src/generated/console.tsx",
@@ -2109,14 +2117,22 @@
       }
     },
     "support-tickets": {
-      "status": "absent",
-      "note": "No Support Tickets surface exists; the per-element lock has no forgotten-password recovery route of any kind.",
+      "status": "implemented-unverified",
+      "note": "Support Tickets is mounted as a local-only recovery surface backed by persisted application data. It opens the exact application-data folder through the privileged platform file manager and never deletes it. Built-artifact interaction and focused checks remain unverified in this lane.",
       "implementation": {
-        "paths": [],
+        "paths": [
+          "app/renderer/src/support-tickets-surface.tsx",
+          "app/renderer/src/surface-mounts.tsx",
+          "control-plane/auth-lock-runtime.ts"
+        ],
         "symbols": []
       },
       "registration": {
-        "paths": [],
+        "paths": [
+          "app/renderer/src/surface-mounts.tsx",
+          "app/renderer/src/support-tickets-surface.tsx",
+          "control-plane/auth-lock-runtime.ts"
+        ],
         "symbols": []
       },
       "route": "desktop://console/main",
@@ -2180,10 +2196,15 @@
       }
     },
     "unlock-ladder": {
-      "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "implemented-unverified",
+      "note": "The unlock ladder surface is mounted to a persisted, privileged challenge service with single-use nonces, a bounded rolling-hour budget, and honest clock-only fallbacks. Built-artifact interaction and focused checks remain unverified in this lane.",
       "implementation": {
-        "paths": [],
+        "paths": [
+          "app/renderer/src/unlock-ladder-surface.tsx",
+          "app/renderer/src/surface-mounts.tsx",
+          "control-plane/auth-lock-runtime.ts",
+          "app/renderer/src/unlock-ladder.ts"
+        ],
         "symbols": [
           {
             "path": "app/renderer/src/unlock-ladder.ts",
@@ -2198,7 +2219,10 @@
         ]
       },
       "registration": {
-        "paths": [],
+        "paths": [
+          "app/renderer/src/surface-mounts.tsx",
+          "app/renderer/src/unlock-ladder-surface.tsx"
+        ],
         "symbols": []
       },
       "route": "desktop://console/main",
@@ -2262,10 +2286,17 @@
       }
     },
     "built-in-authenticator": {
-      "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "implemented-unverified",
+      "note": "The built-in authenticator surface is mounted to the persisted vault-backed authenticator store, with redacted metadata, local code generation, pairing confirmation, and ordinary exports that omit secret material. Built-artifact interaction and focused checks remain unverified in this lane.",
       "implementation": {
-        "paths": [],
+        "paths": [
+          "app/renderer/src/authenticator-surface.tsx",
+          "app/renderer/src/authenticator-surface-state.ts",
+          "app/renderer/src/surface-mounts.tsx",
+          "control-plane/auth-lock-runtime.ts",
+          "control-plane/authenticator-store.ts",
+          "app/electron/credential-vault.ts"
+        ],
         "symbols": [
           {
             "path": "app/renderer/src/totp.ts",
@@ -2280,7 +2311,10 @@
         ]
       },
       "registration": {
-        "paths": [],
+        "paths": [
+          "app/renderer/src/surface-mounts.tsx",
+          "app/renderer/src/authenticator-surface.tsx"
+        ],
         "symbols": []
       },
       "route": "desktop://console/main",
