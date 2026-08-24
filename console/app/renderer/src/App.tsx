@@ -34,6 +34,11 @@ import { isAttentionMode, setModeEnabled } from './attention-modes';
 import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
 import { KNOWN_EDITORS, chooseEditor, clearEditorChoice } from './external-editor';
 import { loadRules } from './scheduled-settings';
+import {
+  activateSchoolMode, deactivateSchoolMode, hasCredential, renameSchoolMode,
+  schoolModeActive, schoolModeName, setCredential, type CredentialMethod,
+} from './school-mode';
+import { attemptMessage, consumeCredential } from './credential-field';
 import { EMPTY_RUNNER_STATE, statusLine, tick, type RunnerState } from './schedule-runner';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
 import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
@@ -196,6 +201,9 @@ export class App extends Base {
    *  this, which is close enough for a setting and cheap enough to run forever. */
   private static readonly SCHEDULE_TICK_MS = 30_000;
 
+  /** Read by the compiled `text`-kind control marked `action:'school-status'`. */
+  private schoolStatusLine = 'Off.';
+
   /** What the runner is holding between ticks: the base value of every key it has
    *  overridden, and what it last applied. */
   private scheduleState: RunnerState = EMPTY_RUNNER_STATE;
@@ -283,6 +291,7 @@ export class App extends Base {
       this.restoreLanguageMode();
       this.restoreDisplayName();
       this.startScheduler();
+      this.refreshSchoolStatus();
       this.restoreAppearance();
       this.forceUpdate();
     });
@@ -548,6 +557,65 @@ ${resolution.consequence}
 ${resolution.disclosure}`);
   }
 
+  // ---------------------------------------------------------------- school mode
+
+  /** Turning it ON needs nothing. Turning it OFF needs the credential, which is the whole
+   *  point of the mode -- so the two directions deliberately do not share a path. */
+  private setSchoolMode(on: boolean): void {
+    const name = schoolModeName(this.durableStorage.storage);
+    if (on) {
+      activateSchoolMode(this.durableStorage.storage);
+      this.refreshSchoolStatus();
+      this.toast(`${name} is on.`);
+      return;
+    }
+    if (!hasCredential(this.durableStorage.storage)) {
+      this.fire(name, attemptMessage('missing', name));
+      return;
+    }
+    const { secret, values } = this.consumeSchoolCredential();
+    if (secret === undefined) {
+      this.fire(name, `Type the unlock credential first, then switch this off again.`);
+      return;
+    }
+    const result = deactivateSchoolMode(this.durableStorage.storage, secret);
+    this.setState({ values } as never);
+    this.refreshSchoolStatus();
+    this.fire(name, attemptMessage(result.ok ? 'accepted' : 'rejected', name));
+  }
+
+  private storeSchoolCredential(): void {
+    const name = schoolModeName(this.durableStorage.storage);
+    const { secret, values } = this.consumeSchoolCredential();
+    this.setState({ values } as never);
+    if (secret === undefined) {
+      this.fire(name, 'Type a PIN or password in the field above first.');
+      return;
+    }
+    const raw = (this.state as { values?: Record<string, unknown> }).values?.school_method;
+    const method: CredentialMethod = raw === 'password' ? 'password' : 'pin';
+    setCredential(this.durableStorage.storage, method, secret);
+    this.refreshSchoolStatus();
+    /* Says that one was set, never what it was, and repeats that this is not security. */
+    this.fire(name, `Unlock credential set. Deleting the shared local application-data record still resets ${name}, so this is a speed bump rather than protection.`);
+  }
+
+  /** Takes the secret out of the bound control and blanks the field in one step. */
+  private consumeSchoolCredential(): { secret?: string; values: Record<string, unknown> } {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    return consumeCredential(values, 'school_credential');
+  }
+
+  private refreshSchoolStatus(): void {
+    const storage = this.durableStorage.storage;
+    const name = schoolModeName(storage);
+    const credential = hasCredential(storage) ? 'an unlock credential is set' : 'no unlock credential is set yet';
+    this.schoolStatusLine = schoolModeActive(storage)
+      ? `${name} is on and ${credential}.`
+      : `${name} is off and ${credential}.`;
+    this.forceUpdate();
+  }
+
   // ---------------------------------------------------------------- scheduled settings
 
   /** Starts the schedule tick and runs one immediately, so a window already in force at
@@ -636,6 +704,26 @@ ${resolution.disclosure}`);
     }
     /* The five attention modes share one prefix and one handler, so adding a sixth is
      * a registry entry rather than another branch here. */
+    if (control?.id === 'school_mode' && typeof value === 'boolean') {
+      this.setSchoolMode(value);
+      return;
+    }
+    if (control?.id === 'school_unlock' && value === true) {
+      this.setSchoolMode(false);
+      return;
+    }
+    if (control?.id === 'school_set_credential' && value === true) {
+      this.storeSchoolCredential();
+      return;
+    }
+    if (control?.id === 'school_name' && typeof value === 'string' && value.trim() !== '') {
+      const renamed = renameSchoolMode(this.durableStorage.storage, value);
+      if (!renamed.ok) {
+        this.fire('That name will not work', renamed.reason ?? 'The name was refused.');
+        return;
+      }
+      this.refreshSchoolStatus();
+    }
     if (control?.id === 'ed_choice' && typeof value === 'string') {
       const editor = KNOWN_EDITORS.find((candidate) => candidate.name === value);
       if (editor) chooseEditor(this.durableStorage.storage, editor.id);
@@ -669,6 +757,7 @@ ${resolution.disclosure}`);
   controlActionText = (action: string): string => {
     if (action === 'daemon-status') return this.daemonStatusLine;
     if (action === 'schedule-status') return this.scheduleStatusLine;
+    if (action === 'school-status') return this.schoolStatusLine;
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
     return '';
   };

@@ -27,6 +27,10 @@ const WIRED = [
   { id: 'sup_open', acts: 'openTicket(' },
   { id: 'ed_choice', acts: 'chooseEditor(' },
   { id: 'ed_clear', acts: 'clearEditorChoice(' },
+  { id: 'school_mode', acts: 'activateSchoolMode(' },
+  { id: 'school_unlock', acts: 'deactivateSchoolMode(' },
+  { id: 'school_set_credential', acts: 'setCredential(' },
+  { id: 'school_credential', acts: 'consumeCredential(' },
 ];
 
 test('every wired control exists in the compiled design', () => {

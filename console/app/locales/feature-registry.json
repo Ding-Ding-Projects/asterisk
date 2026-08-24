@@ -49,13 +49,28 @@
       "note": "Every listed label has a Cantonese entry."
     },
     "school-mode": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [],
-      "localizedLabels": [],
+      "labels": [
+        "School mode",
+        "School mode name",
+        "Set unlock credential",
+        "Unlock School mode",
+        "School mode status",
+        "Unlock credential",
+        "Credential kind"
+      ],
+      "localizedLabels": [
+        "School mode",
+        "School mode name",
+        "Set unlock credential",
+        "Unlock School mode",
+        "School mode status",
+        "Unlock credential",
+        "Credential kind"
+      ],
       "untranslatedLabels": [],
-      "note": "Implemented as partial, and contributes no label to the compiled design because no surface consumes it yet. The boundary will reach its copy the moment one does; this is a missing surface rather than a missing translation.",
-      "blockedBy": "no-label-surface"
+      "note": "Every listed label has a Cantonese entry."
     },
     "narration": {
       "state": "not-localized",

@@ -204,6 +204,15 @@ export const CANTONESE: Catalog = {
   'CLI builder': '指令產生器',
   'Arcade': '遊戲機',
 
+  /* School mode. */
+  'School mode': '校園模式',
+  'School mode name': '校園模式名稱',
+  'Set unlock credential': '設定解鎖密碼',
+  'Unlock School mode': '解鎖校園模式',
+  'School mode status': '校園模式狀態',
+  'Unlock credential': '解鎖密碼',
+  'Credential kind': '密碼種類',
+
   /* Scheduled settings. */
   'Scheduled settings': '排程設定',
   'What is in force now': '而家生效緊咩',
