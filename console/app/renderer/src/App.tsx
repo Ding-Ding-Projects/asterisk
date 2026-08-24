@@ -343,7 +343,13 @@ export class App extends Base {
     anchor.download = record.name;
     anchor.click();
     URL.revokeObjectURL(url);
-    this.fire(localizeText('Export ready'), `${record.name} · ${localizeText(this.externalEditorStatus.selectedId ? 'Ready to open in selected editor' : 'Choose an editor first')}`);
+    const selected = this.externalEditorStatus.editors.find((editor) => editor.id === this.externalEditorStatus.selectedId);
+    const readiness = !selected
+      ? localizeText('Choose an editor first')
+      : !selected.available
+        ? `${localizeText('Saved editor unavailable')} · ${localizeText('Choose another editor')} · ${localizeText('Use explicit Visual Studio Code download')}`
+        : `${localizeText('Ready to open in selected editor')} · ${selected.name}`;
+    this.fire(localizeText('Export ready'), `${record.name} · ${readiness}`);
   };
 
   exportUnavailable = (title: string, reason: string): void => this.fire(title, reason);
@@ -357,7 +363,7 @@ export class App extends Base {
       if (picked.canceled) { if (picked.reason === 'busy') this.fire(localizeText('Editor picker busy'), localizeText('Another native picker is already open')); else this.toast(localizeText('Executable picker cancelled')); return; }
       if (!picked.canceled && picked.value) {
         this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, 'pbxadm:ed_custom_path': picked.value } }));
-        this.toast('Executable selected. Save the custom editor to keep it.');
+        this.toast(`${localizeText('Executable selected')}. ${localizeText('Save custom editor to keep it')}.`);
       }
       return;
     }
@@ -366,8 +372,8 @@ export class App extends Base {
       this.externalEditorStatus = { ...this.externalEditorStatus, operation: picked.operation };
       if (picked.canceled) { if (picked.reason === 'busy') this.fire(localizeText('Editor picker busy'), localizeText('Another native picker is already open')); else this.toast(localizeText('Portable executable picker cancelled')); return; }
       if (!picked.canceled && picked.value) {
-        try { this.externalEditorStatus = await bridge.externalEditor.savePortable(picked.value); this.toast('Portable Visual Studio Code path saved and selected.'); this.forceUpdate(); }
-        catch (error) { this.fire('Portable editor not saved', error instanceof Error ? error.message : String(error)); }
+        try { this.externalEditorStatus = await bridge.externalEditor.savePortable(picked.value); this.toast(localizeText('Portable editor saved and selected')); this.forceUpdate(); }
+        catch (error) { this.fire(localizeText('Portable editor not saved'), error instanceof Error ? error.message : String(error)); }
       }
       return;
     }
@@ -375,12 +381,12 @@ export class App extends Base {
       const picked = await bridge.externalEditor.pickFolder();
       this.externalEditorStatus = { ...this.externalEditorStatus, operation: picked.operation };
       if (picked.canceled) { if (picked.reason === 'busy') this.fire(localizeText('Project folder picker busy'), localizeText('Another native picker is already open')); else this.toast(localizeText('Project folder picker cancelled')); return; }
-      if (!picked.canceled && picked.value) { this.externalProjectFolder = picked.value; this.toast(`Project folder selected: ${picked.value}`); this.forceUpdate(); }
+      if (!picked.canceled && picked.value) { this.externalProjectFolder = picked.value; this.toast(`${localizeText('Project folder selected')}: ${picked.value}`); this.forceUpdate(); }
       return;
     }
     if (action === 'editor-reset-project') {
       this.externalProjectFolder = '';
-      this.toast('Session-only project folder reset.');
+      this.toast(localizeText('Session-only project folder reset'));
       this.forceUpdate();
       return;
     }
@@ -392,13 +398,13 @@ export class App extends Base {
           executable: String(values['pbxadm:ed_custom_path'] ?? ''),
           supportsFolderWorkspace: String(values.ed_custom_folder ?? 'Files only') === 'Folders as workspaces',
         });
-        this.toast('Custom editor saved and selected.');
+        this.toast(localizeText('Custom editor saved and selected'));
         this.forceUpdate();
-      } catch (error) { this.fire('Custom editor not saved', error instanceof Error ? error.message : String(error)); }
+      } catch (error) { this.fire(localizeText('Custom editor not saved'), error instanceof Error ? error.message : String(error)); }
       return;
     }
     if (action === 'editor-open-project') {
-      if (!this.externalProjectFolder) { this.fire('Project folder not chosen', 'Choose a local project folder first. The installed console folder is not assumed to be your project.'); return; }
+      if (!this.externalProjectFolder) { this.fire(localizeText('Project folder not chosen'), `${localizeText('Choose a local project folder first')}.`); return; }
       this.editorResult(await bridge.externalEditor.openProjectFolder(this.externalProjectFolder));
       return;
     }
@@ -417,19 +423,19 @@ export class App extends Base {
     if (action === 'editor-remove-custom') {
       const selected = this.externalEditorStatus.selectedId;
       const record = this.externalEditorStatus.editors.find((editor) => editor.id === selected);
-      if (!selected || !record?.custom) { this.fire('Custom editor not removed', 'Choose a saved custom editor first.'); return; }
-      try { this.externalEditorStatus = await bridge.externalEditor.removeCustom(selected); this.toast('Custom editor removed.'); this.forceUpdate(); }
-      catch (error) { this.fire('Custom editor not removed', error instanceof Error ? error.message : String(error)); }
+      if (!selected || !record?.custom) { this.fire(localizeText('Custom editor not removed'), `${localizeText('Choose a saved custom editor first')}.`); return; }
+      try { this.externalEditorStatus = await bridge.externalEditor.removeCustom(selected); this.toast(localizeText('Custom editor removed')); this.forceUpdate(); }
+      catch (error) { this.fire(localizeText('Custom editor not removed'), error instanceof Error ? error.message : String(error)); }
       return;
     }
     if (action === 'editor-clear-choice') {
-      try { this.externalEditorStatus = await bridge.externalEditor.clearChoice(); this.toast('Editor choice forgotten.'); this.forceUpdate(); }
-      catch (error) { this.fire('Editor choice not cleared', error instanceof Error ? error.message : String(error)); }
+      try { this.externalEditorStatus = await bridge.externalEditor.clearChoice(); this.toast(localizeText('Editor choice forgotten')); this.forceUpdate(); }
+      catch (error) { this.fire(localizeText('Editor choice not cleared'), error instanceof Error ? error.message : String(error)); }
       return;
     }
     if (action === 'editor-reset-storage') {
-      try { this.externalEditorStatus = await bridge.externalEditor.resetStorage(); this.toast('Editor settings reset.'); this.forceUpdate(); }
-      catch (error) { this.fire('Editor settings not reset', error instanceof Error ? error.message : String(error)); }
+      try { this.externalEditorStatus = await bridge.externalEditor.resetStorage(); this.toast(localizeText('Editor settings reset')); this.forceUpdate(); }
+      catch (error) { this.fire(localizeText('Editor settings not reset'), error instanceof Error ? error.message : String(error)); }
       return;
     }
     if (action === 'editor-cancel-operation') {
@@ -440,7 +446,7 @@ export class App extends Base {
       return;
     }
     if (action === 'editor-open-vscode') {
-      if (!this.externalProjectFolder) { this.fire('Project folder not chosen', 'Choose a local project folder first.'); return; }
+      if (!this.externalProjectFolder) { this.fire(localizeText('Project folder not chosen'), `${localizeText('Choose a local project folder first')}.`); return; }
       this.editorResult(await bridge.externalEditor.openProjectFolder(this.externalProjectFolder, 'vscode'));
       return;
     }
