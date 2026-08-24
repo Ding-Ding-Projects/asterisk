@@ -17,7 +17,7 @@ Every process call uses typed executable and argument arrays, `shell: false`, bo
 
 ## Configuration
 
-The durable file is `forge-publishing.json` under the application's private data folder. It contains schema version 1, account metadata, the active account id, and redacted publication receipts. It contains no token, password, cookie, or private key. Account mutation and publication receipts are also recorded through the app's local append-only history.
+The durable file is `forge-publishing.json` under the application's private data folder. It contains schema version 1, account metadata, the active account id, and redacted publication receipts. It contains no token, password, cookie, private key, or invented vault key. A provider vault reference is displayed only when the provider actually supplies one. Account mutation and publication receipts are also recorded through the app's local append-only history.
 
 The source-folder field has a native folder picker. The account search is plain text by default and has an adjacent anchored full regex builder with bounded pattern length, flags, guided tokens, validation, and match counts. The provider capability list distinguishes GitHub, which currently supports both routes, from GitLab, which remains visible but unavailable until a local CLI and OS-vault adapter are configured. The active operation exposes busy, progress, cancellation, and completion state.
 
@@ -29,7 +29,7 @@ If `forge-publish` already points at a different destination, copy and push stop
 
 GitLab is not silently routed through a GitHub command. It remains an explicit unavailable capability until its provider adapter exists.
 
-Hosted server mode refuses every `forge.*` action by name because it cannot safely use the desktop's local provider sign-in store or local checkout. The desktop Add account and Re-authenticate actions start the real `gh auth login --web` device sign-in flow and never collect a token in the renderer.
+Hosted server mode refuses every `forge.*` action by name because it cannot safely use the desktop's local provider sign-in store or local checkout. The desktop Add account and Re-authenticate actions start a direct GitHub device flow, surface the user code and verification URL in the History screen, poll with bounded deadlines, and install the approved credential through `gh auth login --with-token` using stdin only. No browser is opened automatically. The flow requires the configured public OAuth client id; when it is absent, the surface reports that exact unavailable state and does not ask for a credential.
 
 ## Security and privacy
 

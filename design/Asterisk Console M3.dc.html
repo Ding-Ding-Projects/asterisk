@@ -495,9 +495,11 @@
               <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394;">{{ forgeStatus }}</span>
               <sc-for list="{{ forgeCapabilities }}" as="p"><span style="font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394;">{{ p.label }}: {{ p.state }}</span></sc-for>
               <span role="status" style="font-family:'Roboto Mono',monospace; font-size:10.5px; color:#FFD68A;">{{ forgeOperation.status }} {{ forgeOperation.progress }}% · {{ forgeOperation.message }}</span>
+              <sc-if value="{{ forgeCorrupt }}"><button onClick="{{ forgeResetCorruption }}" style="background:transparent; border:1px solid #6B5A36; border-radius:999px; padding:7px 11px; color:#FFD68A; cursor:pointer;">Reset visible corruption marker</button></sc-if>
               <div style="flex:1;"></div>
               <button onClick="{{ forgeLoad }}" style="background:#1B4D33; border:0; border-radius:999px; padding:8px 14px; color:#9FF7C4; font:inherit; cursor:pointer;">Refresh forge data</button>
             </div>
+            <sc-if value="{{ forgeDevice.userCode }}"><div role="status" style="background:#0C110D; border:1px solid #6B5A36; border-radius:12px; padding:10px 12px; margin-bottom:10px; color:#FFD68A; font-family:'Roboto Mono',monospace; font-size:11px;">{{ forgeDevice.message }} · Code: {{ forgeDevice.userCode }} · URL: {{ forgeDevice.verificationUri }} · Expires: {{ forgeDevice.expiresAt }}</div></sc-if>
             <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
               <input type="search" aria-label="Search forge accounts" value="{{ forgeSearchDisplay }}" onInput="{{ onForgeSearch }}" placeholder="Search accounts" style="flex:1; min-width:220px; background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#DFE4DC; font:inherit;" />
               <button onClick="{{ openForgeRegex }}" aria-label="Open forge account regex builder" style="background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; cursor:pointer;">.*</button>

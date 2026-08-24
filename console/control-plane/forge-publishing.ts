@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute } from "node:path";
 import type { LocalHistory, LocalHistoryEntry } from "./local-history.js";
-import type { CommandResult, ProcessExecutor } from "./executor.js";
+import type { CommandRequest, CommandResult, ProcessExecutor } from "./executor.js";
+import { redactText } from "./redaction.js";
 import { atomicWriteFileSync } from "./atomic-file.js";
 
 export const FORGE_SCHEMA_VERSION = 1 as const;
@@ -26,7 +27,7 @@ export interface ForgeAccount {
   hostname: string;
   login: string;
   displayName: string;
-  tokenRef: string;
+  tokenRef?: string;
   state: "available" | "reauth-required" | "signed-out";
   lastSeenAt: string;
   active?: boolean;
@@ -44,20 +45,39 @@ export interface ForgeOwner {
   capabilities: ForgeProviderCapabilities;
 }
 
-export interface ForgeReceipt {
+export type ForgeReceiptStatus = "succeeded" | "partial" | "failed" | "cancelled" | "reauth-required" | "unavailable";
+
+export interface ForgeAccountReceipt {
+  kind: "account";
+  operation: "sign-in" | "sign-out" | "refresh" | "activate";
   id: string;
-  status: "succeeded" | "partial" | "failed" | "cancelled" | "reauth-required" | "unavailable";
+  status: ForgeReceiptStatus;
+  provider: ForgeProvider;
+  accountId: string;
+  message: string;
+  observedAt: string;
+  reauthAction?: "add-account" | "refresh-account" | "sign-in";
+}
+
+export interface ForgePublicationReceipt {
+  kind: "publication";
+  id: string;
+  status: ForgeReceiptStatus;
   provider: ForgeProvider;
   accountId: string;
   ownerId?: string;
   route?: ForgePublishRoute;
   repositoryName?: string;
   repositoryUrl?: string;
+  effectivePushUrl?: string;
   sourceCommit?: string;
   message: string;
   observedAt: string;
   reauthAction?: "add-account" | "refresh-account" | "sign-in";
 }
+
+export type ForgeReceipt = ForgeAccountReceipt | ForgePublicationReceipt;
+export type ForgeActionStatus = ForgeReceiptStatus | "pending";
 
 export interface ForgeState {
   schemaVersion: typeof FORGE_SCHEMA_VERSION;
@@ -66,6 +86,15 @@ export interface ForgeState {
   receipts: ForgeReceipt[];
   operation: ForgeOperation;
   corruption?: string;
+  device?: ForgeDeviceState;
+}
+
+export interface ForgeDeviceState {
+  status: "idle" | "pending" | "installed" | "failed" | "cancelled";
+  userCode?: string;
+  verificationUri?: string;
+  expiresAt?: string;
+  message: string;
 }
 
 export interface ForgeOperation {
@@ -110,6 +139,8 @@ export interface ForgePublisherOptions {
   store: ForgeStateStore;
   history?: Pick<LocalHistory, "record">;
   now?: () => Date;
+  deviceClientId?: string;
+  fetchImpl?: typeof fetch;
 }
 
 export interface ForgeAccountRequest {
@@ -137,7 +168,7 @@ export interface ForgePublishRequest {
 }
 
 export interface ForgeActionResult<T> {
-  status: ForgeReceipt["status"];
+  status: ForgeActionStatus;
   message: string;
   data?: T;
   receipt?: ForgeReceipt;
@@ -173,12 +204,12 @@ const SAFE_ACCOUNT_ID = /^github\.com:[A-Za-z0-9][A-Za-z0-9._-]{0,38}$/u;
 const SAFE_COMMIT = /^[0-9a-f]{7,64}$/iu;
 const SAFE_REMOTE = /^https:\/\/[A-Za-z0-9.-]+\/[A-Za-z0-9._/-]+(?:\.git)?$/u;
 const AUTH_ENVIRONMENT_KEYS = [
-  "GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITLAB_TOKEN", "GIT_ASKPASS",
-  "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0", "GIT_HTTP_EXTRAHEADER",
+  "GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN", "GITLAB_TOKEN", "GH_HOST", "GIT_ASKPASS",
+  "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0", "GIT_CONFIG_PARAMETERS", "GIT_HTTP_EXTRAHEADER", "GIT_SSH_COMMAND",
 ] as const;
 
 function defaultState(): ForgeState {
-  return { schemaVersion: FORGE_SCHEMA_VERSION, accounts: [], receipts: [], operation: idleOperation() };
+  return { schemaVersion: FORGE_SCHEMA_VERSION, accounts: [], receipts: [], operation: idleOperation(), device: { status: "idle", message: "No device sign-in is running." } };
 }
 
 function idleOperation(): ForgeOperation {
@@ -198,7 +229,8 @@ function parseForgeState(value: unknown): ForgeState {
     : undefined;
   const storedOperation = isForgeOperation(record.operation) ? record.operation : idleOperation();
   const operation = storedOperation.status === "running" ? { ...storedOperation, status: "failed" as const, cancellable: false, message: "The previous forge operation stopped before its outcome was recorded." } : storedOperation;
-  return { schemaVersion: FORGE_SCHEMA_VERSION, activeAccountId, accounts, receipts, operation };
+  const device = isForgeDeviceState(record.device) ? record.device : { status: "idle" as const, message: "No device sign-in is running." };
+  return { schemaVersion: FORGE_SCHEMA_VERSION, activeAccountId, accounts, receipts, operation, device };
 }
 
 function isForgeAccount(value: unknown): value is ForgeAccount {
@@ -208,7 +240,7 @@ function isForgeAccount(value: unknown): value is ForgeAccount {
     && record.provider === "github" && record.hostname === GITHUB_HOST
     && typeof record.login === "string" && SAFE_LOGIN.test(record.login)
     && typeof record.displayName === "string" && record.displayName.length <= 120
-    && typeof record.tokenRef === "string" && /^gh:\/\/github\.com\/[A-Za-z0-9][A-Za-z0-9._-]{0,38}$/u.test(record.tokenRef)
+    && (record.tokenRef === undefined || (typeof record.tokenRef === "string" && record.tokenRef.length <= 200))
     && (record.state === "available" || record.state === "reauth-required" || record.state === "signed-out")
     && typeof record.lastSeenAt === "string"
     && (record.active === undefined || typeof record.active === "boolean");
@@ -217,15 +249,20 @@ function isForgeAccount(value: unknown): value is ForgeAccount {
 function isForgeReceipt(value: unknown): value is ForgeReceipt {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const record = value as Record<string, unknown>;
-  return typeof record.id === "string" && record.id.length > 0 && record.id.length <= 100
+  const common = typeof record.id === "string" && record.id.length > 0 && record.id.length <= 100
     && (record.status === "succeeded" || record.status === "partial" || record.status === "failed" || record.status === "cancelled" || record.status === "reauth-required" || record.status === "unavailable")
     && record.provider === "github" && typeof record.accountId === "string" && SAFE_ACCOUNT_ID.test(record.accountId)
-    && (record.ownerId === undefined || (typeof record.ownerId === "string" && SAFE_OWNER_ID.test(record.ownerId)))
-    && (record.route === undefined || record.route === "fork" || record.route === "copy-and-push")
-    && (record.repositoryName === undefined || (typeof record.repositoryName === "string" && SAFE_NAME.test(record.repositoryName)))
-    && (record.repositoryUrl === undefined || (typeof record.repositoryUrl === "string" && SAFE_REMOTE.test(record.repositoryUrl)))
     && typeof record.message === "string" && record.message.length <= 2000
     && typeof record.observedAt === "string";
+  if (!common) return false;
+  if (record.kind === "account") return record.operation === "sign-in" || record.operation === "sign-out" || record.operation === "refresh" || record.operation === "activate";
+  return record.kind === "publication"
+    && typeof record.ownerId === "string" && SAFE_OWNER_ID.test(record.ownerId)
+    && (record.route === "fork" || record.route === "copy-and-push")
+    && typeof record.repositoryName === "string" && SAFE_NAME.test(record.repositoryName)
+    && (record.repositoryUrl === undefined || (typeof record.repositoryUrl === "string" && SAFE_REMOTE.test(record.repositoryUrl)))
+    && (record.effectivePushUrl === undefined || (typeof record.effectivePushUrl === "string" && SAFE_REMOTE.test(record.effectivePushUrl)))
+    && (record.sourceCommit === undefined || (typeof record.sourceCommit === "string" && SAFE_COMMIT.test(record.sourceCommit)));
 }
 
 function isForgeOperation(value: unknown): value is ForgeOperation {
@@ -237,6 +274,16 @@ function isForgeOperation(value: unknown): value is ForgeOperation {
     && typeof record.progress === "number" && Number.isFinite(record.progress) && record.progress >= 0 && record.progress <= 100
     && typeof record.message === "string" && record.message.length <= 2000
     && typeof record.cancellable === "boolean";
+}
+
+function isForgeDeviceState(value: unknown): value is ForgeDeviceState {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return ["idle", "pending", "installed", "failed", "cancelled"].includes(String(record.status))
+    && typeof record.message === "string" && record.message.length <= 2000
+    && (record.userCode === undefined || (typeof record.userCode === "string" && /^[A-Z0-9 -]{4,32}$/u.test(record.userCode)))
+    && (record.verificationUri === undefined || (typeof record.verificationUri === "string" && /^https:\/\/[A-Za-z0-9.-]+\/.+/u.test(record.verificationUri)))
+    && (record.expiresAt === undefined || typeof record.expiresAt === "string");
 }
 
 function parseProvider(value: unknown): ForgeProvider {
@@ -314,7 +361,6 @@ function parseGhAccounts(stdout: string, now: string): ForgeAccount[] {
       hostname: GITHUB_HOST,
       login,
       displayName: login,
-      tokenRef: `gh://github.com/${login}`,
       state: signedIn ? "available" : "reauth-required",
       lastSeenAt: now,
       active: record.active === true,
@@ -326,6 +372,12 @@ function resultFromCommand(result: CommandResult, action: string): string {
   if (result.status === "timedOut") return `${action} timed out before the provider confirmed an outcome.`;
   if (result.status === "cancelled") return `${action} was cancelled before the provider confirmed an outcome.`;
   return result.stderr.trim() || `${action} did not complete.`;
+}
+
+function receiptStatus(result: CommandResult, unknownSideEffect = false): ForgeReceiptStatus {
+  if (result.status === "cancelled") return "cancelled";
+  if (unknownSideEffect && result.status === "timedOut") return "partial";
+  return result.status === "succeeded" ? "succeeded" : "failed";
 }
 
 function accountOwner(account: ForgeAccount, kind: ForgeOwnerKind, login: string, name: string, canCreateRepository = true, reason?: string, canForkRepository = canCreateRepository): ForgeOwner {
@@ -348,15 +400,21 @@ export class ForgePublisher {
   readonly #store: ForgeStateStore;
   readonly #history?: Pick<LocalHistory, "record">;
   readonly #now: () => Date;
+  readonly #deviceClientId?: string;
+  readonly #fetch: typeof fetch;
   #state: ForgeState;
   #owners = new Map<string, ForgeOwner>();
   #abortController: AbortController | undefined;
+  #deviceCode: string | undefined;
+  #deviceTask: Promise<void> | undefined;
 
   constructor(options: ForgePublisherOptions) {
     this.#executor = options.executor;
     this.#store = options.store;
     this.#history = options.history;
     this.#now = options.now ?? (() => new Date());
+    this.#deviceClientId = options.deviceClientId;
+    this.#fetch = options.fetchImpl ?? fetch;
     this.#state = parseForgeState(options.store.read());
   }
 
@@ -368,9 +426,17 @@ export class ForgePublisher {
     return JSON.parse(JSON.stringify(this.#state)) as ForgeState;
   }
 
+  async deviceState(): Promise<ForgeDeviceState> { return { ...(this.#state.device ?? { status: "idle", message: "No device sign-in is running." }) }; }
+
   private save(): void {
-    this.#state = { ...this.#state, corruption: undefined };
     this.#store.write(this.#state);
+  }
+
+  resetCorruption(): ForgeActionResult<ForgeState> {
+    if (!this.#state.corruption) return { status: "failed", message: "No saved forge-state corruption is recorded." };
+    this.#state = { ...this.#state, corruption: undefined };
+    this.save();
+    return { status: "succeeded", message: "The visible forge-state corruption marker was reset. Existing retained accounts and receipts were not deleted.", data: this.state() };
   }
 
   private async record(action: LocalHistoryEntry["action"], subject: string, payload: unknown): Promise<void> {
@@ -410,16 +476,59 @@ export class ForgePublisher {
     return { status: "cancelled", message: this.#state.operation.message, data: this.#state.operation };
   }
 
-  private async gh(args: ReadonlyArray<string>, timeoutMs = 30_000, interactive = false): Promise<CommandResult> {
+  private async gh(args: ReadonlyArray<string>, timeoutMs = 30_000, interactive = false, input?: string, redactedValues?: ReadonlyArray<string>): Promise<CommandResult> {
     this.updateOperation(Math.max(5, this.#state.operation.progress), interactive ? "Waiting for the provider device sign-in flow." : "Running the provider command.");
-    const result = await this.#executor.execute({ executable: "gh", args, timeoutMs, maxOutputBytes: 4 * 1024 * 1024, signal: this.#abortController?.signal, environment: interactive ? undefined : { GH_PROMPT_DISABLED: "1" }, clearEnvironmentKeys: AUTH_ENVIRONMENT_KEYS });
+    const result = await this.execute({ executable: "gh", args, input, redactedValues, timeoutMs, maxOutputBytes: 4 * 1024 * 1024, signal: this.#abortController?.signal, environment: interactive ? undefined : { GH_PROMPT_DISABLED: "1" }, clearEnvironmentKeys: AUTH_ENVIRONMENT_KEYS });
     this.updateOperation(result.status === "succeeded" ? Math.min(95, this.#state.operation.progress + 20) : this.#state.operation.progress, result.status === "succeeded" ? "Provider command returned." : result.status === "cancelled" ? "Provider command cancelled." : "Provider command returned a failure.");
     return result;
   }
 
+  private async devicePost(url: string, body: URLSearchParams, allowError = false): Promise<Record<string, unknown>> {
+    const response = await this.#fetch(url, { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" }, body: body.toString(), signal: this.#abortController?.signal, redirect: "error" });
+    const text = await response.text();
+    if (text.length > 64 * 1024) throw new Error("The provider device response exceeded the bounded response size.");
+    let parsed: unknown;
+    try { parsed = JSON.parse(text); } catch { throw new Error("The provider device response was not valid JSON."); }
+    if ((!response.ok && !allowError) || !parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error(`The provider device request returned HTTP ${response.status}.`);
+    return parsed as Record<string, unknown>;
+  }
+
+  private async waitForDevicePoll(ms: number): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(resolve, ms);
+      const signal = this.#abortController?.signal;
+      const abort = () => { clearTimeout(timer); reject(new Error("Device sign-in was cancelled.")); };
+      signal?.addEventListener("abort", abort, { once: true });
+    });
+  }
+
+  private async verifyDestinationIdentity(ownerLogin: string, repositoryName: string, expectedUrl: string): Promise<{ ok: boolean; message: string }> {
+    const result = await this.gh(["repo", "view", `${ownerLogin}/${repositoryName}`, "--json", "nameWithOwner,url"]);
+    if (result.status !== "succeeded") return { ok: false, message: resultFromCommand(result, "Reading the destination repository identity") };
+    try {
+      const parsed = JSON.parse(result.stdout) as { nameWithOwner?: unknown; url?: unknown };
+      const expectedName = `${ownerLogin}/${repositoryName}`;
+      if (parsed.nameWithOwner !== expectedName || parsed.url !== expectedUrl) return { ok: false, message: `The provider returned destination ${String(parsed.nameWithOwner ?? "unknown")} at ${String(parsed.url ?? "unknown")}, not ${expectedName} at ${expectedUrl}.` };
+      return { ok: true, message: "The provider confirmed the exact destination owner, name, and URL." };
+    } catch {
+      return { ok: false, message: "The provider returned invalid destination identity data." };
+    }
+  }
+
   private async git(args: ReadonlyArray<string>, cwd: string, timeoutMs = 60_000): Promise<CommandResult> {
     this.updateOperation(Math.max(5, this.#state.operation.progress), "Running the local git command.");
-    return await this.#executor.execute({ executable: "git", args, cwd, timeoutMs, maxOutputBytes: 4 * 1024 * 1024, signal: this.#abortController?.signal, environment: { GIT_TERMINAL_PROMPT: "0" }, clearEnvironmentKeys: AUTH_ENVIRONMENT_KEYS });
+    return await this.execute({ executable: "git", args, cwd, timeoutMs, maxOutputBytes: 4 * 1024 * 1024, signal: this.#abortController?.signal, environment: { GIT_TERMINAL_PROMPT: "0" }, clearEnvironmentKeys: AUTH_ENVIRONMENT_KEYS });
+  }
+
+  private async execute(request: CommandRequest): Promise<CommandResult> {
+    const started = Date.now();
+    try {
+      return await this.#executor.execute(request);
+    } catch (error) {
+      return { status: "failed", exitCode: null, stdout: "", stderr: redactText(error instanceof Error ? error.message : "The privileged process did not start."), durationMs: Date.now() - started };
+    } finally {
+      if (request.signal?.aborted && this.#state.operation.status === "running") this.finishOperation("cancelled", "The privileged process was cancelled before completion.");
+    }
   }
 
   private activeAccount(): ForgeAccount | undefined {
@@ -430,7 +539,9 @@ export class ForgePublisher {
     if (!this.beginOperation("account-discovery", "Reading the local provider sign-in store.")) return { status: "failed", message: "Another forge operation is already running." };
     const result = await this.gh(["auth", "status", "--hostname", GITHUB_HOST, "--json", "hosts"]);
     if (result.status !== "succeeded") {
-      const receipt: ForgeReceipt = {
+      const receipt: ForgeAccountReceipt = {
+        kind: "account",
+        operation: "refresh",
         id: `forge-${Date.now().toString(36)}`,
         status: result.status === "cancelled" ? "cancelled" : "unavailable",
         provider: "github",
@@ -446,6 +557,7 @@ export class ForgePublisher {
     const accounts = parseGhAccounts(result.stdout, this.#now().toISOString());
     if (accounts.length === 0) {
       const message = "No signed-in GitHub account was found. Add an account through the provider sign-in flow; no token was accepted here.";
+      this.addReceipt({ kind: "account", operation: "refresh", id: `forge-account-${Date.now().toString(36)}`, status: "reauth-required", provider: "github", accountId: "github.com:none", message, observedAt: this.#now().toISOString(), reauthAction: "add-account" });
       this.finishOperation("failed", message);
       return { status: "reauth-required", message, reauthAction: "add-account" } as ForgeActionResult<ReadonlyArray<ForgeAccount>>;
     }
@@ -460,24 +572,80 @@ export class ForgePublisher {
   }
 
   async listAccounts(): Promise<ForgeActionResult<ReadonlyArray<ForgeAccount>>> {
+    if (this.#state.operation.status === "running") return { status: "pending", message: this.#state.operation.message, data: this.#state.accounts };
     return await this.discoverGhAccounts();
+  }
+
+  private async completeDeviceFlow(deviceCode: string, userCode: string, verificationUri: string, expiresAt: string, initialInterval: number): Promise<void> {
+    let accessToken = "";
+    try {
+      let interval = initialInterval;
+      while (Date.now() < Date.parse(expiresAt)) {
+        await this.waitForDevicePoll(interval * 1000);
+        const token = await this.devicePost("https://github.com/login/oauth/access_token", new URLSearchParams({ client_id: this.#deviceClientId!, device_code: deviceCode, grant_type: "urn:ietf:params:oauth:grant-type:device_code" }), true);
+        if (typeof token.access_token === "string" && token.access_token.length > 0) { accessToken = token.access_token; break; }
+        const error = typeof token.error === "string" ? token.error : "";
+        if (error === "authorization_pending") { this.updateOperation(Math.min(85, this.#state.operation.progress + 5), "Waiting for the provider approval."); continue; }
+        if (error === "slow_down") { interval = Math.min(interval + 5, 30); continue; }
+        if (error === "expired_token") throw new Error("The provider device code expired before approval.");
+        if (error === "access_denied") throw new Error("The provider device sign-in was declined.");
+        throw new Error("The provider returned an unexpected device sign-in state.");
+      }
+      if (!accessToken) throw new Error("The provider device code expired before approval.");
+      const installed = await this.gh(["auth", "login", "--hostname", GITHUB_HOST, "--git-protocol", "https", "--with-token"], 30_000, false, accessToken, [accessToken]);
+      if (installed.status !== "succeeded") throw new Error(resultFromCommand(installed, "Installing the provider credential"));
+      this.#state.device = { status: "installed", userCode, verificationUri, expiresAt, message: "The provider credential was installed in gh's credential store. The credential value was not retained." };
+      this.finishOperation("succeeded", this.#state.device.message);
+      this.save();
+    } catch (error) {
+      const cancelled = this.#abortController?.signal.aborted || (error instanceof Error && /cancelled/iu.test(error.message));
+      const status = cancelled ? "cancelled" : "failed";
+      const message = cancelled ? "Device sign-in was cancelled. The approval code remains invalidated by the bounded flow." : error instanceof Error ? error.message : "Device sign-in did not complete.";
+      const receipt: ForgeAccountReceipt = { kind: "account", operation: "sign-in", id: `forge-account-${Date.now().toString(36)}`, status, provider: "github", accountId: "github.com:device", message, observedAt: this.#now().toISOString(), reauthAction: "sign-in" };
+      this.addReceipt(receipt);
+      this.#state.device = { status, userCode, verificationUri, expiresAt, message };
+      this.finishOperation(status, message);
+      this.save();
+    } finally {
+      accessToken = "";
+      this.#deviceCode = undefined;
+      this.#deviceTask = undefined;
+    }
   }
 
   async signIn(request: ForgeSignInRequest): Promise<ForgeActionResult<ReadonlyArray<ForgeAccount>>> {
     const provider = parseProvider(request.provider);
     const hostname = typeof request.hostname === "string" && request.hostname.trim() ? request.hostname.trim() : GITHUB_HOST;
     if (provider !== "github" || hostname !== GITHUB_HOST) return { status: "unavailable", message: "Device sign-in is currently available for github.com only.", reauthAction: "sign-in" };
+    if (!this.#deviceClientId || !/^[A-Za-z0-9_-]{20,100}$/u.test(this.#deviceClientId)) return { status: "unavailable", message: "Device sign-in is unavailable because the public OAuth client id is not configured. No browser was opened and no credential was requested.", reauthAction: "sign-in" };
     if (!this.beginOperation("sign-in", "Starting the provider device sign-in flow.")) return { status: "failed", message: "Another forge operation is already running." };
-    const result = await this.gh(["auth", "login", "--hostname", hostname, "--git-protocol", "https", "--web", "--skip-ssh-key", "--scopes", "repo,read:org"], 300_000, true);
-    if (result.status !== "succeeded") {
-      const status = result.status === "cancelled" ? "cancelled" : "failed";
-      const receipt = this.makeReceipt(status, { id: "github.com:sign-in", provider: "github", hostname, login: "sign-in", displayName: "sign-in", tokenRef: "gh://github.com/sign-in", state: "reauth-required", lastSeenAt: this.#now().toISOString() }, undefined, "copy-and-push", "sign-in", undefined, undefined, resultFromCommand(result, "Device sign-in"), this.#now().toISOString());
+    try {
+      const start = await this.devicePost("https://github.com/login/device/code", new URLSearchParams({ client_id: this.#deviceClientId, scope: "repo read:org" }));
+      const deviceCode = typeof start.device_code === "string" ? start.device_code : "";
+      const userCode = typeof start.user_code === "string" ? start.user_code : "";
+      const verificationUri = typeof start.verification_uri === "string" ? start.verification_uri : typeof start.verification_uri_complete === "string" ? start.verification_uri_complete : "";
+      const expiresIn = typeof start.expires_in === "number" && Number.isFinite(start.expires_in) ? Math.min(Math.max(start.expires_in, 60), 900) : 900;
+      if (!deviceCode || !/^[A-Z0-9-]{4,64}$/iu.test(userCode) || !/^https:\/\/github\.com\//u.test(verificationUri)) throw new Error("The provider device response omitted a bounded user code or verification URL.");
+      this.#deviceCode = deviceCode;
+      const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+      this.#state.device = { status: "pending", userCode, verificationUri, expiresAt, message: "Open the verification URL and enter the displayed user code. This app will not open a browser automatically." };
+      this.updateOperation(15, this.#state.device.message);
+      this.save();
+      const interval = typeof start.interval === "number" && Number.isFinite(start.interval) ? Math.min(Math.max(start.interval, 5), 30) : 5;
+      this.#deviceTask = this.completeDeviceFlow(deviceCode, userCode, verificationUri, expiresAt, interval);
+      return { status: "pending", message: this.#state.device.message, data: this.#state.accounts };
+    } catch (error) {
+      const cancelled = this.#abortController?.signal.aborted || (error instanceof Error && /cancelled/iu.test(error.message));
+      const status = cancelled ? "cancelled" : "failed";
+      const message = cancelled ? "Device sign-in was cancelled. The approval code remains invalidated by the bounded flow." : error instanceof Error ? error.message : "Device sign-in did not complete.";
+      const receipt: ForgeAccountReceipt = { kind: "account", operation: "sign-in", id: `forge-account-${Date.now().toString(36)}`, status, provider: "github", accountId: "github.com:device", message, observedAt: this.#now().toISOString(), reauthAction: "sign-in" };
       this.addReceipt(receipt);
-      this.finishOperation(status, receipt.message);
-      return { status, message: receipt.message, receipt, reauthAction: "sign-in" };
+      this.#state.device = { status, userCode: this.#state.device?.userCode, verificationUri: this.#state.device?.verificationUri, expiresAt: this.#state.device?.expiresAt, message };
+      this.finishOperation(status, message);
+      return { status, message, receipt, reauthAction: "sign-in" };
+    } finally {
+      if (!this.#deviceTask) this.#deviceCode = undefined;
     }
-    this.finishOperation("succeeded", "Device sign-in completed. Reading the active provider accounts.");
-    return await this.discoverGhAccounts();
   }
 
   async addAccount(request: ForgeAccountRequest): Promise<ForgeActionResult<ForgeAccount>> {
@@ -488,7 +656,9 @@ export class ForgePublisher {
     const account = discovered.data?.find((candidate) => candidate.login === login);
     if (!account) return { status: "reauth-required", message: `Account ${login} is not signed in. Start the provider sign-in flow beside this control, then refresh the account list. No token was accepted or stored here.`, reauthAction: "add-account" };
     await this.record("created", `forge account ${login}`, { provider, accountId: account.id, tokenRef: account.tokenRef });
-    return { status: "succeeded", message: `Account ${login} is available to publish.`, data: account };
+    const receipt = this.makeAccountReceipt("succeeded", "refresh", account, `Account ${login} is available to publish.`);
+    this.addReceipt(receipt);
+    return { status: "succeeded", message: receipt.message, data: account, receipt };
   }
 
   async refreshAccount(accountId: string): Promise<ForgeActionResult<ForgeAccount>> {
@@ -500,10 +670,14 @@ export class ForgePublisher {
       const next = { ...account, state: "reauth-required" as const, lastSeenAt: this.#now().toISOString() };
       this.#state.accounts = this.#state.accounts.map((candidate) => candidate.id === accountId ? next : candidate);
       this.save();
-      return { status: "reauth-required", message: `Account ${account.login} needs sign-in again. No token was exposed or changed.`, data: next, reauthAction: "refresh-account" };
+      const receipt = this.makeAccountReceipt("reauth-required", "refresh", account, `Account ${account.login} needs sign-in again. No token was exposed or changed.`);
+      this.addReceipt(receipt);
+      return { status: "reauth-required", message: receipt.message, data: next, receipt, reauthAction: "refresh-account" };
     }
     await this.record("updated", `forge account ${account.login}`, { provider: account.provider, accountId, tokenRef: account.tokenRef, state: refreshed.state });
-    return { status: "succeeded", message: `Account ${account.login} was refreshed from the provider sign-in store.`, data: refreshed };
+    const receipt = this.makeAccountReceipt("succeeded", "refresh", account, `Account ${account.login} was refreshed from the provider sign-in store.`);
+    this.addReceipt(receipt);
+    return { status: "succeeded", message: receipt.message, data: refreshed, receipt };
   }
 
   async activateAccount(accountId: string): Promise<ForgeActionResult<ForgeAccount>> {
@@ -517,17 +691,19 @@ export class ForgePublisher {
     this.#state.activeAccountId = account.id;
     this.save();
     await this.record("updated", `active forge account ${account.login}`, { accountId: account.id, tokenRef: account.tokenRef });
-    return { status: "succeeded", message: `Account ${account.login} is active.`, data: account };
+    const receipt = this.makeAccountReceipt("succeeded", "activate", account, `Account ${account.login} is active.`);
+    this.addReceipt(receipt);
+    return { status: "succeeded", message: receipt.message, data: account, receipt };
   }
 
   async signOut(accountId: string): Promise<ForgeActionResult<{ accountId: string }>> {
     const account = this.#state.accounts.find((candidate) => candidate.id === accountId);
     if (!account) return { status: "failed", message: "Choose an account from the discovered account list." };
     if (!this.beginOperation("account-discovery", `Signing out ${account.login} without an interactive confirmation.`)) return { status: "failed", message: "Another forge operation is already running." };
-    const result = await this.gh(["auth", "logout", "--hostname", account.hostname, "--user", account.login, "--yes"]);
+    const result = await this.gh(["auth", "logout", "--hostname", account.hostname, "--user", account.login], 30_000, true, "y\n");
     if (result.status !== "succeeded") {
       const status = result.status === "cancelled" ? "cancelled" : "failed";
-      const receipt = this.makeReceipt(status, account, account.id, "copy-and-push", "sign-out", undefined, undefined, resultFromCommand(result, `Signing out ${account.login}`), this.#now().toISOString());
+      const receipt = this.makeAccountReceipt(status, "sign-out", account, resultFromCommand(result, `Signing out ${account.login}`));
       this.addReceipt(receipt);
       this.finishOperation(status, receipt.message);
       return { status, message: receipt.message, receipt };
@@ -536,7 +712,7 @@ export class ForgePublisher {
     if (this.#state.activeAccountId === accountId) this.#state.activeAccountId = this.#state.accounts[0]?.id;
     this.save();
     this.finishOperation("succeeded", `Account ${account.login} was signed out.`);
-    const receipt = this.makeReceipt("succeeded", account, account.id, "copy-and-push", "sign-out", undefined, undefined, `Account ${account.login} was signed out.`, this.#now().toISOString());
+    const receipt = this.makeAccountReceipt("succeeded", "sign-out", account, `Account ${account.login} was signed out.`);
     this.addReceipt(receipt);
     await this.record("deleted", `forge account ${account.login}`, { provider: account.provider, accountId, tokenRef: account.tokenRef });
     return { status: "succeeded", message: receipt.message, data: { accountId }, receipt };
@@ -550,6 +726,8 @@ export class ForgePublisher {
     }
     const account = this.activeAccount();
     if (!account) { const message = "Choose a signed-in account before loading personal and organization owners."; this.finishOperation("failed", message); return { status: "reauth-required", message, reauthAction: "add-account" }; }
+    const confirmed = await this.activateAccount(account.id);
+    if (confirmed.status !== "succeeded") { this.finishOperation("failed", confirmed.message); return { status: confirmed.status, message: confirmed.message, reauthAction: confirmed.reauthAction }; }
     const personal = await this.gh(["api", "user"]);
     if (personal.status !== "succeeded") { const message = resultFromCommand(personal, "Loading the personal owner"); this.finishOperation(personal.status === "cancelled" ? "cancelled" : "failed", message); return { status: personal.status === "cancelled" ? "cancelled" : "reauth-required", message, reauthAction: "refresh-account" }; }
     let personalRecord: Record<string, unknown>;
@@ -574,10 +752,7 @@ export class ForgePublisher {
           if (!record || typeof record !== "object" || Array.isArray(record)) continue;
           const org = record as Record<string, unknown>;
           if (typeof org.login !== "string" || !SAFE_LOGIN.test(org.login)) continue;
-          const permissions = org.permissions && typeof org.permissions === "object" && !Array.isArray(org.permissions) ? org.permissions as Record<string, unknown> : undefined;
-          const canCreate = permissions?.admin === true;
-          const canFork = permissions?.push === true || permissions?.admin === true;
-          const owner = accountOwner(account, "organization", org.login, org.login, canCreate, canCreate ? undefined : "The provider returned this organization but did not report repository-create permission.", canFork);
+          const owner = accountOwner(account, "organization", org.login, org.login, false, "Organization repository creation is unknown until a provider operation proves it.", false);
           owners.push(owner);
           this.#owners.set(owner.id, owner);
         }
@@ -620,12 +795,13 @@ export class ForgePublisher {
     const observedAt = this.#now().toISOString();
     const repositoryUrl = `https://github.com/${ownerLogin}/${repositoryName}`;
     let sourceCommit: string | undefined;
+    let effectivePushUrl = "";
     if (route === "copy-and-push") {
       const head = await this.git(["rev-parse", "HEAD"], sourcePath!);
       if (head.status !== "succeeded") {
         const status = head.status === "cancelled" ? "cancelled" : "failed";
         const receipt = this.makeReceipt(status, account, ownerId, route, repositoryName, repositoryUrl, undefined, resultFromCommand(head, "Reading the local source commit"), observedAt);
-        this.addReceipt(receipt); this.finishOperation(status, receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
+        this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
         return { status, message: receipt.message, receipt, data: receipt };
       }
       sourceCommit = head.stdout.trim();
@@ -635,13 +811,24 @@ export class ForgePublisher {
       }
       const create = await this.gh(["repo", "create", `${ownerLogin}/${repositoryName}`, visibility === "public" ? "--public" : "--private", ...(description ? ["--description", description] : [])]);
       if (create.status !== "succeeded") {
-        const status = create.status === "cancelled" ? "cancelled" : "failed";
+        const status = receiptStatus(create, true);
         const receipt = this.makeReceipt(status, account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, resultFromCommand(create, "Creating the destination repository"), observedAt);
-        this.addReceipt(receipt); this.finishOperation(status, receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
+        this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
         return { status, message: receipt.message, receipt, data: receipt };
       }
-      const remote = await this.git(["remote", "get-url", "forge-publish"], sourcePath!);
-      if (remote.status !== "succeeded") {
+      const identity = await this.verifyDestinationIdentity(ownerLogin, repositoryName, repositoryUrl);
+      if (!identity.ok) {
+        const receipt = this.makeReceipt("partial", account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, identity.message, observedAt);
+        this.addReceipt(receipt); this.finishOperation("failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
+        return { status: "partial", message: receipt.message, receipt, data: receipt };
+      }
+      const remote = await this.git(["remote", "get-url", "--push", "forge-publish"], sourcePath!);
+      effectivePushUrl = remote.status === "succeeded" ? remote.stdout.trim() : "";
+      if (!effectivePushUrl) {
+        const fetchRemote = await this.git(["remote", "get-url", "forge-publish"], sourcePath!);
+        effectivePushUrl = fetchRemote.status === "succeeded" ? fetchRemote.stdout.trim() : "";
+      }
+      if (!effectivePushUrl) {
         const add = await this.git(["remote", "add", "forge-publish", repositoryUrl], sourcePath!);
         if (add.status !== "succeeded") {
           const status = add.status === "cancelled" ? "cancelled" : "partial";
@@ -649,7 +836,7 @@ export class ForgePublisher {
           this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
           return { status, message: receipt.message, receipt, data: receipt };
         }
-      } else if (remote.stdout.trim() !== repositoryUrl && remote.stdout.trim() !== `${repositoryUrl}.git`) {
+      } else if (effectivePushUrl !== repositoryUrl && effectivePushUrl !== `${repositoryUrl}.git`) {
         const receipt = this.makeReceipt("failed", account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, "The local forge-publish remote already points somewhere else, so it was not changed.", observedAt);
         this.addReceipt(receipt); this.finishOperation("failed", receipt.message); return { status: "failed", message: receipt.message, receipt, data: receipt };
       }
@@ -657,15 +844,17 @@ export class ForgePublisher {
       if (pushed.status !== "succeeded") {
         const status = pushed.status === "cancelled" ? "cancelled" : "partial";
         const receipt = this.makeReceipt(status, account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, resultFromCommand(pushed, "Pushing the local source"), observedAt);
+        receipt.effectivePushUrl = effectivePushUrl;
         this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message);
         await this.record("updated", `forge publication ${repositoryName}`, receipt);
         return { status, message: receipt.message, receipt, data: receipt };
       }
-      const verified = await this.git(["ls-remote", "--heads", "forge-publish", defaultBranch], sourcePath!, 30_000);
+      const verified = await this.git(["ls-remote", "--heads", effectivePushUrl, defaultBranch], sourcePath!, 30_000);
       const verifiedCommit = verified.status === "succeeded" ? /^([0-9a-f]{40})\s+refs\/heads\//iu.exec(verified.stdout.trim())?.[1] : undefined;
       if (verifiedCommit !== sourceCommit) {
         const status = verified.status === "cancelled" ? "cancelled" : "partial";
         const receipt = this.makeReceipt(status, account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, verified.status === "succeeded" ? `The destination answered with ${verifiedCommit ?? "no matching commit"}, not ${sourceCommit}.` : resultFromCommand(verified, "Verifying the destination commit"), observedAt);
+        receipt.effectivePushUrl = effectivePushUrl;
         this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
         return { status, message: receipt.message, receipt, data: receipt };
       }
@@ -674,19 +863,29 @@ export class ForgePublisher {
       if (ownerKind === "organization") args.push("--org", ownerLogin);
       const fork = await this.gh(args, 120_000);
       if (fork.status !== "succeeded") {
-        const status = fork.status === "cancelled" ? "cancelled" : "failed";
+        const status = receiptStatus(fork, true);
         const receipt = this.makeReceipt(status, account, ownerId, route, repositoryName, repositoryUrl, undefined, resultFromCommand(fork, "Forking the source repository"), observedAt);
-        this.addReceipt(receipt); this.finishOperation(status, receipt.message); return { status, message: receipt.message, receipt, data: receipt };
+        this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message); return { status, message: receipt.message, receipt, data: receipt };
+      }
+      const identity = await this.verifyDestinationIdentity(ownerLogin, repositoryName, repositoryUrl);
+      if (!identity.ok) {
+        const receipt = this.makeReceipt("failed", account, ownerId, route, repositoryName, repositoryUrl, undefined, identity.message, observedAt);
+        this.addReceipt(receipt); this.finishOperation("failed", receipt.message); return { status: "failed", message: receipt.message, receipt, data: receipt };
       }
     }
     const receipt = this.makeReceipt("succeeded", account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, route === "fork" ? "The provider confirmed the fork request." : `The destination accepted commit ${sourceCommit}.`, observedAt);
+    if (route === "copy-and-push") receipt.effectivePushUrl = effectivePushUrl;
     this.addReceipt(receipt);
     this.finishOperation("succeeded", receipt.message);
     await this.record("created", `forge publication ${repositoryName}`, receipt);
     return { status: "succeeded", message: receipt.message, receipt, data: receipt };
   }
 
-  private makeReceipt(status: ForgeReceipt["status"], account: ForgeAccount, ownerId: string | undefined, route: ForgePublishRoute, repositoryName: string, repositoryUrl: string | undefined, sourceCommit: string | undefined, message: string, observedAt: string): ForgeReceipt {
-    return { id: `forge-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`, status, provider: account.provider, accountId: account.id, ownerId, route, repositoryName, repositoryUrl, sourceCommit, message, observedAt };
+  private makeReceipt(status: ForgeReceiptStatus, account: ForgeAccount, ownerId: string, route: ForgePublishRoute, repositoryName: string, repositoryUrl: string | undefined, sourceCommit: string | undefined, message: string, observedAt: string): ForgePublicationReceipt {
+    return { kind: "publication", id: `forge-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`, status, provider: account.provider, accountId: account.id, ownerId, route, repositoryName, repositoryUrl, sourceCommit, message, observedAt };
+  }
+
+  private makeAccountReceipt(status: ForgeReceiptStatus, operation: ForgeAccountReceipt["operation"], account: ForgeAccount, message: string): ForgeAccountReceipt {
+    return { kind: "account", operation, id: `forge-account-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`, status, provider: account.provider, accountId: account.id, message, observedAt: this.#now().toISOString() };
   }
 }

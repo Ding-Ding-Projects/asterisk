@@ -46,6 +46,8 @@ export interface ControlPlaneDispatcherOptions {
   /** True when running under the hosted HTTP server rather than the desktop app. Gates
    *  the WSL-only actions above with an honest, named refusal instead of a stack trace. */
   hosted: boolean;
+  /** Public GitHub OAuth client id used only for the device flow. Never a credential. */
+  forgeDeviceClientId?: string;
 }
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
@@ -281,6 +283,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       executor: processExecutor,
       store: new FileForgeStateStore(join(userDataPath, 'forge-publishing.json')),
       history,
+      deviceClientId: options.forgeDeviceClientId,
     });
     return cachedForgePublisher;
   }
@@ -422,7 +425,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         }
         if (request.action === 'forge.accounts.list') {
           const result = await forge.listAccounts();
-          return { ok: result.status === 'succeeded', requestId: request.requestId, code: result.status === 'succeeded' ? undefined : `FORGE_${result.status.toUpperCase().replaceAll('-', '_')}`, message: result.status === 'succeeded' ? undefined : result.message, data: { accounts: result.data ?? forge.state().accounts, activeAccountId: forge.state().activeAccountId, receipts: forge.state().receipts, operation: forge.state().operation, corruption: forge.state().corruption, receipt: result.receipt, reauthAction: result.reauthAction } } as ControlPlaneResponse;
+          return { ok: result.status === 'succeeded' || result.status === 'pending', requestId: request.requestId, code: result.status === 'succeeded' || result.status === 'pending' ? undefined : `FORGE_${result.status.toUpperCase().replaceAll('-', '_')}`, message: result.message, data: { accounts: result.data ?? forge.state().accounts, activeAccountId: forge.state().activeAccountId, receipts: forge.state().receipts, operation: forge.state().operation, device: forge.state().device, corruption: forge.state().corruption, receipt: result.receipt, reauthAction: result.reauthAction } } as ControlPlaneResponse;
         }
         if (request.action === 'forge.account.add') {
           const result = await forge.addAccount((request.payload ?? {}) as import('./forge-publishing.js').ForgeAccountRequest);
@@ -458,13 +461,17 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (request.action === 'forge.operation.status') {
           return { ok: true, requestId: request.requestId, data: { operation: forge.state().operation } };
         }
+        if (request.action === 'forge.state.reset-corruption') {
+          const result = forge.resetCorruption();
+          return { ok: result.status === 'succeeded', requestId: request.requestId, code: result.status === 'succeeded' ? undefined : 'FORGE_CORRUPTION_RESET_FAILED', message: result.status === 'succeeded' ? undefined : result.message, data: { state: result.data } } as ControlPlaneResponse;
+        }
         if (request.action === 'forge.operation.cancel') {
           const result = forge.cancel();
           return { ok: result.status === 'cancelled', requestId: request.requestId, code: result.status === 'cancelled' ? undefined : 'FORGE_CANCEL_FAILED', message: result.status === 'cancelled' ? undefined : result.message, data: { operation: result.data } } as ControlPlaneResponse;
         }
         if (request.action === 'forge.auth.sign-in') {
           const result = await forge.signIn((request.payload ?? {}) as import('./forge-publishing.js').ForgeSignInRequest);
-          return { ok: result.status === 'succeeded', requestId: request.requestId, code: result.status === 'succeeded' ? undefined : `FORGE_${result.status.toUpperCase().replaceAll('-', '_')}`, message: result.status === 'succeeded' ? undefined : result.message, data: { accounts: result.data ?? forge.state().accounts, activeAccountId: forge.state().activeAccountId, receipt: result.receipt, operation: forge.state().operation, reauthAction: result.reauthAction } } as ControlPlaneResponse;
+          return { ok: result.status === 'succeeded' || result.status === 'pending', requestId: request.requestId, code: result.status === 'succeeded' || result.status === 'pending' ? undefined : `FORGE_${result.status.toUpperCase().replaceAll('-', '_')}`, message: result.message, data: { accounts: result.data ?? forge.state().accounts, activeAccountId: forge.state().activeAccountId, receipt: result.receipt, operation: forge.state().operation, device: forge.state().device, reauthAction: result.reauthAction } } as ControlPlaneResponse;
         }
       }
       if (request.action === 'server.connect' || request.action === 'pbx.snapshot') {

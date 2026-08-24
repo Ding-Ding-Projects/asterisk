@@ -246,10 +246,13 @@ export class App extends Base {
   private wrongUnlockCounts: Record<string, number> = {};
 
   private forgeStatus = 'Forge publishing has not loaded provider data yet.';
+  private forgeCorruption = '';
   private forgeSearch = '';
   private forgeAccounts: Array<Record<string, string | boolean>> = [];
   private forgeCapabilities: Array<Record<string, string>> = [];
   private forgeOperation: Record<string, string | number | boolean> = { status: 'idle', progress: 0, message: 'No forge operation is running.', cancellable: false };
+  private forgeDevice: Record<string, string> = { status: 'idle', message: 'No device sign-in is running.' };
+  private forgePollTimer: ReturnType<typeof setInterval> | undefined;
   private forgeOwners: Array<Record<string, string>> = [];
   private forgeReceipts: Array<Record<string, string>> = [];
   private forgeActiveAccountId = '';
@@ -296,6 +299,8 @@ export class App extends Base {
     super.componentWillUnmount?.();
     if (this.refreshTimer) clearInterval(this.refreshTimer);
     this.refreshTimer = undefined;
+    if (this.forgePollTimer) clearInterval(this.forgePollTimer);
+    this.forgePollTimer = undefined;
   }
 
   componentDidUpdate() {
@@ -319,16 +324,18 @@ export class App extends Base {
       }));
     }
     const response = await this.request('forge.accounts.list');
-    const data = response?.data as { accounts?: Array<Record<string, unknown>>; activeAccountId?: string; receipts?: Array<Record<string, unknown>>; operation?: Record<string, unknown>; corruption?: string; reauthAction?: string } | undefined;
+    const data = response?.data as { accounts?: Array<Record<string, unknown>>; activeAccountId?: string; receipts?: Array<Record<string, unknown>>; operation?: Record<string, unknown>; device?: Record<string, unknown>; corruption?: string; reauthAction?: string } | undefined;
+    this.forgeCorruption = data?.corruption ?? '';
     this.forgeActiveAccountId = typeof data?.activeAccountId === 'string' ? data.activeAccountId : '';
     this.forgeAccounts = (data?.accounts ?? []).map((account) => {
       const id = String(account.id ?? '');
       const login = String(account.login ?? '');
       const active = id === this.forgeActiveAccountId;
-      return { id, login, state: String(account.state ?? 'unknown'), tokenRef: String(account.tokenRef ?? 'vault reference unavailable'), active, activeLabel: active ? 'Active' : 'Use this', activeBg: active ? '#005230' : '#1B211C' };
+      return { id, login, state: String(account.state ?? 'unknown'), tokenRef: typeof account.tokenRef === 'string' ? account.tokenRef : 'OS credential reference unavailable', active, activeLabel: active ? 'Active' : 'Use this', activeBg: active ? '#005230' : '#1B211C' };
     });
     this.forgeReceipts = (data?.receipts ?? []).map((receipt) => ({ status: String(receipt.status ?? 'unknown'), message: String(receipt.message ?? ''), when: String(receipt.observedAt ?? '') })).slice(0, 12);
     if (data?.operation) this.forgeOperation = { status: String(data.operation.status ?? 'idle'), progress: Number(data.operation.progress ?? 0), message: String(data.operation.message ?? ''), cancellable: Boolean(data.operation.cancellable) };
+    if (data?.device) this.forgeDevice = { status: String(data.device.status ?? 'idle'), userCode: String(data.device.userCode ?? ''), verificationUri: String(data.device.verificationUri ?? ''), expiresAt: String(data.device.expiresAt ?? ''), message: String(data.device.message ?? '') };
     if (data?.corruption) this.forgeStatus = data.corruption;
     if (!response?.ok) {
       this.forgeStatus = data?.corruption ? `${data.corruption} ${response?.message ?? ''}`.trim() : (response?.message ?? 'The forge bridge did not answer.');
@@ -337,9 +344,29 @@ export class App extends Base {
     }
     this.forgeStatus = this.forgeAccounts.length > 0 ? `${this.forgeAccounts.length} provider account${this.forgeAccounts.length === 1 ? '' : 's'} loaded. Tokens stay in the operating-system vault.` : (data?.reauthAction ? 'No account is signed in. Re-authenticate beside this surface.' : 'No provider account was returned.');
     if (data?.corruption) this.forgeStatus = `${data.corruption} ${this.forgeStatus}`;
-    if (this.forgeActiveAccountId) await this.forgeLoadOwners();
+    if (this.forgeOperation.status === 'running') this.startForgeProgressPolling();
+    else if (this.forgeActiveAccountId) await this.forgeLoadOwners();
     this.forceUpdate();
   };
+
+  private startForgeProgressPolling(): void {
+    if (this.forgePollTimer) return;
+    this.forgePollTimer = setInterval(() => { void this.pollForgeProgress(); }, 1000);
+  }
+
+  private async pollForgeProgress(): Promise<void> {
+    const response = await this.request('forge.operation.status');
+    if (!response?.ok) return;
+    const operation = (response.data as { operation?: Record<string, unknown> }).operation;
+    if (!operation) return;
+    this.forgeOperation = { status: String(operation.status ?? 'idle'), progress: Number(operation.progress ?? 0), message: String(operation.message ?? ''), cancellable: Boolean(operation.cancellable) };
+    this.forceUpdate();
+    if (this.forgeOperation.status !== 'running') {
+      if (this.forgePollTimer) clearInterval(this.forgePollTimer);
+      this.forgePollTimer = undefined;
+      await this.forgeLoad();
+    }
+  }
 
   private forgeLoadOwners = async (): Promise<void> => {
     const response = await this.request('forge.owners.list', { payload: { accountId: this.forgeActiveAccountId } });
@@ -348,7 +375,11 @@ export class App extends Base {
       this.forceUpdate();
       return;
     }
-    const owners = ((response.data as { owners?: Array<Record<string, unknown>> }).owners ?? []).map((owner) => ({ id: String(owner.id ?? ''), label: `${String(owner.displayName ?? owner.login ?? '')} · ${String(owner.kind ?? '')}`, login: String(owner.login ?? ''), kind: String(owner.kind ?? '') }));
+    const owners = ((response.data as { owners?: Array<Record<string, unknown>> }).owners ?? []).map((owner) => {
+      const fork = owner.canForkRepository === true ? 'fork proven' : 'fork unknown';
+      const create = owner.canCreateRepository === true ? 'create proven' : 'create unknown';
+      return { id: String(owner.id ?? ''), label: `${String(owner.displayName ?? owner.login ?? '')} · ${String(owner.kind ?? '')} · ${fork}, ${create}`, login: String(owner.login ?? ''), kind: String(owner.kind ?? '') };
+    });
     this.forgeOwners = owners;
     this.forgeOwnerId = owners.some((owner) => owner.id === this.forgeOwnerId) ? this.forgeOwnerId : owners[0]?.id ?? '';
     this.forgeStatus = response.message ?? `${owners.length} personal and organization owner${owners.length === 1 ? '' : 's'} loaded from provider data.`;
@@ -377,6 +408,12 @@ export class App extends Base {
   private forgeCancel = async (): Promise<void> => {
     const response = await this.request('forge.operation.cancel');
     this.forgeStatus = response?.ok ? 'The forge operation was cancelled and its receipt was retained.' : (response?.message ?? 'No cancellable forge operation is running.');
+    await this.forgeLoad();
+  };
+
+  private forgeResetCorruption = async (): Promise<void> => {
+    const response = await this.request('forge.state.reset-corruption');
+    this.forgeStatus = response?.ok ? 'The corruption marker was reset. Retained receipts were not deleted.' : (response?.message ?? 'The corruption marker was not reset.');
     await this.forgeLoad();
   };
 
@@ -1839,7 +1876,7 @@ It is shown once. The phone needs it to register.`);
     let forgeMatcher: (value: string) => boolean = (value) => value.toLocaleLowerCase().includes(this.forgeSearch.trim().toLocaleLowerCase());
     if (forgePattern) {
       try {
-        const regex = new RegExp(forgePattern.slice(0, 256), (forgeShellState.regexFlags ?? ['i']).filter((flag, index, all) => all.indexOf(flag) === index).join(''));
+        const regex = new RegExp(forgePattern.slice(0, 256), (forgeShellState.regexFlags ?? ['i']).filter((flag, index, all) => flag !== 'g' && all.indexOf(flag) === index).join(''));
         forgeMatcher = (value) => regex.test(value);
       } catch (error) {
         forgeSearchError = error instanceof Error ? error.message : 'Invalid regular expression.';
@@ -1994,7 +2031,9 @@ It is shown once. The phone needs it to register.`);
         branches: [], branchName: '', commitCount: '0 commits',
         compareLabel: NO_HISTORY,
         forgeStatus: this.forgeStatus,
+        forgeCorrupt: Boolean(this.forgeCorruption),
         forgeOperation: this.forgeOperation,
+        forgeDevice: this.forgeDevice,
         forgeSearch: this.forgeSearch,
         forgeSearchDisplay: forgeSearchText,
         forgeAccounts: this.forgeAccounts.filter((account) => {
@@ -2010,19 +2049,20 @@ It is shown once. The phone needs it to register.`);
         forgeSourcePath: this.forgeSourcePath,
         forgeReceipts: this.forgeReceipts,
         forgeCancel: () => void this.forgeCancel(),
+        forgeResetCorruption: () => void this.forgeResetCorruption(),
         forgeLoad: () => void this.forgeLoad(),
         forgeAdd: () => void this.forgeAdd(),
         forgeReauth: () => void this.forgeAdd(),
         forgeOwnersLoad: () => void this.forgeLoadOwners(),
         forgeFork: () => void this.forgePublish('fork'),
         forgeCopyPush: () => void this.forgePublish('copy-and-push'),
-        onForgeSearch: (event: { target: { value: string } }) => { this.forgeSearch = event.target.value.slice(0, 256); this.setState({ patterns: { ...((this.state as { patterns?: Record<string, string[]> }).patterns ?? {}), forge: [] }, rxText: '' } as never); this.forceUpdate(); },
+        onForgeSearch: (event: { target: { value: string } }) => { this.forgeSearch = event.target.value.slice(0, 256); const prior = this.state as { patterns?: Record<string, string[]>; regexFlags?: string[] }; this.setState({ patterns: { ...(prior.patterns ?? {}), forge: [] }, regexFlags: (prior.regexFlags ?? ['i']).filter((flag) => flag !== 'g'), rxText: '' } as never); this.forceUpdate(); },
         onForgeOwner: (event: { target: { value: string } }) => { this.forgeOwnerId = event.target.value; this.forceUpdate(); },
         onForgeRepositoryName: (event: { target: { value: string } }) => { this.forgeRepositoryName = event.target.value.slice(0, 100); this.forceUpdate(); },
         onForgeSourceRemote: (event: { target: { value: string } }) => { this.forgeSourceRemote = event.target.value.slice(0, 4096); this.forceUpdate(); },
         onForgeSourcePath: (event: { target: { value: string } }) => { this.forgeSourcePath = event.target.value.slice(0, 4096); this.forceUpdate(); },
         forgePickSource: async () => { const path = await bridge?.dialog?.pickFolder?.(); if (path) { this.forgeSourcePath = path; this.forceUpdate(); } },
-        openForgeRegex: () => this.setState({ regexOpen: true, regexTarget: 'forge', regexX: '42%', regexY: '180px' }),
+        openForgeRegex: () => this.setState({ regexOpen: true, regexTarget: 'forge', regexX: '42%', regexY: '180px', regexFlags: ((this.state as { regexFlags?: string[] }).regexFlags ?? ['i']).filter((flag) => flag !== 'g') }),
       } : {}),
 
       // The agent rail has no local memory store wired in, so its rows and metrics stay empty.

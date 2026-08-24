@@ -712,11 +712,17 @@ function Template(v: any) {
                   h("span", { role: `status`, style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#FFD68A;`) },
                     `${S(v.forgeOperation.status)} ${S(v.forgeOperation.progress)}% · ${S(v.forgeOperation.message)}`
                   ),
+                  (v.forgeCorrupt ? h("button", { onClick: fn(v.forgeResetCorruption), style: sty(`background:transparent; border:1px solid #6B5A36; border-radius:999px; padding:7px 11px; color:#FFD68A; cursor:pointer;`) },
+                      "Reset visible corruption marker"
+                    ) : null),
                   h("div", { style: sty(`flex:1;`) }),
                   h("button", { onClick: fn(v.forgeLoad), style: sty(`background:#1B4D33; border:0; border-radius:999px; padding:8px 14px; color:#9FF7C4; font:inherit; cursor:pointer;`) },
                     "Refresh forge data"
                   )
                 ),
+                (v.forgeDevice.userCode ? h("div", { role: `status`, style: sty(`background:#0C110D; border:1px solid #6B5A36; border-radius:12px; padding:10px 12px; margin-bottom:10px; color:#FFD68A; font-family:'Roboto Mono',monospace; font-size:11px;`) },
+                    `${S(v.forgeDevice.message)} · Code: ${S(v.forgeDevice.userCode)} · URL: ${S(v.forgeDevice.verificationUri)} · Expires: ${S(v.forgeDevice.expiresAt)}`
+                  ) : null),
                 h("div", { style: sty(`display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;`) },
                   h("input", { type: `search`, "aria-label": `Search forge accounts`, value: v.forgeSearchDisplay, onInput: fn(v.onForgeSearch), placeholder: `Search accounts`, style: sty(`flex:1; min-width:220px; background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#DFE4DC; font:inherit;`) }),
                   h("button", { onClick: fn(v.openForgeRegex), "aria-label": `Open forge account regex builder`, style: sty(`background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; cursor:pointer;`) },
