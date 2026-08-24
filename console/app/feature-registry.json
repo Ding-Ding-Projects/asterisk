@@ -240,7 +240,7 @@
     },
     "attention-modes": {
       "state": "partial",
-      "note": "Implemented-unverified 2026-08-23. app/renderer/src/attention-modes.ts defines five independent off-by-default switches, exact ATTENTION_WIRING rows, ATTENTION_MUTATION_ACTIONS, redacted versioned notice history, and verifyAttentionWiring. App.tsx restores att_focus, att_low, att_time, att_one, att_momentum, att_next, and notice history from durable storage after mount. The application-lifetime runtime uses stable semantic design markers to dim inactive chrome without hiding work, applies quiet color and motion consumers, composes with prefers-reduced-motion, shows session and since-last-change values in the current work region, and gives Momentum a factual 20-minute prompt with a persisted 30-minute snooze bounded to the declared interval. Mode-key persistence and notice-history persistence have separate per-key pending, session-only, retry, and saved states. All App and generated notification producers route through typed notifyInfo, notifyWarning, notifyError, notifyInfoEvent, notifyWarningEvent, or notifyErrorEvent helpers, with no raw toast or fire producer calls. Warning and error history is bounded, redacted, versioned, durably restored, searchable, clearable, and exportable. One generated onUserMutation callback covers controls, steppers, appearance, canvas, layout, tabs, groups, presets, and direct App-owned endpoint, server, settings, file, ticket, lock, and authenticator mutations, excluding passive reads and navigation. SettingsRegistry rolls back its in-memory map when atomic host persistence fails and dispatch returns the typed failure. The checked-in design adds the att_next text control, stable semantic markers, exact mutation actions, real Group tabs by area, and an honest unavailable new-window action. No UI, accessibility, browser, or built-artifact verification was run in this lane, so this remains partial until the owning integration lane supplies that evidence. Nothing is medical, scored, or judgemental.",
+      "note": "Implemented-unverified 2026-08-24. The attention runtime keeps five independent off-by-default switches, and its canonical source inventory records every control row, durable key, writer chain, setter, generated mutation callback, and complete consumer marker. The canonical mutation inventory enumerates 61 direct and generated onUserMutation call sites with exact source spans, affected state, clock effect, and explicit passive exclusions. The canonical severity inventory enumerates 183 notification producer call sites with exact source spans, helper, expected severity, and passive routing markers; invalid input, unmet prerequisites, unavailable bridges, refused actions, and failed operations use warning or error severity. DurableStorageHandle.bootstrap returns the typed loaded, unavailable, malformed, or retryable union, retains the result, and exposes bounded retry. Redaction uses a bounded deterministic scanner for quoted and unquoted Windows, UNC, POSIX, relative, PBX, file URL, HTTP URL, and whitespace-bearing credential spans. No UI, accessibility, browser, or built-artifact verification was run in this lane, so built evidence remains unverified.",
       "files": [
         "app/renderer/src/attention-modes.ts",
         "app/renderer/src/App.tsx",
@@ -256,30 +256,9 @@
         "docs/platform/attention-modes.md",
         "tests/ui/attention-modes.test.tsx"
       ],
-      "wiring": [
-        { "control": "att_focus", "storageKey": "console.attention.focus", "writer": "generated setVal -> onUserMutation -> App.attentionWrite", "consumer": "App.attentionRender -> [data-attention-inactive=\"true\"]" },
-        { "control": "att_low", "storageKey": "console.attention.lowStimulation", "writer": "generated setVal -> onUserMutation -> App.attentionWrite", "consumer": "App.toast/App.fire explicit severity plus attention-low-stimulation" },
-        { "control": "att_time", "storageKey": "console.attention.timeAwareness", "writer": "generated setVal -> onUserMutation -> App.attentionWrite", "consumer": "App.attentionRender -> data-attention-meta status card" },
-        { "control": "att_one", "storageKey": "console.attention.oneThing", "writer": "generated setVal -> onUserMutation -> App.attentionWrite", "consumer": "App.attentionRender -> data-attention-next status card" },
-        { "control": "att_momentum", "storageKey": "console.attention.momentum", "writer": "generated setVal -> onUserMutation -> App.attentionWrite", "consumer": "App.attentionRender -> momentumPrompt plus attentionSnooze" },
-        { "control": "att_next", "storageKey": "console.attention.nextAction", "writer": "generated setVal -> onUserMutation; App.languageAwareSetVal -> setNextAction plus attentionWrite", "consumer": "App.attentionRender -> data-attention-next status card" }
-      ],
+      "wiring": "Canonical rows live in app/renderer/src/attention-modes.ts:ATTENTION_WIRING and are validated against design, App, generated renderer, and module source by verifyAttentionWiring. Each row independently names design control, exact App construction, durable key, writer markers, setter markers, and every full consumer marker.",
       "wiringChut": "app/renderer/src/attention-modes.ts:verifyAttentionWiring",
-      "notificationProducers": [
-        { "producer": "App.notifyInfo", "severity": "info", "consumer": "App.toast" },
-        { "producer": "App.notifyWarning", "severity": "warning", "consumer": "App.toast" },
-        { "producer": "App.notifyError", "severity": "error", "consumer": "App.toast" },
-        { "producer": "App.notifyInfoEvent", "severity": "info", "consumer": "App.fire" },
-        { "producer": "App.notifyWarningEvent", "severity": "warning", "consumer": "App.fire" },
-        { "producer": "App.notifyErrorEvent", "severity": "error", "consumer": "App.fire" },
-        { "producer": "ceremony.runCeremonyCommand", "severity": "explicit NoticeSeverity argument", "consumer": "App.notifyInfo/Warning/Error" },
-        { "producer": "generated game wrong tone", "severity": "warning", "consumer": "generated notifyWarning" },
-        { "producer": "generated codec order not quite", "severity": "warning", "consumer": "generated notifyWarning" },
-        { "producer": "generated match not a pair", "severity": "warning", "consumer": "generated notifyWarning" },
-        { "producer": "generated no credits", "severity": "warning", "consumer": "generated notifyWarning" },
-        { "producer": "generated credential prerequisites", "severity": "warning", "consumer": "generated notifyWarning" },
-        { "producer": "generated unavailable new window", "severity": "warning", "consumer": "generated notifyWarning" }
-      ],
+      "notificationProducers": "Canonical exhaustive 183-entry source inventory at app/renderer/src/attention-modes.ts:ATTENTION_SEVERITY_PRODUCERS, validated by verifyAttentionSeverityProducers; passive routing helpers are explicit entries and every active failure-like producer is warning or error.",
       "notificationHistory": {
         "key": "console.attention.noticeHistory",
         "schemaVersion": 1,
@@ -287,25 +266,8 @@
         "redaction": "redactNoticeText removes Windows, UNC, POSIX, relative, and PBX configuration paths, URLs, and credential-shaped values before durable write or export",
         "actions": ["search", "clear", "export", "restore", "show-corrupt-state", "reset-corrupt-state"]
       },
-      "mutationPaths": [
-        "App.languageAwareSetVal",
-        "App.fileSupportTicket",
-        "App.onAddServer",
-        "App.onRemoveServerRow",
-        "App.onboardConnect",
-        "App.onboardDeploy",
-        "App.writePjsip",
-        "App.lockNext",
-        "App.tryUnlock",
-        "App.randomiseAppearanceHue",
-        "App.resetAppearance",
-        "App.saveAppearance",
-        "App.onFilePicked",
-        "App.onFileCleared",
-        "App.attentionSnooze",
-        "App.attentionRetry",
-        "generated onUserMutation"
-      ],
+      "mutationInventory": { "source": "app/renderer/src/attention-modes.ts:ATTENTION_MUTATION_INVENTORY", "entries": 61, "validator": "app/renderer/src/attention-modes.ts:verifyAttentionMutationInventory", "passiveExclusions": "app/renderer/src/attention-modes.ts:ATTENTION_MUTATION_PASSIVE_EXCLUSIONS" },
+      "severityInventory": { "source": "app/renderer/src/attention-modes.ts:ATTENTION_SEVERITY_PRODUCERS", "entries": 183, "validator": "app/renderer/src/attention-modes.ts:verifyAttentionSeverityProducers" },
       "mutationActions": [
         { "action": "set", "key": "canvasTool", "state": "canvasTool" },
         { "action": "set", "key": "grid", "state": "grid" },

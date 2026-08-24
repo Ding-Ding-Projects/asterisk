@@ -51,10 +51,12 @@ function newRequestId(): string {
 
 export interface DurableStorageHandle {
   storage: DurableStorage;
-  /** Resolves once the initial snapshot has been loaded (or, with no bridge, resolves
-   *  immediately with an empty cache). Callers that restore persisted UI state at mount
-   *  should await this before reading, then re-render. */
-  bootstrap(): Promise<void>;
+  /** Loads the initial snapshot and retains the exact result, including failures. */
+  bootstrap(): Promise<DurableBootstrapResult>;
+  /** Retries only within the bounded retry budget. */
+  retryBootstrap(): Promise<DurableBootstrapResult>;
+  /** The last bootstrap result, retained for rendering and diagnostics. */
+  bootstrapResult(): DurableBootstrapResult | undefined;
   /** Writes one value and reports whether the main process acknowledged it. */
   writeItem(key: string, value: string): Promise<DurableWriteResult>;
   /** Removes one value and reports whether the main process acknowledged it. */
@@ -66,6 +68,13 @@ export interface DurableWriteResult {
   durable: boolean;
 }
 
+export const DURABLE_BOOTSTRAP_MAX_RETRIES = 3;
+export type DurableBootstrapResult =
+  | { status: 'loaded'; restoredKeys: number; attempt: number }
+  | { status: 'unavailable'; reason: 'bridge-missing'; attempt: number }
+  | { status: 'malformed'; reason: 'invalid-response' | 'invalid-values'; attempt: number }
+  | { status: 'retryable'; reason: 'request-failed' | 'refused'; attempt: number; retriesRemaining: number };
+
 /**
  * Builds one durable storage instance. With no bridge available (tests, or a host with
  * no preload), the cache still works for the lifetime of the session -- exactly the
@@ -74,31 +83,68 @@ export interface DurableWriteResult {
 export function createDurableStorage(bridge: DurableStorageBridge | undefined): DurableStorageHandle {
   const cache = new Map<string, string>();
   let bootstrapped = false;
-  let bootstrapPromise: Promise<void> | undefined;
+  let bootstrapPromise: Promise<DurableBootstrapResult> | undefined;
+  let result: DurableBootstrapResult | undefined;
+  let attempt = 0;
 
-  async function bootstrap(): Promise<void> {
-    if (bootstrapped) return;
+  async function bootstrap(): Promise<DurableBootstrapResult> {
+    if (bootstrapped && result) return result;
     if (bootstrapPromise) return bootstrapPromise;
     bootstrapPromise = (async () => {
-      if (!bridge) { bootstrapped = true; return; }
+      attempt += 1;
+      cache.clear();
+      result = undefined;
+      if (!bridge) {
+        result = { status: 'unavailable', reason: 'bridge-missing', attempt };
+        bootstrapped = true;
+        return result;
+      }
       try {
         const response = await bridge.controlPlane.request({ requestId: newRequestId(), action: 'settings.snapshot' });
-        if (response?.ok) {
-          const values = (response.data as { values?: Record<string, string> } | undefined)?.values;
-          if (values && typeof values === 'object') {
-            for (const [key, value] of Object.entries(values)) {
-              if (typeof value === 'string') cache.set(key, value);
+        if (!response) {
+          result = { status: 'retryable', reason: 'request-failed', attempt, retriesRemaining: Math.max(0, DURABLE_BOOTSTRAP_MAX_RETRIES - attempt) };
+        } else if (!response.ok) {
+          result = { status: 'retryable', reason: 'refused', attempt, retriesRemaining: Math.max(0, DURABLE_BOOTSTRAP_MAX_RETRIES - attempt) };
+        } else {
+          const data = response.data;
+          if (!data || typeof data !== 'object' || !('values' in data)) {
+            result = { status: 'malformed', reason: 'invalid-response', attempt };
+          } else {
+            const values = (data as { values?: unknown }).values;
+            if (!values || typeof values !== 'object' || Array.isArray(values)) {
+              result = { status: 'malformed', reason: 'invalid-values', attempt };
+            } else {
+              let restoredKeys = 0;
+              for (const [key, value] of Object.entries(values)) {
+                if (typeof value !== 'string') {
+                  result = { status: 'malformed', reason: 'invalid-values', attempt };
+                  cache.clear();
+                  break;
+                }
+                cache.set(key, value);
+                restoredKeys += 1;
+              }
+              if (!result || result.status !== 'malformed') result = { status: 'loaded', restoredKeys, attempt };
             }
           }
         }
       } catch {
-        // No snapshot to restore from; the cache stays empty, i.e. every renderer
-        // default applies, exactly like a missing settings.json on the main-process side.
-      } finally {
-        bootstrapped = true;
+        result = { status: 'retryable', reason: 'request-failed', attempt, retriesRemaining: Math.max(0, DURABLE_BOOTSTRAP_MAX_RETRIES - attempt) };
       }
+      bootstrapped = true;
+      return result!;
     })();
-    return bootstrapPromise;
+    try { return await bootstrapPromise; } finally { bootstrapPromise = undefined; }
+  }
+
+  async function retryBootstrap(): Promise<DurableBootstrapResult> {
+    if (result?.status === 'loaded') return result;
+    if (attempt >= DURABLE_BOOTSTRAP_MAX_RETRIES) {
+      if (result?.status === 'retryable') return result;
+      return result ?? { status: 'unavailable', reason: 'bridge-missing', attempt };
+    }
+    bootstrapped = false;
+    return bootstrap();
   }
 
   const pending = new Map<string, { kind: 'write' | 'remove'; value?: string; promise: Promise<DurableWriteResult> }>();
@@ -149,5 +195,5 @@ export function createDurableStorage(bridge: DurableStorageBridge | undefined): 
     },
   };
 
-  return { storage, bootstrap, writeItem, removeItem };
+  return { storage, bootstrap, retryBootstrap, bootstrapResult: () => result, writeItem, removeItem };
 }

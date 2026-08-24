@@ -12,6 +12,7 @@ import test from 'node:test';
 import {
   ATTENTION_MODES, FORBIDDEN_COPY_TERMS, IDLE_THRESHOLD_MS, MODE_DESCRIPTIONS, SNOOZE_MS,
   elapsedPhrase, enabledModes, isAttentionMode, modeEnabled, momentumPrompt, presentationFor,
+  redactNoticeText,
   setModeEnabled, type AttentionMode, type ModeStorage,
 } from '../../app/renderer/src/attention-modes.ts';
 
@@ -199,4 +200,24 @@ test('momentum changes no presentation state at all, only whether a prompt is du
     dimInactive: false, reduceMotion: false, quietNotifications: false,
     showElapsedTime: false, showNextAction: false,
   });
+});
+
+test('redaction consumes every quoted and unquoted path, URL, and credential span', () => {
+  const fixtures = [
+    ['windows', 'C:\\Program Files\\Ding PBX\\settings', '[path omitted]'],
+    ['unc', '\\\\server\\share\\folder\\config', '[path omitted]'],
+    ['posix', '/var/lib/asterisk/config', '[path omitted]'],
+    ['relative', '../console data/config', '[path omitted]'],
+    ['pbx', 'pjsip.conf', '[path omitted]'],
+    ['file-url', 'file:///C:/Program Files/Ding PBX/settings', '[url omitted]'],
+    ['http-url', 'https://example.invalid/path/to/item', '[url omitted]'],
+    ['quoted-path', '"C:\\Program Files\\Ding PBX\\settings"', '"[path omitted]"'],
+    ['quoted-url', '"https://example.invalid/path with spaces"', '"[url omitted]"'],
+    ['credential', 'password: alpha beta gamma, next', 'password: [redacted], next'],
+    ['quoted-credential', 'token="alpha beta gamma" suffix', 'token="[redacted]" suffix'],
+  ] as const;
+  for (const [name, input, expected] of fixtures) {
+    assert.equal(redactNoticeText(input), expected, `${name} fixture was not consumed as one span`);
+  }
+  assert.ok(redactNoticeText('x'.repeat(8000)).length <= 500, 'redaction output exceeded its bound');
 });

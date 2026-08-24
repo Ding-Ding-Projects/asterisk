@@ -20,7 +20,7 @@ import {
 import {
   clearVocabulary, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
 } from './personal-vocabulary';
-import { createDurableStorage, type DurableStorageHandle } from './durable-storage';
+import { createDurableStorage, type DurableBootstrapResult, type DurableStorageHandle } from './durable-storage';
 import {
   isLanguageMode, languageMode, setCatalog, setLanguageMode, setVocabularyStorage,
   type LanguageMode,
@@ -208,6 +208,7 @@ export class App extends Base {
     'att_time': 'timeAwareness',
     'att_one': 'oneThing',
     'att_momentum': 'momentum',
+    'att_next': 'nextAction',
   };
 
   /** The shell's own `setVal`, captured so the override below can delegate to it.
@@ -236,6 +237,7 @@ export class App extends Base {
   private attentionNoticeHistory: Array<{ severity: 'warning' | 'error'; title: string; body: string }> = [];
   private attentionHistoryQuery = '';
   private attentionHistoryCorrupt = false;
+  private durableBootstrapState: DurableBootstrapResult | undefined;
 
   /** Single generated-renderer mutation callback. Direct App-owned mutation paths
    * call this too, so the last-change clock has one source rather than a scattered
@@ -383,6 +385,10 @@ export class App extends Base {
     const failed = [...this.attentionFailedKeys.keys()].join(', ');
     const sessionOnly = [...this.attentionSessionOnlyKeys.keys()].join(', ');
     const notices: string[] = [];
+    if (this.durableBootstrapState && this.durableBootstrapState.status !== 'loaded') {
+      const state = this.durableBootstrapState;
+      notices.push(`Attention settings were not restored: durable snapshot is ${state.status}. Current controls remain safe defaults until restore succeeds.`);
+    }
     if (this.attentionModePersistenceState === 'pending') notices.push(`Saving attention keys: ${pending || 'mode settings'}.`);
     if (this.attentionModePersistenceState === 'session-only') notices.push(`Session-only attention keys: ${sessionOnly || pending || 'mode settings'}. The desktop bridge is unavailable.`);
     if (this.attentionModePersistenceState === 'retry') notices.push(`Attention keys needing retry: ${failed || pending || 'mode settings'}. Current values remain active.`);
@@ -438,6 +444,21 @@ export class App extends Base {
     if (pending.length === 0) return;
     for (const [key, entry] of pending) this.attentionWrite(key, entry.value);
   }
+
+  private attentionRetryBootstrap = (): void => {
+    void this.durableStorage.retryBootstrap().then((state) => {
+      this.durableBootstrapState = state;
+      if (state.status === 'loaded') {
+        this.restoreLanguageMode();
+        this.restoreDisplayName();
+        this.restoreAppearance();
+        this.restoreAttention();
+        this.restoreAttentionHistory();
+      }
+      this.forceUpdate();
+      this.attentionRender();
+    });
+  };
 
   /** Restores all five independent switches and the chosen next action from the one
    * durable storage handle before the compiled controls are refreshed. */
@@ -553,7 +574,8 @@ export class App extends Base {
     );
     const shouldShow = presentation.showElapsedTime || presentation.showNextAction || prompt.show
       || this.attentionModePersistenceState !== 'saved' || this.attentionHistoryPersistenceState !== 'saved'
-      || this.attentionNoticeHistory.length > 0 || this.attentionHistoryCorrupt;
+      || this.attentionNoticeHistory.length > 0 || this.attentionHistoryCorrupt
+      || (this.durableBootstrapState !== undefined && this.durableBootstrapState.status !== 'loaded');
     status.hidden = !shouldShow;
     status.replaceChildren();
     if (!shouldShow) return;
@@ -585,7 +607,15 @@ export class App extends Base {
       const notice = document.createElement('div');
       notice.textContent = persistence;
       status.append(notice);
-      if (this.attentionModePersistenceState === 'retry' || this.attentionHistoryPersistenceState === 'retry') {
+      if (this.durableBootstrapState && this.durableBootstrapState.status !== 'loaded') {
+        const retryRestore = document.createElement('button');
+        retryRestore.type = 'button';
+        const exhausted = this.durableBootstrapState.attempt >= 3;
+        retryRestore.textContent = exhausted ? 'Restore retry limit reached' : 'Retry restoring attention settings';
+        retryRestore.disabled = exhausted;
+        retryRestore.addEventListener('click', () => this.attentionRetryBootstrap(), { once: true });
+        status.append(retryRestore);
+      } else if (this.attentionModePersistenceState === 'retry' || this.attentionHistoryPersistenceState === 'retry') {
         const retry = document.createElement('button');
         retry.type = 'button';
         retry.textContent = 'Retry saving attention settings';
@@ -654,13 +684,19 @@ export class App extends Base {
      * at construction keeps the uploaded file and the rendered text reading from one
      * storage handle instead of two that can disagree. */
     setVocabularyStorage(this.vocabStorage);
-    void this.durableStorage.bootstrap().then(() => {
+    void this.durableStorage.bootstrap().then((state) => {
+      this.durableBootstrapState = state;
+      if (state.status !== 'loaded') {
+        this.attentionRender();
+        return;
+      }
       this.restoreLanguageMode();
       this.restoreDisplayName();
       this.restoreAppearance();
       this.restoreAttention();
       this.restoreAttentionHistory();
       this.forceUpdate();
+      this.attentionRender();
     });
     /* The configured server list is not a reading from any PBX — it exists before
      * anything is reachable and must be on screen whether or not discovery finds a
@@ -2147,7 +2183,7 @@ It is shown once. The phone needs it to register.`);
    *  happened. */
   private exportAppearance(): void {
     if (typeof document === 'undefined') {
-      this.notifyMessage('Export is not available in this environment.');
+      this.notifyWarning('Export is not available in this environment.');
       return;
     }
     const json = exportTheme(this.buildAppearanceTheme(this.currentAppearanceValues()));
