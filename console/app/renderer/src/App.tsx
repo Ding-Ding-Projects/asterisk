@@ -899,6 +899,34 @@ What you can do: ${offered}.` : ''}`);
         try { this.durableStorage.storage.setItem(key, value); return true; } catch { return false; }
       },
       now: () => new Date().toISOString().slice(0, 10),
+      /**
+       * Picks a colour from anywhere on the screen.
+       *
+       * Chromium has had this since version 95 and this runtime is far past it; the control
+       * simply never called it. It needs a user gesture, which the menu click supplies.
+       *
+       * Resolves undefined rather than throwing when the person presses Escape, because a
+       * cancelled pick is an ordinary outcome and not a failure to report as one.
+       */
+      pickColour: async () => {
+        const Picker = (globalThis as { EyeDropper?: new () => { open(): Promise<{ sRGBHex: string }> } }).EyeDropper;
+        if (!Picker) return undefined;
+        try { return (await new Picker().open()).sRGBHex; } catch { return undefined; }
+      },
+      /* Applied through the same three values the appearance system already persists, so a
+       * picked colour changes the console itself rather than a preview swatch. */
+      applyAccent: (hex: string) => {
+        const translated = translateColour(hex);
+        const hsl = translated?.hsl;
+        if (!hsl) return false;
+        const numbers = hsl.match(/-?\d+(?:\.\d+)?/gu);
+        if (!numbers || numbers.length < 3) return false;
+        const [hue, sat, light] = numbers.map(Number);
+        this.setState((st: { values: Record<string, unknown> }) => ({
+          values: { ...st.values, ap_hue: hue, ap_sat: sat, ap_light: light },
+        }));
+        return true;
+      },
     }).then((outcome) => {
       if (outcome.ok) this.toast(`${outcome.title} — ${outcome.detail}`);
       else this.fire(outcome.title, outcome.detail);

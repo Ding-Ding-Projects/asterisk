@@ -15,7 +15,7 @@
  * be tested without a clipboard, a filesystem or a browser.
  */
 
-export type HostActionKind = 'copy' | 'copy-config' | 'export-config' | 'export-json' | 'import-json' | 'save';
+export type HostActionKind = 'copy' | 'copy-config' | 'export-config' | 'export-json' | 'import-json' | 'save' | 'pick-colour';
 
 export interface HostActionRequest {
   kind: HostActionKind;
@@ -45,6 +45,10 @@ export interface HostActionEffects {
   requestFile(accept: string): Promise<{ name: string; text: string } | undefined>;
   /** Local, durable, and never a network call. */
   store(key: string, value: string): boolean;
+  /** The platform colour picker. undefined when unavailable or when the person cancelled. */
+  pickColour?(): Promise<string | undefined>;
+  /** Makes the picked colour the real accent. false when it could not be read as a colour. */
+  applyAccent?(hex: string): boolean;
   now(): string;
 }
 
@@ -74,11 +78,33 @@ export async function runHostAction(
       return importFile(request, effects);
     case 'save':
       return save(request, effects);
+    case 'pick-colour':
+      return pickColour(effects);
     default:
       /* Named rather than swallowed: a control wired to an action nobody implemented
        * should say so, not quietly succeed. */
       return { ok: false, title: 'Not done', detail: `Nothing here knows how to do "${String(request.kind)}".` };
   }
+}
+
+/**
+ * Picks a colour off the screen and makes it the accent.
+ *
+ * Three outcomes worth telling apart, because the old control collapsed all of them into
+ * one cheerful sentence: the platform cannot do this at all, the person changed their mind,
+ * and it worked.
+ */
+async function pickColour(effects: HostActionEffects): Promise<HostActionOutcome> {
+  if (!effects.pickColour || !effects.applyAccent) {
+    return { ok: false, title: 'Not available', detail: 'This runtime has no screen colour picker, so nothing was picked.' };
+  }
+  const hex = await effects.pickColour();
+  if (hex === undefined) {
+    return { ok: false, title: 'Nothing picked', detail: 'No colour was chosen, so the accent is unchanged.' };
+  }
+  return effects.applyAccent(hex)
+    ? { ok: true, title: 'Accent changed', detail: hex + ' is the accent now, and it is kept when you relaunch.' }
+    : { ok: false, title: 'Not applied', detail: hex + ' could not be read as a colour, so the accent is unchanged.' };
 }
 
 async function copy(request: HostActionRequest, effects: HostActionEffects): Promise<HostActionOutcome> {

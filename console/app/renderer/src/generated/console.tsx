@@ -5387,7 +5387,6 @@ class ConsoleShell extends DCLogic {
             { icon:'close', label:'Close tab', hint:'⌃W', run:() => { close(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:t[0] || 'dash' }); } },
             { icon:'save', label:'Export & import', hint:'▸', sub:'tabexport' },
             { icon:'folder', label:'Group tabs by area', hint:'', run:() => { close(); this.toast('Tabs grouped by rail area'); } },
-            { icon:'open_in_new', label:'Move to new window', hint:'', run:() => { close(); this.toast('Tab detached to its own window'); } },
             { icon:'dock_to_right', label:'Dock this tab right', hint:'', run:() => { close(); this.set('dock', 'right'); } },
             { icon:'lock', label:'Lock this tab…', hint:'⌃L', run:common[0].run }
           ]);
@@ -5521,7 +5520,7 @@ class ConsoleShell extends DCLogic {
         { icon:'casino', label:'Surprise me', run:() => { this.setVal({ id:'ap_hue', label:'Hue' }, Math.floor(Math.random() * 360)); this.fire('Bold choice', 'Nobody will ever say it is boring.'); } },
         { icon:'gradient', label:'Rainbow it', run:() => this.setVal({ id:'ap_rainbow', label:'Rainbow fill', kind:'switch' }, true) },
         { icon:'contrast', label:'Fix contrast', run:() => { this.setVal({ id:'ap_light', label:'Lightness' }, 72); this.toast('Lightness raised to meet contrast against the surface'); } },
-        { icon:'colorize', label:'Pick from screen', run:() => this.toast('Eyedropper armed — click any pixel in the console') }
+        { icon:'colorize', label:'Pick from screen', run:() => this.hostAction('pick-colour', {}) }
       ],
       colorFormats:(() => { const h = this.v('ap_hue', 148), sa = this.v('ap_sat', 54), l = this.v('ap_light', 68);
         return [['hsl', 'hsl(' + h + ' ' + sa + '% ' + l + '%)'], ['oklch', 'oklch(' + (l / 100).toFixed(2) + ' 0.12 ' + h + ')'], ['hex', '#' + Math.floor(h * 0.7).toString(16).padStart(2, '0') + Math.floor(sa * 2.4).toString(16).padStart(2, '0') + Math.floor(l * 2.4).toString(16).padStart(2, '0')], ['css var', '--accent']]

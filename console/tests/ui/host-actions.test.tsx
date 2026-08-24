@@ -182,3 +182,35 @@ test('every outcome carries a title and a detail, success or not', async () => {
     assert.ok(outcome.title.length > 0 && outcome.detail.length > 0, JSON.stringify(outcome));
   }
 });
+
+/* --- picking a colour off the screen ------------------------------------------------- */
+
+test('a picked colour becomes the accent and says it is kept', async () => {
+  const applied: string[] = [];
+  const { effects: fx } = effects({
+    pickColour: async () => '#3366ff',
+    applyAccent: (hex) => { applied.push(hex); return true; },
+  });
+  const out = await runHostAction({ kind: 'pick-colour' }, fx);
+  assert.equal(out.ok, true);
+  assert.deepEqual(applied, ['#3366ff']);
+  assert.match(out.detail, /kept when you relaunch/);
+});
+
+test('the three ways picking can end are told apart', async () => {
+  /* The old control collapsed all of them into one cheerful sentence about an eyedropper
+   * it had not armed. */
+  const noPicker = await runHostAction({ kind: 'pick-colour' }, effects().effects);
+  assert.equal(noPicker.ok, false);
+  assert.match(noPicker.detail, /no screen colour picker/);
+
+  const cancelled = await runHostAction({ kind: 'pick-colour' },
+    effects({ pickColour: async () => undefined, applyAccent: () => true }).effects);
+  assert.equal(cancelled.ok, false);
+  assert.match(cancelled.detail, /No colour was chosen, so the accent is unchanged/);
+
+  const unreadable = await runHostAction({ kind: 'pick-colour' },
+    effects({ pickColour: async () => 'not a colour', applyAccent: () => false }).effects);
+  assert.equal(unreadable.ok, false);
+  assert.match(unreadable.detail, /could not be read as a colour, so the accent is unchanged/);
+});

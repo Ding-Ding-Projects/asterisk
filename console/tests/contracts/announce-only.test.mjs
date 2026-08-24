@@ -39,11 +39,9 @@ const STILL_ANNOUNCING = new Map([
   ['Lock every tab in group', 'needs the per-element lock wizard to accept a whole group'],
   ['Restore last session', 'needs the tab session to be persisted first; nothing writes it yet'],
   ['Group tabs by area', 'needs the tab model to accept a bulk regroup'],
-  ['Move to new window', 'the console is a single window; this cannot be done at all and should be removed rather than fixed'],
   ['Whole word only', 'needs the table search to carry a whole-word option'],
   ['Duplicate step', 'needs the dialplan canvas to accept an inserted node'],
   ['Insert condition before', 'needs the dialplan canvas to accept an inserted node'],
-  ['Pick from screen', 'needs the EyeDropper API, which is not available in this runtime'],
   ['Export', 'the bulk-selection Export shares a label with the appearance Export; it needs the selection model to produce rows'],
 ]);
 
