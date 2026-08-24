@@ -35,9 +35,32 @@ export const COLOUR_FORMATS: ColourFormat[] = [
   'hex', 'rgb', 'hsl', 'hsv', 'hwb', 'cmyk', 'lab', 'lch', 'oklab', 'oklch', 'name',
 ];
 
-/** Formats whose canonical string representation carries an alpha channel. */
+/** Formats whose canonical output preserves alpha, including fallback output for names. */
 export function formatCarriesAlpha(format: ColourFormat): boolean {
-  return format === 'hex' || format === 'rgb' || format === 'hsl' || format === 'hsv' || format === 'hwb';
+  return COLOUR_FORMATS.includes(format);
+}
+
+export interface ColourWarning {
+  readonly code: 'clipped-to-srgb' | 'alpha-clipped' | 'no-exact-name' | 'invalid';
+  readonly message: string;
+}
+
+export interface ColourTranslation {
+  readonly source: string;
+  readonly colour: Colour;
+  readonly sourceFormat: ColourFormat;
+  readonly representations: Readonly<Record<ColourFormat, string>>;
+  readonly alpha: number;
+  readonly outOfSrgbGamut: boolean;
+  readonly inputClipped: boolean;
+  readonly warnings: ReadonlyArray<ColourWarning>;
+}
+
+export interface ContinuousColourCoordinates {
+  readonly hue: number;
+  readonly saturation: number;
+  readonly lightness: number;
+  readonly alpha: number;
 }
 
 // ---------------------------------------------------------------- Small numeric helpers
@@ -586,25 +609,30 @@ export function formatColour(colour: Colour, format: ColourFormat): string {
     }
     case 'cmyk': {
       const [c, m, y, k] = rgbToCmyk(r, g, b);
-      return `cmyk(${round(c, 1)}%, ${round(m, 1)}%, ${round(y, 1)}%, ${round(k, 1)}%)`;
+      const body = `${round(c, 1)}%, ${round(m, 1)}%, ${round(y, 1)}%, ${round(k, 1)}%`;
+      return hasAlpha ? `cmyk(${body}, ${round(a, 3)})` : `cmyk(${body})`;
     }
     case 'lab': {
       const [L, la, lb] = rgbToLab(r, g, b);
-      return `lab(${round(L, 3)}, ${round(la, 3)}, ${round(lb, 3)})`;
+      const body = `${round(L, 3)}, ${round(la, 3)}, ${round(lb, 3)}`;
+      return hasAlpha ? `lab(${body}, ${round(a, 3)})` : `lab(${body})`;
     }
     case 'lch': {
       const [L, la, lb] = rgbToLab(r, g, b);
       const [C, H] = toPolar(la, lb);
-      return `lch(${round(L, 3)}, ${round(C, 3)}, ${round(H, 2)})`;
+      const body = `${round(L, 3)}, ${round(C, 3)}, ${round(H, 2)}`;
+      return hasAlpha ? `lch(${body}, ${round(a, 3)})` : `lch(${body})`;
     }
     case 'oklab': {
       const [L, oa, ob] = rgbToOklab(r, g, b);
-      return `oklab(${round(L, 5)}, ${round(oa, 5)}, ${round(ob, 5)})`;
+      const body = `${round(L, 5)}, ${round(oa, 5)}, ${round(ob, 5)}`;
+      return hasAlpha ? `oklab(${body}, ${round(a, 3)})` : `oklab(${body})`;
     }
     case 'oklch': {
       const [L, oa, ob] = rgbToOklab(r, g, b);
       const [C, H] = toPolar(oa, ob);
-      return `oklch(${round(L, 5)}, ${round(C, 5)}, ${round(H, 2)})`;
+      const body = `${round(L, 5)}, ${round(C, 5)}, ${round(H, 2)}`;
+      return hasAlpha ? `oklch(${body}, ${round(a, 3)})` : `oklch(${body})`;
     }
     case 'name': {
       const key = `${r},${g},${b}`;
@@ -628,6 +656,71 @@ export function translate(value: string): Record<ColourFormat, string> | undefin
     out[format] = formatColour(colour, format);
   }
   return out;
+}
+
+function detectColourFormat(value: string): ColourFormat | undefined {
+  const raw = value.trim().toLowerCase();
+  if (/^#?[0-9a-f]{3,8}$/.test(raw)) return 'hex';
+  const match = raw.match(/^([a-z]+)\s*\(/);
+  if (match) {
+    const aliases: Record<string, ColourFormat> = {
+      rgba: 'rgb', hsla: 'hsl', hsva: 'hsv', hsb: 'hsv', hsba: 'hsv',
+      rgb: 'rgb', hsl: 'hsl', hsv: 'hsv', hwb: 'hwb', cmyk: 'cmyk',
+      lab: 'lab', lch: 'lch', oklab: 'oklab', oklch: 'oklch',
+    };
+    return aliases[match[1]];
+  }
+  const nameKey = raw.replace(/\s+/g, '');
+  return Object.prototype.hasOwnProperty.call(NAMED_COLOURS, nameKey) ? 'name' : undefined;
+}
+
+/**
+ * Translate through one parsed colour while retaining alpha in every output
+ * and reporting when a wide-gamut source had to be clipped to sRGB.
+ */
+export function translateColour(value: string): ColourTranslation | undefined {
+  const sourceFormat = detectColourFormat(value);
+  const colour = parseColour(value);
+  if (!sourceFormat || !colour) return undefined;
+
+  const representations = translate(value);
+  if (!representations) return undefined;
+  const outOfSrgbGamut = isOutOfGamut(sourceFormat, value);
+  const inputClipped = inputRequiresClipping(sourceFormat, value);
+  const warnings: ColourWarning[] = [];
+  if (inputClipped) {
+    warnings.push({
+      code: 'clipped-to-srgb',
+      message: `${sourceFormat} source contains values outside its display range and was clipped for sRGB display; the source representation remains available to the caller.`,
+    });
+  }
+  if (alphaRequiresClipping(value)) warnings.push({
+    code: 'alpha-clipped',
+    message: 'Source alpha is outside [0, 1] and was clipped for display.',
+  });
+  if (sourceFormat !== 'name' && representations.name.startsWith('#')) {
+    warnings.push({
+      code: 'no-exact-name',
+      message: 'No exact named colour exists; the name representation uses the alpha-preserving hexadecimal value.',
+    });
+  }
+  return { source: value, colour, sourceFormat, representations, alpha: colour.a, outOfSrgbGamut, inputClipped, warnings };
+}
+
+/** Continuous HSL coordinates for a two-dimensional field plus hue and alpha controls. */
+export function colourFromContinuousCoordinates(coordinates: ContinuousColourCoordinates): Colour {
+  const [r, g, b] = hslToRgb(coordinates.hue, coordinates.saturation, coordinates.lightness);
+  return {
+    r: clamp(r, 0, 255),
+    g: clamp(g, 0, 255),
+    b: clamp(b, 0, 255),
+    a: clamp(coordinates.alpha, 0, 1),
+  };
+}
+
+export function continuousCoordinatesFor(colour: Colour): ContinuousColourCoordinates {
+  const [hue, saturation, lightness] = rgbToHsl(colour.r, colour.g, colour.b);
+  return { hue, saturation, lightness, alpha: clamp(colour.a, 0, 1) };
 }
 
 // ---------------------------------------------------------------- WCAG accessibility
@@ -718,11 +811,76 @@ export function clipToGamut(colour: Colour): { colour: Colour; clipped: boolean 
  * or feed through a translator. It must never enter a palette of real
  * colours: appending alpha or otherwise treating it as a colour string
  * produces a silently-ignored declaration, not an error.
+ * Legacy string callers retain this exact marker. Versioned appearance models
+ * store RainbowValue objects and never place this string in a colour palette.
  */
 export const RAINBOW = '__rainbow__';
 
-export function isRainbow(value: string): boolean {
-  return value === RAINBOW;
+export type RainbowSpeedLevel = 1 | 2 | 3 | 4 | 5;
+
+export interface RainbowValue {
+  readonly kind: 'rainbow';
+  readonly reducedMotionHue: number;
+}
+
+function outside(value: number, minimum: number, maximum: number): boolean {
+  return !Number.isFinite(value) || value < minimum || value > maximum;
+}
+
+/** Reports source components that parsing would clamp or normalize. */
+export function inputRequiresClipping(format: ColourFormat, value: string): boolean {
+  if (isOutOfGamut(format, value)) return true;
+  const match = value.trim().toLowerCase().match(/^([a-z]+)\s*\(([^)]*)\)$/);
+  if (!match) return false;
+  const parts = splitComponents(match[2]);
+  if (format === 'rgb' && parts.length >= 3) {
+    return parts.slice(0, 3).some((part) => outside(parsePercentOrNumber(part, 255), 0, 255));
+  }
+  if (format === 'hsl' && parts.length >= 3) {
+    return outside(parsePercentOrNumber(parts[1]), 0, 100) || outside(parsePercentOrNumber(parts[2]), 0, 100);
+  }
+  if (format === 'hsv' && parts.length >= 3) {
+    return outside(parsePercentOrNumber(parts[1]), 0, 100) || outside(parsePercentOrNumber(parts[2]), 0, 100);
+  }
+  if (format === 'hwb' && parts.length >= 3) {
+    const white = parsePercentOrNumber(parts[1]);
+    const black = parsePercentOrNumber(parts[2]);
+    return outside(white, 0, 100) || outside(black, 0, 100) || white + black > 100;
+  }
+  if (format === 'cmyk' && parts.length >= 4) {
+    return parts.slice(0, 4).some((part) => outside(parsePercentOrNumber(part), 0, 100));
+  }
+  return false;
+}
+
+function alphaRequiresClipping(value: string): boolean {
+  const match = value.trim().toLowerCase().match(/^([a-z]+)\s*\(([^)]*)\)$/);
+  if (!match) return false;
+  const kind = match[1];
+  const parts = splitComponents(match[2]);
+  const componentCount: Record<string, number> = {
+    rgb: 3, rgba: 3, hsl: 3, hsla: 3, hsv: 3, hsva: 3, hsb: 3, hsba: 3,
+    hwb: 3, cmyk: 4, lab: 3, lch: 3, oklab: 3, oklch: 3,
+  };
+  const count = componentCount[kind];
+  if (count === undefined || parts.length <= count) return false;
+  const raw = parts[count].endsWith('%') ? parseFloat(parts[count]) / 100 : parseFloat(parts[count]);
+  return outside(raw, 0, 1);
+}
+
+export function rainbowValue(reducedMotionHue = 148): RainbowValue {
+  if (!Number.isFinite(reducedMotionHue)) {
+    throw new Error(`rainbowValue: reducedMotionHue must be finite, got ${reducedMotionHue}`);
+  }
+  return { kind: 'rainbow', reducedMotionHue: ((reducedMotionHue % 360) + 360) % 360 };
+}
+
+export function isRainbow(value: unknown): value is RainbowValue | typeof RAINBOW {
+  return value === RAINBOW || (
+    value !== null
+    && typeof value === 'object'
+    && (value as { kind?: unknown }).kind === 'rainbow'
+  );
 }
 
 const RAINBOW_DURATIONS_MS: Record<number, number> = {
@@ -734,10 +892,27 @@ const RAINBOW_DURATIONS_MS: Record<number, number> = {
 };
 
 /** Level 1 (slowest) through 5 (fastest). Any other level is refused by name. */
-export function rainbowDurationMs(level: number): number {
+export function rainbowDurationMs(level: RainbowSpeedLevel | number): number {
   const duration = RAINBOW_DURATIONS_MS[level];
   if (duration === undefined) {
     throw new Error(`rainbowDurationMs: level must be an integer 1..5, got ${level}`);
   }
   return duration;
+}
+
+/** Reduced motion always settles the rainbow marker onto one deterministic hue. */
+export function resolveRainbow(value: RainbowValue, reducedMotion: boolean, level: RainbowSpeedLevel): {
+  readonly cssColour: string;
+  readonly animated: boolean;
+  readonly durationMs?: number;
+} {
+  const hue = ((value.reducedMotionHue % 360) + 360) % 360;
+  if (reducedMotion) {
+    return { cssColour: `hsl(${round(hue, 2)} 70% 50%)`, animated: false };
+  }
+  return {
+    cssColour: 'hsl(var(--appearance-rainbow-hue) 70% 50%)',
+    animated: true,
+    durationMs: rainbowDurationMs(level),
+  };
 }
