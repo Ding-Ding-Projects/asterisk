@@ -2145,7 +2145,8 @@ const SCREENS = {
       ctl('i_invalid','On invalid entry','segmented','Repeat',{ options:['Repeat','Operator','Voicemail','Hangup'] }),
       ctl('i_direct','Allow direct extension dial','switch',true),
       ctl('i_lang','Prompt language','select','en',{ options:['en','es','fr','de','zh'] }),
-      ctl('i_barge','Allow barge-in over prompt','switch',true)
+      ctl('i_barge','Allow barge-in over prompt','switch',true),
+      ctl('i_plan','The dialplan this makes','text','',{ action:'ivr-dialplan', info:'These controls do not map onto settings, because extensions.conf has no key called retries -- they describe an IVR, and an IVR is a shape made out of exten lines. This is exactly what would be written, so it can be read first: a form that silently writes call routing is a form nobody should trust.' })
     ]}] },
   queues:{ rail:'pbx', icon:'groups', label:'Queues & agents', badge:'4', title:'Queues & agents', file:'queues.conf', kind:'table',
     sub:'Ring strategy, penalties and service level, all lifted from queues.conf. Agents are dragged between queues on the canvas.',

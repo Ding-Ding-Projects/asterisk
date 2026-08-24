@@ -56,6 +56,7 @@ import {
   type PaletteEntry, type PaletteMatch,
 } from './command-palette';
 import { runHostAction, type HostActionKind, type HostActionRequest } from './host-actions';
+import { generateIvr, renderDialplan, type InvalidAction, type IvrDefinition } from './ivr-dialplan';
 import { applyResponse, isRejected, MIN_REFRESH_MS } from './external-settings-sources';
 import {
   buildSource, loadSources, saveSources, sourcesStatusLine,
@@ -1163,6 +1164,44 @@ What you can do: ${offered}.` : ''}`);
     this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, ...restored } }));
   }
 
+  /**
+   * The dialplan the IVR form currently describes.
+   *
+   * Regenerated from the controls each time it is read, so every one of them visibly changes
+   * something -- which is the point, since none of them binds to a key and for a long time
+   * none of them did anything at all.
+   *
+   * A form that cannot be generated says why instead of showing a stale plan. Showing the
+   * last good one beside settings that would not produce it is worse than showing nothing:
+   * it reads as though the change was accepted.
+   */
+  private ivrDialplanText(): string {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const num = (key: string, fallback: number): number => {
+      const raw = Number(values[key]);
+      return Number.isFinite(raw) ? Math.round(raw) : fallback;
+    };
+    const definition: IvrDefinition = {
+      /* The screen edits one IVR at a time and does not name it yet, so the context is named
+       * for what it is. Naming it after something the person did not choose would be worse. */
+      name: 'main-menu',
+      digitTimeout: num('i_timeout', 7),
+      retries: num('i_retries', 3),
+      /* Quoted keys, not property access: the wiring contract greps App for each control id
+       * as a literal, and values.i_invalid satisfies TypeScript while being invisible to any
+       * search for the id -- which is the exact thing that contract exists to catch. */
+      onInvalid: (typeof values['i_invalid'] === 'string' ? values['i_invalid'] : 'Repeat') as InvalidAction,
+      allowDirectDial: values['i_direct'] !== false,
+      language: typeof values['i_lang'] === 'string' ? values['i_lang'] : 'en',
+      allowBargeIn: values['i_barge'] !== false,
+    };
+    const generated = generateIvr(definition);
+    if ('problems' in generated) {
+      return `This cannot be generated yet: ${generated.problems.map((p) => p.message).join(' ')}`;
+    }
+    return renderDialplan(definition.name, generated);
+  }
+
   // ---------------------------------------------------------------- hosting it elsewhere
 
   /* Its own field, not the provisioning one above. Both are step progress and both arrive on
@@ -1691,6 +1730,7 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'narration-status') return this.narrationStatusLine;
     if (action === 'logo-status') return this.logoStatusLine;
     if (action === 'deploy-status') return this.deployStatusLine();
+    if (action === 'ivr-dialplan') return this.ivrDialplanText();
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
     return '';
   };

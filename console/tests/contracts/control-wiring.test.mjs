@@ -186,3 +186,19 @@ test('the trunk-authentication settings are kept, since no file holds them', () 
   const branch = app.slice(app.indexOf('App.PARTNER_CONTROLS.includes'), app.indexOf("if (control?.id === 'dp_go'"));
   assert.doesNotMatch(branch, /^\s*return;/m, 'the branch returns, so the control will not move');
 });
+
+test('every IVR control reaches the dialplan generator', () => {
+  /* These six were counted as unbound settings and were never going to bind: extensions.conf
+   * has no key called "retries". They describe an IVR, which is a shape made out of exten
+   * lines, so each one now changes the dialplan the screen shows -- and the screen shows it
+   * before anything writes it, because a form that silently writes call routing is a form
+   * nobody should trust. */
+  const app = readFileSync(new URL('../../app/renderer/src/App.tsx', import.meta.url), 'utf8');
+  for (const id of ['i_timeout', 'i_retries', 'i_invalid', 'i_direct', 'i_lang', 'i_barge']) {
+    assert.ok(app.includes(`'${id}'`), `${id} does not reach the generator`);
+  }
+  assert.match(app, /generateIvr\(definition\)/, 'nothing generates a dialplan');
+  assert.match(app, /if \(action === 'ivr-dialplan'\)/, 'nothing answers the preview');
+  const design = readFileSync(new URL('../../../design/Asterisk Console M3.dc.html', import.meta.url), 'utf8');
+  assert.match(design, /action:'ivr-dialplan'/, 'the screen has no preview to read');
+});
