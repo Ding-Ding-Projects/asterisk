@@ -136,13 +136,13 @@ function Template(v: any) {
           )))
         ) : null),
       (v.isStepper ? h("div", { style: sty(`display:flex; align-items:center; gap:10px; flex-wrap:wrap;`) },
-          h("button", { onClick: fn(v.ctl.dec), style: sty(`width:36px; height:36px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "c-h3" },
+          h("button", { onClick: fn(v.ctl.dec), style: sty(`width:36px; height:36px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), title: `remove`, "aria-label": `remove`, className: "c-h3" },
             h("span", { style: sty(`font-size:20px;`), className: "msym" },
               "remove"
             )
           ),
           h("input", { type: `text`, inputMode: `numeric`, value: v.numText, onChange: fn(v.onNumInput), onInput: fn(v.onNumInput), style: sty(`width:74px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:7px 8px; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:18px; text-align:center; outline:none;`) }),
-          h("button", { onClick: fn(v.ctl.inc), style: sty(`width:36px; height:36px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "c-h3" },
+          h("button", { onClick: fn(v.ctl.inc), style: sty(`width:36px; height:36px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), title: `add`, "aria-label": `add`, className: "c-h3" },
             h("span", { style: sty(`font-size:20px;`), className: "msym" },
               "add"
             )
@@ -197,17 +197,17 @@ function Template(v: any) {
               h("span", { style: sty(`flex:1; font-family:'Roboto Mono',monospace; font-size:12.5px; color:#DFE4DC;`) },
                 S($i.label)
               ),
-              h("button", { onClick: fn($i.up), style: sty(`width:26px; height:26px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "c-h5" },
+              h("button", { onClick: fn($i.up), style: sty(`width:26px; height:26px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), title: `arrow upward`, "aria-label": `arrow upward`, className: "c-h5" },
                 h("span", { style: sty(`font-size:16px;`), className: "msym" },
                   "arrow_upward"
                 )
               ),
-              h("button", { onClick: fn($i.down), style: sty(`width:26px; height:26px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "c-h5" },
+              h("button", { onClick: fn($i.down), style: sty(`width:26px; height:26px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), title: `arrow downward`, "aria-label": `arrow downward`, className: "c-h5" },
                 h("span", { style: sty(`font-size:16px;`), className: "msym" },
                   "arrow_downward"
                 )
               ),
-              h("button", { onClick: fn($i.drop), style: sty(`width:26px; height:26px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "c-h6" },
+              h("button", { onClick: fn($i.drop), style: sty(`width:26px; height:26px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), title: `close`, "aria-label": `close`, className: "c-h6" },
                 h("span", { style: sty(`font-size:16px;`), className: "msym" },
                   "close"
                 )

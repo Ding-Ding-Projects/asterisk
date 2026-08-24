@@ -1,6 +1,6 @@
 # Accessibility, overlays, and recovery
 
-The desktop Console's shared design source now supplies the cross-surface interaction contract used by every destination. Geometry and notification history are kept in local browser storage for the renderer profile, with explicit reset paths.
+The desktop Console's shared design source now supplies the cross-surface interaction contract used by every destination. Geometry, notification history, tabs, groups, pins, and docking are stored through `DurableStorageHandle` under one bounded versioned snapshot, with corruption recovery and explicit reset paths.
 
 ## Keyboard and assistive technology
 
@@ -25,6 +25,10 @@ Toasts and celebration messages append to durable local notification history. Th
 ## Tabs and dropdowns
 
 The tab strip exposes `tablist`, `tab`, `tabpanel`, and `group` semantics, with roving tab indexes and axis-aware arrow keys. Close controls have an accessible name and a 44px target. Tab bulk-close uses one shared predicate for preview and execution, rejects empty or invalid input, defaults to plain text, and protects pinned, locked, or unsaved tabs. Select controls expose `listbox` and `option` semantics with a plain-text-first local filter and a full opt-in regex builder.
+
+The command palette inventory is hand-written and includes every destination plus every declared setting. A destination result opens its screen, while a setting result opens the screen and returns focus to the matching labelled control. The palette traps Tab focus while open and announces its result set through the live result list.
+
+Low stimulation is consumed at the root: non-essential celebration and toast presentation is suppressed while the notification record is still retained in durable history. Focus and reduced-motion classes are reapplied after durable bootstrap.
 
 ## Verification boundary
 

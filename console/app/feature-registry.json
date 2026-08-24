@@ -283,8 +283,8 @@
     },
     "bounded-overlays": {
       "state": "implemented",
-      "note": "The checked-in design source now mounts a shared data-overlay primitive with painted surfaces, viewport bounds, internal scrolling, resize affordance, Escape handling, keyboard movement, collision rules at narrow widths, local geometry persistence, and reset behavior. Shared focus-visible styling and 44px minimum targets cover keyboard and scale consumers.",
-      "files": ["design/Asterisk Console M3.dc.html", "app/renderer/src/App.tsx", "app/renderer/src/styles.css", "app/renderer/src/generated/console.tsx", "app/renderer/src/generated/design-styles.css"]
+      "note": "The checked-in design source now mounts a shared data-overlay primitive with painted surfaces, viewport bounds, internal scrolling, resize affordance, Escape handling, keyboard movement, collision rules at narrow widths, and unique overlay keys. App delegates geometry and reset persistence through DurableStorageHandle in one bounded versioned snapshot. Shared focus-visible styling and 44px minimum targets cover keyboard and scale consumers.",
+      "files": ["design/Asterisk Console M3.dc.html", "app/renderer/src/App.tsx", "app/renderer/src/durable-storage.ts", "app/renderer/src/styles.css", "app/renderer/src/generated/console.tsx", "app/renderer/src/generated/design-styles.css"]
     },
     "context-menu-shortcuts": {
       "state": "implemented",
@@ -299,7 +299,7 @@
     "in-context-recovery": {
       "state": "implemented",
       "note": "Every shared context-menu target, including live canvas targets, exposes Recover or re-authenticate. The anchored recovery panel names the target, keeps the failed action unchanged, and routes Retry to a fresh reading and Re-authenticate to the local discovery path, with live status that does not display credentials or claim completion.",
-      "files": ["design/Asterisk Console M3.dc.html", "app/renderer/src/generated/console.tsx"]
+      "files": ["design/Asterisk Console M3.dc.html", "app/renderer/src/App.tsx", "app/renderer/src/generated/console.tsx"]
     },
     "provider-markup-rendering": {
       "state": "partial",

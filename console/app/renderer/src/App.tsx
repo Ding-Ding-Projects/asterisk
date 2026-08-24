@@ -248,6 +248,79 @@ export class App extends Base {
   /** Consecutive wrong unlock attempts per lock key, so the ladder is offered after
    *  repeated failures rather than on the first typo. */
   private wrongUnlockCounts: Record<string, number> = {};
+  private universalStateReady = false;
+  private readonly UNIVERSAL_STATE_KEY = 'console.universal.ui.v2';
+  private universalStateLastSerialized = '';
+
+  private universalSnapshot(patch: Record<string, unknown> = {}): Record<string, unknown> {
+    const state = this.state as unknown as Record<string, unknown>;
+    const notifications = Array.isArray(patch.notifications ?? state.notifications) ? (patch.notifications ?? state.notifications) : [];
+    const tabs = Array.isArray(patch.tabs ?? state.tabs) ? (patch.tabs ?? state.tabs) : [];
+    const pinned = Array.isArray(patch.pinned ?? state.pinned) ? (patch.pinned ?? state.pinned) : [];
+    const groups = Array.isArray(patch.groups ?? state.groups) ? (patch.groups ?? state.groups) : [];
+    return {
+      schemaVersion: 1,
+      notifications: (notifications as unknown[]).slice(0, 200),
+      dlgPos: patch.dlgPos ?? state.dlgPos ?? {},
+      dlgSize: patch.dlgSize ?? state.dlgSize ?? {},
+      dlgDock: patch.dlgDock ?? state.dlgDock ?? {},
+      tabs: (tabs as unknown[]).slice(0, 64),
+      pinned: (pinned as unknown[]).slice(0, 64),
+      groups: (groups as unknown[]).slice(0, 64),
+      dock: String(patch.dock ?? state.dock ?? 'left').slice(0, 16),
+    };
+  }
+
+  restoreDesktopState = (): void => {
+    if (!this.universalStateReady) return;
+    const raw = this.durableStorage.storage.getItem(this.UNIVERSAL_STATE_KEY);
+    if (!raw) return;
+    try {
+      const value = JSON.parse(raw) as Record<string, unknown>;
+      if (value.schemaVersion !== 1) return;
+      this.universalStateLastSerialized = raw;
+      const notifications = Array.isArray(value.notifications)
+        ? value.notifications.filter((item): item is Record<string, unknown> => {
+          if (!item || typeof item !== 'object') return false;
+          const row = item as Record<string, unknown>;
+          return ['id', 'source', 'message', 'when', 'state'].every((key) => typeof row[key] === 'string' && String(row[key]).length <= 512);
+        }).slice(0, 200)
+        : [];
+      const tabs = Array.isArray(value.tabs) ? value.tabs.filter((item): item is string => typeof item === 'string').slice(0, 64) : [];
+      const pinned = Array.isArray(value.pinned) ? value.pinned.filter((item): item is string => typeof item === 'string').slice(0, 64) : [];
+      const groups = Array.isArray(value.groups) ? value.groups.filter((item): item is Record<string, unknown> => {
+        if (!item || typeof item !== 'object') return false;
+        const group = item as Record<string, unknown>;
+        return typeof group.id === 'string' && group.id.length <= 64 && typeof group.name === 'string' && group.name.length <= 128 && Array.isArray(group.tabs) && group.tabs.length <= 64;
+      }).slice(0, 64) : [];
+      const boundedObject = (candidate: unknown): Record<string, unknown> => {
+        if (!candidate || typeof candidate !== 'object') return {};
+        return Object.fromEntries(Object.entries(candidate as Record<string, unknown>).slice(0, 32).filter(([key, item]) => key.length <= 64 && (typeof item === 'string' ? item.length <= 64 : typeof item === 'number')));
+      };
+      this.setState({
+        notifications,
+        dlgPos: boundedObject(value.dlgPos),
+        dlgSize: boundedObject(value.dlgSize),
+        dlgDock: boundedObject(value.dlgDock),
+        ...(tabs.length > 0 ? { tabs, pinned, groups } : {}),
+        ...(typeof value.dock === 'string' ? { dock: value.dock } : {}),
+      } as never);
+    } catch {
+      this.durableStorage.storage.removeItem(this.UNIVERSAL_STATE_KEY);
+    }
+  };
+
+  persistDesktopState = (patch: Record<string, unknown> = {}): void => {
+    if (!this.universalStateReady) return;
+    const serialized = JSON.stringify(this.universalSnapshot(patch));
+    if (serialized === this.universalStateLastSerialized) return;
+    this.universalStateLastSerialized = serialized;
+    this.durableStorage.storage.setItem(this.UNIVERSAL_STATE_KEY, serialized);
+  };
+
+  persistNotifications = (items: unknown[]): void => {
+    this.persistDesktopState({ notifications: items.slice(0, 200) });
+  };
 
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
@@ -266,9 +339,12 @@ export class App extends Base {
      * storage handle instead of two that can disagree. */
     setVocabularyStorage(this.vocabStorage);
     void this.durableStorage.bootstrap().then(() => {
+      this.universalStateReady = true;
+      this.restoreDesktopState();
       this.restoreLanguageMode();
       this.restoreDisplayName();
       this.restoreAppearance();
+      this.applyAttentionPresentation();
       this.forceUpdate();
     });
     /* The configured server list is not a reading from any PBX — it exists before
@@ -1413,7 +1489,7 @@ It is shown once. The phone needs it to register.`);
           { icon: 'content_copy', label: 'Duplicate step', hint: '⌃D', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
           { icon: 'call_split', label: 'Insert condition before', hint: '', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
           { icon: 'delete', label: 'Delete step', hint: '⌦', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
-          { icon: 'key', label: 'Recover or re-authenticate…', hint: '', act: () => { this.setState({ ctxOpen: false, recoveryOpen: true, recoveryTitle: `Recovery for ${(this.state as { ctxTarget?: string }).ctxTarget || 'observed step'}`, recoveryBody: 'The failed action stays unchanged. Choose Retry to run it again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus: 'No retry or re-authentication has run yet.' } as never); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'key', label: 'Recover or re-authenticate…', hint: '', act: () => { const state = this.state as { ctxTarget?: string; ctxKind?: string }; this.setState({ ctxOpen: false, recoveryOpen: true, recoveryAction: { target: String(state.ctxTarget || 'observed step').slice(0, 128), kind: String(state.ctxKind || 'node').slice(0, 32), action: 'retry-current-reading', source: 'dialplan canvas' }, recoveryTitle: `Recovery for ${state.ctxTarget || 'observed step'}`, recoveryBody: 'The failed action stays unchanged. Choose Retry to run it again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus: 'No retry or re-authentication has run yet.' } as never); }, hover: () => {}, bg: '#1B211C' },
         ]
       : undefined;
 
@@ -1928,8 +2004,8 @@ It is shown once. The phone needs it to register.`);
       oneClickStatus: this.oneClickStatus,
       runOneClick: this.discover,
       cancelOneClick: this.cancelOneClick,
-      recoveryRetry: () => { this.setState({ recoveryStatus: 'Retry requested. Re-reading the current target before reporting an outcome.' } as never); void this.refresh(); },
-      recoveryReauth: () => { this.setState({ recoveryStatus: 'Re-authentication requested. Discovery will refresh the local connection path without exposing credentials.' } as never); void this.discover(); },
+      recoveryRetry: () => { const action = (this.state as { recoveryAction?: { target?: string } }).recoveryAction; this.setState({ recoveryStatus: `Retry requested for ${String(action?.target || 'the recorded action').slice(0, 128)}. Re-reading the current target before reporting an outcome.` } as never); void this.refresh(); },
+      recoveryReauth: () => { const action = (this.state as { recoveryAction?: { target?: string } }).recoveryAction; this.setState({ recoveryStatus: `Re-authentication requested for ${String(action?.target || 'the recorded action').slice(0, 128)}. Discovery will refresh the local connection path without exposing credentials.` } as never); void this.discover(); },
 
       // Nav-rail badges: only a count this session actually read, never the design's
       // invented per-destination numbers.

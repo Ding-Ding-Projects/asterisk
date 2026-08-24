@@ -446,7 +446,11 @@ The first lane commit was refuted and repaired in the same Gerk Tong Hui. The re
 - one shared overlay interaction contract for painted surfaces, viewport limits, internal scrolling, Escape, menu arrows, keyboard movement, pointer resize and persisted geometry reset;
 - Retry and Re-authenticate callbacks for generated and live canvas context targets;
 - one shared tab-close predicate that rejects empty or invalid input, defaults to plain text, previews protected entries, and excludes pinned, locked, or unsaved tabs;
-- durable local notification history, versioned JSON export, and destructive-confirmation protection for bulk dismissal;
+- durable notification, geometry, tab, group, pin, and docking state through `DurableStorageHandle`, with bounded versioned bootstrap, corruption recovery, versioned JSON export, and destructive-confirmation protection for bulk dismissal;
 - persisted attention root classes for focus, low stimulation, and platform or stored reduced motion.
 
 The design compiler completed again after this repair. No test suite, lint, broad build, packaging, desktop interaction, browser interaction, or capture was run. The repaired commit is the next commit after the earlier lane commit and must be reviewed as one unit before integration.
+
+The cumulative repair moved renderer-only notification, overlay, tab, group, pin, and docking persistence behind `DurableStorageHandle` as `console.universal.ui.v2`. Bootstrap is version checked, bounded, and removes a corrupt snapshot rather than applying partial data. The compiler now mounts every positioned high-layer dialog, sheet, onboarding, tour, confirmation, celebration, toast, scrim, and menu through a keyed overlay primitive with roles, labels, keyboard handling, viewport bounds, and reset hooks.
+
+The command palette now uses a hand-written inventory covering all declared destinations and controls, with setting teleport and focus return. Plain text remains the default for palette, menu, dropdown, and tab filtering; regex mode carries the active flags exactly. Bulk tab close is now behind the application's confirmation flow and uses protected-item previews. Low stimulation suppresses non-essential toast and celebration presentation while retaining the notification record.

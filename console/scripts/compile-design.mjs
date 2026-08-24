@@ -246,11 +246,22 @@ function emit(node, scope, hovers, indent) {
   if (node.attrs?.role === 'tab' && !node.attrs.id && node.attrs['aria-controls']) {
     node.attrs.id = node.attrs['aria-controls'].replace(/^panel-/, 'tab-');
   }
-  if (node.tag === 'div' && !node.attrs?.['data-overlay'] && String(node.attrs?.style || '').includes('position:absolute') && String(node.attrs?.style || '').includes('background:#252B25')) {
-    node.attrs['data-overlay'] = 'panel';
-    node.attrs.role = node.attrs.role || 'dialog';
-    node.attrs.tabindex = node.attrs.tabindex || '-1';
-    node.attrs.onKeyDown = node.attrs.onKeyDown || '{{ overlayKeyDown }}';
+  const overlayStyle = String(node.attrs?.style || '');
+  const overlayZ = Number(/z-index:(\d+)/.exec(overlayStyle)?.[1] || 0);
+  if (node.tag === 'div' && !node.attrs?.['data-overlay'] && overlayStyle.includes('position:absolute') && overlayZ >= 55) {
+    const scrim = overlayStyle.includes('background:rgba(0,0,0') || (overlayStyle.includes('inset:0') && (node.attrs.onClick || node.attrs.onContextMenu));
+    node.attrs['data-overlay'] = scrim ? 'scrim' : 'panel';
+    node.attrs['data-overlay-key'] = `overlay-${overlayZ}`;
+    if (!scrim) {
+      node.attrs.role = node.attrs.role || 'dialog';
+      node.attrs['aria-label'] = node.attrs['aria-label'] || 'Overlay panel';
+      node.attrs.tabindex = node.attrs.tabindex || '-1';
+      node.attrs.onKeyDown = node.attrs.onKeyDown || '{{ overlayKeyDown }}';
+    }
+  }
+  if (node.tag === 'button' && !node.attrs?.['aria-label'] && !node.attrs?.title) {
+    const icon = soleIconName(node);
+    if (icon) { node.attrs.title = icon.replace(/_/g, ' '); node.attrs['aria-label'] = icon.replace(/_/g, ' '); }
   }
 
   if (node.tag === 'sc-if') {
