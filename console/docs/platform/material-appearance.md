@@ -14,7 +14,7 @@ Colors would be chosen through a continuous picker with bidirectional conversion
 
 **Desktop application:** Partial. A dark/light theme toggle exists in settings, but accent color, density, typography customization, the continuous color picker, and the per-element appearance editor are all absent.
 
-**Documentation website:** Partial. The site ships a fixed dark theme with no live theme switch, no accent picker, no density control, and no per-element editor.
+**Documentation website:** Partial. Every page exposes persisted dark, light, and high-contrast themes, density, accent, font scale, navigation docking, logo presets, and a broad color translator. These values apply live. Per-element editors and full word-processor typography remain incomplete.
 
 ## Failure modes
 

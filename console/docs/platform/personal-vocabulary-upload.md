@@ -14,11 +14,11 @@ Validation would bound file size, nesting depth, and entry count, and make no ne
 
 **Desktop application:** Not implemented. The desktop application has no personal-vocabulary upload control anywhere in its settings.
 
-**Documentation website:** Partial. The site's settings page includes a placeholder upload control; no file validation, no applied replacement, and no clear/reset behavior are wired up behind it yet.
+**Documentation website:** Implemented for the shared site shell. Every page exposes upload and clear controls. The loader bounds bytes and entry counts, rejects unsupported versions, unexpected fields, unsafe and duplicate keys, and unbounded strings, applies replacements locally, and revalidates cached data on every load. Reload status describes the cache rather than pretending the original file remains loaded.
 
 ## Failure modes
 
-A malformed or oversized uploaded file is meant to be rejected with the exact reason shown inline, and the previous vocabulary state left untouched; the placeholder control does not yet reach this validation step.
+A malformed or oversized file is rejected inline and never partially applied. A corrupt cache is removed and original wording resumes. Personal mappings, source names, and file paths are excluded from export.
 
 ## Accessibility and localization
 

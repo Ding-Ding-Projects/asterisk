@@ -71,6 +71,20 @@ async function releaseRecord() {
 
 const markdownFiles = await listMarkdown();
 const packageMetadata = JSON.parse(await readFile(packageFile, 'utf8'));
+const runtimeNetworkEntries = [];
+for (const asset of assets) {
+  const source = await readFile(join(root, asset), 'utf8');
+  if (asset.endsWith('.js')) {
+    for (const match of source.matchAll(/\b(fetch|XMLHttpRequest|WebSocket|EventSource)\s*\(/g)) runtimeNetworkEntries.push(`${asset}:${match[1]}`);
+  }
+  if (asset.endsWith('.html')) {
+    for (const match of source.matchAll(/<(?:script|img|source|link)\b[^>]*(?:src|href)=["']https:/gi)) runtimeNetworkEntries.push(`${asset}:${match[0].slice(0, 80)}`);
+  }
+}
+const validatedRelease = await releaseRecord();
+const release = validatedRelease.state === 'available' && validatedRelease.version !== packageMetadata.version
+  ? { ...validatedRelease, state: 'stale', reason: `The release record describes ${validatedRelease.version}, while this site composition describes ${packageMetadata.version}.` }
+  : validatedRelease;
 const siteStatusRecord = {
   schemaVersion: 1,
   build: {
@@ -78,10 +92,11 @@ const siteStatusRecord = {
     source: 'build-manifest.json',
     documentationArticles: markdownFiles.length,
     topLevelPages: assets.filter(asset => asset.endsWith('.html')).length,
-    runtimeNetworkFetches: 0,
+    runtimeNetworkFetches: runtimeNetworkEntries.length,
+    runtimeNetworkEntries,
     packageVersion: typeof packageMetadata.version === 'string' ? packageMetadata.version : null
   },
-  release: await releaseRecord()
+  release
 };
 const embeddedStatusRecord = `<script id="site-status-record" type="application/json">${JSON.stringify(siteStatusRecord).replaceAll('<', '\\u003c')}</script>`;
 
@@ -172,7 +187,7 @@ await walk('.');
 const manifest = {
   schemaVersion: 1,
   generatedBy: 'node console/site/build.mjs',
-  networkFetches: 0,
+  networkFetches: runtimeNetworkEntries.length,
   status: siteStatusRecord,
   outputFiles: files.sort((a, b) => a.path.localeCompare(b.path))
 };

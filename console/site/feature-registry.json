@@ -4,7 +4,7 @@
   "features": {
     "language-modes": {
       "state": "partial",
-      "note": "site/app.js applyLanguage() (line 539) switches document.lang and preview copy between English, Cantonese and bilingual, wired from initSettings() language-mode select. This is a real, wired switch but only changes one preview string, not the whole site's rendered copy - most page text has no data-copy hook.",
+      "note": "site/app.js provides the same English, Cantonese, and bilingual control on every top-level and composed article page. Shared shell labels and statuses switch live, while authored article prose deliberately remains source text and the shell says so. Full article translation remains incomplete.",
       "files": [
         "site/app.js",
         "site/settings.html"
@@ -12,7 +12,7 @@
     },
     "funny-levels": {
       "state": "partial",
-      "note": "site/app.js initSettings() wires english-funny and cantonese-funny sliders to state.englishFunny/state.cantoneseFunny (line 895) and applyCopy() (line 654) renders COPY table entries through copyText(key), which is the mechanism a funny level would style, but no inspection found actual per-level copy variants defined for englishFunny/cantoneseFunny beyond the language switch itself.",
+      "note": "site/app.js exposes independent persisted English and Cantonese controls from 1 to 5 on every page, both defaulting to 5, and routes shared COPY entries through the selected voice level. The complete authored page copy is not yet represented at every level, so this remains partial.",
       "files": [
         "site/app.js",
         "site/settings.html"
@@ -34,8 +34,8 @@
       "files": []
     },
     "scheduled-settings": {
-      "state": "partial",
-      "note": "site/app.js initSettings() wires a schedule-enabled checkbox to state.scheduleEnabled, but no date/time rule editor, weekday selection, or external source integration was found - the checkbox exists with no scheduling surface behind it.",
+      "state": "implemented",
+      "note": "site/app.js implements a persisted local schedule with start and end times, explicit weekdays, cross-midnight and equal-time semantics, timezone status, and real scheduled theme, language, and density overrides. Base values return when the window ends; the schedule makes no network request.",
       "files": [
         "site/app.js",
         "site/settings.html"
@@ -53,21 +53,21 @@
     },
     "regex-builder": {
       "state": "implemented",
-      "note": "site/app.js implements a real anchored regex builder: openRegex()/initRegex() (lines 808, 812) open a <dialog> attached to the triggering field (regex-target-label shows \"Attached to: <field>\"), support literal-insert buttons, i/m/u flags, and previewRegex() live matching, with applyRegex() writing the result back into the originating search field. Wired from every .regex-trigger button via initSearch() (line 807), including the settings search and documentation search.",
+      "note": "site/app.js implements an anchored JavaScript regular-expression builder with literal helpers, i/m/u flags, bounded pattern input, live sample matches, and synchronized apply behavior. It is wired to settings, documentation, command palette, notifications, every upgraded dropdown search, and the page context-menu search.",
       "files": [
         "site/app.js"
       ]
     },
     "non-blocking-notifications": {
       "state": "implemented",
-      "note": "site/app.js implements notify()/notification history (renderNotifications, notification-history dialog) with bulk select/dismiss (initNotificationBulk, planBulk with destructive flag), a notification-open dialog, and export of notification history (notificationExportRows). Wired end to end from init() (line 1055).",
+      "note": "site/app.js injects the same corner notifications and persisted history on every top-level and composed article page, with search, its anchored regex builder, bulk selection, real bulk dismissal, and selected-row export. Filtered-empty and truly empty histories have distinct messages.",
       "files": [
         "site/app.js"
       ]
     },
     "status-hub": {
-      "state": "absent",
-      "note": "site/status.html exists as a page shell but no live status-hub project, session card, or question-card logic was found in site/app.js.",
+      "state": "partial",
+      "note": "site/build.mjs embeds a validated build-manifest status record into every composed page and site/status.html renders only that record, including honest unavailable, invalid, and stale release states. A live shared session hub and question delivery channel are not implemented on this public surface.",
       "files": []
     },
     "material-appearance": {
@@ -80,7 +80,7 @@
     },
     "app-logo-customization": {
       "state": "partial",
-      "note": "site/app.js wires logo-file/logo-clear to loadLogo()/applyLogo() with a logo-status readout, storing the custom logo in localStorage. This is a real local-only upload and clear path, but there is no crop/fit/background editor, no multi-size generation, and no shipped preset gallery beyond the single custom-upload slot.",
+      "note": "site/app.js exposes three local presets, contain/fill choice, PNG/JPEG upload, byte-signature validation, byte and decoded-pixel bounds, cache revalidation, live application, and clear/reset on every page. Crop, focal-point, background editing, and multi-size output generation remain incomplete.",
       "files": [
         "site/app.js",
         "site/settings.html"
@@ -97,8 +97,8 @@
       "files": []
     },
     "browser-style-tabs": {
-      "state": "absent",
-      "note": "The site is a small multi-page static site (index/product/documentation/downloads/settings/status.html navigated as separate pages); no in-page browser-style tab strip, docking, or tab groups were found in site/app.js.",
+      "state": "partial",
+      "note": "Every top-level and composed article page now receives the same ARIA tablist navigation with persisted left, right, top, and bottom docking and responsive collapse to the compact header. Reordering, pinning, grouping, and the four independent tab searches remain incomplete.",
       "files": []
     },
     "tab-groups-and-searches": {
@@ -108,7 +108,7 @@
     },
     "command-palette": {
       "state": "partial",
-      "note": "site/app.js implements openPalette() (line 816) opening a real <dialog id=\"command-palette\"> with a live-filtered palette-search field and renderPalette(), wired from a palette-open button and Ctrl+Shift+F was not confirmed as the activation key (only a button click and palette-search input were found) - the keyboard-shortcut activation contract is unverified.",
+      "note": "site/app.js injects the command palette on every page, opens it from the visible control or Ctrl+Shift+F, searches pages, direct composed article URLs, and exact shared controls, and opens the selected control with focus. Destination results no longer target paginated cards that may be absent.",
       "files": [
         "site/app.js"
       ]
@@ -138,7 +138,7 @@
     },
     "complete-exports": {
       "state": "implemented",
-      "note": "site/app.js implements a genuinely broad export pipeline: toJson/toJsonl/toYaml/toToml/toXml/toSql/toDelimited/toMarkdown/toHtml plus suitableFormats()/exportFilename()/download(), used by both initDocumentationExport() and the settings/notification export paths, with an explicit personalVocabulary:\"omitted\" marker in the settings export payload (line ~895) matching the export-honesty contract.",
+      "note": "site/app.js implements JSON, JSONL, YAML, TOML, XML, CSV, TSV, Markdown, HTML, and SQL export for suitable tabular records. The shared site-state export includes every persisted setting and notification and explicitly names the omitted personal-vocabulary payload, source metadata, and custom-logo bytes instead of silently dropping them.",
       "files": [
         "site/app.js"
       ]
@@ -159,13 +159,13 @@
       ]
     },
     "responsive-sizing": {
-      "state": "absent",
-      "note": "site/styles.css was not inspected for a systematic responsive strategy in this pass; no JS-level narrow-width handling (comparable to the app's \"narrow\" screen flag) was found in site/app.js.",
+      "state": "implemented",
+      "note": "site/styles.css keeps the body at a 320px minimum, collapses side-docked navigation to a compact header below 900px, reduces all shared settings and record grids to one column, bounds and scrolls overlays, wraps long digests, and preserves touch-sized controls.",
       "files": []
     },
     "personal-vocabulary-upload": {
       "state": "implemented",
-      "note": "site/app.js wires vocabulary-file/vocabulary-clear to loadVocabulary()/applyVocabulary(), with bounded validation of replacement entries (from/to length limits, line ~924) and a vocabulary-status readout, storing the cache in localStorage under ding-pbx-vocabulary-cache.",
+      "note": "site/app.js keeps a visible upload and clear path on every page, validates schema version, fields, entry count, unsafe and duplicate keys, and string bounds before caching, then revalidates the complete cache on every read. Reload status is derived from the validated cache and never claims a source file remains loaded.",
       "files": [
         "site/app.js",
         "site/settings.html"
@@ -193,7 +193,7 @@
     },
     "attention-modes": {
       "state": "implemented",
-      "note": "site/app.js implements real ADHD/attention accommodations wired in initSettings(): reduceFlashing, simplifiedLanguage, extendedTimeouts, focus, timeAwareness, oneThing (with updateOneThingBanner and a current-task field), and momentum (initMomentum/checkMomentum/updateSessionTimer), all persisted through state.attention and off by default per DEFAULTS.",
+      "note": "site/app.js exposes persisted focus, low-stimulation, time-awareness, one-thing-at-a-time, and momentum controls in the shared shell on every page, all off by default. Current focus and elapsed time appear where work is read, and momentum uses a bounded local idle interval.",
       "files": [
         "site/app.js",
         "site/settings.html"
@@ -218,20 +218,20 @@
       "files": []
     },
     "guided-forms": {
-      "state": "absent",
-      "note": "No guided/picker-driven form beyond ordinary settings selects and file inputs was found; there is no enumerated-picker-over-freeform-text pattern comparable to the app's endpoint wizard.",
+      "state": "partial",
+      "note": "Every site-owned enumerated setting uses a populated picker, and site/app.js upgrades each picker with a local searchable choice surface and adjacent regex builder. The site has no product endpoint wizard because it is not the installed runtime.",
       "files": []
     },
     "bounded-overlays": {
       "state": "implemented",
-      "note": "The regex builder (openRegex) and command palette (openPalette) both use native <dialog>.showModal(), which the browser bounds to the viewport and paints its own surface, and openRegex() explicitly labels which field it is attached to (\"Attached to: <field>\"). This satisfies the bounded/anchored-overlay contract for these two surfaces.",
+      "note": "Every injected dialog paints its own bounded scrolling Material surface. The regex builder and context menu use non-modal dialogs positioned beside their trigger point and clamp to the viewport; closing returns control to the originating flow.",
       "files": [
         "site/app.js"
       ]
     },
     "context-menu-shortcuts": {
-      "state": "absent",
-      "note": "No context menu (oncontextmenu handling) exists anywhere on the site.",
+      "state": "partial",
+      "note": "site/app.js provides a real page context menu on every page with local search, an adjacent regex builder, and working site-controls, notification-history, and export actions. The actions currently have no registered keyboard shortcuts to display.",
       "files": []
     },
     "long-operation-progress": {
