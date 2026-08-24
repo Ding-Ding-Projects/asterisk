@@ -6,6 +6,7 @@ export const ASTERISK_CATALOG = {
   "generatedFrom": "Asterisk source checkout",
   "generatedAt": "1970-01-01T00:00:00.000Z",
   "sourceFamilies": [
+    "addons",
     "apps",
     "bridges",
     "cdr",
@@ -19,11 +20,331 @@ export const ASTERISK_CATALOG = {
     "main"
   ],
   "counts": {
-    "modules": 383,
+    "modules": 387,
     "resources": 119,
-    "total": 502
+    "apiResources": 11,
+    "total": 517
   },
   "modules": [
+    {
+      "id": "asterisk.addons.chan_mobile",
+      "kind": "module",
+      "family": "addons",
+      "name": "chan_mobile.so",
+      "source": "addons/chan_mobile.c",
+      "description": "Bluetooth Mobile Device Channel Driver",
+      "buildConditions": [
+        "menuselect"
+      ],
+      "provenance": {
+        "sourceSha256": "2a1d98ba607e70315a907fb41b38cb6836b9e3351b3f3d1311b46f1bfb8fb4d3",
+        "buildGraph": {
+          "makefile": "addons/Makefile",
+          "makefileSha256": "2ce2aad3aa3ac8d2edfd3898cb4c923b756ffd59800f78d7daf3b6e850d31897",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "ALL_C_MODS:=chan_mobile \\",
+            "chan_mobile.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION)"
+          ]
+        }
+      },
+      "sourceBytes": 133311,
+      "configFiles": [
+        "chan_mobile.conf",
+        "chan_mobile.conf.sample",
+        "mobile.conf"
+      ],
+      "sourceSurfaces": [
+        "cli",
+        "ami",
+        "application",
+        "channel"
+      ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_mobile_show_devices",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show Bluetooth Cell / Mobile devices"
+          },
+          {
+            "name": "handle_cli_mobile_search",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Search for Bluetooth Cell / Mobile devices"
+          },
+          {
+            "name": "handle_cli_mobile_rfcomm",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Send commands to the rfcomm port for debugging"
+          },
+          {
+            "name": "handle_cli_mobile_cusd",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Send CUSD commands to the mobile"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [
+          {
+            "name": "MobileStatus",
+            "evidence": "manager_event"
+          }
+        ],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_mblstatus",
+            "evidence": "ast_register_application"
+          },
+          {
+            "name": "app_mblsendsms",
+            "evidence": "ast_register_application"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": [
+          {
+            "name": "mbl_tech",
+            "evidence": "ast_channel_register"
+          }
+        ]
+      },
+      "unavailableReasons": [
+        "No family-specific menuselect symbol was found for addons/chan_mobile.c; configure and menuselect decide whether it is built.",
+        "No dedicated source article was found for addons/chan_mobile.c; runtime help and the generated module record are the authoritative available documentation."
+      ],
+      "runtime": {
+        "state": "unverified",
+        "reason": "A live target has not reconciled this source record yet."
+      }
+    },
+    {
+      "id": "asterisk.addons.chan_ooh323",
+      "kind": "module",
+      "family": "addons",
+      "name": "chan_ooh323.so",
+      "source": "addons/chan_ooh323.c",
+      "description": "Objective Systems H323 Channel",
+      "buildConditions": [
+        "menuselect"
+      ],
+      "provenance": {
+        "sourceSha256": "ff1952c535afe547362352ff8f820dde96ed7c6211f707c933644559302e14a2",
+        "buildGraph": {
+          "makefile": "addons/Makefile",
+          "makefileSha256": "2ce2aad3aa3ac8d2edfd3898cb4c923b756ffd59800f78d7daf3b6e850d31897",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "            chan_ooh323 \\",
+            "chan_ooh323.so: _ASTCFLAGS+=$(H323CFLAGS)",
+            "$(call MOD_ADD_C,chan_ooh323,$(H323SOURCE))"
+          ]
+        }
+      },
+      "sourceBytes": 156259,
+      "configFiles": [
+        "ooh323.conf"
+      ],
+      "sourceSurfaces": [
+        "cli",
+        "channel",
+        "rtp"
+      ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_ooh323_set_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable OOH323 debugging"
+          },
+          {
+            "name": "handle_cli_ooh323_show_config",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show details on global configuration of H.323 channel driver"
+          },
+          {
+            "name": "handle_cli_ooh323_show_gk",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show OOH323 Gatekeeper connection status"
+          },
+          {
+            "name": "handle_cli_ooh323_show_peer",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show details on specific OOH323 peer"
+          },
+          {
+            "name": "handle_cli_ooh323_show_peers",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show defined OOH323 peers"
+          },
+          {
+            "name": "handle_cli_ooh323_show_user",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show details on specific OOH323 user"
+          },
+          {
+            "name": "handle_cli_ooh323_show_users",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show defined OOH323 users"
+          },
+          {
+            "name": "handle_cli_ooh323_reload",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "reload ooh323 config"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": [
+          {
+            "name": "ooh323_tech",
+            "evidence": "ast_channel_register"
+          }
+        ]
+      },
+      "unavailableReasons": [
+        "No family-specific menuselect symbol was found for addons/chan_ooh323.c; configure and menuselect decide whether it is built.",
+        "No dedicated source article was found for addons/chan_ooh323.c; runtime help and the generated module record are the authoritative available documentation."
+      ],
+      "runtime": {
+        "state": "unverified",
+        "reason": "A live target has not reconciled this source record yet."
+      }
+    },
+    {
+      "id": "asterisk.addons.format_mp3",
+      "kind": "module",
+      "family": "addons",
+      "name": "format_mp3.so",
+      "source": "addons/format_mp3.c",
+      "description": "MP3 format [Any rate but 8000hz mono is optimal]",
+      "buildConditions": [
+        "MENUSELECT_ADDONS"
+      ],
+      "provenance": {
+        "sourceSha256": "b6ec699f7fc78a63873b1824795cf27512ea9bdb361a5cc4b417e482dbadf1d1",
+        "buildGraph": {
+          "makefile": "addons/Makefile",
+          "makefileSha256": "2ce2aad3aa3ac8d2edfd3898cb4c923b756ffd59800f78d7daf3b6e850d31897",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "            format_mp3 \\",
+            "ifeq ($(filter format_mp3,$(MENUSELECT_ADDONS)),)",
+            "\t\techo \"***    ---> IMPORTANT INFORMATION ABOUT format_mp3 <---    ***\" ; \\",
+            "\t\techo \"*** format_mp3 has been selected to be installed, but the  ***\" ; \\",
+            "$(call MOD_ADD_C,format_mp3,mp3/common.c mp3/dct64_i386.c mp3/decode_ntom.c mp3/layer3.c mp3/tabinit.c mp3/interface.c)",
+            ".PHONY: check_mp3 format_mp3.o format_mp3.so"
+          ]
+        }
+      },
+      "sourceBytes": 7770,
+      "configFiles": [],
+      "sourceSurfaces": [
+        "format"
+      ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "mp3_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
+      "unavailableReasons": [
+        "No dedicated source article was found for addons/format_mp3.c; runtime help and the generated module record are the authoritative available documentation."
+      ],
+      "runtime": {
+        "state": "unverified",
+        "reason": "A live target has not reconciled this source record yet."
+      }
+    },
+    {
+      "id": "asterisk.addons.res_config_mysql",
+      "kind": "module",
+      "family": "addons",
+      "name": "res_config_mysql.so",
+      "source": "addons/res_config_mysql.c",
+      "description": "MySQL RealTime Configuration Driver",
+      "buildConditions": [
+        "menuselect"
+      ],
+      "provenance": {
+        "sourceSha256": "6614b419ff9ffc709e66115181eccdd417aca5c58e122eac4205a54ba2dfc958",
+        "buildGraph": {
+          "makefile": "addons/Makefile",
+          "makefileSha256": "2ce2aad3aa3ac8d2edfd3898cb4c923b756ffd59800f78d7daf3b6e850d31897",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "            res_config_mysql"
+          ]
+        }
+      },
+      "sourceBytes": 55104,
+      "configFiles": [
+        "res_config_mysql.conf",
+        "res_mysql.conf"
+      ],
+      "sourceSurfaces": [
+        "cli"
+      ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_realtime_mysql_status",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Shows connection information for the MySQL RealTime driver"
+          },
+          {
+            "name": "handle_cli_realtime_mysql_cache",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Shows cached tables within the MySQL realtime driver"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
+      "unavailableReasons": [
+        "No family-specific menuselect symbol was found for addons/res_config_mysql.c; configure and menuselect decide whether it is built.",
+        "No dedicated source article was found for addons/res_config_mysql.c; runtime help and the generated module record are the authoritative available documentation."
+      ],
+      "runtime": {
+        "state": "unverified",
+        "reason": "A live target has not reconciled this source record yet."
+      }
+    },
     {
       "id": "asterisk.apps.app_adsiprog",
       "kind": "module",
@@ -32,8 +353,21 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_adsiprog.c",
       "description": "Asterisk ADSI Programming Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_adsiprog"
       ],
+      "provenance": {
+        "sourceSha256": "43fc9677853f6e367fa0b165280829ac78aacb16f6ce471b6a59e95f3726bccc",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_adsiprog\" displayname=\"Asterisk ADSI Programming Application\" remove_on_change=\"apps/app_adsiprog.o apps/app_adsiprog.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 50423,
       "configFiles": [
         "adsi.conf",
         "adsi.conf.sample"
@@ -41,8 +375,25 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_adsiprog.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_adsiprog.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -60,6 +411,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "3d051494c5ff4e8b03fd800add3d2384f7724a3d81aec2e28fcee85e12dcd28c",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 81924,
       "configFiles": [
         "agents.conf",
         "agents.conf.sample",
@@ -73,6 +435,63 @@ export const ASTERISK_CATALOG = {
         "function",
         "bridge"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "agent_handle_show_online",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show status of online agents"
+          },
+          {
+            "name": "agent_handle_show_all",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show status of all agents"
+          },
+          {
+            "name": "agent_handle_show_specific",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show information about an agent"
+          },
+          {
+            "name": "agent_handle_logoff_cmd",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Sets an agent offline"
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "Agents",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "AgentLogoff",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_agent_login",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_agent_request",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "agent_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_agent_pool.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_agent_pool.c; runtime help and the generated module record are the authoritative available documentation."
@@ -90,8 +509,21 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_alarmreceiver.c",
       "description": "Alarm Receiver for Asterisk",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_alarmreceiver"
       ],
+      "provenance": {
+        "sourceSha256": "80d9b20d52acb2e5e4e49989039e28f2e6de9aad224bf728fa02b57eb2cec8ac",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_alarmreceiver\" displayname=\"Alarm Receiver for Asterisk\" remove_on_change=\"apps/app_alarmreceiver.o apps/app_alarmreceiver.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 29017,
       "configFiles": [
         "alarmreceiver.conf",
         "alarmreceiver.conf.sample"
@@ -99,8 +531,25 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_alarmreceiver.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_alarmreceiver.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -116,8 +565,21 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_amd.c",
       "description": "Answering Machine Detection Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_amd"
       ],
+      "provenance": {
+        "sourceSha256": "85d2df058794a6dc663382385b5b0b6a025c5b77ab663c02de9e811a5c5a6437",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_amd\" displayname=\"Answering Machine Detection Application\" remove_on_change=\"apps/app_amd.o apps/app_amd.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 23589,
       "configFiles": [
         "amd.conf",
         "amd.conf.sample"
@@ -125,8 +587,25 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_amd.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_amd.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -142,14 +621,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_attended_transfer.c",
       "description": "Attended transfer to the given extension",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_attended_transfer"
       ],
+      "provenance": {
+        "sourceSha256": "a89cccc6965e6a50e3c45887f3e48b9e51093b9be61cbbe574bda8aea2c6bbf7",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_attended_transfer\" displayname=\"Attended transfer to the given extension\" remove_on_change=\"apps/app_attended_transfer.o apps/app_attended_transfer.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 4129,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_attended_transfer.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_attended_transfer.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -167,12 +676,41 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "b3a7d25294f3718026d208cf7afff218cb8c58fa5da4bc06aeefed88c6a4a1ca",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 7889,
       "configFiles": [
         "audiosocket.conf"
       ],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_audiosocket.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_audiosocket.c; runtime help and the generated module record are the authoritative available documentation."
@@ -190,14 +728,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_authenticate.c",
       "description": "Authentication Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_authenticate"
       ],
+      "provenance": {
+        "sourceSha256": "f401941f0cadc9ad12771d59640acff115b1fa25a245e06c1d7738a299b6b379",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_authenticate\" displayname=\"Authentication Application\" remove_on_change=\"apps/app_authenticate.o apps/app_authenticate.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 8731,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_authenticate.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_authenticate.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -213,14 +781,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_blind_transfer.c",
       "description": "Blind transfer channel to the given destination",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_blind_transfer"
       ],
+      "provenance": {
+        "sourceSha256": "32c412a9e1901514dc67d182efde3f5a054b7f6b2bbaec7061c2ca3feddf9804",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_blind_transfer\" displayname=\"Blind transfer by caller channel\" remove_on_change=\"apps/app_blind_transfer.o apps/app_blind_transfer.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 3870,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_blind_transfer.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_blind_transfer.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -238,10 +836,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "073db8ecd76bada453fe1ba249a0618d2f1f45e0f8512f7050b012d6ffc67d5b",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4001,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_bridgeaddchan.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_bridgeaddchan.c; runtime help and the generated module record are the authoritative available documentation."
@@ -261,11 +888,40 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "062f356dcfd22499811cf3e853f13c1d6d408d5709fa8b1bd9931ee9f3955970",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 15870,
       "configFiles": [],
       "sourceSurfaces": [
         "application",
         "bridge"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "APP_NAME",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_bridgewait.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_bridgewait.c; runtime help and the generated module record are the authoritative available documentation."
@@ -285,10 +941,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "fadb4ce6e9ee15179f2a523740ba68f30ef035c8ad24b1c861dfa021a8c2f9c9",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 24883,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_broadcast",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_broadcast.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_broadcast.c; runtime help and the generated module record are the authoritative available documentation."
@@ -306,14 +991,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_cdr.c",
       "description": "Tell Asterisk to not maintain a CDR for the current call",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_cdr"
       ],
+      "provenance": {
+        "sourceSha256": "eaf8a10a2989d2f6524018d9f4b1298a9a1f6db9b0713ea887eab85c2f8f4fb5",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_cdr\" displayname=\"Tell Asterisk to not maintain a CDR for the current call\" remove_on_change=\"apps/app_cdr.o apps/app_cdr.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 5544,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "resetcdr_app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_cdr.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_cdr.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -331,10 +1046,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "0c301f959b7a571c04decd42a72d28d8d4fdf6d78d280011473f0b9c08be84fa",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 2660,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_celgenuserevent.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_celgenuserevent.c; runtime help and the generated module record are the authoritative available documentation."
@@ -352,14 +1096,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_chanisavail.c",
       "description": "Check channel availability",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_chanisavail"
       ],
+      "provenance": {
+        "sourceSha256": "e1819f2613e9995deb44d79c1d1e782f0bc389e94c7747cbcac4302d41ed999e",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_chanisavail\" displayname=\"Check channel availability\" remove_on_change=\"apps/app_chanisavail.o apps/app_chanisavail.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 7338,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_chanisavail.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_chanisavail.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -375,14 +1149,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_channelredirect.c",
       "description": "Redirects a given channel to a dialplan target",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_channelredirect"
       ],
+      "provenance": {
+        "sourceSha256": "c4e40732df82b87174dbe819675d5a2bf279fa375bdfdec2a371c775cebf3fb7",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_channelredirect\" displayname=\"Channel Redirect\" remove_on_change=\"apps/app_channelredirect.o apps/app_channelredirect.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 3278,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_channelredirect.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_channelredirect.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -398,14 +1202,52 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_chanspy.c",
       "description": "Listen to the audio of an active channel",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_chanspy"
       ],
+      "provenance": {
+        "sourceSha256": "dfa22d4a902bd07cc661a9bbbd72000e593b507dcc0308267c9008ea2252072c",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_chanspy\" displayname=\"Listen to the audio of an active channel\" remove_on_change=\"apps/app_chanspy.o apps/app_chanspy.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 53110,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_chan",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_ext",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_dahdiscan",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_chanspy.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_chanspy.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -423,6 +1265,20 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "eeb6acf1f0ac3698bbb8331ab90fe533b956e57455ab734cd62116a914662fe8",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,app_confbridge,$(wildcard confbridge/*.c))",
+            "app_confbridge.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION)"
+          ]
+        }
+      },
+      "sourceBytes": 150419,
       "configFiles": [
         "args.conf",
         "confbridge.conf",
@@ -437,6 +1293,128 @@ export const ASTERISK_CATALOG = {
         "channel",
         "bridge"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_confbridge_list",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List conference bridges and participants."
+          },
+          {
+            "name": "handle_cli_confbridge_kick",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Kick participants out of conference bridges."
+          },
+          {
+            "name": "handle_cli_confbridge_mute",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Mute participants."
+          },
+          {
+            "name": "handle_cli_confbridge_unmute",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Unmute participants."
+          },
+          {
+            "name": "handle_cli_confbridge_lock",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Lock a conference."
+          },
+          {
+            "name": "handle_cli_confbridge_unlock",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Unlock a conference."
+          },
+          {
+            "name": "handle_cli_confbridge_start_record",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Start recording a conference"
+          },
+          {
+            "name": "handle_cli_confbridge_stop_record",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Stop recording a conference."
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "ConfbridgeList",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "ConfbridgeListRooms",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "ConfbridgeMute",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "ConfbridgeUnmute",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "ConfbridgeKick",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "ConfbridgeUnlock",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "ConfbridgeLock",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "ConfbridgeStartRecord",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "ConfbridgeStopRecord",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "ConfbridgeSetSingleVideoSrc",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app2",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "confbridge_function",
+            "evidence": "ast_custom_function_register_escalating"
+          },
+          {
+            "name": "confbridge_info_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "confbridge_channels_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": [
+          {
+            "name": "tech",
+            "evidence": "ast_channel_register"
+          }
+        ]
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_confbridge.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_confbridge.c; runtime help and the generated module record are the authoritative available documentation."
@@ -454,16 +1432,50 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_controlplayback.c",
       "description": "Control Playback Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_controlplayback"
       ],
+      "provenance": {
+        "sourceSha256": "37f4624cde81681009599622a1ec5afa165150a3f9247cb29d0859ff6f679551",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_controlplayback\" displayname=\"Control Playback Application\" remove_on_change=\"apps/app_controlplayback.o apps/app_controlplayback.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 11133,
       "configFiles": [],
       "sourceSurfaces": [
         "ami",
-        "agi",
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [
+          {
+            "name": "ControlPlayback",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_controlplayback.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_controlplayback.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -479,14 +1491,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_db.c",
       "description": "Database Access Functions",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_db"
       ],
+      "provenance": {
+        "sourceSha256": "32525da512771bcedfec1d9ae38b873aba5165f89296af0403b8df471cce0825",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_db\" displayname=\"Database Access Functions\" remove_on_change=\"apps/app_db.o apps/app_db.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 2791,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "dt_app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_db.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_db.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -502,20 +1544,53 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_dial.c",
       "description": "Dialing Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_dial"
       ],
+      "provenance": {
+        "sourceSha256": "d7c5317309b96d5e4457fff2d05fea73aba4d1badbbc001f378bd7e0b5a04b57",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_dial\" displayname=\"Dialing Application\" remove_on_change=\"apps/app_dial.o apps/app_dial.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 142360,
       "configFiles": [
         "features.conf",
         "indications.conf",
         "musiconhold.conf"
       ],
       "sourceSurfaces": [
-        "agi",
         "application",
         "rtp"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "rapp",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_dial.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_dial.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -531,14 +1606,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_dictate.c",
       "description": "Virtual Dictation Machine",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_dictate"
       ],
+      "provenance": {
+        "sourceSha256": "dc32d7a5ceadaf851371112756432857b057288cdd8dfc010c4ac9bdc8f41fab",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_dictate\" displayname=\"Virtual Dictation Machine\" remove_on_change=\"apps/app_dictate.o apps/app_dictate.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 9315,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_dictate.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_dictate.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -554,14 +1659,48 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_directed_pickup.c",
       "description": "Directed Call Pickup Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_directed_pickup"
       ],
+      "provenance": {
+        "sourceSha256": "e4da342327e459295516de395f36801b85710b1914f97bd96e729445b028c8d9",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_directed_pickup\" displayname=\"Directed Call Pickup Application\" remove_on_change=\"apps/app_directed_pickup.o apps/app_directed_pickup.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 14497,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app2",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_directed_pickup.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_directed_pickup.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -577,16 +1716,49 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_directory.c",
       "description": "Extension Directory",
       "buildConditions": [
-        "menuselect"
+        "MENUSELECT_OPTS_",
+        "MENUSELECT_OPTS_APP_DIRECTORY",
+        "menuselect:app_directory"
       ],
+      "provenance": {
+        "sourceSha256": "de023ac62197987c176dbfb7868c136b1fee0e48a968d02dc0f32b5e7b20442f",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MENUSELECT_OPTS_app_directory:=$(MENUSELECT_OPTS_app_voicemail)",
+            "\t\t<member name=\"app_directory\" displayname=\"Extension Directory\" remove_on_change=\"apps/app_directory.o apps/app_directory.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 33120,
       "configFiles": [
         "voicemail.conf"
       ],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_directory.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_directory.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -602,16 +1774,46 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_disa.c",
       "description": "DISA (Direct Inward System Access) Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_disa"
       ],
+      "provenance": {
+        "sourceSha256": "3d4cb7b5fc75fe0885305fcaeffa4f8388ac7476c05ca2761de6a6c476bbc320",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_disa\" displayname=\"DISA (Direct Inward System Access) Application\" remove_on_change=\"apps/app_disa.o apps/app_disa.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 13797,
       "configFiles": [
         "extensions.conf"
       ],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_disa.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_disa.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -629,10 +1831,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "c6b3ff1b599ac2ba9b0d7d28f23ce3d33ac5874db91aa3ded9879bc3aba828d7",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 8635,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_dtmfstore.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_dtmfstore.c; runtime help and the generated module record are the authoritative available documentation."
@@ -650,14 +1881,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_dumpchan.c",
       "description": "Dump Info About The Calling Channel",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_dumpchan"
       ],
+      "provenance": {
+        "sourceSha256": "4488d23fc3f7a56664c847acf76eb079fc5520ca88bd3772702bc0a752101dcd",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_dumpchan\" displayname=\"Dump Info About The Calling Channel\" remove_on_change=\"apps/app_dumpchan.o apps/app_dumpchan.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 6791,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_dumpchan.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_dumpchan.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -673,14 +1934,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_echo.c",
       "description": "Simple Echo Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_echo"
       ],
+      "provenance": {
+        "sourceSha256": "3342a02570a199ffd29d5358fb9a12554028e1fb9a98ea2537ee413d51b47237",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_echo\" displayname=\"Simple Echo Application\" remove_on_change=\"apps/app_echo.o apps/app_echo.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 2909,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_echo.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_echo.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -696,14 +1987,52 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_exec.c",
       "description": "Executes dialplan applications",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_exec"
       ],
+      "provenance": {
+        "sourceSha256": "8362e5970e77518119dd347f434d83db2667f09d298e58d96a59f21032a2c8e7",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_exec\" displayname=\"Executes dialplan applications\" remove_on_change=\"apps/app_exec.o apps/app_exec.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 8769,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_exec",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_tryexec",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_execif",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_exec.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_exec.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -719,14 +2048,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_externalivr.c",
       "description": "External IVR Interface Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_externalivr"
       ],
+      "provenance": {
+        "sourceSha256": "a3fd02101cfc7ee73703d3baea5721c75813217ddfc78dce6a3cbb6e5df3719c",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_externalivr\" displayname=\"External IVR Interface Application\" remove_on_change=\"apps/app_externalivr.o apps/app_externalivr.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 27748,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_externalivr.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_externalivr.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -742,8 +2101,21 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_festival.c",
       "description": "Simple Festival Interface",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_festival"
       ],
+      "provenance": {
+        "sourceSha256": "d7be02249a3e4bbabeb7799c9c8081cd70e14604fc8fa824c2c5752bd21ef0d4",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_festival\" displayname=\"Simple Festival Interface\" remove_on_change=\"apps/app_festival.o apps/app_festival.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 16335,
       "configFiles": [
         "festival.conf",
         "festival.conf.sample"
@@ -751,8 +2123,25 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_festival.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_festival.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -768,14 +2157,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_flash.c",
       "description": "Flash channel application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_flash"
       ],
+      "provenance": {
+        "sourceSha256": "944aa848e2a970eb9213b91cb586de48981d7748f230ac661051115d1e4c23ce",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_flash\" displayname=\"Flash zap trunk application\" remove_on_change=\"apps/app_flash.o apps/app_flash.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 3318,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_flash.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_flash.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -791,8 +2210,21 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_followme.c",
       "description": "Find-Me/Follow-Me Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_followme"
       ],
+      "provenance": {
+        "sourceSha256": "d7078eea42dc2ad1daa3cfc8b87a54c0fcc86663ea79ab6997c3fe0f8db3ca82",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_followme\" displayname=\"Find-Me/Follow-Me Application\" remove_on_change=\"apps/app_followme.o apps/app_followme.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 56759,
       "configFiles": [
         "followme.conf",
         "followme.conf.sample"
@@ -800,8 +2232,25 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_followme.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_followme.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -817,14 +2266,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_forkcdr.c",
       "description": "Fork The CDR into 2 separate entities",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_forkcdr"
       ],
+      "provenance": {
+        "sourceSha256": "1cf6f1e5deec0f4da4ebf8bad8806f022f5f58e08c710a84c6671c26590a6164",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_forkcdr\" displayname=\"Fork The CDR into 2 separate entities.\" remove_on_change=\"apps/app_forkcdr.o apps/app_forkcdr.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 6822,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_forkcdr.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_forkcdr.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -840,16 +2319,46 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_getcpeid.c",
       "description": "Get ADSI CPE ID",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_getcpeid"
       ],
+      "provenance": {
+        "sourceSha256": "bcb18f05ad2dd06a8ca158ee222a631921bd82958dddf9fa59942f7d7d8fafdd",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_getcpeid\" displayname=\"Get ADSI CPE ID\" remove_on_change=\"apps/app_getcpeid.o apps/app_getcpeid.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 3886,
       "configFiles": [
         "dahdi.conf"
       ],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_getcpeid.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_getcpeid.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -867,10 +2376,55 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "88164b4c75a56e0f5f80dc2736b1617c8a09c6ef45135897175f9705b25aa640",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 13309,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "if_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "elseif_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "stop_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "else_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "exit_app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_if.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_if.c; runtime help and the generated module record are the authoritative available documentation."
@@ -888,14 +2442,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_ivrdemo.c",
       "description": "IVR Demo Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_ivrdemo"
       ],
+      "provenance": {
+        "sourceSha256": "8fdc3ed96f5d6797ea4dea7c3fd8b80a71e248df6934a89c74d308caded9ca17",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_ivrdemo\" displayname=\"IVR Demo Application\" remove_on_change=\"apps/app_ivrdemo.o apps/app_ivrdemo.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 3333,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_ivrdemo.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_ivrdemo.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -913,11 +2497,45 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "db5f852df342d82a299a5ff4ceab6c0f836c4d448ba45c6db217d8927e1095fe",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 29957,
       "configFiles": [],
       "sourceSurfaces": [
         "application",
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "jack_app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "jack_hook_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_jack.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_jack.c; runtime help and the generated module record are the authoritative available documentation."
@@ -935,8 +2553,22 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_meetme.c",
       "description": "MeetMe conference bridge",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_meetme"
       ],
+      "provenance": {
+        "sourceSha256": "b2d9a0384a136793242d00a1effcdbf0a26dd9e6800fc9f2b739c4c6d3a500e9",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "app_meetme.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION)",
+            "\t\t<member name=\"app_meetme\" displayname=\"MeetMe conference bridge\" remove_on_change=\"apps/app_meetme.o apps/app_meetme.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 180569,
       "configFiles": [
         "args.conf",
         "dahdic.conf",
@@ -950,8 +2582,85 @@ export const ASTERISK_CATALOG = {
         "application",
         "function"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "meetme_kick_cmd",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Kick a conference or a user in a conference."
+          },
+          {
+            "name": "meetme_show_cmd",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List all conferences or a specific conference."
+          },
+          {
+            "name": "meetme_lock_cmd",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Lock or unlock a conference to new users."
+          },
+          {
+            "name": "meetme_mute_cmd",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Mute or unmute a conference or a user in a conference."
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "MeetmeMute",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "MeetmeUnmute",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "MeetmeList",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "MeetmeListRooms",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [
+          {
+            "name": "Meetme: %s\\r\\n",
+            "evidence": "manager_event"
+          }
+        ],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app4",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app3",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app2",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "meetme_info_acf",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_meetme.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_meetme.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -969,11 +2678,49 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "803a04e1387d3a9627749102af92619ea0a75277ace36ccb791b31b0f10276da",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 17797,
       "configFiles": [],
       "sourceSurfaces": [
         "ami",
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [
+          {
+            "name": "PlayMF",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "readmf_name",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "sendmf_name",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_mf.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_mf.c; runtime help and the generated module record are the authoritative available documentation."
@@ -991,14 +2738,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_milliwatt.c",
       "description": "Digital Milliwatt (mu-law) Test Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_milliwatt"
       ],
+      "provenance": {
+        "sourceSha256": "ae73083051b911feb2dde03cf2a963ca670fa4565a1043931066a9b7b3c30ffe",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_milliwatt\" displayname=\"Digital Milliwatt (mu-law) Test Application\" remove_on_change=\"apps/app_milliwatt.o apps/app_milliwatt.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 5474,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_milliwatt.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_milliwatt.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1016,6 +2793,19 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "b274083b661dd8710c9a82225c6e1acae0284333cebead9bdebd48f7de814c0d",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "app_minivm.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION)"
+          ]
+        }
+      },
+      "sourceBytes": 118692,
       "configFiles": [
         "asterisk.conf",
         "extensions_minivm.conf.sample",
@@ -1028,6 +2818,84 @@ export const ASTERISK_CATALOG = {
         "application",
         "function"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_minivm_show_users",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List defined mini-voicemail boxes"
+          },
+          {
+            "name": "handle_minivm_show_zones",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List zone message formats"
+          },
+          {
+            "name": "handle_minivm_list_templates",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List message templates"
+          },
+          {
+            "name": "handle_minivm_reload",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reload Mini-voicemail configuration"
+          },
+          {
+            "name": "handle_minivm_show_stats",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show some mini-voicemail statistics"
+          },
+          {
+            "name": "handle_minivm_show_settings",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show mini-voicemail general settings"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_minivm_record",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_minivm_greet",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_minivm_notify",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_minivm_delete",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_minivm_accmess",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_minivm_mwi",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "minivm_account_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "minivm_counter_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_minivm.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_minivm.c; runtime help and the generated module record are the authoritative available documentation."
@@ -1045,8 +2913,21 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_mixmonitor.c",
       "description": "Mixed Audio Monitoring Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_mixmonitor"
       ],
+      "provenance": {
+        "sourceSha256": "0c1bf8e3629a01c68609ffaa813caf6d6d6d6aae5ab85c4248578b9a3c6a14d0",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_mixmonitor\" displayname=\"Mixed Audio Monitoring Application\" remove_on_change=\"apps/app_mixmonitor.o apps/app_mixmonitor.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 68784,
       "configFiles": [
         "asterisk.conf"
       ],
@@ -1056,8 +2937,53 @@ export const ASTERISK_CATALOG = {
         "application",
         "function"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_mixmonitor",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Execute a MixMonitor command"
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "MixMonitorMute",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "MixMonitor",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "StopMixMonitor",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "stop_app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "mixmonitor_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_mixmonitor.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_mixmonitor.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1073,14 +2999,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_morsecode.c",
       "description": "Morse code",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_morsecode"
       ],
+      "provenance": {
+        "sourceSha256": "942301ea8eca688e0dd538b9a7c4851e7b3d8e6e186839be2aebc7284e2de9f2",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_morsecode\" displayname=\"Morse code\" remove_on_change=\"apps/app_morsecode.o apps/app_morsecode.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 9652,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_morsecode",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_morsecode.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_morsecode.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1096,14 +3052,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_mp3.c",
       "description": "Silly MP3 Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_mp3"
       ],
+      "provenance": {
+        "sourceSha256": "8d82dcb5c1c19874f2639dbf7c918f0fc298d0f79b95a2b5917fcb00ae1a4719",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_mp3\" displayname=\"Silly MP3 Application\" remove_on_change=\"apps/app_mp3.o apps/app_mp3.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 10099,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_mp3.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_mp3.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1121,10 +3107,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "784f983d1e0a391002374822891a556a6c047dadb644f81b5c79d7d62c8d501c",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 14247,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_originate",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_originate.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_originate.c; runtime help and the generated module record are the authoritative available documentation."
@@ -1142,14 +3157,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_page.c",
       "description": "Page Multiple Phones",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_page"
       ],
+      "provenance": {
+        "sourceSha256": "a17bea9f3208e63577def9eb9a3d42c7cc152f569166d29485c49e8e17a6d702",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_page\" displayname=\"Page Multiple Phones\" remove_on_change=\"apps/app_page.o apps/app_page.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 14310,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_page",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_page.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_page.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1165,8 +3210,21 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_playback.c",
       "description": "Sound File Playback Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_playback"
       ],
+      "provenance": {
+        "sourceSha256": "8572c7af652b9aec48183096b977dc3e1d0c1c11b6b9154df004ff5351230a72",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_playback\" displayname=\"Sound File Playback Application\" remove_on_change=\"apps/app_playback.o apps/app_playback.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 17770,
       "configFiles": [
         "say.conf",
         "say.conf.sample"
@@ -1175,8 +3233,31 @@ export const ASTERISK_CATALOG = {
         "cli",
         "application"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "__say_cli_init",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Set or show the say mode"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_playback.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_playback.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1194,12 +3275,45 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "e30f7fa462d9f27a80a544b3bebfd8d162c42c237b6d6aa1aaca18029b09676e",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3482,
       "configFiles": [
         "indications.conf"
       ],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "playtones_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "stopplaytones_app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_playtones.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_playtones.c; runtime help and the generated module record are the authoritative available documentation."
@@ -1217,14 +3331,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_privacy.c",
       "description": "Require phone number to be entered, if no CallerID sent",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_privacy"
       ],
+      "provenance": {
+        "sourceSha256": "01e3deffe59cc3a060bb504f8148e1da7024860da93755716abc3c915f146bde",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_privacy\" displayname=\"Require phone number to be entered, if no CallerID sent\" remove_on_change=\"apps/app_privacy.o apps/app_privacy.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 6667,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_privacy.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_privacy.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1240,8 +3384,21 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_queue.c",
       "description": "True Call Queueing",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_queue"
       ],
+      "provenance": {
+        "sourceSha256": "ddb9952c13782e705bc74fa581b4543bc8ae10d8fdead8ab4bc4fd38be24e211",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_queue\" displayname=\"True Call Queueing\" remove_on_change=\"apps/app_queue.o apps/app_queue.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 419996,
       "configFiles": [
         "extconfig.conf",
         "features.conf",
@@ -1252,12 +3409,185 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "cli",
         "ami",
-        "agi",
         "application",
         "function"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "queue_show",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show status of a specified queue"
+          },
+          {
+            "name": "handle_queue_rule_show",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show the rules defined in queuerules.conf"
+          },
+          {
+            "name": "handle_queue_add_member",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Add a channel to a specified queue"
+          },
+          {
+            "name": "handle_queue_remove_member",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Removes a channel from a specified queue"
+          },
+          {
+            "name": "handle_queue_pause_member",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Pause or unpause a queue member"
+          },
+          {
+            "name": "handle_queue_set_member_penalty",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Set penalty for a channel of a specified queue"
+          },
+          {
+            "name": "handle_queue_set_member_ringinuse",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Set ringinuse for a channel of a specified queue"
+          },
+          {
+            "name": "handle_queue_reload",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reload queues, members, queue rules, or parameters"
+          },
+          {
+            "name": "handle_queue_reset",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reset statistics for a queue"
+          },
+          {
+            "name": "handle_queue_change_priority_caller",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Change priority caller on queue"
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "QueueStatus",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "QueueSummary",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "QueueAdd",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "QueueRemove",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "QueuePause",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "QueueLog",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "QueuePenalty",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "QueueMemberRingInUse",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "QueueRule",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "QueueReload",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "QueueReset",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "QueueChangePriorityCaller",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "QueueWithdrawCaller",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_aqm",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_rqm",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_pqm",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_upqm",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_ql",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_qupd",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "queuevar_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "queueexists_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "queuemembercount_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "queuememberlist_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "queuegetchannel_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "queuewaitingcount_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "queuememberpenalty_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_queue.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_queue.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1273,16 +3603,48 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_read.c",
       "description": "Read Variable Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_read",
+        "menuselect:app_readfile"
       ],
+      "provenance": {
+        "sourceSha256": "e3785a4f80dbe445cc6c726de95fc1fa651c7905da7d77e10236966164659123",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_read\" displayname=\"Read Variable Application\" remove_on_change=\"apps/app_read.o apps/app_read.so\">",
+            "\t\t<member name=\"app_readfile\" displayname=\"Stores output of file into a variable\" remove_on_change=\"apps/app_readfile.o apps/app_readfile.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 10497,
       "configFiles": [
         "indications.conf"
       ],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_read.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_read.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1300,12 +3662,41 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "fdf58d22db3c07d97ca94fce06027687b582a8fb0695e751308423ec7ba03c5e",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 8920,
       "configFiles": [
         "indications.conf"
       ],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_readexten.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_readexten.c; runtime help and the generated module record are the authoritative available documentation."
@@ -1323,15 +3714,50 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_record.c",
       "description": "Trivial Record Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_record"
       ],
+      "provenance": {
+        "sourceSha256": "fc6d943401574ee4a0b33c6096a9bfea5635868796528377d82cea01b3d7c181",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_record\" displayname=\"Trivial Record Application\" remove_on_change=\"apps/app_record.o apps/app_record.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 19053,
       "configFiles": [],
       "sourceSurfaces": [
         "application",
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "acf_recording_info",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_record.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_record.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1349,10 +3775,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "3d635cc252961f95e51a0cd0ed7712487423e59e6184c04910f7c3204ddfaa9b",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3420,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_reload.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_reload.c; runtime help and the generated module record are the authoritative available documentation."
@@ -1372,10 +3827,43 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "2c17a71da8a76e321b0bea5537f047ac3ab16baf29fbab1da233bc1c897e29b8",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 7221,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "\"SayCountedNoun\"",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "\"SayCountedAdj\"",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_saycounted.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_saycounted.c; runtime help and the generated module record are the authoritative available documentation."
@@ -1393,16 +3881,50 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_sayunixtime.c",
       "description": "Say time",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_sayunixtime"
       ],
+      "provenance": {
+        "sourceSha256": "f74da6fff4caeaca8e8b2faae092278bbe1c226af3089fb91e8f5b0494371616",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_sayunixtime\" displayname=\"Say time\" remove_on_change=\"apps/app_sayunixtime.o apps/app_sayunixtime.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 5789,
       "configFiles": [
         "voicemail.conf"
       ],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_sayunixtime",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_datetime",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_sayunixtime.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_sayunixtime.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1418,15 +3940,54 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_senddtmf.c",
       "description": "Send DTMF digits Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_senddtmf"
       ],
+      "provenance": {
+        "sourceSha256": "40118d4b0e532662b75d4977772e4cd48ce93a50e90cca634568ef6720eab5d0",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_senddtmf\" displayname=\"Send DTMF digits Application\" remove_on_change=\"apps/app_senddtmf.o apps/app_senddtmf.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 8602,
       "configFiles": [],
       "sourceSurfaces": [
         "ami",
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [
+          {
+            "name": "PlayDTMF",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "SendFlash",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "senddtmf_name",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_senddtmf.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_senddtmf.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1442,14 +4003,48 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_sendtext.c",
       "description": "Send and Receive Text Applications",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_sendtext"
       ],
+      "provenance": {
+        "sourceSha256": "4e7be5f2998ef67f7a99d4d9c3d7f8c82f2924040830c91f2dc8f0fa9a9c4d27",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_sendtext\" displayname=\"Send Text Applications\" remove_on_change=\"apps/app_sendtext.o apps/app_sendtext.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 9825,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app2",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_sendtext.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_sendtext.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1467,10 +4062,43 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "775d6ce5e5c0333a4d547f90b4b0d2b210340909da4ac26551964b3672d43a4d",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 17226,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "readsf_name",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "sendsf_name",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_sf.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_sf.c; runtime help and the generated module record are the authoritative available documentation."
@@ -1490,10 +4118,43 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "0b718f2277a77aaaf0758bd72f6cc35f3d21dd0534a5b0fca7fa002610f21143",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 13775,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app2",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_signal.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_signal.c; runtime help and the generated module record are the authoritative available documentation."
@@ -1511,8 +4172,21 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_skel.c",
       "description": "Skeleton (sample) Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_skel"
       ],
+      "provenance": {
+        "sourceSha256": "772aaa14a744c1871665d7f7499b0484f045c0def5923dc42046a3998db37bd9",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_skel\" displayname=\"Trivial skeleton Application\" remove_on_change=\"apps/app_skel.o apps/app_skel.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 26800,
       "configFiles": [
         "app_skel.conf",
         "app_skel.conf.sample"
@@ -1521,8 +4195,41 @@ export const ASTERISK_CATALOG = {
         "cli",
         "application"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_skel_show_config",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show app_skel global config options"
+          },
+          {
+            "name": "handle_skel_show_levels",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show app_skel levels"
+          },
+          {
+            "name": "handle_skel_show_games",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show app_skel active games"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_skel.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_skel.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1540,6 +4247,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "f72eca65b5ca3643dea804a56026e265de96cba90757c8b7afca84d9618d6d85",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 86804,
       "configFiles": [
         "sla.conf",
         "sla.conf.sample"
@@ -1548,6 +4266,39 @@ export const ASTERISK_CATALOG = {
         "cli",
         "application"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "sla_show_trunks",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show SLA Trunks"
+          },
+          {
+            "name": "sla_show_stations",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show SLA Stations"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "slastation_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "slatrunk_app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_sla.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_sla.c; runtime help and the generated module record are the authoritative available documentation."
@@ -1565,14 +4316,45 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_sms.c",
       "description": "SMS/PSTN handler",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_sms"
       ],
+      "provenance": {
+        "sourceSha256": "8690d0d731e649b9353d9a57f121992d8d833541335ddac8bb293d4728ad9c53",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "app_sms.o: _ASTCFLAGS+=-fno-tree-vectorize",
+            "\t\t<member name=\"app_sms\" displayname=\"SMS/PSTN handler\" remove_on_change=\"apps/app_sms.o apps/app_sms.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 68050,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_sms.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_sms.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1588,14 +4370,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_softhangup.c",
       "description": "Hangs up the requested channel",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_softhangup"
       ],
+      "provenance": {
+        "sourceSha256": "b24b6e6145cc9a46bfea3cf41ad6b070b435d16fe765da8b564b5b406023fcee",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_softhangup\" displayname=\"Hangs up the requested channel\" remove_on_change=\"apps/app_softhangup.o apps/app_softhangup.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 3789,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_softhangup.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_softhangup.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1611,15 +4423,102 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_speech_utils.c",
       "description": "Dialplan Speech Applications",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_speech_utils"
       ],
+      "provenance": {
+        "sourceSha256": "ce19972cfcbb7985ac51fac67ad995f108e95fc2b33af44b13412b22245e3d56",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_speech_utils\" displayname=\"Dialplan Speech Applications\" remove_on_change=\"apps/app_speech_utils.o apps/app_speech_utils.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 32041,
       "configFiles": [],
       "sourceSurfaces": [
         "application",
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "\"SpeechCreate\"",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "\"SpeechLoadGrammar\"",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "\"SpeechUnloadGrammar\"",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "\"SpeechActivateGrammar\"",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "\"SpeechDeactivateGrammar\"",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "\"SpeechStart\"",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "\"SpeechBackground\"",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "\"SpeechDestroy\"",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "\"SpeechProcessingSound\"",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "speech_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "speech_score_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "speech_text_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "speech_grammar_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "speech_engine_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "speech_results_type_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_speech_utils.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_speech_utils.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1635,16 +4534,76 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_stack.c",
       "description": "Dialplan subroutines (Gosub, Return, etc)",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_stack"
       ],
+      "provenance": {
+        "sourceSha256": "c52f18f882acb20a44aa82bc9b52450d3f04149e3c6085c79d358c5e17855e17",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_stack\" displayname=\"Stack Routines\" remove_on_change=\"apps/app_stack.o apps/app_stack.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 40693,
       "configFiles": [],
       "sourceSurfaces": [
         "agi",
         "application",
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [
+          {
+            "name": "gosub_agi_command",
+            "evidence": "ast_agi_register"
+          }
+        ],
+        "applications": [
+          {
+            "name": "app_pop",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_return",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_gosubif",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_gosub",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "local_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "peek_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "stackpeek_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_stack.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_stack.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1662,11 +4621,40 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "c76a761662b7afa80712804bb060affc94fc7b1fb26b7a8aca6b3fc52bb740f4",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4746,
       "configFiles": [],
       "sourceSurfaces": [
         "ari",
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "stasis",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_stasis.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_stasis.c; runtime help and the generated module record are the authoritative available documentation."
@@ -1686,10 +4674,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "47863435c846ad0a787da6de83d6b87e52762e69be3d7d3061c03d506f38f99f",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 10067,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_stasis_broadcast.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_stasis_broadcast.c; runtime help and the generated module record are the authoritative available documentation."
@@ -1709,12 +4726,41 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "62fe172e0267f7e8f335e80a7ac071d308b56bf04e269c89966cd0b6a085ebb9",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 12091,
       "configFiles": [
         "statsd.conf"
       ],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_statsd.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_statsd.c; runtime help and the generated module record are the authoritative available documentation."
@@ -1734,10 +4780,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "ad6f427cc7dc333b7a06738174072478092e601bf182813c44566ff7fcfcd085",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 11257,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_stream_echo.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_stream_echo.c; runtime help and the generated module record are the authoritative available documentation."
@@ -1755,14 +4830,48 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_system.c",
       "description": "Generic System() application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_system"
       ],
+      "provenance": {
+        "sourceSha256": "5a609529d6deac850a6a8b6227b0cb07faa2ce09c030a91464ab08290661bf86",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_system\" displayname=\"Generic System() application\" remove_on_change=\"apps/app_system.o apps/app_system.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 5751,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app2",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_system.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_system.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1778,14 +4887,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_talkdetect.c",
       "description": "Playback with Talk Detection",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_talkdetect"
       ],
+      "provenance": {
+        "sourceSha256": "cf81e50b7096c1812c17f8a3bbccbf6c12860f6420492e9414e27863a986893c",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_talkdetect\" displayname=\"Playback with Talk Detection\" remove_on_change=\"apps/app_talkdetect.o apps/app_talkdetect.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 8041,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_talkdetect.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_talkdetect.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1801,14 +4940,48 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_test.c",
       "description": "Interface Test Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_test"
       ],
+      "provenance": {
+        "sourceSha256": "b5622a38a0fedf3aa08eeeb707ff5b2a8e350ff447bbd44d779de14b5eba8fc8",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_test\" displayname=\"Interface Test Application\" remove_on_change=\"apps/app_test.o apps/app_test.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 14324,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "testc_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "tests_app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_test.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_test.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1824,14 +4997,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_transfer.c",
       "description": "Transfers a caller to another extension",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_transfer"
       ],
+      "provenance": {
+        "sourceSha256": "15fc692212c11ddd1c6dad15e2f16ddf86bf13c5030b7f26ad483939a6d73dc8",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_transfer\" displayname=\"Transfer\" remove_on_change=\"apps/app_transfer.o apps/app_transfer.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 4948,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_transfer.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_transfer.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1847,14 +5050,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_userevent.c",
       "description": "Custom User Event Application",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_userevent"
       ],
+      "provenance": {
+        "sourceSha256": "aa3d4505cf545d5d63efbf89901b054737c859aa806b62eb2cb3846ee2e0be8a",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_userevent\" displayname=\"Custom User Event Application\" remove_on_change=\"apps/app_userevent.o apps/app_userevent.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 3863,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_userevent.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_userevent.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1870,14 +5103,48 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_verbose.c",
       "description": "Send verbose output",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_verbose"
       ],
+      "provenance": {
+        "sourceSha256": "0d50ca3ab685410118fcc719a08951037554f2216caf3df7df6c4111cdc1dc9b",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_verbose\" displayname=\"Send verbose output\" remove_on_change=\"apps/app_verbose.o apps/app_verbose.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 4579,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_log",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_verbose",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_verbose.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_verbose.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1893,8 +5160,34 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_voicemail.c",
       "description": "Loadable apps module from apps/app_voicemail.c.",
       "buildConditions": [
-        "menuselect"
+        "MENUSELECT_OPTS_",
+        "MENUSELECT_OPTS_APP_VOICEMAIL",
+        "menuselect:app_voicemail"
       ],
+      "provenance": {
+        "sourceSha256": "88daeae59b1818a8598c79874f95b4c1793e2ca4a1c30180be92d52d773abcd1",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MENUSELECT_OPTS_app_directory:=$(MENUSELECT_OPTS_app_voicemail)",
+            ".app_voicemail.moduleinfo: app_voicemail.c",
+            "\t@echo \"<member name=\\\"app_voicemail\\\" displayname=\\\"$(shell $(GREP) -e AST_MODULE_INFO $< | head -n 1 | cut -d '\"' -f 2)\\\" remove_on_change=\\\"$(SUBDIR)/$*.o $(SUBDIR)/$*.so\\\">\" > $@",
+            ".app_voicemail_imap.moduleinfo: app_voicemail_imap.c",
+            "\t@echo \"<member name=\\\"app_voicemail_imap\\\" displayname=\\\"$(shell $(GREP) -e AST_MODULE_INFO $< | head -n 1 | cut -d '\"' -f 2)\\\" remove_on_change=\\\"$(SUBDIR)/$*.o $(SUBDIR)/$*.so\\\">\" > $@",
+            ".app_voicemail_odbc.moduleinfo: app_voicemail_odbc.c",
+            "\t@echo \"<member name=\\\"app_voicemail_odbc\\\" displayname=\\\"$(shell $(GREP) -e AST_MODULE_INFO $< | head -n 1 | cut -d '\"' -f 2)\\\" remove_on_change=\\\"$(SUBDIR)/$*.o $(SUBDIR)/$*.so\\\">\" > $@",
+            "app_voicemail.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION) -DFILE_STORAGE",
+            "app_voicemail_odbc.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION) -DODBC_STORAGE",
+            "app_voicemail_imap.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION) -DIMAP_STORAGE",
+            "\t\t<member name=\"app_voicemail\" displayname=\"Comedian Mail (Voicemail System)\" remove_on_change=\"apps/app_voicemail.o apps/app_voicemail.so\">",
+            "<category name=\"MENUSELECT_app_voicemail\" displayname=\"Voicemail Build Options\" positive_output=\"yes\" remove_on_change=\"apps/app_voicemail.o\">"
+          ]
+        }
+      },
+      "sourceBytes": 598638,
       "configFiles": [
         "secret.conf",
         "voicemail.conf",
@@ -1907,8 +5200,116 @@ export const ASTERISK_CATALOG = {
         "application",
         "function"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_voicemail_show_users",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List defined voicemail boxes"
+          },
+          {
+            "name": "handle_voicemail_show_zones",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List zone message formats"
+          },
+          {
+            "name": "handle_voicemail_show_aliases",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List mailbox aliases"
+          },
+          {
+            "name": "handle_voicemail_reload",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reload voicemail configuration"
+          },
+          {
+            "name": "handle_voicemail_show_mailbox",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display a mailbox's content details"
+          },
+          {
+            "name": "handle_voicemail_forward_message",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Forward message to another folder"
+          },
+          {
+            "name": "handle_voicemail_move_message",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Move message to another folder"
+          },
+          {
+            "name": "handle_voicemail_remove_message",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Remove message"
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "VoicemailUsersList",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "VoicemailUserStatus",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "VoicemailRefresh",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "VoicemailBoxSummary",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "VoicemailMove",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "VoicemailRemove",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "VoicemailForward",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "voicemail_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "voicemailmain_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "vmauthenticate_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "playmsg_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "sayname_app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "vm_info_acf",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_voicemail.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_voicemail.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1926,10 +5327,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "e0db3dd746963a1c501c9c11bba2504be500e6d3d54247b94e28e63a11e9ad98",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 8054,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_waitforcond.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_waitforcond.c; runtime help and the generated module record are the authoritative available documentation."
@@ -1947,14 +5377,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_waitforring.c",
       "description": "Waits until first ring after time",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_waitforring"
       ],
+      "provenance": {
+        "sourceSha256": "016dfc410fb4b10facc708f4c8c1e84e76f99d00d175309d438f591e1745656b",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_waitforring\" displayname=\"Waits until first ring after time\" remove_on_change=\"apps/app_waitforring.o apps/app_waitforring.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 3451,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_waitforring.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_waitforring.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1970,16 +5430,50 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_waitforsilence.c",
       "description": "Wait For Silence/Noise",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_waitforsilence"
       ],
+      "provenance": {
+        "sourceSha256": "0e4d1da80e4f9c26f66a0f8ae3dc71303711a67fd1feb6306f2b5fed2092cea3",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_waitforsilence\" displayname=\"Wait For Silence\" remove_on_change=\"apps/app_waitforsilence.o apps/app_waitforsilence.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 10361,
       "configFiles": [
         "dsp.conf"
       ],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_silence",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_noise",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_waitforsilence.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_waitforsilence.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -1997,10 +5491,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "623a6351c10518d7e531202935f5882dd90a6c1ba7b8887e080c945ef9c36a69",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3279,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_waituntil.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_waituntil.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2018,14 +5541,57 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_while.c",
       "description": "While Loops and Conditional Execution",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_while"
       ],
+      "provenance": {
+        "sourceSha256": "8c7f3d87d552d4caf196d3978615bff7816749f4fcc0431fe001d5dae507def2",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "app_while.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION)",
+            "\t\t<member name=\"app_while\" displayname=\"While Loops and Conditional Execution\" remove_on_change=\"apps/app_while.o apps/app_while.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 10838,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "start_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "stop_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "exit_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "continue_app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_while.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_while.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -2041,14 +5607,44 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_zapateller.c",
       "description": "Block Telemarketers with Special Information Tone",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_zapateller"
       ],
+      "provenance": {
+        "sourceSha256": "4703d456add8039376a2e3fb247a57545197534af8ad27b23eea68a818f8e444",
+        "buildGraph": {
+          "makefile": "apps/Makefile",
+          "makefileSha256": "90187932931bbfaa07041213f4e53e68ede1a5daf40a374f742d596b471f9989",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"app_zapateller\" displayname=\"Block Telemarketers with Special Information Tone\" remove_on_change=\"apps/app_zapateller.o apps/app_zapateller.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 3957,
       "configFiles": [],
       "sourceSurfaces": [
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for apps/app_zapateller.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for apps/app_zapateller.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -2066,8 +5662,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "d81e9f8a2be53471c0cc3a5eacee5588238e7b0e1355b0b7fec58ea119b8ad4e",
+        "buildGraph": {
+          "makefile": "bridges/Makefile",
+          "makefileSha256": "831a5ef5cdd1f09fa5ca8fade68272bbe5faf72be3b5dac3afd49982d1924b29",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 12450,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for bridges/bridge_builtin_features.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for bridges/bridge_builtin_features.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2087,8 +5707,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "db9f501de135a72411ed612076856c5851c67560e0f183183ec6a63d47382b05",
+        "buildGraph": {
+          "makefile": "bridges/Makefile",
+          "makefileSha256": "831a5ef5cdd1f09fa5ca8fade68272bbe5faf72be3b5dac3afd49982d1924b29",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6854,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for bridges/bridge_builtin_interval_features.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for bridges/bridge_builtin_interval_features.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2108,10 +5752,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "99bd9741b710da44d2bb356e54f4e98914e1eac38664b60ac9b8563f9316347a",
+        "buildGraph": {
+          "makefile": "bridges/Makefile",
+          "makefileSha256": "831a5ef5cdd1f09fa5ca8fade68272bbe5faf72be3b5dac3afd49982d1924b29",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 12929,
       "configFiles": [],
       "sourceSurfaces": [
         "bridge"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for bridges/bridge_holding.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for bridges/bridge_holding.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2131,11 +5799,35 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "ccb98d22018b3b3d2db1b1ab7dc6b63f7656a6f660a642a36b01e50f7388a610",
+        "buildGraph": {
+          "makefile": "bridges/Makefile",
+          "makefileSha256": "831a5ef5cdd1f09fa5ca8fade68272bbe5faf72be3b5dac3afd49982d1924b29",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 38106,
       "configFiles": [],
       "sourceSurfaces": [
         "bridge",
         "rtp"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for bridges/bridge_native_rtp.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for bridges/bridge_native_rtp.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2155,10 +5847,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "d513998a8a18be88b8a4c227bdd24f06c41941d676b84a96cb912f9fe115777e",
+        "buildGraph": {
+          "makefile": "bridges/Makefile",
+          "makefileSha256": "831a5ef5cdd1f09fa5ca8fade68272bbe5faf72be3b5dac3afd49982d1924b29",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 8936,
       "configFiles": [],
       "sourceSurfaces": [
         "bridge"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for bridges/bridge_simple.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for bridges/bridge_simple.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2176,15 +5892,44 @@ export const ASTERISK_CATALOG = {
       "source": "bridges/bridge_softmix.c",
       "description": "Multi-party software based channel mixing",
       "buildConditions": [
-        "menuselect"
+        "MENUSELECT_BRIDGES"
       ],
+      "provenance": {
+        "sourceSha256": "9b616a58c3c6fe128fd9405c0eb8d030adae2b9accd1078ee7bd521340c9a5c8",
+        "buildGraph": {
+          "makefile": "bridges/Makefile",
+          "makefileSha256": "831a5ef5cdd1f09fa5ca8fade68272bbe5faf72be3b5dac3afd49982d1924b29",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MODULE_EXCLUDE=binaural_rendering_in_bridge_softmix",
+            "ifeq ($(findstring binaural_rendering_in_bridge_softmix,$(MENUSELECT_BRIDGES)),)",
+            "bridge_softmix.o bridge_softmix/bridge_softmix_binaural.o: _ASTCFLAGS+=-DBINAURAL_RENDERING",
+            "bridge_softmix.so: LIBS+=$(FFTW3_LIB)",
+            "$(call MOD_ADD_C,bridge_softmix,$(wildcard bridge_softmix/*.c))"
+          ]
+        }
+      },
+      "sourceBytes": 102317,
       "configFiles": [],
       "sourceSurfaces": [
         "bridge",
         "rtp"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for bridges/bridge_softmix.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for bridges/bridge_softmix.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -2202,12 +5947,36 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "fef538cf022ae57a3545971fe7bfb986097fe0d841c5fe638d769573c5913f76",
+        "buildGraph": {
+          "makefile": "cdr/Makefile",
+          "makefileSha256": "b4f4ed47d0e42e3fd7210983498c092d05aea788feae4f204a8fda6d5678daee",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 27220,
       "configFiles": [
         "cdr_adaptive_odbc.conf",
         "cdr_adaptive_odbc.conf.sample",
         "res_odbc.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for cdr/cdr_adaptive_odbc.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cdr/cdr_adaptive_odbc.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2227,11 +5996,35 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "596d89917836523814f01d3003fb9eea8c62ff00f271137a82494e9948ad5346",
+        "buildGraph": {
+          "makefile": "cdr/Makefile",
+          "makefileSha256": "b4f4ed47d0e42e3fd7210983498c092d05aea788feae4f204a8fda6d5678daee",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 7432,
       "configFiles": [
         "cdr_beanstalkd.conf",
         "cdr_beanstalkd.conf.sample"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for cdr/cdr_beanstalkd.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cdr/cdr_beanstalkd.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2249,15 +6042,40 @@ export const ASTERISK_CATALOG = {
       "source": "cdr/cdr_csv.c",
       "description": "Comma Separated Values CDR Backend",
       "buildConditions": [
-        "menuselect"
+        "menuselect:cdr_csv"
       ],
+      "provenance": {
+        "sourceSha256": "346b1fbf1536c66fd98ed352198d20bf8c5456047bca75b21a5d317d31afc8d9",
+        "buildGraph": {
+          "makefile": "cdr/Makefile",
+          "makefileSha256": "b4f4ed47d0e42e3fd7210983498c092d05aea788feae4f204a8fda6d5678daee",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"cdr_csv\" displayname=\"Comma Separated Values CDR Backend\" remove_on_change=\"cdr/cdr_csv.o cdr/cdr_csv.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 9909,
       "configFiles": [
         "cdr.conf",
         "dahdi.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for cdr/cdr_csv.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cdr/cdr_csv.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -2273,15 +6091,40 @@ export const ASTERISK_CATALOG = {
       "source": "cdr/cdr_custom.c",
       "description": "Customizable Comma Separated Values CDR Backend",
       "buildConditions": [
-        "menuselect"
+        "menuselect:cdr_custom"
       ],
+      "provenance": {
+        "sourceSha256": "094899ccb68743738ae040fcd4f22ba5e42130e6a34f79158a7859c0eed3d5dc",
+        "buildGraph": {
+          "makefile": "cdr/Makefile",
+          "makefileSha256": "b4f4ed47d0e42e3fd7210983498c092d05aea788feae4f204a8fda6d5678daee",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"cdr_custom\" displayname=\"Customizable Comma Separated Values CDR Backend\" remove_on_change=\"cdr/cdr_custom.o cdr/cdr_custom.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 3082,
       "configFiles": [
         "cdr_custom.conf",
         "cdr_custom.conf.sample"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for cdr/cdr_custom.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cdr/cdr_custom.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -2297,8 +6140,21 @@ export const ASTERISK_CATALOG = {
       "source": "cdr/cdr_manager.c",
       "description": "Asterisk Manager Interface CDR Backend",
       "buildConditions": [
-        "menuselect"
+        "menuselect:cdr_manager"
       ],
+      "provenance": {
+        "sourceSha256": "ed51da68b05f7ecfa62d26bb6f4cb9bc1d7d19ec31e49bec8a3bcc6b8d33afd1",
+        "buildGraph": {
+          "makefile": "cdr/Makefile",
+          "makefileSha256": "b4f4ed47d0e42e3fd7210983498c092d05aea788feae4f204a8fda6d5678daee",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"cdr_manager\" displayname=\"Asterisk Call Manager CDR Backend\" remove_on_change=\"cdr/cdr_manager.o cdr/cdr_manager.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 11170,
       "configFiles": [
         "cdr.conf",
         "cdr_manager.conf",
@@ -2307,8 +6163,25 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "ami"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [
+          {
+            "name": "Cdr",
+            "evidence": "manager_event"
+          }
+        ],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for cdr/cdr_manager.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cdr/cdr_manager.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -2324,15 +6197,40 @@ export const ASTERISK_CATALOG = {
       "source": "cdr/cdr_odbc.c",
       "description": "ODBC CDR Backend",
       "buildConditions": [
-        "menuselect"
+        "menuselect:cdr_odbc"
       ],
+      "provenance": {
+        "sourceSha256": "69a9930230e24ca3259db1700f69c18e671d061bc4e5d841f81142bfd5453ef1",
+        "buildGraph": {
+          "makefile": "cdr/Makefile",
+          "makefileSha256": "b4f4ed47d0e42e3fd7210983498c092d05aea788feae4f204a8fda6d5678daee",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"cdr_odbc\" displayname=\"ODBC CDR Backend\" remove_on_change=\"cdr/cdr_odbc.o cdr/cdr_odbc.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 11021,
       "configFiles": [
         "cdr_odbc.conf",
         "cdr_odbc.conf.sample"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for cdr/cdr_odbc.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cdr/cdr_odbc.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -2348,8 +6246,21 @@ export const ASTERISK_CATALOG = {
       "source": "cdr/cdr_pgsql.c",
       "description": "PostgreSQL CDR Backend",
       "buildConditions": [
-        "menuselect"
+        "menuselect:cdr_pgsql"
       ],
+      "provenance": {
+        "sourceSha256": "9ec160ff8a3ec08a6408ee913dc0e50fee24082e829db87739a66b60bbc1ed69",
+        "buildGraph": {
+          "makefile": "cdr/Makefile",
+          "makefileSha256": "b4f4ed47d0e42e3fd7210983498c092d05aea788feae4f204a8fda6d5678daee",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"cdr_pgsql\" displayname=\"PostgreSQL CDR Backend\" remove_on_change=\"cdr/cdr_pgsql.o cdr/cdr_pgsql.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 26007,
       "configFiles": [
         "cdr_pgsql.conf",
         "cdr_pgsql.conf.sample"
@@ -2357,8 +6268,26 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cdr_pgsql_status",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show connection status of the PostgreSQL CDR driver (cdr_pgsql)"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for cdr/cdr_pgsql.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cdr/cdr_pgsql.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -2374,15 +6303,40 @@ export const ASTERISK_CATALOG = {
       "source": "cdr/cdr_radius.c",
       "description": "RADIUS CDR Backend",
       "buildConditions": [
-        "menuselect"
+        "menuselect:cdr_radius"
       ],
+      "provenance": {
+        "sourceSha256": "a3427d81da6e34d4abb5943094409e42ed84077039179c5c02fd5ac6a521ad3b",
+        "buildGraph": {
+          "makefile": "cdr/Makefile",
+          "makefileSha256": "b4f4ed47d0e42e3fd7210983498c092d05aea788feae4f204a8fda6d5678daee",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"cdr_radius\" displayname=\"RADIUS CDR Backend\" remove_on_change=\"cdr/cdr_radius.o cdr/cdr_radius.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 8613,
       "configFiles": [
         "cdr.conf",
         "radiusclient.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for cdr/cdr_radius.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cdr/cdr_radius.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -2400,10 +6354,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "2928ef59835870133cbd917390386d138515d3024174b6b791f1f777b316cac4",
+        "buildGraph": {
+          "makefile": "cdr/Makefile",
+          "makefileSha256": "b4f4ed47d0e42e3fd7210983498c092d05aea788feae4f204a8fda6d5678daee",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 2996,
       "configFiles": [
         "cdr_sqlite3_custom.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for cdr/cdr_sqlite3_custom.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cdr/cdr_sqlite3_custom.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2421,14 +6399,39 @@ export const ASTERISK_CATALOG = {
       "source": "cdr/cdr_tds.c",
       "description": "FreeTDS CDR Backend",
       "buildConditions": [
-        "menuselect"
+        "menuselect:cdr_tds"
       ],
+      "provenance": {
+        "sourceSha256": "20734b7fc9c4e02be99ac11618b7c6ca0433823ae3a6dc827b4377394ede0e2d",
+        "buildGraph": {
+          "makefile": "cdr/Makefile",
+          "makefileSha256": "b4f4ed47d0e42e3fd7210983498c092d05aea788feae4f204a8fda6d5678daee",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"cdr_tds\" displayname=\"MSSQL CDR Backend\" remove_on_change=\"cdr/cdr_tds.o cdr/cdr_tds.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 17052,
       "configFiles": [
         "cdr_tds.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for cdr/cdr_tds.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cdr/cdr_tds.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -2446,12 +6449,36 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "ec6162e675a242852803d719d8e781f257d7a7eaedc82976d19080fa02229d48",
+        "buildGraph": {
+          "makefile": "cel/Makefile",
+          "makefileSha256": "77cb94c9d5faae56b62faf5a5231c4aa649fb6e9af0e91f5f381d421ad139507",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 7682,
       "configFiles": [
         "cel.conf",
         "cel.conf.sample",
         "cel_beanstalkd.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for cel/cel_beanstalkd.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cel/cel_beanstalkd.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2471,10 +6498,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "ed79066b5b12bfdf28377727fd8d83040ecc2e430b777071de90e45bdac1cddf",
+        "buildGraph": {
+          "makefile": "cel/Makefile",
+          "makefileSha256": "77cb94c9d5faae56b62faf5a5231c4aa649fb6e9af0e91f5f381d421ad139507",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 2770,
       "configFiles": [
         "cel_custom.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for cel/cel_custom.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cel/cel_custom.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2494,12 +6545,41 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "d5588043abcb2cc25e2e88e52832b2d77dcaa04d0fffcc1bcde6396bf8982269",
+        "buildGraph": {
+          "makefile": "cel/Makefile",
+          "makefileSha256": "77cb94c9d5faae56b62faf5a5231c4aa649fb6e9af0e91f5f381d421ad139507",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 12160,
       "configFiles": [
         "cel.conf"
       ],
       "sourceSurfaces": [
         "ami"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [
+          {
+            "name": "CEL",
+            "evidence": "manager_event"
+          }
+        ],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for cel/cel_manager.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cel/cel_manager.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2519,11 +6599,35 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "e7e2a658ac6ca16e3c7fdb225059ab59decfe22b1f2ed2c5ca5dc840fecd0283",
+        "buildGraph": {
+          "makefile": "cel/Makefile",
+          "makefileSha256": "77cb94c9d5faae56b62faf5a5231c4aa649fb6e9af0e91f5f381d421ad139507",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 29359,
       "configFiles": [
         "cel_odbc.conf",
         "res_odbc.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for cel/cel_odbc.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cel/cel_odbc.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2543,10 +6647,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "9218af6753417e6f1d9120fdd4c3129900e1a2ff1782245490cc82bf4393a1b9",
+        "buildGraph": {
+          "makefile": "cel/Makefile",
+          "makefileSha256": "77cb94c9d5faae56b62faf5a5231c4aa649fb6e9af0e91f5f381d421ad139507",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 22812,
       "configFiles": [
         "cel_pgsql.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for cel/cel_pgsql.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cel/cel_pgsql.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2566,11 +6694,35 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "a17a73c594b4b9731fbe7cd173347c22b69f6ba2901b7e9add860db8fc375201",
+        "buildGraph": {
+          "makefile": "cel/Makefile",
+          "makefileSha256": "77cb94c9d5faae56b62faf5a5231c4aa649fb6e9af0e91f5f381d421ad139507",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 7104,
       "configFiles": [
         "cel.conf",
         "radiusclient.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for cel/cel_radius.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cel/cel_radius.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2590,10 +6742,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "482ee60fa28988f7d8f6715239b7971e5ee225c2c9b3ad5d90dec3d8e6b5cf39",
+        "buildGraph": {
+          "makefile": "cel/Makefile",
+          "makefileSha256": "77cb94c9d5faae56b62faf5a5231c4aa649fb6e9af0e91f5f381d421ad139507",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3019,
       "configFiles": [
         "cel_sqlite3_custom.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for cel/cel_sqlite3_custom.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cel/cel_sqlite3_custom.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2613,10 +6789,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "9eebc37d5b46e9664513023915b5692778672b110b4ca3fe6dd25c56c861cba3",
+        "buildGraph": {
+          "makefile": "cel/Makefile",
+          "makefileSha256": "77cb94c9d5faae56b62faf5a5231c4aa649fb6e9af0e91f5f381d421ad139507",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 14843,
       "configFiles": [
         "cel_tds.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for cel/cel_tds.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for cel/cel_tds.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2636,10 +6836,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "d57e2a279ab4910f7ba28a251bf1f07c6b308c5c0dd885fa29679edf08787c1e",
+        "buildGraph": {
+          "makefile": "channels/Makefile",
+          "makefileSha256": "bc8e217b91ee023486b8efe3d10ae3d32eb9e9bc1332e618f74c358c26b42ddd",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 10829,
       "configFiles": [],
       "sourceSurfaces": [
         "channel"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": [
+          {
+            "name": "audiosocket_channel_tech",
+            "evidence": "ast_channel_register"
+          }
+        ]
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for channels/chan_audiosocket.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for channels/chan_audiosocket.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2659,10 +6888,43 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "21fe863d97e01307756b8dde636dd5bc4228fbdab49b0bca0f454189db034485",
+        "buildGraph": {
+          "makefile": "channels/Makefile",
+          "makefileSha256": "bc8e217b91ee023486b8efe3d10ae3d32eb9e9bc1332e618f74c358c26b42ddd",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6490,
       "configFiles": [],
       "sourceSurfaces": [
         "channel"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": [
+          {
+            "name": "announce_tech",
+            "evidence": "ast_channel_register"
+          },
+          {
+            "name": "record_tech",
+            "evidence": "ast_channel_register"
+          }
+        ]
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for channels/chan_bridge_media.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for channels/chan_bridge_media.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2682,6 +6944,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "0ce095109a372c74e680ab05887565a14f51ed1d7af4568ae544d7427a83e207",
+        "buildGraph": {
+          "makefile": "channels/Makefile",
+          "makefileSha256": "bc8e217b91ee023486b8efe3d10ae3d32eb9e9bc1332e618f74c358c26b42ddd",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 43804,
       "configFiles": [
         "console.conf",
         "console.conf.sample",
@@ -2691,6 +6964,75 @@ export const ASTERISK_CATALOG = {
         "cli",
         "channel"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "cli_console_dial",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Dial an extension from the console"
+          },
+          {
+            "name": "cli_console_hangup",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Hangup a call on the console"
+          },
+          {
+            "name": "cli_console_mute",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Disable/Enable mic input"
+          },
+          {
+            "name": "cli_console_answer",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Answer an incoming console call"
+          },
+          {
+            "name": "cli_console_sendtext",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Send text to a connected party"
+          },
+          {
+            "name": "cli_console_flash",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Send a flash to the connected party"
+          },
+          {
+            "name": "cli_console_autoanswer",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Turn autoanswer on or off"
+          },
+          {
+            "name": "cli_list_available",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List available devices"
+          },
+          {
+            "name": "cli_list_devices",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List configured devices"
+          },
+          {
+            "name": "cli_console_active",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "View or Set the active console device"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": [
+          {
+            "name": "console_tech",
+            "evidence": "ast_channel_register"
+          }
+        ]
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for channels/chan_console.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for channels/chan_console.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2708,8 +7050,24 @@ export const ASTERISK_CATALOG = {
       "source": "channels/chan_dahdi.c",
       "description": "Loadable channels module from channels/chan_dahdi.c.",
       "buildConditions": [
-        "menuselect"
+        "LOTS_OF_SPANS",
+        "menuselect:chan_dahdi"
       ],
+      "provenance": {
+        "sourceSha256": "9ee9b5b8b42e1f26b363f9d1b82ece61ca4c03c56cabcc0467eac3ae5159f9d0",
+        "buildGraph": {
+          "makefile": "channels/Makefile",
+          "makefileSha256": "bc8e217b91ee023486b8efe3d10ae3d32eb9e9bc1332e618f74c358c26b42ddd",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,chan_dahdi,$(wildcard dahdi/*.c) sig_analog.c sig_pri.c sig_ss7.c)",
+            "chan_dahdi.o: _ASTCFLAGS+=$(call get_menuselect_cflags,LOTS_OF_SPANS)",
+            "\t\t<member name=\"chan_dahdi\" displayname=\"DAHDI Telephony\" remove_on_change=\"channels/chan_dahdi.o channels/chan_dahdi.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 671709,
       "configFiles": [
         "c.conf",
         "chan_dahdi.conf",
@@ -2727,8 +7085,317 @@ export const ASTERISK_CATALOG = {
         "function",
         "channel"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_pri_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enables PRI debugging on a span"
+          },
+          {
+            "name": "handle_pri_service_enable_channel",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Return a channel to service"
+          },
+          {
+            "name": "handle_pri_service_disable_channel",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Remove a channel from service"
+          },
+          {
+            "name": "handle_pri_show_channels",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Displays PRI channel information"
+          },
+          {
+            "name": "handle_pri_show_spans",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Displays PRI span information"
+          },
+          {
+            "name": "handle_pri_show_span",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Displays PRI span information"
+          },
+          {
+            "name": "handle_pri_destroy_span",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Destroy a PRI span"
+          },
+          {
+            "name": "handle_pri_show_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Displays current PRI debug settings"
+          },
+          {
+            "name": "handle_pri_set_debug_file",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Sends PRI debug output to the specified file"
+          },
+          {
+            "name": "handle_pri_version",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Displays libpri version"
+          },
+          {
+            "name": "handle_mfcr2_version",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show OpenR2 library version"
+          },
+          {
+            "name": "handle_mfcr2_show_variants",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show supported MFC/R2 variants"
+          },
+          {
+            "name": "handle_mfcr2_show_channels",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show MFC/R2 channels"
+          },
+          {
+            "name": "handle_mfcr2_show_links",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show MFC/R2 links"
+          },
+          {
+            "name": "handle_mfcr2_set_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Set MFC/R2 channel logging level"
+          },
+          {
+            "name": "handle_mfcr2_call_files",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable MFC/R2 call files"
+          },
+          {
+            "name": "handle_mfcr2_set_idle",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reset MFC/R2 channel forcing it to IDLE"
+          },
+          {
+            "name": "handle_mfcr2_set_blocked",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reset MFC/R2 channel forcing it to BLOCKED"
+          },
+          {
+            "name": "handle_mfcr2_destroy_link",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Destroy given MFC/R2 link"
+          },
+          {
+            "name": "handle_dahdi_show_cadences",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List cadences"
+          },
+          {
+            "name": "dahdi_show_channels",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show active DAHDI channels"
+          },
+          {
+            "name": "dahdi_show_channel",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show information on a channel"
+          },
+          {
+            "name": "dahdi_destroy_channels",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Destroy channels"
+          },
+          {
+            "name": "dahdi_create_channels",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Create channels"
+          },
+          {
+            "name": "dahdi_restart_cmd",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Fully restart DAHDI channels"
+          },
+          {
+            "name": "dahdi_show_status",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show all DAHDI cards status"
+          },
+          {
+            "name": "dahdi_show_version",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show the DAHDI version in use"
+          },
+          {
+            "name": "dahdi_set_hwgain",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Set hardware gain on a channel"
+          },
+          {
+            "name": "dahdi_set_swgain",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Set software gain on a channel"
+          },
+          {
+            "name": "dahdi_set_dnd",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Sets/resets DND (Do Not Disturb) mode on a channel"
+          },
+          {
+            "name": "dahdi_set_mwi",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Sets/unsets MWI (Message Waiting Indicator) manually on a channel"
+          },
+          {
+            "name": "handle_ss7_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enables SS7 debugging on a linkset"
+          },
+          {
+            "name": "handle_ss7_cic_blocking",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Blocks/Unblocks the given CIC"
+          },
+          {
+            "name": "handle_ss7_linkset_mng",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Resets/Blocks/Unblocks all CICs on a linkset"
+          },
+          {
+            "name": "handle_ss7_group_blocking",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Blocks/Unblocks the given CIC range"
+          },
+          {
+            "name": "handle_ss7_reset_cic",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Resets the given CIC"
+          },
+          {
+            "name": "handle_ss7_group_reset",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Resets the given CIC range"
+          },
+          {
+            "name": "handle_ss7_mtp3_restart",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Restart a link"
+          },
+          {
+            "name": "handle_ss7_net_mng",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Send an NET MNG message"
+          },
+          {
+            "name": "handle_ss7_show_linkset",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Shows the status of a linkset"
+          },
+          {
+            "name": "handle_ss7_show_channels",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Displays SS7 channel information"
+          },
+          {
+            "name": "handle_ss7_show_calls",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show ss7 calls"
+          },
+          {
+            "name": "handle_ss7_show_cics",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show cics on a linkset"
+          },
+          {
+            "name": "handle_ss7_version",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Displays libss7 version"
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "DAHDITransfer",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "DAHDIHangup",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "DAHDIDialOffhook",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "DAHDIDNDon",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "DAHDIDNDoff",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "DAHDIShowChannels",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "DAHDIShowStatus",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "DAHDIRestart",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "PRIShowSpans",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "PRIDebugSet",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "PRIDebugFileSet",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "PRIDebugFileUnset",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "dahdi_send_keypad_facility_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "dahdi_send_callrerouting_facility_app",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "dahdi_accept_r2_call_app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "dahdichan_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "polarity_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": [
+          {
+            "name": "dahdi_tech",
+            "evidence": "ast_channel_register"
+          }
+        ]
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for channels/chan_dahdi.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for channels/chan_dahdi.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -2744,8 +7411,22 @@ export const ASTERISK_CATALOG = {
       "source": "channels/chan_iax2.c",
       "description": "Inter Asterisk eXchange (Ver 2)",
       "buildConditions": [
-        "menuselect"
+        "menuselect:chan_iax2"
       ],
+      "provenance": {
+        "sourceSha256": "e5a8f0a7e99ecb696d851235e1300b52e820cacf28b2f7c5a3fc4c93da9fe242",
+        "buildGraph": {
+          "makefile": "channels/Makefile",
+          "makefileSha256": "bc8e217b91ee023486b8efe3d10ae3d32eb9e9bc1332e618f74c358c26b42ddd",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,chan_iax2,$(wildcard iax2/*.c))",
+            "\t\t<member name=\"chan_iax2\" displayname=\"Inter Asterisk eXchange (Ver 2)\" remove_on_change=\"channels/chan_iax2.o channels/chan_iax2.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 509264,
       "configFiles": [
         "iax.conf",
         "iax.conf.sample"
@@ -2757,8 +7438,172 @@ export const ASTERISK_CATALOG = {
         "function",
         "channel"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_iax2_provision",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Provision an IAX device"
+          },
+          {
+            "name": "handle_cli_iax2_prune_realtime",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Prune a cached realtime lookup"
+          },
+          {
+            "name": "handle_cli_iax2_reload",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reload IAX configuration"
+          },
+          {
+            "name": "handle_cli_iax2_set_mtu",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Set the IAX systemwide trunking MTU"
+          },
+          {
+            "name": "handle_cli_iax2_set_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable IAX debugging"
+          },
+          {
+            "name": "handle_cli_iax2_set_debug_trunk",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable IAX trunk debugging"
+          },
+          {
+            "name": "handle_cli_iax2_set_debug_jb",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable IAX jitterbuffer debugging"
+          },
+          {
+            "name": "handle_cli_iax2_show_cache",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display IAX cached dialplan"
+          },
+          {
+            "name": "handle_cli_iax2_show_channels",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List active IAX channels"
+          },
+          {
+            "name": "handle_cli_iax2_show_firmware",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List available IAX firmware"
+          },
+          {
+            "name": "handle_cli_iax2_show_netstats",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List active IAX channel netstats"
+          },
+          {
+            "name": "handle_cli_iax2_show_peer",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show details on specific IAX peer"
+          },
+          {
+            "name": "handle_cli_iax2_show_peers",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List defined IAX peers"
+          },
+          {
+            "name": "handle_cli_iax2_show_registry",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display IAX registration status"
+          },
+          {
+            "name": "handle_cli_iax2_show_stats",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display IAX statistics"
+          },
+          {
+            "name": "handle_cli_iax2_show_threads",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display IAX helper thread info"
+          },
+          {
+            "name": "handle_cli_iax2_show_users",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List defined IAX users"
+          },
+          {
+            "name": "handle_cli_iax2_test_losspct",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Set IAX2 incoming frame loss percentage"
+          },
+          {
+            "name": "handle_cli_iax2_unregister",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Unregister (force expiration) an IAX2 peer from the registry"
+          },
+          {
+            "name": "handle_cli_iax2_show_callno_limits",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show current entries in IP call number limit table"
+          },
+          {
+            "name": "handle_cli_iax2_test_jitter",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Simulates jitter for testing"
+          },
+          {
+            "name": "handle_cli_iax2_test_late",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Test the receipt of a late frame"
+          },
+          {
+            "name": "handle_cli_iax2_test_resync",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Test a resync in received timestamps"
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "IAXpeers",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "IAXpeerlist",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "IAXnetstats",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "IAXregistry",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "papp",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "iaxpeer_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "iaxvar_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": [
+          {
+            "name": "iax2_tech",
+            "evidence": "ast_channel_register"
+          }
+        ]
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for channels/chan_iax2.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for channels/chan_iax2.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -2776,6 +7621,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "ccc839f66e25eaafff9be3621a0c83c524360c6316c53519b5f2ad9407bb9fe4",
+        "buildGraph": {
+          "makefile": "channels/Makefile",
+          "makefileSha256": "bc8e217b91ee023486b8efe3d10ae3d32eb9e9bc1332e618f74c358c26b42ddd",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 107394,
       "configFiles": [
         "motif.conf",
         "motif.conf.sample"
@@ -2784,6 +7640,24 @@ export const ASTERISK_CATALOG = {
         "channel",
         "rtp"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": [
+          {
+            "name": "jingle_tech",
+            "evidence": "ast_channel_register"
+          }
+        ]
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for channels/chan_motif.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for channels/chan_motif.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2803,6 +7677,19 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "21f5ecf269fc8ba15dea7718cca2369175aa747d44db8ba30c74e4f6e7cc5572",
+        "buildGraph": {
+          "makefile": "channels/Makefile",
+          "makefileSha256": "bc8e217b91ee023486b8efe3d10ae3d32eb9e9bc1332e618f74c358c26b42ddd",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,chan_pjsip,$(wildcard pjsip/*.c))"
+          ]
+        }
+      },
+      "sourceBytes": 126965,
       "configFiles": [
         "indications.conf"
       ],
@@ -2813,6 +7700,62 @@ export const ASTERISK_CATALOG = {
         "channel",
         "rtp"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_pjsip_hangup",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "chan_pjsip_dial_contacts_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "chan_pjsip_parse_uri_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "chan_pjsip_parse_uri_from_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "media_offer_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "dtmf_mode_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "moh_passthrough_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "session_refresh_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "transfer_handling_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": [
+          {
+            "name": "chan_pjsip_tech",
+            "evidence": "ast_channel_register"
+          }
+        ]
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for channels/chan_pjsip.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for channels/chan_pjsip.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2832,11 +7775,44 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "75c3272852d69e7706c4074f197a29604939e4df2777754297e8c2096e1c70a8",
+        "buildGraph": {
+          "makefile": "channels/Makefile",
+          "makefileSha256": "bc8e217b91ee023486b8efe3d10ae3d32eb9e9bc1332e618f74c358c26b42ddd",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 17154,
       "configFiles": [],
       "sourceSurfaces": [
         "channel",
         "rtp"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": [
+          {
+            "name": "multicast_rtp_tech",
+            "evidence": "ast_channel_register"
+          },
+          {
+            "name": "unicast_rtp_tech",
+            "evidence": "ast_channel_register"
+          }
+        ]
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for channels/chan_rtp.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for channels/chan_rtp.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2856,6 +7832,19 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "be74bccebfbbeabdaf74134387cc122ec199e7e989b4e08c7164f9bd83507a33",
+        "buildGraph": {
+          "makefile": "channels/Makefile",
+          "makefileSha256": "bc8e217b91ee023486b8efe3d10ae3d32eb9e9bc1332e618f74c358c26b42ddd",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "chan_unistim.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION)"
+          ]
+        }
+      },
+      "sourceBytes": 224713,
       "configFiles": [
         "indications.conf",
         "unistim.conf",
@@ -2866,6 +7855,50 @@ export const ASTERISK_CATALOG = {
         "channel",
         "rtp"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "unistim_reload",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reload UNISTIM configuration"
+          },
+          {
+            "name": "unistim_show_info",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show UNISTIM info"
+          },
+          {
+            "name": "unistim_show_devices",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show UNISTIM devices"
+          },
+          {
+            "name": "unistim_sp",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Send packet (for reverse engineering)"
+          },
+          {
+            "name": "unistim_do_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Toggle UNITSTIM debugging"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": [
+          {
+            "name": "unistim_tech",
+            "evidence": "ast_channel_register"
+          }
+        ]
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for channels/chan_unistim.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for channels/chan_unistim.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2885,6 +7918,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "ba8f022ca3b762903b7e8035b02e0a1fe8f43b005dfff6ac293f46ee3d74e6eb",
+        "buildGraph": {
+          "makefile": "channels/Makefile",
+          "makefileSha256": "bc8e217b91ee023486b8efe3d10ae3d32eb9e9bc1332e618f74c358c26b42ddd",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 67237,
       "configFiles": [
         "chan_websocket.conf"
       ],
@@ -2892,6 +7936,24 @@ export const ASTERISK_CATALOG = {
         "channel",
         "http"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": [
+          {
+            "name": "websocket_tech",
+            "evidence": "ast_channel_register"
+          }
+        ]
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for channels/chan_websocket.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for channels/chan_websocket.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2909,12 +7971,46 @@ export const ASTERISK_CATALOG = {
       "source": "codecs/codec_a_mu.c",
       "description": "A-law and Mulaw direct Coder/Decoder",
       "buildConditions": [
-        "menuselect"
+        "menuselect:codec_a_mu"
       ],
+      "provenance": {
+        "sourceSha256": "e9a45333636cecad5bfff1eb54dc4b51c121e7a7151a83694702c176476b5250",
+        "buildGraph": {
+          "makefile": "codecs/Makefile",
+          "makefileSha256": "0696a12c07999a0f0431f8732822fcb723382ebb43e58f55807b8bd2d20c5769",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"codec_a_mu\" displayname=\"A-law and Mulaw direct Coder/Decoder\" remove_on_change=\"codecs/codec_a_mu.o codecs/codec_a_mu.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 3358,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [
+          {
+            "name": "alawtoulaw",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "ulawtoalaw",
+            "evidence": "ast_register_translator"
+          }
+        ],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for codecs/codec_a_mu.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for codecs/codec_a_mu.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -2930,12 +8026,46 @@ export const ASTERISK_CATALOG = {
       "source": "codecs/codec_adpcm.c",
       "description": "Adaptive Differential PCM Coder/Decoder",
       "buildConditions": [
-        "menuselect"
+        "menuselect:codec_adpcm"
       ],
+      "provenance": {
+        "sourceSha256": "926876d5d49e5af8e28c7faea9d41543c9c51f3e021e9f7a521e7389575c8bd4",
+        "buildGraph": {
+          "makefile": "codecs/Makefile",
+          "makefileSha256": "0696a12c07999a0f0431f8732822fcb723382ebb43e58f55807b8bd2d20c5769",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"codec_adpcm\" displayname=\"Adaptive Differential PCM Coder/Decoder\" remove_on_change=\"codecs/codec_adpcm.o codecs/codec_adpcm.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 8200,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [
+          {
+            "name": "adpcmtolin",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "lintoadpcm",
+            "evidence": "ast_register_translator"
+          }
+        ],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for codecs/codec_adpcm.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for codecs/codec_adpcm.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -2951,12 +8081,46 @@ export const ASTERISK_CATALOG = {
       "source": "codecs/codec_alaw.c",
       "description": "A-law Coder/Decoder",
       "buildConditions": [
-        "menuselect"
+        "menuselect:codec_alaw"
       ],
+      "provenance": {
+        "sourceSha256": "f122692df8fb649a80ff654edf51c5ffce6b2d84797b7449763ca6d0f975c541",
+        "buildGraph": {
+          "makefile": "codecs/Makefile",
+          "makefileSha256": "0696a12c07999a0f0431f8732822fcb723382ebb43e58f55807b8bd2d20c5769",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"codec_alaw\" displayname=\"A-law Coder/Decoder\" remove_on_change=\"codecs/codec_alaw.o codecs/codec_alaw.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 3268,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [
+          {
+            "name": "alawtolin",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "lintoalaw",
+            "evidence": "ast_register_translator"
+          }
+        ],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for codecs/codec_alaw.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for codecs/codec_alaw.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -2974,8 +8138,41 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "8e219d2642d327e3c566c52cf1d9d9a9b6a58e10b13a0b250b33de521c92ac59",
+        "buildGraph": {
+          "makefile": "codecs/Makefile",
+          "makefileSha256": "0696a12c07999a0f0431f8732822fcb723382ebb43e58f55807b8bd2d20c5769",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 5792,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [
+          {
+            "name": "codec2tolin",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "lintocodec2",
+            "evidence": "ast_register_translator"
+          }
+        ],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for codecs/codec_codec2.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for codecs/codec_codec2.c; runtime help and the generated module record are the authoritative available documentation."
@@ -2995,10 +8192,45 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "0bd383bb62728c919d3fef344d996efb7c88aa456b83ebd9146f5bb8733e115b",
+        "buildGraph": {
+          "makefile": "codecs/Makefile",
+          "makefileSha256": "0696a12c07999a0f0431f8732822fcb723382ebb43e58f55807b8bd2d20c5769",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 22364,
       "configFiles": [],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_transcoder_show",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display DAHDI transcoder utilization."
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [
+          {
+            "name": "zt->t",
+            "evidence": "ast_register_translator"
+          }
+        ],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for codecs/codec_dahdi.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for codecs/codec_dahdi.c; runtime help and the generated module record are the authoritative available documentation."
@@ -3018,8 +8250,51 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "c763164b4741cfa0211dec598efeaeb20922666be7eaadd42333d4130edbcc44",
+        "buildGraph": {
+          "makefile": "codecs/Makefile",
+          "makefileSha256": "0696a12c07999a0f0431f8732822fcb723382ebb43e58f55807b8bd2d20c5769",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,codec_g722,g722/g722_encode.c g722/g722_decode.c)"
+          ]
+        }
+      },
+      "sourceBytes": 6298,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [
+          {
+            "name": "g722tolin",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "lintog722",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "g722tolin16",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "lin16tog722",
+            "evidence": "ast_register_translator"
+          }
+        ],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for codecs/codec_g722.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for codecs/codec_g722.c; runtime help and the generated module record are the authoritative available documentation."
@@ -3037,12 +8312,54 @@ export const ASTERISK_CATALOG = {
       "source": "codecs/codec_g726.c",
       "description": "ITU G.726-32kbps G726 Transcoder",
       "buildConditions": [
-        "menuselect"
+        "menuselect:codec_g726"
       ],
+      "provenance": {
+        "sourceSha256": "f1c35083a484e2efa36dd563a0350a00668b601540328c9e1ce6b0e7f7f953c2",
+        "buildGraph": {
+          "makefile": "codecs/Makefile",
+          "makefileSha256": "0696a12c07999a0f0431f8732822fcb723382ebb43e58f55807b8bd2d20c5769",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"codec_g726\" displayname=\"ITU G.726-32kbps G726 Transcoder\" remove_on_change=\"codecs/codec_g726.o codecs/codec_g726.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 24174,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [
+          {
+            "name": "g726tolin",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "lintog726",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "g726aal2tolin",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "lintog726aal2",
+            "evidence": "ast_register_translator"
+          }
+        ],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for codecs/codec_g726.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for codecs/codec_g726.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3058,12 +8375,47 @@ export const ASTERISK_CATALOG = {
       "source": "codecs/codec_gsm.c",
       "description": "GSM Coder/Decoder",
       "buildConditions": [
-        "menuselect"
+        "menuselect:codec_gsm"
       ],
+      "provenance": {
+        "sourceSha256": "b60d9f3b848ec8d1bb1809a260bd5f1958a18c4cba5a8d4d96db77f287aeef1e",
+        "buildGraph": {
+          "makefile": "codecs/Makefile",
+          "makefileSha256": "0696a12c07999a0f0431f8732822fcb723382ebb43e58f55807b8bd2d20c5769",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "codec_gsm.so: $(SUB_GSM)/lib/libgsm.a",
+            "\t\t<member name=\"codec_gsm\" displayname=\"GSM/PCM16 (signed linear) Codec Translator\" remove_on_change=\"codecs/codec_gsm.o codecs/codec_gsm.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 6530,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [
+          {
+            "name": "gsmtolin",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "lintogsm",
+            "evidence": "ast_register_translator"
+          }
+        ],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for codecs/codec_gsm.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for codecs/codec_gsm.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3079,12 +8431,47 @@ export const ASTERISK_CATALOG = {
       "source": "codecs/codec_ilbc.c",
       "description": "iLBC Coder/Decoder",
       "buildConditions": [
-        "menuselect"
+        "menuselect:codec_ilbc"
       ],
+      "provenance": {
+        "sourceSha256": "16cb5a947384c4f708832bcd566613b1494f4a663697f4ceaab6cf1e58269750",
+        "buildGraph": {
+          "makefile": "codecs/Makefile",
+          "makefileSha256": "0696a12c07999a0f0431f8732822fcb723382ebb43e58f55807b8bd2d20c5769",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "codec_ilbc.so: $(LIBILBC)",
+            "\t\t<member name=\"codec_ilbc\" displayname=\"iLBC/PCM16 (signed linear) Codec Translator\" remove_on_change=\"codecs/codec_ilbc.o codecs/codec_ilbc.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 7931,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [
+          {
+            "name": "ilbctolin",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "lintoilbc",
+            "evidence": "ast_register_translator"
+          }
+        ],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for codecs/codec_ilbc.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for codecs/codec_ilbc.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3100,12 +8487,47 @@ export const ASTERISK_CATALOG = {
       "source": "codecs/codec_lpc10.c",
       "description": "LPC10 2.4kbps Coder/Decoder",
       "buildConditions": [
-        "menuselect"
+        "menuselect:codec_lpc10"
       ],
+      "provenance": {
+        "sourceSha256": "a22f707efb8140663460b8ad55e6200747aafb9861e9d78d7dbc2b5b95e338b4",
+        "buildGraph": {
+          "makefile": "codecs/Makefile",
+          "makefileSha256": "0696a12c07999a0f0431f8732822fcb723382ebb43e58f55807b8bd2d20c5769",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "codec_lpc10.so: $(LIBLPC10)",
+            "\t\t<member name=\"codec_lpc10\" displayname=\"LPC10 2.4kbps (signed linear) Voice Coder\" remove_on_change=\"codecs/codec_lpc10.o codecs/codec_lpc10.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 7464,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [
+          {
+            "name": "lpc10tolin",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "lintolpc10",
+            "evidence": "ast_register_translator"
+          }
+        ],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for codecs/codec_lpc10.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for codecs/codec_lpc10.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3123,8 +8545,40 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "e7dc7a003705689c18df0f350c53946d28589ec1a11c81480bc7ce66fd45616f",
+        "buildGraph": {
+          "makefile": "codecs/Makefile",
+          "makefileSha256": "0696a12c07999a0f0431f8732822fcb723382ebb43e58f55807b8bd2d20c5769",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,codec_resample,speex/resample.c)",
+            "codec_resample.o: _ASTCFLAGS+=-DOUTSIDE_SPEEX"
+          ]
+        }
+      },
+      "sourceBytes": 4499,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [
+          {
+            "name": "translators[idx]",
+            "evidence": "ast_register_translator"
+          }
+        ],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for codecs/codec_resample.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for codecs/codec_resample.c; runtime help and the generated module record are the authoritative available documentation."
@@ -3142,16 +8596,66 @@ export const ASTERISK_CATALOG = {
       "source": "codecs/codec_speex.c",
       "description": "Speex Coder/Decoder",
       "buildConditions": [
-        "menuselect"
+        "menuselect:codec_speex"
       ],
+      "provenance": {
+        "sourceSha256": "8a88023e8f51a90bfea3b51491ec7de3fc2ca10d46c7f43d6b3deb77446c51bd",
+        "buildGraph": {
+          "makefile": "codecs/Makefile",
+          "makefileSha256": "0696a12c07999a0f0431f8732822fcb723382ebb43e58f55807b8bd2d20c5769",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"codec_speex\" displayname=\"Speex/PCM16 (signed linear) Codec Translator\" remove_on_change=\"codecs/codec_speex.o codecs/codec_speex.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 22388,
       "configFiles": [
         "codecs.conf"
       ],
       "sourceSurfaces": [
         "rtp"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [
+          {
+            "name": "speextolin",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "lintospeex",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "speexwbtolin16",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "lin16tospeexwb",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "speexuwbtolin32",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "lin32tospeexuwb",
+            "evidence": "ast_register_translator"
+          }
+        ],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for codecs/codec_speex.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for codecs/codec_speex.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3167,12 +8671,46 @@ export const ASTERISK_CATALOG = {
       "source": "codecs/codec_ulaw.c",
       "description": "mu-Law Coder/Decoder",
       "buildConditions": [
-        "menuselect"
+        "menuselect:codec_ulaw"
       ],
+      "provenance": {
+        "sourceSha256": "d00df32b14d75df424b49524dba89ac81cccff73d4b49562a4c4bb4c14ad08e0",
+        "buildGraph": {
+          "makefile": "codecs/Makefile",
+          "makefileSha256": "0696a12c07999a0f0431f8732822fcb723382ebb43e58f55807b8bd2d20c5769",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"codec_ulaw\" displayname=\"Mu-law Coder/Decoder\" remove_on_change=\"codecs/codec_ulaw.o codecs/codec_ulaw.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 3407,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [
+          {
+            "name": "ulawtolin",
+            "evidence": "ast_register_translator"
+          },
+          {
+            "name": "lintoulaw",
+            "evidence": "ast_register_translator"
+          }
+        ],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for codecs/codec_ulaw.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for codecs/codec_ulaw.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3190,10 +8728,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "3e58b74ff31ded062da0425fef2956f03d2b778960c74f6cc84f9a81164344d8",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4464,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "g719_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for formats/format_g719.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_g719.c; runtime help and the generated module record are the authoritative available documentation."
@@ -3211,14 +8778,44 @@ export const ASTERISK_CATALOG = {
       "source": "formats/format_g723.c",
       "description": "G.723.1 Simple Timestamp File Format",
       "buildConditions": [
-        "menuselect"
+        "menuselect:format_g723"
       ],
+      "provenance": {
+        "sourceSha256": "047270887d24bc8063b0fa31b532a59427d8a8d96429951e054c61810dd11c13",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"format_g723\" displayname=\"G.723.1 Simple Timestamp File Format\" remove_on_change=\"formats/format_g723.o formats/format_g723.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 4471,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "g723_1_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for formats/format_g723.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_g723.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3234,14 +8831,44 @@ export const ASTERISK_CATALOG = {
       "source": "formats/format_g726.c",
       "description": "Raw G.726 (16/24/32/40kbps) data",
       "buildConditions": [
-        "menuselect"
+        "menuselect:format_g726"
       ],
+      "provenance": {
+        "sourceSha256": "b7eb9aca517b2e39658f5f2db3edffb33c46b3e3a0882ba91851b1af8a4bc91d",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"format_g726\" displayname=\"Raw G.726 (16/24/32/40kbps) data\" remove_on_change=\"formats/format_g726.o formats/format_g726.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 7361,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "f_def[i]",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for formats/format_g726.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_g726.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3257,14 +8884,44 @@ export const ASTERISK_CATALOG = {
       "source": "formats/format_g729.c",
       "description": "Raw G.729 data",
       "buildConditions": [
-        "menuselect"
+        "menuselect:format_g729"
       ],
+      "provenance": {
+        "sourceSha256": "e257129cb927b7c5e5029ebe6fa2d1b166e28e039d221841913c59fb190808b4",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"format_g729\" displayname=\"Raw G729 data\" remove_on_change=\"formats/format_g729.o formats/format_g729.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 4428,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "g729_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for formats/format_g729.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_g729.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3280,14 +8937,44 @@ export const ASTERISK_CATALOG = {
       "source": "formats/format_gsm.c",
       "description": "Raw GSM data",
       "buildConditions": [
-        "menuselect"
+        "menuselect:format_gsm"
       ],
+      "provenance": {
+        "sourceSha256": "c53259faa1b259f5440a490e399dc686160b9b4039702ea68d127d172f8501fc",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"format_gsm\" displayname=\"Raw GSM data\" remove_on_change=\"formats/format_gsm.o formats/format_gsm.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 5847,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "gsm_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for formats/format_gsm.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_gsm.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3303,14 +8990,44 @@ export const ASTERISK_CATALOG = {
       "source": "formats/format_h263.c",
       "description": "Raw H.263 data",
       "buildConditions": [
-        "menuselect"
+        "menuselect:format_h263"
       ],
+      "provenance": {
+        "sourceSha256": "5384dd72e1476aa04746810df95bc7a0f197dcb16a37428bb6360ecd7084e940",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"format_h263\" displayname=\"Raw h263 data\" remove_on_change=\"formats/format_h263.o formats/format_h263.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 5273,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "h263_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for formats/format_h263.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_h263.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3326,14 +9043,44 @@ export const ASTERISK_CATALOG = {
       "source": "formats/format_h264.c",
       "description": "Raw H.264 data",
       "buildConditions": [
-        "menuselect"
+        "menuselect:format_h264"
       ],
+      "provenance": {
+        "sourceSha256": "5c54a2c7e60c4a7046d283d32517cc446936c471902d753840a0930283a1ab93",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"format_h264\" displayname=\"Raw h264 data\" remove_on_change=\"formats/format_h264.o formats/format_h264.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 5004,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "h264_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for formats/format_h264.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_h264.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3349,14 +9096,44 @@ export const ASTERISK_CATALOG = {
       "source": "formats/format_ilbc.c",
       "description": "Raw iLBC data",
       "buildConditions": [
-        "menuselect"
+        "menuselect:format_ilbc"
       ],
+      "provenance": {
+        "sourceSha256": "faba41f9c5d896b05690eff62a86db41880f47928cbb7a377229103dbe90c162",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"format_ilbc\" displayname=\"Raw iLBC data\" remove_on_change=\"formats/format_ilbc.o formats/format_ilbc.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 4247,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "ilbc_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for formats/format_ilbc.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_ilbc.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3374,10 +9151,47 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "d54681a22dbed9b8f4d174da3dfc3c67f8e487998a198d172502937a3ba3bed3",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 9786,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "speex_f",
+            "evidence": "ast_format_def_register"
+          },
+          {
+            "name": "speex16_f",
+            "evidence": "ast_format_def_register"
+          },
+          {
+            "name": "speex32_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for formats/format_ogg_speex.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_ogg_speex.c; runtime help and the generated module record are the authoritative available documentation."
@@ -3395,14 +9209,44 @@ export const ASTERISK_CATALOG = {
       "source": "formats/format_ogg_vorbis.c",
       "description": "OGG/Vorbis audio",
       "buildConditions": [
-        "menuselect"
+        "menuselect:format_ogg_vorbis"
       ],
+      "provenance": {
+        "sourceSha256": "629956d0e5e52793a2aaeeb0cdb938aaf830c4bd2e8194bf1b0429cdac5b9814",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"format_ogg_vorbis\" displayname=\"OGG/Vorbis audio\" remove_on_change=\"formats/format_ogg_vorbis.o formats/format_ogg_vorbis.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 12609,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "vorbis_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for formats/format_ogg_vorbis.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_ogg_vorbis.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3418,15 +9262,57 @@ export const ASTERISK_CATALOG = {
       "source": "formats/format_pcm.c",
       "description": "Raw/Sun uLaw/ALaw 8KHz (PCM,PCMA,AU), G.722 16Khz",
       "buildConditions": [
-        "menuselect"
+        "menuselect:format_pcm"
       ],
+      "provenance": {
+        "sourceSha256": "48069731f3743dd71470007d4e56b5351aa9ed0bbc4a8214031c86fe2f393460",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"format_pcm\" displayname=\"Raw/Sun uLaw/ALaw 8khz Audio support (PCM,PCMA,AU)\" remove_on_change=\"formats/format_pcm.o formats/format_pcm.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 15548,
       "configFiles": [],
       "sourceSurfaces": [
         "agi",
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "pcm_f",
+            "evidence": "ast_format_def_register"
+          },
+          {
+            "name": "alaw_f",
+            "evidence": "ast_format_def_register"
+          },
+          {
+            "name": "au_f",
+            "evidence": "ast_format_def_register"
+          },
+          {
+            "name": "g722_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for formats/format_pcm.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_pcm.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3444,10 +9330,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "75ec3587e0621bb6c8a87dc048f229259f8689353e11919db47b4cec46e6cd62",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4665,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "siren14_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for formats/format_siren14.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_siren14.c; runtime help and the generated module record are the authoritative available documentation."
@@ -3467,10 +9382,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "1a70665e5c0d356a7309da0924e2195ba70091312f58996213d34c07dafb2eea",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4576,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "siren7_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for formats/format_siren7.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_siren7.c; runtime help and the generated module record are the authoritative available documentation."
@@ -3488,14 +9432,44 @@ export const ASTERISK_CATALOG = {
       "source": "formats/format_sln.c",
       "description": "Raw Signed Linear Audio support (SLN) 8khz-192khz",
       "buildConditions": [
-        "menuselect"
+        "menuselect:format_sln"
       ],
+      "provenance": {
+        "sourceSha256": "460e20424a20946ae157f34d3218a8833a3322ceecc8f6d1c5e8f2d8f846023b",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"format_sln\" displayname=\"Raw Signed Linear Audio support (SLN)\" remove_on_change=\"formats/format_sln.o formats/format_sln.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 8171,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "slin_list[i]",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for formats/format_sln.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_sln.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3511,14 +9485,44 @@ export const ASTERISK_CATALOG = {
       "source": "formats/format_vox.c",
       "description": "Dialogic VOX (ADPCM) File Format",
       "buildConditions": [
-        "menuselect"
+        "menuselect:format_vox"
       ],
+      "provenance": {
+        "sourceSha256": "775cb181e563b3af54eac72b3db64767253fbb41920553432e08206d5a021aa8",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"format_vox\" displayname=\"Dialogic VOX (ADPCM) File Format\" remove_on_change=\"formats/format_vox.o formats/format_vox.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 4381,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "vox_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for formats/format_vox.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_vox.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3534,14 +9538,50 @@ export const ASTERISK_CATALOG = {
       "source": "formats/format_wav.c",
       "description": "Microsoft WAV/WAV16 format (8kHz/16kHz Signed Linear)",
       "buildConditions": [
-        "menuselect"
+        "menuselect:format_wav",
+        "menuselect:format_wav_gsm"
       ],
+      "provenance": {
+        "sourceSha256": "ff98019785e5e7a324c137bca93bc3e5775c0cdd542b8155af353607a747ba2c",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"format_wav\" displayname=\"Microsoft WAV format (8000hz Signed Linear)\" remove_on_change=\"formats/format_wav.o formats/format_wav.so\">",
+            "\t\t<member name=\"format_wav_gsm\" displayname=\"Microsoft WAV format (Proprietary GSM)\" remove_on_change=\"formats/format_wav_gsm.o formats/format_wav_gsm.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 15146,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "wav_f",
+            "evidence": "ast_format_def_register"
+          },
+          {
+            "name": "wav16_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for formats/format_wav.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_wav.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3557,14 +9597,44 @@ export const ASTERISK_CATALOG = {
       "source": "formats/format_wav_gsm.c",
       "description": "Microsoft WAV format (Proprietary GSM)",
       "buildConditions": [
-        "menuselect"
+        "menuselect:format_wav_gsm"
       ],
+      "provenance": {
+        "sourceSha256": "6f69874a4b6f0da1793b85a11b793743243cabda3ce6848c9291b71afab7d590",
+        "buildGraph": {
+          "makefile": "formats/Makefile",
+          "makefileSha256": "bad02400ce55ac836db54a0a79bec0e284264c41890c9a459503129fba861dd0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"format_wav_gsm\" displayname=\"Microsoft WAV format (Proprietary GSM)\" remove_on_change=\"formats/format_wav_gsm.o formats/format_wav_gsm.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 17042,
       "configFiles": [],
       "sourceSurfaces": [
         "format"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [
+          {
+            "name": "wav49_f",
+            "evidence": "ast_format_def_register"
+          }
+        ],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for formats/format_wav_gsm.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for formats/format_wav_gsm.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3582,10 +9652,43 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "e6fe026d5eb7190a8567299f4f4bf2925dee6bd88ac391251d84e0baba43ecba",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 5672,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "aes_decrypt_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "aes_encrypt_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_aes.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_aes.c; runtime help and the generated module record are the authoritative available documentation."
@@ -3603,14 +9706,48 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_base64.c",
       "description": "base64 encode/decode dialplan functions",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_base64"
       ],
+      "provenance": {
+        "sourceSha256": "e8f1664c5ccc6e71648370f20311bd8edda3e75f4fcc99e32a0714333fe5d89a",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_base64\" displayname=\"base64 encode/decode dialplan functions\" remove_on_change=\"funcs/func_base64.o funcs/func_base64.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 4933,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "base64_encode_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "base64_decode_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_base64.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_base64.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3628,10 +9765,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "e45d75700d45a596d780682474ee6f64a1502d157ccf31cf2213754b27e27146",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3210,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "blacklist_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_blacklist.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_blacklist.c; runtime help and the generated module record are the authoritative available documentation."
@@ -3651,12 +9817,41 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "2414ee30defec4f9fd8949bb59e46f41d28a3d1f2c1f08db64e256d5f370ba63",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3772,
       "configFiles": [
         "ccss.conf.sample"
       ],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "cc_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_callcompletion.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_callcompletion.c; runtime help and the generated module record are the authoritative available documentation."
@@ -3674,14 +9869,52 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_callerid.c",
       "description": "Party ID related dialplan functions (Caller-ID, Connected-line, Redirecting)",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_callerid"
       ],
+      "provenance": {
+        "sourceSha256": "e564360c9cf4ec6cc1fca1becce072c26e1a6a9dc587cbc5590d9e40d6b6ea32",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_callerid\" displayname=\"Caller ID related dialplan function\" remove_on_change=\"funcs/func_callerid.o funcs/func_callerid.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 60018,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "callerid_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "connectedline_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "redirecting_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_callerid.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_callerid.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3697,14 +9930,48 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_cdr.c",
       "description": "Call Detail Record (CDR) dialplan functions",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_cdr"
       ],
+      "provenance": {
+        "sourceSha256": "0ed0d02477a6093873d053cac840254ee68ad1941836c02fbac23d22437e334c",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_cdr\" displayname=\"CDR dialplan function\" remove_on_change=\"funcs/func_cdr.o funcs/func_cdr.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 22300,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "cdr_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "cdr_prop_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_cdr.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_cdr.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3720,8 +9987,21 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_channel.c",
       "description": "Channel information dialplan functions",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_channel"
       ],
+      "provenance": {
+        "sourceSha256": "6ecc6c1934f384b4a971e45cc9f597ceb3816bb4424ab168c5937ead038eb81a",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_channel\" displayname=\"Channel information dialplan function\" remove_on_change=\"funcs/func_channel.o funcs/func_channel.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 36056,
       "configFiles": [
         "indications.conf",
         "musiconhold.conf"
@@ -3729,8 +10009,37 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "channel_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "channels_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "chan_exists_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "mchan_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_channel.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_channel.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3748,10 +10057,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "270472def7c56c1944186360f22eb05a6de6324fb87d63a04b54e34cfc7c760e",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6338,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "config_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_config.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_config.c; runtime help and the generated module record are the authoritative available documentation."
@@ -3769,16 +10107,50 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_curl.c",
       "description": "Load external URL",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_curl"
       ],
+      "provenance": {
+        "sourceSha256": "ed5282a89119f62276b9c6953b5490e3585f8b4e078bb9f9d906ba805a6fe3af",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_curl\" displayname=\"Load external URL\" remove_on_change=\"funcs/func_curl.o funcs/func_curl.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 33493,
       "configFiles": [
         "asterisk.conf"
       ],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "acf_curl",
+            "evidence": "ast_custom_function_register_escalating"
+          },
+          {
+            "name": "acf_curlopt",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_curl.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_curl.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3794,14 +10166,48 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_cut.c",
       "description": "Cut out information from a string",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_cut"
       ],
+      "provenance": {
+        "sourceSha256": "dc5d32a2717e4eb5e2e748d6fc54f4c3c7dd7c5bc03df09b33beeb7f47dd6651",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_cut\" displayname=\"Cut out information from a string\" remove_on_change=\"funcs/func_cut.o funcs/func_cut.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 9531,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "acf_cut",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "acf_sort",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_cut.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_cut.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3817,16 +10223,62 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_db.c",
       "description": "Database (astdb) related dialplan functions",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_db"
       ],
+      "provenance": {
+        "sourceSha256": "541f39270f71795e494d601c91cdb135c501108005f3117e0d8ddd10bc761f49",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_db\" displayname=\"Database (astdb) related dialplan functions\" remove_on_change=\"funcs/func_db.o funcs/func_db.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 12953,
       "configFiles": [
         "asterisk.conf"
       ],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "db_function",
+            "evidence": "ast_custom_function_register_escalating"
+          },
+          {
+            "name": "db_exists_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "db_delete_function",
+            "evidence": "ast_custom_function_register_escalating"
+          },
+          {
+            "name": "db_keys_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "db_keycount_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_db.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_db.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3844,11 +10296,55 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "17d78a5a5ccb5747ff11026f23df05d5c651b4c48fd0e96960bf8e84596d2aaa",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 10849,
       "configFiles": [],
       "sourceSurfaces": [
         "cli",
         "function"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_devstate_list",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List currently known custom device states"
+          },
+          {
+            "name": "handle_cli_devstate_change",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Change a custom device state"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "devstate_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "hint_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_devstate.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_devstate.c; runtime help and the generated module record are the authoritative available documentation."
@@ -3868,10 +10364,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "a118652fb0401716951d4191e604d719effd31da1670a298b243284f8896d93c",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 9171,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "dialgroup_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_dialgroup.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_dialgroup.c; runtime help and the generated module record are the authoritative available documentation."
@@ -3891,10 +10416,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "8599554ea3476c5e8890be47750183efa5f69aff3140db3a775935ad95214ebd",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3723,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "isexten_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_dialplan.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_dialplan.c; runtime help and the generated module record are the authoritative available documentation."
@@ -3912,14 +10466,56 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_enum.c",
       "description": "ENUM related dialplan functions",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_enum"
       ],
+      "provenance": {
+        "sourceSha256": "67089da85de7d5c636417c0e8a711cb991d5ed05ae095472f597e0f3c79b11ed",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_enum\" displayname=\"ENUM related dialplan functions\" remove_on_change=\"funcs/func_enum.o funcs/func_enum.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 13135,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "enum_result_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "enum_query_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "enum_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "txtcidname_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_enum.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_enum.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3935,18 +10531,71 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_env.c",
       "description": "Environment/filesystem dialplan functions",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_env"
       ],
+      "provenance": {
+        "sourceSha256": "7f3498d217de8694e8e7d35dfae447ce76dd8b4a532c2c04e775ee9cc6c485c0",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_env\" displayname=\"Environment/filesystem dialplan functions\" remove_on_change=\"funcs/func_env.o funcs/func_env.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 46945,
       "configFiles": [
         "asterisk.conf",
         "extensions.conf"
       ],
       "sourceSurfaces": [
-        "agi",
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "env_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "stat_function",
+            "evidence": "ast_custom_function_register_escalating"
+          },
+          {
+            "name": "file_function",
+            "evidence": "ast_custom_function_register_escalating"
+          },
+          {
+            "name": "file_count_line_function",
+            "evidence": "ast_custom_function_register_escalating"
+          },
+          {
+            "name": "file_format_function",
+            "evidence": "ast_custom_function_register_escalating"
+          },
+          {
+            "name": "file_dirname_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "file_basename_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_env.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_env.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -3964,10 +10613,43 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "488fe8ba3733e30d7da3d59bf7423c9453c6f46f7f6c484df97b2474974db727",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 9570,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "eval_exten_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "eval_sub_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_evalexten.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_evalexten.c; runtime help and the generated module record are the authoritative available documentation."
@@ -3987,10 +10669,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "75e78600835cbf7b69f16e159caac33362a551029ac72700069df1a0f5114d03",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3050,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "export_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_export.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_export.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4010,10 +10721,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "7daabd7982b5ac3cf2fb8305dcd9400d8bf8af97e6b533fd024ef9fe00d02d46",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3755,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "extstate_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_extstate.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_extstate.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4033,10 +10773,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "ee67119c67d5f4847e3e2dc768a577c5a06201f267bc5e7eb63295e73131fb31",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 9065,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "frame_drop_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_frame_drop.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_frame_drop.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4056,11 +10825,46 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "2c2b79335291398c2c50579b4b388cf9f8e595d19799447824f8ef0369a94b1f",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 14884,
       "configFiles": [],
       "sourceSurfaces": [
         "cli",
         "function"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_dump_frames",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display frames queued on a specific channel"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "frame_trace_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_frame_trace.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_frame_trace.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4078,14 +10882,56 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_global.c",
       "description": "Variable dialplan functions",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_global"
       ],
+      "provenance": {
+        "sourceSha256": "c49552f06779ded3af2c3ad0d6d297ef48f5f8dab88a21944ea534b9fe360b18",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_global\" displayname=\"Global variable dialplan functions\" remove_on_change=\"funcs/func_global.o funcs/func_global.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 11727,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "global_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "global_delete_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "global_exists_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "shared_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_global.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_global.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -4101,14 +10947,57 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_groupcount.c",
       "description": "Channel group dialplan functions",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_groupcount"
       ],
+      "provenance": {
+        "sourceSha256": "1e224d905dc104d8b0bebbd0bf79a19b8b78799424162a6f77fc6a9002186acc",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "func_groupcount.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION)",
+            "\t\t<member name=\"func_groupcount\" displayname=\"Channel group dialplan functions\" remove_on_change=\"funcs/func_groupcount.o funcs/func_groupcount.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 8432,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "group_count_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "group_match_count_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "group_list_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "group_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_groupcount.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_groupcount.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -4126,11 +11015,49 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "a643398e1da12eb2b2dccce0bec4ee4331853abbdcb2a57470549446ea96de41",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 7290,
       "configFiles": [],
       "sourceSurfaces": [
         "application",
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "hangupcause_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "hangupcause_keys_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_hangupcause.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_hangupcause.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4150,10 +11077,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "5c792cecabff27942bd2079181c517fb963dd9caee604bec8983d694e1c76020",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6713,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "hold_intercept_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_holdintercept.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_holdintercept.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4173,10 +11129,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "e946db997fe30b4b04e1f798d53c395484ffbb6ff629e6df24fdea4148b71a1f",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4162,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "iconv_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_iconv.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_iconv.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4196,10 +11181,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "152cb5cff272478c3dca94fbe6731e241b72b8a37eb4e7ea6a7a6a1856dbe9f3",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6810,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "jb_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_jitterbuffer.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_jitterbuffer.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4219,10 +11233,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "0f006359632fe648db96c11ee89c5fd79b52cf56465fd4f9235c3c80abafc7e6",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 15281,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "json_decode_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_json.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_json.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4242,6 +11285,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "dd937f7263a8b693ced3ac013268b0df826a36251f4088a8b86489a552c7005a",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 16270,
       "configFiles": [
         "asterisk.conf"
       ],
@@ -4249,6 +11303,38 @@ export const ASTERISK_CATALOG = {
         "cli",
         "function"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_locks_show",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List func_lock locks."
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "lock_function",
+            "evidence": "ast_custom_function_register_escalating"
+          },
+          {
+            "name": "trylock_function",
+            "evidence": "ast_custom_function_register_escalating"
+          },
+          {
+            "name": "unlock_function",
+            "evidence": "ast_custom_function_register_escalating"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_lock.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_lock.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4266,14 +11352,72 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_logic.c",
       "description": "Logical dialplan functions",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_logic"
       ],
+      "provenance": {
+        "sourceSha256": "ed1c1e203c903f0fa2c8ea73c6c69ac6c8270dec6ef8bc753b943bc0cfe08534",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_logic\" displayname=\"Logical dialplan functions\" remove_on_change=\"funcs/func_logic.o funcs/func_logic.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 11641,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "isnull_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "set_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "exists_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "if_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "if_time_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "import_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "delete_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "variable_exists_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_logic.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_logic.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -4289,14 +11433,68 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_math.c",
       "description": "Mathematical dialplan function",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_math"
       ],
+      "provenance": {
+        "sourceSha256": "cf00f51546d128772f222d2ef37a0b7208b8bbd51b3df7bcf6614bbbd5521548",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_math\" displayname=\"Mathematical dialplan function\" remove_on_change=\"funcs/func_math.o funcs/func_math.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 21393,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "math_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "increment_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "decrement_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "acf_min",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "acf_max",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "acf_abs",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "acf_digit_sum",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_math.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_math.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -4312,14 +11510,44 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_md5.c",
       "description": "MD5 digest dialplan functions",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_md5"
       ],
+      "provenance": {
+        "sourceSha256": "1e15eead897b027de5f030c5676d0cc5e2854e5d86aa26871acff4a5405b99a9",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_md5\" displayname=\"MD5 digest dialplan functions\" remove_on_change=\"funcs/func_md5.o funcs/func_md5.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 2010,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "md5_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_md5.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_md5.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -4337,10 +11565,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "57c7f465ce474103e1aead83efa6230ef8b5b4e6109984f14a6bf8f34d46d8da",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 2156,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "ifmodule_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_module.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_module.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4358,8 +11615,21 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_odbc.c",
       "description": "ODBC lookups",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_odbc"
       ],
+      "provenance": {
+        "sourceSha256": "6b435f1de2be63c816753c5df5c3e63afaba6d7829d892f5617591e24ec99a1d",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_odbc\" displayname=\"ODBC lookups\" remove_on_change=\"funcs/func_odbc.o funcs/func_odbc.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 56700,
       "configFiles": [
         "func_odbc.conf",
         "res_odbc.conf"
@@ -4369,8 +11639,53 @@ export const ASTERISK_CATALOG = {
         "application",
         "function"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "cli_odbc_write",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Test setting a func_odbc function"
+          },
+          {
+            "name": "cli_odbc_read",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Test reading a func_odbc function"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_odbcfinish",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "fetch_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "query->acf",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "escape_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "escape_backslashes_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_odbc.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_odbc.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -4388,10 +11703,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "c468b567858209ffd8ae67ae4c60b58c599eb9e5cbbad737d4770470754a68ff",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 14452,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "hook_function",
+            "evidence": "ast_custom_function_register_escalating"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_periodic_hook.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_periodic_hook.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4411,10 +11755,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "c8774c29597fbdc1c91d14dbc43fca90ae7f097313cfe9dfbf803876e4112ea3",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 16071,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "pitch_shift_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_pitchshift.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_pitchshift.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4434,12 +11807,41 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "44dc6a895a0f27b80f81752755e2ff7ab3e867210f42e424394993d9a9e70932",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6025,
       "configFiles": [
         "pjsip.conf"
       ],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "pjsip_aor_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_pjsip_aor.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_pjsip_aor.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4459,12 +11861,41 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "f5cfc215356a8e5f3769d6b241518da7b08a231dc51ea11cdfea3e847e79469c",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6809,
       "configFiles": [
         "pjsip.conf"
       ],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "pjsip_contact_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_pjsip_contact.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_pjsip_contact.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4484,12 +11915,41 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "e5dbec601759398724a4219eade22d44fed442ccb877536f2e71770bb39e314b",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4730,
       "configFiles": [
         "pjsip.conf"
       ],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "pjsip_endpoint_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_pjsip_endpoint.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_pjsip_endpoint.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4509,11 +11969,51 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "71806a78f52127ac5a7d6ab3df89fcd9ee6bcb322145e776b0e2f6466ca5fc23",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 24658,
       "configFiles": [],
       "sourceSurfaces": [
         "cli",
         "function"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_presencestate_list",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List currently know custom presence states"
+          },
+          {
+            "name": "handle_cli_presencestate_change",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Change a custom presence state"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "presence_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_presencestate.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_presencestate.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4531,14 +12031,44 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_rand.c",
       "description": "Random number dialplan function",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_rand"
       ],
+      "provenance": {
+        "sourceSha256": "1042f983d9e2522657051a576d4d0bf66607cf6f9fb113b50ac759d20c280402",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_rand\" displayname=\"Random number dialplan function\" remove_on_change=\"funcs/func_rand.o funcs/func_rand.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 2980,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "acf_rand",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_rand.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_rand.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -4554,16 +12084,62 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_realtime.c",
       "description": "Read/Write/Store/Destroy values from a RealTime repository",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_realtime"
       ],
+      "provenance": {
+        "sourceSha256": "6c906d094b131c1b5c33b0e94e0003adf521e59fc9d702953d09e7198bf8a0fa",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_realtime\" displayname=\"Read/Write values from a RealTime repository\" remove_on_change=\"funcs/func_realtime.o funcs/func_realtime.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 17510,
       "configFiles": [
         "asterisk.conf"
       ],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "realtime_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "realtime_store_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "realtime_destroy_function",
+            "evidence": "ast_custom_function_register_escalating"
+          },
+          {
+            "name": "realtimefield_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "realtimehash_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_realtime.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_realtime.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -4581,10 +12157,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "ae90575a806e453c8fda3d6553519746410cf06d10080b577a6e3b0c397ceda1",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 17937,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "sayfiles",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_sayfiles.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_sayfiles.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4604,10 +12209,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "3ee7139bfb0dad30a8280583067ffcd67e5825604d37784dec28eb01394a2782",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6922,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "scramble_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_scramble.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_scramble.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4625,14 +12259,44 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_sha1.c",
       "description": "SHA-1 computation dialplan function",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_sha1"
       ],
+      "provenance": {
+        "sourceSha256": "a8f82ac92892b0780dc5ddba99f922fec2ca8de26acaad1c5458d860472c4745",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_sha1\" displayname=\"SHA-1 computation dialplan function\" remove_on_change=\"funcs/func_sha1.o funcs/func_sha1.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 2393,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "sha1_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_sha1.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_sha1.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -4650,12 +12314,41 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "a04ad0e0354cd4639664749d24921ddc0cea722f609056227a212ce4e359aecb",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3789,
       "configFiles": [
         "asterisk.conf"
       ],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "shell_function",
+            "evidence": "ast_custom_function_register_escalating"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_shell.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_shell.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4675,10 +12368,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "fa08822ee57ee3fcd04264c526c9bddd627bcf47f0a2c21203122ed7da029c8e",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6248,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "sorcery_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_sorcery.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_sorcery.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4698,10 +12420,43 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "4580499748ff379b84bf645660c5def47693da936e8b0080f3f3b1a969713dee",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 11367,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "agc_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "denoise_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_speex.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_speex.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4721,10 +12476,42 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "3364589a5709102b2c793f55d70be67a3cada0a3d7ebabb335b7f4cb1a9b49b7",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "# the SPRINTF() function in func_sprintf accepts format specifiers",
+            "func_sprintf.o: _ASTCFLAGS+=-Wno-format-nonliteral"
+          ]
+        }
+      },
+      "sourceBytes": 6671,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "sprintf_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_sprintf.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_sprintf.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4744,10 +12531,43 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "1e1e6ac6df5280c60decefbf39775f8a3957c59da92cdd31f2543f76f9e684cd",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 7802,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "srv_query_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "srv_result_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_srv.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_srv.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4765,15 +12585,158 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_strings.c",
       "description": "String handling dialplan functions",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_strings"
       ],
+      "provenance": {
+        "sourceSha256": "6ea702ec689df6ca6e0133653ae3d4e9141b727211bbdbb08e0e0c2cec988b5a",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_strings\" displayname=\"String handling dialplan functions\" remove_on_change=\"funcs/func_strings.o funcs/func_strings.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 74135,
       "configFiles": [],
       "sourceSurfaces": [
         "application",
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_clearhash",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "fieldqty_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "fieldnum_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "filter_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "replace_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "strreplace_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "strbetween_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "listfilter_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "regex_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "array_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "quote_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "csv_quote_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "len_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "strftime_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "strptime_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "eval_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "keypadhash_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "hashkeys_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "hash_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "toupper_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "tolower_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "shift_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "pop_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "push_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "unshift_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "passthru_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "trim_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "ltrim_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "rtrim_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_strings.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_strings.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -4791,10 +12754,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "81610a7c3c2673bcbe3ef6b3d031fb729e822a5f65778ba200005de942c3e20c",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 5009,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "sysinfo_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_sysinfo.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_sysinfo.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4814,12 +12806,41 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "ea383dd8cdbb31271d2c4cb4eb316d08377d59b210668c94f8a5a1c24082f699",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 14026,
       "configFiles": [
         "dsp.conf"
       ],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "talk_detect_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_talkdetect.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_talkdetect.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4837,14 +12858,44 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_timeout.c",
       "description": "Channel timeout dialplan functions",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_timeout"
       ],
+      "provenance": {
+        "sourceSha256": "15339b16ed46db9d0f732d23409e6781ebf09c188c599641d3f140507cb91d55",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_timeout\" displayname=\"Channel timeout dialplan functions\" remove_on_change=\"funcs/func_timeout.o funcs/func_timeout.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 5951,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "timeout_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_timeout.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_timeout.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -4860,14 +12911,48 @@ export const ASTERISK_CATALOG = {
       "source": "funcs/func_uri.c",
       "description": "URI encode/decode dialplan functions",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_uri"
       ],
+      "provenance": {
+        "sourceSha256": "c66576cb2cbc1b80bedceaeb44eec35a8892bb8c5eb1ee435128607aa419632b",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"func_uri\" displayname=\"URI encode/decode dialplan functions\" remove_on_change=\"funcs/func_uri.o funcs/func_uri.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 3287,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "urldecode_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "urlencode_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for funcs/func_uri.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_uri.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -4885,10 +12970,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "028bc8367461d6caebf9aa403e485dd10e75bc40219e6c60968c0f5aeb100e82",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 1824,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "uuid_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_uuid.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_uuid.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4908,10 +13022,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "47d8e345fc136720045ed9a2979d2e9d3cf7b3c503b44b72f2214dcc9768d4a9",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4233,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "acf_version",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_version.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_version.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4931,10 +13074,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "4b0acd8e0acf0a30ffd41c3a65b9031466e45007c2bafbb7586b103d934dff47",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3468,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "acf_vmcount",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_vmcount.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_vmcount.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4954,10 +13126,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "e23def56d2c5b14f618ce9c7261c930a4a04f9af2ab93dabdc8c7552fad44218",
+        "buildGraph": {
+          "makefile": "funcs/Makefile",
+          "makefileSha256": "2d83cde5fdb2c333727698308491fe4ddca9e764b757d5fef9d51d7bc5075ea6",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 8274,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "volume_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for funcs/func_volume.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for funcs/func_volume.c; runtime help and the generated module record are the authoritative available documentation."
@@ -4977,6 +13178,19 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "cce827284d7be4e0c3b006f882fab08581b360e8f9ab247c23031b3b08c8c42a",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c"
+          ]
+        }
+      },
+      "sourceBytes": 161842,
       "configFiles": [
         "ccss.conf",
         "ccss.conf.sample"
@@ -4985,6 +13199,30 @@ export const ASTERISK_CATALOG = {
         "cli",
         "application"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cc_status",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reports CC stats"
+          },
+          {
+            "name": "handle_cc_kill",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Kill a CC transaction"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for main/ccss.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/ccss.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5002,8 +13240,46 @@ export const ASTERISK_CATALOG = {
       "source": "main/cdr.c",
       "description": "CDR Engine",
       "buildConditions": [
-        "menuselect"
+        "menuselect:app_cdr",
+        "menuselect:app_forkcdr",
+        "menuselect:app_setcdruserfield",
+        "menuselect:cdr_csv",
+        "menuselect:cdr_custom",
+        "menuselect:cdr_manager",
+        "menuselect:cdr_odbc",
+        "menuselect:cdr_pgsql",
+        "menuselect:cdr_radius",
+        "menuselect:cdr_sqlite",
+        "menuselect:cdr_tds",
+        "menuselect:func_cdr"
       ],
+      "provenance": {
+        "sourceSha256": "6088edb68bc8bdd59a8dfa2b3417a9c69ba3208c903a3079944d8339fa3ccb11",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
+            "cdr.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION)",
+            "\t\t<member name=\"app_cdr\" displayname=\"Tell Asterisk to not maintain a CDR for the current call\" remove_on_change=\"apps/app_cdr.o apps/app_cdr.so\">",
+            "\t\t<member name=\"app_forkcdr\" displayname=\"Fork The CDR into 2 separate entities.\" remove_on_change=\"apps/app_forkcdr.o apps/app_forkcdr.so\">",
+            "\t\t<member name=\"app_setcdruserfield\" displayname=\"CDR user field apps\" remove_on_change=\"apps/app_setcdruserfield.o apps/app_setcdruserfield.so\">",
+            "\t<category name=\"MENUSELECT_CDR\" displayname=\"Call Detail Recording\">",
+            "\t\t<member name=\"cdr_csv\" displayname=\"Comma Separated Values CDR Backend\" remove_on_change=\"cdr/cdr_csv.o cdr/cdr_csv.so\">",
+            "\t\t<member name=\"cdr_custom\" displayname=\"Customizable Comma Separated Values CDR Backend\" remove_on_change=\"cdr/cdr_custom.o cdr/cdr_custom.so\">",
+            "\t\t<member name=\"cdr_manager\" displayname=\"Asterisk Call Manager CDR Backend\" remove_on_change=\"cdr/cdr_manager.o cdr/cdr_manager.so\">",
+            "\t\t<member name=\"cdr_odbc\" displayname=\"ODBC CDR Backend\" remove_on_change=\"cdr/cdr_odbc.o cdr/cdr_odbc.so\">",
+            "\t\t<member name=\"cdr_pgsql\" displayname=\"PostgreSQL CDR Backend\" remove_on_change=\"cdr/cdr_pgsql.o cdr/cdr_pgsql.so\">",
+            "\t\t<member name=\"cdr_radius\" displayname=\"RADIUS CDR Backend\" remove_on_change=\"cdr/cdr_radius.o cdr/cdr_radius.so\">",
+            "\t\t<member name=\"cdr_sqlite\" displayname=\"SQLite CDR Backend\" remove_on_change=\"cdr/cdr_sqlite.o cdr/cdr_sqlite.so\">",
+            "\t\t<member name=\"cdr_tds\" displayname=\"MSSQL CDR Backend\" remove_on_change=\"cdr/cdr_tds.o cdr/cdr_tds.so\">",
+            "\t\t<member name=\"func_cdr\" displayname=\"CDR dialplan function\" remove_on_change=\"funcs/func_cdr.o funcs/func_cdr.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 160331,
       "configFiles": [
         "cdr.conf",
         "cdr.conf.sample"
@@ -5011,8 +13287,41 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_submit",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Posts all pending batched CDR data"
+          },
+          {
+            "name": "handle_cli_status",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display the CDR status"
+          },
+          {
+            "name": "handle_cli_show",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display active CDRs for channels"
+          },
+          {
+            "name": "handle_cli_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable debugging in the CDR engine"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for main/cdr.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/cdr.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5030,6 +13339,19 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "b17986fb2e74e92ccce2e4553992f226b061a193fa5e8483fe676cd7b379ffac",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c"
+          ]
+        }
+      },
+      "sourceBytes": 57614,
       "configFiles": [
         "cel.conf",
         "cel.conf.sample"
@@ -5037,6 +13359,25 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_status",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display the CEL status"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for main/cel.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/cel.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5054,8 +13395,28 @@ export const ASTERISK_CATALOG = {
       "source": "main/config.c",
       "description": "Configuration",
       "buildConditions": [
-        "menuselect"
+        "menuselect:pbx_config",
+        "menuselect:res_config_odbc",
+        "menuselect:res_config_pgsql",
+        "menuselect:res_indications"
       ],
+      "provenance": {
+        "sourceSha256": "a96fae1d2e251487dec793ab19e933ab0299f89080309e1741082c4ef89550dc",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
+            "\t\t<member name=\"pbx_config\" displayname=\"Text Extension Configuration\" remove_on_change=\"pbx/pbx_config.o pbx/pbx_config.so\">",
+            "\t\t<member name=\"res_config_odbc\" displayname=\"ODBC Configuration\" remove_on_change=\"res/res_config_odbc.o res/res_config_odbc.so\">",
+            "\t\t<member name=\"res_config_pgsql\" displayname=\"Postgresql RealTime Configuration Driver\" remove_on_change=\"res/res_config_pgsql.o res/res_config_pgsql.so\">",
+            "\t\t<member name=\"res_indications\" displayname=\"Indications Configuration\" remove_on_change=\"res/res_indications.o res/res_indications.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 127267,
       "configFiles": [
         "asterisk.conf",
         "extconfig.conf",
@@ -5065,8 +13426,36 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_core_show_config_mappings",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display config mappings (file names to config engines)"
+          },
+          {
+            "name": "handle_cli_config_reload",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Force a reload on modules using a particular configuration file"
+          },
+          {
+            "name": "handle_cli_config_list",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show all files that have loaded a configuration file"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for main/config.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/config.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5084,6 +13473,19 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "75a470b82df046a882fbc8bfc40363a2e4b15cedb6ee43c460ae3f6905476a0c",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c"
+          ]
+        }
+      },
+      "sourceBytes": 14559,
       "configFiles": [
         "dnsmgr.conf",
         "dnsmgr.conf.sample"
@@ -5091,6 +13493,35 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_reload",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reloads the DNS manager configuration"
+          },
+          {
+            "name": "handle_cli_refresh",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Performs an immediate refresh"
+          },
+          {
+            "name": "handle_cli_status",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display the DNS manager status"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for main/dnsmgr.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/dnsmgr.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5108,15 +13539,41 @@ export const ASTERISK_CATALOG = {
       "source": "main/dsp.c",
       "description": "DSP",
       "buildConditions": [
-        "menuselect"
+        "RADIO_RELAX"
       ],
+      "provenance": {
+        "sourceSha256": "d1ca79e191699d9cac1d5854cefb1ac917e719fabbbf0ecc0aed5de23d77824d",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
+            "dsp.o: _ASTCFLAGS+=$(call get_menuselect_cflags,RADIO_RELAX)"
+          ]
+        }
+      },
+      "sourceBytes": 84869,
       "configFiles": [
         "dsp.conf",
         "dsp.conf.sample"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for main/dsp.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/dsp.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5132,15 +13589,41 @@ export const ASTERISK_CATALOG = {
       "source": "main/enum.c",
       "description": "ENUM Support",
       "buildConditions": [
-        "menuselect"
+        "menuselect:func_enum"
       ],
+      "provenance": {
+        "sourceSha256": "e2d6b45bc46ed30dcbbe461dafc0ca43973603bbabd2ec20f8882ce9c20b7be6",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
+            "\t\t<member name=\"func_enum\" displayname=\"ENUM related dialplan functions\" remove_on_change=\"funcs/func_enum.o funcs/func_enum.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 32370,
       "configFiles": [
         "enum.conf",
         "enum.conf.sample"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for main/enum.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/enum.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5156,8 +13639,24 @@ export const ASTERISK_CATALOG = {
       "source": "main/features.c",
       "description": "Call Features",
       "buildConditions": [
-        "menuselect"
+        "menuselect:chan_features",
+        "menuselect:res_features"
       ],
+      "provenance": {
+        "sourceSha256": "9ce0df4d85d5786c6aa33279764b7c7b87054275df5abf67f4e263bb58d55681",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
+            "\t\t<member name=\"chan_features\" displayname=\"Feature Proxy Channel\" remove_on_change=\"channels/chan_features.o channels/chan_features.so\">",
+            "\t\t<member name=\"res_features\" displayname=\"Call Features Resource\" remove_on_change=\"res/res_features.o res/res_features.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 40458,
       "configFiles": [
         "features.conf",
         "features.conf.sample"
@@ -5166,8 +13665,25 @@ export const ASTERISK_CATALOG = {
         "ami",
         "application"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [
+          {
+            "name": "Bridge",
+            "evidence": "ast_manager_register_xml_core"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for main/features.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/features.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5185,6 +13701,20 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "81aa04e6af86d125e671e507a9de199d86366ec481487260cebeda2e17b8a81e",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
+            "http.o: _ASTCFLAGS+=$(GMIMECFLAGS)"
+          ]
+        }
+      },
+      "sourceBytes": 81761,
       "configFiles": [
         "http.conf",
         "http.conf.sample"
@@ -5194,6 +13724,25 @@ export const ASTERISK_CATALOG = {
         "http",
         "tls"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_show_http",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display HTTP server status"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for main/http.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/http.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5211,16 +13760,58 @@ export const ASTERISK_CATALOG = {
       "source": "main/indications.c",
       "description": "Indication Tone Handling",
       "buildConditions": [
-        "menuselect"
+        "menuselect:res_indications"
       ],
+      "provenance": {
+        "sourceSha256": "091e9ea1669a0d6ce937e2a43ccfdd7dcb5a12ddf783eb58e607cac4004f0991",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
+            "\t\t<member name=\"res_indications\" displayname=\"Indications Configuration\" remove_on_change=\"res/res_indications.o res/res_indications.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 30752,
       "configFiles": [
         "indications.conf"
       ],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_indication_add",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Add the given indication to the country"
+          },
+          {
+            "name": "handle_cli_indication_remove",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Remove the given indication from the country"
+          },
+          {
+            "name": "handle_cli_indication_show",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display a list of all countries/indications"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for main/indications.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/indications.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5238,6 +13829,19 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "1913bea40ef5f281edf5a1b027dc3c1fd05126be1f5f7d327cf4028eb1d16be0",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c"
+          ]
+        }
+      },
+      "sourceBytes": 82059,
       "configFiles": [
         "logger.conf",
         "logger.conf.sample"
@@ -5247,6 +13851,80 @@ export const ASTERISK_CATALOG = {
         "ami",
         "function"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_logger_show_channels",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List configured log channels"
+          },
+          {
+            "name": "handle_logger_show_levels",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List configured log levels"
+          },
+          {
+            "name": "handle_logger_reload",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reopens the log files"
+          },
+          {
+            "name": "handle_logger_rotate",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Rotates and reopens the log files"
+          },
+          {
+            "name": "handle_logger_set_level",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enables/Disables a specific logging level for this console"
+          },
+          {
+            "name": "handle_logger_add_channel",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Adds a new logging channel"
+          },
+          {
+            "name": "handle_logger_remove_channel",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Removes a logging channel"
+          },
+          {
+            "name": "handle_logger_chanloggroup_filter",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Filter PBX logs by channel log group"
+          },
+          {
+            "name": "handle_logger_filter_show",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show current PBX channel filtering"
+          },
+          {
+            "name": "handle_logger_filter_reset",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reset PBX channel filtering"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [
+          {
+            "name": "LogChannel",
+            "evidence": "manager_event"
+          }
+        ],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "log_group_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for main/logger.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/logger.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5264,8 +13942,22 @@ export const ASTERISK_CATALOG = {
       "source": "main/manager.c",
       "description": "Asterisk Manager Interface",
       "buildConditions": [
-        "menuselect"
+        "menuselect:cdr_manager"
       ],
+      "provenance": {
+        "sourceSha256": "45f5aee580bc45988cfd211f169ee69638cca01897df71b3bd3d2801abde4986",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
+            "\t\t<member name=\"cdr_manager\" displayname=\"Asterisk Call Manager CDR Backend\" remove_on_change=\"cdr/cdr_manager.o cdr/cdr_manager.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 322494,
       "configFiles": [
         "manager.conf",
         "manager.conf.sample"
@@ -5278,8 +13970,250 @@ export const ASTERISK_CATALOG = {
         "http",
         "tls"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_showmancmd",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show a manager interface command"
+          },
+          {
+            "name": "handle_showmancmds",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List manager interface commands"
+          },
+          {
+            "name": "handle_showmanconn",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List connected manager interface users"
+          },
+          {
+            "name": "handle_kickmanconn",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Kick a connected manager interface connection"
+          },
+          {
+            "name": "handle_showmanagers",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List configured manager users"
+          },
+          {
+            "name": "handle_showmanager",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display information on a specific manager user"
+          },
+          {
+            "name": "handle_mandebug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show, enable, disable debugging of the manager code"
+          },
+          {
+            "name": "handle_manager_reload",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reload manager configurations"
+          },
+          {
+            "name": "handle_manager_show_settings",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show manager global settings"
+          },
+          {
+            "name": "handle_manager_show_events",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List manager interface events"
+          },
+          {
+            "name": "handle_manager_show_event",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show a manager interface event"
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "Ping",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "Events",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "Logoff",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "Login",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "Challenge",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "Hangup",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "Status",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "Setvar",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "Getvar",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "GetConfig",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "GetConfigJSON",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "UpdateConfig",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "CreateConfig",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "ListCategories",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "Redirect",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "Atxfer",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "CancelAtxfer",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "Originate",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "Command",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "ExtensionState",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "PresenceState",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "AbsoluteTimeout",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "MailboxStatus",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "MailboxCount",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "ListCommands",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "SendText",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "UserEvent",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "WaitEvent",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "CoreSettings",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "CoreStatus",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "Reload",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "LoggerRotate",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "CoreShowChannels",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "CoreShowChannelMap",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "ModuleLoad",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "ModuleCheck",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "AOCMessage",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "Filter",
+            "evidence": "ast_manager_register_xml_core"
+          },
+          {
+            "name": "BlindTransfer",
+            "evidence": "ast_manager_register_xml_core"
+          }
+        ],
+        "amiEvents": [
+          {
+            "name": "UserEvent",
+            "evidence": "manager_event"
+          },
+          {
+            "name": "ExtensionStatus",
+            "evidence": "manager_event"
+          },
+          {
+            "name": "PresenceStatus",
+            "evidence": "manager_event"
+          },
+          {
+            "name": "CloseSession",
+            "evidence": "manager_event"
+          }
+        ],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for main/manager.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/manager.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5297,6 +14231,19 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "668d9f85a8b2792f183e60a99003d0ab0eba06afd75db7035777646bcb0189c1",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c"
+          ]
+        }
+      },
+      "sourceBytes": 17410,
       "configFiles": [
         "acl.conf",
         "modules.conf"
@@ -5304,6 +14251,25 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_show_named_acl_cmd",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show a named ACL or list all named ACLs"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for main/named_acl.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/named_acl.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5323,10 +14289,36 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "93e30b1ce0ffaf1753904b49c6eb006d6a625970e8b23fc74b527fc2c068d4c8",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c"
+          ]
+        }
+      },
+      "sourceBytes": 8867,
       "configFiles": [
         "codecs.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for main/plc.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/plc.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5344,14 +14336,91 @@ export const ASTERISK_CATALOG = {
       "source": "main/sounds.c",
       "description": "Sounds Index",
       "buildConditions": [
-        "menuselect"
+        "menuselect:CORE-SOUNDS-EN-ALAW",
+        "menuselect:CORE-SOUNDS-EN-G729",
+        "menuselect:CORE-SOUNDS-EN-GSM",
+        "menuselect:CORE-SOUNDS-EN-ULAW",
+        "menuselect:CORE-SOUNDS-EN-WAV",
+        "menuselect:CORE-SOUNDS-ES-ALAW",
+        "menuselect:CORE-SOUNDS-ES-G729",
+        "menuselect:CORE-SOUNDS-ES-GSM",
+        "menuselect:CORE-SOUNDS-ES-ULAW",
+        "menuselect:CORE-SOUNDS-ES-WAV",
+        "menuselect:CORE-SOUNDS-FR-ALAW",
+        "menuselect:CORE-SOUNDS-FR-G729",
+        "menuselect:CORE-SOUNDS-FR-GSM",
+        "menuselect:CORE-SOUNDS-FR-ULAW",
+        "menuselect:CORE-SOUNDS-FR-WAV",
+        "menuselect:EXTRA-SOUNDS-EN-ALAW",
+        "menuselect:EXTRA-SOUNDS-EN-G729",
+        "menuselect:EXTRA-SOUNDS-EN-GSM",
+        "menuselect:EXTRA-SOUNDS-EN-ULAW",
+        "menuselect:EXTRA-SOUNDS-EN-WAV"
       ],
+      "provenance": {
+        "sourceSha256": "a9ce217632258ee66de06faf88bf5df7d916c7dc88be26fbe6f6085349a1370b",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
+            "\t<category name=\"MENUSELECT_CORE_SOUNDS\" displayname=\"Core Sound Packages\" positive_output=\"yes\">",
+            "\t\t<member name=\"CORE-SOUNDS-EN-WAV\" displayname=\"English, WAV format\">",
+            "\t\t<member name=\"CORE-SOUNDS-EN-ULAW\" displayname=\"English, mu-Law format\">",
+            "\t\t<member name=\"CORE-SOUNDS-EN-ALAW\" displayname=\"English, a-Law format\">",
+            "\t\t<member name=\"CORE-SOUNDS-EN-GSM\" displayname=\"English, GSM format\" >",
+            "\t\t<member name=\"CORE-SOUNDS-EN-G729\" displayname=\"English, G.729 format\">",
+            "\t\t<member name=\"CORE-SOUNDS-ES-WAV\" displayname=\"Spanish, WAV format\">",
+            "\t\t<member name=\"CORE-SOUNDS-ES-ULAW\" displayname=\"Spanish, mu-Law format\">",
+            "\t\t<member name=\"CORE-SOUNDS-ES-ALAW\" displayname=\"Spanish, a-Law format\">",
+            "\t\t<member name=\"CORE-SOUNDS-ES-GSM\" displayname=\"Spanish, GSM format\">",
+            "\t\t<member name=\"CORE-SOUNDS-ES-G729\" displayname=\"Spanish, G.729 format\">",
+            "\t\t<member name=\"CORE-SOUNDS-FR-WAV\" displayname=\"French, WAV format\">",
+            "\t\t<member name=\"CORE-SOUNDS-FR-ULAW\" displayname=\"French, mu-Law format\">",
+            "\t\t<member name=\"CORE-SOUNDS-FR-ALAW\" displayname=\"French, a-Law format\">",
+            "\t\t<member name=\"CORE-SOUNDS-FR-GSM\" displayname=\"French, GSM format\">",
+            "\t\t<member name=\"CORE-SOUNDS-FR-G729\" displayname=\"French, G.729 format\">",
+            "\t<category name=\"MENUSELECT_EXTRA_SOUNDS\" displayname=\"Extras Sound Packages\" positive_output=\"yes\">",
+            "\t\t<member name=\"EXTRA-SOUNDS-EN-WAV\" displayname=\"English, WAV format\">",
+            "\t\t<member name=\"EXTRA-SOUNDS-EN-ULAW\" displayname=\"English, mu-Law format\">",
+            "\t\t<member name=\"EXTRA-SOUNDS-EN-ALAW\" displayname=\"English, a-Law format\">",
+            "\t\t<member name=\"EXTRA-SOUNDS-EN-GSM\" displayname=\"English, GSM format\" >",
+            "\t\t<member name=\"EXTRA-SOUNDS-EN-G729\" displayname=\"English, G.729 format\">"
+          ]
+        }
+      },
+      "sourceBytes": 9224,
       "configFiles": [],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_sounds_show",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Shows available sounds"
+          },
+          {
+            "name": "handle_cli_sound_show",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Shows details about a specific sound"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for main/sounds.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/sounds.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5369,6 +14438,19 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "efa53bec303b5ea55d6f5ea30e7121e279943b40dd6229801508e799a7553167",
+        "buildGraph": {
+          "makefile": "main/Makefile",
+          "makefileSha256": "fc26e01676d8b78de5b42dbe3d6334f915252b7eb97f64bd4a14d6a6b10164a9",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c"
+          ]
+        }
+      },
+      "sourceBytes": 44461,
       "configFiles": [
         "udptl.conf",
         "udptl.conf.sample"
@@ -5376,6 +14458,30 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_udptl_set_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable UDPTL debugging"
+          },
+          {
+            "name": "handle_cli_show_config",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show UDPTL config options"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for main/udptl.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/udptl.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5393,8 +14499,21 @@ export const ASTERISK_CATALOG = {
       "source": "pbx/pbx_ael.c",
       "description": "Asterisk Extension Language Compiler",
       "buildConditions": [
-        "menuselect"
+        "menuselect:pbx_ael"
       ],
+      "provenance": {
+        "sourceSha256": "e76175d30356c673174108ae792d200ce2880472a61bb6fde86e3a039e14da5c",
+        "buildGraph": {
+          "makefile": "pbx/Makefile",
+          "makefileSha256": "116fa21737519042a743373f01e9ba67b38b08bef8d3cea8b6b14f492697d35d",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"pbx_ael\" displayname=\"Asterisk Extension Language Compiler v2\" remove_on_change=\"pbx/pbx_ael.o pbx/pbx_ael.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 10752,
       "configFiles": [
         "extensions.conf"
       ],
@@ -5402,8 +14521,36 @@ export const ASTERISK_CATALOG = {
         "cli",
         "application"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_ael_reload",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reload AEL configuration"
+          },
+          {
+            "name": "handle_cli_ael_set_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable AEL debugging flags"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "aelsub",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for pbx/pbx_ael.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for pbx/pbx_ael.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5419,8 +14566,21 @@ export const ASTERISK_CATALOG = {
       "source": "pbx/pbx_config.c",
       "description": "Text Extension Configuration",
       "buildConditions": [
-        "menuselect"
+        "menuselect:pbx_config"
       ],
+      "provenance": {
+        "sourceSha256": "b3cd3e4bd6d0b00ee36a0c2c799ec5fe81b6f329d3300d0b41e3f1d83daa57bd",
+        "buildGraph": {
+          "makefile": "pbx/Makefile",
+          "makefileSha256": "116fa21737519042a743373f01e9ba67b38b08bef8d3cea8b6b14f492697d35d",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"pbx_config\" displayname=\"Text Extension Configuration\" remove_on_change=\"pbx/pbx_config.o pbx/pbx_config.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 61094,
       "configFiles": [
         "extensions.conf"
       ],
@@ -5428,8 +14588,66 @@ export const ASTERISK_CATALOG = {
         "cli",
         "ami"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_dialplan_add_extension",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Add new extension into context"
+          },
+          {
+            "name": "handle_cli_dialplan_remove_extension",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Remove a specified extension"
+          },
+          {
+            "name": "handle_cli_dialplan_remove_context",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Remove a specified context"
+          },
+          {
+            "name": "handle_cli_dialplan_add_ignorepat",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Add new ignore pattern"
+          },
+          {
+            "name": "handle_cli_dialplan_remove_ignorepat",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Remove ignore pattern from context"
+          },
+          {
+            "name": "handle_cli_dialplan_add_include",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Include context in other context"
+          },
+          {
+            "name": "handle_cli_dialplan_remove_include",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Remove a specified include from context"
+          },
+          {
+            "name": "handle_cli_dialplan_reload",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reload extensions and *only* extensions"
+          },
+          {
+            "name": "handle_cli_dialplan_save",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Save current dialplan into a file"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for pbx/pbx_config.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for pbx/pbx_config.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5445,8 +14663,22 @@ export const ASTERISK_CATALOG = {
       "source": "pbx/pbx_dundi.c",
       "description": "Distributed Universal Number Discovery (DUNDi)",
       "buildConditions": [
-        "menuselect"
+        "menuselect:pbx_dundi"
       ],
+      "provenance": {
+        "sourceSha256": "94d367e1102354c5b51aaa8cd5a7b16e6adb96fda3829e6fa775820eb3f5736d",
+        "buildGraph": {
+          "makefile": "pbx/Makefile",
+          "makefileSha256": "116fa21737519042a743373f01e9ba67b38b08bef8d3cea8b6b14f492697d35d",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,pbx_dundi,dundi-parser.c)",
+            "\t\t<member name=\"pbx_dundi\" displayname=\"Distributed Universal Number Discovery (DUNDi)\" remove_on_change=\"pbx/pbx_dundi.o pbx/pbx_dundi.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 169562,
       "configFiles": [
         "dundi.conf",
         "dundi.conf.sample"
@@ -5455,8 +14687,109 @@ export const ASTERISK_CATALOG = {
         "cli",
         "function"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "dundi_set_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable DUNDi debugging"
+          },
+          {
+            "name": "dundi_store_history",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable DUNDi historic records"
+          },
+          {
+            "name": "dundi_flush",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Flush DUNDi cache"
+          },
+          {
+            "name": "dundi_show_peers",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show defined DUNDi peers"
+          },
+          {
+            "name": "dundi_show_trans",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show active DUNDi transactions"
+          },
+          {
+            "name": "dundi_show_entityid",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display Global Entity ID"
+          },
+          {
+            "name": "dundi_show_mappings",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show DUNDi mappings"
+          },
+          {
+            "name": "dundi_show_precache",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show DUNDi precache"
+          },
+          {
+            "name": "dundi_show_requests",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show DUNDi requests"
+          },
+          {
+            "name": "dundi_show_peer",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show info on a specific DUNDi peer"
+          },
+          {
+            "name": "dundi_show_cache",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show DUNDi cache"
+          },
+          {
+            "name": "dundi_show_hints",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show DUNDi hints in the cache"
+          },
+          {
+            "name": "dundi_do_precache",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Precache a number in DUNDi"
+          },
+          {
+            "name": "dundi_do_lookup",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Lookup a number in DUNDi"
+          },
+          {
+            "name": "dundi_do_query",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Query a DUNDi EID"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "dundi_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "dundi_query_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "dundi_result_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for pbx/pbx_dundi.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for pbx/pbx_dundi.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5472,12 +14805,37 @@ export const ASTERISK_CATALOG = {
       "source": "pbx/pbx_loopback.c",
       "description": "Loopback Switch",
       "buildConditions": [
-        "menuselect"
+        "menuselect:pbx_loopback"
       ],
+      "provenance": {
+        "sourceSha256": "61b382f3c041353e27a0188c26db39671c9deb921b56807487320393cca41139",
+        "buildGraph": {
+          "makefile": "pbx/Makefile",
+          "makefileSha256": "116fa21737519042a743373f01e9ba67b38b08bef8d3cea8b6b14f492697d35d",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"pbx_loopback\" displayname=\"Loopback Switch\" remove_on_change=\"pbx/pbx_loopback.o pbx/pbx_loopback.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 6084,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for pbx/pbx_loopback.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for pbx/pbx_loopback.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5495,8 +14853,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "02994f48313d27b7cc15c64323d7a92459839db2c39b78b7094bf53df19322a3",
+        "buildGraph": {
+          "makefile": "pbx/Makefile",
+          "makefileSha256": "116fa21737519042a743373f01e9ba67b38b08bef8d3cea8b6b14f492697d35d",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 45491,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for pbx/pbx_lua.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for pbx/pbx_lua.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5514,12 +14896,37 @@ export const ASTERISK_CATALOG = {
       "source": "pbx/pbx_realtime.c",
       "description": "Realtime Switch",
       "buildConditions": [
-        "menuselect"
+        "menuselect:pbx_realtime"
       ],
+      "provenance": {
+        "sourceSha256": "4b51423b591515abc51df14dcb3da6c605fd1931e08327000dbe06b2e2832355",
+        "buildGraph": {
+          "makefile": "pbx/Makefile",
+          "makefileSha256": "116fa21737519042a743373f01e9ba67b38b08bef8d3cea8b6b14f492697d35d",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"pbx_realtime\" displayname=\"Realtime Switch\" remove_on_change=\"pbx/pbx_realtime.o pbx/pbx_realtime.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 12793,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for pbx/pbx_realtime.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for pbx/pbx_realtime.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5535,12 +14942,37 @@ export const ASTERISK_CATALOG = {
       "source": "pbx/pbx_spool.c",
       "description": "Outgoing Spool Support",
       "buildConditions": [
-        "menuselect"
+        "menuselect:pbx_spool"
       ],
+      "provenance": {
+        "sourceSha256": "cadddd4cfaf4b1617faed5bbc9f2fa846d07a908000c1c15149dfa91d9dafb4d",
+        "buildGraph": {
+          "makefile": "pbx/Makefile",
+          "makefileSha256": "116fa21737519042a743373f01e9ba67b38b08bef8d3cea8b6b14f492697d35d",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"pbx_spool\" displayname=\"Outgoing Spool Support\" remove_on_change=\"pbx/pbx_spool.o pbx/pbx_spool.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 28575,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for pbx/pbx_spool.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for pbx/pbx_spool.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5556,14 +14988,39 @@ export const ASTERISK_CATALOG = {
       "source": "res/res_adsi.c",
       "description": "ADSI Resource",
       "buildConditions": [
-        "menuselect"
+        "menuselect:res_adsi"
       ],
+      "provenance": {
+        "sourceSha256": "dd6ce84df058537993e150d0adcd71124229dececea92372198db61c3beb056f",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"res_adsi\" displayname=\"ADSI Resource\" remove_on_change=\"res/res_adsi.o res/res_adsi.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 30635,
       "configFiles": [
         "adsi.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for res/res_adsi.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_adsi.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5581,12 +15038,49 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "1955d0fc8767aff67e10a3d6d55fdb64b1bcbabb750f62b92b357ea73d368827",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,res_aeap,$(wildcard res_aeap/*.c))"
+          ]
+        }
+      },
+      "sourceBytes": 11115,
       "configFiles": [
         "aeap.conf"
       ],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "client_config_show",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show AEAP client configuration by id"
+          },
+          {
+            "name": "client_config_show_all",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show all AEAP client configurations"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_aeap.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_aeap.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5606,8 +15100,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "fccef07df29649a7b84238952930f73176edec6b47f2be1e5a3b7bc811b74810",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,res_ael_share,ael/ael_lex.c ael/ael.tab.c ael/pval.c)"
+          ]
+        }
+      },
+      "sourceBytes": 1368,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_ael_share.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_ael_share.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5625,8 +15145,23 @@ export const ASTERISK_CATALOG = {
       "source": "res/res_agi.c",
       "description": "Asterisk Gateway Interface (AGI)",
       "buildConditions": [
-        "menuselect"
+        "menuselect:res_agi"
       ],
+      "provenance": {
+        "sourceSha256": "74939ab9aea6d5eb17be86ba0dcf4aa0272e990221965865763d528a2d42e08c",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "  res_agi.so: | res_speech.so",
+            "  res_agi.so_LIBS:= -lres_speech.so",
+            "\t\t<member name=\"res_agi\" displayname=\"Asterisk Gateway Interface (AGI)\" remove_on_change=\"res/res_agi.o res/res_agi.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 154108,
       "configFiles": [
         "asterisk.conf",
         "voicemail.conf"
@@ -5637,8 +15172,68 @@ export const ASTERISK_CATALOG = {
         "agi",
         "application"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_agi_add_cmd",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Add AGI command to a channel in Async AGI"
+          },
+          {
+            "name": "handle_cli_agi_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable AGI debugging"
+          },
+          {
+            "name": "handle_cli_agi_show",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List AGI commands or specific help"
+          },
+          {
+            "name": "handle_cli_agi_dump_html",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Dumps a list of AGI commands in HTML format"
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "AGI",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [
+          {
+            "name": "cmd + i",
+            "evidence": "ast_agi_register"
+          },
+          {
+            "name": "noop_command",
+            "evidence": "ast_agi_register"
+          },
+          {
+            "name": "commands",
+            "evidence": "ast_agi_register_multiple"
+          }
+        ],
+        "applications": [
+          {
+            "name": "eapp",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for res/res_agi.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_agi.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -5656,11 +15251,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "ba3b1b51ec285a9e4fe9d88f92da95a3d71333edbd48dc020b9ec00e46890166",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,res_ari,ari/cli.c ari/config.c ari/ari_websockets.c ari/ari_websocket_requests.c)",
+            "$(call MOD_ADD_C,res_ari_model,ari/ari_model_validators.c)",
+            "# Dependencies for res_ari_*.so are generated, so they're in this file"
+          ]
+        }
+      },
+      "sourceBytes": 43711,
       "configFiles": [],
       "sourceSurfaces": [
         "ari",
         "http"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_ari.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_ari.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5680,10 +15303,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "20c18e54ce31edd32720953f24f11e380164b0117ecb9022b5ceee9a21ad4911",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 18306,
       "configFiles": [],
       "sourceSurfaces": [
         "ari"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_ari_applications.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_ari_applications.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5703,12 +15350,36 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "ceda59907843c76236b7630ec18aa6c9dee236fdab4e16c1f060127203c69447",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 40386,
       "configFiles": [
         "args.conf"
       ],
       "sourceSurfaces": [
         "ari"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_ari_asterisk.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_ari_asterisk.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5728,10 +15399,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "e1e2bb6f72a285f464680807b51bee7373b1bc52a855103ec73a8a7492a189a9",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 60842,
       "configFiles": [],
       "sourceSurfaces": [
         "ari"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_ari_bridges.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_ari_bridges.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5751,10 +15446,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "52a2ab2399db105bf52a27be4ae73c5a427e48432e05c1660ce6b90c1f9b367f",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 108935,
       "configFiles": [],
       "sourceSurfaces": [
         "ari"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_ari_channels.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_ari_channels.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5774,10 +15493,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "0387cb56427ab10409d80d872834d3a051af509e74890f68d5968c93254c4973",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 10593,
       "configFiles": [],
       "sourceSurfaces": [
         "ari"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_ari_device_states.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_ari_device_states.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5797,10 +15540,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "019ff60205af0e593b413f062b20cb7026101fc09ded811fee55957457e9d4a3",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 20366,
       "configFiles": [],
       "sourceSurfaces": [
         "ari"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_ari_endpoints.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_ari_endpoints.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5820,10 +15587,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "828633f6ba52f8a9b7f72f5a1851a2e0c53faa1a2330eae372ce74173a797544",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 10115,
       "configFiles": [],
       "sourceSurfaces": [
         "ari"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_ari_events.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_ari_events.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5843,10 +15634,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "a64a442348516e8c06859788353efc42abd173f47549a89e14f8aabb1e902240",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 10587,
       "configFiles": [],
       "sourceSurfaces": [
         "ari"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_ari_mailboxes.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_ari_mailboxes.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5866,10 +15681,36 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "13ba37e78008e65834d1fff32aa43884469fbbf69efa4c4a9128ed8487d23f3a",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,res_ari_model,ari/ari_model_validators.c)"
+          ]
+        }
+      },
+      "sourceBytes": 4999,
       "configFiles": [],
       "sourceSurfaces": [
         "ari"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_ari_model.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_ari_model.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5889,10 +15730,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "631d961a6e5fb9dd682805669b8b23d4170d4c8455e5248dd991cc08808b806f",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 9191,
       "configFiles": [],
       "sourceSurfaces": [
         "ari"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_ari_playbacks.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_ari_playbacks.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5912,10 +15777,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "973e84d3c2d347b89907f6b6d92278b4e816e7576174899841e3f243b122fb1d",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 28364,
       "configFiles": [],
       "sourceSurfaces": [
         "ari"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_ari_recordings.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_ari_recordings.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5935,10 +15824,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "123ac37a04531bb3510ec23267a43879831ab6cd816f441f26eb9c99cd417e3d",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6624,
       "configFiles": [],
       "sourceSurfaces": [
         "ari"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_ari_sounds.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_ari_sounds.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5958,8 +15871,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "1e39a74c18ad6925d144328806b237bbbc3ccd698f0360c9c9d73458ff9fc183",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 12268,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_audiosocket.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_audiosocket.c; runtime help and the generated module record are the authoritative available documentation."
@@ -5979,6 +15916,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "d1fffc7a59c7c8ffdec193a8dac6c6723df37068b9b198b9204239ddd6c4aaf8",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 60016,
       "configFiles": [
         "calendar.conf",
         "calendar.conf.sample"
@@ -5987,6 +15935,61 @@ export const ASTERISK_CATALOG = {
         "cli",
         "function"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_show_calendar",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display information about a calendar"
+          },
+          {
+            "name": "handle_show_calendars",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show registered calendars"
+          },
+          {
+            "name": "handle_dump_sched",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Dump calendar sched context"
+          },
+          {
+            "name": "handle_show_calendars_types",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show all calendar types loaded"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "calendar_busy_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "calendar_event_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "calendar_query_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "calendar_query_result_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "calendar_write_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_calendar.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_calendar.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6006,10 +16009,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "acb7b43564be889ff594130aa838b10f86c4e8ddf0a6ba4f6685158b6410c79f",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 24415,
       "configFiles": [
         "calendar.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_calendar_caldav.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_calendar_caldav.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6029,8 +16056,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "13fadd276a62d0054d37d50b62c107241eb7d57d90494a5a9c6048704080d7e3",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 27492,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_calendar_ews.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_calendar_ews.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6050,8 +16101,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "5473125a260eb23fcf245f26c2c317360cbc7bf43ff51dfbf6766d756d643a3e",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 21449,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_calendar_exchange.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_calendar_exchange.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6071,10 +16146,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "2eac64440fdc76ba697deeb56850704e82d8e31a206dec5d4d1b7b06a4d6b4b6",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 17269,
       "configFiles": [
         "calendar.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_calendar_icalendar.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_calendar_icalendar.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6094,8 +16193,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "2e01257dd10afde278111e953c0925fd94c888129cda69d253b4c2b78250b41b",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,res_cdrel_custom,$(wildcard cdrel_custom/*.c))"
+          ]
+        }
+      },
+      "sourceBytes": 8990,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_cdrel_custom.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_cdrel_custom.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6115,8 +16240,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "a3b46cf2d35240066c7de30cc1cb7cd80f752c8127af39c692c166bc4a4e4555",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 5407,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_chan_stats.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_chan_stats.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6136,6 +16285,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "3efc193d6d253ab4f1b12937a2f82d48c0a7257e266c7202e02206abf92f1e9c",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 8897,
       "configFiles": [
         "cli_aliases.conf",
         "cli_aliases.conf.sample"
@@ -6143,6 +16303,25 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "alias_show",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show CLI command aliases"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_clialiases.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_clialiases.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6162,10 +16341,40 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "01189c4dda0b4cfa8cf0a1c4ebf591131dd778e91997d2bebded94c4701b409a",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4966,
       "configFiles": [],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_exec",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Execute a dialplan application"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_cliexec.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_cliexec.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6183,14 +16392,50 @@ export const ASTERISK_CATALOG = {
       "source": "res/res_clioriginate.c",
       "description": "Call origination and redirection from the CLI",
       "buildConditions": [
-        "menuselect"
+        "menuselect:res_clioriginate"
       ],
+      "provenance": {
+        "sourceSha256": "590ec1f6b2433cd129d121a98455455e4ad3a04f7ecc00959a986910c370a166",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"res_clioriginate\" displayname=\"Call origination from the CLI\" remove_on_change=\"res/res_clioriginate.o res/res_clioriginate.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 7564,
       "configFiles": [],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_orig",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Originate a call"
+          },
+          {
+            "name": "handle_redirect",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Redirect a call"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for res/res_clioriginate.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_clioriginate.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -6208,11 +16453,35 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "e90425f7dbff4430749967f9f03aa89ea563d8251981587b7b45ebc90c4aabfa",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 18471,
       "configFiles": [
         "extensions.conf",
         "res_curl.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_config_curl.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_config_curl.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6232,6 +16501,19 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "565071b06beff68449a55c816e0f2e7aee40fb8d91d61ac9f1a7e70601bcf022",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "res_config_ldap.o: _ASTCFLAGS+=-DLDAP_DEPRECATED"
+          ]
+        }
+      },
+      "sourceBytes": 59495,
       "configFiles": [
         "res_ldap.conf",
         "res_ldap.conf.sample"
@@ -6239,6 +16521,25 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "realtime_ldap_status",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Shows connection information for the LDAP RealTime driver"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_config_ldap.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_config_ldap.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6256,15 +16557,40 @@ export const ASTERISK_CATALOG = {
       "source": "res/res_config_odbc.c",
       "description": "Realtime ODBC configuration",
       "buildConditions": [
-        "menuselect"
+        "menuselect:res_config_odbc"
       ],
+      "provenance": {
+        "sourceSha256": "0a271c4ed03b8dbe2064d2aba7e0592ef06c60cd5c3c9371cdfee882973c9129",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"res_config_odbc\" displayname=\"ODBC Configuration\" remove_on_change=\"res/res_config_odbc.o res/res_config_odbc.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 40120,
       "configFiles": [
         "res_config_odbc.conf",
         "res_odbc.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for res/res_config_odbc.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_config_odbc.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -6280,8 +16606,21 @@ export const ASTERISK_CATALOG = {
       "source": "res/res_config_pgsql.c",
       "description": "PostgreSQL RealTime Configuration Driver",
       "buildConditions": [
-        "menuselect"
+        "menuselect:res_config_pgsql"
       ],
+      "provenance": {
+        "sourceSha256": "2980bd392da7762485c482101d1e8c9e916cd58e03c32404ab8de951e73a53d2",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"res_config_pgsql\" displayname=\"Postgresql RealTime Configuration Driver\" remove_on_change=\"res/res_config_pgsql.o res/res_config_pgsql.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 57473,
       "configFiles": [
         "extconfig.conf",
         "res_pgsql.conf"
@@ -6289,8 +16628,31 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_realtime_pgsql_status",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Shows connection information for the PostgreSQL RealTime driver"
+          },
+          {
+            "name": "handle_cli_realtime_pgsql_cache",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Shows cached tables within the PostgreSQL realtime driver"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for res/res_config_pgsql.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_config_pgsql.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -6308,11 +16670,35 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "5492a51b489dc61b6f241c744fd6c86608f014873ab4df7946374e144ceb036e",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 40206,
       "configFiles": [
         "res_config_sqlite3.conf",
         "res_config_sqlite3.conf.sample"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_config_sqlite3.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_config_sqlite3.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6330,14 +16716,45 @@ export const ASTERISK_CATALOG = {
       "source": "res/res_convert.c",
       "description": "File format conversion CLI command",
       "buildConditions": [
-        "menuselect"
+        "menuselect:res_convert"
       ],
+      "provenance": {
+        "sourceSha256": "31b362fac6a03680d0eb7cd062bea32d9426afcab10b33b08516985e0e8f8917",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"res_convert\" displayname=\"File format conversion CLI command\" remove_on_change=\"res/res_convert.o res/res_convert.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 4283,
       "configFiles": [],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_file_convert",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Convert audio file"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for res/res_convert.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_convert.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -6355,12 +16772,52 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "36de56e381214262ab1e30304ad5857cbc2f743a1c39db24cce1a5fcd17911af",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 43971,
       "configFiles": [
         "res_corosync.conf"
       ],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "corosync_show_config",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show configuration"
+          },
+          {
+            "name": "corosync_show_members",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show cluster members"
+          },
+          {
+            "name": "corosync_ping",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Send a test ping to the cluster"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_corosync.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_corosync.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6378,14 +16835,50 @@ export const ASTERISK_CATALOG = {
       "source": "res/res_crypto.c",
       "description": "Cryptographic Digital Signatures",
       "buildConditions": [
-        "menuselect"
+        "menuselect:res_crypto"
       ],
+      "provenance": {
+        "sourceSha256": "597ffbc15a4751ed997aa4083dda57b2cae452d084eedff6695fee21fff98ed2",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"res_crypto\" displayname=\"Cryptographic Digital Signatures\" remove_on_change=\"res/res_crypto.o res/res_crypto.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 26398,
       "configFiles": [],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_keys_show",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Displays RSA key information"
+          },
+          {
+            "name": "handle_cli_keys_init",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Initialize RSA key passcodes"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for res/res_crypto.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_crypto.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -6403,11 +16896,35 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "7f1585be987af5a8eb6fd9cf41b6c8075a15ac8cace73e1ec03e0e4c0c466bb9",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 1736,
       "configFiles": [
         "res_curl.conf",
         "res_curl.conf.sample"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_curl.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_curl.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6427,8 +16944,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "d0dfc8035ce59fc3ac5a8f255a4b5ede3a257f1be7232f6418cb50db9a9c38ee",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4609,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_endpoint_stats.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_endpoint_stats.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6448,6 +16989,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "b60fb49192f89eb8481aec273ccd13dfc6fe510080478eeef462f21854a13ff3",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 167285,
       "configFiles": [
         "res_fax.conf",
         "res_fax.conf.sample"
@@ -6458,6 +17010,82 @@ export const ASTERISK_CATALOG = {
         "application",
         "function"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "cli_fax_show_version",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show versions of FAX For Asterisk components"
+          },
+          {
+            "name": "cli_fax_set_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable FAX debugging on new FAX sessions"
+          },
+          {
+            "name": "cli_fax_show_capabilities",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show the capabilities of the registered FAX technology modules"
+          },
+          {
+            "name": "cli_fax_show_settings",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show the global settings and defaults of both the FAX core and technology modules"
+          },
+          {
+            "name": "cli_fax_show_session",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show the status of the named FAX sessions"
+          },
+          {
+            "name": "cli_fax_show_sessions",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show the current FAX sessions"
+          },
+          {
+            "name": "cli_fax_show_stats",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Summarize FAX session history"
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "FAXSessions",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "FAXSession",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "FAXStats",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_sendfax",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_receivefax",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "acf_faxopt",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_fax.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_fax.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6477,8 +17105,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "a4e62f3f9eb9a3c5b274ea92355a150cf6ed27dfa70223c1bcc8f8c1468f0cf0",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 46709,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_fax_spandsp.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_fax_spandsp.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6498,8 +17150,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "a3e18f367a4387fc7ec77b18cbb826ae0e48ff02c4896eb4eeaf821dd506cc6a",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 5864,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_format_attr_celt.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_format_attr_celt.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6519,8 +17195,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "9d27def7822aa5c7900bf896d61d9b55e0b5ad39dc43afa64e6c8dea0c0f4257",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 2061,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_format_attr_g729.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_format_attr_g729.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6540,8 +17240,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "0cfab34f38d5abefe762854a5afb6b4f53639e4359984a5b1cbf3e8816174496",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 13140,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_format_attr_h263.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_format_attr_h263.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6561,8 +17285,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "339466b6d46d418df902ccac8b1c184a6b3311d5bdf870f4129fd51196468d8f",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 11457,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_format_attr_h264.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_format_attr_h264.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6582,8 +17330,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "2638cc3a828c32ba4c7ee73ece100ea7f4a5eb58b2bb11fa099636a990bbef91",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4661,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_format_attr_ilbc.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_format_attr_ilbc.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6603,8 +17375,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "2ca63ddccab91acf5bf44566ea91b8c502702d626d727db5b6fa1770e60bc79d",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 12302,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_format_attr_opus.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_format_attr_opus.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6624,8 +17420,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "9bd13556ce2e5dc89e4dcd86cf0d7c64c38f58e069d2ccd7a9db1559c54d3dd2",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 7293,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_format_attr_silk.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_format_attr_silk.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6645,8 +17465,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "800266f0518d1bb651813b2eda7e275be6ef3251f004514ab021388d357ebce5",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3021,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_format_attr_siren14.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_format_attr_siren14.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6666,8 +17510,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "931a7655c9599815c825b84d522681a1ef83abc973991b36d44dc5afad7158db",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3007,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_format_attr_siren7.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_format_attr_siren7.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6687,8 +17555,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "fe6700b127de27d1588aea1540450d0e8ab40fdd25d207922b525d23c1654fba",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6189,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_format_attr_vp8.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_format_attr_vp8.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6708,8 +17600,35 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "79054da9e647c702c18ae2e500aa36dc52d1d7fe81456999b903a72e06160dc0",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,res_geolocation,$(wildcard res_geolocation/*.c))",
+            "res_geolocation.so: res_geolocation/pidf_lo_test.o res_geolocation/pidf_to_eprofile.o res_geolocation/eprofile_to_pidf.o"
+          ]
+        }
+      },
+      "sourceBytes": 2737,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_geolocation.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_geolocation.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6729,11 +17648,35 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "d480ec45fef0da3d7a41e10236de1b3b68a3d492ce2c9646126915d6d6935933",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 22799,
       "configFiles": [
         "hep.conf",
         "hep.conf.sample"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_hep.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_hep.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6753,8 +17696,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "0a9bb367e998c3ee770f0cdbc4b8ce8c83678ecb6455af947eac59d03295a397",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 7824,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_hep_pjsip.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_hep_pjsip.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6774,8 +17741,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "8845c6df51d59d4fd37ce2ad597350fdf560c4f4e2fd2515f446658ea55fcbd5",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 5199,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_hep_rtcp.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_hep_rtcp.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6795,10 +17786,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "9693977d696c2624e24f149226a6e5681356e78a9d853764378447fe27dcec16",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 25203,
       "configFiles": [
         "res_http_media_cache.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_http_media_cache.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_http_media_cache.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6818,12 +17833,36 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "820ba362369300e7ed1df6a7336138dc37af1efd0fc3981fcc308587934013fb",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 14834,
       "configFiles": [
         "http.conf"
       ],
       "sourceSurfaces": [
         "http"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_http_post.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_http_post.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6843,11 +17882,35 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "627dd3cbd331f447be7c8b938ce9633b14301ff6e23c615c50cad1315b4c8683",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 77164,
       "configFiles": [],
       "sourceSurfaces": [
         "http",
         "tls"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_http_websocket.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_http_websocket.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6867,10 +17930,40 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "4e2a4e8e0a21c9f66028036811efdbf60f11c3453d870ac06b6f0f9237d7bbcb",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 5708,
       "configFiles": [],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_ulimit",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Set or show process resource limits"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_limit.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_limit.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6890,10 +17983,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "0132f2f6ca7b93ea0768d32ec0b9dc24878f2b99f44b641f6aacb437cdb8d7df",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4601,
       "configFiles": [],
       "sourceSurfaces": [
         "ami"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [
+          {
+            "name": "DeviceStateList",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_manager_devicestate.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_manager_devicestate.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6913,10 +18035,39 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "8c2e422ae424449ded1718b000e13c4486693751a7d41c015d1d7e32a8611ac6",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4671,
       "configFiles": [],
       "sourceSurfaces": [
         "ami"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [
+          {
+            "name": "PresenceStateList",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_manager_presencestate.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_manager_presencestate.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6934,8 +18085,21 @@ export const ASTERISK_CATALOG = {
       "source": "res/res_musiconhold.c",
       "description": "Music On Hold Resource",
       "buildConditions": [
-        "menuselect"
+        "menuselect:res_musiconhold"
       ],
+      "provenance": {
+        "sourceSha256": "8b26c7768980c36948b49b6818bfdef74752adbc82e151c95ac3e6f87d29fc2e",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"res_musiconhold\" displayname=\"Music On Hold Resource\" remove_on_change=\"res/res_musiconhold.o res/res_musiconhold.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 72991,
       "configFiles": [
         "musiconhold.conf",
         "musiconhold.conf.sample"
@@ -6944,8 +18108,54 @@ export const ASTERISK_CATALOG = {
         "cli",
         "application"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_moh_reload",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Reload MusicOnHold"
+          },
+          {
+            "name": "handle_cli_moh_show_classes",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List MusicOnHold classes"
+          },
+          {
+            "name": "handle_cli_moh_show_files",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List MusicOnHold file-based classes"
+          },
+          {
+            "name": "handle_cli_moh_unregister_class",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Unregister realtime MusicOnHold class"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "play_moh",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "start_moh",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "stop_moh",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for res/res_musiconhold.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_musiconhold.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -6963,11 +18173,45 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "7716931d2f62b295de358425679afcb08ee21793318e66654b0fcfb4e39b109b",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6469,
       "configFiles": [],
       "sourceSurfaces": [
         "ami",
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [
+          {
+            "name": "MuteAudio",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "mute_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_mutestream.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_mutestream.c; runtime help and the generated module record are the authoritative available documentation."
@@ -6987,8 +18231,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "3cfa0ff8cc320bfe06ae56e628dcee40f12f28e330008580c09514969bcf11a7",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 2844,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_mwi_devstate.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_mwi_devstate.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7008,12 +18276,72 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "0f561d3885a7d3f50baac87444d7a2d39bd5b8bb66f50b12f2e6a71bf14b55dd",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 24434,
       "configFiles": [
         "sorcery.conf"
       ],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_mwi_delete_all",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Delete all external MWI mailboxes"
+          },
+          {
+            "name": "handle_mwi_delete_like",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Delete external MWI mailboxes matching regex"
+          },
+          {
+            "name": "handle_mwi_delete_mailbox",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Delete a specific external MWI mailbox"
+          },
+          {
+            "name": "handle_mwi_list_all",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List all external MWI mailboxes"
+          },
+          {
+            "name": "handle_mwi_list_like",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List external MWI mailboxes matching regex"
+          },
+          {
+            "name": "handle_mwi_show_mailbox",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show a specific external MWI mailbox"
+          },
+          {
+            "name": "handle_mwi_update_mailbox",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Update a specific external MWI mailbox"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_mwi_external.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_mwi_external.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7033,10 +18361,47 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "5549318c21ad9c57e530d02b4389abba0c5b73adab76d0a24e915c43cf8b15e1",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 10528,
       "configFiles": [],
       "sourceSurfaces": [
         "ami"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [
+          {
+            "name": "MWIGet",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "MWIDelete",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "MWIUpdate",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_mwi_external_ami.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_mwi_external_ami.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7054,8 +18419,21 @@ export const ASTERISK_CATALOG = {
       "source": "res/res_odbc.c",
       "description": "ODBC resource",
       "buildConditions": [
-        "menuselect"
+        "menuselect:res_odbc"
       ],
+      "provenance": {
+        "sourceSha256": "5bb5055c3dc071ed5c99b6ef4da5e4929a083c749a26b7080eac9dd226685e12",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"res_odbc\" displayname=\"ODBC Resource\" remove_on_change=\"res/res_odbc.o res/res_odbc.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 40048,
       "configFiles": [
         "res_odbc.conf",
         "res_odbc.conf.sample"
@@ -7063,8 +18441,26 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_odbc_show",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List ODBC DSN(s)"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for res/res_odbc.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_odbc.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -7082,6 +18478,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "9b96bbe8ed10b6e2b15f058f6d4435cd6b823cc4ee217bffe1df363b15369270",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 17200,
       "configFiles": [
         "res_odbc.conf"
       ],
@@ -7089,6 +18496,33 @@ export const ASTERISK_CATALOG = {
         "application",
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_commit",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_rollback",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "odbc_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_odbc_transaction.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_odbc_transaction.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7108,10 +18542,37 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "39fc348b7c540acdf2678e8d05a736c6c61048ebed08d26fabf6dd3e8bbd6717",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,res_parking,$(wildcard parking/*.c))",
+            "res_parking.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION)"
+          ]
+        }
+      },
+      "sourceBytes": 47313,
       "configFiles": [
         "res_parking.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_parking.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_parking.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7131,6 +18592,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "45ef59971339d1eab3d0919df10924448e8ae67b920f06b16cbbed767da2b0de",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 51336,
       "configFiles": [
         "phoneprov.conf",
         "phoneprov.conf.sample",
@@ -7141,6 +18613,34 @@ export const ASTERISK_CATALOG = {
         "function",
         "http"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_show_routes",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show registered phoneprov http routes"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "pp_each_user_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "pp_each_extension_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_phoneprov.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_phoneprov.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7160,6 +18660,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "fd56c3c1c8f9d12e122ef37f8cca439bae4f94ddc131015e0750219fe0d78d36",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 27223,
       "configFiles": [
         "pjproject.conf",
         "pjproject.conf.sample"
@@ -7167,6 +18678,40 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_pjproject_set_log_level",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Set the maximum active pjproject logging level"
+          },
+          {
+            "name": "handle_pjproject_show_buildopts",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show the compiled config of the pjproject in use"
+          },
+          {
+            "name": "handle_pjproject_show_log_mappings",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show pjproject to Asterisk log mappings"
+          },
+          {
+            "name": "handle_pjproject_show_log_level",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show the maximum active pjproject logging level"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjproject.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjproject.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7186,10 +18731,53 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "e46fb1414c9d31ee80e62ee6e0d738586d614694bbae5cb8fc22fd2f8a1b8057",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,res_pjsip,$(wildcard res_pjsip/*.c))",
+            "$(call MOD_ADD_C,res_pjsip_session,$(wildcard res_pjsip_session/*.c))"
+          ]
+        }
+      },
+      "sourceBytes": 133306,
       "configFiles": [],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "cli_dump_endpt",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Dump the res_pjsip endpt internals"
+          },
+          {
+            "name": "cli_show_settings",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show global and system configuration options"
+          },
+          {
+            "name": "cli_show_endpoint_identifiers",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List registered endpoint identifiers"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7209,11 +18797,35 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "3e50baf7901f8e3a002f4875a59757388864fe0187710cb5127ec7470a6c2635",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 12542,
       "configFiles": [
         "acl.conf",
         "pjsip.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_acl.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_acl.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7233,8 +18845,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "5e078a84e89a53b845dcdd45abc14db8c05c0a9cc90c4601ece791a87691607a",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 21658,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_aoc.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_aoc.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7254,8 +18890,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "44ee0e7c44e4955031986100f02bcfce12c7891b71b951eb365a4b342c304abb",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 29853,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_authenticator_digest.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_authenticator_digest.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7275,8 +18935,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "a65ac1bc1a625ff5ba58b1118729132a9285e44fe7385181e7cfdc6176d4b021",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 21461,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_caller_id.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_caller_id.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7296,6 +18980,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "dfe7e9a96d7868fed9b3a5cc93e6712a9c8df785349ebcde7e39801e84d21d8a",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 50503,
       "configFiles": [
         "extensions.conf",
         "pjsip_wizard.conf",
@@ -7304,6 +18999,25 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_export_primitives",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Export config wizard primitives"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_config_wizard.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_config_wizard.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7323,8 +19037,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "fe105c3d78ee4174324462cd6adb9fdad86f2269b25f10ffa8d994174b425416",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 12922,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_dialog_info_body_generator.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_dialog_info_body_generator.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7344,8 +19082,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "34c16346cd876d0d569320d4e397095faeec904126ce0da186b7f4bdf98c2793",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 23104,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_diversion.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_diversion.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7365,8 +19127,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "7b1443e63dfca02d9db109c3d341ebb7022cee646b1ec3dc4d05378102b9271c",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3209,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_dlg_options.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_dlg_options.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7386,8 +19172,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "5ee9f64c0a0e09132ebe6bf437d13d1d4ad34ca6b1d89fe6b01791c84584bfce",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4784,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_dtmf_info.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_dtmf_info.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7407,8 +19217,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "a40c6ce92b45ae9914ee95e05e88ccc84454a04f7b6b0cf30c4ba3106afe052a",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 2355,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_empty_info.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_empty_info.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7428,8 +19262,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "fcd1cfb83dda2159b14a0800dfa3990b88ccf62f721479c751f3f6610afbe6e8",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4401,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_endpoint_identifier_anonymous.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_endpoint_identifier_anonymous.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7449,12 +19307,42 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "512f64ae152d7cf4fd901b9df95bff74df5f8caf859eeeb4b28f28f4bd096a2b",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 34078,
       "configFiles": [
         "pjsip.conf"
       ],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "my_cli_traverse_objects",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List PJSIP Identifies"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_endpoint_identifier_ip.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_endpoint_identifier_ip.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7474,8 +19362,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "2541b309382a5b6a7cc1f0e7209b17bc4f70ee62c2f9b38f0fba33fe97d30e9c",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 7346,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_endpoint_identifier_user.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_endpoint_identifier_user.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7495,8 +19407,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "d751e257fba0a664a25b80514735d435cad822d17a2d40f4be5c4a5253ed9a5d",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 34156,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_exten_state.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_exten_state.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7516,8 +19452,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "eaf7df596a7e5bbb272833a11546dbbaa6c2ed92d4b2cd8cee5d4f90aa90111e",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 23696,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_geolocation.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_geolocation.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7537,10 +19497,59 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "d54c4f41474db60e5cb9c706fcc13d3145de1bedc18b968f30c11f579097ea6e",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 65238,
       "configFiles": [],
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "pjsip_header_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "pjsip_header_inherit_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "pjsip_headers_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "pjsip_response_header_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "pjsip_response_headers_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "pjsip_header_param_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_header_funcs.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_header_funcs.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7560,10 +19569,45 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "794296bb43021f9875299015a892c62891ad2ac6f2d47cb7533bc565aa84321a",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 40438,
       "configFiles": [],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "pjsip_set_history",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable PJSIP History"
+          },
+          {
+            "name": "pjsip_show_history",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display PJSIP History"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_history.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_history.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7583,10 +19627,40 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "dfdefa5585f0bba293a5f23e60ffd35a0cc8af9d7934f5b98912c06e34a1b2e3",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 25626,
       "configFiles": [],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "pjsip_set_logger",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable PJSIP Logger Output"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_logger.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_logger.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7606,11 +19680,60 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "6bef6330c1d161aef38adc046ab3d8482da5f7ac5629304078c101a695606f33",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 23243,
       "configFiles": [],
       "sourceSurfaces": [
         "cli",
         "ami"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_pjsip_set_maintenance",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Set PJSIP endpoint maintenance mode"
+          },
+          {
+            "name": "handle_cli_pjsip_show_maintenance",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show PJSIP endpoint maintenance status"
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "PJSIPSetMaintenance",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "PJSIPShowMaintenance",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [
+          {
+            "name": "PJSIPMaintenanceStatus",
+            "evidence": "manager_event"
+          }
+        ],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_maintenance.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_maintenance.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7630,8 +19753,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "9bcd2ecbe6dcc60b5f594738649bf3e7bbf413947e83cd11c1c2c65a30918ff6",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 41150,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_messaging.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_messaging.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7651,8 +19798,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "b2c5de56cf38d85ec9c44634a946aaefd190422cb5278e2e548ef0cb923b4bdd",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 48093,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_mwi.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_mwi.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7672,8 +19843,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "1115dac9975001b218e6f5eb648941722e655e8b4138f999f112c32167368643",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3024,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_mwi_body_generator.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_mwi_body_generator.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7693,8 +19888,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "d979fd6cb3f1eeabfb36ee7c245ab3d036e802419b9404c91db39d6c7be2cad7",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 17328,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_nat.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_nat.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7714,6 +19933,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "544d0475ac72c00e78d811c41aee49ea700bc3457dd70457cd70aae05b87849a",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 38581,
       "configFiles": [
         "pjsip_notify.conf"
       ],
@@ -7722,6 +19952,35 @@ export const ASTERISK_CATALOG = {
         "ami",
         "application"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "cli_notify",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Send a NOTIFY request to a SIP endpoint"
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "PJSIPNotify",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "\"PJSIPNotify\"",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_notify.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_notify.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7741,8 +20000,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "2aaf7a6fa53b8d3df91cf8c7c06193965590d9ff9517e384b34ac6746b315bfe",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3659,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_one_touch_record_info.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_one_touch_record_info.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7762,8 +20045,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "d98d9a8d69504da8d9e921756a05e6b12728e75a7df650ced121851518ab9a69",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 25214,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_outbound_authenticator_digest.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_outbound_authenticator_digest.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7783,10 +20090,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "aaf109f5b57bc3f0cd3a6d7ce23727e796fc2c415e1f0d29fa4deff5aa0d2492",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 58256,
       "configFiles": [
         "pjsip.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_outbound_publish.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_outbound_publish.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7806,6 +20137,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "0ff29fe7f5fdb15785717b00a7cbd815c05ab409a0d0f72858825214a1190343",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 117180,
       "configFiles": [
         "pjsip.conf"
       ],
@@ -7813,6 +20155,48 @@ export const ASTERISK_CATALOG = {
         "cli",
         "ami"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "cli_unregister",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Unregisters outbound registration target"
+          },
+          {
+            "name": "cli_register",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Registers an outbound registration target"
+          },
+          {
+            "name": "my_cli_traverse_objects",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List PJSIP Registrations"
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "PJSIPUnregister",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "PJSIPRegister",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "PJSIPShowRegistrationsOutbound",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_outbound_registration.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_outbound_registration.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7832,8 +20216,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "834c3ed227c2b88d7e2cfe115a3ab50a8360ce495e512b82d86d0e41cf02af0c",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 9060,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_path.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_path.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7853,11 +20261,35 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "622d7688bf3ac139cbf705c07280bf7709074f309362c297396e6b17c1ac09d6",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 12900,
       "configFiles": [
         "pjsip.conf",
         "pjsip.conf.sample"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_phoneprov_provider.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_phoneprov_provider.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7877,8 +20309,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "48913f77052ee381a7a9c27e3072cc93ef8be59168e34d1186cdd92f80ed94b7",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4121,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_pidf_body_generator.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_pidf_body_generator.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7898,8 +20354,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "71501a1b568c0edc45d8648092dfd02a2457133a2ee24ebd4ec7d621d07b371e",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3481,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_pidf_digium_body_supplement.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_pidf_digium_body_supplement.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7919,8 +20399,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "402eafa8efba6d4150002d5699b908d82f8c683d2f570e4a140b54cd7f5d33ae",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3507,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_pidf_eyebeam_body_supplement.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_pidf_eyebeam_body_supplement.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7940,10 +20444,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "b1e3dcee85d13175a2950c292bad420fcaef7f3f48ba361bfdff3578c2ad013e",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 33609,
       "configFiles": [
         "pjsip.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_publish_asterisk.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_publish_asterisk.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7963,6 +20491,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "1582f35ef42862627888b65336319901e3883640e9e69b39b2d4469b3c57bf3e",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 203087,
       "configFiles": [
         "pjsip.conf",
         "sorcery.conf"
@@ -7971,6 +20510,40 @@ export const ASTERISK_CATALOG = {
         "cli",
         "ami"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "cli_list_subscriptions_inout",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List active inbound/outbound subscriptions"
+          },
+          {
+            "name": "cli_show_subscription_inout",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show active subscription details"
+          },
+          {
+            "name": "cli_show_subscriptions_inout",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show active inbound/outbound subscriptions"
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "PJSIPShowResourceLists",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_pubsub.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_pubsub.c; runtime help and the generated module record are the authoritative available documentation."
@@ -7990,8 +20563,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "ec0a925f6a0510fa22437650dfc753cae2aa9c727b9b2d8c2f92dead1d32d144",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 79520,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_refer.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_refer.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8011,12 +20608,36 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "6bc5b0719f7a7ecf66e3eb0b7d7c52df3ada7d940711ebef37eaddea5ba2f630",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 52885,
       "configFiles": [
         "pjsip.conf"
       ],
       "sourceSurfaces": [
         "ami"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_registrar.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_registrar.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8036,8 +20657,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "31269ae143e147fa7ace9430eb1d09501a1aa9d0fa45156ea9c7c1a66a6df9ea",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 5244,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_rfc3326.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_rfc3326.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8057,8 +20702,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "da49bb9273a104ce00e4298b9b44c9c75a62de38ca8ea4f04b87acfe01c8b822",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6237,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_rfc3329.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_rfc3329.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8078,10 +20747,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "8f588bdfe0429bf203c51e46efa529b32f33139dd733f79df915aae4e391f31e",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 94286,
       "configFiles": [],
       "sourceSurfaces": [
         "rtp"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_sdp_rtp.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_sdp_rtp.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8101,8 +20794,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "1466c0b76984e6d2c6a735d2a41de378ba819a426cf9b118a3e4a16b04545f55",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6851,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_send_to_voicemail.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_send_to_voicemail.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8122,10 +20839,36 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "62cfa79f337862c2e675b4d62f56fa02c5cb88ff988ca7e2179e7a796387066f",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,res_pjsip_session,$(wildcard res_pjsip_session/*.c))"
+          ]
+        }
+      },
+      "sourceBytes": 249114,
       "configFiles": [],
       "sourceSurfaces": [
         "rtp"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_session.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_session.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8145,8 +20888,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "cd5351673f1f7644301f0bee8edfd022f88d40407c655848bb4356e2ea0d4fd0",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 2995,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_sips_contact.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_sips_contact.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8166,10 +20933,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "f261f66150d7005f103b15de25684d3ad4444ae1c24108b970cdf4432d74effd",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 17743,
       "configFiles": [],
       "sourceSurfaces": [
         "rtp"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_stir_shaken.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_stir_shaken.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8189,8 +20980,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "c9ae01f640c15ae97674f8c5075af2ae6e979b8aee1a11a40ea8ac0f7ed1a788",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 42278,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_t38.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_t38.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8210,10 +21025,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "449c712bbdb7b5ef898fae7d33cf0c6767980f496706adb22f866ac6f8d26033",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 19112,
       "configFiles": [],
       "sourceSurfaces": [
         "http"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_transport_websocket.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_transport_websocket.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8233,8 +21072,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "bb32906eaa9cf8ef21b5f4bd4ce2f47b049c890ab5d1bfbfecab3c4c90775e53",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 5367,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_pjsip_xpidf_body_generator.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_pjsip_xpidf_body_generator.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8254,6 +21117,19 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "4ad0915548248aff3c296c9212367807ea3a8a4f6b087c3dc95630c607b7f5a6",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,res_prometheus,$(wildcard prometheus/*.c))"
+          ]
+        }
+      },
+      "sourceBytes": 29080,
       "configFiles": [
         "http.conf",
         "prometheus.conf"
@@ -8261,6 +21137,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "http"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_prometheus.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_prometheus.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8280,10 +21169,60 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "2b7f6e9d0d44459710bbda8bb2f16b4aab0dc4c3a1ead6a5bcd36dcdb5e5a5ae",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 9839,
       "configFiles": [],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "cli_realtime_load",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Used to print out RealTime variables."
+          },
+          {
+            "name": "cli_realtime_update",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Used to update RealTime variables."
+          },
+          {
+            "name": "cli_realtime_update2",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Used to test the RealTime update2 method"
+          },
+          {
+            "name": "cli_realtime_store",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Store a new row into a RealTime database"
+          },
+          {
+            "name": "cli_realtime_destroy",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Delete a row from a RealTime database"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_realtime.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_realtime.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8303,11 +21242,41 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "1adc452b231c47b9ef7a004c2d730bf6d3cb1339aab7a09bf3cdd39a08e28cf5",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 7625,
       "configFiles": [],
       "sourceSurfaces": [
         "cli",
         "rtp"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_remb_set",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Set the REMB value which overwrites what is sent or received"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_remb_modifier.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_remb_modifier.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8327,11 +21296,35 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "adfc812687b4a4711ed12b8525f3748a2cfaefd0c9434b7e389bebb4301eb888",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 46612,
       "configFiles": [
         "resolv.conf",
         "resolver_unbound.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_resolver_unbound.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_resolver_unbound.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8351,6 +21344,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "68997c41d156f72ccb6597540bf6e4d28f5daf9847740a52281846b4c56db030",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 377894,
       "configFiles": [
         "rtp.conf"
       ],
@@ -8359,6 +21363,50 @@ export const ASTERISK_CATALOG = {
         "rtp",
         "tls"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_rtp_set_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable RTP debugging"
+          },
+          {
+            "name": "handle_cli_rtp_settings",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Display RTP settings"
+          },
+          {
+            "name": "handle_cli_rtcp_set_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable RTCP debugging"
+          },
+          {
+            "name": "handle_cli_rtcp_set_stats",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable RTCP stats"
+          },
+          {
+            "name": "handle_cli_rtp_drop_incoming_packets",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Drop RTP incoming packets"
+          },
+          {
+            "name": "handle_cli_rtp_refresh_stun",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Force a resolution of the STUN hostname"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_rtp_asterisk.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_rtp_asterisk.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8378,10 +21426,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "327f9127f2ef9fc0cca6671c61170d5e050db01f9848114a6ad9af13c05866c0",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 16813,
       "configFiles": [],
       "sourceSurfaces": [
         "rtp"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_rtp_multicast.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_rtp_multicast.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8401,8 +21473,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "7bb184dec1e5fe5730181ad14b11c6d4b8c17e41edc4d13300e5a47fff3a9153",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 4436,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_security_log.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_security_log.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8420,8 +21516,21 @@ export const ASTERISK_CATALOG = {
       "source": "res/res_smdi.c",
       "description": "Simplified Message Desk Interface (SMDI) Resource",
       "buildConditions": [
-        "menuselect"
+        "menuselect:res_smdi"
       ],
+      "provenance": {
+        "sourceSha256": "0d83fc557255235e856bb346f627978eed70a7f732045bd313e379adaf296c69",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "\t\t<member name=\"res_smdi\" displayname=\"Asterisk Simplified Message Desk Interface (SMDI) Module\" remove_on_change=\"res/res_smdi.o res/res_smdi.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 42792,
       "configFiles": [
         "smdi.conf",
         "smdi.conf.sample"
@@ -8429,8 +21538,29 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "smdi_msg_retrieve_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "smdi_msg_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for res/res_smdi.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_smdi.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -8446,15 +21576,42 @@ export const ASTERISK_CATALOG = {
       "source": "res/res_snmp.c",
       "description": "SNMP [Sub]Agent for Asterisk",
       "buildConditions": [
-        "menuselect"
+        "menuselect:res_snmp"
       ],
+      "provenance": {
+        "sourceSha256": "2177b2f2a1da61d49a410a8bb3846b4053deae7d2d77efa0affbfeb4a6588403",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,res_snmp,snmp/agent.c)",
+            "res_snmp.o: _ASTCFLAGS+=-fPIC",
+            "\t\t<member name=\"res_snmp\" displayname=\"SNMP [Sub]Agent for Asterisk\" remove_on_change=\"res/res_snmp.o res/res_snmp.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 3757,
       "configFiles": [
         "res_snmp.conf",
         "res_snmp.conf.sample"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for res/res_snmp.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_snmp.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -8472,8 +21629,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "9b553e701304f3a84b2f4036303f98476ab7fbc0274292e9c7a7080997b36cf4",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 14519,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_sorcery_astdb.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_sorcery_astdb.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8493,8 +21674,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "6c5c43f978d7e4b635e395ca32812b51debd838c1441a3078342ebdd60560bfc",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 19863,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_sorcery_config.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_sorcery_config.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8514,8 +21719,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "205f60bd1b85eb1ea03713608b3334d02c3e3e19ffc76a420dc8c7b59176bbd6",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 9030,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_sorcery_memory.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_sorcery_memory.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8535,11 +21764,82 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "a31deefedf8464a3158aca209dcd404c05e9bfca376b2e4377667ba7a0279205",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 118886,
       "configFiles": [],
       "sourceSurfaces": [
         "cli",
         "ami"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "sorcery_memory_cache_show",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show sorcery memory cache information"
+          },
+          {
+            "name": "sorcery_memory_cache_dump",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Dump all objects within a sorcery memory cache"
+          },
+          {
+            "name": "sorcery_memory_cache_expire",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Expire a specific object or ALL objects within a sorcery memory cache"
+          },
+          {
+            "name": "sorcery_memory_cache_stale",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Mark a specific object or ALL objects as stale within a sorcery memory cache"
+          },
+          {
+            "name": "sorcery_memory_cache_populate",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Clear and populate the sorcery memory cache with objects from the backend"
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "SorceryMemoryCacheExpireObject",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "SorceryMemoryCacheExpire",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "SorceryMemoryCacheStaleObject",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "SorceryMemoryCacheStale",
+            "evidence": "ast_manager_register_xml"
+          },
+          {
+            "name": "SorceryMemoryCachePopulate",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_sorcery_memory_cache.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_sorcery_memory_cache.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8559,8 +21859,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "4566a7b07b1d70fec974ca34c56743790fe465e2f32c02c56831121f27643277",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 13011,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_sorcery_realtime.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_sorcery_realtime.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8578,12 +21902,39 @@ export const ASTERISK_CATALOG = {
       "source": "res/res_speech.c",
       "description": "Generic Speech Recognition API",
       "buildConditions": [
-        "menuselect"
+        "menuselect:res_speech"
       ],
+      "provenance": {
+        "sourceSha256": "483d64c0311cfb4fac634fd16f30453b76db1dcb8fee42e89186c33c441df077",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "  res_agi.so: | res_speech.so",
+            "  res_agi.so_LIBS:= -lres_speech.so",
+            "\t\t<member name=\"res_speech\" displayname=\"Generic Speech Recognition API\" remove_on_change=\"res/res_speech.o res/res_speech.so\">"
+          ]
+        }
+      },
+      "sourceBytes": 12676,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
-        "No family-specific menuselect symbol was found for res/res_speech.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_speech.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -8601,8 +21952,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "9c1faeb8cff41ab55b0c9911fe407f8ea667aed1c7671b2de708732a7527d14d",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 20236,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_speech_aeap.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_speech_aeap.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8622,12 +21997,40 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "6cb71f0142d0c60e189b7e112b20180f673d07e29d136b6bb72dce029a7fe9d1",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "res_srtp.o: _ASTCFLAGS+=-DENABLE_SRTP_AES_192",
+            "res_srtp.o: _ASTCFLAGS+=-DENABLE_SRTP_AES_256",
+            "res_srtp.o: _ASTCFLAGS+=-DENABLE_SRTP_AES_GCM"
+          ]
+        }
+      },
+      "sourceBytes": 40189,
       "configFiles": [
         "rtp.conf"
       ],
       "sourceSurfaces": [
         "rtp"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_srtp.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_srtp.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8647,11 +22050,38 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "7b61a4d8ceef963157b8d9700f6422e2d1d3e39972013b55bc3635f0b8984e09",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,res_stasis,$(wildcard stasis/*.c))",
+            "$(call MOD_ADD_C,res_stasis_recording,stasis_recording/stored.c)"
+          ]
+        }
+      },
+      "sourceBytes": 67663,
       "configFiles": [],
       "sourceSurfaces": [
         "ari",
         "bridge"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_stasis.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_stasis.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8671,8 +22101,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "1c93d53690f287a1479e5620e97bb3e19925edceb9b3d60e534457080d0ecf7b",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 1911,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_stasis_answer.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_stasis_answer.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8692,10 +22146,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "94bc1857e21c7fb4c1cba43ac6d64e6413297ed6fb1e20fad5b36de531cc3ee0",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 28729,
       "configFiles": [
         "ari.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_stasis_broadcast.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_stasis_broadcast.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8715,10 +22193,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "3e019f0ac8c780c18c7d4a312d0d920307749aa7912a44da8a8e6f989f69a229",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 13726,
       "configFiles": [],
       "sourceSurfaces": [
         "ari"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_stasis_device_state.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_stasis_device_state.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8738,8 +22240,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "8f75e9336b036130a0fbb8576c76184d556b7974228ee6f30681076af3a81a1d",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 3961,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_stasis_mailbox.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_stasis_mailbox.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8759,8 +22285,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "0f49a3b38ce29da0f1412a59f7bd26c305a98874d9c69f574a0d0b3afac35e97",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 22804,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_stasis_playback.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_stasis_playback.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8780,8 +22330,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "a40386319778f00758d57208c0709b3c4a82bc4f09a8e32605b9feba7d2dd7b5",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,res_stasis_recording,stasis_recording/stored.c)"
+          ]
+        }
+      },
+      "sourceBytes": 19559,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_stasis_recording.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_stasis_recording.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8801,8 +22377,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "32373c14a3636aac6b918ab61b1e1583cd3f42e933a31a8920bdbec930dcc916",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 14236,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_stasis_snoop.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_stasis_snoop.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8822,8 +22422,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "832e2919c8431c1ab3e7263fb63bff4fa55bb9b821ae0b7e3ab453c1c097f2c8",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6742,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_stasis_test.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_stasis_test.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8843,10 +22467,34 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "dba3fdf2fdbda0163b7d1b2cab272aafd22700c36f0ae29209227572bd7c41c3",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 12583,
       "configFiles": [
         "statsd.conf"
       ],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_statsd.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_statsd.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8866,6 +22514,19 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "964b5ab1739cbb3396f167ea1f03c49520ddabd63b5e4c8a15e2a524205f4d1b",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": [
+            "$(call MOD_ADD_C,res_stir_shaken,$(wildcard res_stir_shaken/*.c))"
+          ]
+        }
+      },
+      "sourceBytes": 14351,
       "configFiles": [
         "stir-shaken.conf",
         "stir_shaken.conf",
@@ -8874,6 +22535,28 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [
+          {
+            "name": "stir_shaken_verification",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "stir_shaken_attestation",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_stir_shaken.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_stir_shaken.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8893,12 +22576,42 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "1c110041d0f12b2752484ac6e606926cefb18e5f80dad70115b615fa6e7e65a3",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 12867,
       "configFiles": [
         "res_stun_monitor.conf"
       ],
       "sourceSurfaces": [
         "cli"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "handle_cli_stun_show_status",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show STUN servers and statuses"
+          }
+        ],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_stun_monitor.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_stun_monitor.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8918,8 +22631,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "a7d48d7387ce0a0762209545cfd620944dd3cd80fc2edb1bc77b05f259a730e1",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6255,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_timing_dahdi.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_timing_dahdi.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8939,8 +22676,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "e31a9997fd61a4570462aaac1ff34f5bc5cf8e0d18130119157b2315704414b2",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 12951,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_timing_kqueue.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_timing_kqueue.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8960,8 +22721,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "e09d7e579d1e8920dc98a32fe53ae35e32bf65866cb473b01e9af82fc6160da5",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 10706,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_timing_pthread.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_timing_pthread.c; runtime help and the generated module record are the authoritative available documentation."
@@ -8981,8 +22766,32 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "64c31947a5bfaba0aca79797da91461b3ba1327edd308a71f81e654df50b07a3",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 6898,
       "configFiles": [],
       "sourceSurfaces": [],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_timing_timerfd.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_timing_timerfd.c; runtime help and the generated module record are the authoritative available documentation."
@@ -9002,11 +22811,49 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "6b1d75a3f8b05c9e3db54235f04ead64d1e9d45cd6521195de282328cc1986ac",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 35114,
       "configFiles": [],
       "sourceSurfaces": [
         "application",
         "function"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "waitapp",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "scanapp",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "detect_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_tonedetect.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_tonedetect.c; runtime help and the generated module record are the authoritative available documentation."
@@ -9026,12 +22873,36 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "92c2d81b403efe61f23145a4e1c01913706353d4ab8e1b1f063731435978d288",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 28847,
       "configFiles": [
         "websocket_client.conf"
       ],
       "sourceSurfaces": [
         "http"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_websocket_client.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_websocket_client.c; runtime help and the generated module record are the authoritative available documentation."
@@ -9051,6 +22922,17 @@ export const ASTERISK_CATALOG = {
       "buildConditions": [
         "menuselect"
       ],
+      "provenance": {
+        "sourceSha256": "00b191981d875d063dff410c54b9427c6a9e16b43a9c37f87f6bc8f09f4593c9",
+        "buildGraph": {
+          "makefile": "res/Makefile",
+          "makefileSha256": "633bc45bbbbee887beffa97e8b98065eb692c29976933fe043130eb8887ce8b0",
+          "menuselectTree": "menuselect/example_menuselect-tree",
+          "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
+          "matchedLines": []
+        }
+      },
+      "sourceBytes": 165418,
       "configFiles": [
         "jabber.conf",
         "xmpp.conf",
@@ -9063,6 +22945,96 @@ export const ASTERISK_CATALOG = {
         "function",
         "tls"
       ],
+      "registrations": {
+        "cli": [
+          {
+            "name": "xmpp_do_set_debug",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Enable/Disable Jabber debug"
+          },
+          {
+            "name": "xmpp_show_clients",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show state of clients and components"
+          },
+          {
+            "name": "xmpp_show_buddies",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Show buddy lists of our clients"
+          },
+          {
+            "name": "xmpp_cli_create_collection",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Creates a PubSub node collection."
+          },
+          {
+            "name": "xmpp_cli_list_pubsub_nodes",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Lists PubSub nodes"
+          },
+          {
+            "name": "xmpp_cli_create_leafnode",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Creates a PubSub leaf node"
+          },
+          {
+            "name": "xmpp_cli_delete_pubsub_node",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Deletes a PubSub node"
+          },
+          {
+            "name": "xmpp_cli_purge_pubsub_nodes",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "Purges PubSub nodes"
+          }
+        ],
+        "amiActions": [
+          {
+            "name": "JabberSend",
+            "evidence": "ast_manager_register_xml"
+          }
+        ],
+        "amiEvents": [
+          {
+            "name": "JabberStatus",
+            "evidence": "manager_event"
+          }
+        ],
+        "ari": [],
+        "agi": [],
+        "applications": [
+          {
+            "name": "app_ajisend",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_ajisendgroup",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_ajijoin",
+            "evidence": "ast_register_application_xml"
+          },
+          {
+            "name": "app_ajileave",
+            "evidence": "ast_register_application_xml"
+          }
+        ],
+        "functions": [
+          {
+            "name": "jabberstatus_function",
+            "evidence": "ast_custom_function_register"
+          },
+          {
+            "name": "jabberreceive_function",
+            "evidence": "ast_custom_function_register"
+          }
+        ],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for res/res_xmpp.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for res/res_xmpp.c; runtime help and the generated module record are the authoritative available documentation."
@@ -9090,6 +23062,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9098,7 +23083,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 474
+      "bytes": 474,
+      "provenance": {
+        "sourceSha256": "32664574a90516aed53d4ae1af1dd10c8f7b240818b27fdab5aafc5005f02887"
+      }
     },
     {
       "id": "asterisk.config.basic.pbx.cdr.conf",
@@ -9116,6 +23104,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9124,7 +23125,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 142
+      "bytes": 142,
+      "provenance": {
+        "sourceSha256": "991720a4043b29190c07535ba5daedab58234033157ea72c0ad4dea5cf989773"
+      }
     },
     {
       "id": "asterisk.config.basic.pbx.cdr.custom.conf",
@@ -9142,6 +23146,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9150,7 +23167,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 688
+      "bytes": 688,
+      "provenance": {
+        "sourceSha256": "492ea8848dc1eb6afb0b0bf43ea591ef305b8c7207c3b4df8264f308460fe969"
+      }
     },
     {
       "id": "asterisk.config.basic.pbx.confbridge.conf",
@@ -9168,6 +23188,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9176,7 +23209,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 104
+      "bytes": 104,
+      "provenance": {
+        "sourceSha256": "c5096f136eda90e53e03e910bfa727d2556fdba3e0251482aef26e916e921c58"
+      }
     },
     {
       "id": "asterisk.config.basic.pbx.extensions.conf",
@@ -9194,6 +23230,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9202,7 +23251,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 7516
+      "bytes": 7524,
+      "provenance": {
+        "sourceSha256": "e96b958a5569aeefba44867a1bff48e932556cd85d27b09caa98e4ccbb9d0d04"
+      }
     },
     {
       "id": "asterisk.config.basic.pbx.indications.conf",
@@ -9220,6 +23272,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9228,7 +23293,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 699
+      "bytes": 699,
+      "provenance": {
+        "sourceSha256": "c30e2f7ba0533a57c9a4d4bb38f3288dc6ef5b128c27b1e4f9247e975c5e5b0c"
+      }
     },
     {
       "id": "asterisk.config.basic.pbx.logger.conf",
@@ -9246,6 +23314,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9254,7 +23335,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 169
+      "bytes": 169,
+      "provenance": {
+        "sourceSha256": "4f970809973e7eb6567e417904ef97cdafdad10d3d6274738a0e103616f9c465"
+      }
     },
     {
       "id": "asterisk.config.basic.pbx.modules.conf",
@@ -9272,6 +23356,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9280,7 +23377,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 2937
+      "bytes": 2937,
+      "provenance": {
+        "sourceSha256": "80418c521efa5b2fa5fce86cbdc5621d4829cfaf9c55bd1e1e784c4f53b333a9"
+      }
     },
     {
       "id": "asterisk.config.basic.pbx.musiconhold.conf",
@@ -9298,6 +23398,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9306,7 +23419,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 55
+      "bytes": 55,
+      "provenance": {
+        "sourceSha256": "7d204308b46caae78fa1c2235d6a55fb1ac15eabae1f9593d6f7e9fb82ded53d"
+      }
     },
     {
       "id": "asterisk.config.basic.pbx.pjsip.conf",
@@ -9324,6 +23440,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9332,7 +23461,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 6688
+      "bytes": 6688,
+      "provenance": {
+        "sourceSha256": "e26292dc2df155a7b7e38dd26f4a2a68ddafb81bd3e435b23ea690c54d9e8da0"
+      }
     },
     {
       "id": "asterisk.config.basic.pbx.pjsip.notify.conf",
@@ -9350,6 +23482,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9358,7 +23503,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 847
+      "bytes": 847,
+      "provenance": {
+        "sourceSha256": "c367c79532e6455d186c6809442b53fd300101ee888cabfec97a32765bd1bf54"
+      }
     },
     {
       "id": "asterisk.config.basic.pbx.queues.conf",
@@ -9376,6 +23524,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9384,7 +23545,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 657
+      "bytes": 657,
+      "provenance": {
+        "sourceSha256": "cd9fb0ad08738b7f4e9c0f704a1ea230c898ea55623a0dbeded3127c19e05263"
+      }
     },
     {
       "id": "asterisk.config.basic.pbx.voicemail.conf",
@@ -9402,6 +23566,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9410,7 +23587,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 536
+      "bytes": 536,
+      "provenance": {
+        "sourceSha256": "b534787162833433ebebcb8fc8ce478546697bc71b0db2963dca456c5b64ea46"
+      }
     },
     {
       "id": "asterisk.config.samples.acl.conf.sample",
@@ -9428,6 +23608,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9436,7 +23629,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 2898
+      "bytes": 2898,
+      "provenance": {
+        "sourceSha256": "3f1d340c5077d77fcec1610acf76dc6e2408e7a8de439ef556c988167337b033"
+      }
     },
     {
       "id": "asterisk.config.samples.adsi.conf.sample",
@@ -9454,6 +23650,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9462,7 +23671,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 148
+      "bytes": 148,
+      "provenance": {
+        "sourceSha256": "4634d7ce2d3d0f8e47a3af8b4d48d2f46dd8774385cb6b001bc14201e3ebe70c"
+      }
     },
     {
       "id": "asterisk.config.samples.aeap.conf.sample",
@@ -9480,6 +23692,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9488,7 +23713,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 607
+      "bytes": 607,
+      "provenance": {
+        "sourceSha256": "dbe73b43136cc7527b803aa513be957922456f92fed875de092a78d670a1e72a"
+      }
     },
     {
       "id": "asterisk.config.samples.agents.conf.sample",
@@ -9506,6 +23734,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9514,7 +23755,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 2167
+      "bytes": 2167,
+      "provenance": {
+        "sourceSha256": "17acfcb70d4aa05bd9792bf0fd3386459b44f52137d3412bddce81c04e92fe79"
+      }
     },
     {
       "id": "asterisk.config.samples.alarmreceiver.conf.sample",
@@ -9532,6 +23776,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9540,7 +23797,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 2419
+      "bytes": 2419,
+      "provenance": {
+        "sourceSha256": "7eac53b91dd51beceaaa6d7fe78343bd023a7936d1d055fb7084ef84501021ed"
+      }
     },
     {
       "id": "asterisk.config.samples.amd.conf.sample",
@@ -9558,6 +23818,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9566,7 +23839,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1537
+      "bytes": 1537,
+      "provenance": {
+        "sourceSha256": "a6a47d4576a2b2ba43815bea7f2ba83f8cd0cabc27ccd667f2326e15c3b2b409"
+      }
     },
     {
       "id": "asterisk.config.samples.app.skel.conf.sample",
@@ -9584,6 +23860,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9592,7 +23881,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 365
+      "bytes": 365,
+      "provenance": {
+        "sourceSha256": "894375a710855ed2276ba6db3725ac5f70335904ac398877a84ecee901edb219"
+      }
     },
     {
       "id": "asterisk.config.samples.ari.conf.sample",
@@ -9610,6 +23902,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9618,7 +23923,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 3302
+      "bytes": 3302,
+      "provenance": {
+        "sourceSha256": "00f1fa4658a5cbe3e49529fea57bf4456a5006196554c0456793eb9d2edf29c7"
+      }
     },
     {
       "id": "asterisk.config.samples.ast.debug.tools.conf.sample",
@@ -9636,6 +23944,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9644,7 +23965,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 2348
+      "bytes": 2348,
+      "provenance": {
+        "sourceSha256": "0d531ab715c9a7cf156130516f85ed3050b8748f3b85408cd8eb141dc9ae9ada"
+      }
     },
     {
       "id": "asterisk.config.samples.asterisk.adsi",
@@ -9662,6 +23986,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9670,7 +24007,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 3411
+      "bytes": 3411,
+      "provenance": {
+        "sourceSha256": "f3044069fbfcefa31513f5a837d168cf54fda2fb7eb1a9a218551d54982b0f13"
+      }
     },
     {
       "id": "asterisk.config.samples.asterisk.conf.sample",
@@ -9688,6 +24028,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9696,7 +24049,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 7521
+      "bytes": 7521,
+      "provenance": {
+        "sourceSha256": "949b690a82273a99fd37c51b0ab604006baf075aafcc0125eaf3521f2afc1ec9"
+      }
     },
     {
       "id": "asterisk.config.samples.calendar.conf.sample",
@@ -9714,6 +24070,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9722,7 +24091,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 5372
+      "bytes": 5372,
+      "provenance": {
+        "sourceSha256": "5938a17855f394f8a416add0ae35d4e0c7ba708316bb5fdfb0ed29d4ac5baf0c"
+      }
     },
     {
       "id": "asterisk.config.samples.ccss.conf.sample",
@@ -9740,6 +24112,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9748,7 +24133,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 9059
+      "bytes": 9059,
+      "provenance": {
+        "sourceSha256": "c9f9091fb0b703af0afbfe8a87eee975d752ed6be22879dc70efe8c711dc17f9"
+      }
     },
     {
       "id": "asterisk.config.samples.cdr.adaptive.odbc.conf.sample",
@@ -9766,6 +24154,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9774,7 +24175,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 2738
+      "bytes": 2738,
+      "provenance": {
+        "sourceSha256": "d56a9ae445997078fb1c4bd0f9af721d9248316e70db7a7aa9ca4bdc6264c40d"
+      }
     },
     {
       "id": "asterisk.config.samples.cdr.beanstalkd.conf.sample",
@@ -9792,6 +24196,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9800,7 +24217,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1072
+      "bytes": 1072,
+      "provenance": {
+        "sourceSha256": "0381d3e3890ebfcbadadc43d5ec82117645b8ceec4fcf378df3e6faac9aae452"
+      }
     },
     {
       "id": "asterisk.config.samples.cdr.conf.sample",
@@ -9818,6 +24238,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9826,7 +24259,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 9279
+      "bytes": 9279,
+      "provenance": {
+        "sourceSha256": "2d8889b26deb71171ea009e07cea274657745ca7b8c49ccb69f8e9fec5325554"
+      }
     },
     {
       "id": "asterisk.config.samples.cdr.custom.conf.sample",
@@ -9844,6 +24280,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9852,7 +24301,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 8684
+      "bytes": 8684,
+      "provenance": {
+        "sourceSha256": "8c9ba384d59eaf424e53d81f4cb48623aff68beb6327a9569cf8177d85ed2c1b"
+      }
     },
     {
       "id": "asterisk.config.samples.cdr.manager.conf.sample",
@@ -9870,6 +24322,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9878,7 +24343,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 433
+      "bytes": 433,
+      "provenance": {
+        "sourceSha256": "e58746fd02b0a2360bff61ade0bfe6332aa15d3debadacf56ad823871b0e609b"
+      }
     },
     {
       "id": "asterisk.config.samples.cdr.odbc.conf.sample",
@@ -9896,6 +24364,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9904,7 +24385,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 369
+      "bytes": 369,
+      "provenance": {
+        "sourceSha256": "265e52f00b13b5d060f25d1c1ba08385289152dda96d176c6274580329e8e9ab"
+      }
     },
     {
       "id": "asterisk.config.samples.cdr.pgsql.conf.sample",
@@ -9922,6 +24406,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9930,7 +24427,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 866
+      "bytes": 866,
+      "provenance": {
+        "sourceSha256": "9e9e8c27154993b4c947d093db600d1c87b6afe67583b7034850c5765ddfc862"
+      }
     },
     {
       "id": "asterisk.config.samples.cdr.sqlite3.custom.conf.sample",
@@ -9948,6 +24448,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9956,7 +24469,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 5803
+      "bytes": 5803,
+      "provenance": {
+        "sourceSha256": "983cc32f32dcde6f16d2d0736a55f407e3e19d1c769d74427a6ed3f202b98924"
+      }
     },
     {
       "id": "asterisk.config.samples.cdr.tds.conf.sample",
@@ -9974,6 +24490,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -9982,7 +24511,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 2144
+      "bytes": 2144,
+      "provenance": {
+        "sourceSha256": "9c1e5257161863f96137981c98bdaaa6f4760c4acd3075d01b2b70862897ea09"
+      }
     },
     {
       "id": "asterisk.config.samples.cel.beanstalkd.conf.sample",
@@ -10000,6 +24532,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10008,7 +24553,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 840
+      "bytes": 840,
+      "provenance": {
+        "sourceSha256": "057039b3f42421846fe2b74b0296c6dd433e5100c0ebe2b5202f4136cb083f7f"
+      }
     },
     {
       "id": "asterisk.config.samples.cel.conf.sample",
@@ -10026,6 +24574,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10034,7 +24595,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 4433
+      "bytes": 4433,
+      "provenance": {
+        "sourceSha256": "10a81a7c9c8c712f8619cebe14777dcfde115553d5cacc918fdf19999c457310"
+      }
     },
     {
       "id": "asterisk.config.samples.cel.custom.conf.sample",
@@ -10052,6 +24616,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10060,7 +24637,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 13394
+      "bytes": 13394,
+      "provenance": {
+        "sourceSha256": "fae36ad9556b1b76111ef541d4429b2714ee5785d5a01a3fd02dfaea621ee5b7"
+      }
     },
     {
       "id": "asterisk.config.samples.cel.odbc.conf.sample",
@@ -10078,6 +24658,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10086,7 +24679,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 3263
+      "bytes": 3263,
+      "provenance": {
+        "sourceSha256": "dfddf0c2f02c7b1892192dce21700d5095e03df89f6fdc6b9ce8b0dd082fcf81"
+      }
     },
     {
       "id": "asterisk.config.samples.cel.pgsql.conf.sample",
@@ -10104,6 +24700,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10112,7 +24721,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 2018
+      "bytes": 2018,
+      "provenance": {
+        "sourceSha256": "59a816145a27fb605d8c350682b215c5e5085c15686882d72712bd93f0c71f5b"
+      }
     },
     {
       "id": "asterisk.config.samples.cel.sqlite3.custom.conf.sample",
@@ -10130,6 +24742,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10138,7 +24763,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 6495
+      "bytes": 6495,
+      "provenance": {
+        "sourceSha256": "1b46b65ecfd2499ed708d8e0b82f70ea4b0f62148dc4092f737973788cd6c9a8"
+      }
     },
     {
       "id": "asterisk.config.samples.cel.tds.conf.sample",
@@ -10156,6 +24784,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10164,7 +24805,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1952
+      "bytes": 1952,
+      "provenance": {
+        "sourceSha256": "88576b25a44cbcff2b10019ce89b0c20991a399a933c8724161844b133bb6de1"
+      }
     },
     {
       "id": "asterisk.config.samples.chan.dahdi.conf.sample",
@@ -10182,6 +24826,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10190,7 +24847,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 75992
+      "bytes": 75992,
+      "provenance": {
+        "sourceSha256": "5eb74cbfb9cc43e204461292f3d21bdd614d96c8ec45619e6cf037a019f62be9"
+      }
     },
     {
       "id": "asterisk.config.samples.chan.mobile.conf.sample",
@@ -10208,6 +24868,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10216,7 +24889,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 2295
+      "bytes": 2295,
+      "provenance": {
+        "sourceSha256": "7e3e4010ab2fea9de0015f4f6a86dd34d91a799cd5f2267dcc2bef03175b2626"
+      }
     },
     {
       "id": "asterisk.config.samples.chan.websocket.conf.sample",
@@ -10234,6 +24910,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10242,7 +24931,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 521
+      "bytes": 521,
+      "provenance": {
+        "sourceSha256": "f8a9c8cd90a314daaf292199e71485bfdc014cc99e85da9b29314f1298db6f2b"
+      }
     },
     {
       "id": "asterisk.config.samples.cli.aliases.conf.sample",
@@ -10260,6 +24952,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10268,7 +24973,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 7272
+      "bytes": 7272,
+      "provenance": {
+        "sourceSha256": "498c9039d2e5f0207ac72b9c2f3d2dc8daf2c00aa9552a596169007b8fcaabf6"
+      }
     },
     {
       "id": "asterisk.config.samples.cli.conf.sample",
@@ -10286,6 +24994,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10294,7 +25015,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1029
+      "bytes": 1029,
+      "provenance": {
+        "sourceSha256": "9e5eb7dbb2d3439f3c5f4eed4dde01caae39a2bef0ba4f4a5d89964c43f5b80a"
+      }
     },
     {
       "id": "asterisk.config.samples.cli.permissions.conf.sample",
@@ -10312,6 +25036,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10320,7 +25057,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 2853
+      "bytes": 2853,
+      "provenance": {
+        "sourceSha256": "cfe1688fe4f09bee45b67d7130a562acd0283da47ddef91a86f7ab7ffb17d5c6"
+      }
     },
     {
       "id": "asterisk.config.samples.codecs.conf.sample",
@@ -10338,6 +25078,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10346,7 +25099,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 7883
+      "bytes": 7883,
+      "provenance": {
+        "sourceSha256": "362129420b93cdfd97ae87653910450c2612d3cc412f83f4fdd05d634f58b14d"
+      }
     },
     {
       "id": "asterisk.config.samples.confbridge.conf.sample",
@@ -10364,6 +25120,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10372,7 +25141,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 31206
+      "bytes": 31206,
+      "provenance": {
+        "sourceSha256": "50784d3c5905d401a91db62ad54819708ff89a4633039ac4023785972c984d5f"
+      }
     },
     {
       "id": "asterisk.config.samples.config.test.conf.sample",
@@ -10390,6 +25162,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10398,7 +25183,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 858
+      "bytes": 858,
+      "provenance": {
+        "sourceSha256": "eae6eb22c512fbf9f34bb869040a08151962348c5bf0d697e6321393f61e1153"
+      }
     },
     {
       "id": "asterisk.config.samples.console.conf.sample",
@@ -10416,6 +25204,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10424,7 +25225,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 4553
+      "bytes": 4553,
+      "provenance": {
+        "sourceSha256": "e362e449f0d0b7a4eef1e63a23106c8f34633699c64245993e541e27b7431284"
+      }
     },
     {
       "id": "asterisk.config.samples.dbsep.conf.sample",
@@ -10442,6 +25246,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10450,7 +25267,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1197
+      "bytes": 1197,
+      "provenance": {
+        "sourceSha256": "62a81b5206211e37f66e7394ec30e4d04dd703d646847e884c0369a819b99d63"
+      }
     },
     {
       "id": "asterisk.config.samples.dnsmgr.conf.sample",
@@ -10468,6 +25288,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10476,7 +25309,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 194
+      "bytes": 194,
+      "provenance": {
+        "sourceSha256": "09bed159f0b318d2b6c27de187d5338aae2ee76001065deabe5dc34ac5acc56f"
+      }
     },
     {
       "id": "asterisk.config.samples.dsp.conf.sample",
@@ -10494,6 +25330,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10502,7 +25351,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1774
+      "bytes": 1774,
+      "provenance": {
+        "sourceSha256": "87102a177390899b69a49339d4ceaeb6bf9e19e8bf995e5161d087e9f2ed4227"
+      }
     },
     {
       "id": "asterisk.config.samples.dundi.conf.sample",
@@ -10520,6 +25372,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10528,7 +25393,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 10542
+      "bytes": 10542,
+      "provenance": {
+        "sourceSha256": "ce234bb2fd723ebf1b35b1ad94a0145ce790747a7995e30b20fe649315f4b041"
+      }
     },
     {
       "id": "asterisk.config.samples.enum.conf.sample",
@@ -10546,6 +25414,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10554,7 +25435,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 614
+      "bytes": 614,
+      "provenance": {
+        "sourceSha256": "86bcdac1babdd5d96631531100f36525307b6558661b28b9489595e9df620192"
+      }
     },
     {
       "id": "asterisk.config.samples.extconfig.conf.sample",
@@ -10572,6 +25456,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10580,7 +25477,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 4217
+      "bytes": 4217,
+      "provenance": {
+        "sourceSha256": "a50d7901899aa23894606df05f2d7400af1853959db90d8d65d35aa970c7ba89"
+      }
     },
     {
       "id": "asterisk.config.samples.extensions.ael.sample",
@@ -10598,6 +25498,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10606,7 +25519,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 12526
+      "bytes": 12526,
+      "provenance": {
+        "sourceSha256": "4bf826859a4df3b929310c5109fd255c5344235e385a1f9cae388ee2dbe4f35f"
+      }
     },
     {
       "id": "asterisk.config.samples.extensions.conf.sample",
@@ -10624,6 +25540,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10632,7 +25561,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 32805
+      "bytes": 32805,
+      "provenance": {
+        "sourceSha256": "72e408a9710a8f128ecd9c33a131296e7ced1fd103a975075aa61a6dcc6967dd"
+      }
     },
     {
       "id": "asterisk.config.samples.extensions.lua.sample",
@@ -10650,6 +25582,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10658,7 +25603,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 7021
+      "bytes": 7021,
+      "provenance": {
+        "sourceSha256": "bb04bf67f97655d5b75c01802f7f331aa0d2eeac87c1e6ef323ce9062a89e0f2"
+      }
     },
     {
       "id": "asterisk.config.samples.extensions.minivm.conf.sample",
@@ -10676,6 +25624,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10684,7 +25645,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 7744
+      "bytes": 7744,
+      "provenance": {
+        "sourceSha256": "b253824cf861ff25ed2f2c007737b1c790156bc4e58e8ad36d0abaab85fc7ba6"
+      }
     },
     {
       "id": "asterisk.config.samples.features.conf.sample",
@@ -10702,6 +25666,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10710,7 +25687,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 8378
+      "bytes": 8378,
+      "provenance": {
+        "sourceSha256": "ccdacbbd7fe0784f255cfa13c0f9391fb539df75f2149d560f0847669602cec7"
+      }
     },
     {
       "id": "asterisk.config.samples.festival.conf.sample",
@@ -10728,6 +25708,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10736,7 +25729,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 956
+      "bytes": 956,
+      "provenance": {
+        "sourceSha256": "1667b9a02cd70a7c37c996af65e776357ce76bb1768fa87137e7aeef02642e10"
+      }
     },
     {
       "id": "asterisk.config.samples.followme.conf.sample",
@@ -10754,6 +25750,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10762,7 +25771,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 4645
+      "bytes": 4645,
+      "provenance": {
+        "sourceSha256": "37926870b1ccccdb6ded1249dc0b1281dbfd7ae06fb03d005d5d61900024e4e9"
+      }
     },
     {
       "id": "asterisk.config.samples.func.odbc.conf.sample",
@@ -10780,6 +25792,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10788,7 +25813,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 7184
+      "bytes": 7184,
+      "provenance": {
+        "sourceSha256": "da9e0ee718fa5da7a10943859d7d678b4c0c8b9a3e738f48901d464cabd88cb6"
+      }
     },
     {
       "id": "asterisk.config.samples.geolocation.conf.sample",
@@ -10806,6 +25834,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10814,7 +25855,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 12219
+      "bytes": 12219,
+      "provenance": {
+        "sourceSha256": "0f14c4c5cccd2354517d1373658fdfe057061976454a9d84873d8659ce46a744"
+      }
     },
     {
       "id": "asterisk.config.samples.hep.conf.sample",
@@ -10832,6 +25876,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10840,7 +25897,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1960
+      "bytes": 1960,
+      "provenance": {
+        "sourceSha256": "95d21791849beeb3f2dd83c11e3e10540e1648ca7e14bc92395c1cbd08928196"
+      }
     },
     {
       "id": "asterisk.config.samples.http.conf.sample",
@@ -10858,6 +25918,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10866,7 +25939,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 6782
+      "bytes": 6782,
+      "provenance": {
+        "sourceSha256": "4a291b4ab04265717c2ca545e8680d55c7ea26dd5ff421e435858b8654b0b3bf"
+      }
     },
     {
       "id": "asterisk.config.samples.iax.conf.sample",
@@ -10884,6 +25960,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10892,7 +25981,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 27327
+      "bytes": 27327,
+      "provenance": {
+        "sourceSha256": "9bf31cd975c10f6b2ed95e5b93cce3b3784f7e5ebe9de84565ca4d2a9307175d"
+      }
     },
     {
       "id": "asterisk.config.samples.iaxprov.conf.sample",
@@ -10910,6 +26002,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10918,7 +26023,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 2494
+      "bytes": 2494,
+      "provenance": {
+        "sourceSha256": "20c323108a41540b5d521b420cc68a999f659cd49947020cfc972f62f40fe49d"
+      }
     },
     {
       "id": "asterisk.config.samples.indications.conf.sample",
@@ -10936,6 +26044,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10944,7 +26065,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 26406
+      "bytes": 26406,
+      "provenance": {
+        "sourceSha256": "a04fa0612debc9f6fe87b71f124369af74d4c93e9868bd8f67066498e13cef33"
+      }
     },
     {
       "id": "asterisk.config.samples.logger.conf.sample",
@@ -10962,6 +26086,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10970,7 +26107,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 7794
+      "bytes": 7794,
+      "provenance": {
+        "sourceSha256": "7bc9feeb47d4a1e9c9d10eb6dfe27ed9a8512f80504ec17201cb4a1e5ebddcfe"
+      }
     },
     {
       "id": "asterisk.config.samples.manager.conf.sample",
@@ -10988,6 +26128,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -10996,7 +26149,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 14671
+      "bytes": 14671,
+      "provenance": {
+        "sourceSha256": "5fb57ac8b230208bd805a177c72c90919b6ae362c036c1c7c50d782f14449567"
+      }
     },
     {
       "id": "asterisk.config.samples.meetme.conf.sample",
@@ -11014,6 +26170,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11022,7 +26191,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1563
+      "bytes": 1563,
+      "provenance": {
+        "sourceSha256": "398007ea00567625a21f492fa99916fe69bdd53d7c368e36416e6d178c8b6dcd"
+      }
     },
     {
       "id": "asterisk.config.samples.minivm.conf.sample",
@@ -11040,6 +26212,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11048,7 +26233,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 10131
+      "bytes": 10131,
+      "provenance": {
+        "sourceSha256": "8ab52428afa42e5f0b970a16b50974fad40b8c59475917a41445884717828938"
+      }
     },
     {
       "id": "asterisk.config.samples.modules.conf.sample",
@@ -11066,6 +26254,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11074,7 +26275,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1540
+      "bytes": 1540,
+      "provenance": {
+        "sourceSha256": "b5fecd9d72ce60a20bd06053947cc8bd3457ffb056594dd896f556c6c1fedbd3"
+      }
     },
     {
       "id": "asterisk.config.samples.motif.conf.sample",
@@ -11092,6 +26296,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11100,7 +26317,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 4768
+      "bytes": 4768,
+      "provenance": {
+        "sourceSha256": "342655ea5db6316dc08ffdc8c75cb3f69e2798a31505cb60f8d18bdeedcb3c73"
+      }
     },
     {
       "id": "asterisk.config.samples.musiconhold.conf.sample",
@@ -11118,6 +26338,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11126,7 +26359,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 6831
+      "bytes": 6831,
+      "provenance": {
+        "sourceSha256": "132e5e09e3c6c2caf81d1b48455617726100b4f03a79b23a852e2dd69b78e49e"
+      }
     },
     {
       "id": "asterisk.config.samples.ooh323.conf.sample",
@@ -11144,6 +26380,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11152,7 +26401,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 6115
+      "bytes": 6115,
+      "provenance": {
+        "sourceSha256": "d0bcf56a6d7a7c11297b7ca551e54a92153896de99c64649b55f5955ab244ac8"
+      }
     },
     {
       "id": "asterisk.config.samples.phoneprov.conf.sample",
@@ -11170,6 +26422,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11178,7 +26443,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 7934
+      "bytes": 7934,
+      "provenance": {
+        "sourceSha256": "355937e3811f9ca3e71776daeda3f182ab641beb1568a2cf5f273662432de48d"
+      }
     },
     {
       "id": "asterisk.config.samples.phoneprov.users.conf.sample",
@@ -11196,6 +26464,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11204,7 +26485,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 655
+      "bytes": 655,
+      "provenance": {
+        "sourceSha256": "f4f4b3129384db7493ff42d6eba7a49f36dc1acbd934a9439477d915c5d52ddd"
+      }
     },
     {
       "id": "asterisk.config.samples.pjproject.conf.sample",
@@ -11222,6 +26506,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11230,7 +26527,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 3125
+      "bytes": 3125,
+      "provenance": {
+        "sourceSha256": "9f9d733324395eaeb7efefb5d037bae4051d42b288799f1ecd5b7fbc02034627"
+      }
     },
     {
       "id": "asterisk.config.samples.pjsip.conf.sample",
@@ -11248,6 +26548,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11256,7 +26569,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 93418
+      "bytes": 93418,
+      "provenance": {
+        "sourceSha256": "4516802f243ef4cd0ca53a1b859aec93e2b2c4463431dd2a097a70c87d4ea5c1"
+      }
     },
     {
       "id": "asterisk.config.samples.pjsip.notify.conf.sample",
@@ -11274,6 +26590,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11282,7 +26611,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1169
+      "bytes": 1169,
+      "provenance": {
+        "sourceSha256": "c0120ab9480c314b6f3e4151ef1cb15c8fdc7f75a593bc209a1e1d88650794df"
+      }
     },
     {
       "id": "asterisk.config.samples.pjsip.wizard.conf.sample",
@@ -11300,6 +26632,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11308,7 +26653,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 9305
+      "bytes": 9305,
+      "provenance": {
+        "sourceSha256": "31fca8f7bf91270aa11bf9551d4a9d0a2b8659b2ae6f1bbf958fcfb8aec2bb1b"
+      }
     },
     {
       "id": "asterisk.config.samples.prometheus.conf.sample",
@@ -11326,6 +26674,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11334,7 +26695,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 3779
+      "bytes": 3779,
+      "provenance": {
+        "sourceSha256": "6c55420b35b1722dc27a8d0869ddcfffac5b09123cc2665330fbb250ca1da846"
+      }
     },
     {
       "id": "asterisk.config.samples.queuerules.conf.sample",
@@ -11352,6 +26716,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11360,7 +26737,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 3243
+      "bytes": 3245,
+      "provenance": {
+        "sourceSha256": "c8c42cbff87748a4ebea1d92b63d71504535e4a81953539a83ce5455f8008196"
+      }
     },
     {
       "id": "asterisk.config.samples.queues.conf.sample",
@@ -11378,6 +26758,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11386,7 +26779,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 26628
+      "bytes": 26628,
+      "provenance": {
+        "sourceSha256": "53f8fa5b45f66032201ba73c4525d3a546741df22a8feb912a84a0231abda451"
+      }
     },
     {
       "id": "asterisk.config.samples.res.config.mysql.conf.sample",
@@ -11404,6 +26800,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11412,7 +26821,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 2113
+      "bytes": 2113,
+      "provenance": {
+        "sourceSha256": "4ad58fca60959ae55f04802512343dbb3edf79bf5ce58111000ac8b0e5f9fb26"
+      }
     },
     {
       "id": "asterisk.config.samples.res.config.odbc.conf.sample",
@@ -11430,6 +26842,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11438,7 +26863,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 545
+      "bytes": 545,
+      "provenance": {
+        "sourceSha256": "6d0fe47407fbfc7dc125337ed7cfe356d2df11122a9b000a10c487a818ecc996"
+      }
     },
     {
       "id": "asterisk.config.samples.res.config.sqlite3.conf.sample",
@@ -11456,6 +26884,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11464,7 +26905,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1528
+      "bytes": 1528,
+      "provenance": {
+        "sourceSha256": "34066e3254da37efedb6995d3d73b9f92c08e773a5cce60d4a951db3c83175aa"
+      }
     },
     {
       "id": "asterisk.config.samples.res.corosync.conf.sample",
@@ -11482,6 +26926,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11490,7 +26947,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 907
+      "bytes": 907,
+      "provenance": {
+        "sourceSha256": "0d3041eba788624bfe36124f6ba18131150f991c3e4f73dae448492a6ac4470a"
+      }
     },
     {
       "id": "asterisk.config.samples.res.curl.conf.sample",
@@ -11508,6 +26968,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11516,7 +26989,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 6627
+      "bytes": 6627,
+      "provenance": {
+        "sourceSha256": "20f4d513757f8765c2c190e8b08fd59d3db49e94777cec14cfd6e67d6cad7373"
+      }
     },
     {
       "id": "asterisk.config.samples.res.fax.conf.sample",
@@ -11534,6 +27010,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11542,7 +27031,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1103
+      "bytes": 1103,
+      "provenance": {
+        "sourceSha256": "c011b96c111425c4dfcfe022027aa26ba9b2243a07768efbfcf09f2dc766bfa1"
+      }
     },
     {
       "id": "asterisk.config.samples.res.http.media.cache.conf.sample",
@@ -11560,6 +27052,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11568,7 +27073,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 2040
+      "bytes": 2040,
+      "provenance": {
+        "sourceSha256": "50b3d30cdc2f01761bd7fad08a5230396dc051d4fa4395ffa7c84637bae13bd2"
+      }
     },
     {
       "id": "asterisk.config.samples.res.ldap.conf.sample",
@@ -11586,6 +27094,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11594,7 +27115,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 4926
+      "bytes": 4926,
+      "provenance": {
+        "sourceSha256": "2e2a6c38f818c0865e76f3897413b1d9df7c41f085b459746164018921f573bd"
+      }
     },
     {
       "id": "asterisk.config.samples.res.odbc.conf.sample",
@@ -11612,6 +27136,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11620,7 +27157,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 7116
+      "bytes": 7116,
+      "provenance": {
+        "sourceSha256": "15d7047662f6b478d14651e9d8dd8a41bf7e27d1923e7dd979791042f6cd7fd0"
+      }
     },
     {
       "id": "asterisk.config.samples.res.parking.conf.sample",
@@ -11638,6 +27178,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11646,7 +27199,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 11205
+      "bytes": 11205,
+      "provenance": {
+        "sourceSha256": "e12f82accc1fd6909c8666604922e535466cb5bd96ff3c9413a3d55d1f31e9d1"
+      }
     },
     {
       "id": "asterisk.config.samples.res.pgsql.conf.sample",
@@ -11664,6 +27220,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11672,7 +27241,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1405
+      "bytes": 1405,
+      "provenance": {
+        "sourceSha256": "5f2952b5f5e730d01c090b29120e3b01980f25a356456803373b09f17625b892"
+      }
     },
     {
       "id": "asterisk.config.samples.res.snmp.conf.sample",
@@ -11690,6 +27262,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11698,7 +27283,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 691
+      "bytes": 691,
+      "provenance": {
+        "sourceSha256": "fcadeacdf16b9139d03cc45547599f08a82b726b2fea66a81c8dd854e876819f"
+      }
     },
     {
       "id": "asterisk.config.samples.res.stun.monitor.conf.sample",
@@ -11716,6 +27304,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11724,7 +27325,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1360
+      "bytes": 1360,
+      "provenance": {
+        "sourceSha256": "d06dd2dc07500d790f48f5d2b47a5ecd92d4b2aa4d53d1391bcacd9da18f2907"
+      }
     },
     {
       "id": "asterisk.config.samples.resolver.unbound.conf.sample",
@@ -11742,6 +27346,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11750,7 +27367,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1549
+      "bytes": 1549,
+      "provenance": {
+        "sourceSha256": "216ecc56c9720f0d50bc573d5d01ce984f96470e690d8e60f6a458c8987c9c0d"
+      }
     },
     {
       "id": "asterisk.config.samples.rtp.conf.sample",
@@ -11768,6 +27388,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11776,7 +27409,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 8077
+      "bytes": 8077,
+      "provenance": {
+        "sourceSha256": "0435f4b1c9a0d7e2d8c39939d8ba479525b74ffbe84a12b635908a337632ebb9"
+      }
     },
     {
       "id": "asterisk.config.samples.say.conf.sample",
@@ -11794,6 +27430,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11802,7 +27451,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 17462
+      "bytes": 17462,
+      "provenance": {
+        "sourceSha256": "bcd83f7fbe6387b07d6eefec5011782d60e6ed5cc1f2ede9af803cd712168174"
+      }
     },
     {
       "id": "asterisk.config.samples.sla.conf.sample",
@@ -11820,6 +27472,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11828,7 +27493,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 7256
+      "bytes": 7256,
+      "provenance": {
+        "sourceSha256": "b8bfd82b1d00209690a0d748b97732c81a82114e208e829c8658f3f9a9ba2341"
+      }
     },
     {
       "id": "asterisk.config.samples.smdi.conf.sample",
@@ -11846,6 +27514,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11854,7 +27535,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 2744
+      "bytes": 2744,
+      "provenance": {
+        "sourceSha256": "ee779175f9d2b64c9b16683cf67440b9cfd2a1b8f793caff8dd9b523c7883847"
+      }
     },
     {
       "id": "asterisk.config.samples.sorcery.conf.sample",
@@ -11872,6 +27556,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11880,7 +27577,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 3056
+      "bytes": 3056,
+      "provenance": {
+        "sourceSha256": "fe91e848b337b062f87a79819d9b7826f0bb3274766a999ba1dbac23529e7d0e"
+      }
     },
     {
       "id": "asterisk.config.samples.ss7.timers.sample",
@@ -11898,6 +27598,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11906,7 +27619,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1568
+      "bytes": 1568,
+      "provenance": {
+        "sourceSha256": "5ded40805a005bdb8bbb1660c66e802f2bbdd5655071ff18098273d18cbb19c0"
+      }
     },
     {
       "id": "asterisk.config.samples.stasis.conf.sample",
@@ -11924,6 +27640,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11932,7 +27661,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 5317
+      "bytes": 5317,
+      "provenance": {
+        "sourceSha256": "3847448fb751ba915caf441f23f5eadf7f3a7ded73e545edf879c8e10a998fad"
+      }
     },
     {
       "id": "asterisk.config.samples.statsd.conf.sample",
@@ -11950,6 +27682,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11958,7 +27703,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 551
+      "bytes": 551,
+      "provenance": {
+        "sourceSha256": "0800b4cd131d5805a430521150b93a5ca194a5960a01966110d42531d1ee9bdb"
+      }
     },
     {
       "id": "asterisk.config.samples.stir.shaken.conf.sample",
@@ -11976,6 +27724,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -11984,7 +27745,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 20277
+      "bytes": 20277,
+      "provenance": {
+        "sourceSha256": "57dc436bfd23c5b392186e6551996ed9d541ec594d8444aeca90dbe7d16f4813"
+      }
     },
     {
       "id": "asterisk.config.samples.telcordia.1.adsi",
@@ -12002,6 +27766,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -12010,7 +27787,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 1467
+      "bytes": 1467,
+      "provenance": {
+        "sourceSha256": "11b8ab702d5014349883faeae9533bf976daf8700da93981a891436410b3caf7"
+      }
     },
     {
       "id": "asterisk.config.samples.test.sorcery.conf.sample",
@@ -12028,6 +27808,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -12036,7 +27829,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 166
+      "bytes": 166,
+      "provenance": {
+        "sourceSha256": "994847f367564b1d7486fcfafdf38fffe744527e82d7cf7616f3bd74cf62925c"
+      }
     },
     {
       "id": "asterisk.config.samples.udptl.conf.sample",
@@ -12054,6 +27850,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -12062,7 +27871,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 682
+      "bytes": 682,
+      "provenance": {
+        "sourceSha256": "253af341b0982e5fa8e2fd6a35556f007b025467178c5b081bc3d679245ce909"
+      }
     },
     {
       "id": "asterisk.config.samples.unistim.conf.sample",
@@ -12080,6 +27892,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -12088,7 +27913,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 5951
+      "bytes": 5951,
+      "provenance": {
+        "sourceSha256": "734c6fa78811a2feef35ebfd331330a36759b7b6b1928469c57b3e272883d9f8"
+      }
     },
     {
       "id": "asterisk.config.samples.voicemail.conf.sample",
@@ -12106,6 +27934,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -12114,7 +27955,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 31471
+      "bytes": 31471,
+      "provenance": {
+        "sourceSha256": "945e5c5c9ce1a3d2ee3117800779814c3d5bcbf9903b07c3268c58d23182e691"
+      }
     },
     {
       "id": "asterisk.config.samples.websocket.client.conf.sample",
@@ -12132,6 +27976,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -12140,7 +27997,10 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 9506
+      "bytes": 9506,
+      "provenance": {
+        "sourceSha256": "84d8445160fe7bb47af597ad382c6c2f2cdead177e9829e107a94e0e45c1bda2"
+      }
     },
     {
       "id": "asterisk.config.samples.xmpp.conf.sample",
@@ -12158,6 +28018,19 @@ export const ASTERISK_CATALOG = {
       "sourceSurfaces": [
         "configuration"
       ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
       "docsSource": "console/docs/system/modules.md",
       "unavailableReasons": [
         "A target-specific read is required before this resource can be edited; checked-in samples are not live values."
@@ -12166,7 +28039,1848 @@ export const ASTERISK_CATALOG = {
         "state": "unverified",
         "reason": "A live target has not reconciled this source record yet."
       },
-      "bytes": 3798
+      "bytes": 3798,
+      "provenance": {
+        "sourceSha256": "9216ff678a9ee7fa404bd0aec459eddaf446e0fb7da4777098e96a91ff7201a0"
+      }
+    }
+  ],
+  "apiResources": [
+    {
+      "id": "asterisk.ari.applications",
+      "kind": "ari-resource",
+      "family": "ari",
+      "name": "/api-docs/applications.{format}",
+      "source": "rest-api/api-docs/applications.json",
+      "description": "Stasis applications",
+      "buildConditions": [
+        "rest-api-generator"
+      ],
+      "configFiles": [
+        "ari.conf",
+        "http.conf"
+      ],
+      "sourceSurfaces": [
+        "ari",
+        "http",
+        "websocket"
+      ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [
+          {
+            "name": "list",
+            "evidence": "GET /applications",
+            "description": "List all applications."
+          },
+          {
+            "name": "get",
+            "evidence": "GET /applications/{applicationName}",
+            "description": "Get details of an application."
+          },
+          {
+            "name": "subscribe",
+            "evidence": "POST /applications/{applicationName}/subscription",
+            "description": "Subscribe an application to a event source."
+          },
+          {
+            "name": "unsubscribe",
+            "evidence": "DELETE /applications/{applicationName}/subscription",
+            "description": "Unsubscribe an application from an event source."
+          },
+          {
+            "name": "filter",
+            "evidence": "PUT /applications/{applicationName}/eventFilter",
+            "description": "Filter application events types."
+          }
+        ],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
+      "apiOperations": [
+        {
+          "path": "/applications",
+          "method": "GET",
+          "nickname": "list",
+          "summary": "List all applications.",
+          "responseClass": "List[Application]"
+        },
+        {
+          "path": "/applications/{applicationName}",
+          "method": "GET",
+          "nickname": "get",
+          "summary": "Get details of an application.",
+          "responseClass": "Application"
+        },
+        {
+          "path": "/applications/{applicationName}/subscription",
+          "method": "POST",
+          "nickname": "subscribe",
+          "summary": "Subscribe an application to a event source.",
+          "responseClass": "Application"
+        },
+        {
+          "path": "/applications/{applicationName}/subscription",
+          "method": "DELETE",
+          "nickname": "unsubscribe",
+          "summary": "Unsubscribe an application from an event source.",
+          "responseClass": "Application"
+        },
+        {
+          "path": "/applications/{applicationName}/eventFilter",
+          "method": "PUT",
+          "nickname": "filter",
+          "summary": "Filter application events types.",
+          "responseClass": "Application"
+        }
+      ],
+      "docsSource": "rest-api/api-docs/applications.json",
+      "unavailableReasons": [
+        "The ARI resource requires a live HTTP or WebSocket target and an authenticated transport before it can be used."
+      ],
+      "runtime": {
+        "state": "unverified",
+        "reason": "A live ARI resource response has not been reconciled yet."
+      },
+      "sourceBytes": 7701,
+      "provenance": {
+        "sourceSha256": "704d25074b713ce0c42883ad7a6caf9a9bb8a3130352b4118f78d6979d34957b"
+      }
+    },
+    {
+      "id": "asterisk.ari.asterisk",
+      "kind": "ari-resource",
+      "family": "ari",
+      "name": "/api-docs/asterisk.{format}",
+      "source": "rest-api/api-docs/asterisk.json",
+      "description": "Asterisk dynamic configuration",
+      "buildConditions": [
+        "rest-api-generator"
+      ],
+      "configFiles": [
+        "ari.conf",
+        "http.conf"
+      ],
+      "sourceSurfaces": [
+        "ari",
+        "http",
+        "websocket"
+      ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [
+          {
+            "name": "getObject",
+            "evidence": "GET /asterisk/config/dynamic/{configClass}/{objectType}/{id}",
+            "description": "Retrieve a dynamic configuration object."
+          },
+          {
+            "name": "updateObject",
+            "evidence": "PUT /asterisk/config/dynamic/{configClass}/{objectType}/{id}",
+            "description": "Create or update a dynamic configuration object."
+          },
+          {
+            "name": "deleteObject",
+            "evidence": "DELETE /asterisk/config/dynamic/{configClass}/{objectType}/{id}",
+            "description": "Delete a dynamic configuration object."
+          },
+          {
+            "name": "getInfo",
+            "evidence": "GET /asterisk/info",
+            "description": "Gets Asterisk system information."
+          },
+          {
+            "name": "ping",
+            "evidence": "GET /asterisk/ping",
+            "description": "Response pong message."
+          },
+          {
+            "name": "listModules",
+            "evidence": "GET /asterisk/modules",
+            "description": "List Asterisk modules."
+          },
+          {
+            "name": "getModule",
+            "evidence": "GET /asterisk/modules/{moduleName}",
+            "description": "Get Asterisk module information."
+          },
+          {
+            "name": "loadModule",
+            "evidence": "POST /asterisk/modules/{moduleName}",
+            "description": "Load an Asterisk module."
+          },
+          {
+            "name": "unloadModule",
+            "evidence": "DELETE /asterisk/modules/{moduleName}",
+            "description": "Unload an Asterisk module."
+          },
+          {
+            "name": "reloadModule",
+            "evidence": "PUT /asterisk/modules/{moduleName}",
+            "description": "Reload an Asterisk module."
+          },
+          {
+            "name": "listLogChannels",
+            "evidence": "GET /asterisk/logging",
+            "description": "Gets Asterisk log channel information."
+          },
+          {
+            "name": "addLog",
+            "evidence": "POST /asterisk/logging/{logChannelName}",
+            "description": "Adds a log channel."
+          },
+          {
+            "name": "deleteLog",
+            "evidence": "DELETE /asterisk/logging/{logChannelName}",
+            "description": "Deletes a log channel."
+          },
+          {
+            "name": "rotateLog",
+            "evidence": "PUT /asterisk/logging/{logChannelName}/rotate",
+            "description": "Rotates a log channel."
+          },
+          {
+            "name": "getGlobalVar",
+            "evidence": "GET /asterisk/variable",
+            "description": "Get the value of a global variable."
+          },
+          {
+            "name": "setGlobalVar",
+            "evidence": "POST /asterisk/variable",
+            "description": "Set the value of a global variable."
+          }
+        ],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
+      "apiOperations": [
+        {
+          "path": "/asterisk/config/dynamic/{configClass}/{objectType}/{id}",
+          "method": "GET",
+          "nickname": "getObject",
+          "summary": "Retrieve a dynamic configuration object.",
+          "responseClass": "List[ConfigTuple]"
+        },
+        {
+          "path": "/asterisk/config/dynamic/{configClass}/{objectType}/{id}",
+          "method": "PUT",
+          "nickname": "updateObject",
+          "summary": "Create or update a dynamic configuration object.",
+          "responseClass": "List[ConfigTuple]"
+        },
+        {
+          "path": "/asterisk/config/dynamic/{configClass}/{objectType}/{id}",
+          "method": "DELETE",
+          "nickname": "deleteObject",
+          "summary": "Delete a dynamic configuration object.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/asterisk/info",
+          "method": "GET",
+          "nickname": "getInfo",
+          "summary": "Gets Asterisk system information.",
+          "responseClass": "AsteriskInfo"
+        },
+        {
+          "path": "/asterisk/ping",
+          "method": "GET",
+          "nickname": "ping",
+          "summary": "Response pong message.",
+          "responseClass": "AsteriskPing"
+        },
+        {
+          "path": "/asterisk/modules",
+          "method": "GET",
+          "nickname": "listModules",
+          "summary": "List Asterisk modules.",
+          "responseClass": "List[Module]"
+        },
+        {
+          "path": "/asterisk/modules/{moduleName}",
+          "method": "GET",
+          "nickname": "getModule",
+          "summary": "Get Asterisk module information.",
+          "responseClass": "Module"
+        },
+        {
+          "path": "/asterisk/modules/{moduleName}",
+          "method": "POST",
+          "nickname": "loadModule",
+          "summary": "Load an Asterisk module.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/asterisk/modules/{moduleName}",
+          "method": "DELETE",
+          "nickname": "unloadModule",
+          "summary": "Unload an Asterisk module.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/asterisk/modules/{moduleName}",
+          "method": "PUT",
+          "nickname": "reloadModule",
+          "summary": "Reload an Asterisk module.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/asterisk/logging",
+          "method": "GET",
+          "nickname": "listLogChannels",
+          "summary": "Gets Asterisk log channel information.",
+          "responseClass": "List[LogChannel]"
+        },
+        {
+          "path": "/asterisk/logging/{logChannelName}",
+          "method": "POST",
+          "nickname": "addLog",
+          "summary": "Adds a log channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/asterisk/logging/{logChannelName}",
+          "method": "DELETE",
+          "nickname": "deleteLog",
+          "summary": "Deletes a log channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/asterisk/logging/{logChannelName}/rotate",
+          "method": "PUT",
+          "nickname": "rotateLog",
+          "summary": "Rotates a log channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/asterisk/variable",
+          "method": "GET",
+          "nickname": "getGlobalVar",
+          "summary": "Get the value of a global variable.",
+          "responseClass": "Variable"
+        },
+        {
+          "path": "/asterisk/variable",
+          "method": "POST",
+          "nickname": "setGlobalVar",
+          "summary": "Set the value of a global variable.",
+          "responseClass": "void"
+        }
+      ],
+      "docsSource": "rest-api/api-docs/asterisk.json",
+      "unavailableReasons": [
+        "The ARI resource requires a live HTTP or WebSocket target and an authenticated transport before it can be used."
+      ],
+      "runtime": {
+        "state": "unverified",
+        "reason": "A live ARI resource response has not been reconciled yet."
+      },
+      "sourceBytes": 19015,
+      "provenance": {
+        "sourceSha256": "fa38cf4b094468fb0982d2fd8378dd878ee2f74408697346ef1f2bcfac930394"
+      }
+    },
+    {
+      "id": "asterisk.ari.bridges",
+      "kind": "ari-resource",
+      "family": "ari",
+      "name": "/api-docs/bridges.{format}",
+      "source": "rest-api/api-docs/bridges.json",
+      "description": "Active bridges",
+      "buildConditions": [
+        "rest-api-generator"
+      ],
+      "configFiles": [
+        "ari.conf",
+        "http.conf"
+      ],
+      "sourceSurfaces": [
+        "ari",
+        "http",
+        "websocket"
+      ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [
+          {
+            "name": "list",
+            "evidence": "GET /bridges",
+            "description": "List all active bridges in Asterisk."
+          },
+          {
+            "name": "create",
+            "evidence": "POST /bridges",
+            "description": "Create a new bridge."
+          },
+          {
+            "name": "createWithId",
+            "evidence": "POST /bridges/{bridgeId}",
+            "description": "Create a new bridge."
+          },
+          {
+            "name": "get",
+            "evidence": "GET /bridges/{bridgeId}",
+            "description": "Get bridge details."
+          },
+          {
+            "name": "destroy",
+            "evidence": "DELETE /bridges/{bridgeId}",
+            "description": "Shut down a bridge."
+          },
+          {
+            "name": "getBridgeVar",
+            "evidence": "GET /bridges/{bridgeId}/variable",
+            "description": "Get the value of a bridge variable or function."
+          },
+          {
+            "name": "setBridgeVar",
+            "evidence": "POST /bridges/{bridgeId}/variable",
+            "description": "Set the value of a bridge variable or function."
+          },
+          {
+            "name": "getBridgeVars",
+            "evidence": "GET /bridges/{bridgeId}/variables",
+            "description": "Get the value of multiple bridge variables or functions."
+          },
+          {
+            "name": "setBridgeVars",
+            "evidence": "POST /bridges/{bridgeId}/variables",
+            "description": "Set the values of multiple bridge variables or functions."
+          },
+          {
+            "name": "addChannel",
+            "evidence": "POST /bridges/{bridgeId}/addChannel",
+            "description": "Add a channel to a bridge."
+          },
+          {
+            "name": "removeChannel",
+            "evidence": "POST /bridges/{bridgeId}/removeChannel",
+            "description": "Remove a channel from a bridge."
+          },
+          {
+            "name": "setVideoSource",
+            "evidence": "POST /bridges/{bridgeId}/videoSource/{channelId}",
+            "description": "Set a channel as the video source in a multi-party mixing bridge. This operation has no effect on bridges with two or fewer participants."
+          },
+          {
+            "name": "clearVideoSource",
+            "evidence": "DELETE /bridges/{bridgeId}/videoSource",
+            "description": "Removes any explicit video source in a multi-party mixing bridge. This operation has no effect on bridges with two or fewer participants. When no explicit video source is set, talk detection will be used to determine the active video stream."
+          },
+          {
+            "name": "startMoh",
+            "evidence": "POST /bridges/{bridgeId}/moh",
+            "description": "Play music on hold to a bridge or change the MOH class that is playing."
+          },
+          {
+            "name": "stopMoh",
+            "evidence": "DELETE /bridges/{bridgeId}/moh",
+            "description": "Stop playing music on hold to a bridge."
+          },
+          {
+            "name": "play",
+            "evidence": "POST /bridges/{bridgeId}/play",
+            "description": "Start playback of media on a bridge."
+          },
+          {
+            "name": "playWithId",
+            "evidence": "POST /bridges/{bridgeId}/play/{playbackId}",
+            "description": "Start playback of media on a bridge."
+          },
+          {
+            "name": "record",
+            "evidence": "POST /bridges/{bridgeId}/record",
+            "description": "Start a recording."
+          }
+        ],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
+      "apiOperations": [
+        {
+          "path": "/bridges",
+          "method": "GET",
+          "nickname": "list",
+          "summary": "List all active bridges in Asterisk.",
+          "responseClass": "List[Bridge]"
+        },
+        {
+          "path": "/bridges",
+          "method": "POST",
+          "nickname": "create",
+          "summary": "Create a new bridge.",
+          "responseClass": "Bridge"
+        },
+        {
+          "path": "/bridges/{bridgeId}",
+          "method": "POST",
+          "nickname": "createWithId",
+          "summary": "Create a new bridge.",
+          "responseClass": "Bridge"
+        },
+        {
+          "path": "/bridges/{bridgeId}",
+          "method": "GET",
+          "nickname": "get",
+          "summary": "Get bridge details.",
+          "responseClass": "Bridge"
+        },
+        {
+          "path": "/bridges/{bridgeId}",
+          "method": "DELETE",
+          "nickname": "destroy",
+          "summary": "Shut down a bridge.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/bridges/{bridgeId}/variable",
+          "method": "GET",
+          "nickname": "getBridgeVar",
+          "summary": "Get the value of a bridge variable or function.",
+          "responseClass": "Variable"
+        },
+        {
+          "path": "/bridges/{bridgeId}/variable",
+          "method": "POST",
+          "nickname": "setBridgeVar",
+          "summary": "Set the value of a bridge variable or function.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/bridges/{bridgeId}/variables",
+          "method": "GET",
+          "nickname": "getBridgeVars",
+          "summary": "Get the value of multiple bridge variables or functions.",
+          "responseClass": "Variables"
+        },
+        {
+          "path": "/bridges/{bridgeId}/variables",
+          "method": "POST",
+          "nickname": "setBridgeVars",
+          "summary": "Set the values of multiple bridge variables or functions.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/bridges/{bridgeId}/addChannel",
+          "method": "POST",
+          "nickname": "addChannel",
+          "summary": "Add a channel to a bridge.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/bridges/{bridgeId}/removeChannel",
+          "method": "POST",
+          "nickname": "removeChannel",
+          "summary": "Remove a channel from a bridge.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/bridges/{bridgeId}/videoSource/{channelId}",
+          "method": "POST",
+          "nickname": "setVideoSource",
+          "summary": "Set a channel as the video source in a multi-party mixing bridge. This operation has no effect on bridges with two or fewer participants.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/bridges/{bridgeId}/videoSource",
+          "method": "DELETE",
+          "nickname": "clearVideoSource",
+          "summary": "Removes any explicit video source in a multi-party mixing bridge. This operation has no effect on bridges with two or fewer participants. When no explicit video source is set, talk detection will be used to determine the active video stream.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/bridges/{bridgeId}/moh",
+          "method": "POST",
+          "nickname": "startMoh",
+          "summary": "Play music on hold to a bridge or change the MOH class that is playing.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/bridges/{bridgeId}/moh",
+          "method": "DELETE",
+          "nickname": "stopMoh",
+          "summary": "Stop playing music on hold to a bridge.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/bridges/{bridgeId}/play",
+          "method": "POST",
+          "nickname": "play",
+          "summary": "Start playback of media on a bridge.",
+          "responseClass": "Playback"
+        },
+        {
+          "path": "/bridges/{bridgeId}/play/{playbackId}",
+          "method": "POST",
+          "nickname": "playWithId",
+          "summary": "Start playback of media on a bridge.",
+          "responseClass": "Playback"
+        },
+        {
+          "path": "/bridges/{bridgeId}/record",
+          "method": "POST",
+          "nickname": "record",
+          "summary": "Start a recording.",
+          "responseClass": "LiveRecording"
+        }
+      ],
+      "docsSource": "rest-api/api-docs/bridges.json",
+      "unavailableReasons": [
+        "The ARI resource requires a live HTTP or WebSocket target and an authenticated transport before it can be used."
+      ],
+      "runtime": {
+        "state": "unverified",
+        "reason": "A live ARI resource response has not been reconciled yet."
+      },
+      "sourceBytes": 30127,
+      "provenance": {
+        "sourceSha256": "f57c63ff89755a05d0080b9740ce25a15b7f347ed66e0264f516819cd4a9dbc8"
+      }
+    },
+    {
+      "id": "asterisk.ari.channels",
+      "kind": "ari-resource",
+      "family": "ari",
+      "name": "/api-docs/channels.{format}",
+      "source": "rest-api/api-docs/channels.json",
+      "description": "Active channels",
+      "buildConditions": [
+        "rest-api-generator"
+      ],
+      "configFiles": [
+        "ari.conf",
+        "http.conf"
+      ],
+      "sourceSurfaces": [
+        "ari",
+        "http",
+        "websocket"
+      ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [
+          {
+            "name": "list",
+            "evidence": "GET /channels",
+            "description": "List all active channels in Asterisk."
+          },
+          {
+            "name": "originate",
+            "evidence": "POST /channels",
+            "description": "Create a new channel (originate)."
+          },
+          {
+            "name": "create",
+            "evidence": "POST /channels/create",
+            "description": "Create channel."
+          },
+          {
+            "name": "get",
+            "evidence": "GET /channels/{channelId}",
+            "description": "Channel details."
+          },
+          {
+            "name": "originateWithId",
+            "evidence": "POST /channels/{channelId}",
+            "description": "Create a new channel (originate with id)."
+          },
+          {
+            "name": "hangup",
+            "evidence": "DELETE /channels/{channelId}",
+            "description": "Delete (i.e. hangup) a channel."
+          },
+          {
+            "name": "continueInDialplan",
+            "evidence": "POST /channels/{channelId}/continue",
+            "description": "Exit application; continue execution in the dialplan."
+          },
+          {
+            "name": "move",
+            "evidence": "POST /channels/{channelId}/move",
+            "description": "Move the channel from one Stasis application to another."
+          },
+          {
+            "name": "redirect",
+            "evidence": "POST /channels/{channelId}/redirect",
+            "description": "Redirect the channel to a different location."
+          },
+          {
+            "name": "answer",
+            "evidence": "POST /channels/{channelId}/answer",
+            "description": "Answer a channel."
+          },
+          {
+            "name": "ring",
+            "evidence": "POST /channels/{channelId}/ring",
+            "description": "Indicate ringing to a channel."
+          },
+          {
+            "name": "ringStop",
+            "evidence": "DELETE /channels/{channelId}/ring",
+            "description": "Stop ringing indication on a channel if locally generated."
+          },
+          {
+            "name": "progress",
+            "evidence": "POST /channels/{channelId}/progress",
+            "description": "Indicate progress on a channel."
+          },
+          {
+            "name": "sendDTMF",
+            "evidence": "POST /channels/{channelId}/dtmf",
+            "description": "Send provided DTMF to a given channel."
+          },
+          {
+            "name": "mute",
+            "evidence": "POST /channels/{channelId}/mute",
+            "description": "Mute a channel."
+          },
+          {
+            "name": "unmute",
+            "evidence": "DELETE /channels/{channelId}/mute",
+            "description": "Unmute a channel."
+          },
+          {
+            "name": "hold",
+            "evidence": "POST /channels/{channelId}/hold",
+            "description": "Hold a channel."
+          },
+          {
+            "name": "unhold",
+            "evidence": "DELETE /channels/{channelId}/hold",
+            "description": "Remove a channel from hold."
+          },
+          {
+            "name": "startMoh",
+            "evidence": "POST /channels/{channelId}/moh",
+            "description": "Play music on hold to a channel."
+          },
+          {
+            "name": "stopMoh",
+            "evidence": "DELETE /channels/{channelId}/moh",
+            "description": "Stop playing music on hold to a channel."
+          },
+          {
+            "name": "startSilence",
+            "evidence": "POST /channels/{channelId}/silence",
+            "description": "Play silence to a channel."
+          },
+          {
+            "name": "stopSilence",
+            "evidence": "DELETE /channels/{channelId}/silence",
+            "description": "Stop playing silence to a channel."
+          },
+          {
+            "name": "play",
+            "evidence": "POST /channels/{channelId}/play",
+            "description": "Start playback of media."
+          },
+          {
+            "name": "playWithId",
+            "evidence": "POST /channels/{channelId}/play/{playbackId}",
+            "description": "Start playback of media and specify the playbackId."
+          },
+          {
+            "name": "record",
+            "evidence": "POST /channels/{channelId}/record",
+            "description": "Start a recording."
+          },
+          {
+            "name": "getChannelVar",
+            "evidence": "GET /channels/{channelId}/variable",
+            "description": "Get the value of a channel variable or function."
+          },
+          {
+            "name": "setChannelVar",
+            "evidence": "POST /channels/{channelId}/variable",
+            "description": "Set the value of a channel variable or function."
+          },
+          {
+            "name": "getChannelVars",
+            "evidence": "GET /channels/{channelId}/variables",
+            "description": "Get the value of multiple channel variables or functions."
+          },
+          {
+            "name": "setChannelVars",
+            "evidence": "POST /channels/{channelId}/variables",
+            "description": "Set the values of multiple channel variables or functions."
+          },
+          {
+            "name": "snoopChannel",
+            "evidence": "POST /channels/{channelId}/snoop",
+            "description": "Start snooping."
+          },
+          {
+            "name": "snoopChannelWithId",
+            "evidence": "POST /channels/{channelId}/snoop/{snoopId}",
+            "description": "Start snooping."
+          },
+          {
+            "name": "dial",
+            "evidence": "POST /channels/{channelId}/dial",
+            "description": "Dial a created channel."
+          },
+          {
+            "name": "rtpstatistics",
+            "evidence": "GET /channels/{channelId}/rtp_statistics",
+            "description": "RTP stats on a channel."
+          },
+          {
+            "name": "externalMedia",
+            "evidence": "POST /channels/externalMedia",
+            "description": "Start an External Media session."
+          },
+          {
+            "name": "transfer_progress",
+            "evidence": "POST /channels/{channelId}/transfer_progress",
+            "description": "Inform the channel about the progress of the attended/blind transfer."
+          }
+        ],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
+      "apiOperations": [
+        {
+          "path": "/channels",
+          "method": "GET",
+          "nickname": "list",
+          "summary": "List all active channels in Asterisk.",
+          "responseClass": "List[Channel]"
+        },
+        {
+          "path": "/channels",
+          "method": "POST",
+          "nickname": "originate",
+          "summary": "Create a new channel (originate).",
+          "responseClass": "Channel"
+        },
+        {
+          "path": "/channels/create",
+          "method": "POST",
+          "nickname": "create",
+          "summary": "Create channel.",
+          "responseClass": "Channel"
+        },
+        {
+          "path": "/channels/{channelId}",
+          "method": "GET",
+          "nickname": "get",
+          "summary": "Channel details.",
+          "responseClass": "Channel"
+        },
+        {
+          "path": "/channels/{channelId}",
+          "method": "POST",
+          "nickname": "originateWithId",
+          "summary": "Create a new channel (originate with id).",
+          "responseClass": "Channel"
+        },
+        {
+          "path": "/channels/{channelId}",
+          "method": "DELETE",
+          "nickname": "hangup",
+          "summary": "Delete (i.e. hangup) a channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/continue",
+          "method": "POST",
+          "nickname": "continueInDialplan",
+          "summary": "Exit application; continue execution in the dialplan.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/move",
+          "method": "POST",
+          "nickname": "move",
+          "summary": "Move the channel from one Stasis application to another.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/redirect",
+          "method": "POST",
+          "nickname": "redirect",
+          "summary": "Redirect the channel to a different location.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/answer",
+          "method": "POST",
+          "nickname": "answer",
+          "summary": "Answer a channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/ring",
+          "method": "POST",
+          "nickname": "ring",
+          "summary": "Indicate ringing to a channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/ring",
+          "method": "DELETE",
+          "nickname": "ringStop",
+          "summary": "Stop ringing indication on a channel if locally generated.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/progress",
+          "method": "POST",
+          "nickname": "progress",
+          "summary": "Indicate progress on a channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/dtmf",
+          "method": "POST",
+          "nickname": "sendDTMF",
+          "summary": "Send provided DTMF to a given channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/mute",
+          "method": "POST",
+          "nickname": "mute",
+          "summary": "Mute a channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/mute",
+          "method": "DELETE",
+          "nickname": "unmute",
+          "summary": "Unmute a channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/hold",
+          "method": "POST",
+          "nickname": "hold",
+          "summary": "Hold a channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/hold",
+          "method": "DELETE",
+          "nickname": "unhold",
+          "summary": "Remove a channel from hold.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/moh",
+          "method": "POST",
+          "nickname": "startMoh",
+          "summary": "Play music on hold to a channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/moh",
+          "method": "DELETE",
+          "nickname": "stopMoh",
+          "summary": "Stop playing music on hold to a channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/silence",
+          "method": "POST",
+          "nickname": "startSilence",
+          "summary": "Play silence to a channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/silence",
+          "method": "DELETE",
+          "nickname": "stopSilence",
+          "summary": "Stop playing silence to a channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/play",
+          "method": "POST",
+          "nickname": "play",
+          "summary": "Start playback of media.",
+          "responseClass": "Playback"
+        },
+        {
+          "path": "/channels/{channelId}/play/{playbackId}",
+          "method": "POST",
+          "nickname": "playWithId",
+          "summary": "Start playback of media and specify the playbackId.",
+          "responseClass": "Playback"
+        },
+        {
+          "path": "/channels/{channelId}/record",
+          "method": "POST",
+          "nickname": "record",
+          "summary": "Start a recording.",
+          "responseClass": "LiveRecording"
+        },
+        {
+          "path": "/channels/{channelId}/variable",
+          "method": "GET",
+          "nickname": "getChannelVar",
+          "summary": "Get the value of a channel variable or function.",
+          "responseClass": "Variable"
+        },
+        {
+          "path": "/channels/{channelId}/variable",
+          "method": "POST",
+          "nickname": "setChannelVar",
+          "summary": "Set the value of a channel variable or function.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/variables",
+          "method": "GET",
+          "nickname": "getChannelVars",
+          "summary": "Get the value of multiple channel variables or functions.",
+          "responseClass": "Variables"
+        },
+        {
+          "path": "/channels/{channelId}/variables",
+          "method": "POST",
+          "nickname": "setChannelVars",
+          "summary": "Set the values of multiple channel variables or functions.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/snoop",
+          "method": "POST",
+          "nickname": "snoopChannel",
+          "summary": "Start snooping.",
+          "responseClass": "Channel"
+        },
+        {
+          "path": "/channels/{channelId}/snoop/{snoopId}",
+          "method": "POST",
+          "nickname": "snoopChannelWithId",
+          "summary": "Start snooping.",
+          "responseClass": "Channel"
+        },
+        {
+          "path": "/channels/{channelId}/dial",
+          "method": "POST",
+          "nickname": "dial",
+          "summary": "Dial a created channel.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/channels/{channelId}/rtp_statistics",
+          "method": "GET",
+          "nickname": "rtpstatistics",
+          "summary": "RTP stats on a channel.",
+          "responseClass": "RTPstat"
+        },
+        {
+          "path": "/channels/externalMedia",
+          "method": "POST",
+          "nickname": "externalMedia",
+          "summary": "Start an External Media session.",
+          "responseClass": "Channel"
+        },
+        {
+          "path": "/channels/{channelId}/transfer_progress",
+          "method": "POST",
+          "nickname": "transfer_progress",
+          "summary": "Inform the channel about the progress of the attended/blind transfer.",
+          "responseClass": "void"
+        }
+      ],
+      "docsSource": "rest-api/api-docs/channels.json",
+      "unavailableReasons": [
+        "The ARI resource requires a live HTTP or WebSocket target and an authenticated transport before it can be used."
+      ],
+      "runtime": {
+        "state": "unverified",
+        "reason": "A live ARI resource response has not been reconciled yet."
+      },
+      "sourceBytes": 68586,
+      "provenance": {
+        "sourceSha256": "e6e9a37a01bd41a1d91682910b25a593a5e5318ac886635202df777895eb01ed"
+      }
+    },
+    {
+      "id": "asterisk.ari.devicestates",
+      "kind": "ari-resource",
+      "family": "ari",
+      "name": "/api-docs/deviceStates.{format}",
+      "source": "rest-api/api-docs/deviceStates.json",
+      "description": "Device states",
+      "buildConditions": [
+        "rest-api-generator"
+      ],
+      "configFiles": [
+        "ari.conf",
+        "http.conf"
+      ],
+      "sourceSurfaces": [
+        "ari",
+        "http",
+        "websocket"
+      ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [
+          {
+            "name": "list",
+            "evidence": "GET /deviceStates",
+            "description": "List all ARI controlled device states."
+          },
+          {
+            "name": "get",
+            "evidence": "GET /deviceStates/{deviceName}",
+            "description": "Retrieve the current state of a device."
+          },
+          {
+            "name": "update",
+            "evidence": "PUT /deviceStates/{deviceName}",
+            "description": "Change the state of a device controlled by ARI. (Note - implicitly creates the device state)."
+          },
+          {
+            "name": "delete",
+            "evidence": "DELETE /deviceStates/{deviceName}",
+            "description": "Destroy a device-state controlled by ARI."
+          }
+        ],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
+      "apiOperations": [
+        {
+          "path": "/deviceStates",
+          "method": "GET",
+          "nickname": "list",
+          "summary": "List all ARI controlled device states.",
+          "responseClass": "List[DeviceState]"
+        },
+        {
+          "path": "/deviceStates/{deviceName}",
+          "method": "GET",
+          "nickname": "get",
+          "summary": "Retrieve the current state of a device.",
+          "responseClass": "DeviceState"
+        },
+        {
+          "path": "/deviceStates/{deviceName}",
+          "method": "PUT",
+          "nickname": "update",
+          "summary": "Change the state of a device controlled by ARI. (Note - implicitly creates the device state).",
+          "responseClass": "void"
+        },
+        {
+          "path": "/deviceStates/{deviceName}",
+          "method": "DELETE",
+          "nickname": "delete",
+          "summary": "Destroy a device-state controlled by ARI.",
+          "responseClass": "void"
+        }
+      ],
+      "docsSource": "rest-api/api-docs/deviceStates.json",
+      "unavailableReasons": [
+        "The ARI resource requires a live HTTP or WebSocket target and an authenticated transport before it can be used."
+      ],
+      "runtime": {
+        "state": "unverified",
+        "reason": "A live ARI resource response has not been reconciled yet."
+      },
+      "sourceBytes": 3867,
+      "provenance": {
+        "sourceSha256": "eb110f260cdb66bc3aafd630927a06d9f4c60f56541be6ad68f39e1c4d4f4df7"
+      }
+    },
+    {
+      "id": "asterisk.ari.endpoints",
+      "kind": "ari-resource",
+      "family": "ari",
+      "name": "/api-docs/endpoints.{format}",
+      "source": "rest-api/api-docs/endpoints.json",
+      "description": "Asterisk endpoints",
+      "buildConditions": [
+        "rest-api-generator"
+      ],
+      "configFiles": [
+        "ari.conf",
+        "http.conf"
+      ],
+      "sourceSurfaces": [
+        "ari",
+        "http",
+        "websocket"
+      ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [
+          {
+            "name": "list",
+            "evidence": "GET /endpoints",
+            "description": "List all endpoints."
+          },
+          {
+            "name": "sendMessage",
+            "evidence": "PUT /endpoints/sendMessage",
+            "description": "Send a message to some technology URI or endpoint."
+          },
+          {
+            "name": "refer",
+            "evidence": "POST /endpoints/refer",
+            "description": "Refer an endpoint or technology URI to some technology URI or endpoint."
+          },
+          {
+            "name": "listByTech",
+            "evidence": "GET /endpoints/{tech}",
+            "description": "List available endoints for a given endpoint technology."
+          },
+          {
+            "name": "get",
+            "evidence": "GET /endpoints/{tech}/{resource}",
+            "description": "Details for an endpoint."
+          },
+          {
+            "name": "sendMessageToEndpoint",
+            "evidence": "PUT /endpoints/{tech}/{resource}/sendMessage",
+            "description": "Send a message to some endpoint in a technology."
+          },
+          {
+            "name": "referToEndpoint",
+            "evidence": "POST /endpoints/{tech}/{resource}/refer",
+            "description": "Refer an endpoint or technology URI to some technology URI or endpoint."
+          }
+        ],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
+      "apiOperations": [
+        {
+          "path": "/endpoints",
+          "method": "GET",
+          "nickname": "list",
+          "summary": "List all endpoints.",
+          "responseClass": "List[Endpoint]"
+        },
+        {
+          "path": "/endpoints/sendMessage",
+          "method": "PUT",
+          "nickname": "sendMessage",
+          "summary": "Send a message to some technology URI or endpoint.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/endpoints/refer",
+          "method": "POST",
+          "nickname": "refer",
+          "summary": "Refer an endpoint or technology URI to some technology URI or endpoint.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/endpoints/{tech}",
+          "method": "GET",
+          "nickname": "listByTech",
+          "summary": "List available endoints for a given endpoint technology.",
+          "responseClass": "List[Endpoint]"
+        },
+        {
+          "path": "/endpoints/{tech}/{resource}",
+          "method": "GET",
+          "nickname": "get",
+          "summary": "Details for an endpoint.",
+          "responseClass": "Endpoint"
+        },
+        {
+          "path": "/endpoints/{tech}/{resource}/sendMessage",
+          "method": "PUT",
+          "nickname": "sendMessageToEndpoint",
+          "summary": "Send a message to some endpoint in a technology.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/endpoints/{tech}/{resource}/refer",
+          "method": "POST",
+          "nickname": "referToEndpoint",
+          "summary": "Refer an endpoint or technology URI to some technology URI or endpoint.",
+          "responseClass": "void"
+        }
+      ],
+      "docsSource": "rest-api/api-docs/endpoints.json",
+      "unavailableReasons": [
+        "The ARI resource requires a live HTTP or WebSocket target and an authenticated transport before it can be used."
+      ],
+      "runtime": {
+        "state": "unverified",
+        "reason": "A live ARI resource response has not been reconciled yet."
+      },
+      "sourceBytes": 12774,
+      "provenance": {
+        "sourceSha256": "95051223b2f371b2ca57cff14eb063107401a8e22cf322b70ecc853549669192"
+      }
+    },
+    {
+      "id": "asterisk.ari.events",
+      "kind": "ari-resource",
+      "family": "ari",
+      "name": "/api-docs/events.{format}",
+      "source": "rest-api/api-docs/events.json",
+      "description": "Events from Asterisk to applications",
+      "buildConditions": [
+        "rest-api-generator"
+      ],
+      "configFiles": [
+        "ari.conf",
+        "http.conf"
+      ],
+      "sourceSurfaces": [
+        "ari",
+        "http",
+        "websocket"
+      ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [
+          {
+            "name": "eventWebsocket",
+            "evidence": "GET /events",
+            "description": "WebSocket connection for events."
+          },
+          {
+            "name": "userEvent",
+            "evidence": "POST /events/user/{eventName}",
+            "description": "Generate a user event."
+          },
+          {
+            "name": "claimChannel",
+            "evidence": "POST /events/claim",
+            "description": "Claim a broadcast channel for this application."
+          }
+        ],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
+      "apiOperations": [
+        {
+          "path": "/events",
+          "method": "GET",
+          "nickname": "eventWebsocket",
+          "summary": "WebSocket connection for events.",
+          "responseClass": "Message"
+        },
+        {
+          "path": "/events/user/{eventName}",
+          "method": "POST",
+          "nickname": "userEvent",
+          "summary": "Generate a user event.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/events/claim",
+          "method": "POST",
+          "nickname": "claimChannel",
+          "summary": "Claim a broadcast channel for this application.",
+          "responseClass": "void"
+        }
+      ],
+      "docsSource": "rest-api/api-docs/events.json",
+      "unavailableReasons": [
+        "The ARI resource requires a live HTTP or WebSocket target and an authenticated transport before it can be used."
+      ],
+      "runtime": {
+        "state": "unverified",
+        "reason": "A live ARI resource response has not been reconciled yet."
+      },
+      "sourceBytes": 34479,
+      "provenance": {
+        "sourceSha256": "4eaab7dcfa0b79aeee075fd173b3e1567ab3d97e15cf8840f5e09ccf25df8323"
+      }
+    },
+    {
+      "id": "asterisk.ari.mailboxes",
+      "kind": "ari-resource",
+      "family": "ari",
+      "name": "/api-docs/mailboxes.{format}",
+      "source": "rest-api/api-docs/mailboxes.json",
+      "description": "Mailboxes",
+      "buildConditions": [
+        "rest-api-generator"
+      ],
+      "configFiles": [
+        "ari.conf",
+        "http.conf"
+      ],
+      "sourceSurfaces": [
+        "ari",
+        "http",
+        "websocket"
+      ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [
+          {
+            "name": "list",
+            "evidence": "GET /mailboxes",
+            "description": "List all mailboxes."
+          },
+          {
+            "name": "get",
+            "evidence": "GET /mailboxes/{mailboxName}",
+            "description": "Retrieve the current state of a mailbox."
+          },
+          {
+            "name": "update",
+            "evidence": "PUT /mailboxes/{mailboxName}",
+            "description": "Change the state of a mailbox. (Note - implicitly creates the mailbox)."
+          },
+          {
+            "name": "delete",
+            "evidence": "DELETE /mailboxes/{mailboxName}",
+            "description": "Destroy a mailbox."
+          }
+        ],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
+      "apiOperations": [
+        {
+          "path": "/mailboxes",
+          "method": "GET",
+          "nickname": "list",
+          "summary": "List all mailboxes.",
+          "responseClass": "List[Mailbox]"
+        },
+        {
+          "path": "/mailboxes/{mailboxName}",
+          "method": "GET",
+          "nickname": "get",
+          "summary": "Retrieve the current state of a mailbox.",
+          "responseClass": "Mailbox"
+        },
+        {
+          "path": "/mailboxes/{mailboxName}",
+          "method": "PUT",
+          "nickname": "update",
+          "summary": "Change the state of a mailbox. (Note - implicitly creates the mailbox).",
+          "responseClass": "void"
+        },
+        {
+          "path": "/mailboxes/{mailboxName}",
+          "method": "DELETE",
+          "nickname": "delete",
+          "summary": "Destroy a mailbox.",
+          "responseClass": "void"
+        }
+      ],
+      "docsSource": "rest-api/api-docs/mailboxes.json",
+      "unavailableReasons": [
+        "The ARI resource requires a live HTTP or WebSocket target and an authenticated transport before it can be used."
+      ],
+      "runtime": {
+        "state": "unverified",
+        "reason": "A live ARI resource response has not been reconciled yet."
+      },
+      "sourceBytes": 3461,
+      "provenance": {
+        "sourceSha256": "40adfcdad57dfc103d71fdace42ddfcf566bfae9ba3997a52824c9f06a7f0098"
+      }
+    },
+    {
+      "id": "asterisk.ari.playbacks",
+      "kind": "ari-resource",
+      "family": "ari",
+      "name": "/api-docs/playbacks.{format}",
+      "source": "rest-api/api-docs/playbacks.json",
+      "description": "Control object for a playback operation.",
+      "buildConditions": [
+        "rest-api-generator"
+      ],
+      "configFiles": [
+        "ari.conf",
+        "http.conf"
+      ],
+      "sourceSurfaces": [
+        "ari",
+        "http",
+        "websocket"
+      ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [
+          {
+            "name": "get",
+            "evidence": "GET /playbacks/{playbackId}",
+            "description": "Get a playback's details."
+          },
+          {
+            "name": "stop",
+            "evidence": "DELETE /playbacks/{playbackId}",
+            "description": "Stop a playback."
+          },
+          {
+            "name": "control",
+            "evidence": "POST /playbacks/{playbackId}/control",
+            "description": "Control a playback."
+          }
+        ],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
+      "apiOperations": [
+        {
+          "path": "/playbacks/{playbackId}",
+          "method": "GET",
+          "nickname": "get",
+          "summary": "Get a playback's details.",
+          "responseClass": "Playback"
+        },
+        {
+          "path": "/playbacks/{playbackId}",
+          "method": "DELETE",
+          "nickname": "stop",
+          "summary": "Stop a playback.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/playbacks/{playbackId}/control",
+          "method": "POST",
+          "nickname": "control",
+          "summary": "Control a playback.",
+          "responseClass": "void"
+        }
+      ],
+      "docsSource": "rest-api/api-docs/playbacks.json",
+      "unavailableReasons": [
+        "The ARI resource requires a live HTTP or WebSocket target and an authenticated transport before it can be used."
+      ],
+      "runtime": {
+        "state": "unverified",
+        "reason": "A live ARI resource response has not been reconciled yet."
+      },
+      "sourceBytes": 4209,
+      "provenance": {
+        "sourceSha256": "6a3b821884832321b9a6494510dab92a17719fc394df6d78b95dad8b98e9c784"
+      }
+    },
+    {
+      "id": "asterisk.ari.recordings",
+      "kind": "ari-resource",
+      "family": "ari",
+      "name": "/api-docs/recordings.{format}",
+      "source": "rest-api/api-docs/recordings.json",
+      "description": "Recordings",
+      "buildConditions": [
+        "rest-api-generator"
+      ],
+      "configFiles": [
+        "ari.conf",
+        "http.conf"
+      ],
+      "sourceSurfaces": [
+        "ari",
+        "http",
+        "websocket"
+      ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [
+          {
+            "name": "listStored",
+            "evidence": "GET /recordings/stored",
+            "description": "List recordings that are complete."
+          },
+          {
+            "name": "getStored",
+            "evidence": "GET /recordings/stored/{recordingName}",
+            "description": "Get a stored recording's details."
+          },
+          {
+            "name": "deleteStored",
+            "evidence": "DELETE /recordings/stored/{recordingName}",
+            "description": "Delete a stored recording."
+          },
+          {
+            "name": "getStoredFile",
+            "evidence": "GET /recordings/stored/{recordingName}/file",
+            "description": "Get the file associated with the stored recording."
+          },
+          {
+            "name": "copyStored",
+            "evidence": "POST /recordings/stored/{recordingName}/copy",
+            "description": "Copy a stored recording."
+          },
+          {
+            "name": "getLive",
+            "evidence": "GET /recordings/live/{recordingName}",
+            "description": "List live recordings."
+          },
+          {
+            "name": "cancel",
+            "evidence": "DELETE /recordings/live/{recordingName}",
+            "description": "Stop a live recording and discard it."
+          },
+          {
+            "name": "stop",
+            "evidence": "POST /recordings/live/{recordingName}/stop",
+            "description": "Stop a live recording and store it."
+          },
+          {
+            "name": "pause",
+            "evidence": "POST /recordings/live/{recordingName}/pause",
+            "description": "Pause a live recording."
+          },
+          {
+            "name": "unpause",
+            "evidence": "DELETE /recordings/live/{recordingName}/pause",
+            "description": "Unpause a live recording."
+          },
+          {
+            "name": "mute",
+            "evidence": "POST /recordings/live/{recordingName}/mute",
+            "description": "Mute a live recording."
+          },
+          {
+            "name": "unmute",
+            "evidence": "DELETE /recordings/live/{recordingName}/mute",
+            "description": "Unmute a live recording."
+          }
+        ],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
+      "apiOperations": [
+        {
+          "path": "/recordings/stored",
+          "method": "GET",
+          "nickname": "listStored",
+          "summary": "List recordings that are complete.",
+          "responseClass": "List[StoredRecording]"
+        },
+        {
+          "path": "/recordings/stored/{recordingName}",
+          "method": "GET",
+          "nickname": "getStored",
+          "summary": "Get a stored recording's details.",
+          "responseClass": "StoredRecording"
+        },
+        {
+          "path": "/recordings/stored/{recordingName}",
+          "method": "DELETE",
+          "nickname": "deleteStored",
+          "summary": "Delete a stored recording.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/recordings/stored/{recordingName}/file",
+          "method": "GET",
+          "nickname": "getStoredFile",
+          "summary": "Get the file associated with the stored recording.",
+          "responseClass": "binary"
+        },
+        {
+          "path": "/recordings/stored/{recordingName}/copy",
+          "method": "POST",
+          "nickname": "copyStored",
+          "summary": "Copy a stored recording.",
+          "responseClass": "StoredRecording"
+        },
+        {
+          "path": "/recordings/live/{recordingName}",
+          "method": "GET",
+          "nickname": "getLive",
+          "summary": "List live recordings.",
+          "responseClass": "LiveRecording"
+        },
+        {
+          "path": "/recordings/live/{recordingName}",
+          "method": "DELETE",
+          "nickname": "cancel",
+          "summary": "Stop a live recording and discard it.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/recordings/live/{recordingName}/stop",
+          "method": "POST",
+          "nickname": "stop",
+          "summary": "Stop a live recording and store it.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/recordings/live/{recordingName}/pause",
+          "method": "POST",
+          "nickname": "pause",
+          "summary": "Pause a live recording.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/recordings/live/{recordingName}/pause",
+          "method": "DELETE",
+          "nickname": "unpause",
+          "summary": "Unpause a live recording.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/recordings/live/{recordingName}/mute",
+          "method": "POST",
+          "nickname": "mute",
+          "summary": "Mute a live recording.",
+          "responseClass": "void"
+        },
+        {
+          "path": "/recordings/live/{recordingName}/mute",
+          "method": "DELETE",
+          "nickname": "unmute",
+          "summary": "Unmute a live recording.",
+          "responseClass": "void"
+        }
+      ],
+      "docsSource": "rest-api/api-docs/recordings.json",
+      "unavailableReasons": [
+        "The ARI resource requires a live HTTP or WebSocket target and an authenticated transport before it can be used."
+      ],
+      "runtime": {
+        "state": "unverified",
+        "reason": "A live ARI resource response has not been reconciled yet."
+      },
+      "sourceBytes": 10749,
+      "provenance": {
+        "sourceSha256": "8c5d49921c77ec4108194461135334c3fc132b5c0d30b9c773c2b73ebdd11480"
+      }
+    },
+    {
+      "id": "asterisk.ari.sounds",
+      "kind": "ari-resource",
+      "family": "ari",
+      "name": "/api-docs/sounds.{format}",
+      "source": "rest-api/api-docs/sounds.json",
+      "description": "Sounds",
+      "buildConditions": [
+        "rest-api-generator"
+      ],
+      "configFiles": [
+        "ari.conf",
+        "http.conf"
+      ],
+      "sourceSurfaces": [
+        "ari",
+        "http",
+        "websocket"
+      ],
+      "registrations": {
+        "cli": [],
+        "amiActions": [],
+        "amiEvents": [],
+        "ari": [
+          {
+            "name": "list",
+            "evidence": "GET /sounds",
+            "description": "List all sounds."
+          },
+          {
+            "name": "get",
+            "evidence": "GET /sounds/{soundId}",
+            "description": "Get a sound's details."
+          }
+        ],
+        "agi": [],
+        "applications": [],
+        "functions": [],
+        "codecs": [],
+        "formats": [],
+        "bridges": [],
+        "channels": []
+      },
+      "apiOperations": [
+        {
+          "path": "/sounds",
+          "method": "GET",
+          "nickname": "list",
+          "summary": "List all sounds.",
+          "responseClass": "List[Sound]"
+        },
+        {
+          "path": "/sounds/{soundId}",
+          "method": "GET",
+          "nickname": "get",
+          "summary": "Get a sound's details.",
+          "responseClass": "Sound"
+        }
+      ],
+      "docsSource": "rest-api/api-docs/sounds.json",
+      "unavailableReasons": [
+        "The ARI resource requires a live HTTP or WebSocket target and an authenticated transport before it can be used."
+      ],
+      "runtime": {
+        "state": "unverified",
+        "reason": "A live ARI resource response has not been reconciled yet."
+      },
+      "sourceBytes": 2623,
+      "provenance": {
+        "sourceSha256": "a7aad7b995be9fa361d7b4eabe6a744cc18f5c07a98d4a4afc4d09813fa96b19"
+      }
     }
   ]
 } as const;

@@ -24,7 +24,7 @@ export interface DocsBundle {
 
 export const DOCS_BUNDLE: DocsBundle = {
   "generatedAt": "1970-01-01T00:00:00.000Z",
-  "articleCount": 86,
+  "articleCount": 87,
   "articles": [
     {
       "id": "agent/hub",
@@ -2929,6 +2929,40 @@ export const DOCS_BUNDLE: DocsBundle = {
       "body": "# Ding PBX Console documentation\n\nDing PBX Console is a Windows desktop administration experience for Asterisk. The renderer is compiled directly from the design's navigation model, so this documentation follows the same structure: six rails and 32 destinations, one article per destination, grouped and ordered exactly as the app presents them.\n\nThe documentation map contains 32 destinations in six rails. Every article covers behavior, configuration, failure modes and security, verification, and suggested reading.\n\n## Rails\n\n- [PBX](pbx/README.md) — Telephony: endpoints, routing and everything a call touches while it is alive.\n- [Media](media/README.md) — Media & voice: codecs, RTP, recordings, prompts and conferencing.\n- [Data](data/README.md) — Records & APIs: call records, event logging and the machine interfaces.\n- [System](system/README.md) — Runtime & security: modules, logging, certificates and the CLI.\n- [Agent](agent/README.md) — Agent global memory: memory, sync, skills, hub sessions and the emission guard.\n- [App](app/README.md) — Deploy & application: stand up a new server, then appearance, updates and the console itself.\n\n## Delivery\n\n- [The Ding PBX installer ISO](installer-iso.md) — a bootable, unattended-install ISO that turns a bare machine into a working server.\n\n## Shared behavior\n\nConfiguration controls are pickers, switches, sliders and steppers wired to real keys in the owning Asterisk configuration file — never free-text fields that could drift from what Asterisk actually does. Where an article shows a default value or an option list, it is the same default the design and the renderer ship with; nothing here is a simulated call, a sample statistic, or an invented extension. Destructive actions run the full confirmation ceremony described in [History & git](app/history.md) and [Arcade](app/arcade.md).\n"
     },
     {
+      "id": "system/addons",
+      "category": "system",
+      "title": "Add-on modules",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes and security",
+          "id": "failure-modes-and-security"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "modules.md",
+        "asterisk-capability-catalog.md",
+        "cli.md",
+        "security.md"
+      ],
+      "body": "# Add-on modules\n\n## Behavior\n\nThe source catalogue includes the four add-on modules in this checkout: `chan_mobile.so`, `chan_ooh323.so`, `format_mp3.so`, and `res_config_mysql.so`. Their source records include the registration evidence and the build-graph hash. The console exposes them only after a target's live module inventory has answered.\n\n## Configuration\n\nThe add-on records point to the configuration files and runtime surfaces discovered from source. A target-specific configuration filename inventory is read separately from `/etc/asterisk`; checked-in samples are never treated as live configuration. The MP3 and MySQL modules remain unavailable when their external build dependencies were not enabled, and the live result says so instead of presenting a writable control that cannot work.\n\n## Failure modes and security\n\nAn add-on missing from `module show` is unavailable, not silently successful. An installed module absent from the source catalogue is retained as an unverified installed-only record and has no write or lifecycle action until its provenance and action boundary are reviewed. AMI and ARI credentials are resolved through the operating-system vault and never appear in catalogue records, receipts, logs, exports, or history.\n\n## Verification\n\nRun `node console/scripts/generate-asterisk-catalog.mjs` and confirm the four `addons/` module records and their SHA-256 source hashes. Runtime availability remains unverified until `pbx.catalog` is exercised against a real target.\n\n## Suggested articles\n\n[Modules](modules.md), [Dynamic Asterisk capability catalogue](asterisk-capability-catalog.md), [CLI builder](cli.md), and [Security](security.md).\n"
+    },
+    {
       "id": "system/asterisk-capability-catalog",
       "category": "system",
       "title": "Dynamic Asterisk capability catalogue",
@@ -2960,7 +2994,7 @@ export const DOCS_BUNDLE: DocsBundle = {
         "security.md",
         "../app/history.md"
       ],
-      "body": "# Dynamic Asterisk capability catalogue\n\n## Behavior\n\n`console/scripts/generate-asterisk-catalog.mjs` scans the checked-in Asterisk source families `apps/`, `bridges/`, `cdr/`, `cel/`, `channels/`, `codecs/`, `formats/`, `funcs/`, `pbx/`, `res/`, and `main/`. Every source file carrying an Asterisk module registration becomes a stable module record. Every checked-in configuration sample under `configs/` becomes a stable configuration-resource record. The checked-in generated files are `console/control-plane/generated/asterisk-catalog.json` and `asterisk-catalog.ts`.\n\nEach record names its family, source path, loadable name, description, build-condition signal, configuration files, source-detected CLI/AMI/ARI/AGI and media surfaces, documentation source, and exact reasons a build or documentation result is unavailable. The generator uses a fixed timestamp so repeated runs are byte-stable.\n\n## Runtime reconciliation\n\nThe control-plane action `pbx.catalog` reads the target's real `module show`, `core show help`, `manager show commands`, and `ari show apps` output through the allowlisted executable-argument path. `reconcileAsteriskCatalog` joins those observations to the generated records. An unread surface is `unknown`, a missing module is `unavailable`, and an observed module is `available`; no state is inferred from a checked-in sample or from a shipped default. A module present on a target but absent from the source catalogue is retained as an explicit `unverified-installed-module` record with actions outside the supported boundary.\n\nThe catalogue is read-only evidence. Configuration writes continue through the existing typed plan, backup, validation, atomic apply, post-read and rollback transaction. Runtime values are observed per target and are never committed into the generated source record.\n\n## Failure modes and security\n\nAn absent or stopped Asterisk runtime produces a refusal or an `unknown` result with the target's observed reason. It does not produce sample rows, a guessed module count, or a generic success message. Commands remain separate executable arguments, with bounded output and cancellation inherited from `NodeProcessExecutor`; no shell concatenation is used. Runtime output is kept as typed, redacted control-plane data.\n\n## Verification\n\nRun `node console/scripts/generate-asterisk-catalog.mjs` and confirm the reported module and resource counts match the generated JSON. Run `node --check console/scripts/generate-asterisk-catalog.mjs`. Runtime reconciliation remains implemented-unverified until a final live WSL/container and headless pass reads a real target. No runtime, package, UI, capture, or release claim is made by this source-only check.\n\n## Suggested articles\n\n[Modules](modules.md), [CLI builder](cli.md), [Security](security.md), and [Configuration history](../app/history.md).\n"
+      "body": "# Dynamic Asterisk capability catalogue\n\n## Behavior\n\n`console/scripts/generate-asterisk-catalog.mjs` scans the checked-in Asterisk source families `addons/`, `apps/`, `bridges/`, `cdr/`, `cel/`, `channels/`, `codecs/`, `formats/`, `funcs/`, `pbx/`, `res/`, and `main/`. Every source file carrying an Asterisk module registration becomes a stable module record. Every checked-in configuration sample under `configs/` becomes a stable configuration-resource record, and every checked-in ARI document under `rest-api/api-docs/` becomes an API resource with its individual operations. The checked-in generated files are `console/control-plane/generated/asterisk-catalog.json` and `asterisk-catalog.ts`.\n\nEach record names its family, source path, loadable name, description, build-condition signal, configuration files, source-detected CLI/AMI/ARI/AGI and media registrations, individual ARI operations where applicable, documentation source, SHA-256 source provenance, build-graph hash, and exact reasons a build or documentation result is unavailable. The generator strips comments and string literals before token-aware registration parsing, and uses a fixed timestamp so repeated runs are byte-stable.\n\n## Runtime reconciliation\n\nThe control-plane action `pbx.catalog` reads the target's real `module show`, `core show help`, `manager show commands`, `ari show apps`, and target configuration filename inventory through bounded allowlisted executable-argument paths. `reconcileAsteriskCatalog` joins those observations to the generated records. An unread or incomplete surface is `unknown`, a missing module is `unavailable`, and an observed module is `available`; no state is inferred from a checked-in sample or from a shipped default. A module present on a target but absent from the source catalogue is retained as an explicit `unverified-installed-module` record with actions outside the supported boundary. `AmiTransport` and `AriTransport` provide named operations, OS-vault credential lookup, cancellation, timeouts, response limits, and redacted typed receipts.\n\nThe catalogue is read-only evidence. Configuration writes continue through the existing typed plan, backup, validation, atomic apply, post-read and rollback transaction. The hand-written `asterisk-action-catalog.ts` publishes typed action IDs and their exact transport, confirmation, destructive, and unavailable boundaries, so a UI can show an action without inventing a handler. Runtime values are observed per target and are never committed into the generated source record.\n\n## Failure modes and security\n\nAn absent or stopped Asterisk runtime produces a refusal or an `unknown` result with the target's observed reason. It does not produce sample rows, a guessed module count, or a generic success message. Commands remain separate executable arguments, with bounded output and cancellation inherited from `NodeProcessExecutor`; no shell concatenation is used. Runtime output is kept as typed, redacted control-plane data.\n\n## Verification\n\nRun `node console/scripts/generate-asterisk-catalog.mjs` and confirm the reported module, configuration-resource, and ARI-resource counts match the generated JSON. Run `node --check console/scripts/generate-asterisk-catalog.mjs`. Runtime reconciliation remains implemented-unverified until a final live WSL/container and headless pass reads a real target. No runtime, package, UI, capture, or release claim is made by this source-only check.\n\n## Suggested articles\n\n[Modules](modules.md), [CLI builder](cli.md), [Security](security.md), and [Configuration history](../app/history.md).\n"
     },
     {
       "id": "system/cli",
@@ -3068,12 +3102,13 @@ export const DOCS_BUNDLE: DocsBundle = {
       "headings": [],
       "links": [
         "modules.md",
+        "addons.md",
         "asterisk-capability-catalog.md",
         "logger.md",
         "security.md",
         "cli.md"
       ],
-      "body": "# System\n\nRuntime & security: modules, logging, certificates and the CLI.\n\n- [Modules](modules.md)\n- [Dynamic Asterisk capability catalogue](asterisk-capability-catalog.md)\n- [Logger](logger.md)\n- [Security](security.md)\n- [CLI builder](cli.md)\n"
+      "body": "# System\n\nRuntime & security: modules, logging, certificates and the CLI.\n\n- [Modules](modules.md)\n- [Add-on modules](addons.md)\n- [Dynamic Asterisk capability catalogue](asterisk-capability-catalog.md)\n- [Logger](logger.md)\n- [Security](security.md)\n- [CLI builder](cli.md)\n"
     },
     {
       "id": "system/security",

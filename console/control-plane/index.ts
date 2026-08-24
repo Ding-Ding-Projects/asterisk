@@ -18,3 +18,6 @@ export * from "./server-inventory.js";
 export * from "./settings-store.js";
 export * from "./atomic-file.js";
 export * from "./asterisk-runtime-catalog.js";
+export * from "./config-inventory.js";
+export * from "./ami-ari-transports.js";
+export * from "./asterisk-action-catalog.js";

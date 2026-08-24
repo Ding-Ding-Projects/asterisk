@@ -9,12 +9,15 @@ export interface RuntimeCatalogInput {
   cliCommands?: ReadonlyArray<string>;
   amiActions?: ReadonlyArray<string>;
   ariResources?: ReadonlyArray<string>;
+  ariHttpResources?: ReadonlyArray<string>;
   configResources?: ReadonlyArray<string>;
+  configInventoryComplete?: boolean;
+  configInventoryReason?: string;
 }
 
 export interface RuntimeCatalogRecord {
   id: string;
-  kind: "module" | "config" | "runtime-module";
+  kind: "module" | "config" | "api" | "runtime-module";
   family: string;
   name: string;
   source?: string;
@@ -24,6 +27,7 @@ export interface RuntimeCatalogRecord {
   reason?: string;
   actionBoundary: "supported" | "read-only" | "unverified-installed-module" | "unavailable";
   sourceSurfaces: ReadonlyArray<string>;
+  registrations: Readonly<Record<string, ReadonlyArray<{ name: string; evidence: string }>>>;
 }
 
 export interface RuntimeCatalogResult {
@@ -46,7 +50,7 @@ export interface RuntimeObservation {
   reason?: string;
 }
 
-type SourceRecord = (typeof ASTERISK_CATALOG.modules)[number] | (typeof ASTERISK_CATALOG.resources)[number];
+type SourceRecord = (typeof ASTERISK_CATALOG.modules)[number] | (typeof ASTERISK_CATALOG.resources)[number] | (typeof ASTERISK_CATALOG.apiResources)[number];
 
 /**
  * Reconciles the generated source inventory with one live observation. Missing
@@ -63,7 +67,7 @@ export function reconcileAsteriskCatalog(input: RuntimeCatalogInput): RuntimeCat
   const configs = new Set((input.configResources ?? []).map(normalize));
   const records: RuntimeCatalogRecord[] = [];
 
-  for (const source of [...ASTERISK_CATALOG.modules, ...ASTERISK_CATALOG.resources] as ReadonlyArray<SourceRecord>) {
+  for (const source of [...ASTERISK_CATALOG.modules, ...ASTERISK_CATALOG.resources, ...ASTERISK_CATALOG.apiResources] as ReadonlyArray<SourceRecord>) {
     if (source.kind === "module") {
       const live = moduleByName.get(source.name.toLowerCase());
       const state: RuntimeCatalogState = modules === undefined
@@ -85,13 +89,34 @@ export function reconcileAsteriskCatalog(input: RuntimeCatalogInput): RuntimeCat
             : undefined,
         actionBoundary: state === "available" ? "read-only" : "unavailable",
         sourceSurfaces: source.sourceSurfaces,
+        registrations: source.registrations,
       });
       continue;
     }
-    const configName = source.name.toLowerCase();
+    if (source.kind === "ari-resource") {
+      const state: RuntimeCatalogState = input.ariHttpResources === undefined
+        ? "unknown"
+        : input.ariHttpResources.some((name) => normalize(name) === normalize(source.name)) ? "available" : "unavailable";
+      records.push({
+        id: source.id,
+        kind: "api",
+        family: source.family,
+        name: source.name,
+        source: source.source,
+        description: source.description,
+        state,
+        observedAt: input.observedAt,
+        reason: state === "unknown" ? "No authenticated ARI HTTP resource inventory was read." : state === "unavailable" ? "The ARI resource was not present in the target inventory." : undefined,
+        actionBoundary: state === "available" ? "supported" : "unavailable",
+        sourceSurfaces: source.sourceSurfaces,
+        registrations: source.registrations,
+      });
+      continue;
+    }
+    const configNames = [source.name, ...source.configFiles].map(normalize);
     const state: RuntimeCatalogState = input.configResources === undefined
       ? "unknown"
-      : configs.has(configName) ? "available" : "unavailable";
+      : configNames.some((name) => configs.has(name)) ? "available" : "unavailable";
     records.push({
       id: source.id,
       kind: "config",
@@ -108,6 +133,7 @@ export function reconcileAsteriskCatalog(input: RuntimeCatalogInput): RuntimeCat
           : undefined,
       actionBoundary: state === "available" ? "supported" : "unavailable",
       sourceSurfaces: source.sourceSurfaces,
+      registrations: source.registrations,
     });
   }
 
@@ -125,6 +151,7 @@ export function reconcileAsteriskCatalog(input: RuntimeCatalogInput): RuntimeCat
       reason: "Installed on the target but absent from the generated source catalogue; review before enabling actions.",
       actionBoundary: "unverified-installed-module",
       sourceSurfaces: [],
+      registrations: { cli: [], amiActions: [], amiEvents: [], ari: [], agi: [], applications: [], functions: [], codecs: [], formats: [], bridges: [], channels: [] },
     });
   }
 
@@ -150,6 +177,9 @@ export function reconcileAsteriskCatalog(input: RuntimeCatalogInput): RuntimeCat
       "core show help": observation(input.cliCommands),
       "manager show commands": observation(input.amiActions),
       "ari show apps": observation(input.ariResources),
+      "target config inventory": input.configResources === undefined
+        ? { state: "unknown", reason: input.configInventoryReason ?? "The target configuration inventory was not available." }
+        : { state: input.configInventoryComplete === false ? "unknown" : "available", count: input.configResources.length, reason: input.configInventoryComplete === false ? input.configInventoryReason : undefined },
     },
     records,
     counts,
@@ -181,6 +211,7 @@ function addSurfaceSummary(
     reason: values === undefined ? `No live ${family.toUpperCase()} response was available.` : undefined,
     actionBoundary: state === "available" ? "read-only" : "unavailable",
     sourceSurfaces: [family],
+    registrations: { cli: [], amiActions: [], amiEvents: [], ari: [], agi: [], applications: [], functions: [], codecs: [], formats: [], bridges: [], channels: [] },
   });
 }
 

@@ -6,7 +6,8 @@ import { validateAsteriskCatalog } from './verify-asterisk-catalog.mjs';
 const root = resolve(import.meta.dirname, '..', '..');
 const catalog = JSON.parse(readFileSync(resolve(root, 'console/control-plane/generated/asterisk-catalog.json'), 'utf8'));
 const inventory = JSON.parse(readFileSync(resolve(root, 'console/inventories/asterisk-capability-catalog.json'), 'utf8'));
-const files = new Set([...inventory.requiredGeneratedFiles, ...inventory.requiredDocs]);
+const required = Object.values(inventory).flatMap((value) => Array.isArray(value) ? value : []).filter((path) => typeof path === 'string' && path.includes('/'));
+const files = new Set(required);
 
 function mustReject(label, mutation, inventoryValue = inventory, filesValue = files) {
   const copy = structuredClone(catalog);
@@ -29,4 +30,7 @@ mustReject('removed documentation article', (copy) => {
   copy.__missingFiles = missing;
 }, inventory, new Set([...files].filter((path) => path !== 'console/docs/system/asterisk-capability-catalog.md')));
 mustReject('removed runtime action', () => {}, { ...inventory, requiredRuntimeActions: ['pbx.catalog-missing'] });
+mustReject('removed implementation binding', () => {}, inventory, new Set([...files].filter((path) => path !== 'console/control-plane/asterisk-runtime-catalog.ts')));
+mustReject('removed localization boundary', () => {}, inventory, new Set([...files].filter((path) => path !== 'console/app/locales/feature-registry.json')));
+mustReject('removed built evidence bundle', () => {}, inventory, new Set([...files].filter((path) => path !== 'console/app/renderer/src/generated/docs-bundle.ts')));
 console.log('PASS: Asterisk catalogue negative regressions turned red for every deliberate deletion and restored green.');

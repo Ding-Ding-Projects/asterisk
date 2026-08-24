@@ -2,7 +2,7 @@ import type { Component } from 'react';
 import ConsoleShell, { ONBOARD, ORDER, SCREENS } from './generated/console';
 import {
   badgeFor, dashboardStats, formatDuration, healthBars, isReadable, reasonFor, regexMatchLabel, rowsFor, serverRows, valueOf,
-  type ViewReadings,
+  type AsteriskCatalogResult, type ViewReadings,
 } from './readings';
 import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
 import { buildCodecGraph, layoutCodecs, unreachable as unreachableCodecs } from './codec-graph';
@@ -1193,9 +1193,13 @@ It is shown once. The phone needs it to register.`);
     this.pending = screen;
     const serverId = this.target.id;
     const token = this.servers.begin(serverId);
-    const response = await this.request('pbx.read', { serverId, view: screen as PbxReadView });
+    const response = screen === 'modules'
+      ? await this.request('pbx.catalog', { serverId })
+      : await this.request('pbx.read', { serverId, view: screen as PbxReadView });
     this.pending = '';
-    const data: ViewReadings = response?.ok
+    const data: ViewReadings = response?.ok && screen === 'modules'
+      ? catalogReadings(response.data as AsteriskCatalogResult)
+      : response?.ok
       ? (response.data as ViewReadings)
       : { channels: { command: 'pbx.read', result: { state: 'unavailable', observedAt: new Date().toISOString(), reason: response?.message ?? 'the control plane did not answer' } } };
     /* Guarded write: dropped, rather than applied, when a newer request for this same
@@ -2251,6 +2255,17 @@ It is shown once. The phone needs it to register.`);
     const ids = ORDER.filter((id) => (SCREENS as Record<string, { rail: string }>)[id].rail === screen);
     return sections.map((section, i) => ({ ...section, badge: badgeFor(ids[i], this.readings) }));
   }
+}
+
+function catalogReadings(catalog: AsteriskCatalogResult): ViewReadings {
+  const moduleObservation = catalog.observations['module show'] ?? { state: 'unknown', reason: 'The target module inventory was not read.' };
+  const modules = catalog.records
+    .filter((record) => record.kind === 'module' || record.kind === 'runtime-module')
+    .map((record) => ({ name: record.name, description: record.reason ?? record.kind, useCount: 0, status: record.state }));
+  return {
+    modules: { command: 'module show', result: moduleObservation.state === 'available' ? { state: 'available', observedAt: catalog.observedAt, value: modules } : { state: 'unavailable', observedAt: catalog.observedAt, reason: moduleObservation.reason ?? 'The target module inventory is not available.' } },
+    catalog: { command: 'pbx.catalog', result: { state: 'available', observedAt: catalog.observedAt, value: catalog } },
+  };
 }
 
 interface DesktopBridge {

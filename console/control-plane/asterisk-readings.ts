@@ -84,6 +84,18 @@ export const READ_ONLY_COMMANDS = [
 
 export type ReadOnlyCommand = (typeof READ_ONLY_COMMANDS)[number];
 
+export const MODULE_LIFECYCLE_OPERATIONS = ['load', 'unload', 'reload'] as const;
+export type ModuleLifecycleOperation = (typeof MODULE_LIFECYCLE_OPERATIONS)[number];
+
+export interface ModuleLifecycleReceipt {
+  operation: ModuleLifecycleOperation;
+  module: string;
+  status: CommandResult['status'];
+  exitCode: number | null;
+  output: string;
+  observedAt: string;
+}
+
 const ALLOWED = new Set<string>(READ_ONLY_COMMANDS);
 
 export interface Reading<T> {
@@ -145,6 +157,7 @@ export interface ModuleSummary {
 /** Runs one allowlisted CLI command against a target. */
 export interface AsteriskCliGateway {
   run(target: TargetProfile, command: ReadOnlyCommand, signal?: AbortSignal): Promise<CommandResult>;
+  runModuleLifecycle(target: TargetProfile, operation: ModuleLifecycleOperation, module: string, signal?: AbortSignal): Promise<ModuleLifecycleReceipt>;
 }
 
 /** Invokes `asterisk -rx` on a discovered WSL distribution or local container. */
@@ -161,7 +174,15 @@ export class LocalAsteriskCliGateway implements AsteriskCliGateway {
     return await this.#executor.execute({ ...invocation, signal, timeoutMs: 15_000, maxOutputBytes: 2 * 1024 * 1024 });
   }
 
-  #invocation(target: TargetProfile, command: ReadOnlyCommand): { executable: string; args: ReadonlyArray<string> } {
+  async runModuleLifecycle(target: TargetProfile, operation: ModuleLifecycleOperation, module: string, signal?: AbortSignal): Promise<ModuleLifecycleReceipt> {
+    if (!MODULE_LIFECYCLE_OPERATIONS.includes(operation)) throw new Error(`Module lifecycle operation is not allowlisted: ${operation}`);
+    if (!/^[A-Za-z0-9_.-]+\.so$/u.test(module)) throw new Error('Module name must be a bare .so filename');
+    const invocation = this.#invocation(target, `module ${operation} ${module}`);
+    const result = await this.#executor.execute({ ...invocation, signal, timeoutMs: 15_000, maxOutputBytes: 256 * 1024 });
+    return { operation, module, status: result.status, exitCode: result.exitCode, output: `${result.stdout}${result.stderr}`.trim(), observedAt: new Date().toISOString() };
+  }
+
+  #invocation(target: TargetProfile, command: string): { executable: string; args: ReadonlyArray<string> } {
     if (target.connectionKind === "wsl") {
       if (!target.wslDistribution) throw new Error("A WSL target requires a discovered distribution name");
       return { executable: "wsl.exe", args: ["-d", target.wslDistribution, "--", "asterisk", "-rx", command] };

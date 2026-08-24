@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceFamilies": [
+    "addons",
     "apps",
     "bridges",
     "cdr",
@@ -14,7 +15,8 @@
     "main"
   ],
   "requiredRuntimeActions": [
-    "pbx.catalog"
+    "pbx.catalog",
+    "pbx.module"
   ],
   "requiredRuntimeCommands": [
     "module show",
@@ -25,13 +27,34 @@
   "requiredDocs": [
     "console/docs/system/asterisk-capability-catalog.md"
   ],
+  "requiredImplementationFiles": [
+    "console/scripts/generate-asterisk-catalog.mjs",
+    "console/control-plane/asterisk-runtime-catalog.ts",
+    "console/control-plane/config-inventory.ts",
+    "console/control-plane/ami-ari-transports.ts",
+    "console/control-plane/asterisk-action-catalog.ts",
+    "console/app/renderer/src/App.tsx",
+    "console/app/renderer/src/readings.ts"
+  ],
+  "requiredLocalizationFiles": [
+    "console/app/locales/feature-registry.json"
+  ],
+  "requiredActionFiles": [
+    "console/shared/control-plane.ts",
+    "console/control-plane/dispatch.ts",
+    "console/control-plane/asterisk-readings.ts"
+  ],
+  "requiredEvidenceFiles": [
+    "console/app/renderer/src/generated/docs-bundle.ts"
+  ],
   "requiredGeneratedFiles": [
     "console/control-plane/generated/asterisk-catalog.json",
     "console/control-plane/generated/asterisk-catalog.ts"
   ],
   "expectedCounts": {
-    "modules": 383,
-    "resources": 119
+    "modules": 387,
+    "resources": 119,
+    "apiResources": 11
   },
   "requiredBoundaries": [
     "unknown when a live surface was not read",

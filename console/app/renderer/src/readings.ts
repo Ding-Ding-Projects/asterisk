@@ -26,6 +26,16 @@ export interface ConfbridgeConference { name: string; users: number; marked: num
 export interface MohClass { name: string; mode?: string; directory?: string }
 export interface ManagerUser { username: string }
 export interface AriApp { name: string }
+export interface AsteriskCatalogRecord {
+  id: string; kind: string; family: string; name: string; state: string; actionBoundary: string;
+  reason?: string; source?: string;
+}
+export interface AsteriskCatalogResult {
+  schemaVersion: 1; observedAt: string;
+  observations: Record<string, { state: string; count?: number; reason?: string }>;
+  records: AsteriskCatalogRecord[];
+  counts: { sourceRecords: number; available: number; unavailable: number; unknown: number; discoveredOutsideSource: number };
+}
 
 interface Reading<T> { command: string; result: Observation<T> }
 
@@ -36,6 +46,7 @@ export interface ViewReadings {
   registrations?: Reading<Registration[]>;
   queues?: Reading<QueueSummary[]>;
   modules?: Reading<ModuleSummary[]>;
+  catalog?: Reading<AsteriskCatalogResult>;
   uptime?: Reading<number>;
   voicemailUsers?: Reading<{ users: VoicemailUser[]; total?: number }>;
   voicemailZones?: Reading<unknown>;
@@ -110,7 +121,11 @@ export function rowsFor(screen: string, readings: ViewReadings | undefined): str
   if (screen === 'endpoints') return endpointRows(valueOf(readings.endpoints) ?? [], valueOf(readings.contacts) ?? []);
   if (screen === 'trunks') return registrationRows(valueOf(readings.registrations) ?? []);
   if (screen === 'queues') return queueRows(valueOf(readings.queues) ?? []);
-  if (screen === 'modules') return moduleRows(valueOf(readings.modules) ?? []);
+  if (screen === 'modules') {
+    const catalog = valueOf(readings.catalog);
+    if (catalog) return catalog.records.map((record) => [record.id, `${record.kind} · ${record.family}`, record.name, record.state]);
+    return moduleRows(valueOf(readings.modules) ?? []);
+  }
   if (screen === 'voicemail') return voicemailRows(valueOf(readings.voicemailUsers)?.users ?? []);
   if (screen === 'confbridge') return confbridgeRows(valueOf(readings.rooms) ?? []);
   if (screen === 'moh') return mohRows(valueOf(readings.mohClasses) ?? []);

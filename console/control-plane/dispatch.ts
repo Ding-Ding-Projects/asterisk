@@ -17,12 +17,12 @@ import {
   parseTranslations, parseAclRules, parseManagerSettings, parseManagerUsers, parseAriApps,
   parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime,
 } from './asterisk-parsers.js';
-import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory } from './index.js';
+import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory, AsteriskConfigInventory } from './index.js';
 import { ServerInventory, SettingsRegistry } from './index.js';
 import type { ServerInventoryStore, ServerRecord, SettingsSnapshotStore } from './index.js';
 import { atomicWriteFileSync } from './atomic-file.js';
-import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
-import type { ReadOnlyCommand, TargetProfile } from './index.js';
+import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery, MODULE_LIFECYCLE_OPERATIONS } from './index.js';
+import type { ModuleLifecycleOperation, ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
 import { reconcileAsteriskCatalog } from './asterisk-runtime-catalog.js';
 
@@ -56,6 +56,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
   const targetDiscovery = new TargetDiscovery(processExecutor);
   const cliGateway = new LocalAsteriskCliGateway(processExecutor);
   const readings = new AsteriskReadings(cliGateway);
+  const configInventory = new AsteriskConfigInventory(processExecutor);
   const dialplanReadings = new DialplanReadings(cliGateway);
 
   async function resolveTarget(serverId: string | undefined): Promise<TargetProfile> {
@@ -541,11 +542,12 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       }
       if (request.action === 'pbx.catalog') {
         const target = await resolveTarget(request.serverId);
-        const [modules, cli, ami, ari] = await Promise.all([
+        const [modules, cli, ami, ari, configs] = await Promise.all([
           readings.modules(target),
           readings.raw(target, 'core show help'),
           readings.raw(target, 'manager show commands'),
           readings.raw(target, 'ari show apps'),
+          configInventory.list(target),
         ]);
         const observedAt = new Date().toISOString();
         const rawValues = (reading: { result: { state: string; value?: string } }): ReadonlyArray<string> | undefined =>
@@ -559,8 +561,20 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
             cliCommands: rawValues(cli),
             amiActions: rawValues(ami),
             ariResources: rawValues(ari),
+            configResources: configs.state === 'available' ? configs.files : undefined,
+            configInventoryComplete: configs.complete,
+            configInventoryReason: configs.reason,
           }),
         };
+      }
+      if (request.action === 'pbx.module') {
+        const operation = request.payload?.operation;
+        const module = request.payload?.module;
+        if (typeof operation !== 'string' || !MODULE_LIFECYCLE_OPERATIONS.includes(operation as ModuleLifecycleOperation)) return { ok: false, requestId: request.requestId, code: 'MODULE_OPERATION_NOT_ALLOWLISTED', message: 'Choose load, unload, or reload.' };
+        if (typeof module !== 'string' || !/^[A-Za-z0-9_.-]+\.so$/u.test(module)) return { ok: false, requestId: request.requestId, code: 'MODULE_NAME_INVALID', message: 'Choose a bare .so module name from the live catalogue.' };
+        const target = await resolveTarget(request.serverId);
+        const receipt = await cliGateway.runModuleLifecycle(target, operation as ModuleLifecycleOperation, module);
+        return { ok: receipt.status === 'succeeded', requestId: request.requestId, code: receipt.status === 'succeeded' ? undefined : 'MODULE_OPERATION_FAILED', message: receipt.status === 'succeeded' ? undefined : receipt.output || `Module ${operation} did not complete.`, data: receipt } as ControlPlaneResponse;
       }
       return { ok: false, requestId: request.requestId, code: 'ACTION_NOT_AVAILABLE', message: 'This operation is unavailable until a reviewed target-specific plan is connected.' };
     } catch (error) {
