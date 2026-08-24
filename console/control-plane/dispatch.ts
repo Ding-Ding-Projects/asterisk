@@ -930,12 +930,12 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'authenticator.restore') {
         const commitId = typeof request.payload?.commitId === 'string' ? request.payload.commitId : '';
         const restored = await authLocks.history.restore(commitId);
-        if (!restored.ok) return { ok: true, requestId: request.requestId, data: restored };
-        if (restored.value.snapshot && typeof restored.value.snapshot === 'object' && (restored.value.snapshot as { kind?: string }).kind === 'authenticator-entry-deleted') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'not-found', message: 'This deletion is explicitly non-restorable because its vault credential was removed.', recoverable: false } };
+        if (!restored.ok) return { ok: true, requestId: request.requestId, data: { status: 'unavailable', message: restored.message } };
+        if (restored.value.snapshot && typeof restored.value.snapshot === 'object' && (restored.value.snapshot as { kind?: string }).kind === 'authenticator-entry-deleted') return { ok: true, requestId: request.requestId, data: { status: 'non-restorable', message: 'This deletion is explicitly non-restorable because its vault credential was removed.' } };
         const applied = await authLocks.authenticator.restoreRedacted(restored.value.snapshot);
-        if (!applied.ok) return { ok: true, requestId: request.requestId, data: applied };
+        if (!applied.ok) return { ok: true, requestId: request.requestId, data: { status: 'unavailable', message: applied.message } };
         await authLocks.history.record({ action: 'restored', stableRecordId: applied.value.id, subject: `Authenticator ${applied.value.issuer} restored`, snapshot: { kind: 'authenticator-entry', entry: applied.value } });
-        return { ok: true, requestId: request.requestId, data: applied };
+        return { ok: true, requestId: request.requestId, data: { status: 'applied', entry: applied.value } };
       }
       if (request.action === 'toy-lock.initialize') {
         return { ok: true, requestId: request.requestId, data: await authLocks.locksReady };
@@ -981,7 +981,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (candidate.length > 512) return { ok: false, requestId: request.requestId, code: 'TOY_LOCK_CANDIDATE_INVALID', message: 'The unlock value is outside its decoded safety bound.' };
         const surfaceId = typeof request.payload?.surfaceId === 'string' ? request.payload.surfaceId : undefined;
         const result = await authLocks.locks.unlock(id, candidate, surfaceId);
-        if (!result.ok && result.code === 'verification-failed') await authLocks.createLadderWait(id);
+        if (!result.ok && result.code === 'verification-failed') { await authLocks.createLadderWait(id); return { ok: true, requestId: request.requestId, data: { ...result, waitCreated: true } }; }
         return { ok: true, requestId: request.requestId, data: result };
       }
       if (request.action === 'toy-lock.relock' || request.action === 'toy-lock.remove') {

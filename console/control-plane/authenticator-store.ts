@@ -19,7 +19,7 @@ export interface AuthenticatorMetadataStore {
   readonly available: boolean;
   read(): Promise<AuthenticatorMetadataResult<ReadonlyArray<AuthenticatorEntryRecord>>>;
   write(entries: ReadonlyArray<AuthenticatorEntryRecord>): Promise<AuthenticatorMetadataResult<undefined>>;
-  beginRemoval?(id: string): Promise<AuthenticatorMetadataResult<undefined>>;
+  beginRemoval?(id: string, credential: { vaultAccount: string; method: 'password' | 'totp' }): Promise<AuthenticatorMetadataResult<undefined>>;
   completeRemoval?(id: string): Promise<AuthenticatorMetadataResult<undefined>>;
   rollbackRemoval?(id: string): Promise<AuthenticatorMetadataResult<undefined>>;
 }
@@ -115,6 +115,7 @@ export class AuthenticatorStore {
   readonly #createEntryId: () => string;
   readonly #now: () => string;
   readonly #verifyCode: TotpCodeVerifier;
+  #mutation: Promise<void> = Promise.resolve();
 
   constructor(options: AuthenticatorStoreOptions) {
     this.#vault = options.vault;
@@ -123,6 +124,7 @@ export class AuthenticatorStore {
     this.#now = options.now ?? (() => new Date().toISOString());
     this.#verifyCode = options.verifyCode;
   }
+  async #serialize<T>(operation: () => Promise<T>): Promise<T> { const prior = this.#mutation; let release!: () => void; this.#mutation = new Promise<void>((resolve) => { release = resolve; }); await prior; try { return await operation(); } finally { release(); } }
 
   async list(): Promise<AuthenticatorResult<ReadonlyArray<AuthenticatorEntry>>> {
     const read = await this.#readRecords();
@@ -136,7 +138,8 @@ export class AuthenticatorStore {
     return { ok: true, value: redactAuthenticatorEntry(record.value) };
   }
 
-  async register(input: AuthenticatorRegistration): Promise<AuthenticatorResult<AuthenticatorEntry>> {
+  async register(input: AuthenticatorRegistration): Promise<AuthenticatorResult<AuthenticatorEntry>> { return await this.#serialize(() => this.#register(input)); }
+  async #register(input: AuthenticatorRegistration): Promise<AuthenticatorResult<AuthenticatorEntry>> {
     if (!this.#vault.available) return vaultFailure("vault-unavailable");
     if (!this.#metadata.available) {
       return { ok: false, code: "metadata-unavailable", message: "Authenticator metadata storage is unavailable." };
@@ -191,7 +194,8 @@ export class AuthenticatorStore {
     return { ok: true, value: redactAuthenticatorEntry(record) };
   }
 
-  async confirmAndArm(
+  async confirmAndArm(id: string, code: string, atMs: number, skewSteps = 1): Promise<AuthenticatorResult<AuthenticatorEntry>> { return await this.#serialize(() => this.#confirmAndArm(id, code, atMs, skewSteps)); }
+  async #confirmAndArm(
     id: string,
     code: string,
     atMs: number,
@@ -240,7 +244,8 @@ export class AuthenticatorStore {
     return { ok: true, value: redactAuthenticatorEntry(updated) };
   }
 
-  async remove(id: string): Promise<AuthenticatorResult<undefined>> {
+  async remove(id: string): Promise<AuthenticatorResult<undefined>> { return await this.#serialize(() => this.#remove(id)); }
+  async #remove(id: string): Promise<AuthenticatorResult<undefined>> {
     if (!this.#vault.available) return vaultFailure("vault-unavailable");
     const current = await this.#readRecords();
     if (!current.ok) return metadataFailure(current);
@@ -248,7 +253,7 @@ export class AuthenticatorStore {
     if (!existing) return { ok: false, code: "not-found", message: "Authenticator entry was not found." };
 
     if (this.#metadata.beginRemoval) {
-      const tombstone = await this.#metadata.beginRemoval(id);
+      const tombstone = await this.#metadata.beginRemoval(id, { vaultAccount: existing.credentialReference, method: 'totp' });
       if (!tombstone.ok) return metadataFailure(tombstone);
     }
     let secretResult;

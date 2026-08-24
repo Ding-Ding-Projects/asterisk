@@ -7,10 +7,7 @@ reference and one unlock duration. A matching value may open only that element f
 surface, a bounded number of minutes, or the current application session. Relocking removes the
 temporary grant without changing the credential reference.
 
-The unlock ladder is a privileged, server-graded state machine. A challenge response may clear the
-current wait only. It never clears a credential, restores sign-in attempts, or grants
-authentication. Challenges use single-use nonces, expire, consume a rolling-hour success budget,
-reject a mole round submitted before its duration, and count each visible mole spawn at most once.
+The unlock ladder is a privileged, server-graded state machine for toy-lock waits. Failed verification creates an authoritative wait for the exact lock, and a challenge response may clear that wait only. It never clears a credential, restores sign-in attempts, or grants authentication. Challenges use single-use nonces, expire, consume a rolling-hour success budget, reject a mole round submitted before its duration, and count each visible mole spawn at most once.
 When School mode is active, a new lockout begins with arithmetic and does not expose a dish rung.
 
 Local history stores one immutable encrypted entry file per revision in an isolated local Git

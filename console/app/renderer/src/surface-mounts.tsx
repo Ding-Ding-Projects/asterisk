@@ -59,7 +59,7 @@ const authenticatorClient: AuthenticatorClient = {
 };
 const historyClient: AuthenticatorHistoryClient = {
   record: async (entry) => { const result = await bridgeRequest<{ ok: boolean; message?: string }>('local-history.record', { ...entry, snapshot: entry.snapshot ?? { kind: 'authenticator-redacted', stableRecordId: entry.stableRecordId, action: entry.action, subject: entry.subject } }); return result.ok ? { ok: true } : { ok: false, warning: result.message ?? 'The local history receipt was unavailable.' }; },
-  list: async () => { const result = await bridgeRequest<{ entries?: { ok?: boolean; value?: ReadonlyArray<{ commitId: string; timestamp: string; action: string; subject: string }> } }>('local-history.list', { limit: 200 }); return result.entries?.ok ? result.entries.value ?? [] : []; },
+  list: async () => { const result = await bridgeRequest<{ entries?: { ok?: boolean; value?: ReadonlyArray<{ commitId: string; timestamp: string; action: string; subject: string }>; code?: string; message?: string } }>('local-history.list', { limit: 200 }); if (result.entries?.ok) { const entries = result.entries.value ?? []; return { status: entries.length === 0 ? 'verified-empty' as const : 'verified' as const, entries }; } return { status: result.entries?.code === 'invalid-request' ? 'malformed' as const : 'unavailable' as const, entries: [], warning: result.entries?.message ?? 'The local history list was unavailable.' }; },
   restore: (commitId) => bridgeRequest('authenticator.restore', { commitId }),
 };
 
@@ -70,7 +70,7 @@ const lockClient: ToyLockClient = {
   initialize: async () => { const [ready, listed, recovery] = await Promise.all([bridgeRequest<LockAction<{ count: number }>>('toy-lock.initialize'), bridgeRequest<LockAction<ReadonlyArray<ToyLockRecord>>>('toy-lock.list'), bridgeRequest<ToyLockRecoveryMetadata>('toy-lock.recovery')]); if (!listed.ok) return listed; lockRecords = listed.value; lockRecovery = recovery; return ready; },
   list: () => ({ ok: true as const, value: lockRecords }),
   create: async (input) => { const result = await bridgeRequest<LockAction<ToyLockRecord>>('toy-lock.create', input); if (result.ok) lockRecords = [...lockRecords, result.value]; return result; },
-  unlock: async (id, candidate, surfaceId) => { const result = await bridgeRequest<LockAction<ToyLockRecord>>('toy-lock.unlock', { id, candidateBase64: btoa(String.fromCharCode(...candidate)), surfaceId }); if (result.ok) lockRecords = lockRecords.map((record) => record.id === id ? result.value : record); return result; },
+  unlock: async (id, candidate, surfaceId) => { const result = await bridgeRequest<LockAction<ToyLockRecord> & { waitCreated?: boolean; code?: string }>('toy-lock.unlock', { id, candidateBase64: btoa(String.fromCharCode(...candidate)), surfaceId }); if (result.ok) lockRecords = lockRecords.map((record) => record.id === id ? result.value : record); return result; },
   relock: async (id) => { const result = await bridgeRequest<LockAction<ToyLockRecord>>('toy-lock.relock', { id }); if (result.ok) lockRecords = lockRecords.map((record) => record.id === id ? result.value : record); return result; },
   remove: async (id) => { const result = await bridgeRequest<LockAction<{ removed: true }>>('toy-lock.remove', { id }); if (result.ok) lockRecords = lockRecords.filter((record) => record.id !== id); return result; },
   get recovery() { return lockRecovery; },
