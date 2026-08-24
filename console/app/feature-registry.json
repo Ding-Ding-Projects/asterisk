@@ -2288,7 +2288,7 @@
     },
     "built-in-authenticator": {
       "status": "implemented-unverified",
-      "note": "The built-in authenticator surface is mounted to the persisted vault-backed authenticator store, with redacted metadata, local code generation, pairing confirmation, and ordinary exports that omit secret material. Built-artifact interaction and focused checks remain unverified in this lane.",
+      "note": "The built-in authenticator surface is mounted to persisted metadata and an OS-backed vault, exposes only privileged current and next code snapshots, provides typed redacted history restore, and retains history warnings in the shared notification store. Built-artifact interaction and focused checks remain unverified in this lane.",
       "implementation": {
         "paths": [
           "app/renderer/src/authenticator-surface.tsx",
@@ -2298,6 +2298,8 @@
           "control-plane/authenticator-store.ts",
           "app/electron/credential-vault.ts",
           "app/renderer/src/destructive-action-gate.tsx",
+          "app/renderer/src/auth-notification-center.ts",
+          "app/renderer/src/notification-store.ts",
           "app/renderer/src/qr.ts"
         ],
         "symbols": [

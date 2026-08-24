@@ -38,6 +38,10 @@ export interface AuthenticatorCodeSnapshot {
   clockWarning?: string;
   observedAt: string;
 }
+export type AuthenticatorReconciliationReceipt =
+  | { status: 'reconciled'; affectedIds: ReadonlyArray<string> }
+  | { status: 'pending-vault-unavailable'; affectedIds: ReadonlyArray<string>; warning: string }
+  | { status: 'unresolved-legacy'; affectedIds: ReadonlyArray<string>; warning: string };
 
 export interface AuthenticatorRegistration {
   issuer: string;

@@ -13,6 +13,7 @@ import {
 } from './authenticator-surface-state';
 import './authenticator-surface.css';
 import { DestructiveActionGate } from './destructive-action-gate';
+import { publishAuthHistoryWarning } from './auth-notification-center';
 
 export interface AuthenticatorSurfaceProps {
   client: AuthenticatorClient;
@@ -91,7 +92,7 @@ export function AuthenticatorSurface({ client, history, onNotice }: Authenticato
     try {
       const result = await withDeadline(client.register(registration));
       if (!result.ok) throw new Error(result.message);
-      const historyReceipt = await recordAuthHistory(history, { action: 'created', subject: `Authenticator ${result.value.issuer} / ${result.value.account}`, stableRecordId: result.value.id, snapshot: { kind: 'authenticator-entry', entry: result.value } }); if (historyReceipt.warning) { setHistoryNotice(historyReceipt.warning); window.dispatchEvent(new CustomEvent('notification:history', { detail: { title: 'Authenticator history unavailable', body: historyReceipt.warning, state: 'warning' } })); onNotice?.(historyReceipt.warning); }
+      const historyReceipt = await recordAuthHistory(history, { action: 'created', subject: `Authenticator ${result.value.issuer} / ${result.value.account}`, stableRecordId: result.value.id, snapshot: { kind: 'authenticator-entry', entry: result.value } }); if (historyReceipt.warning) { setHistoryNotice(historyReceipt.warning); void publishAuthHistoryWarning(historyReceipt.warning); onNotice?.(historyReceipt.warning); }
       setPairing(undefined);
       setRegistration(EMPTY_REGISTRATION);
       setConfirmation('');
@@ -107,7 +108,7 @@ export function AuthenticatorSurface({ client, history, onNotice }: Authenticato
     try {
       const result = await withDeadline(client.confirmAndArm(entryId, confirmation));
       if (!result.ok) throw new Error(result.message);
-      const historyReceipt = await recordAuthHistory(history, { action: 'updated', subject: `Authenticator ${result.value.issuer} armed`, stableRecordId: result.value.id, snapshot: { kind: 'authenticator-entry', entry: result.value } }); if (historyReceipt.warning) { setHistoryNotice(historyReceipt.warning); window.dispatchEvent(new CustomEvent('notification:history', { detail: { title: 'Authenticator history unavailable', body: historyReceipt.warning, state: 'warning' } })); onNotice?.(historyReceipt.warning); }
+      const historyReceipt = await recordAuthHistory(history, { action: 'updated', subject: `Authenticator ${result.value.issuer} armed`, stableRecordId: result.value.id, snapshot: { kind: 'authenticator-entry', entry: result.value } }); if (historyReceipt.warning) { setHistoryNotice(historyReceipt.warning); void publishAuthHistoryWarning(historyReceipt.warning); onNotice?.(historyReceipt.warning); }
       setConfirmation('');
       await refresh();
       onNotice?.('Authenticator armed after local code confirmation.');
@@ -121,7 +122,7 @@ export function AuthenticatorSurface({ client, history, onNotice }: Authenticato
     try {
       const result = await withDeadline(client.remove(entry.id));
       if (!result.ok) throw new Error(result.message);
-      const historyReceipt = await recordAuthHistory(history, { action: 'deleted', subject: `Authenticator ${entry.issuer} / ${entry.account}`, stableRecordId: entry.id, snapshot: { kind: 'authenticator-entry-deleted', entry } }); if (historyReceipt.warning) { setHistoryNotice(historyReceipt.warning); window.dispatchEvent(new CustomEvent('notification:history', { detail: { title: 'Authenticator history unavailable', body: historyReceipt.warning, state: 'warning' } })); onNotice?.(historyReceipt.warning); }
+      const historyReceipt = await recordAuthHistory(history, { action: 'deleted', subject: `Authenticator ${entry.issuer} / ${entry.account}`, stableRecordId: entry.id, snapshot: { kind: 'authenticator-entry-deleted', entry } }); if (historyReceipt.warning) { setHistoryNotice(historyReceipt.warning); void publishAuthHistoryWarning(historyReceipt.warning); onNotice?.(historyReceipt.warning); }
       await refresh();
       return true;
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Authenticator could not be removed.'); }

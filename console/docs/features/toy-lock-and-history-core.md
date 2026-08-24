@@ -27,9 +27,9 @@ lockout progression and rolling-hour success timestamps. If that store is unavai
 ordinary clock remains. The public challenge model does not contain expected answers.
 
 The history store requires an executor that explicitly allows the `git` executable and a snapshot
-protector backed by a key reference in the operating-system credential vault. The currently mounted
-dispatcher provides neither. Calls therefore return an honest unavailable result until that wiring
-is added. There is no plaintext or memory-only fallback.
+protector backed by a key reference in the operating-system credential vault. The mounted desktop
+dispatcher supplies both and returns an explicit typed unavailable result when either cannot be used.
+There is no plaintext or memory-only fallback.
 
 ## Failure modes
 
