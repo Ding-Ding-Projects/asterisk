@@ -4,7 +4,6 @@
   "canonicalMatrix": "console/inventories/surface-completeness.json",
   "features": {
     "language-modes": {
-    "language-modes": {
       "status": "partial",
       "note": "site/app.js applyLanguage() (line 539) switches document.lang and preview copy between English, Cantonese and bilingual, wired from initSettings() language-mode select. This is a real, wired switch but only changes one preview string, not the whole site's rendered copy - most page text has no data-copy hook.",
       "implementation": {
@@ -89,7 +88,92 @@
         "sideBySide": null,
         "visualDiff": null
       }
-    }
+    },
+    "funny-levels": {
+      "status": "partial",
+      "note": "site/app.js initSettings() wires english-funny and cantonese-funny sliders to state.englishFunny/state.cantoneseFunny (line 895) and applyCopy() (line 654) renders COPY table entries through copyText(key), which is the mechanism a funny level would style, but no inspection found actual per-level copy variants defined for englishFunny/cantoneseFunny beyond the language switch itself.",
+      "implementation": {
+        "paths": [
+          "site/app.js",
+          "site/settings.html"
+        ],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "copyLevel",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "init",
+            "kind": "function"
+          }
+        ]
+      },
+      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "documentation": {
+        "path": "console/docs/platform/funny-levels.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "dialog-emojis": {
       "status": "absent",
@@ -305,7 +389,6 @@
       }
     },
     "scheduled-settings": {
-    "scheduled-settings": {
       "status": "partial",
       "note": "site/app.js initSettings() wires a schedule-enabled checkbox to state.scheduleEnabled, but no date/time rule editor, weekday selection, or external source integration was found - the checkbox exists with no scheduling surface behind it.",
       "implementation": {
@@ -390,7 +473,6 @@
         "sideBySide": null,
         "visualDiff": null
       }
-    }
     },
     "external-settings-sources": {
       "status": "absent",
@@ -535,7 +617,6 @@
       }
     },
     "regex-builder": {
-    "regex-builder": {
       "status": "implemented-unverified",
       "note": "site/app.js implements a real anchored regex builder: openRegex()/initRegex() (lines 808, 812) open a <dialog> attached to the triggering field (regex-target-label shows \"Attached to: <field>\"), support literal-insert buttons, i/m/u flags, and previewRegex() live matching, with applyRegex() writing the result back into the originating search field. Wired from every .regex-trigger button via initSearch() (line 807), including the settings search and documentation search.",
       "implementation": {
@@ -624,7 +705,167 @@
         "sideBySide": null,
         "visualDiff": null
       }
-    }
+    },
+    "non-blocking-notifications": {
+      "status": "implemented-unverified",
+      "note": "site/app.js implements notify()/notification history (renderNotifications, notification-history dialog) with bulk select/dismiss (initNotificationBulk, planBulk with destructive flag), a notification-open dialog, and export of notification history (notificationExportRows). Wired end to end from init() (line 1055).",
+      "implementation": {
+        "paths": [
+          "site/app.js"
+        ],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "notify",
+            "kind": "function"
+          },
+          {
+            "path": "site/app.js",
+            "name": "renderNotifications",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "init",
+            "kind": "function"
+          }
+        ]
+      },
+      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "documentation": {
+        "path": "console/docs/platform/non-blocking-notifications.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
+    },
+    "status-hub": {
+      "status": "absent",
+      "note": "site/status.html exists as a page shell but no live status-hub project, session card, or question-card logic was found in site/app.js.",
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "documentation": {
+        "path": "console/docs/platform/status-hub.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "material-appearance": {
       "status": "partial",
@@ -718,7 +959,6 @@
       }
     },
     "app-logo-customization": {
-    "app-logo-customization": {
       "status": "partial",
       "note": "site/app.js wires logo-file/logo-clear to loadLogo()/applyLogo() with a logo-status readout, storing the custom logo in localStorage. This is a real local-only upload and clear path, but there is no crop/fit/background editor, no multi-size generation, and no shipped preset gallery beyond the single custom-upload slot.",
       "implementation": {
@@ -808,7 +1048,253 @@
         "sideBySide": null,
         "visualDiff": null
       }
-    }
+    },
+    "local-file-converter": {
+      "status": "implemented-unverified",
+      "note": "The documentation site exposes converter.html with categorized local adapters, bounded byte inspection, a paged queue, cancellation, and an adjacent regex builder. This is implemented in site/app.js and converter.html but remains unverified because no build, browser session, or capture ran in this lane.",
+      "implementation": {
+        "paths": [
+          "site/app.js",
+          "site/converter.html"
+        ],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "initConverter",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [
+          "site/app.js"
+        ],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "init",
+            "kind": "function"
+          }
+        ]
+      },
+      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "documentation": {
+        "path": "console/docs/platform/local-file-converter.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
+    },
+    "ollama-suite-manager": {
+      "status": "implemented-unverified",
+      "note": "The documentation site exposes ollama.html as a browser-local loopback surface with explicit endpoint approval, bounded local API reads, pull and chat cancellation, and honest Unknown catalog completeness. It remains unverified because no build, browser session, or capture ran in this lane.",
+      "implementation": {
+        "paths": [
+          "site/app.js",
+          "site/ollama.html"
+        ],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "initOllama",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [
+          "site/app.js"
+        ],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "init",
+            "kind": "function"
+          }
+        ]
+      },
+      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "documentation": {
+        "path": "console/docs/platform/ollama-suite-manager.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
+    },
+    "browser-style-tabs": {
+      "status": "absent",
+      "note": "The site is a small multi-page static site (index/product/documentation/downloads/settings/status.html navigated as separate pages); no in-page browser-style tab strip, docking, or tab groups were found in site/app.js.",
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "documentation": {
+        "path": "console/docs/platform/browser-style-tabs.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "tab-groups-and-searches": {
       "status": "absent",
@@ -881,7 +1367,6 @@
         "visualDiff": null
       }
     },
-    "command-palette": {
     "command-palette": {
       "status": "partial",
       "note": "site/app.js implements openPalette() (line 816) opening a real <dialog id=\"command-palette\"> with a live-filtered palette-search field and renderPalette(), wired from a palette-open button and Ctrl+Shift+F was not confirmed as the activation key (only a button click and palette-search input were found) - the keyboard-shortcut activation contract is unverified.",
@@ -966,7 +1451,6 @@
         "sideBySide": null,
         "visualDiff": null
       }
-    }
     },
     "destructive-action-confirmation": {
       "status": "partial",
@@ -1256,7 +1740,6 @@
       }
     },
     "complete-exports": {
-    "complete-exports": {
       "status": "implemented-unverified",
       "note": "site/app.js implements a genuinely broad export pipeline: toJson/toJsonl/toYaml/toToml/toXml/toSql/toDelimited/toMarkdown/toHtml plus suitableFormats()/exportFilename()/download(), used by both initDocumentationExport() and the settings/notification export paths, with an explicit personalVocabulary:\"omitted\" marker in the settings export payload (line ~895) matching the export-honesty contract.",
       "implementation": {
@@ -1340,7 +1823,6 @@
         "sideBySide": null,
         "visualDiff": null
       }
-    }
     },
     "bulk-actions": {
       "status": "implemented-unverified",
@@ -1519,7 +2001,6 @@
       }
     },
     "responsive-sizing": {
-    "responsive-sizing": {
       "status": "absent",
       "note": "site/styles.css was not inspected for a systematic responsive strategy in this pass; no JS-level narrow-width handling (comparable to the app's \"narrow\" screen flag) was found in site/app.js.",
       "implementation": {
@@ -1589,7 +2070,92 @@
         "sideBySide": null,
         "visualDiff": null
       }
-    }
+    },
+    "personal-vocabulary-upload": {
+      "status": "implemented-unverified",
+      "note": "site/app.js wires vocabulary-file/vocabulary-clear to loadVocabulary()/applyVocabulary(), with bounded validation of replacement entries (from/to length limits, line ~924) and a vocabulary-status readout, storing the cache in localStorage under ding-pbx-vocabulary-cache.",
+      "implementation": {
+        "paths": [
+          "site/app.js",
+          "site/settings.html"
+        ],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "loadVocabulary",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "init",
+            "kind": "function"
+          }
+        ]
+      },
+      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "documentation": {
+        "path": "console/docs/platform/personal-vocabulary-upload.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "per-element-toy-locks": {
       "status": "absent",
@@ -1876,7 +2442,6 @@
       }
     },
     "attention-modes": {
-    "attention-modes": {
       "status": "implemented-unverified",
       "note": "site/app.js implements real ADHD/attention accommodations wired in initSettings(): reduceFlashing, simplifiedLanguage, extendedTimeouts, focus, timeAwareness, oneThing (with updateOneThingBanner and a current-task field), and momentum (initMomentum/checkMomentum/updateSessionTimer), all persisted through state.attention and off by default per DEFAULTS.",
       "implementation": {
@@ -1961,7 +2526,6 @@
         "sideBySide": null,
         "visualDiff": null
       }
-    }
     },
     "browser-extension-download-surfaces": {
       "status": "absent",
@@ -2192,7 +2756,6 @@
       }
     },
     "guided-forms": {
-    "guided-forms": {
       "status": "absent",
       "note": "No guided/picker-driven form beyond ordinary settings selects and file inputs was found; there is no enumerated-picker-over-freeform-text pattern comparable to the app's endpoint wizard.",
       "implementation": {
@@ -2262,7 +2825,162 @@
         "sideBySide": null,
         "visualDiff": null
       }
-    }
+    },
+    "bounded-overlays": {
+      "status": "implemented-unverified",
+      "note": "The regex builder (openRegex) and command palette (openPalette) both use native <dialog>.showModal(), which the browser bounds to the viewport and paints its own surface, and openRegex() explicitly labels which field it is attached to (\"Attached to: <field>\"). This satisfies the bounded/anchored-overlay contract for these two surfaces.",
+      "implementation": {
+        "paths": [
+          "site/app.js"
+        ],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "initCollapsibles",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "init",
+            "kind": "function"
+          }
+        ]
+      },
+      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "documentation": {
+        "path": "console/docs/platform/bounded-overlays.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
+    },
+    "context-menu-shortcuts": {
+      "status": "absent",
+      "note": "No context menu (oncontextmenu handling) exists anywhere on the site.",
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "documentation": {
+        "path": "console/docs/platform/context-menu-shortcuts.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "long-operation-progress": {
       "status": "absent",

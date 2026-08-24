@@ -1,5 +1,13 @@
 # Ding PBX delivery roadmap
 
+## 2026-08-23 integration lane
+
+- [x] Mount addressable converter, Ollama, offline docs, and changelog surfaces through `console/app/renderer/src/main.tsx` and `surface-mounts.tsx`.
+- [x] Register the converter catalog and PDF capability read seam in the local control plane, with unavailable picker and queue operations reported explicitly.
+- [x] Keep the Ollama mount honest when its privileged dispatcher is not registered, with no model, health, pull, chat, harness, or sample values assumed.
+- [x] Record converter and Ollama desktop and site rows as `implemented-unverified` in the feature registries and generated completeness matrix.
+- [ ] Register the remaining converter queue and file-picker handlers, then register the full local Ollama dispatcher and run the focused built-artifact verification.
+
 ## Delivery foundation
 
 - [x] Add a pinned, digest-verified, user-scoped Windows dependency bootstrap.

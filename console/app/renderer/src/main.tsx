@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { PbxAdminIntegratedApp } from './PbxAdminIntegratedApp';
 import { UpdateBanner } from './UpdateBanner';
+import { SurfaceMounts } from './surface-mounts';
 import { installHttpBridge, isHostedRuntime } from './bridge/http-bridge';
 import './styles.css';
 
@@ -35,6 +36,11 @@ async function boot() {
    * destinations; dropping the bootstrap would have served it in a browser with no
    * transport and no session check. Both are required, so both are kept. */
   createRoot(document.getElementById('root')!).render(<React.StrictMode><PbxAdminIntegratedApp /></React.StrictMode>);
+
+  const surfaceHost = document.createElement('div');
+  surfaceHost.id = 'mounted-surface-host';
+  document.body.appendChild(surfaceHost);
+  createRoot(surfaceHost).render(<React.StrictMode><SurfaceMounts /></React.StrictMode>);
 
   /* Mounted as its own root, deliberately outside the generated console shell: see
    * `UpdateBanner.tsx` for why a persistent, cross-screen banner has no home there. */

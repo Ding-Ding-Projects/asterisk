@@ -45,7 +45,7 @@ const featureDocs = new Set([
   'language-modes', 'funny-levels', 'dialog-emojis', 'school-mode', 'narration',
   'scheduled-settings', 'external-settings-sources', 'dim-sum-surprise', 'regex-builder',
   'non-blocking-notifications', 'status-hub', 'material-appearance', 'app-logo-customization',
-  'browser-style-tabs', 'tab-groups-and-searches', 'command-palette', 'destructive-action-confirmation',
+  'local-file-converter', 'ollama-suite-manager', 'browser-style-tabs', 'tab-groups-and-searches', 'command-palette', 'destructive-action-confirmation',
   'local-version-history', 'changelog-viewer', 'external-editor-handoff', 'complete-exports',
   'bulk-actions', 'accessibility', 'responsive-sizing', 'personal-vocabulary-upload',
   'per-element-toy-locks', 'support-tickets', 'unlock-ladder', 'built-in-authenticator',
@@ -59,7 +59,7 @@ const desktopStatus = {
   'language-modes': 'absent', 'funny-levels': 'absent', 'dialog-emojis': 'absent', 'school-mode': 'absent',
   narration: 'partial', 'scheduled-settings': 'absent', 'external-settings-sources': 'absent', 'dim-sum-surprise': 'absent',
   'regex-builder': 'partial', 'non-blocking-notifications': 'partial', 'status-hub': 'absent', 'material-appearance': 'partial',
-  'app-logo-customization': 'absent', 'local-file-converter': 'absent', 'ollama-suite-manager': 'absent',
+  'app-logo-customization': 'absent', 'local-file-converter': 'implemented-unverified', 'ollama-suite-manager': 'implemented-unverified',
   'browser-style-tabs': 'implemented-unverified', 'tab-groups-and-searches': 'partial', 'command-palette': 'partial',
   'destructive-action-confirmation': 'implemented-unverified', 'local-version-history': 'absent', 'changelog-viewer': 'partial',
   'external-editor-handoff': 'absent', 'complete-exports': 'partial', 'bulk-actions': 'partial', 'accessibility': 'absent',
@@ -75,8 +75,8 @@ const siteStatus = {
   'language-modes': 'partial', 'funny-levels': 'partial', 'dialog-emojis': 'absent', 'school-mode': 'absent',
   narration: 'absent', 'scheduled-settings': 'partial', 'external-settings-sources': 'absent', 'dim-sum-surprise': 'absent',
   'regex-builder': 'implemented-unverified', 'non-blocking-notifications': 'implemented-unverified', 'status-hub': 'absent',
-  'material-appearance': 'partial', 'app-logo-customization': 'partial', 'local-file-converter': 'absent',
-  'ollama-suite-manager': 'absent', 'browser-style-tabs': 'absent', 'tab-groups-and-searches': 'absent', 'command-palette': 'partial',
+  'material-appearance': 'partial', 'app-logo-customization': 'partial', 'local-file-converter': 'implemented-unverified',
+  'ollama-suite-manager': 'implemented-unverified', 'browser-style-tabs': 'absent', 'tab-groups-and-searches': 'absent', 'command-palette': 'partial',
   'destructive-action-confirmation': 'partial', 'local-version-history': 'absent', 'changelog-viewer': 'absent',
   'external-editor-handoff': 'absent', 'complete-exports': 'implemented-unverified', 'bulk-actions': 'implemented-unverified',
   accessibility: 'partial', 'responsive-sizing': 'absent', 'personal-vocabulary-upload': 'implemented-unverified',
@@ -130,6 +130,8 @@ const negativeCases = [
 /* These are exact owner symbols, not substring hints. A symbol is recorded only
  * when the source audit named the declaration or registration that owns it. */
 const implementationSymbols = {
+  'local-file-converter': [{ path: 'app/renderer/src/surface-mounts.tsx', name: 'ConverterSurface', kind: 'component' }],
+  'ollama-suite-manager': [{ path: 'app/renderer/src/surface-mounts.tsx', name: 'OllamaSuite', kind: 'component' }],
   narration: [{ path: 'app/renderer/src/narration.ts', name: 'Narrator', kind: 'class' }, { path: 'app/renderer/src/narration.ts', name: 'resolveVoiceStatus', kind: 'function' }],
   'regex-builder': [{ path: 'app/renderer/src/generated/console.tsx', name: 'applyTabFilter', kind: 'method' }],
   'non-blocking-notifications': [{ path: 'app/renderer/src/generated/console.tsx', name: 'toast', kind: 'method' }, { path: 'app/renderer/src/generated/console.tsx', name: 'fire', kind: 'method' }],
@@ -152,6 +154,8 @@ const implementationSymbols = {
 };
 
 const registrationSymbols = {
+  'local-file-converter': [{ path: 'app/renderer/src/main.tsx', name: 'SurfaceMounts', kind: 'mount' }],
+  'ollama-suite-manager': [{ path: 'app/renderer/src/main.tsx', name: 'SurfaceMounts', kind: 'mount' }],
   narration: [], 'regex-builder': [], 'non-blocking-notifications': [{ path: 'app/renderer/src/generated/console.tsx', name: 'ConsoleShell', kind: 'class' }],
   'material-appearance': [], 'browser-style-tabs': [{ path: 'app/renderer/src/generated/console.tsx', name: 'ConsoleShell', kind: 'class' }],
   'tab-groups-and-searches': [{ path: 'app/renderer/src/generated/console.tsx', name: 'ConsoleShell', kind: 'class' }],
@@ -165,6 +169,8 @@ const registrationSymbols = {
 };
 
 const siteImplementationSymbols = {
+  'local-file-converter': [{ path: 'site/app.js', name: 'initConverter', kind: 'function' }],
+  'ollama-suite-manager': [{ path: 'site/app.js', name: 'initOllama', kind: 'function' }],
   'language-modes': [{ path: 'site/app.js', name: 'applyLanguage', kind: 'function' }],
   'funny-levels': [{ path: 'site/app.js', name: 'copyLevel', kind: 'function' }],
   'scheduled-settings': [{ path: 'site/app.js', name: 'initSettings', kind: 'function' }],
@@ -183,6 +189,8 @@ const siteImplementationSymbols = {
   'collapsible-filters': [{ path: 'site/app.js', name: 'updateFilterStatus', kind: 'function' }],
 };
 const siteRegistrationSymbols = {
+  'local-file-converter': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
+  'ollama-suite-manager': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
   'language-modes': [{ path: 'site/app.js', name: 'init', kind: 'function' }], 'funny-levels': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
   'scheduled-settings': [{ path: 'site/app.js', name: 'init', kind: 'function' }], 'regex-builder': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
   'non-blocking-notifications': [{ path: 'site/app.js', name: 'init', kind: 'function' }], 'material-appearance': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
@@ -279,6 +287,26 @@ function rewriteRegistry(relativePath, surface, statuses) {
       captures: { state: 'not-run', currentCommit: null, paths: [] },
       designParity: { state: 'not-run', referenceRoute: null, builtRoute: surface === 'windows-console' ? 'desktop://console/main' : 'https://ding-ding-projects.github.io/asterisk/', tuple: { state: null, theme: null, viewport: null, scale: null }, rawCaptures: [], sideBySide: null, visualDiff: null },
     };
+    if (feature.id === 'local-file-converter' || feature.id === 'ollama-suite-manager') {
+      const entry = next.features[feature.id];
+      if (surface === 'windows-console') {
+        entry.implementation.paths = [
+          'app/renderer/src/surface-mounts.tsx',
+          feature.id === 'local-file-converter' ? 'app/renderer/src/converter-surface.tsx' : 'app/renderer/src/ollama-suite.tsx',
+        ];
+        entry.registration.paths = ['app/renderer/src/main.tsx', 'app/renderer/src/surface-mounts.tsx'];
+        entry.route = feature.id === 'local-file-converter' ? 'desktop://console/#surface=converter' : 'desktop://console/#surface=ollama';
+        entry.note = feature.id === 'local-file-converter'
+          ? 'The converter is mounted at #surface=converter through surface-mounts.tsx and the real control-plane catalog and PDF-capability seam in dispatch.ts. The source picker, queue mutations, and packaged-worker proof remain explicitly unavailable until their privileged handlers are registered; no source, output, or sample value is invented.'
+          : 'The Ollama surface is mounted at #surface=ollama through surface-mounts.tsx. Its client returns an honest bridge-not-registered state until the privileged local Ollama dispatcher is registered; no model, health, catalog, pull, chat, or harness value is assumed.';
+      } else {
+        entry.implementation.paths = ['site/app.js', feature.id === 'local-file-converter' ? 'site/converter.html' : 'site/ollama.html'];
+        entry.registration.paths = ['site/app.js'];
+        entry.note = feature.id === 'local-file-converter'
+          ? 'The documentation site exposes converter.html with categorized local adapters, bounded byte inspection, a paged queue, cancellation, and an adjacent regex builder. This is implemented in site/app.js and converter.html but remains unverified because no build, browser session, or capture ran in this lane.'
+          : 'The documentation site exposes ollama.html as a browser-local loopback surface with explicit endpoint approval, bounded local API reads, pull and chat cancellation, and honest Unknown catalog completeness. It remains unverified because no build, browser session, or capture ran in this lane.';
+      }
+    }
   }
   writeFileSync(resolve(root, relativePath), `${JSON.stringify(next, null, 2)}\n`, 'utf8');
 }

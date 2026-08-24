@@ -24,6 +24,8 @@ import type { ServerInventoryStore, SettingsSnapshotStore } from './index.js';
 import { atomicWriteFileSync } from './atomic-file.js';
 import type { ServerInventorySnapshot } from './server-inventory.js';
 import type { RawConfigReader } from './wsl-config-transport.js';
+import { ConverterRegistry } from './converter-registry.js';
+import { pdfCapabilities } from './converter-pdf.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
 import type { ChangePlan, ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
@@ -46,6 +48,9 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'daemon.status', 'daemon.start', 'daemon.stop', 'daemon.restart',
   'history.list', 'history.restore', 'media.list', 'media.upload', 'media.remove',
   'local-history.list', 'local-history.record', 'local-history.restore',
+  'converter.catalog', 'converter.pdf-capabilities', 'converter.sniff',
+  'converter.queue.create', 'converter.queue.enqueue-one', 'converter.queue.page',
+  'converter.queue.start', 'converter.queue.pause', 'converter.queue.resume', 'converter.queue.cancel',
 ]);
 
 function validateRequestSchema(request: ControlPlaneRequest): string | undefined {
@@ -80,6 +85,7 @@ export interface ControlPlaneDispatcherOptions {
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
   const { userDataPath, resourcesPath, hosted } = options;
   const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
+  const converterRegistry = ConverterRegistry.create();
   const targetDiscovery = new TargetDiscovery(processExecutor);
   const cliGateway = new LocalAsteriskCliGateway(processExecutor);
   const readings = new AsteriskReadings(cliGateway);
@@ -470,6 +476,18 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           message: `"${request.action}" manages a Windows WSL distribution and cannot run on a hosted server. ` +
             'Install and administer Asterisk on this VM directly; the console will connect to it as a target.',
         };
+      }
+
+      if (request.action === 'converter.catalog' || request.action === 'converter.pdf-capabilities') {
+        const registry = await converterRegistry;
+        if (request.action === 'converter.catalog') {
+          return {
+            ok: true,
+            requestId: request.requestId,
+            data: { categories: registry.categories(), formats: registry.formats(), adapters: registry.adapters() },
+          };
+        }
+        return { ok: true, requestId: request.requestId, data: pdfCapabilities(registry) };
       }
 
       if (request.action === 'runtime.status') {

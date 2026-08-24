@@ -1,5 +1,11 @@
 # Ding PBX delivery handoff
 
+## Surface mount integration, 2026-08-23
+
+The integration lane added `console/app/renderer/src/surface-mounts.tsx` and mounted it from `main.tsx` as an addressable hash route. `#surface=converter` renders the real converter component and reads its catalog and PDF capability evidence through the local control-plane dispatcher. Picker, queue mutation, and packaged-worker proof operations still return explicit unavailable receipts because those handlers are not registered. `#surface=ollama` renders the real Ollama component and reports a typed `bridge-not-registered` state until its privileged dispatcher is registered. `#surface=docs` and `#surface=changelog` render the bundled documentation and changelog components.
+
+The desktop and Pages feature registries, plus `console/inventories/surface-completeness.json`, record the converter and Ollama rows as `implemented-unverified`. No tests, lint, type checks, builds, packaging, UI runs, captures, or Lowlevel work ran in this lane. The next owner must register the remaining converter and Ollama handlers, then run the focused checks and built-artifact interaction proof.
+
 ## Scope
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.

@@ -26,7 +26,12 @@ export type ControlPlaneAction =
   /* Durable renderer settings (appearance, personal vocabulary) -- see
    * `control-plane/settings-store.ts`. The renderer's own `localStorage` is in-memory
    * only for a `file://` origin and never survives a relaunch. */
-  | 'settings.snapshot' | 'settings.write' | 'settings.remove';
+  | 'settings.snapshot' | 'settings.write' | 'settings.remove'
+  /* Local converter catalog and capability evidence. The queue and file-picker actions
+   * use the same namespace so the renderer cannot invent a parallel transport. */
+  | 'converter.catalog' | 'converter.pdf-capabilities' | 'converter.sniff'
+  | 'converter.queue.create' | 'converter.queue.enqueue-one' | 'converter.queue.page'
+  | 'converter.queue.start' | 'converter.queue.pause' | 'converter.queue.resume' | 'converter.queue.cancel';
 
 /** The screens a `pbx.read` can answer, each backed by read-only Asterisk CLI output. */
 export type PbxReadView =
