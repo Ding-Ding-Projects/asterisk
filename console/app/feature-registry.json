@@ -882,7 +882,7 @@
     },
     "app-logo-customization": {
       "status": "implemented-unverified",
-      "note": "Local logo validation, private converted-asset cache, desktop picker, privileged bridge actions, renderer lifecycle, reachable settings route, and a packaged sharp-backed isolated decoder worker are mounted. Decoder reopen and cache validation remain unverified until the build path runs.",
+      "note": "Local logo validation, private converted-asset cache, desktop picker, privileged bridge actions, renderer lifecycle, reachable settings route, packaged sharp-backed isolated decoder worker, health handshake, locked-package manifest, and Windows Job Object boundary are mounted. Built interaction remains unverified.",
       "implementation": {
         "paths": [
           "shared/logo.ts",

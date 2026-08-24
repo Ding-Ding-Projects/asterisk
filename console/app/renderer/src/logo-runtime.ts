@@ -27,7 +27,7 @@ export interface LogoRuntimeState {
   readonly detail: string;
   readonly active: ActiveLogo;
   readonly decoderAvailable?: boolean;
-  readonly decoderHealth?: { workerVersion: string; sharpVersion: string; peakMemoryBytes: number };
+  readonly decoderHealth?: { workerVersion: string; workerRevision: string; sharpVersion: string; sharpIntegrity: string; formats: readonly string[]; peakMemoryBytes: number };
 }
 
 function requestId(): string {
@@ -140,8 +140,12 @@ export class LogoRuntime {
   async load(): Promise<LogoRuntimeState> {
     this.publish({ ...this.state, status: 'reading', detail: 'Reading the validated local logo cache.' });
     const decoderResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.decoder.status' });
-    const decoderData = decoderResponse.data as { available?: unknown; workerVersion?: unknown; sharpVersion?: unknown; peakMemoryBytes?: unknown } | undefined;
-    this.state = { ...this.state, decoderAvailable: decoderResponse.ok && decoderData?.available === true, ...(typeof decoderData?.workerVersion === 'string' && typeof decoderData.sharpVersion === 'string' && typeof decoderData.peakMemoryBytes === 'number' ? { decoderHealth: { workerVersion: decoderData.workerVersion, sharpVersion: decoderData.sharpVersion, peakMemoryBytes: decoderData.peakMemoryBytes } } : {}) };
+    const decoderData = decoderResponse.data as { available?: unknown; workerVersion?: unknown; workerRevision?: unknown; sharpVersion?: unknown; sharpIntegrity?: unknown; formats?: unknown; peakMemoryBytes?: unknown } | undefined;
+    this.state = { ...this.state, decoderAvailable: decoderResponse.ok && decoderData?.available === true, ...(typeof decoderData?.workerVersion === 'string' && typeof decoderData.workerRevision === 'string' && typeof decoderData.sharpVersion === 'string' && typeof decoderData.sharpIntegrity === 'string' && Array.isArray(decoderData.formats) && typeof decoderData.peakMemoryBytes === 'number' ? { decoderHealth: { workerVersion: decoderData.workerVersion, workerRevision: decoderData.workerRevision, sharpVersion: decoderData.sharpVersion, sharpIntegrity: decoderData.sharpIntegrity, formats: decoderData.formats.map(String), peakMemoryBytes: decoderData.peakMemoryBytes } } : {}) };
+    if (this.state.decoderAvailable !== true) {
+      this.publish({ ...this.state, status: 'unavailable', detail: typeof (decoderData as { reason?: unknown } | undefined)?.reason === 'string' ? String((decoderData as { reason: string }).reason) : 'The isolated logo decoder is unavailable; the previous active logo remains available for retry.' });
+      return this.state;
+    }
     const settingsResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'settings.snapshot' });
     const stored = settingsResponse.ok ? (settingsResponse.data as { values?: Record<string, string> } | undefined)?.values?.['logo.ui-v1'] : undefined;
     if (stored) {

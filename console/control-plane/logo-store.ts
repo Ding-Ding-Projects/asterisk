@@ -5,7 +5,7 @@
  * selected source filename and source bytes are never written to this store,
  * history, exports, or diagnostics.
  */
-import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, open, rename, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join, parse, resolve, sep } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import {
@@ -120,7 +120,7 @@ function receiptShape(value: unknown): value is LogoOutputReceipt {
   return (target.format === 'png' || target.format === 'jpeg' || target.format === 'webp')
     && Number.isInteger(target.width) && Number.isInteger(target.height)
     && typeof target.alpha === 'boolean'
-    && typeof value.bytes === 'number' && Number.isInteger(value.bytes) && value.bytes > 0
+    && typeof value.bytes === 'number' && Number.isInteger(value.bytes) && value.bytes > 0 && value.bytes <= LOGO_MAX_OUTPUT_BYTES
     && typeof value.sha256 === 'string' && /^[0-9a-f]{64}$/iu.test(value.sha256)
     && typeof value.signature === 'string' && value.signature.length > 0 && value.signature.length <= 128
     && value.decoder === 'isolated'
@@ -174,6 +174,22 @@ async function validAssetBytes(bytes: Uint8Array, metadata: LogoCacheAssetMetada
     && metadata.receipt.roundTripVerified === true;
 }
 
+async function readExactFile(path: string, maxBytes: number, expectedBytes?: number): Promise<Uint8Array | undefined> {
+  let handle: Awaited<ReturnType<typeof open>> | undefined;
+  try {
+    handle = await open(path, 'r');
+    const info = await handle.stat();
+    if (!info.isFile() || info.size > maxBytes || (expectedBytes !== undefined && info.size !== expectedBytes)) return undefined;
+    const bytes = new Uint8Array(info.size);
+    const result = await handle.read(bytes, 0, info.size, 0);
+    return result.bytesRead === info.size ? bytes : undefined;
+  } catch {
+    return undefined;
+  } finally {
+    await handle?.close().catch(() => undefined);
+  }
+}
+
 function assetMetadata(asset: LogoEncodedAsset): LogoCacheAssetMetadata {
   return {
     filename: `${targetKey(asset)}.${asset.target.format}`,
@@ -203,15 +219,10 @@ export class LogoStore {
   }
 
   async read(): Promise<LogoCacheRecord | undefined> {
+    const manifestBytes = await readExactFile(join(this.root, 'manifest.json'), LOGO_MAX_MANIFEST_BYTES);
+    if (!manifestBytes) return undefined;
     let raw: string;
-    try {
-      const manifestPath = join(this.root, 'manifest.json');
-      const info = await stat(manifestPath);
-      if (!info.isFile() || info.size > LOGO_MAX_MANIFEST_BYTES) return undefined;
-      raw = await readFile(manifestPath, 'utf8');
-    } catch {
-      return undefined;
-    }
+    try { raw = new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes); } catch { return undefined; }
     if (Buffer.byteLength(raw, 'utf8') > LOGO_MAX_MANIFEST_BYTES || hasDuplicateJsonKeys(raw)) return undefined;
     let parsed: unknown;
     try {
@@ -224,8 +235,8 @@ export class LogoStore {
     if (!cropCheck.ok) return undefined;
     for (const asset of parsed.assets) {
       try {
-        const bytes = new Uint8Array(await readFile(this.assetPath(asset.filename)));
-        if (!(await validAssetBytes(bytes, asset, this.reopen))) return undefined;
+        const bytes = await readExactFile(this.assetPath(asset.filename), LOGO_MAX_OUTPUT_BYTES, asset.receipt.bytes);
+        if (!bytes || !(await validAssetBytes(bytes, asset, this.reopen))) return undefined;
       } catch {
         return undefined;
       }
@@ -237,8 +248,8 @@ export class LogoStore {
     const metadata = record.assets.find((asset) => asset.filename === filename);
     if (!metadata) return undefined;
     try {
-      const bytes = new Uint8Array(await readFile(this.assetPath(filename)));
-      if (!(await validAssetBytes(bytes, metadata, this.reopen))) return undefined;
+      const bytes = await readExactFile(this.assetPath(filename), LOGO_MAX_OUTPUT_BYTES, metadata.receipt.bytes);
+      if (!bytes || !(await validAssetBytes(bytes, metadata, this.reopen))) return undefined;
       return bytes;
     } catch {
       return undefined;

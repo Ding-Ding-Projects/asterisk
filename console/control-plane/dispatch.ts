@@ -147,6 +147,9 @@ export interface ControlPlaneDispatcherOptions {
   /** A vault reference reader. The token itself never enters this dispatcher. */
   externalSettingsVault?: VaultReferenceReader;
   logoDecoderWorkerPath?: string;
+  logoDecoderManifestPath?: string;
+  logoDecoderPackageLockPath?: string;
+  logoDecoderJobScriptPath?: string;
 }
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
@@ -164,8 +167,13 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
   };
   const candidateDecoderPath = options.logoDecoderWorkerPath && existsSync(options.logoDecoderWorkerPath)
     ? options.logoDecoderWorkerPath
-    : join(import.meta.dirname, 'logo-decoder-worker.js');
-  const logoDecoder = existsSync(candidateDecoderPath) ? createIsolatedLogoDecoder({ workerPath: candidateDecoderPath }) : undefined;
+    : join(import.meta.dirname, 'logo-decoder-worker.mjs');
+  const candidateManifestPath = options.logoDecoderManifestPath ?? join(import.meta.dirname, 'logo-decoder-manifest.json');
+  const candidatePackageLockPath = options.logoDecoderPackageLockPath ?? join(import.meta.dirname, 'package-lock.json');
+  const boundaryReady = process.platform !== 'win32' || (Boolean(options.logoDecoderJobScriptPath) && existsSync(options.logoDecoderJobScriptPath!));
+  const logoDecoder = boundaryReady && existsSync(candidateDecoderPath) && existsSync(candidateManifestPath) && existsSync(candidatePackageLockPath)
+    ? createIsolatedLogoDecoder({ workerPath: candidateDecoderPath, manifestPath: candidateManifestPath, packageLockPath: candidatePackageLockPath, jobScriptPath: options.logoDecoderJobScriptPath })
+    : undefined;
   const logoStore = new LogoStore({ rootPath: join(userDataPath, 'logo-cache'), reopen: logoDecoder?.reopen });
   const logoHandlers = createLogoConversionHandlers(logoDecoder, logoStoreHandlers(logoStore));
   const resolveExternalHost = async (hostname: string, signal: AbortSignal): Promise<readonly string[]> => {
@@ -652,7 +660,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (!logoDecoder) return { ok: true, requestId: request.requestId, data: { available: false, reason: 'The packaged isolated decoder worker is unavailable.' } };
         try {
           const health = await logoDecoder.health();
-          return { ok: true, requestId: request.requestId, data: { available: true, workerVersion: health.workerVersion, sharpVersion: health.sharpVersion, peakMemoryBytes: health.peakMemoryBytes } };
+          return { ok: true, requestId: request.requestId, data: { available: true, workerVersion: health.workerVersion, workerRevision: health.workerRevision, sharpVersion: health.sharpVersion, sharpIntegrity: health.sharpIntegrity, formats: health.formats, peakMemoryBytes: health.peakMemoryBytes } };
         } catch (error) {
           return { ok: true, requestId: request.requestId, data: { available: false, reason: error instanceof Error ? error.message : 'The decoder health handshake failed.' } };
         }

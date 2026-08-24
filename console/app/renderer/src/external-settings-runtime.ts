@@ -58,11 +58,23 @@ function parseWireState(value: unknown): ExternalRuleState | undefined {
 export class ExternalSettingsRuntime {
   private readonly states = new Map<string, ExternalRuleState>();
   private readonly inFlight = new Map<string, Promise<ExternalRuleState>>();
+  private readonly listeners = new Set<(states: ReadonlyArray<ExternalRuleState>) => void>();
   constructor(private readonly bridge: ExternalSettingsRuntimeBridge) {}
 
   state(ruleId: string): ExternalRuleState | undefined { return this.states.get(ruleId); }
 
   all(): ReadonlyArray<ExternalRuleState> { return [...this.states.values()]; }
+
+  subscribe(listener: (states: ReadonlyArray<ExternalRuleState>) => void): () => void {
+    this.listeners.add(listener);
+    listener(this.all());
+    return () => this.listeners.delete(listener);
+  }
+
+  private emit(): void {
+    const states = this.all();
+    for (const listener of this.listeners) listener(states);
+  }
 
   async refresh(ruleId: string, source: ExternalSettingsSource, baseAssignments: readonly ScheduleAssignment[], force = false): Promise<ExternalRuleState> {
     const active = this.inFlight.get(ruleId);
@@ -72,6 +84,7 @@ export class ExternalSettingsRuntime {
       const parsed = response.ok ? parseWireState(response.data) : undefined;
       const state = parsed ?? { ruleId, status: 'failed' as const, active: false, isFallback: true, isStale: false, assignmentCount: 0, lastError: response.message ?? 'The external settings source did not answer.' };
       this.states.set(ruleId, state);
+      this.emit();
       return state;
     })();
     this.inFlight.set(ruleId, task);
@@ -80,10 +93,15 @@ export class ExternalSettingsRuntime {
 
   async readState(ruleIds: readonly string[] = this.all().map((item) => item.ruleId)): Promise<ReadonlyArray<ExternalRuleState>> {
     for (const ruleId of ruleIds) {
-      if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u.test(ruleId)) continue;
+      if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u.test(ruleId)) {
+        this.states.set(ruleId, { ruleId, status: 'failed', active: false, isFallback: true, isStale: false, assignmentCount: 0, lastError: 'The rule id was invalid, so no external read was attempted.' });
+        this.emit();
+        continue;
+      }
       const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'external-settings.state', payload: { ruleId } });
       const parsed = response.ok ? parseWireState(response.data) : undefined;
-      if (parsed) this.states.set(parsed.ruleId, parsed);
+      this.states.set(ruleId, parsed ?? { ruleId, status: 'offline', active: false, isFallback: true, isStale: false, assignmentCount: 0, lastError: response.message ?? 'No valid external state was returned for this rule.' });
+      this.emit();
     }
     return this.all();
   }

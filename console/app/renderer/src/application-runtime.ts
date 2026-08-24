@@ -69,11 +69,29 @@ export async function mountApplicationRuntime(): Promise<ApplicationRuntime> {
   await runtime.durable.bootstrap();
   runtime.settings.hydrate();
   runtime.settings.subscribe(applySettings);
+  let scheduleFingerprint = '';
+  const refreshExternal = async () => {
+    const rules = runtime.settings.snapshot().base.schedule.rules.filter((rule) => rule.source.kind !== 'local');
+    const ids = rules.map((rule) => rule.id);
+    await runtime.external.readState(ids);
+    for (const rule of rules) {
+      const state = await runtime.external.refresh(rule.id, rule.source, rule.assignments);
+      runtime.settings.setScheduleSourceState(rule.id, state.active);
+    }
+  };
+  const onSettings = () => {
+    const fingerprint = JSON.stringify(runtime.settings.snapshot().base.schedule.rules);
+    if (fingerprint === scheduleFingerprint) return;
+    scheduleFingerprint = fingerprint;
+    void refreshExternal();
+  };
+  runtime.settings.subscribe(onSettings);
+  void refreshExternal();
   runtime.logo.mountDocument(document);
   const engine = speechEngine();
   if (engine) runtime.settings.mountNarration(engine);
   window.setTimeout(() => applySettings(runtime.settings.snapshot()), 0);
-  window.setInterval(() => runtime.settings.tick(), 30_000);
+  window.setInterval(() => { runtime.settings.tick(); void refreshExternal(); }, 60_000);
   void runtime.logo.load();
   return runtime;
 }

@@ -2,6 +2,7 @@ import sharp from 'sharp';
 import { createInterface } from 'node:readline';
 
 if (!process.argv.includes('--no-network')) process.exit(78);
+const WORKER_REVISION = 'logo-worker-2026-08-23-v4';
 
 type Target = { format: 'png' | 'jpeg' | 'webp'; width: number; height: number; alpha: boolean };
 type Crop = { fit: 'contain' | 'cover' | 'fill'; crop: { x: number; y: number; width: number; height: number }; background: { kind: 'transparent' } | { kind: 'solid'; color: string } };
@@ -24,14 +25,22 @@ async function reopen(bytes: Buffer, target: Target): Promise<Record<string, unk
   const alpha = alphaFor(target.format, metadata.channels);
   if (format !== target.format || metadata.width !== target.width || metadata.height !== target.height || alpha !== target.alpha || (metadata.pages ?? 1) !== 1) throw new Error('The isolated decoder reopen did not match the requested output.');
   if (decoded.data.byteLength > 64 * 1024 * 1024) throw new Error('The isolated reopen exceeded its decoded memory bound.');
-  return { ok: true, inspection: { format, width: metadata.width, height: metadata.height, frames: 1, animated: false, alpha, decodedBytes: decoded.data.byteLength, signature: signature(target.format) }, roundTripVerified: true, peakMemoryBytes: Math.max(0, peakRss - baselineRss), workerVersion: process.version, sharpVersion: (sharp.versions as Record<string, string>).sharp ?? 'unknown' };
+  return { ok: true, inspection: { format, width: metadata.width, height: metadata.height, frames: 1, animated: false, alpha, decodedBytes: decoded.data.byteLength, signature: signature(target.format) }, roundTripVerified: true, peakMemoryBytes: Math.max(0, peakRss - baselineRss), workerVersion: process.version, workerRevision: WORKER_REVISION, sharpVersion: (sharp.versions as Record<string, string>).sharp ?? 'unknown' };
 }
 
 async function health(): Promise<Record<string, unknown>> {
   const onePixelPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
   const decoded = await sharp(onePixelPng, { animated: false, limitInputPixels: 16_000_000, failOn: 'error' }).raw().toBuffer({ resolveWithObject: true });
   if (decoded.data.byteLength < 1) throw new Error('The isolated decoder health decode was empty.');
-  return { ok: true, workerVersion: process.version, sharpVersion: (sharp.versions as Record<string, string>).sharp ?? 'unknown', peakMemoryBytes: Math.max(0, peakRss - baselineRss) };
+  const formats: string[] = [];
+  for (const target of [{ format: 'png', alpha: true }, { format: 'jpeg', alpha: false }, { format: 'webp', alpha: true }] as const) {
+    let image = sharp(onePixelPng, { animated: false, limitInputPixels: 16_000_000, failOn: 'error' }).resize(1, 1, { fit: 'fill' });
+    if (target.alpha) image = image.ensureAlpha(); else image = image.removeAlpha();
+    const bytes = target.format === 'png' ? await image.png().toBuffer() : target.format === 'jpeg' ? await image.jpeg().toBuffer() : await image.webp().toBuffer();
+    await reopen(bytes, { format: target.format, width: 1, height: 1, alpha: target.alpha });
+    formats.push(target.format);
+  }
+  return { ok: true, workerVersion: process.version, workerRevision: WORKER_REVISION, sharpVersion: (sharp.versions as Record<string, string>).sharp ?? 'unknown', peakMemoryBytes: Math.max(0, peakRss - baselineRss), formats };
 }
 
 async function convert(input: Record<string, unknown>): Promise<Record<string, unknown>> {

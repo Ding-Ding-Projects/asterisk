@@ -7,6 +7,7 @@
 - [x] Record exact documentation and feature-registry status, including the unavailable decoder and absent OS-vault reader.
 - [x] Mount the hydrated settings route, logo lifecycle, schedule editor, external-source runtime, and OS-backed vault reader.
 - [x] Add the declared `sharp` dependency, isolated decoder worker, resource packaging entries, privileged reopen validation, and internal-only cache writes.
+- [x] Add bounded decoder health, worker revision and locked-package integrity checks, Windows Job Object memory enforcement, per-rule refresh lifecycle, and destructive vault-reference confirmation.
 - [ ] Run focused checks and produce built-artifact evidence for the packaged decoder, vault enrollment, titlebar logo, and effective settings consumers.
 
 ## 2026-08-23 integration lane

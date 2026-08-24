@@ -13,12 +13,18 @@ extraResources:
     to: asterisk/asterisk-wsl-rootfs.json
   - from: resources/update-manifest.json
     to: update-manifest.json
-  - from: dist-electron/control-plane/logo-decoder-worker.js
-    to: logo-decoder/logo-decoder-worker.js
+  - from: control-plane/logo-decoder-worker.mjs
+    to: logo-decoder/logo-decoder-worker.mjs
   - from: node_modules/sharp
     to: logo-decoder/node_modules/sharp
   - from: node_modules/@img
     to: logo-decoder/node_modules/@img
+  - from: resources/logo-decoder-manifest.json
+    to: logo-decoder/logo-decoder-manifest.json
+  - from: control-plane/logo-worker-job.ps1
+    to: logo-decoder/logo-worker-job.ps1
+  - from: package-lock.json
+    to: logo-decoder/package-lock.json
 win:
   target: squirrel
   icon: assets/icon.png

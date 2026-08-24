@@ -49,8 +49,11 @@ export interface IsolatedLogoDecoderOutput {
 
 export interface IsolatedLogoDecoderHealth {
   readonly workerVersion: string;
+  readonly workerRevision: string;
   readonly sharpVersion: string;
   readonly peakMemoryBytes: number;
+  readonly formats: readonly string[];
+  readonly sharpIntegrity: string;
 }
 
 export interface IsolatedLogoDecoder {
