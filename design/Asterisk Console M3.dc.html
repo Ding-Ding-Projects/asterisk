@@ -2224,6 +2224,32 @@ const SCREENS = {
       ctl('h_announce','Announcement every','slider',30,{ min:0, max:300, step:15, unit:'s' }),
       ctl('h_volume','Volume trim','slider',0,{ min:-20, max:10, unit:' dB' })
     ]}] },
+  iaxpeers:{ rail:'pbx', icon:'swap_horiz', label:'IAX peers', badge:'', title:'IAX peers', file:'iax.conf', kind:'generic',
+    sub:'IAX2 peers, users and friends. The secret is write-only: this screen can set one and can never show you the one already there, which is why there is no field displaying it.',
+    groups:[{ title:'Identity', desc:'What this peer is and where it lives.', ctls:[
+      ctl('ix_type','type','segmented','friend',{ options:['user','peer','friend'] }),
+      ctl('ix_host','host','text','',{ placeholder:'dynamic', info:'An address, or dynamic when the far end registers to you.' }),
+      ctl('ix_username','username','text','',{ placeholder:'asterisk' }),
+      ctl('ix_port','port','stepper',4569,{ min:1, max:65535, info:'IAX2 is 4569 by default; the sample shows 5036 for a second instance.' })
+    ]},
+    { title:'Call handling', desc:'Transfers, liveness and call-token validation.', ctls:[
+      ctl('ix_transfer','transfer','segmented','yes',{ options:['no','yes','mediaonly'], info:'Native IAX2 transfer. mediaonly keeps the signalling here and moves only the audio.' }),
+      ctl('ix_qualify','qualify','text','',{ placeholder:'yes', info:'yes, no, or a millisecond threshold.' }),
+      ctl('ix_trunk','trunk','switch',false,{ info:'IAX2 trunking multiplexes several calls into one stream to this host.' }),
+      ctl('ix_calltoken','requirecalltoken','segmented','yes',{ options:['no','yes','auto'], info:'Call-token validation resists spoofed call setup. auto requires it only from peers known to support it. Turning it off weakens that protection.' })
+    ]},
+    { title:'Media', desc:'Codecs offered to this peer, in order.', ctls:[
+      ctl('ix_codecs','Allowed codecs','order',['ulaw','alaw'],{ pool:['opus','g722','ulaw','alaw','g729','gsm','ilbc','speex'], info:'Written as disallow=all followed by the allow list, which is what makes an allow list mean anything.' })
+    ]},
+    { title:'Routing & accounting', desc:'Where calls land and how they are recorded.', ctls:[
+      ctl('ix_context','context','text','',{ placeholder:'from-internal', info:'The dialplan context inbound calls enter. iax.conf permits several; the first is the default.' }),
+      ctl('ix_accountcode','accountcode','text','',{ placeholder:'lss0101' }),
+      ctl('ix_mailbox','mailbox','text','',{ placeholder:'1234' })
+    ]},
+    { title:'Credential', desc:'Write-only. Setting a secret replaces whatever is there; nothing on this screen can read one back.', ctls:[
+      ctl('ix_secret_set','Set a new secret','switch',false,{ info:'Leave this off and the existing secret is left exactly as it is. Switch it on and a strong secret is generated, written once, and shown once — this console never stores or redisplays it.' })
+    ]}]
+  },
   fcodes:{ rail:'pbx', icon:'dialpad', label:'Feature codes', badge:'', title:'Feature codes', file:'features.conf', kind:'generic',
     sub:'The digits a caller presses mid-call, and the transfer behaviour around them. These write features.conf directly. Every sequence here is free text because Asterisk accepts any digit string including * and #, and a picker cannot know what a site has standardised on -- but a control left untouched writes nothing at all.',
     groups:[{ title:'In-call feature map', desc:'The [featuremap] section. A caller presses these during a call.', ctls:[
@@ -2586,7 +2612,7 @@ const DOCS = {
 
 const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
-const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
+const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },

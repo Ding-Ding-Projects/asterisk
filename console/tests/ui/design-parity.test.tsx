@@ -25,18 +25,18 @@ function renderDestination(id: string, overrides: Record<string, unknown> = {}):
 
 const strip = (markup: string) => markup.replace(/<[^>]*>/g, ' ').replace(/&#x27;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/\s+/g, ' ');
 
-/* 35 rather than 34 since the Feature codes destination landed on the pbx rail, taking
- * it from 8 to 9. The count is pinned deliberately: it is what noticed the addition. */
+/* 36 rather than 34: the Feature codes and IAX peers destinations both landed on the
+ * pbx rail, taking it from 8 to 10. The count is pinned deliberately: it is what noticed the addition. */
 test('the design reference supplies every rail and destination', () => {
-  assert.equal(ORDER.length, 35);
-  assert.equal(destinations.length, 35);
+  assert.equal(ORDER.length, 36);
+  assert.equal(destinations.length, 36);
   assert.deepEqual(rails.map((rail) => rail.id), ['pbx', 'media', 'data', 'sys', 'agent', 'app']);
   assert.deepEqual(
     rails.map((rail) => destinations.filter((destination) => destination.rail === rail.id).length),
-    [9, 4, 2, 4, 7, 9],
+    [10, 4, 2, 4, 7, 9],
   );
   assert.equal(RAIL.length, 6);
-  assert.equal(Object.keys(SCREENS).length, 35);
+  assert.equal(Object.keys(SCREENS).length, 36);
 });
 
 test('the design audit baseline counts survive compilation', () => {

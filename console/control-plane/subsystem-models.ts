@@ -660,6 +660,29 @@ export interface IaxPeerView {
   trunk?: string;
   /** iax.conf.sample: ";qualify=yes ; Make sure this peer is alive." */
   qualify?: string;
+  /** iax.conf.sample line 533-534: ";transfer=no" / ";transfer=mediaonly". */
+  transfer?: string;
+  /** iax.conf.sample: ";port=5036". */
+  port?: string;
+  /** iax.conf.sample: ";disallow=g723.1" -- repeatable, same as PJSIP. */
+  disallow: string[];
+  /** iax.conf.sample: ";allow=all" -- repeatable and order-significant. */
+  allow: string[];
+  /** iax.conf.sample: ";accountcode=lss0101". */
+  accountcode?: string;
+  /** iax.conf.sample: ";mailbox=1234 ; Notify about mailbox 1234". */
+  mailbox?: string;
+  /** iax.conf.sample line 418-423: ";requirecalltoken=no" / "=auto"; peer/user/friend
+   *  definitions only. Distinct from the [general] key of the same name above. */
+  requirecalltoken?: string;
+  /** iax.conf.sample: ";setvar=NAME=value" -- repeatable, one channel variable each. */
+  setvar: string[];
+  /** iax.conf.sample: ";username=asterisk". */
+  username?: string;
+  /** iax.conf.sample: ";secret=markpasswd". A credential: the console writes it and
+   *  never reads it back to any surface. Parsed only so a save cannot silently drop
+   *  the line already in the file. */
+  secret?: string;
 }
 
 export interface IaxView {
@@ -706,6 +729,16 @@ export function parseIax(value: ConfigValue): IaxView {
       deny: entryValues(peerSection, "deny"),
       trunk: entryValue(peerSection, "trunk"),
       qualify: entryValue(peerSection, "qualify"),
+      transfer: entryValue(peerSection, "transfer"),
+      port: entryValue(peerSection, "port"),
+      disallow: entryValues(peerSection, "disallow"),
+      allow: entryValues(peerSection, "allow"),
+      accountcode: entryValue(peerSection, "accountcode"),
+      mailbox: entryValue(peerSection, "mailbox"),
+      requirecalltoken: entryValue(peerSection, "requirecalltoken"),
+      setvar: entryValues(peerSection, "setvar"),
+      username: entryValue(peerSection, "username"),
+      secret: entryValue(peerSection, "secret"),
     }));
   return { general: { ...view, bindaddr }, peers, rest: value };
 }
@@ -765,7 +798,9 @@ export function validateIax(view: IaxView): Finding[] {
 }
 
 const IAX_GENERAL_MANAGED_KEYS: readonly string[] = [...IAX_GENERAL_SCALAR_KEYS, "bindaddr"];
-const IAX_PEER_MANAGED_KEYS = ["type", "host", "context", "auth", "permit", "deny", "trunk", "qualify"] as const;
+const IAX_PEER_MANAGED_KEYS = ["type", "host", "context", "auth", "permit", "deny", "trunk", "qualify",
+  "transfer", "port", "disallow", "allow", "accountcode", "mailbox", "requirecalltoken", "setvar",
+  "username", "secret"] as const;
 
 export function toConfigValueIax(view: IaxView): ConfigValue {
   const existingGeneral = section(view.rest, "general");
@@ -796,6 +831,26 @@ export function toConfigValueIax(view: IaxView): ConfigValue {
           return peer.trunk !== undefined ? [peer.trunk] : [];
         case "qualify":
           return peer.qualify !== undefined ? [peer.qualify] : [];
+        case "disallow":
+          return peer.disallow;
+        case "allow":
+          return peer.allow;
+        case "setvar":
+          return peer.setvar;
+        case "transfer":
+          return peer.transfer !== undefined ? [peer.transfer] : [];
+        case "port":
+          return peer.port !== undefined ? [peer.port] : [];
+        case "accountcode":
+          return peer.accountcode !== undefined ? [peer.accountcode] : [];
+        case "mailbox":
+          return peer.mailbox !== undefined ? [peer.mailbox] : [];
+        case "requirecalltoken":
+          return peer.requirecalltoken !== undefined ? [peer.requirecalltoken] : [];
+        case "username":
+          return peer.username !== undefined ? [peer.username] : [];
+        case "secret":
+          return peer.secret !== undefined ? [peer.secret] : [];
         default:
           return [];
       }
