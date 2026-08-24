@@ -1,3 +1,5 @@
+import { localIsoDay } from '../../../shared/date-range';
+
 /** Shared inclusive ISO date-range semantics for History and Changelog screens. */
 export interface InclusiveDateRange {
   from?: string;
@@ -29,6 +31,8 @@ export function validateInclusiveDateRange(from: string, to: string): DateRangeV
 export function dateRangeContains(date: string, range: InclusiveDateRange): boolean {
   return (!range.from || date >= range.from) && (!range.to || date <= range.to);
 }
+
+export { localIsoDay };
 
 export interface CalendarDay {
   iso: string;

@@ -143,6 +143,7 @@
         "app/renderer/src/local-history.ts",
         "app/renderer/src/App.tsx",
         "app/renderer/src/date-range.ts",
+        "shared/date-range.ts",
         "design/Asterisk Console M3.dc.html",
         "app/renderer/src/generated/console.tsx",
         "control-plane/local-history.ts",
