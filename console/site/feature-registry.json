@@ -5,7 +5,7 @@
   "features": {
     "language-modes": {
       "status": "partial",
-      "note": "site/app.js applyLanguage() switches document.lang and preview copy between English, Cantonese and bilingual, wired from initSettings() language-mode select. A handwritten PAGE_COPY_INVENTORY now checks every dynamic surface touched by this lane and reports missing surfaces. The switch remains partial because most authored page prose has no three-mode copy hook.",
+      "note": "site/app.js applyLanguage() switches document.lang and preview copy between English, Cantonese and bilingual, wired from initSettings() language-mode select. The handwritten PAGE_COPY_INVENTORY checks 12 dynamic surfaces and 6 five-level COPY keys, with missing-surface and missing-key counts exposed on the page. Authored article prose remains source-preserving English and is explicitly outside the dynamic COPY key count.",
       "implementation": {
         "paths": [
           "site/app.js",
