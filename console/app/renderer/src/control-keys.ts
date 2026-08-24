@@ -188,6 +188,39 @@ function l(control: string, section: string, key: string): ControlBinding {
  * `pjsip.conf` — nothing in those screens is mapped.
  */
 export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBinding>>> = {
+  // configs/samples/http.conf.sample — every key below is in [general] there, checked
+  // by hand against the file in this checkout rather than taken from a proposal.
+  // ht_bindaddr, ht_bindport, ht_status, ht_tlsaddr, ht_tlsport, ht_tlscert, ht_static,
+  // ht_notls12 and ht_sesslimit stay unbound: their keys were not confirmed, and a key
+  // guessed wrong silently steers a real exchange.
+  httpd: [
+    b('ht_enabled', 'general', 'enabled'),  // line 29: ;enabled=yes
+    s('ht_prefix', 'general', 'prefix'),  // line 45: ;prefix=asterisk
+    b('ht_tlsenable', 'general', 'tlsenable'),  // line 87: ;tlsenable=yes
+    s('ht_tlskey', 'general', 'tlsprivatekey'),  // line 91: ;tlsprivatekey=</path/to/private.pem>
+    b('ht_notls1', 'general', 'tlsdisablev1'),  // line 112: ; tlsdisablev1=yes
+    b('ht_notls11', 'general', 'tlsdisablev11'),  // line 113: ; tlsdisablev11=yes
+    n('ht_sessinact', 'general', 'session_inactivity'),  // line 56: ;session_inactivity=30000
+    n('ht_sesskeep', 'general', 'session_keep_alive'),  // line 63: ;session_keep_alive=15000
+  ],
+  // configs/samples/features.conf.sample — the five transfer and parking codes live in
+  // [featuremap] and the timeouts in [general]; both sections were confirmed per key,
+  // because getting the section wrong writes a valid-looking line Asterisk ignores.
+  fcodes: [
+    s('fc_blindxfer', 'featuremap', 'blindxfer'),  // blind transfer, default #
+    s('fc_atxfer', 'featuremap', 'atxfer'),  // attended transfer
+    s('fc_disconnect', 'featuremap', 'disconnect'),  // disconnect, default *
+    s('fc_automixmon', 'featuremap', 'automixmon'),  // one touch record
+    s('fc_parkcall', 'featuremap', 'parkcall'),  // one step parking
+    s('fc_atxferabort', 'general', 'atxferabort'),  // cancel the attended transfer
+    s('fc_atxferthreeway', 'general', 'atxferthreeway'),  // complete and stay in the call
+    s('fc_atxferswap', 'general', 'atxferswap'),  // swap to the other party
+    s('fc_pickupexten', 'general', 'pickupexten'),  // pickup extension, default *8
+    n('fc_featuredigittimeout', 'general', 'featuredigittimeout'),  // max ms between digits
+    n('fc_transferdigittimeout', 'general', 'transferdigittimeout'),  // seconds between digits
+    n('fc_atxfernoanswertimeout', 'general', 'atxfernoanswertimeout'),  // answer timeout, default 15s
+    b('fc_atxferdropcall', 'general', 'atxferdropcall'),  // hang up before the target answers
+  ],
   // configs/samples/pjsip.conf.sample — [endpoint] template (~line 648) and [aor]
   // template (~line 1255). e_callerid is left unmapped: the design's segmented
   // options (Allowed/Prohibited/Unavailable) do not match the real values Asterisk

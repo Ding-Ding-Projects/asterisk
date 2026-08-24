@@ -39,10 +39,14 @@ test('every bound screen exists in the generated SCREENS object', () => {
 test('total bound-screen and control counts are what this pass produced', () => {
   const screenCount = Object.keys(CONTROL_BINDINGS).length;
   const controlCount = allBindings().length;
-  assert.equal(screenCount, 13);
+  assert.equal(screenCount, 15);
   // 82 from the first pass, plus a_origin (ami/allowed_origins) and s_failaction
-  // (security/failure_action) found on this second look.
-  assert.equal(controlCount, 84);
+  // (security/failure_action) found on the second look, plus 21 on 2026-08-24: the eight
+  // http.conf keys and the thirteen features.conf ones, which brought two whole screens
+  // into the table for the first time. Each was checked against the sample file in this
+  // checkout by hand -- key spelling and section both -- because a fan-out proposed
+  // thirty-three and six of those were controls that were already bound.
+  assert.equal(controlCount, 105);
 });
 
 // ---------------------------------------------------------------- boolean parsing
