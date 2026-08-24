@@ -209,13 +209,9 @@ ipcMain.handle('download:submit-handoff', async (_event, handoff: ExtensionDownl
   }
   if (!chosenPath) return { accepted: false, detail: 'No approved destination path is available.' };
   const result = downloadTransfers.registerHandoff({ ...handoff, destinationPath: chosenPath });
-  if (result.accepted && result.handoff) { pendingHandoffId = result.handoff.handoffId; openDownloadWindow('start', senderWindow ?? undefined); broadcast('download:handoff', result.handoff); }
+  if (result.accepted && result.handoff) { pendingHandoffId = result.handoff.handoffId; openDownloadWindow('start', senderWindow ?? undefined); broadcastDownload('download:handoff', result.handoff); }
   return result;
 });
-
-function routeForDownloadWindow(kind: DownloadSurfaceKind): string {
-  return kind === 'start' ? 'download/start' : kind === 'progress' ? 'download/progress' : 'download/complete';
-}
 
 function openDownloadWindow(kind: DownloadSurfaceKind, origin?: BrowserWindow): BrowserWindow {
   const existing = downloadWindows.get(kind);
@@ -240,12 +236,15 @@ function openDownloadWindow(kind: DownloadSurfaceKind, origin?: BrowserWindow): 
     if (downloadWindows.get(kind) === window) downloadWindows.delete(kind);
     if (kind === 'start' && pendingHandoffId) {
       const handoffId = pendingHandoffId; pendingHandoffId = undefined;
-      void downloadTransfers.cancelHandoff(handoffId).then((receipt) => { if (receipt.accepted) broadcast('download:handoff-cancelled', handoffId); });
+      void downloadTransfers.cancelHandoff(handoffId).then((receipt) => { if (receipt.accepted) broadcastDownload('download:handoff-cancelled', handoffId); });
     }
     downloadOriginWindow?.focus();
   });
-  if (process.env.VITE_DEV_SERVER_URL) void window.loadURL(`${process.env.VITE_DEV_SERVER_URL}#surface=${routeForDownloadWindow(kind)}`);
-  else void window.loadFile(join(import.meta.dirname, '../../../dist/index.html'), { hash: `surface=${routeForDownloadWindow(kind)}` });
+  if (process.env.VITE_DEV_SERVER_URL) {
+    const url = new URL(process.env.VITE_DEV_SERVER_URL);
+    url.searchParams.set('downloadWindow', kind);
+    void window.loadURL(url.href);
+  } else void window.loadFile(join(import.meta.dirname, '../../../dist/index.html'), { query: { downloadWindow: kind } });
   return window;
 }
 
@@ -255,8 +254,8 @@ function closeDownloadWindow(kind: DownloadSurfaceKind): void {
   if (kind === 'start') downloadOriginWindow?.focus();
 }
 
-function broadcast(channel: string, payload: unknown): void {
-  for (const window of BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send(channel, payload);
+function broadcastDownload(channel: string, payload: unknown): void {
+  for (const window of downloadWindows.values()) if (!window.isDestroyed()) window.webContents.send(channel, payload);
 }
 ipcMain.handle('download:handoffs', async () => downloadTransfers.listPendingHandoffs());
 ipcMain.handle('download:start', async (_event, handoff: ExtensionDownloadHandoff) => {
@@ -267,16 +266,17 @@ ipcMain.handle('download:start', async (_event, handoff: ExtensionDownloadHandof
 });
 ipcMain.handle('download:cancel-handoff', async (_event, handoffId: string) => {
   const receipt = await downloadTransfers.cancelHandoff(handoffId);
-  if (receipt.accepted) { if (pendingHandoffId === handoffId) pendingHandoffId = undefined; closeDownloadWindow('start'); broadcast('download:handoff-cancelled', handoffId); }
+  if (receipt.accepted) { if (pendingHandoffId === handoffId) pendingHandoffId = undefined; closeDownloadWindow('start'); broadcastDownload('download:handoff-cancelled', handoffId); }
   return receipt;
 });
 ipcMain.handle('download:command', async (_event, transferId: string, command: Exclude<DownloadCommand, 'start'>) => downloadTransfers.command(transferId, command));
 ipcMain.handle('download:snapshot', async (_event, transferId: string) => downloadTransfers.getSnapshot(transferId));
 ipcMain.handle('download:latest-snapshot', async () => downloadTransfers.getLatestSnapshot());
 ipcMain.handle('download:close-window', async (_event, kind: DownloadSurfaceKind) => { closeDownloadWindow(kind); });
+ipcMain.handle('download:open-window', async (_event, kind: DownloadSurfaceKind) => { openDownloadWindow(kind, BrowserWindow.fromWebContents(_event.sender) ?? mainWindow ?? undefined); });
 downloadTransfers.subscribeGlobal((snapshot) => {
-  broadcast('download:snapshot', snapshot);
-  if (snapshot.status === 'queued' || snapshot.status === 'downloading' || snapshot.status === 'paused' || snapshot.status === 'partial') openDownloadWindow('progress');
+  broadcastDownload('download:snapshot', snapshot);
+  if (snapshot.status === 'queued' || snapshot.status === 'downloading' || snapshot.status === 'paused' || snapshot.status === 'partial') { closeDownloadWindow('complete'); openDownloadWindow('progress'); }
   if (snapshot.status === 'completed' || snapshot.status === 'failed' || snapshot.status === 'cancelled') { closeDownloadWindow('progress'); openDownloadWindow('complete'); }
 });
 ipcMain.handle('converter:pick-file', async () => {
@@ -310,7 +310,15 @@ ipcMain.handle('converter:confirm-overwrite', async (_event, request: { destinat
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();
 } else {
-  app.whenReady().then(createWindow).then(async () => { await downloadTransfers.initialize(); const handoffs = downloadTransfers.listPendingHandoffs(); if (handoffs.length > 0) { pendingHandoffId = handoffs.at(-1)?.handoffId; openDownloadWindow('start'); } }).then(scheduleUpdateChecks);
+  app.whenReady().then(createWindow).then(async () => {
+    await downloadTransfers.initialize();
+    const latest = downloadTransfers.getLatestSnapshot();
+    if (latest?.status === 'failed' && latest.publicationPending) openDownloadWindow('complete');
+    else {
+      const handoffs = downloadTransfers.listPendingHandoffs();
+      if (handoffs.length > 0) { pendingHandoffId = handoffs.at(-1)?.handoffId; openDownloadWindow('start'); }
+    }
+  }).then(scheduleUpdateChecks);
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 }

@@ -4,6 +4,8 @@ import { formatBytes } from '../../../shared/download-transfer';
 export interface DownloadCompleteSurfaceProps {
   snapshot: DownloadTransferSnapshot;
   onDismiss?: () => void;
+  onRetry?: () => void;
+  onDiscard?: () => void;
 }
 
 function outcome(snapshot: DownloadTransferSnapshot): string {
@@ -15,7 +17,7 @@ function outcome(snapshot: DownloadTransferSnapshot): string {
 }
 
 /** A factual, non-blocking completion notification. The caller supplies the observed outcome. */
-export function DownloadCompleteSurface({ snapshot, onDismiss }: DownloadCompleteSurfaceProps) {
+export function DownloadCompleteSurface({ snapshot, onDismiss, onRetry, onDiscard }: DownloadCompleteSurfaceProps) {
   return (
     <aside className="download-surface download-complete-surface" role="status" aria-live="polite" aria-label="Download result">
       <div className="download-complete-surface__icon" aria-hidden="true">{snapshot.status === 'completed' ? '✓' : '!'}</div>
@@ -24,7 +26,11 @@ export function DownloadCompleteSurface({ snapshot, onDismiss }: DownloadComplet
         <p>{outcome(snapshot)}</p>
         <p className="download-surface__hint">Observed at {snapshot.observedAt}. Unsaved work was not changed by this transfer.</p>
       </div>
-      <button type="button" className="download-button download-button--quiet" onClick={onDismiss}>Dismiss</button>
+      <div className="download-actions">
+        {(snapshot.status === 'failed' || snapshot.status === 'partial' || snapshot.status === 'cancelled') && onRetry ? <button type="button" className="download-button" onClick={onRetry}>Retry</button> : null}
+        {(snapshot.status === 'failed' || snapshot.status === 'partial' || snapshot.status === 'cancelled') && onDiscard ? <button type="button" className="download-button" onClick={onDiscard}>Discard</button> : null}
+        <button type="button" className="download-button download-button--quiet" onClick={onDismiss}>Dismiss</button>
+      </div>
     </aside>
   );
 }

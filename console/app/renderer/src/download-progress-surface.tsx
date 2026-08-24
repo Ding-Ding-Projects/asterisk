@@ -39,7 +39,7 @@ export function DownloadProgressSurface({ client, transferId, initialSnapshot, o
     ? Math.min(100, Math.max(0, (snapshot.bytesTransferred / snapshot.totalBytes) * 100))
     : undefined;
   const commandError = commandState.error;
-  const action = (command: 'pause' | 'resume' | 'cancel' | 'retry') => { void send(command); };
+  const action = (command: 'pause' | 'resume' | 'cancel' | 'retry' | 'discard') => { void send(command); };
 
   return (
     <section className="download-surface download-progress-surface" aria-labelledby="download-progress-title">
@@ -69,6 +69,7 @@ export function DownloadProgressSurface({ client, transferId, initialSnapshot, o
         {(snapshot.status === 'downloading' || snapshot.canPause) && <button type="button" className="download-button" disabled={commandState.pending || !snapshot.canPause} title={snapshot.resumeDisabledReason}>Pause</button>}
         {(snapshot.status === 'paused' || snapshot.status === 'partial' || snapshot.canResume) && <button type="button" className="download-button" disabled={commandState.pending || !snapshot.canResume} title={snapshot.resumeDisabledReason} onClick={() => action('resume')}>Resume</button>}
         {snapshot.canRetry && <button type="button" className="download-button" disabled={commandState.pending} onClick={() => action('retry')}>Retry</button>}
+        {(snapshot.status === 'failed' || snapshot.status === 'partial' || snapshot.status === 'cancelled') && <button type="button" className="download-button" disabled={commandState.pending} onClick={() => action('discard')}>Discard</button>}
         {snapshot.canCancel && <button type="button" className="download-button download-button--danger" disabled={commandState.pending} onClick={() => action('cancel')}>Cancel</button>}
       </div>
       <p className="download-surface__hint">Controls send a real request and wait for the next observed snapshot. They never simulate progress.</p>

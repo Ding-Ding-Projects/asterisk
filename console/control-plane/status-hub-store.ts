@@ -16,7 +16,19 @@ export interface StatusHubStoreOptions {
   client: StatusHubClient;
   projectId: string;
   registration?: StatusHubProjectRegistrationRequest;
+  persistence?: StatusHubRegistrationPersistence;
   pollReplies?: boolean;
+}
+
+export interface StatusHubPersistedRegistration {
+  schemaVersion: 1;
+  projectId: string;
+  registration: StatusHubProjectRegistration;
+}
+
+export interface StatusHubRegistrationPersistence {
+  load(): Promise<StatusHubPersistedRegistration | undefined>;
+  save(value: StatusHubPersistedRegistration): Promise<void>;
 }
 
 export type StatusHubStoreListener = () => void;
@@ -40,17 +52,21 @@ export class StatusHubStore {
   private readonly client: StatusHubClient;
   private projectId: string;
   private readonly registration?: StatusHubProjectRegistrationRequest;
+  private readonly persistence?: StatusHubRegistrationPersistence;
   private readonly pollReplies: boolean;
   private readonly listeners = new Set<StatusHubStoreListener>();
   private readonly polling = new Map<string, StatusHubPollingHandle>();
   private state: StatusHubClientState = EMPTY_STATE;
   private generation = 0;
   private disposed = false;
+  private hydrated = false;
+  private hydrationPromise: Promise<void> | undefined;
 
   constructor(options: StatusHubStoreOptions) {
     this.client = options.client;
     this.projectId = options.projectId;
     this.registration = options.registration;
+    this.persistence = options.persistence;
     this.pollReplies = options.pollReplies ?? true;
   }
 
@@ -68,11 +84,16 @@ export class StatusHubStore {
     this.stopPolling();
     const generation = this.client.beginGeneration();
     this.generation = generation.id;
+    await this.hydrateRegistration();
+    if (this.disposed || !generation.isCurrent()) return;
     this.update({ availability: 'loading', error: undefined, generation: generation.id });
     const projectResult = this.state.project || !this.registration
       ? await this.client.getProject(this.projectId, generation)
       : await this.client.registerProject(this.registration, generation);
-    if (projectResult.ok) this.projectId = projectResult.value.projectId;
+    if (projectResult.ok) {
+      this.projectId = projectResult.value.projectId;
+      await this.persistRegistration(projectResult.value);
+    }
     const sessionsResult = await this.client.listSessions(this.projectId, generation);
     if (this.disposed || !generation.isCurrent()) return;
 
@@ -98,7 +119,11 @@ export class StatusHubStore {
     const generation = this.client.beginGeneration();
     this.generation = generation.id;
     const result = await this.client.registerProject(input, generation);
-    if (result.ok && generation.isCurrent() && !this.disposed) this.update({ project: result.value, availability: 'ready', error: undefined, generation: generation.id });
+    if (result.ok && generation.isCurrent() && !this.disposed) {
+      this.projectId = result.value.projectId;
+      await this.persistRegistration(result.value);
+      this.update({ project: result.value, availability: 'ready', error: undefined, generation: generation.id });
+    }
     else if (!result.ok && generation.isCurrent() && !this.disposed) this.update({ availability: result.error.state, error: result.error, generation: generation.id });
     return result;
   }
@@ -152,6 +177,30 @@ export class StatusHubStore {
     }
   }
 
+  private async hydrateRegistration(): Promise<void> {
+    if (this.hydrated) return;
+    if (this.hydrationPromise) return this.hydrationPromise;
+    this.hydrationPromise = (async () => {
+      if (!this.persistence) return;
+      try {
+        const persisted = await this.persistence.load();
+        if (!persisted || !isPersistedRegistration(persisted)) return;
+        this.projectId = persisted.projectId;
+        this.update({ project: persisted.registration, generation: this.generation });
+      } catch {
+        // A malformed or unavailable receipt is ignored and the real registration path remains available.
+      } finally {
+        this.hydrated = true;
+      }
+    })();
+    return this.hydrationPromise;
+  }
+
+  private async persistRegistration(registration: StatusHubProjectRegistration): Promise<void> {
+    if (!this.persistence) return;
+    try { await this.persistence.save({ schemaVersion: 1, projectId: registration.projectId, registration }); } catch { /* Live status remains authoritative. */ }
+  }
+
   private startPolling(sessionId: string, generation: ReturnType<StatusHubClient['beginGeneration']>): void {
     this.polling.get(sessionId)?.stop();
     const handle = this.client.startReplyPolling(sessionId, (state) => this.applyPolling(sessionId, state), { generation });
@@ -182,6 +231,38 @@ export class StatusHubStore {
 
 function firstError(...results: Array<StatusHubResult<unknown>>): StatusHubErrorShape | undefined {
   return results.find((result): result is { ok: false; error: StatusHubErrorShape; generation: number } => !result.ok)?.error;
+}
+
+function isPersistedRegistration(value: unknown): value is StatusHubPersistedRegistration {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<StatusHubPersistedRegistration>;
+  const registration = candidate.registration;
+  if (candidate.schemaVersion !== 1 || typeof candidate.projectId !== 'string' || !registration || typeof registration !== 'object') return false;
+  const record = registration as Partial<StatusHubProjectRegistration>;
+  return typeof candidate.projectId === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u.test(candidate.projectId)
+    && record.projectId === candidate.projectId
+    && typeof record.projectName === 'string' && record.projectName.length > 0 && record.projectName.length <= 160
+    && typeof record.defaultBranch === 'string' && record.defaultBranch.length > 0 && record.defaultBranch.length <= 128
+    && typeof record.releaseChannel === 'string' && record.releaseChannel.length > 0 && record.releaseChannel.length <= 160
+    && typeof record.stableUrl === 'string' && record.stableUrl.startsWith('https://')
+    && typeof record.registeredAt === 'string' && !Number.isNaN(Date.parse(record.registeredAt))
+    && Array.isArray(record.checks) && record.checks.length <= 500 && record.checks.every((check) => {
+      if (!check || typeof check !== 'object') return false;
+      const item = check as Partial<StatusHubProjectRegistration['checks'][number]>;
+      return typeof item.id === 'string' && item.id.length > 0 && item.id.length <= 128
+        && typeof item.label === 'string' && item.label.length > 0 && item.label.length <= 1000
+        && typeof item.state === 'string' && ['unrun', 'running', 'failed', 'passed', 'unknown'].includes(item.state)
+        && (item.runUrl === undefined || (typeof item.runUrl === 'string' && item.runUrl.startsWith('https://')))
+        && (item.commit === undefined || (typeof item.commit === 'string' && item.commit.length <= 64));
+    })
+    && Array.isArray(record.evidence) && record.evidence.length <= 500 && record.evidence.every((evidence) => {
+      if (!evidence || typeof evidence !== 'object') return false;
+      const item = evidence as Partial<StatusHubProjectRegistration['evidence'][number]>;
+      return typeof item.kind === 'string' && item.kind.length <= 32
+        && typeof item.label === 'string' && item.label.length > 0 && item.label.length <= 1000
+        && typeof item.url === 'string' && item.url.startsWith('https://')
+        && (item.commit === undefined || (typeof item.commit === 'string' && item.commit.length <= 64));
+    });
 }
 
 export function createStatusHubStore(options: StatusHubStoreOptions): StatusHubStore {

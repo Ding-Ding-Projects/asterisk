@@ -106,6 +106,7 @@ export interface DingDesktopApi {
     onHandoff(listener: (handoff: ExtensionDownloadHandoff) => void): () => void;
     onHandoffCancelled(listener: (handoffId: string) => void): () => void;
     closeWindow(kind: DownloadSurfaceKind): Promise<void>;
+    openWindow(kind: DownloadSurfaceKind): Promise<void>;
   };
   converter: {
     pickFile(): Promise<{ sourcePath: string; name: string; bytes: number; lastModified?: string } | undefined>;

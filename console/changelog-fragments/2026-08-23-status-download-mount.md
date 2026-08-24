@@ -6,4 +6,6 @@
 - Wired Start, Downloading, and completion routes to real preload commands and observed transfer snapshots, with an always-on-top window intent.
 - Added native destination approval, lexical containment, reparse checks, unique temporary files, atomic publication, typed header/body-idle/total timeouts, startup reconciliation, immutable handoff replay checks, and Range-based pause/resume when validators support it.
 - Electron now creates dedicated always-on-top Start, Downloading, and Complete windows, including failed and cancelled terminal outcomes.
+- The primary shell now offers only a passive open-window action. It no longer mounts duplicate transfer routes or listens to transfer events.
+- Persisted Status Hub registration receipts hydrate before first mount, while malformed transfer snapshots are rejected field by field. Full-body publication failures retain the same complete temporary file for retry or discard and never request Range at EOF.
 - Verification remains pending. This lane ran no tests, lint, type checks, builds, packaging, runtime interaction, extension launch, or captures.

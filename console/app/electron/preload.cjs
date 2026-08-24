@@ -35,6 +35,7 @@ const api = Object.freeze({
       return () => ipcRenderer.removeListener('download:handoff-cancelled', handler);
     },
     closeWindow: kind => ipcRenderer.invoke('download:close-window', kind),
+    openWindow: kind => ipcRenderer.invoke('download:open-window', kind),
   }),
   converter: Object.freeze({
     pickFile: () => ipcRenderer.invoke('converter:pick-file'),

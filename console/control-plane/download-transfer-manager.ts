@@ -1,5 +1,7 @@
 import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import { mkdir, open, stat, unlink } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { basename, dirname, isAbsolute, join, parse, relative, resolve, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import {
@@ -20,6 +22,9 @@ const MAX_DOWNLOAD_BYTES = 4 * 1024 * 1024 * 1024;
 const HEADER_DEADLINE_MS = 15_000;
 const BODY_IDLE_DEADLINE_MS = 30_000;
 const TOTAL_DEADLINE_MS = 2 * 60 * 60 * 1000;
+const SNAPSHOT_STATUSES = new Set(['queued', 'downloading', 'paused', 'completed', 'failed', 'cancelled', 'partial']);
+const TIMEOUT_KINDS = new Set(['header', 'body-idle', 'total']);
+const execFileAsync = promisify(execFile);
 
 type SnapshotListener = (snapshot: DownloadTransferSnapshot) => void;
 interface PersistedState { schemaVersion: number; snapshots: DownloadTransferSnapshot[]; handoffs: ExtensionDownloadHandoff[]; approvedRoots: string[]; }
@@ -53,9 +58,9 @@ export class DownloadTransferManager implements DownloadTransferClient {
     try {
       const parsed = JSON.parse(readFileSync(this.statePath, 'utf8')) as PersistedState;
       if (![1, SCHEMA_VERSION].includes(parsed.schemaVersion) || !Array.isArray(parsed.snapshots) || !Array.isArray(parsed.handoffs)) { this.initialized = true; return; }
-      for (const snapshot of parsed.snapshots.slice(-MAX_SNAPSHOTS)) if (this.validSnapshot(snapshot)) this.snapshots.set(snapshot.transferId, snapshot);
-      for (const handoff of parsed.handoffs.slice(-MAX_SNAPSHOTS)) if (isExtensionDownloadHandoff(handoff)) this.handoffs.set(handoff.handoffId, handoff);
-      for (const root of Array.isArray(parsed.approvedRoots) ? parsed.approvedRoots : []) if (typeof root === 'string' && isAbsolute(root)) this.approvedRoots.add(this.lexical(root));
+      for (const root of Array.isArray(parsed.approvedRoots) ? parsed.approvedRoots : []) if (typeof root === 'string' && root.length <= 4096 && isAbsolute(root)) this.approvedRoots.add(this.lexical(root));
+      for (const handoff of parsed.handoffs.slice(-MAX_SNAPSHOTS)) if (isExtensionDownloadHandoff(handoff) && this.validPersistedHandoff(handoff)) this.handoffs.set(handoff.handoffId, handoff);
+      for (const snapshot of parsed.snapshots.slice(-MAX_SNAPSHOTS)) if (this.validSnapshot(snapshot) && this.handoffs.has(snapshot.handoffId)) this.snapshots.set(snapshot.transferId, snapshot);
     } catch { /* Corrupt state fails closed to unavailable records. */ }
     this.initialized = true;
   }
@@ -63,10 +68,34 @@ export class DownloadTransferManager implements DownloadTransferClient {
   private validSnapshot(value: unknown): value is DownloadTransferSnapshot {
     if (!value || typeof value !== 'object') return false;
     const snapshot = value as Partial<DownloadTransferSnapshot>;
-    return typeof snapshot.transferId === 'string' && typeof snapshot.handoffId === 'string' && typeof snapshot.fileName === 'string'
-      && typeof snapshot.sourceUrl === 'string' && typeof snapshot.destinationPath === 'string' && typeof snapshot.status === 'string'
-      && Number.isSafeInteger(snapshot.bytesTransferred) && snapshot.bytesTransferred >= 0 && typeof snapshot.observedAt === 'string';
+    if (!this.boundedId(snapshot.transferId, 160) || !this.boundedId(snapshot.handoffId, 160) || !this.boundedText(snapshot.fileName, 255)
+      || !this.validHttpsUrl(snapshot.sourceUrl, 4096) || !this.boundedAbsolutePath(snapshot.destinationPath, 4096)
+      || typeof snapshot.status !== 'string' || !SNAPSHOT_STATUSES.has(snapshot.status)
+      || !this.safeNumber(snapshot.bytesTransferred) || !this.validIso(snapshot.observedAt)) return false;
+    if (snapshot.totalBytes !== undefined && !this.safeNumber(snapshot.totalBytes)) return false;
+    if (snapshot.rateBytesPerSecond !== undefined && (!Number.isFinite(snapshot.rateBytesPerSecond) || snapshot.rateBytesPerSecond < 0)) return false;
+    if (snapshot.etaSeconds !== undefined && (!Number.isFinite(snapshot.etaSeconds) || snapshot.etaSeconds < 0)) return false;
+    if (snapshot.deadlineAt !== undefined && !this.validIso(snapshot.deadlineAt)) return false;
+    if (snapshot.timeoutKind !== undefined && (typeof snapshot.timeoutKind !== 'string' || !TIMEOUT_KINDS.has(snapshot.timeoutKind))) return false;
+    if (snapshot.bodyComplete !== undefined && typeof snapshot.bodyComplete !== 'boolean') return false;
+    if (snapshot.publicationPending !== undefined && typeof snapshot.publicationPending !== 'boolean') return false;
+    if (typeof snapshot.canPause !== 'boolean' || typeof snapshot.canResume !== 'boolean' || typeof snapshot.canCancel !== 'boolean' || typeof snapshot.canRetry !== 'boolean') return false;
+    if (snapshot.resume !== undefined && !this.validResume(snapshot.resume)) return false;
+    if (snapshot.error !== undefined && !this.validError(snapshot.error)) return false;
+    if (snapshot.partial !== undefined && !this.validPartial(snapshot.partial)) return false;
+    return snapshot.resumeDisabledReason === undefined || this.boundedText(snapshot.resumeDisabledReason, 1000);
   }
+
+  private boundedText(value: unknown, max: number): value is string { return typeof value === 'string' && value.length > 0 && value.length <= max; }
+  private boundedId(value: unknown, max: number): value is string { return this.boundedText(value, max) && /^[A-Za-z0-9][A-Za-z0-9._:-]*$/u.test(value); }
+  private safeNumber(value: unknown): value is number { return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= MAX_DOWNLOAD_BYTES; }
+  private validIso(value: unknown): value is string { return typeof value === 'string' && value.length <= 64 && !Number.isNaN(Date.parse(value)); }
+  private validHttpsUrl(value: unknown, max: number): value is string { if (typeof value !== 'string' || value.length === 0 || value.length > max) return false; try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password && !url.hash; } catch { return false; } }
+  private boundedAbsolutePath(value: unknown, max: number): value is string { return typeof value === 'string' && value.length > 0 && value.length <= max && isAbsolute(value); }
+  private validResume(value: unknown): value is DownloadResumeSupport { if (!value || typeof value !== 'object') return false; const resume = value as Partial<DownloadResumeSupport>; return typeof resume.acceptRanges === 'boolean' && (resume.etag === undefined || this.boundedText(resume.etag, 512)) && (resume.lastModified === undefined || this.boundedText(resume.lastModified, 128)) && Boolean(resume.etag || resume.lastModified); }
+  private validError(value: unknown): boolean { if (!value || typeof value !== 'object') return false; const error = value as { code?: unknown; message?: unknown; retryable?: unknown; observedAt?: unknown }; return this.boundedId(error.code, 160) && this.boundedText(error.message, 1000) && typeof error.retryable === 'boolean' && this.validIso(error.observedAt); }
+  private validPartial(value: unknown): boolean { if (!value || typeof value !== 'object') return false; const partial = value as { bytesTransferred?: unknown; reason?: unknown; canResume?: unknown }; return this.safeNumber(partial.bytesTransferred) && this.boundedText(partial.reason, 1000) && typeof partial.canResume === 'boolean'; }
+  private validPersistedHandoff(value: ExtensionDownloadHandoff): boolean { return this.boundedAbsolutePath(value.destinationPath, 4096) && this.isApproved(value.destinationPath) && this.validHttpsUrl(value.sourceUrl, 4096); }
 
   private lexical(path: string): string { return resolve(path).replace(/[\\/]+$/u, ''); }
   private persist(): void { atomicWriteFileSync(this.statePath, `${JSON.stringify({ schemaVersion: SCHEMA_VERSION, snapshots: [...this.snapshots.values()].slice(-MAX_SNAPSHOTS), handoffs: [...this.handoffs.values()].slice(-MAX_SNAPSHOTS), approvedRoots: [...this.approvedRoots].slice(-MAX_SNAPSHOTS) }, null, 2)}\n`); }
@@ -108,10 +137,25 @@ export class DownloadTransferManager implements DownloadTransferClient {
         const info = await stat(current, { throwIfNoEntry: false });
         if (!info) continue;
         if (lstatSync(current).isSymbolicLink()) throw new Error('DOWNLOAD_DESTINATION_REPARSE: A symbolic-link or reparse component is not allowed.');
+        if (process.platform === 'win32') await this.assertWindowsReparseFree(current);
       } catch (error) {
         if (error instanceof Error && error.message.startsWith('DOWNLOAD_DESTINATION_REPARSE')) throw error;
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
       }
+    }
+  }
+
+  private async assertWindowsReparseFree(path: string): Promise<void> {
+    try {
+      const result = await execFileAsync('fsutil.exe', ['reparsepoint', 'query', path], { windowsHide: true, timeout: 3000, maxBuffer: 16 * 1024 });
+      if (String(result.stdout).trim().length > 0) throw new Error('DOWNLOAD_DESTINATION_REPARSE: A Windows reparse tag was found in the destination path.');
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      const message = error instanceof Error ? error.message : String(error);
+      if (code === 'ENOENT') throw new Error('DOWNLOAD_DESTINATION_REPARSE_CHECK_UNAVAILABLE: Windows reparse inspection is unavailable.');
+      if (/reparse point data could not be found|not a reparse point|error: 4390/iu.test(message)) return;
+      if (message.includes('DOWNLOAD_DESTINATION_REPARSE')) throw error;
+      throw new Error('DOWNLOAD_DESTINATION_REPARSE_CHECK_FAILED: Windows reparse inspection did not complete safely.');
     }
   }
 
@@ -164,10 +208,17 @@ export class DownloadTransferManager implements DownloadTransferClient {
     if (!snapshot) return this.receipt(command, '', false, at, 'DOWNLOAD_TRANSFER_NOT_FOUND', 'No transfer snapshot exists for this id.');
     const task = this.tasks.get(transferId);
     if (command === 'cancel') {
-      if (['completed', 'failed', 'cancelled'].includes(snapshot.status)) return this.receipt(command, snapshot.handoffId, false, at, 'DOWNLOAD_CANCEL_UNAVAILABLE', 'The transfer is no longer cancellable.', transferId);
+      if (['completed'].includes(snapshot.status)) return this.receipt(command, snapshot.handoffId, false, at, 'DOWNLOAD_CANCEL_UNAVAILABLE', 'The transfer is no longer cancellable.', transferId);
       if (task) task.controller.abort(); else await this.cleanTemp(`${snapshot.destinationPath}.${transferId}.part`);
       this.emit({ ...snapshot, status: 'cancelled', canPause: false, canResume: false, canCancel: false, canRetry: false, observedAt: at });
       return this.receipt(command, snapshot.handoffId, true, at, undefined, 'Cancellation was recorded and the temporary file was removed.', transferId);
+    }
+    if (command === 'discard') {
+      if (!['failed', 'partial', 'cancelled'].includes(snapshot.status)) return this.receipt(command, snapshot.handoffId, false, at, 'DOWNLOAD_DISCARD_UNAVAILABLE', 'Discard is available only for a failed, partial, or cancelled transfer.', transferId);
+      if (task) task.controller.abort();
+      await this.cleanTemp(task?.tempPath ?? `${snapshot.destinationPath}.${transferId}.part`);
+      this.emit({ ...snapshot, status: 'cancelled', bodyComplete: false, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: false, observedAt: at, error: undefined, partial: undefined });
+      return this.receipt(command, snapshot.handoffId, true, at, undefined, 'The transfer and its temporary file were discarded.', transferId);
     }
     if (command === 'pause') {
       if (!task || snapshot.status !== 'downloading' || !snapshot.canPause) return this.receipt(command, snapshot.handoffId, false, at, 'DOWNLOAD_PAUSE_UNAVAILABLE', snapshot.resumeDisabledReason ?? 'Pause is unavailable because the source does not support resumable ranges.', transferId);
@@ -176,6 +227,8 @@ export class DownloadTransferManager implements DownloadTransferClient {
     }
     if (command === 'resume') {
       if (snapshot.status !== 'paused' && snapshot.status !== 'partial') return this.receipt(command, snapshot.handoffId, false, at, 'DOWNLOAD_RESUME_UNAVAILABLE', 'Resume is available only for a paused or partial transfer.', transferId);
+      if (snapshot.publicationPending || snapshot.bodyComplete) return this.retryPublication(transferId, snapshot, at);
+      if (snapshot.totalBytes !== undefined && snapshot.bytesTransferred >= snapshot.totalBytes) return this.receipt(command, snapshot.handoffId, false, at, 'DOWNLOAD_RESUME_AT_EOF', 'The transfer already has its complete byte total, so Range was not requested. Retry publication or discard the temporary file.', transferId);
       if (!snapshot.resume?.acceptRanges || !(snapshot.resume.etag || snapshot.resume.lastModified)) return this.receipt(command, snapshot.handoffId, false, at, 'DOWNLOAD_RESUME_UNAVAILABLE', snapshot.resumeDisabledReason ?? 'The source did not provide a range validator.', transferId);
       const handoff = this.handoffs.get(snapshot.handoffId); if (!handoff) return this.receipt(command, snapshot.handoffId, false, at, 'DOWNLOAD_HANDOFF_NOT_FOUND', 'The original extension handoff is no longer available.', transferId);
       const controller = new AbortController(); const tempPath = task?.tempPath ?? `${snapshot.destinationPath}.${transferId}.part`;
@@ -186,6 +239,7 @@ export class DownloadTransferManager implements DownloadTransferClient {
     }
     if (command === 'retry' && ['failed', 'partial', 'cancelled'].includes(snapshot.status)) {
       const handoff = this.handoffs.get(snapshot.handoffId); if (!handoff) return this.receipt(command, snapshot.handoffId, false, at, 'DOWNLOAD_HANDOFF_NOT_FOUND', 'The original extension handoff is no longer available.', transferId);
+      if (snapshot.publicationPending || snapshot.bodyComplete) return this.retryPublication(transferId, snapshot, at);
       if (snapshot.status === 'partial' && snapshot.resume?.acceptRanges && (snapshot.resume.etag || snapshot.resume.lastModified)) return this.command(transferId, 'resume');
       await this.cleanTemp(`${snapshot.destinationPath}.${transferId}.part`); return this.start(handoff);
     }
@@ -196,9 +250,23 @@ export class DownloadTransferManager implements DownloadTransferClient {
   private destinationFor(handoff: ExtensionDownloadHandoff): string { return handoff.destinationKind === 'folder' ? join(handoff.destinationPath, basename(handoff.fileName)) : handoff.destinationPath; }
   private receipt(command: DownloadCommand, handoffId: string, accepted: boolean, at: string, code?: string, detail?: string, transferId?: string): DownloadTransferReceipt { return { command, handoffId, transferId, accepted, observedAt: at, status: accepted ? (command === 'cancel' ? 'cancelled' : 'queued') : 'rejected', code, detail }; }
   private async cleanTemp(path: string | undefined): Promise<void> { if (!path) return; try { await unlink(path); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; } }
+  private async retryPublication(transferId: string, snapshot: DownloadTransferSnapshot, at: string): Promise<DownloadTransferReceipt> {
+    const tempPath = `${snapshot.destinationPath}.${transferId}.part`;
+    try {
+      await this.assertSafeDestination(snapshot.destinationPath);
+      await this.assertNoReparseComponents(dirname(snapshot.destinationPath));
+      if (existsSync(snapshot.destinationPath)) throw new Error('DOWNLOAD_DESTINATION_EXISTS: The destination appeared before retry publication.');
+      renameWithRetrySync(tempPath, snapshot.destinationPath);
+      this.emit({ ...snapshot, status: 'completed', bodyComplete: true, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: false, observedAt: at, error: undefined, partial: undefined });
+      return this.receipt('retry', snapshot.handoffId, true, at, undefined, 'The complete temporary file was published after destination revalidation.', transferId);
+    } catch (error) {
+      this.emit({ ...snapshot, status: 'failed', bodyComplete: true, publicationPending: true, canPause: false, canResume: false, canCancel: false, canRetry: true, observedAt: at, error: { code: 'PUBLISH_FAILED', message: error instanceof Error ? error.message : 'The complete temporary file could not be published.', retryable: true, observedAt: at } });
+      return this.receipt('retry', snapshot.handoffId, false, at, 'DOWNLOAD_PUBLISH_FAILED', error instanceof Error ? error.message : 'The complete temporary file could not be published.', transferId);
+    }
+  }
 
   private async runTransfer(initial: DownloadTransferSnapshot, handoff: ExtensionDownloadHandoff, controller: AbortController, resume: boolean): Promise<void> {
-    const task = this.tasks.get(initial.transferId); if (!task) return; let snapshot = initial; let timeoutKind: TransferTimeoutKind | undefined;
+    const task = this.tasks.get(initial.transferId); if (!task) return; let snapshot = initial; let timeoutKind: TransferTimeoutKind | undefined; let bodyComplete = Boolean(initial.bodyComplete);
     const deadlineAtMs = snapshot.deadlineAt && Number.isFinite(Date.parse(snapshot.deadlineAt)) ? Date.parse(snapshot.deadlineAt) : Date.now() + TOTAL_DEADLINE_MS;
     const totalTimer = setTimeout(() => { timeoutKind = 'total'; controller.abort(); }, Math.max(1, deadlineAtMs - Date.now()));
     try {
@@ -234,10 +302,17 @@ export class DownloadTransferManager implements DownloadTransferClient {
         if (!supportsResume) { await this.cleanTemp(task.tempPath); this.emit({ ...snapshot, status: 'failed', canPause: false, canResume: false, canCancel: false, canRetry: true, error: { code: 'TRANSFER_SHORT_BODY', message: 'The source ended before its declared byte total and cannot resume.', retryable: true, observedAt: observedAt() }, resumeDisabledReason: 'The source did not provide both byte ranges and an ETag or Last-Modified validator.', observedAt: observedAt() }); return; }
         this.emit({ ...snapshot, status: 'partial', canPause: false, canResume: true, canCancel: false, canRetry: true, partial: { bytesTransferred: snapshot.bytesTransferred, reason: 'The source ended before its declared byte total.', canResume: true }, observedAt: observedAt() }); return;
       }
+      bodyComplete = true;
+      snapshot = { ...snapshot, bodyComplete: true, publicationPending: true, observedAt: observedAt() };
+      this.emit(snapshot);
       await this.assertNoReparseComponents(dirname(snapshot.destinationPath)); if (existsSync(snapshot.destinationPath)) throw new Error('DOWNLOAD_DESTINATION_EXISTS: The destination appeared before atomic publication.');
-      renameWithRetrySync(task.tempPath, snapshot.destinationPath); this.emit({ ...snapshot, status: 'completed', canPause: false, canResume: false, canCancel: false, canRetry: false, observedAt: observedAt() });
+      renameWithRetrySync(task.tempPath, snapshot.destinationPath); this.emit({ ...snapshot, status: 'completed', bodyComplete: true, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: false, observedAt: observedAt() });
     } catch (error) {
       const latest = this.snapshots.get(snapshot.transferId) ?? snapshot; if (latest.status === 'cancelled') { await this.cleanTemp(task.tempPath); return; } if (task.pauseRequested) return;
+      if (bodyComplete || latest.bodyComplete || latest.publicationPending) {
+        this.emit({ ...latest, status: 'failed', bodyComplete: true, publicationPending: true, canPause: false, canResume: false, canCancel: false, canRetry: true, observedAt: observedAt(), error: { code: 'PUBLISH_FAILED', message: error instanceof Error ? error.message : 'The complete temporary file could not be published.', retryable: true, observedAt: observedAt() } });
+        return;
+      }
       const timeout = error instanceof TransferTimeoutError ? error.kind : undefined; const canResume = Boolean(latest.resume?.acceptRanges && (latest.resume.etag || latest.resume.lastModified)); if (!canResume) await this.cleanTemp(task.tempPath);
       this.emit({ ...latest, status: canResume && latest.bytesTransferred > 0 ? 'partial' : 'failed', canPause: false, canResume, canCancel: false, canRetry: true, timeoutKind: timeout, error: { code: timeout ? `TRANSFER_TIMEOUT_${String(timeout).toUpperCase()}` : 'TRANSFER_FAILED', message: error instanceof Error ? error.message : 'The transfer failed.', retryable: true, observedAt: observedAt() }, partial: canResume && latest.bytesTransferred > 0 ? { bytesTransferred: latest.bytesTransferred, reason: timeout ? `The transfer exceeded its ${timeout} deadline.` : 'The transfer stopped before completion.', canResume: true } : undefined, observedAt: observedAt() });
     } finally { clearTimeout(totalTimer); }

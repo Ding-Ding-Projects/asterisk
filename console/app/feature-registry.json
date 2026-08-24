@@ -2416,10 +2416,10 @@
     },
     "browser-extension-download-surfaces": {
       "status": "implemented-unverified",
-      "note": "Electron now creates dedicated always-on-top Start, Downloading, and completion windows backed by immutable handoffs, native destination approval, durable snapshots, bounded timeouts, and Range resume when validators support it. The extension handoff remains an explicit external input because this Oak Kay does not ship the companion extension.",
+      "note": "Electron now creates dedicated always-on-top Start, Downloading, and completion windows as the sole transfer surface owners. The primary shell offers only a passive open-window action. Immutable handoffs, native destination approval, strict durable snapshots, bounded timeouts, retryable publication, discard, and Range resume when validators support it back the windows. The extension handoff remains an explicit external input because this Oak Kay does not ship the companion extension.",
       "implementation": {
         "paths": ["console/shared/download-transfer.ts", "console/control-plane/download-transfer-manager.ts", "console/app/renderer/src/download-state.ts", "console/app/renderer/src/download-start-surface.tsx", "console/app/renderer/src/download-progress-surface.tsx", "console/app/renderer/src/download-complete-surface.tsx", "console/app/electron/main.ts", "console/app/electron/preload.ts"],
-        "symbols": ["DownloadTransferManager", "DownloadStartSurface", "DownloadProgressSurface", "DownloadCompleteSurface", "download:submit-handoff", "download:snapshot"]
+        "symbols": ["DownloadTransferManager", "DownloadStartSurface", "DownloadProgressSurface", "DownloadCompleteSurface", "download:submit-handoff", "download:snapshot", "download:open-window"]
       },
       "registration": {
         "paths": ["console/shared/control-plane.ts", "console/control-plane/dispatch.ts", "console/app/renderer/src/surface-mounts.tsx"],

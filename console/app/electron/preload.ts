@@ -37,6 +37,7 @@ const api: DingDesktopApi = {
       return () => ipcRenderer.removeListener('download:handoff-cancelled', handler);
     },
     closeWindow: (kind: DownloadSurfaceKind) => ipcRenderer.invoke('download:close-window', kind) as Promise<void>,
+    openWindow: (kind: DownloadSurfaceKind) => ipcRenderer.invoke('download:open-window', kind) as Promise<void>,
   },
   converter: {
     pickFile: () => ipcRenderer.invoke('converter:pick-file'),

@@ -16,7 +16,7 @@ export type DownloadTransferStatus =
   | 'cancelled'
   | 'partial';
 
-export type DownloadCommand = 'start' | 'cancel' | 'pause' | 'resume' | 'retry';
+export type DownloadCommand = 'start' | 'cancel' | 'pause' | 'resume' | 'retry' | 'discard';
 
 export type UnsavedWorkState = 'none' | 'preserved' | 'pending';
 
@@ -76,6 +76,8 @@ export interface DownloadTransferSnapshot {
   observedAt: string;
   error?: TransferError;
   timeoutKind?: TransferTimeoutKind;
+  bodyComplete?: boolean;
+  publicationPending?: boolean;
   partial?: PartialTransferOutcome;
   resume?: DownloadResumeSupport;
   resumeDisabledReason?: string;

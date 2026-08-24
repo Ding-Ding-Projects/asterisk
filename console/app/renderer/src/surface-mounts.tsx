@@ -7,15 +7,12 @@ import { DOCS_BUNDLE } from './generated/docs-bundle';
 import { CHANGELOG_MARKDOWN, CHANGELOG_REPOSITORY_URL } from './generated/changelog-bundle';
 import { StatusHubSurface } from './status-hub-surface';
 import { createStatusHubClient, type StatusHubFetch } from '../../../control-plane/status-hub-client';
-import { createStatusHubStore } from '../../../control-plane/status-hub-store';
-import { DownloadStartSurface } from './download-start-surface';
-import { DownloadProgressSurface } from './download-progress-surface';
-import { DownloadCompleteSurface } from './download-complete-surface';
-import type { DownloadTransferSnapshot, ExtensionDownloadHandoff } from '../../../shared/download-transfer';
+import { createStatusHubStore, type StatusHubRegistrationPersistence, type StatusHubPersistedRegistration } from '../../../control-plane/status-hub-store';
+import { DownloadWindowMount, dedicatedDownloadWindowKind } from './download-window-mount';
 import type { BackendResponse, ChatSession, OllamaRuntimeEvidence, OllamaSuiteSnapshot, PullQueueEvidence } from './ollama-suite-model';
 import type { ConverterBackendHandlers } from '../../../shared/converter';
 
-type SurfaceRoute = 'converter' | 'ollama' | 'docs' | 'changelog' | 'status' | 'download/start' | 'download/progress' | 'download/complete';
+type SurfaceRoute = 'converter' | 'ollama' | 'docs' | 'changelog' | 'status';
 
 function unavailable<T>(surface: string, operation: string): Promise<T> {
   return Promise.reject(new Error(`${surface} ${operation} is not registered in the privileged bridge. No value was assumed and no operation was attempted.`));
@@ -154,7 +151,7 @@ function routeFromHash(): SurfaceRoute | undefined {
   const value = window.location.hash.slice(1);
   if (!value.startsWith('surface=')) return undefined;
   const route = value.slice('surface='.length);
-  return route === 'converter' || route === 'ollama' || route === 'docs' || route === 'changelog' || route === 'status' || route === 'download/start' || route === 'download/progress' || route === 'download/complete' ? route : undefined;
+  return route === 'converter' || route === 'ollama' || route === 'docs' || route === 'changelog' || route === 'status' ? route : undefined;
 }
 
 const statusHubBridgeFetch: StatusHubFetch = async (input, init) => {
@@ -178,55 +175,50 @@ const statusHubBridgeFetch: StatusHubFetch = async (input, init) => {
 };
 
 export function SurfaceMounts() {
+  const downloadWindow = dedicatedDownloadWindowKind();
+  return downloadWindow ? <DownloadWindowMount kind={downloadWindow} /> : <PrimarySurfaceMounts />;
+}
+
+function PrimarySurfaceMounts() {
   const [route, setRoute] = useState<SurfaceRoute | undefined>(() => routeFromHash());
-  const [handoff, setHandoff] = useState<ExtensionDownloadHandoff | undefined>();
-  const [transferId, setTransferId] = useState<string | undefined>();
-  const [completeSnapshot, setCompleteSnapshot] = useState<DownloadTransferSnapshot | undefined>();
+  const statusPersistence = useMemo<StatusHubRegistrationPersistence>(() => ({
+    async load(): Promise<StatusHubPersistedRegistration | undefined> {
+      const response = await window.dingDesktop?.controlPlane.request({ requestId: crypto.randomUUID(), action: 'settings.snapshot' });
+      if (!response?.ok) return undefined;
+      const raw = (response.data as { values?: Record<string, string> } | undefined)?.values?.['status-hub.registration'];
+      if (!raw) return undefined;
+      try { return JSON.parse(raw) as StatusHubPersistedRegistration; } catch { return undefined; }
+    },
+    async save(value: StatusHubPersistedRegistration): Promise<void> {
+      await window.dingDesktop?.controlPlane.request({ requestId: crypto.randomUUID(), action: 'settings.write', payload: { key: 'status-hub.registration', value: JSON.stringify(value) } });
+    },
+  }), []);
   const statusStore = useMemo(() => createStatusHubStore({
     client: createStatusHubClient({ baseUrl: 'http://127.0.0.1:8099/', fetchImpl: statusHubBridgeFetch }),
     projectId: 'asterisk',
     registration: { projectId: 'asterisk', projectName: 'Ding PBX Console', defaultBranch: 'master', releaseChannel: 'desktop', stableUrl: 'https://ding-ding-projects.github.io/asterisk/' },
+    persistence: statusPersistence,
     pollReplies: true,
-  }), []);
-  const downloadClient = window.dingDesktop?.downloads;
+  }), [statusPersistence]);
   useEffect(() => {
     const onHash = () => setRoute(routeFromHash());
     window.addEventListener('hashchange', onHash);
-    const unsubscribe = downloadClient?.onHandoff((next) => { setHandoff(next); window.location.hash = '#surface=download/start'; });
-    const unsubscribeCancelled = downloadClient?.onHandoffCancelled((handoffId) => {
-      setHandoff((current) => { if (current?.handoffId === handoffId) window.location.hash = '#surface=status'; return current?.handoffId === handoffId ? undefined : current; });
-    });
-    void window.dingDesktop?.controlPlane.request({ requestId: crypto.randomUUID(), action: 'download.handoffs' }).then((response) => {
-      if (response?.ok && Array.isArray(response.data) && response.data.length > 0) setHandoff(response.data[response.data.length - 1] as ExtensionDownloadHandoff);
-    });
-    void downloadClient?.getLatestSnapshot().then((snapshot) => {
-      if (!snapshot) return;
-      setTransferId(snapshot.transferId);
-      if (snapshot.status === 'completed' || snapshot.status === 'failed' || snapshot.status === 'cancelled') setCompleteSnapshot(snapshot);
-    });
-    return () => { window.removeEventListener('hashchange', onHash); unsubscribe?.(); unsubscribeCancelled?.(); };
-  }, [downloadClient]);
+    return () => { window.removeEventListener('hashchange', onHash); };
+  }, []);
 
-  const links = useMemo(() => (['converter', 'ollama', 'docs', 'changelog', 'status', 'download/start'] as const), []);
-  const startReceipt = (receipt: { accepted: boolean; transferId?: string }) => {
-    if (receipt.accepted && receipt.transferId) { setTransferId(receipt.transferId); window.location.hash = '#surface=download/progress'; }
-  };
+  const links = useMemo(() => ['converter', 'ollama', 'docs', 'changelog', 'status'] as const, []);
   return (
     <aside className="surface-mount-host" aria-label="Mounted feature surfaces">
       <nav aria-label="Mounted feature surfaces">
         {links.map((item) => <a key={item} href={`#surface=${item}`} aria-current={route === item ? 'page' : undefined}>{item}</a>)}
         {route ? <a href="#" aria-label="Close mounted feature surface">Close</a> : null}
+        <button type="button" onClick={() => void window.dingDesktop?.downloads.openWindow('start')}>Open download window</button>
       </nav>
       {route === 'converter' ? <ConverterSurface client={converterClient} /> : null}
       {route === 'ollama' ? <OllamaSuite client={ollamaClient} /> : null}
       {route === 'docs' ? <DocsSurface bundle={DOCS_BUNDLE} /> : null}
       {route === 'changelog' ? <ChangelogSurface markdown={CHANGELOG_MARKDOWN} repositoryUrl={CHANGELOG_REPOSITORY_URL} /> : null}
       {route === 'status' ? <StatusHubSurface store={statusStore} /> : null}
-      {route === 'download/start' ? (handoff && downloadClient
-        ? <DownloadStartSurface handoff={handoff} client={downloadClient} onReceipt={startReceipt} onClose={() => { setHandoff(undefined); void downloadClient.closeWindow('start'); window.location.hash = '#surface=status'; }} />
-        : <section className="surface-mount-unavailable" role="status"><h2>Start download unavailable</h2><p>No browser-extension handoff has reached the privileged boundary.</p></section>) : null}
-      {route === 'download/progress' && transferId && downloadClient ? <DownloadProgressSurface client={downloadClient} transferId={transferId} onComplete={(snapshot) => { setCompleteSnapshot(snapshot); window.location.hash = '#surface=download/complete'; }} /> : null}
-      {route === 'download/complete' && completeSnapshot ? <DownloadCompleteSurface snapshot={completeSnapshot} onDismiss={() => { setCompleteSnapshot(undefined); void downloadClient?.closeWindow('complete'); window.location.hash = '#surface=status'; }} /> : null}
     </aside>
   );
 }

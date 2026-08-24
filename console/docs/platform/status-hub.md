@@ -4,7 +4,7 @@ A shared, live status page reporting what the product's own maintenance work is 
 
 ## Behavior
 
-The desktop surface uses the typed Status Hub client and store. It reads the registered project, session snapshots, evidence links, questions, and reply inbox from the configured service. A question is only marked answered after the service returns its delivery receipt. Polling is bounded, cancellable, and stale generations are discarded.
+The desktop surface uses the typed Status Hub client and store. On first mount it hydrates a validated project id and registration receipt from the durable settings store. If that receipt is missing, it registers the project and persists the returned receipt before loading sessions. It re-registers only when the receipt is missing or an explicit registration action is requested. The surface reads session snapshots, evidence links, questions, and reply inbox from the configured service. A question is only marked answered after the service returns its delivery receipt. Polling is bounded, cancellable, and stale generations are discarded when the route leaves.
 
 ## Configuration
 

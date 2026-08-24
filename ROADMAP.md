@@ -6,7 +6,7 @@
 - [x] Register the converter catalog and PDF capability read seam in the local control plane, with unavailable picker and queue operations reported explicitly.
 - [x] Keep the Ollama mount honest when its privileged dispatcher is not registered, with no model, health, pull, chat, harness, or sample values assumed.
 - [x] Record converter and Ollama desktop and site rows as `implemented-unverified` in the feature registries and generated completeness matrix.
-- [ ] Mount and verify the Status Hub and browser-extension transfer clients. The implementation is on `codex/mount-status-downloads`, including native destination approval, bounded transfer deadlines, durable Range pause/resume, startup reconciliation, and dedicated always-on-top windows. Tests, build, runtime interaction, extension handoff, and captures remain pending. Status Hub availability depends on `STATUS_HUB_URL`; transfer state is persisted in `download-transfers.json`.
+- [ ] Mount and verify the Status Hub and browser-extension transfer clients. The implementation is on `codex/mount-status-downloads`, including native destination approval, bounded transfer deadlines, durable Range pause/resume, startup reconciliation, strict persisted-state validation, retryable publication, and dedicated always-on-top windows with the primary shell limited to passive open-window actions. Tests, build, runtime interaction, extension handoff, and captures remain pending. Status Hub availability depends on `STATUS_HUB_URL`; transfer state is persisted in `download-transfers.json`.
 - [ ] Register the remaining converter queue and file-picker handlers, then register the full local Ollama dispatcher and run the focused built-artifact verification.
 
 ## Delivery foundation

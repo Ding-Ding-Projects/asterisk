@@ -119,6 +119,7 @@ export function installHttpBridge(): void {
       onHandoff: (_listener: (handoff: ExtensionDownloadHandoff) => void) => () => {},
       onHandoffCancelled: (_listener: (handoffId: string) => void) => () => {},
       closeWindow: async (_kind: 'start' | 'progress' | 'complete') => {},
+      openWindow: async (_kind: 'start' | 'progress' | 'complete') => {},
     },
     converter: {
       pickFile: async () => { throw new Error('The hosted server cannot open a desktop file picker. Choose a local file through the site surface.'); },
