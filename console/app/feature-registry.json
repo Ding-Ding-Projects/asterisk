@@ -64,9 +64,13 @@
       ]
     },
     "external-settings-sources": {
-      "state": "absent",
-      "note": "No external settings source (validated HTTPS API or Home Assistant boolean entity) is wired anywhere; same gap as scheduled-settings.",
-      "files": []
+      "state": "partial",
+      "note": "Implemented 2026-08-24 as app/renderer/src/external-settings-sources.ts: URL validation, response validation and the settings a response is permitted to change, for both an HTTPS API and a Home Assistant boolean entity. Written defensively because a settings value arriving over the network is an input from a system nobody here controls. HTTPS only except an explicitly bounded loopback development route, since http anywhere else sends the accompanying token in the clear; no credentials in the URL, because a URL reaches logs and error messages; redirects refused, since a redirect is the far end choosing a destination this console never validated; responses size-capped and JSON-parsed defensively; only allowlisted keys read, and only string values, because coercing a number would be this console deciding what a remote system meant. An answer carrying an older generation is dropped, so a slow reply from the previous poll cannot land after a fast one and flip a setting back with nothing to explain it. A Home Assistant \"off\" is an ordinary state rather than a failure. An unreachable source keeps the last known good values and says the person’s own settings are untouched underneath, because the one thing a remote source must never do is become the base.",
+      "blockedBy": "BLOCKED ON THE PRIVILEGED FETCH. Nothing performs the request: the module validates a URL and a response and decides what may change, and the renderer must not make the call itself -- it would need the token, and a renderer holding a token is the thing every credential rule here exists to prevent. Real consumption needs the main process to own the fetch, honouring the timeout and the size cap and refusing redirects at the transport rather than after the fact, exposed the way the provisioning steps now are, plus somewhere to configure a source. Wiring a control before that exists would produce a source list that validates and never fetches.",
+      "files": [
+        "app/renderer/src/external-settings-sources.ts",
+        "tests/ui/external-settings-sources.test.tsx"
+      ]
     },
     "dim-sum-surprise": {
       "state": "implemented",

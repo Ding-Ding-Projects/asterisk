@@ -103,8 +103,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
-      "blockedBy": "not-implemented"
+      "note": "Implemented as partial and contributing no design label, because it has no control: the module validates and decides, and nothing fetches yet, so a source list would validate and never fetch. The labels arrive with the privileged fetch.",
+      "blockedBy": "no-label-surface"
     },
     "dim-sum-surprise": {
       "state": "not-localized",
