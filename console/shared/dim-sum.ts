@@ -19,12 +19,14 @@ export const DIM_SUM_CACHE_MAX_ASSET_URL_LENGTH = 2048;
 export const DIM_SUM_CACHE_MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const DIM_SUM_CACHE_MAX_IMAGE_DIMENSION = 8192;
 export const DIM_SUM_CACHE_MAX_IMAGE_PIXELS = 16 * 1024 * 1024;
+export const DIM_SUM_CACHE_MAX_DECODED_BYTES = 64 * 1024 * 1024;
+export const DIM_SUM_IMAGE_DECODE_DEADLINE_MS = 2_000;
 
 const HEX_64 = /^[a-f0-9]{64}$/;
 const REVISION = /^[a-f0-9]{7,128}$/;
 const MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const DATA_URL_PREFIX = /^data:(image\/(?:png|jpeg|webp));base64,/;
-const ASSET_URL = /^https:\/\/github\.com\/Ding-Ding-Projects\/dim-sum-photos\/releases\/download\/catalog-v1[^/]+\/[^/?#]+$/;
+const ASSET_URL = /^https:\/\/github\.com\/Ding-Ding-Projects\/dim-sum-photos\/releases\/download\/(catalog-v1[A-Za-z0-9._-]{1,159})\/([^/?#]{1,160})$/u;
 const PNG_SIGNATURE = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 
 export interface DimSumImageDecodeProof {
@@ -291,18 +293,39 @@ async function sha256(bytes: Uint8Array): Promise<string | undefined> {
   return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('');
 }
 
-async function decodeImageLocally(bytes: Uint8Array, mimeType: DimSumImageManifest['decodeProof']['mimeType']): Promise<ImageInspection | string> {
-  const createBitmap = (globalThis as typeof globalThis & { createImageBitmap?: (image: Blob) => Promise<ImageBitmap> }).createImageBitmap;
-  if (typeof createBitmap !== 'function') return 'the local image decoder is unavailable';
-  try {
-    const bitmap = await createBitmap(new Blob([bytes], { type: mimeType }));
-    const result = { mimeType, width: bitmap.width, height: bitmap.height, frameCount: 1 } satisfies ImageInspection;
-    bitmap.close();
-    if (!dimensionsAreBounded(result.width, result.height)) return 'decoded image dimensions exceed the safety bounds';
-    return result;
-  } catch {
-    return 'local image decoding failed';
-  }
+async function decodeImageLocally(bytes: Uint8Array, mimeType: DimSumImageManifest['decodeProof']['mimeType'], signal?: AbortSignal): Promise<ImageInspection | string> {
+  if (typeof Worker === 'undefined' || typeof URL === 'undefined' || typeof Blob === 'undefined') return 'the isolated local image decoder is unavailable';
+  const workerSource = `self.onmessage=async(event)=>{try{if(typeof createImageBitmap!=='function')throw new Error('decoder unavailable');const bitmap=await createImageBitmap(new Blob([event.data.bytes],{type:event.data.mimeType}));const result={width:bitmap.width,height:bitmap.height,frameCount:1};bitmap.close();self.postMessage({ok:true,result});}catch(error){self.postMessage({ok:false,reason:error instanceof Error?error.message:'decode failed'});}}`;
+  const workerUrl = URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' }));
+  const worker = new Worker(workerUrl);
+  const buffer = bytes.slice().buffer;
+  return await new Promise<ImageInspection | string>((resolve) => {
+    let settled = false;
+    const finish = (result: ImageInspection | string): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', abort);
+      worker.terminate();
+      URL.revokeObjectURL(workerUrl);
+      resolve(result);
+    };
+    const abort = (): void => finish('local image decoding was cancelled');
+    const timer = setTimeout(() => finish('local image decoding exceeded its deadline'), DIM_SUM_IMAGE_DECODE_DEADLINE_MS);
+    worker.onmessage = (event: MessageEvent<{ ok?: boolean; result?: { width?: number; height?: number; frameCount?: number }; reason?: string }>) => {
+      const result = event.data?.result;
+      if (!event.data?.ok || !result || !Number.isSafeInteger(result.width) || !Number.isSafeInteger(result.height) || result.frameCount !== 1) {
+        finish(`local image decoding failed: ${event.data?.reason ?? 'invalid decoder result'}`);
+        return;
+      }
+      if (!dimensionsAreBounded(result.width, result.height)) { finish('decoded image dimensions exceed the safety bounds'); return; }
+      finish({ mimeType, width: result.width, height: result.height, frameCount: 1 });
+    };
+    worker.onerror = () => finish('local image decoder worker failed');
+    signal?.addEventListener('abort', abort, { once: true });
+    if (signal?.aborted) { abort(); return; }
+    worker.postMessage({ bytes: buffer, mimeType }, [buffer]);
+  });
 }
 
 function validateEntry(value: unknown, index: number, sourceAssetRelease: string): DimSumCacheEntry | string {
@@ -420,10 +443,12 @@ export function validateDimSumCachePayload(rawText: string): DimSumCacheValidati
  * the renderer is allowed to use it. A host without Web Crypto fails closed rather
  * than treating a digest-shaped string as proof.
  */
-export async function validateDimSumCachePayloadAsync(rawText: string): Promise<DimSumAsyncCacheValidation> {
+export async function validateDimSumCachePayloadAsync(rawText: string, signal?: AbortSignal): Promise<DimSumAsyncCacheValidation> {
   const result = validateDimSumCachePayload(rawText);
   if (!result.ok) return result;
+  let decodedBytes = 0;
   for (let index = 0; index < result.cache.entries.length; index += 1) {
+    if (signal?.aborted) return { ok: false, reason: 'private dim-sum cache validation was cancelled' };
     const entry = result.cache.entries[index]!;
     const bytes = decodeBase64(entry.image.dataUrl);
     if (!bytes) return { ok: false, reason: `entry ${index + 1} has no decodable local image bytes` };
@@ -435,11 +460,13 @@ export async function validateDimSumCachePayloadAsync(rawText: string): Promise<
     }
     if (!digest) return { ok: false, reason: 'Web Crypto is unavailable, so the private dim-sum cache cannot be verified' };
     if (digest !== entry.image.sha256) return { ok: false, reason: `entry ${index + 1} image bytes do not match the recorded SHA-256 proof` };
-    const decoded = await decodeImageLocally(bytes, entry.image.decodeProof.mimeType);
+    const decoded = await decodeImageLocally(bytes, entry.image.decodeProof.mimeType, signal);
     if (typeof decoded === 'string') return { ok: false, reason: `entry ${index + 1} ${decoded}` };
     if (decoded.width !== entry.image.decodeProof.width || decoded.height !== entry.image.decodeProof.height || decoded.frameCount !== 1) {
       return { ok: false, reason: `entry ${index + 1} decoded image dimensions do not match the recorded proof` };
     }
+    decodedBytes += decoded.width * decoded.height * 4;
+    if (decodedBytes > DIM_SUM_CACHE_MAX_DECODED_BYTES) return { ok: false, reason: 'the private dim-sum cache exceeds the aggregate decoded-memory bound' };
   }
   return result;
 }

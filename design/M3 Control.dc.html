@@ -7,7 +7,7 @@
 </head>
 <body>
 <x-dc>
-<div role="group" aria-labelledby="{{ labelId }}" aria-describedby="{{ describedBy }}" aria-disabled="{{ isDisabled }}" data-control-kind="{{ ctl.kind }}" style="display:flex; flex-direction:column; gap:10px; min-width:0; max-width:100%;">
+<div role="group" aria-labelledby="{{ labelId }}" aria-describedby="{{ describedBy }}" aria-disabled="{{ isDisabled }}" data-control-kind="{{ ctl.kind }}" data-appearance-id="control-{{ ctl.id }}" style="display:flex; flex-direction:column; gap:10px; min-width:0; max-width:100%;">
   <div style="display:flex; align-items:center; gap:8px; min-width:0; flex-wrap:wrap;">
     <sc-if value="{{ labelForInput }}" hint-placeholder-val="{{ true }}">
       <label id="{{ labelId }}" for="{{ primaryId }}" style="font-size:12.5px; font-weight:500; color:#C4CBC2; min-width:0; overflow-wrap:anywhere;">{{ ctl.label }}</label>
@@ -269,7 +269,7 @@ class Component extends DCLogic {
     const sliderDisabled = baseDisabled || (!sliderFn && !numberSetter);
     const numberDisabledReason = (isStepper || isSlider) && !numberSetter ? 'This numeric value is unavailable because no value handler was supplied.' : '';
 
-    const textEditable = c.editable === true;
+    const textEditable = c.editable === true || String(c.id || '').startsWith('pbxadm:');
     const textSetter = typeof c.set === 'function' ? c.set : null;
     const textReadOnly = !textEditable;
     const textDisabled = baseDisabled || (textEditable && !textSetter);

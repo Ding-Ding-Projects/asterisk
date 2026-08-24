@@ -460,14 +460,14 @@
       "note": "Desktop SurfaceMounts mounts DimSumSurprise through the bounded typed dimSum.readCache bridge and the startup-context event seam. Hosted Day Teet Hui surfaces use only the visitor's browser-local cache and do not call the control plane, so their registry remains partial until a browser-local cache producer and site-specific evidence exist. The component performs one secure ten-percent draw only after suppression clears, validates the private cache asynchronously, and reports suppression or unavailable state without inventing a dish. No tests, build, runtime interaction, or capture was run in this lane.",
       "implementation": {
         "paths": [
-          "app/renderer/src/dim-sum-surprise.tsx",
+          "app/renderer/src/dim-sum-surprise-mounted.tsx",
           "app/renderer/src/surface-mounts.tsx",
           "app/renderer/src/startup-context.ts",
           "shared/dim-sum.ts",
           "control-plane/dim-sum-cache-reader.ts"
         ],
         "symbols": [
-          { "path": "app/renderer/src/dim-sum-surprise.tsx", "name": "DimSumSurprise", "kind": "function" },
+          { "path": "app/renderer/src/dim-sum-surprise-mounted.tsx", "name": "DimSumSurprise", "kind": "function" },
           { "path": "app/renderer/src/surface-mounts.tsx", "name": "dimSumCacheReader", "kind": "mount" }
         ]
       },
@@ -1312,7 +1312,7 @@
     },
     "command-palette": {
       "status": "partial",
-      "note": "App.tsx now mounts a command registry built from the design destination and setting catalogue plus every appearance property, and exposes its entries as the compiled paletteItems list with exact destination callbacks. The shared palette-index and shortcut behavior remain separate integration surfaces; no tests, build, runtime interaction, or capture was run in this lane.",
+      "note": "App.tsx mounts a command registry built from the design destination and setting catalogue plus every appearance property, and the checked-in design renders its rich rows through the M3 control component with live readers, options, execute handlers, and canonical targets. The shared palette-index search and shortcut behavior remain separate integration surfaces, and target-specific defects stay explicit. No tests, build, runtime interaction, or capture was run in this lane.",
       "implementation": {
         "paths": [
           "app/renderer/src/catalog.ts",

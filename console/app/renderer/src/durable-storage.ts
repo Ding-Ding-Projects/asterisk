@@ -50,6 +50,8 @@ function newRequestId(): string {
 
 export interface DurableStorageHandle {
   storage: DurableStorage;
+  /** Writes one value and resolves only after the privileged store acknowledges it. */
+  writeAcknowledged(key: string, value: string): Promise<{ ok: true } | { ok: false; reason: string }>;
   /** Resolves once the initial snapshot has been loaded (or, with no bridge, resolves
    *  immediately with an empty cache). Callers that restore persisted UI state at mount
    *  should await this before reading, then re-render. */
@@ -100,6 +102,21 @@ export function createDurableStorage(bridge: DurableStorageBridge | undefined): 
     void bridge.controlPlane.request({ requestId: newRequestId(), action, payload }).catch(() => {});
   }
 
+  async function writeAcknowledged(key: string, value: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+    const previous = cache.get(key);
+    cache.set(key, value);
+    if (!bridge) return { ok: false, reason: 'The durable settings bridge is unavailable, so the value was not acknowledged.' };
+    try {
+      const response = await bridge.controlPlane.request({ requestId: newRequestId(), action: 'settings.write', payload: { key, value } });
+      if (response?.ok) return { ok: true };
+      if (previous === undefined) cache.delete(key); else cache.set(key, previous);
+      return { ok: false, reason: 'The durable settings store refused the write.' };
+    } catch (error) {
+      if (previous === undefined) cache.delete(key); else cache.set(key, previous);
+      return { ok: false, reason: `The durable settings store did not acknowledge the write: ${error instanceof Error ? error.message : String(error)}` };
+    }
+  }
+
   const storage: DurableStorage = {
     getItem(key) {
       return cache.has(key) ? cache.get(key)! : null;
@@ -115,5 +132,5 @@ export function createDurableStorage(bridge: DurableStorageBridge | undefined): 
     },
   };
 
-  return { storage, bootstrap };
+  return { storage, bootstrap, writeAcknowledged };
 }

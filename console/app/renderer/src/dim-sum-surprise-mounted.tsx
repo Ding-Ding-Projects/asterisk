@@ -93,6 +93,8 @@ export function DimSumSurprise({ cacheReader, context, autoDismissMs = 8_000, on
     if (!isDimSumDrawWinning(draw)) return;
 
     let cancelled = false;
+    const controller = new AbortController();
+    const signal = controller.signal;
     void cacheReader.read().then(async (raw) => {
       if (cancelled) return;
       if (raw === null) {
@@ -101,7 +103,7 @@ export function DimSumSurprise({ cacheReader, context, autoDismissMs = 8_000, on
         onDiagnostic?.(unavailable);
         return;
       }
-      const result = await validateDimSumCachePayloadAsync(raw);
+      const result = await validateDimSumCachePayloadAsync(raw, signal);
       if (cancelled) return;
       if (!result.ok) {
         const unavailable: DimSumDiagnostic = { state: 'unavailable', reason: result.reason };
@@ -125,7 +127,7 @@ export function DimSumSurprise({ cacheReader, context, autoDismissMs = 8_000, on
       onDiagnostic?.(unavailable);
     });
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; controller.abort(); };
   }, [autoDismissMs, cacheReader, context, onDiagnostic, onShown]);
 
   useEffect(() => {

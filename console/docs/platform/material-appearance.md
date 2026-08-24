@@ -12,7 +12,7 @@ Colors would be chosen through a continuous picker with bidirectional conversion
 
 ## Current status
 
-**Desktop application:** Partial. The central renderer creates one persisted `AppearanceStore`, installs the appearance runtime stylesheet, derives the generated preview from that store, marks rendered controls with stable appearance ids, and exposes every appearance property through the shared rich-control registration. The generated palette still renders destination buttons rather than inline rich rows, dynamic target-specific controls remain unavailable until their real navigation entries exist, and built-artifact interaction remains unverified in this lane.
+**Desktop application:** Partial. The central renderer creates one persisted `AppearanceStore`, installs the appearance runtime stylesheet, derives the generated preview from that store, marks design-authored rendered controls with stable appearance ids, and exposes every appearance property through the shared rich-control registration. The checked-in palette now renders real rich rows. Dynamic target-specific controls without canonical entries remain explicit defects, and built-artifact interaction remains unverified in this lane.
 
 **Documentation website:** Partial. Every page exposes persisted dark, light, and high-contrast themes, density, accent, font scale, navigation docking, logo presets, and a broad color translator. These values apply live. Per-element editors and full word-processor typography remain incomplete.
 

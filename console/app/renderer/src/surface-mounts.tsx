@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DimSumSurprise } from './dim-sum-surprise';
+import type { ChangeEvent } from 'react';
+import { DimSumSurprise } from './dim-sum-surprise-mounted';
 import { readStartupContext, subscribeStartupContext } from './startup-context';
 import { createDimSumCacheReader } from '../../../control-plane/dim-sum-cache-reader';
-import { createBrowserDimSumCacheReader } from '../../../shared/dim-sum';
+import { DIM_SUM_CACHE_MAX_BYTES, DIM_SUM_CACHE_STORAGE_KEY, validateDimSumCachePayloadAsync, createBrowserDimSumCacheReader } from '../../../shared/dim-sum';
 import { isHostedRuntime } from './bridge/http-bridge';
 import { ConverterSurface, type ConverterClient } from './converter-surface';
 import { OllamaSuite, type OllamaSuiteClient } from './ollama-suite';
@@ -14,6 +15,47 @@ import type { BackendResponse, ChatSession, OllamaRuntimeEvidence, OllamaSuiteSn
 import type { ConverterBackendHandlers } from '../../../shared/converter';
 
 type SurfaceRoute = 'converter' | 'ollama' | 'docs' | 'changelog';
+
+function HostedDimSumCacheControl() {
+  const [status, setStatus] = useState('No visitor-local dim-sum cache loaded.');
+  const [busy, setBusy] = useState(false);
+  const clear = () => {
+    try {
+      window.localStorage.removeItem(DIM_SUM_CACHE_STORAGE_KEY);
+      setStatus('Visitor-local cache cleared. The surprise remains unavailable until a valid file is selected.');
+    } catch (error) {
+      setStatus(`Visitor-local cache could not be cleared: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+  const select = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (file.size > DIM_SUM_CACHE_MAX_BYTES) {
+      setStatus(`Rejected: the selected cache is ${file.size} bytes, above the ${DIM_SUM_CACHE_MAX_BYTES}-byte limit.`);
+      return;
+    }
+    setBusy(true);
+    try {
+      const raw = await file.text();
+      const result = await validateDimSumCachePayloadAsync(raw);
+      if (!result.ok) { setStatus(`Rejected: ${result.reason}`); return; }
+      window.localStorage.setItem(DIM_SUM_CACHE_STORAGE_KEY, raw);
+      setStatus(`Validated and stored ${result.cache.entries.length} visitor-local dish entries. No network request was made.`);
+    } catch (error) {
+      setStatus(`The selected cache was not stored: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return <section aria-label="Visitor-local dim-sum cache" className="surface-mount-card">
+    <h3>Visitor-local dim-sum cache</h3>
+    <p>Select a validated cache JSON file from this device. It stays in this browser profile and is never uploaded.</p>
+    <input type="file" accept="application/json,.json" aria-label="Select local dim-sum cache JSON" onChange={(event) => void select(event)} disabled={busy} />
+    <button type="button" onClick={clear} disabled={busy}>Clear visitor-local cache</button>
+    <p role="status" aria-live="polite">{busy ? 'Validating locally…' : status}</p>
+  </section>;
+}
 
 function unavailable<T>(surface: string, operation: string): Promise<T> {
   return Promise.reject(new Error(`${surface} ${operation} is not registered in the privileged bridge. No value was assumed and no operation was attempted.`));
@@ -185,6 +227,7 @@ export function SurfaceMounts() {
   const links = useMemo(() => (['converter', 'ollama', 'docs', 'changelog'] as const), []);
   return (
     <aside className="surface-mount-host" aria-label="Mounted feature surfaces">
+      {isHostedRuntime() ? <HostedDimSumCacheControl /> : null}
       {startupContext.ready ? (
         <DimSumSurprise
           cacheReader={dimSumCacheReader}

@@ -12,6 +12,10 @@ const stateMarker = "      isText: c.kind === 'text',";
 const extensionMarker = "isEditableText: c.kind === 'text' && String(c.id || '').startsWith('pbxadm:'),";
 
 if (!source.includes(templateMarker)) {
+  if (source.includes("String(c.id || '').startsWith('pbxadm:')")) {
+    console.log(`PBX M3 controls are already integrated in the checked-in design component -> ${path}`);
+    process.exit(0);
+  }
   throw new Error('PBX M3 extension could not find the compiled read-only text-control template marker.');
 }
 if (!source.includes(stateMarker)) {

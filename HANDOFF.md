@@ -20,7 +20,15 @@ The follow-up repair keeps the startup draw unconsumed while first-run, School m
 
 Desktop cache reads are bounded before the privileged file read returns bytes. Hosted surfaces use a browser-local visitor cache and do not call the control-plane endpoint. Image validation now checks signatures, dimensions, frame markers, pixel bounds, source-release and asset-filename identity, manifest agreement, SHA-256, and independent local browser decoding.
 
-The registry now records order, file, and action-backed controls, refreshes when prepared PBX controls are rebuilt, and exposes live rich palette rows with read, options, execute, and canonical navigation targets. The generated palette still consumes destination buttons only, and target-specific controls without canonical navigation entries remain unavailable. Appearance state is unified around the persisted `AppearanceStore`; the old direct DOM path is retained only as the pre-hydration fallback. Material appearance and command palette claims remain `partial` until a real rich-row consumer and complete dynamic target mount exist.
+The registry now records order, file, and action-backed controls, refreshes when prepared PBX controls are rebuilt, and exposes live rich palette rows with read, options, execute, and canonical navigation targets. The generated palette consumes those rich rows through the checked-in M3 control component, while target-specific controls without canonical navigation entries remain explicit defects. Appearance state is unified around the persisted `AppearanceStore`; the old direct DOM path is retained only as the pre-hydration fallback. Material appearance and command palette claims remain `partial` until complete dynamic target evidence exists.
+
+## Second refutation repair, 2026-08-23
+
+The mounted component now has the unambiguous filename `console/app/renderer/src/dim-sum-surprise-mounted.tsx`; the pure contract module arriving from the hui as `dim-sum-surprise.ts` is not shadowed by extension resolution. The checked-in design source now renders palette rich rows through the M3 control component, carries stable appearance ids for the shell, tabs, dialogs, palette, and controls, and compiles through `console/scripts/compile-design.mjs`. The PBX M3 extension script now recognizes the design component's built-in editable text path.
+
+Hosted Day Teet Hui surfaces provide a visible local JSON cache picker with bounded validation, replace, and clear behavior in browser storage. Desktop reads remain bounded before IPC. Image validation uses explicit release and filename capture groups, independent signatures and dimensions, animation rejection, a cancellable worker decoder with a per-image deadline, and an aggregate decoded-memory limit. Onboarding completion waits for durable-store acknowledgement before closing. Runtime prepared controls rebuild canonical navigation state, and missing target identities are recorded as defects rather than silently skipped.
+
+No tests, lint, broad build, package, UI, browser, captures, or dew ran. The only allowed generation step was the design compiler and its PBX M3 extension helper; the helper recognized the design's integrated editable-text path.
 
 ## Scope
 

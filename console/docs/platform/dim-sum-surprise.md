@@ -16,6 +16,8 @@ There is deliberately no setting to turn this off; the only configurable aspect 
 
 **Documentation website:** Not implemented. A static documentation site has no startup event to attach this to.
 
+The hosted documentation-site equivalent is a browser-local cache surface: a visible file picker validates a user-selected cache JSON locally, stores it per visitor, and offers replace and clear actions. It makes no control-plane request and vendors no consumer photo.
+
 ## Failure modes
 
 If the private cache is missing, refused, malformed, or fails digest validation, the renderer shows an honest unavailable diagnostic and no image. The renderer never fetches the public catalogue or invents a dish. A cache entry is selected only after the complete envelope and every local image digest are validated.

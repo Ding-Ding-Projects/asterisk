@@ -19,6 +19,7 @@ export interface RichControlRegistration {
   readonly definitions: ReadonlyArray<CommandDefinition>;
   readonly settingControlIds: ReadonlyArray<string>;
   readonly appearanceControlIds: ReadonlyArray<string>;
+  readonly defects: ReadonlyArray<string>;
 }
 
 export type RichControlInput = {
@@ -39,11 +40,12 @@ function idPart(value: string): string {
   return value.replace(/[^A-Za-z0-9._:-]/gu, '-').slice(0, 150);
 }
 
-function canonicalNavigationState(): NavigationState {
+function canonicalNavigationState(runtimeControls: Readonly<Record<string, ReadonlyArray<RichControlInput>>> = {}): NavigationState {
   const tabs: Record<string, NavigationTab> = {};
-  for (const destinationId of ORDER as ReadonlyArray<string>) {
+  const destinationIds = [...new Set([...(ORDER as ReadonlyArray<string>), ...Object.keys(runtimeControls)])];
+  for (const destinationId of destinationIds) {
     const screen = (SCREENS as unknown as Record<string, DesignScreen>)[destinationId] ?? {};
-    const controlIds = groupsFor(screen).flatMap((control) => typeof control.id === 'string' ? [`control:${destinationId}:${control.id}`] : []);
+    const controlIds = [...groupsFor(screen), ...(runtimeControls[destinationId] ?? [])].flatMap((control) => typeof control.id === 'string' ? [`control:${destinationId}:${control.id}`] : []);
     if (destinationId === 'appearance') controlIds.push(...APPEARANCE_PROPERTIES.map((property) => `appearance:${property}`));
     const tabId = `tab:${idPart(destinationId)}`;
     tabs[tabId] = {
@@ -75,10 +77,10 @@ function canonicalNavigationState(): NavigationState {
 
 export const CANONICAL_NAVIGATION_STATE = canonicalNavigationState();
 
-function target(destinationId: string, elementId: string) {
+function target(destinationId: string, elementId: string, navigationState: NavigationState) {
   const safeDestination = idPart(destinationId);
   const safeElement = idPart(elementId);
-  const workspace = CANONICAL_NAVIGATION_STATE.workspaces.console-workspace!;
+  const workspace = navigationState.workspaces.console-workspace!;
   const strip = workspace.strips['console-strip']!;
   const tab = strip.tabs[`tab:${safeDestination}`];
   if (!tab || !tab.teleportElementIds.includes(safeElement)) throw new Error(`No canonical navigation target exists for ${safeDestination}:${safeElement}.`);
@@ -125,7 +127,7 @@ function groupsFor(screen: DesignScreen): RichControlInput[] {
   });
 }
 
-function definitionForDestination(destinationId: string, screen: DesignScreen, handlers: Record<string, (context: { value?: unknown }) => void | Promise<void>>): CommandDefinition {
+function definitionForDestination(destinationId: string, screen: DesignScreen, handlers: Record<string, (context: { value?: unknown }) => void | Promise<void>>, navigationState: NavigationState): CommandDefinition {
   const id = `destination.${idPart(destinationId)}`;
   const handlerId = `open.${idPart(destinationId)}`;
   handlers[handlerId] = () => undefined;
@@ -136,7 +138,7 @@ function definitionForDestination(destinationId: string, screen: DesignScreen, h
     description: `Open ${typeof screen.title === 'string' ? screen.title : destinationId}.`,
     keywords: [destinationId],
     handlerId,
-    target: target(destinationId, `destination:${destinationId}`),
+    target: target(destinationId, `destination:${destinationId}`, navigationState),
   };
 }
 
@@ -147,10 +149,13 @@ export function createRichControlRegistration(options: RichControlMountOptions):
   const definitions: CommandDefinition[] = [];
   const settingControlIds: string[] = [];
   const appearanceControlIds: string[] = [];
+  const defects: string[] = [];
+  const navigationState = canonicalNavigationState(options.runtimeControls);
+  const destinationIds = [...new Set([...(ORDER as ReadonlyArray<string>), ...Object.keys(options.runtimeControls ?? {})])];
 
-  for (const destinationId of ORDER as ReadonlyArray<string>) {
+  for (const destinationId of destinationIds) {
     const screen = (SCREENS as unknown as Record<string, DesignScreen>)[destinationId] ?? {};
-    const destination = definitionForDestination(destinationId, screen, handlers);
+    const destination = definitionForDestination(destinationId, screen, handlers, navigationState);
     const openHandler = `open.${idPart(destinationId)}`;
     handlers[openHandler] = () => options.openDestination(destinationId);
     definitions.push(destination);
@@ -168,8 +173,8 @@ export function createRichControlRegistration(options: RichControlMountOptions):
       const readerId = `read.${idPart(destinationId)}.${idPart(controlId)}`;
       const providerId = controlOptions.length > 0 ? `options.${idPart(destinationId)}.${idPart(controlId)}` : undefined;
       let controlTarget: ReturnType<typeof target>;
-      try { controlTarget = target(destinationId, `control:${destinationId}:${controlId}`); }
-      catch { continue; }
+      try { controlTarget = target(destinationId, `control:${destinationId}:${controlId}`, navigationState); }
+      catch { defects.push(`Prepared control ${destinationId}:${controlId} has no canonical navigation target.`); continue; }
       handlers[handlerId] = ({ value }) => {
         if (kind === 'action' && typeof control.action === 'string') {
           options.executeControlAction?.(controlId, control.action);
@@ -223,7 +228,7 @@ export function createRichControlRegistration(options: RichControlMountOptions):
       description: `Edit ${property} in the mounted appearance editor.`,
       keywords: ['appearance', property],
       handlerId,
-      target: target('appearance', `appearance:${property}`),
+        target: target('appearance', `appearance:${property}`, navigationState),
       control: {
         kind,
         controlId: `appearance:${property}`,
@@ -239,7 +244,7 @@ export function createRichControlRegistration(options: RichControlMountOptions):
     handlers as CommandHandlerMap,
     readers as ValueReaderMap,
     providers,
-    [...(ORDER as ReadonlyArray<string>)].map((destinationId) => ({ destinationId, capabilities: new Set<string>(['settings', 'appearance', 'palette']) })),
+    destinationIds.map((destinationId) => ({ destinationId, capabilities: new Set<string>(['settings', 'appearance', 'palette']) })),
   );
-  return { registry, definitions, settingControlIds, appearanceControlIds };
+  return { registry, definitions, settingControlIds, appearanceControlIds, defects };
 }

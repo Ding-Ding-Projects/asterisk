@@ -1,4 +1,4 @@
-import type { DimSumStartupContext } from './dim-sum-surprise';
+import type { DimSumStartupContext } from './dim-sum-surprise-mounted';
 
 export interface StartupContextSnapshot extends DimSumStartupContext {
   readonly ready: boolean;

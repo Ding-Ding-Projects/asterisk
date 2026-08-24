@@ -45,10 +45,10 @@ import {
 } from './appearance';
 import { COLOUR_FORMATS, formatColour, parseColour, translate as translateColour } from './colour';
 import { resolveAppearanceValue } from './appearance';
-import { APPEARANCE_RUNTIME_STYLES, bindAppearanceRuntime, detectAppearanceCapabilities, type BoundAppearanceRuntime } from './appearance-runtime';
+import { APPEARANCE_RUNTIME_STYLES, bindAppearanceRuntime, detectAppearanceCapabilities, mountAppearanceModel, type BoundAppearanceRuntime } from './appearance-runtime';
 import { createAppearanceStore, type AppearanceStore } from './appearance-store';
 import { createRichControlRegistration, type RichControlInput, type RichControlRegistration } from './rich-control-registration';
-import { executeRichControl } from './command-registry';
+import { executeRichControl, type RegisteredCommand } from './command-registry';
 import { publishStartupContext } from './startup-context';
 import { validateDesktopSettings } from '../../../shared/settings-schema';
 import { DESKTOP_SETTINGS_STORAGE_KEY } from './settings-store';
@@ -263,6 +263,7 @@ export class App extends Base {
   private legacyAppearanceSerialised = '';
   private appearanceStore: AppearanceStore | undefined;
   private appearanceRuntime: BoundAppearanceRuntime | undefined;
+  private appearanceObserver: MutationObserver | undefined;
   private richControlRegistration: RichControlRegistration;
   /** The unlock ladder (unlock-ladder.ts) for the per-element lock's unlock dialog.
    *  Renderer-only: this app's per-element lock has no server-enforced attempt budget
@@ -346,6 +347,8 @@ export class App extends Base {
   };
 
   componentWillUnmount() {
+    this.appearanceObserver?.disconnect();
+    this.appearanceObserver = undefined;
     this.appearanceRuntime?.unbind();
     this.appearanceRuntime = undefined;
     this.appearanceStore = undefined;
@@ -391,8 +394,15 @@ export class App extends Base {
     return this.durableStorage.storage.getItem(this.ONBOARDING_COMPLETED_KEY) === 'true';
   }
 
-  private markOnboardingCompleted(): void {
-    this.durableStorage.storage.setItem(this.ONBOARDING_COMPLETED_KEY, 'true');
+  private async markOnboardingCompleted(): Promise<boolean> {
+    const result = await this.durableStorage.writeAcknowledged(this.ONBOARDING_COMPLETED_KEY, 'true');
+    if (!result.ok) this.toast(`Setup remains open because completion was not saved: ${result.reason}`);
+    return result.ok;
+  }
+
+  private async completeOnboarding(generated: () => void): Promise<void> {
+    if (!(await this.markOnboardingCompleted())) return;
+    generated();
   }
 
   private syncLegacyAppearanceStore(): void {
@@ -421,17 +431,31 @@ export class App extends Base {
       document.head.appendChild(style);
     }
     this.appearanceStore = createAppearanceStore(this.durableStorage.storage, detectAppearanceCapabilities());
-    const mark = (element: HTMLElement, id: string): void => {
-      if (!element.hasAttribute('data-appearance-id')) element.setAttribute('data-appearance-id', id);
-    };
-    mark(document.documentElement, 'global-root');
-    Array.from(document.querySelectorAll<HTMLElement>('button, input, select, textarea, [role="button"]')).forEach((element, index) => {
-      const stable = element.id || element.getAttribute('aria-label') || element.textContent?.trim().slice(0, 48) || `element-${index + 1}`;
-      mark(element, `ui-${stable.replace(/[^A-Za-z0-9._:-]/gu, '-').slice(0, 120)}`);
-    });
+    if (!document.documentElement.hasAttribute('data-appearance-id')) document.documentElement.setAttribute('data-appearance-id', 'global-root');
+    this.assertUniqueAppearanceIds();
     this.appearanceRuntime = bindAppearanceRuntime(document, this.appearanceStore, () => ({
       reducedMotion: document.documentElement.dataset.dimSumReducedMotion === 'true',
     }));
+    this.appearanceObserver = new MutationObserver(() => {
+      if (!this.assertUniqueAppearanceIds() || !this.appearanceStore) return;
+      mountAppearanceModel(document, this.appearanceStore.getModel(), { reducedMotion: document.documentElement.dataset.dimSumReducedMotion === 'true' });
+    });
+    this.appearanceObserver.observe(document.documentElement, { childList: true, subtree: true });
+  }
+
+  private assertUniqueAppearanceIds(): boolean {
+    if (typeof document === 'undefined') return false;
+    const seen = new Set<string>();
+    for (const element of Array.from(document.querySelectorAll<HTMLElement>('[data-appearance-id]'))) {
+      const id = element.getAttribute('data-appearance-id');
+      if (!id || seen.has(id)) {
+        document.documentElement.dataset.appearanceRegistrationError = id || 'missing-id';
+        return false;
+      }
+      seen.add(id);
+    }
+    delete document.documentElement.dataset.appearanceRegistrationError;
+    return true;
   }
 
   private readMountedAppearanceValue(property: AppearanceProperty): unknown {
@@ -461,6 +485,52 @@ export class App extends Base {
     const applied = store.applyDraft({ scope: 'global' }, 'default', property);
     if (!applied.ok) this.toast(applied.reason);
     else this.forceUpdate();
+  }
+
+  private paletteItemsForRegistry(): ReadonlyArray<Record<string, unknown>> {
+    const registry = this.richControlRegistration.registry;
+    return registry.entries.map((entry: RegisteredCommand) => {
+      const current = entry.control ? registry.valueReaders[entry.control.valueReaderId]?.() : undefined;
+      const execute = (value: unknown): void => { void executeRichControl(registry, entry.id, value).then(() => this.forceUpdate()); };
+      const control = entry.control;
+      if (!control) return {
+        icon: entry.kind === 'destination' ? ((SCREENS as Record<string, { icon: string }>)[entry.target.destinationId]?.icon ?? 'open_in_new') : 'tune',
+        label: entry.label,
+        hint: entry.shortcut ?? entry.target.destinationId,
+        rich: false,
+        notRich: true,
+        go: () => {
+          this.setState({ paletteOpen: false });
+          const openScreen = (this as unknown as { openScreen?: (id: string) => void }).openScreen;
+          if (openScreen) openScreen(entry.target.destinationId);
+          else this.setState({ screen: entry.target.destinationId });
+        },
+      };
+      const base = { id: control.controlId, label: control.label, value: current, onInfo: () => {}, onWizard: () => {} } as Record<string, unknown>;
+      if (control.kind === 'switch') {
+        base.kind = 'switch'; base.on = Boolean(current); base.off = !Boolean(current); base.toggle = () => execute(!Boolean(current));
+      } else if (control.kind === 'select') {
+        const options = registry.optionsProviders[control.optionsProviderId ?? '']?.() ?? [];
+        base.kind = 'select'; base.options = options.map((option) => ({ label: option.label, on: option.value === current, off: option.value !== current, pick: () => execute(option.value) }));
+      } else if (control.kind === 'slider') {
+        base.kind = 'slider'; base.min = control.minimum ?? 0; base.max = control.maximum ?? 100; base.step = control.step ?? 1; base.onSlide = (event: { target?: { value?: unknown } }) => execute(Number(event.target?.value)); base.display = String(current ?? '');
+      } else if (control.kind === 'stepper' || control.kind === 'number') {
+        const numeric = Number(current ?? control.minimum ?? 0);
+        base.kind = 'stepper'; base.value = numeric; base.min = control.minimum ?? 0; base.max = control.maximum ?? 100; base.dec = () => execute(Math.max(Number(base.min), numeric - Number(control.step ?? 1))); base.inc = () => execute(Math.min(Number(base.max), numeric + Number(control.step ?? 1))); base.set = (value: unknown) => execute(Number(value));
+      } else if (control.kind === 'file') {
+        base.kind = 'file'; base.fileName = typeof current === 'string' && current ? current : 'No file chosen'; base.hasFile = Boolean(current); base.accept = '';
+      } else if (control.kind === 'order') {
+        const values = Array.isArray(current) ? current : [];
+        base.kind = 'order'; base.items = values.map((value, index) => ({ label: String(value), up: () => execute(values), down: () => execute(values), drop: () => execute(values.filter((_, itemIndex) => itemIndex !== index)) }));
+      } else {
+        base.kind = 'text'; base.display = String(current ?? ''); base.set = (value: unknown) => execute(value);
+      }
+      return {
+        icon: 'tune', label: entry.label, hint: entry.target.destinationId, rich: true, notRich: false,
+        go: () => { this.setState({ paletteOpen: false }); const openScreen = (this as unknown as { openScreen?: (id: string) => void }).openScreen; if (openScreen) openScreen(entry.target.destinationId); },
+        ctl: base,
+      };
+    });
   }
 
   private async request(action: string, extra: Record<string, unknown> = {}): Promise<ControlPlaneResponse | undefined> {
@@ -2052,20 +2122,18 @@ It is shown once. The phone needs it to register.`);
     if (typeof generatedOnboardNext === 'function') {
       values.onboardNext = () => {
         const step = Number((this.state as { onboardStep?: unknown }).onboardStep ?? 0);
-        if (step >= ONBOARD.length - 1) this.markOnboardingCompleted();
-        (generatedOnboardNext as () => void)();
+        if (step >= ONBOARD.length - 1) void this.completeOnboarding(generatedOnboardNext as () => void);
+        else (generatedOnboardNext as () => void)();
       };
     }
     if (typeof generatedSkipOnboard === 'function') {
       values.skipOnboard = () => {
-        this.markOnboardingCompleted();
-        (generatedSkipOnboard as () => void)();
+        void this.completeOnboarding(generatedSkipOnboard as () => void);
       };
     }
     if (typeof generatedSuperEasy === 'function') {
       values.superEasy = () => {
-        this.markOnboardingCompleted();
-        (generatedSuperEasy as () => void)();
+        void this.completeOnboarding(generatedSuperEasy as () => void);
       };
     }
     const bridge = this.bridge();
@@ -2077,19 +2145,10 @@ It is shown once. The phone needs it to register.`);
       // The "Edit appearance..." panel's real colour translator and real actions
       // (appearance.ts + colour.ts) -- see the Appearance section above renderVals.
       ...this.appearanceVals(),
-      paletteItems: this.richControlRegistration.registry.entries.map((entry) => ({
-        icon: entry.kind === 'destination' ? ((SCREENS as Record<string, { icon: string }>)[entry.target.destinationId]?.icon ?? 'open_in_new') : 'tune',
-        label: entry.label,
-        hint: entry.shortcut ?? entry.target.destinationId,
-        go: () => {
-          this.setState({ paletteOpen: false });
-          const openScreen = (this as unknown as { openScreen?: (id: string) => void }).openScreen;
-          if (openScreen) openScreen(entry.target.destinationId);
-          else this.setState({ screen: entry.target.destinationId });
-        },
-      })),
+      paletteItems: this.paletteItemsForRegistry(),
       richControlRegistry: this.richControlRegistration.registry,
       richControlDefinitions: this.richControlRegistration.definitions,
+      richControlDefects: this.richControlRegistration.defects,
       richPaletteRows: this.richControlRegistration.registry.entries
         .filter((entry) => Boolean(entry.control))
         .map((entry) => ({
