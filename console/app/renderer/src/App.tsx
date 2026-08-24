@@ -259,6 +259,7 @@ export class App extends Base {
     remotes: Array<{ name: string; url: string; fetchUrl: string; pushUrl: string }>;
     receipts: Array<{ id: string; action: string; remote: string; branch: string; status: string; observedAt: string; detail: string }>;
     receiptError?: string;
+    corruptReceipt?: { kind: 'corrupt-receipt'; path: string; detail: string };
     entries: Array<{ id: string; timestamp: string; action: string; subject: string }>;
     backups: Array<{ path: string; createdAt: string; kind: string; bytes: number; verified: boolean; status: string; detail: string }>;
   } = { branch: '', clean: false, ahead: 0, behind: 0, divergence: false, comparison: 'unverified', refs: [], remotes: [], receipts: [], entries: [], backups: [] };
@@ -271,9 +272,13 @@ export class App extends Base {
   private migrationOperationId = '';
   private migrationOmissionText = 'Omitted by design: credential-vault secrets, private vocabulary, source paths, and transient caches. Every omission is recorded in the manifest.';
   private migrationSearchText = '';
+  private migrationRegexEnabled = false;
+  private migrationRegexPattern = '';
   private migrationRetention = 30;
   private migrationRecoveryError = '';
   private selectedBackupPaths = new Set<string>();
+  private selectedReceiptIds = new Set<string>();
+  private migrationSelectionScope: 'matches' | 'all' = 'matches';
 
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
@@ -346,7 +351,7 @@ export class App extends Base {
       if (backups?.ok) this.historyData.backups = ((backups.data as { backups?: typeof this.historyData.backups }).backups ?? []);
       if (recovery?.ok) this.migrationRecoveryError = (recovery.data as { resolved?: boolean; detail?: string }).resolved ? '' : String((recovery.data as { detail?: string }).detail ?? 'Migration journal recovery is unresolved.');
       this.historyLoaded = true;
-      this.migrationStatus = `${this.historyData.entries.length} local history records, ${this.historyData.backups.length} backup records, ${this.historyData.clean ? 'clean' : 'local changes pending'}${this.historyData.receiptError ? `; receipt problem: ${this.historyData.receiptError}` : ''}${this.migrationRecoveryError ? `; recovery blocked: ${this.migrationRecoveryError}` : ''}.`;
+      this.migrationStatus = `${this.historyData.entries.length} local history records, ${this.historyData.backups.length} backup records, ${this.historyData.clean ? 'clean' : 'local changes pending'}${this.historyData.corruptReceipt ? `; corrupt receipt ${this.historyData.corruptReceipt.path}: ${this.historyData.corruptReceipt.detail}` : ''}${this.migrationRecoveryError ? `; recovery blocked: ${this.migrationRecoveryError}` : ''}.`;
     } catch (error) {
       this.migrationStatus = error instanceof Error ? error.message : 'Local history state is unavailable.';
     } finally {
@@ -390,17 +395,15 @@ export class App extends Base {
   };
 
   private remoteSet = async (): Promise<void> => {
-    const response = await this.request('git.remote.set', { payload: { name: this.migrationRemoteName, url: this.migrationRemoteUrl, pushUrl: this.migrationPushUrl || undefined } });
-    if (!response?.ok) this.fire('Remote not saved', response?.message ?? 'The remote URL was rejected.');
-    else this.fire('Remote saved', 'The validated remote is now listed for explicit fetch and push.');
-    await this.loadMigrationState();
+    const response = await this.request('git.remote.set.start', { payload: { name: this.migrationRemoteName, url: this.migrationRemoteUrl, pushUrl: this.migrationPushUrl || undefined } }); const operationId = (response?.data as { operationId?: string } | undefined)?.operationId;
+    if (!response?.ok || !operationId) { this.fire('Remote not saved', response?.message ?? 'The remote URL was rejected.'); return; }
+    this.migrationOperationId = operationId; this.forceUpdate(); await this.waitMigrationOperation(operationId, 'Remote set');
   };
 
   private remoteRemove = async (): Promise<void> => {
-    const response = await this.request('git.remote.remove', { payload: { name: this.migrationRemoteName } });
-    if (!response?.ok) this.fire('Remote not removed', response?.message ?? 'The remote was not removed.');
-    else this.fire('Remote removed', 'No remote URL was rewritten or retained.');
-    await this.loadMigrationState();
+    const response = await this.request('git.remote.remove.start', { payload: { name: this.migrationRemoteName } }); const operationId = (response?.data as { operationId?: string } | undefined)?.operationId;
+    if (!response?.ok || !operationId) { this.fire('Remote not removed', response?.message ?? 'The remote was not removed.'); return; }
+    this.migrationOperationId = operationId; this.forceUpdate(); await this.waitMigrationOperation(operationId, 'Remote remove');
   };
 
   private remoteFetch = async (): Promise<void> => {
@@ -425,9 +428,13 @@ export class App extends Base {
   private retryMigrationRecovery = async (): Promise<void> => { const response = await this.request('migration.recovery.retry'); this.fire(response?.ok ? 'Recovery state refreshed' : 'Recovery remains blocked', response?.message ?? 'The journal still needs manual recovery.'); await this.loadMigrationState(); };
 
   private migrationSearchInput = (event: unknown): void => { this.migrationSearchText = String((event as { target?: { value?: unknown } }).target?.value ?? '').slice(0, 256); this.forceUpdate(); };
-  private migrationRegex = (): void => this.setState({ regexOpen: true, regexTarget: 'nav', regexX: '40%', regexY: '160px' } as never);
+  private migrationRegex = (): void => { this.migrationRegexEnabled = !this.migrationRegexEnabled; this.setState({ regexOpen: true, regexTarget: 'nav', regexX: '40%', regexY: '160px' } as never); };
+  private migrationRegexInput = (event: unknown): void => { this.migrationRegexPattern = String((event as { target?: { value?: unknown } }).target?.value ?? '').slice(0, 256); this.forceUpdate(); };
   private retentionInput = (event: unknown): void => { const value = Number((event as { target?: { value?: unknown } }).target?.value); if (Number.isSafeInteger(value)) this.migrationRetention = Math.max(1, Math.min(365, value)); this.forceUpdate(); };
   private toggleBackupSelection = (path: string): void => { if (this.selectedBackupPaths.has(path)) this.selectedBackupPaths.delete(path); else this.selectedBackupPaths.add(path); this.forceUpdate(); };
+  private selectAllMigration = (): void => { const query = this.migrationSearchText.trim().toLocaleLowerCase(); const matches = (value: string): boolean => query.length === 0 || value.toLocaleLowerCase().includes(query); const paths = this.historyData.backups.filter((entry) => this.migrationSelectionScope === 'all' || matches(`${entry.path} ${entry.createdAt} ${entry.status} ${entry.detail}`)).map((entry) => entry.path); paths.forEach((path) => this.selectedBackupPaths.add(path)); this.historyData.receipts.filter((entry) => this.migrationSelectionScope === 'all' || matches(`${entry.id} ${entry.action} ${entry.remote} ${entry.branch} ${entry.status} ${entry.detail}`)).forEach((entry) => this.selectedReceiptIds.add(entry.id)); this.forceUpdate(); };
+  private invertMigrationSelection = (): void => { const selected = new Set(this.selectedBackupPaths); this.historyData.backups.forEach((entry) => { if (selected.has(entry.path)) this.selectedBackupPaths.delete(entry.path); else this.selectedBackupPaths.add(entry.path); }); const selectedReceipts = new Set(this.selectedReceiptIds); this.historyData.receipts.forEach((entry) => { if (selectedReceipts.has(entry.id)) this.selectedReceiptIds.delete(entry.id); else this.selectedReceiptIds.add(entry.id); }); this.forceUpdate(); };
+  private bulkExportMigration = async (): Promise<void> => { this.fire('Bulk export queued', `${this.selectedBackupPaths.size} backups and ${this.selectedReceiptIds.size} receipts are included in the current migration export.`); await this.migrationExport(); };
   private pruneBackups = (): void => this.areYouSure('Prune verified backups', `${this.selectedBackupPaths.size} backup records are selected. Only verified backup directories older than the newest ${this.migrationRetention} will be removed. Unverified or corrupt entries stay retained.`, 3, () => { void this.pruneBackupsConfirmed(); });
   private pruneBackupsConfirmed = async (): Promise<void> => { const response = await this.request('backup.prune', { payload: { keep: this.migrationRetention, selectedPaths: [...this.selectedBackupPaths] } }); const data = response?.data as { removed?: number; receipts?: Array<{ path: string; status: string; detail: string; removed?: boolean }> } | undefined; const paths = (data?.receipts ?? []).filter((entry) => entry.removed === true).map((entry) => entry.path).join(', ') || 'none'; this.fire(response?.ok ? 'Backup pruning complete' : 'Backup pruning refused', response?.message ?? `${data?.removed ?? 0} paths removed: ${paths}`); this.selectedBackupPaths.clear(); await this.loadMigrationState(); };
   private selectMigrationRemote = (name: string): void => { const remote = this.historyData.remotes.find((entry) => entry.name === name); if (!remote) return; this.migrationRemoteName = name; this.migrationRemoteUrl = remote.url; this.migrationPushUrl = remote.pushUrl; this.forceUpdate(); void this.loadMigrationState(); };
@@ -2042,7 +2049,8 @@ It is shown once. The phone needs it to register.`);
       ...(screen === 'history' ? (() => {
         const entries = this.historyData.entries;
         const query = this.migrationSearchText.trim().toLocaleLowerCase();
-        const matches = (value: string): boolean => query.length === 0 || value.toLocaleLowerCase().includes(query);
+        const regex = this.migrationRegexEnabled && this.migrationRegexPattern ? (() => { try { return new RegExp(this.migrationRegexPattern, 'iu'); } catch { return undefined; } })() : undefined;
+        const matches = (value: string): boolean => query.length === 0 || (regex ? regex.test(value) : value.toLocaleLowerCase().includes(query));
         const searchableCount = this.historyData.backups.filter((entry) => matches(`${entry.path} ${entry.createdAt} ${entry.status} ${entry.detail}`)).length
           + this.historyData.remotes.filter((entry) => matches(`${entry.name} ${entry.url} ${entry.fetchUrl} ${entry.pushUrl}`)).length
           + this.historyData.receipts.filter((entry) => matches(`${entry.id} ${entry.action} ${entry.remote} ${entry.branch} ${entry.status} ${entry.detail}`)).length;
@@ -2090,6 +2098,14 @@ It is shown once. The phone needs it to register.`);
           migrationOmissions: this.migrationOmissionText,
           migrationSearchText: this.migrationSearchText,
           migrationSearchInput: this.migrationSearchInput,
+          migrationRegexPattern: this.migrationRegexPattern,
+          migrationRegexInput: this.migrationRegexInput,
+          migrationRegexEnabled: this.migrationRegexEnabled,
+          selectAllMigration: this.selectAllMigration,
+          invertMigrationSelection: this.invertMigrationSelection,
+          bulkExportMigration: this.bulkExportMigration,
+          migrationSelectionScope: this.migrationSelectionScope,
+          selectMigrationScope: () => { this.migrationSelectionScope = this.migrationSelectionScope === 'matches' ? 'all' : 'matches'; this.forceUpdate(); },
           migrationRegex: this.migrationRegex,
           migrationCancel: this.migrationCancel,
           retryMigrationRecovery: this.retryMigrationRecovery,

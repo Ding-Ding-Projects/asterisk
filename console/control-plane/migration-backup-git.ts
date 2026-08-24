@@ -65,6 +65,14 @@ const RECORD_SCHEMAS: Readonly<Record<string, ReadonlySet<string> | "array" | "s
   "git-receipts.json": "array",
   "migration-operations.json": "array",
 });
+const NESTED_RECORD_SCHEMAS: Readonly<Record<string, ReadonlySet<string>>> = Object.freeze({
+  servers: new Set(["id", "name", "connectionKind", "host", "port", "user", "wslDistribution", "dockerContext", "dockerProject", "knownHostsPath", "credentialKey", "createdAt", "state", "reason", "lastSeenAt"]),
+  notifications: new Set(["id", "title", "body", "severity", "createdAt", "dismissed", "action"]),
+  tabs: new Set(["id", "label", "title", "groupId", "pinned", "appearance"]),
+  groups: new Set(["id", "name", "colour", "collapsed", "tabIds", "appearance"]),
+  documents: new Set(["id", "name", "content", "format", "updatedAt"]),
+  entries: new Set(["id", "action", "subject", "createdAt", "commit"]),
+});
 
 export type MigrationOmissionReason =
   | "credential-vault-secret"
@@ -118,7 +126,7 @@ export interface OperationItem {
 
 export interface MigrationOperation {
   id: string;
-  kind: "export" | "import" | "backup" | "fetch" | "push";
+  kind: "export" | "import" | "backup" | "fetch" | "push" | "remote-set" | "remote-remove";
   startedAt: string;
   finishedAt?: string;
   state: OperationState;
@@ -151,6 +159,7 @@ export interface GitStatusRecord {
   remotes: ReadonlyArray<RemoteRecord>;
   receipts: ReadonlyArray<GitReceipt>;
   receiptError?: string;
+  corruptReceipt?: { kind: "corrupt-receipt"; path: string; detail: string };
   receipt?: GitReceipt;
 }
 
@@ -335,6 +344,7 @@ function sanitizeRecordPayload(path: string, value: unknown): { value: unknown; 
       if (SOURCE_PATH_KEY.test(key)) { omissions.push({ field: key, reason: "source-path" }); continue; }
       if (!schema.has(key)) throw new Error(`${path} contains unsupported field ${key}.`);
       output[key] = entry;
+      const nestedSchema = NESTED_RECORD_SCHEMAS[key]; if (nestedSchema && Array.isArray(entry)) { const safeNested = entry.map((nested, index) => { if (!nested || typeof nested !== "object" || Array.isArray(nested)) throw new Error(`${path}.${key} contains a non-object record.`); const copy: Record<string, unknown> = Object.create(null) as Record<string, unknown>; for (const [nestedKey, nestedValue] of Object.entries(nested as Record<string, unknown>)) { if (SECRET_WORD.test(nestedKey)) { omissions.push({ field: `${key}[${index}].${nestedKey}`, reason: "credential-vault-secret" }); continue; } if (SOURCE_PATH_KEY.test(nestedKey)) { omissions.push({ field: `${key}[${index}].${nestedKey}`, reason: "source-path" }); continue; } copy[nestedKey] = nestedValue; } assertExactKeys(copy, nestedSchema, `${path}.${key}`); return copy; }); output[key] = safeNested; }
     }
     return { value: output, omissions };
   }
@@ -487,6 +497,12 @@ export class MigrationBackupService {
   }
   startPushRemote(name: string, branch: string): { operationId: string } {
     const operation = this.operation("push"); this.writeOperations([...this.readOperations(), operation]); const signal = this.claim(operation); this.writeOperations(this.readOperations().map((entry) => entry.id === operation.id ? { ...operation, phase: "verify", detail: `Pushing ${branch} to remote ${name}.` } : entry)); this.#completed.set(operation.id, { done: false }); void this.pushRemote(name, branch, signal).then((result) => { const ok = result.receipt.status === "success"; const finished = this.finish({ ...operation, phase: "complete", completed: 1, total: 1, items: [{ path: `${name}/${branch}`, state: ok ? "succeeded" : "failed", detail: result.receipt.detail }], detail: result.receipt.detail }, ok ? "succeeded" : "failed", result.receipt.detail); this.#completed.set(operation.id, { done: true, result: { ...result, operation: finished } }); }).catch((error) => { const detail = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); this.#completed.set(operation.id, { done: true, error: detail }); }).finally(() => { if (this.#active?.id === operation.id) this.#active = undefined; }); return { operationId: operation.id };
+  }
+  startSetRemote(name: string, url: string, pushUrl?: string): { operationId: string } {
+    const operation = this.operation("remote-set"); this.writeOperations([...this.readOperations(), operation]); const signal = this.claim(operation); this.#completed.set(operation.id, { done: false }); void this.setRemote(name, url, pushUrl).then((result) => { const finished = this.finish({ ...operation, phase: "complete", completed: 1, total: 1, items: [{ path: name, state: "succeeded", detail: "Remote set and receipt recorded." }], detail: "Remote set completed." }, "succeeded", "Remote set completed."); this.#completed.set(operation.id, { done: true, result: { status: result, operation: finished } }); }).catch((error) => { const detail = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); const finished = this.finish({ ...operation, phase: "complete", completed: 1, total: 1, items: [{ path: name, state: "failed", detail }], detail }, "failed", detail); this.#completed.set(operation.id, { done: true, result: { operation: finished }, error: detail }); }).finally(() => { if (this.#active?.id === operation.id) this.#active = undefined; }); return { operationId: operation.id };
+  }
+  startRemoveRemote(name: string): { operationId: string } {
+    const operation = this.operation("remote-remove"); this.writeOperations([...this.readOperations(), operation]); const signal = this.claim(operation); void signal; this.#completed.set(operation.id, { done: false }); void this.removeRemote(name).then((result) => { const finished = this.finish({ ...operation, phase: "complete", completed: 1, total: 1, items: [{ path: name, state: "succeeded", detail: "Remote removed and receipt recorded." }], detail: "Remote remove completed." }, "succeeded", "Remote remove completed."); this.#completed.set(operation.id, { done: true, result: { status: result, operation: finished } }); }).catch((error) => { const detail = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); const finished = this.finish({ ...operation, phase: "complete", completed: 1, total: 1, items: [{ path: name, state: "failed", detail }], detail }, "failed", detail); this.#completed.set(operation.id, { done: true, result: { operation: finished }, error: detail }); }).finally(() => { if (this.#active?.id === operation.id) this.#active = undefined; }); return { operationId: operation.id };
   }
   startExport(destination?: string): { operationId: string } {
     if (this.#completed.size >= MIGRATION_LIMITS.maxOperations) throw new Error("Operation result retention is full."); const promise = this.exportMigration(destination); const operationId = this.#active?.id; if (!operationId) throw new Error("Export did not reach its operation-start handshake."); this.#completed.set(operationId, { done: false }); void promise.then((result) => this.#completed.set(operationId, { done: true, result })).catch((error) => this.#completed.set(operationId, { done: true, error: sanitizeDiagnostic(error instanceof Error ? error.message : String(error)) })); return { operationId };
@@ -783,8 +799,8 @@ export class MigrationBackupService {
     if (refs.length > MIGRATION_LIMITS.maxRefs) throw new Error("Local history has too many refs to display safely.");
     const lines = (await execute(this.#executor, this.#history, ["remote", "-v"])).split(/\r?\n/u).filter(Boolean); const remotes: RemoteRecord[] = []; for (const line of lines) { const match = /^([^\s]+)\s+(\S+)\s+\((fetch|push)\)$/u.exec(line); if (!match) continue; const existing = remotes.find((entry) => entry.name === match[1]); if (existing) existing[match[3] === "fetch" ? "fetchUrl" : "pushUrl"] = match[2]; else remotes.push({ name: match[1], url: match[2], fetchUrl: match[3] === "fetch" ? match[2] : "", pushUrl: match[3] === "push" ? match[2] : "" }); }
     let ahead = 0; let behind = 0; let comparison: GitStatusRecord["comparison"] = "unverified"; if (remote) { const selected = remotes.find((entry) => entry.name === remote); if (selected && branch) { try { const counts = (await execute(this.#executor, this.#history, ["rev-list", "--left-right", "--count", `${branch}...${remote}/${branch}`])).trim().split(/\s+/u).map(Number); ahead = counts[0] || 0; behind = counts[1] || 0; comparison = "verified"; } catch { /* no comparison is unverified, never clean */ } } }
-    let receipts: GitReceipt[] = []; let receiptError: string | undefined; try { receipts = this.readReceipts(); } catch (error) { receiptError = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); receipts = [{ id: "receipt-corrupt", action: "remote-remove", remote: "system", branch: "", status: "corrupt", observedAt: nowIso(this.#now), detail: receiptError }]; }
-    return { repositoryPath: this.#history, head, branch: branchName, clean: status.trim().length === 0, ahead, behind, divergence: ahead > 0 && behind > 0, comparison, refs, remotes: remotes.map((entry) => ({ ...entry, url: sanitizeDiagnostic(entry.url), fetchUrl: sanitizeDiagnostic(entry.fetchUrl), pushUrl: sanitizeDiagnostic(entry.pushUrl) })), receipts, receiptError, receipt: receipts[0] };
+    let receipts: GitReceipt[] = []; let receiptError: string | undefined; let corruptReceipt: GitStatusRecord["corruptReceipt"]; try { receipts = this.readReceipts(); } catch (error) { receiptError = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); corruptReceipt = { kind: "corrupt-receipt", path: receiptPath(this.#root), detail: receiptError }; receipts = []; }
+    return { repositoryPath: this.#history, head, branch: branchName, clean: status.trim().length === 0, ahead, behind, divergence: ahead > 0 && behind > 0, comparison, refs, remotes: remotes.map((entry) => ({ ...entry, url: sanitizeDiagnostic(entry.url), fetchUrl: sanitizeDiagnostic(entry.fetchUrl), pushUrl: sanitizeDiagnostic(entry.pushUrl) })), receipts, receiptError, corruptReceipt, receipt: receipts[0] };
   }
 
   private readReceipts(): GitReceipt[] {
@@ -802,6 +818,7 @@ export class MigrationBackupService {
     if (isLocalBareRepository(safeUrl)) assertLocalBareLayout(safeUrl, "The local remote");
     if (safePushUrl && isLocalBareRepository(safePushUrl)) assertLocalBareLayout(safePushUrl, "The local push remote");
     await this.ensureHistoryRepository();
+    this.writeReceipt({ id: randomUUID(), action: "remote-set", remote: name, branch: "", status: "prepared", observedAt: nowIso(this.#now), detail: "Remote replacement prepared; previous fetch and push configuration will be restored if either update fails." });
     const existingFetch = await execute(this.#executor, this.#history, ["remote", "get-url", name]).then((value) => value.trim()).catch(() => "");
     const existingPush = await execute(this.#executor, this.#history, ["remote", "get-url", "--push", name]).then((value) => value.trim()).catch(() => "");
     try {
@@ -818,13 +835,14 @@ export class MigrationBackupService {
       throw error;
     }
   }
-  async removeRemote(name: string): Promise<GitStatusRecord> { this.assertReady(); if (!REMOTE_NAME.test(name)) throw new Error("Invalid remote name."); await this.ensureHistoryRepository(); await execute(this.#executor, this.#history, ["remote", "remove", name]); this.writeReceipt({ id: randomUUID(), action: "remote-remove", remote: name, branch: "", status: "success", observedAt: nowIso(this.#now), detail: "Remote removed; no URL was retained." }); return this.gitStatus(); }
+  async removeRemote(name: string): Promise<GitStatusRecord> { this.assertReady(); if (!REMOTE_NAME.test(name)) throw new Error("Invalid remote name."); await this.ensureHistoryRepository(); this.writeReceipt({ id: randomUUID(), action: "remote-remove", remote: name, branch: "", status: "prepared", observedAt: nowIso(this.#now), detail: "Remote removal prepared; the operation will report the terminal receipt." }); await execute(this.#executor, this.#history, ["remote", "remove", name]); this.writeReceipt({ id: randomUUID(), action: "remote-remove", remote: name, branch: "", status: "success", observedAt: nowIso(this.#now), detail: "Remote removed; no URL was retained." }); return this.gitStatus(); }
   async fetchRemote(name: string, signal?: AbortSignal): Promise<{ receipt: GitReceipt; status: GitStatusRecord }> {
     this.assertReady();
     if (!REMOTE_NAME.test(name)) throw new Error("Invalid remote name."); const start = nowIso(this.#now); try { if (signal?.aborted) throw new Error("Fetch cancelled."); await execute(this.#executor, this.#history, ["fetch", "--prune", name], 120_000, signal); const receipt: GitReceipt = { id: randomUUID(), action: "fetch", remote: name, branch: "", status: "success", observedAt: start, detail: "Fetch completed; no local refs were checked out or rewritten." }; this.writeReceipt(receipt); return { receipt, status: await this.gitStatus() }; } catch (error) { const detail = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); const status: GitReceipt["status"] = signal?.aborted ? "cancelled" : /auth|permission|denied/iu.test(detail) ? "auth-failure" : "rejected"; const receipt = { id: randomUUID(), action: "fetch" as const, remote: name, branch: "", status, observedAt: start, detail: status === "auth-failure" ? `${detail} Re-authenticate through the operating-system credential manager, then retry.` : detail }; this.writeReceipt(receipt); return { receipt, status: await this.gitStatus() }; }
   }
   async pushRemote(name: string, branch: string, signal?: AbortSignal): Promise<{ receipt: GitReceipt; status: GitStatusRecord }> {
     this.assertReady();
+    this.writeReceipt({ id: randomUUID(), action: "push", remote: name, branch, status: "prepared", observedAt: new Date().toISOString(), detail: "Push prepared; configured URL, ref, and object will be verified after normal mutation." });
     if (!REMOTE_NAME.test(name) || !REMOTE_NAME.test(branch)) throw new Error("Remote and branch names must use safe Git ref characters."); const start = nowIso(this.#now); let mutated = false; try { if (signal?.aborted) throw new Error("Push cancelled."); const before = await this.gitStatus(name, branch); if (before.divergence) { const receipt = { id: randomUUID(), action: "push" as const, remote: name, branch, status: "divergence" as const, observedAt: start, detail: "Push refused because local and remote history diverge." }; this.writeReceipt(receipt); return { receipt, status: before }; } const pushUrl = (await execute(this.#executor, this.#history, ["remote", "get-url", "--push", name], 30_000, signal)).trim(); const localObject = (await execute(this.#executor, this.#history, ["rev-parse", branch], 30_000, signal)).trim(); await execute(this.#executor, this.#history, ["push", name, branch], 120_000, signal); mutated = true; const remoteLine = (await execute(this.#executor, this.#history, ["ls-remote", pushUrl, `refs/heads/${branch}`], 120_000, signal)).trim(); const [remoteObject] = remoteLine.split(/\s+/u); if (!OBJECT_ID.test(remoteObject ?? "") || remoteObject !== localObject) throw new Error("The push completed but ls-remote did not verify the intended ref and object at the configured push URL."); const receipt = { id: randomUUID(), action: "push" as const, remote: name, branch, status: "success" as const, observedAt: start, detail: "Normal push completed and ls-remote verified the configured push URL, ref, and object." }; this.writeReceipt(receipt); return { receipt, status: await this.gitStatus(name, branch) }; } catch (error) { const detail = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); const status: GitReceipt["status"] = signal?.aborted ? "cancelled" : mutated && /receipt|history/iu.test(detail) ? "receipt-write-failure" : /auth|permission|denied/iu.test(detail) ? "auth-failure" : /non-fast-forward|rejected|diverg/iu.test(detail) ? "divergence" : "rejected"; const receipt = { id: randomUUID(), action: "push" as const, remote: name, branch, status, observedAt: start, detail: status === "auth-failure" ? `${detail} Re-authenticate through the operating-system credential manager, then retry.` : detail }; try { this.writeReceipt(receipt); } catch { /* receipt persistence failure remains in the returned operation result */ } return { receipt, status: await this.gitStatus(name, branch) }; }
   }
 }

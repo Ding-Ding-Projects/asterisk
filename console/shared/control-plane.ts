@@ -32,7 +32,7 @@ export type ControlPlaneAction =
   | 'migration.cancel' | 'migration.recovery.status' | 'migration.recovery.retry'
   | 'backup.create' | 'backup.start' | 'backup.list' | 'backup.retained.verify'
   | 'backup.prune'
-  | 'git.history.status' | 'git.remote.set' | 'git.remote.remove'
+  | 'git.history.status' | 'git.remote.set' | 'git.remote.set.start' | 'git.remote.remove' | 'git.remote.remove.start'
   | 'git.remote.fetch' | 'git.remote.fetch.start' | 'git.remote.push' | 'git.remote.push.start';
 
 /** The screens a `pbx.read` can answer, each backed by read-only Asterisk CLI output. */

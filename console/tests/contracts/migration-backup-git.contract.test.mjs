@@ -31,6 +31,17 @@ test('disposable fake executor keeps Git operations structured and cancellable',
   }
 });
 
+test('real migration service can be instantiated with the disposable executor', async () => {
+  const fixture = disposableFixture();
+  try {
+    const module = await import('../../control-plane/migration-backup-git.ts');
+    const service = new module.MigrationBackupService({ userDataPath: fixture.root, executor: fixture.executor });
+    assert.deepEqual(service.recoveryStatus().resolved, true);
+  } finally {
+    fixture.dispose();
+  }
+});
+
 test('disposable manifest fixture detects duplicate keys before import', () => {
   const fixture = disposableFixture();
   try {

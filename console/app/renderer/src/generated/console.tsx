@@ -537,8 +537,15 @@ function Template(v: any) {
                   )
                 ),
                 h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;`) },
-                  A(v.backupRows).map(($b, $b$i) => R($b$i, h("button", { onClick: fn($b.pick), style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:${S($b.color)}; background:#141A15; border:1px solid #333B34; border-radius:8px; padding:8px 9px; min-height:44px; cursor:pointer;`) },
-                      S($b.label)
+                  A(v.backupRows).map(($b, $b$i) => R($b$i, h("div", { style: sty(`display:flex; align-items:center; gap:4px;`) },
+                      h("button", { onClick: fn($b.pick), style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:${S($b.color)}; background:#141A15; border:1px solid #333B34; border-radius:8px; padding:8px 9px; min-height:44px; cursor:pointer;`) },
+                        S($b.label)
+                      ),
+                      h("button", { onClick: fn($b.verify), title: `Verify retained tree`, style: sty(`width:44px; height:44px; border-radius:8px; background:#141A15; border:1px solid #333B34; color:${S($b.color)}; cursor:pointer;`) },
+                        h("span", { style: sty(`font-size:17px;`), className: "msym" },
+                          "verified"
+                        )
+                      )
                     ))),
                   h("label", { style: sty(`display:flex; align-items:center; gap:7px; min-height:44px; color:#C4CBC2; font-size:11px;`) },
                     "Keep verified ",
@@ -566,8 +573,21 @@ function Template(v: any) {
                       "data_object"
                     )
                   ),
+                  (v.migrationRegexEnabled ? h("input", { value: v.migrationRegexPattern, onInput: fn(v.migrationRegexInput), "aria-label": `Migration regex pattern`, placeholder: `pattern`, style: sty(`width:180px; min-height:44px; background:#141A15; border:1px solid #82D9A5; border-radius:10px; padding:8px 10px; color:#DFE4DC; font-family:'Roboto Mono',monospace;`) }) : null),
                   h("span", { style: sty(`font-size:11px; color:#8FA394;`) },
                     S(v.migrationSearchSummary)
+                  ),
+                  h("button", { onClick: fn(v.selectAllMigration), style: sty(`min-height:44px; background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 9px; color:#C4CBC2; font:inherit; font-size:11px; cursor:pointer;`) },
+                    "Select all"
+                  ),
+                  h("button", { onClick: fn(v.invertMigrationSelection), style: sty(`min-height:44px; background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 9px; color:#C4CBC2; font:inherit; font-size:11px; cursor:pointer;`) },
+                    "Invert"
+                  ),
+                  h("button", { onClick: fn(v.bulkExportMigration), style: sty(`min-height:44px; background:#1B4D33; border:0; border-radius:8px; padding:7px 9px; color:#9FF7C4; font:inherit; font-size:11px; cursor:pointer;`) },
+                    "Export selected"
+                  ),
+                  h("button", { onClick: fn(v.selectMigrationScope), style: sty(`min-height:44px; background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 9px; color:#C4CBC2; font:inherit; font-size:11px; cursor:pointer;`) },
+                    `Scope: ${S(v.migrationSelectionScope)}`
                   ),
                   h("button", { onClick: fn(v.migrationCancel), style: sty(`min-height:44px; background:transparent; border:1px solid #FFB4AB; border-radius:10px; padding:8px 12px; color:#FFB4AB; font:inherit; cursor:pointer;`) },
                     "Cancel operation"

@@ -454,14 +454,20 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         return { ok: true, requestId: request.requestId, data: await migration.gitStatus(remote, branch) };
       }
       if (request.action === 'git.remote.set') {
+        return { ok: false, requestId: request.requestId, code: 'GIT_OPERATION_START_REQUIRED', message: 'Use the operation-start action so remote replacement and rollback receipts remain durable.' };
+      }
+      if (request.action === 'git.remote.set.start') {
         const name = typeof request.payload?.name === 'string' ? request.payload.name : '';
         const url = typeof request.payload?.url === 'string' ? request.payload.url : '';
         const pushUrl = typeof request.payload?.pushUrl === 'string' ? request.payload.pushUrl : undefined;
-        return { ok: true, requestId: request.requestId, data: await migration.setRemote(name, url, pushUrl) };
+        return { ok: true, requestId: request.requestId, data: migration.startSetRemote(name, url, pushUrl) };
       }
       if (request.action === 'git.remote.remove') {
+        return { ok: false, requestId: request.requestId, code: 'GIT_OPERATION_START_REQUIRED', message: 'Use the operation-start action so remote removal receipts remain durable.' };
+      }
+      if (request.action === 'git.remote.remove.start') {
         const name = typeof request.payload?.name === 'string' ? request.payload.name : '';
-        return { ok: true, requestId: request.requestId, data: await migration.removeRemote(name) };
+        return { ok: true, requestId: request.requestId, data: migration.startRemoveRemote(name) };
       }
       if (request.action === 'git.remote.fetch.start' || request.action === 'git.remote.push.start') {
         const name = typeof request.payload?.name === 'string' ? request.payload.name : '';
