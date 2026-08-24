@@ -37,4 +37,8 @@ mustReject('removed localization boundary', () => {}, inventory, new Set([...fil
 mustReject('removed built evidence bundle', () => {}, inventory, new Set([...files].filter((path) => path !== 'console/app/renderer/src/generated/docs-bundle.ts')));
 mustReject('removed action localization mapping', () => {}, inventory, new Set([...files].filter((path) => path !== 'console/app/locales/asterisk-actions.json')));
 mustReject('removed site action mapping', () => {}, inventory, new Set([...files].filter((path) => path !== 'console/site/asterisk-action-registry.json')));
+mustReject('removed production transport binding', () => {}, {
+  ...inventory,
+  requiredBindings: [{ file: 'console/control-plane/dispatch.ts', needle: 'missing-transport-constructor' }],
+});
 console.log('PASS: Asterisk catalogue negative regressions turned red for every deliberate deletion and restored green.');

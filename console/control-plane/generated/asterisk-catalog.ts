@@ -223,13 +223,7 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [],
         "bridges": [],
-        "channels": [
-          {
-            "name": "ooh323_tech",
-            "evidence": "ast_channel_register",
-            "sourceName": "ooh323_tech"
-          }
-        ]
+        "channels": []
       },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for addons/chan_ooh323.c; configure and menuselect decide whether it is built.",
@@ -402,7 +396,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "ADSIProg",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -497,12 +491,12 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_agent_login",
+            "name": "AgentLogin",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_agent_login"
           },
           {
-            "name": "app_agent_request",
+            "name": "AgentRequest",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_agent_request"
           }
@@ -566,7 +560,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "AlarmReceiver",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -623,7 +617,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "AMD",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -677,7 +671,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "AttendedTransfer",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -731,7 +725,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "AudioSocket",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -786,7 +780,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "Authenticate",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -840,7 +834,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "BlindTransfer",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -892,7 +886,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "BridgeAdd",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -999,7 +993,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_broadcast",
+            "name": "Broadcast",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_broadcast"
           }
@@ -1054,7 +1048,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "resetcdr_app",
+            "name": "ResetCDR",
             "evidence": "ast_register_application_xml",
             "sourceName": "resetcdr_app"
           }
@@ -1161,7 +1155,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "ChanIsAvail",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -1215,7 +1209,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "ChannelRedirect",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -1269,17 +1263,17 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_chan",
+            "name": "ChanSpy",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_chan"
           },
           {
-            "name": "app_ext",
+            "name": "ExtenSpy",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_ext"
           },
           {
-            "name": "app_dahdiscan",
+            "name": "DAHDIScan",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_dahdiscan"
           }
@@ -1434,12 +1428,12 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "ConfBridge",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           },
           {
-            "name": "app2",
+            "name": "ConfKick",
             "evidence": "ast_register_application_xml",
             "sourceName": "app2"
           }
@@ -1464,13 +1458,7 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [],
         "bridges": [],
-        "channels": [
-          {
-            "name": "tech",
-            "evidence": "ast_channel_register",
-            "sourceName": "tech"
-          }
-        ]
+        "channels": []
       },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for apps/app_confbridge.c; configure and menuselect decide whether it is built.",
@@ -1522,7 +1510,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "ControlPlayback",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -1576,7 +1564,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "dt_app",
+            "name": "DBdeltree",
             "evidence": "ast_register_application_xml",
             "sourceName": "dt_app"
           }
@@ -1635,12 +1623,12 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "Dial",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           },
           {
-            "name": "rapp",
+            "name": "RetryDial",
             "evidence": "ast_register_application_xml",
             "sourceName": "rapp"
           }
@@ -1694,7 +1682,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "Dictate",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -1748,12 +1736,12 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "Pickup",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           },
           {
-            "name": "app2",
+            "name": "PickupChan",
             "evidence": "ast_register_application_xml",
             "sourceName": "app2"
           }
@@ -1780,7 +1768,6 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_directory.c",
       "description": "Extension Directory",
       "buildConditions": [
-        "MENUSELECT_OPTS_",
         "MENUSELECT_OPTS_APP_DIRECTORY",
         "menuselect:app_directory"
       ],
@@ -1792,7 +1779,6 @@ export const ASTERISK_CATALOG = {
           "menuselectTree": "menuselect/example_menuselect-tree",
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
-            "MENUSELECT_OPTS_app_directory:=$(MENUSELECT_OPTS_app_voicemail)",
             "\t\t<member name=\"app_directory\" displayname=\"Extension Directory\" remove_on_change=\"apps/app_directory.o apps/app_directory.so\">"
           ]
         }
@@ -1812,7 +1798,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "Directory",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -1868,7 +1854,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "DISA",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -1975,7 +1961,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "DumpChan",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -2029,7 +2015,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "Echo",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -2083,17 +2069,17 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_exec",
+            "name": "Exec",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_exec"
           },
           {
-            "name": "app_tryexec",
+            "name": "TryExec",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_tryexec"
           },
           {
-            "name": "app_execif",
+            "name": "ExecIf",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_execif"
           }
@@ -2147,7 +2133,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "ExternalIVR",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -2605,7 +2591,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "jack_app",
+            "name": "JACK",
             "evidence": "ast_register_application_xml",
             "sourceName": "jack_app"
           }
@@ -2723,22 +2709,22 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app4",
+            "name": "MeetMeChannelAdmin",
             "evidence": "ast_register_application_xml",
             "sourceName": "app4"
           },
           {
-            "name": "app3",
+            "name": "MeetMeAdmin",
             "evidence": "ast_register_application_xml",
             "sourceName": "app3"
           },
           {
-            "name": "app2",
+            "name": "MeetMeCount",
             "evidence": "ast_register_application_xml",
             "sourceName": "app2"
           },
           {
-            "name": "app",
+            "name": "MeetMe",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -2807,7 +2793,7 @@ export const ASTERISK_CATALOG = {
             "sourceName": "readmf_name"
           },
           {
-            "name": "sendmf_name",
+            "name": "SendMF",
             "evidence": "ast_register_application_xml",
             "sourceName": "sendmf_name"
           }
@@ -2862,7 +2848,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "Milliwatt",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -3077,12 +3063,12 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "MixMonitor",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           },
           {
-            "name": "stop_app",
+            "name": "StopMixMonitor",
             "evidence": "ast_register_application_xml",
             "sourceName": "stop_app"
           }
@@ -3142,7 +3128,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_morsecode",
+            "name": "Morsecode",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_morsecode"
           }
@@ -3248,7 +3234,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_originate",
+            "name": "Originate",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_originate"
           }
@@ -3303,7 +3289,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_page",
+            "name": "Page",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_page"
           }
@@ -3422,12 +3408,12 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "playtones_app",
+            "name": "PlayTones",
             "evidence": "ast_register_application_xml",
             "sourceName": "playtones_app"
           },
           {
-            "name": "stopplaytones_app",
+            "name": "StopPlayTones",
             "evidence": "ast_register_application_xml",
             "sourceName": "stopplaytones_app"
           }
@@ -3752,8 +3738,7 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_read.c",
       "description": "Read Variable Application",
       "buildConditions": [
-        "menuselect:app_read",
-        "menuselect:app_readfile"
+        "menuselect:app_read"
       ],
       "provenance": {
         "sourceSha256": "e3785a4f80dbe445cc6c726de95fc1fa651c7905da7d77e10236966164659123",
@@ -3763,8 +3748,7 @@ export const ASTERISK_CATALOG = {
           "menuselectTree": "menuselect/example_menuselect-tree",
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
-            "\t\t<member name=\"app_read\" displayname=\"Read Variable Application\" remove_on_change=\"apps/app_read.o apps/app_read.so\">",
-            "\t\t<member name=\"app_readfile\" displayname=\"Stores output of file into a variable\" remove_on_change=\"apps/app_readfile.o apps/app_readfile.so\">"
+            "\t\t<member name=\"app_read\" displayname=\"Read Variable Application\" remove_on_change=\"apps/app_read.o apps/app_read.so\">"
           ]
         }
       },
@@ -4004,14 +3988,14 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "\"SayCountedNoun\"",
+            "name": "SayCountedNoun",
             "evidence": "ast_register_application_xml",
-            "sourceName": "\"SayCountedNoun\""
+            "sourceName": "SayCountedNoun"
           },
           {
-            "name": "\"SayCountedAdj\"",
+            "name": "SayCountedAdj",
             "evidence": "ast_register_application_xml",
-            "sourceName": "\"SayCountedAdj\""
+            "sourceName": "SayCountedAdj"
           }
         ],
         "functions": [],
@@ -4135,7 +4119,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "senddtmf_name",
+            "name": "SendDTMF",
             "evidence": "ast_register_application_xml",
             "sourceName": "senddtmf_name"
           }
@@ -4189,12 +4173,12 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "SendText",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           },
           {
-            "name": "app2",
+            "name": "ReceiveText",
             "evidence": "ast_register_application_xml",
             "sourceName": "app2"
           }
@@ -4251,7 +4235,7 @@ export const ASTERISK_CATALOG = {
             "sourceName": "readsf_name"
           },
           {
-            "name": "sendsf_name",
+            "name": "SendSF",
             "evidence": "ast_register_application_xml",
             "sourceName": "sendsf_name"
           }
@@ -4304,12 +4288,12 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "Signal",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           },
           {
-            "name": "app2",
+            "name": "WaitForSignal",
             "evidence": "ast_register_application_xml",
             "sourceName": "app2"
           }
@@ -4456,12 +4440,12 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "slastation_app",
+            "name": "SLAStation",
             "evidence": "ast_register_application_xml",
             "sourceName": "slastation_app"
           },
           {
-            "name": "slatrunk_app",
+            "name": "SLATrunk",
             "evidence": "ast_register_application_xml",
             "sourceName": "slatrunk_app"
           }
@@ -4626,49 +4610,49 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "\"SpeechCreate\"",
+            "name": "SpeechCreate",
             "evidence": "ast_register_application_xml",
-            "sourceName": "\"SpeechCreate\""
+            "sourceName": "SpeechCreate"
           },
           {
-            "name": "\"SpeechLoadGrammar\"",
+            "name": "SpeechLoadGrammar",
             "evidence": "ast_register_application_xml",
-            "sourceName": "\"SpeechLoadGrammar\""
+            "sourceName": "SpeechLoadGrammar"
           },
           {
-            "name": "\"SpeechUnloadGrammar\"",
+            "name": "SpeechUnloadGrammar",
             "evidence": "ast_register_application_xml",
-            "sourceName": "\"SpeechUnloadGrammar\""
+            "sourceName": "SpeechUnloadGrammar"
           },
           {
-            "name": "\"SpeechActivateGrammar\"",
+            "name": "SpeechActivateGrammar",
             "evidence": "ast_register_application_xml",
-            "sourceName": "\"SpeechActivateGrammar\""
+            "sourceName": "SpeechActivateGrammar"
           },
           {
-            "name": "\"SpeechDeactivateGrammar\"",
+            "name": "SpeechDeactivateGrammar",
             "evidence": "ast_register_application_xml",
-            "sourceName": "\"SpeechDeactivateGrammar\""
+            "sourceName": "SpeechDeactivateGrammar"
           },
           {
-            "name": "\"SpeechStart\"",
+            "name": "SpeechStart",
             "evidence": "ast_register_application_xml",
-            "sourceName": "\"SpeechStart\""
+            "sourceName": "SpeechStart"
           },
           {
-            "name": "\"SpeechBackground\"",
+            "name": "SpeechBackground",
             "evidence": "ast_register_application_xml",
-            "sourceName": "\"SpeechBackground\""
+            "sourceName": "SpeechBackground"
           },
           {
-            "name": "\"SpeechDestroy\"",
+            "name": "SpeechDestroy",
             "evidence": "ast_register_application_xml",
-            "sourceName": "\"SpeechDestroy\""
+            "sourceName": "SpeechDestroy"
           },
           {
-            "name": "\"SpeechProcessingSound\"",
+            "name": "SpeechProcessingSound",
             "evidence": "ast_register_application_xml",
-            "sourceName": "\"SpeechProcessingSound\""
+            "sourceName": "SpeechProcessingSound"
           }
         ],
         "functions": [
@@ -4759,22 +4743,22 @@ export const ASTERISK_CATALOG = {
         ],
         "applications": [
           {
-            "name": "app_pop",
+            "name": "StackPop",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_pop"
           },
           {
-            "name": "app_return",
+            "name": "Return",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_return"
           },
           {
-            "name": "app_gosubif",
+            "name": "GosubIf",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_gosubif"
           },
           {
-            "name": "app_gosub",
+            "name": "Gosub",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_gosub"
           }
@@ -4951,7 +4935,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "StatsD",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -5004,7 +4988,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "StreamEcho",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -5231,7 +5215,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "Transfer",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -5371,7 +5355,6 @@ export const ASTERISK_CATALOG = {
       "source": "apps/app_voicemail.c",
       "description": "res_adsi,res_smdi",
       "buildConditions": [
-        "MENUSELECT_OPTS_",
         "MENUSELECT_OPTS_APP_VOICEMAIL",
         "menuselect:app_voicemail"
       ],
@@ -5383,16 +5366,9 @@ export const ASTERISK_CATALOG = {
           "menuselectTree": "menuselect/example_menuselect-tree",
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
-            "MENUSELECT_OPTS_app_directory:=$(MENUSELECT_OPTS_app_voicemail)",
             ".app_voicemail.moduleinfo: app_voicemail.c",
             "\t@echo \"<member name=\\\"app_voicemail\\\" displayname=\\\"$(shell $(GREP) -e AST_MODULE_INFO $< | head -n 1 | cut -d '\"' -f 2)\\\" remove_on_change=\\\"$(SUBDIR)/$*.o $(SUBDIR)/$*.so\\\">\" > $@",
-            ".app_voicemail_imap.moduleinfo: app_voicemail_imap.c",
-            "\t@echo \"<member name=\\\"app_voicemail_imap\\\" displayname=\\\"$(shell $(GREP) -e AST_MODULE_INFO $< | head -n 1 | cut -d '\"' -f 2)\\\" remove_on_change=\\\"$(SUBDIR)/$*.o $(SUBDIR)/$*.so\\\">\" > $@",
-            ".app_voicemail_odbc.moduleinfo: app_voicemail_odbc.c",
-            "\t@echo \"<member name=\\\"app_voicemail_odbc\\\" displayname=\\\"$(shell $(GREP) -e AST_MODULE_INFO $< | head -n 1 | cut -d '\"' -f 2)\\\" remove_on_change=\\\"$(SUBDIR)/$*.o $(SUBDIR)/$*.so\\\">\" > $@",
             "app_voicemail.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION) -DFILE_STORAGE",
-            "app_voicemail_odbc.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION) -DODBC_STORAGE",
-            "app_voicemail_imap.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION) -DIMAP_STORAGE",
             "\t\t<member name=\"app_voicemail\" displayname=\"Comedian Mail (Voicemail System)\" remove_on_change=\"apps/app_voicemail.o apps/app_voicemail.so\">",
             "<category name=\"MENUSELECT_app_voicemail\" displayname=\"Voicemail Build Options\" positive_output=\"yes\" remove_on_change=\"apps/app_voicemail.o\">"
           ]
@@ -6127,7 +6103,7 @@ export const ASTERISK_CATALOG = {
       "source": "bridges/bridge_softmix.c",
       "description": "Multi-party software based channel mixing",
       "buildConditions": [
-        "MENUSELECT_BRIDGES"
+        "menuselect"
       ],
       "provenance": {
         "sourceSha256": "9b616a58c3c6fe128fd9405c0eb8d030adae2b9accd1078ee7bd521340c9a5c8",
@@ -6137,8 +6113,6 @@ export const ASTERISK_CATALOG = {
           "menuselectTree": "menuselect/example_menuselect-tree",
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
-            "MODULE_EXCLUDE=binaural_rendering_in_bridge_softmix",
-            "ifeq ($(findstring binaural_rendering_in_bridge_softmix,$(MENUSELECT_BRIDGES)),)",
             "bridge_softmix.o bridge_softmix/bridge_softmix_binaural.o: _ASTCFLAGS+=-DBINAURAL_RENDERING",
             "bridge_softmix.so: LIBS+=$(FFTW3_LIB)",
             "$(call MOD_ADD_C,bridge_softmix,$(wildcard bridge_softmix/*.c))"
@@ -6165,6 +6139,7 @@ export const ASTERISK_CATALOG = {
         "channels": []
       },
       "unavailableReasons": [
+        "No family-specific menuselect symbol was found for bridges/bridge_softmix.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for bridges/bridge_softmix.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -7667,7 +7642,7 @@ export const ASTERISK_CATALOG = {
             "sourceName": "dahdi_send_callrerouting_facility_app"
           },
           {
-            "name": "dahdi_accept_r2_call_app",
+            "name": "DAHDIAcceptR2Call",
             "evidence": "ast_register_application_xml",
             "sourceName": "dahdi_accept_r2_call_app"
           }
@@ -8086,13 +8061,7 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [],
         "bridges": [],
-        "channels": [
-          {
-            "name": "chan_pjsip_tech",
-            "evidence": "ast_channel_register",
-            "sourceName": "chan_pjsip_tech"
-          }
-        ]
+        "channels": []
       },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for channels/chan_pjsip.c; configure and menuselect decide whether it is built.",
@@ -8237,13 +8206,7 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [],
         "bridges": [],
-        "channels": [
-          {
-            "name": "unistim_tech",
-            "evidence": "ast_channel_register",
-            "sourceName": "unistim_tech"
-          }
-        ]
+        "channels": []
       },
       "unavailableReasons": [
         "No family-specific menuselect symbol was found for channels/chan_unistim.c; configure and menuselect decide whether it is built.",
@@ -8346,11 +8309,13 @@ export const ASTERISK_CATALOG = {
         "codecs": [
           {
             "name": "alawtoulaw",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "alawtoulaw"
           },
           {
             "name": "ulawtoalaw",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "ulawtoalaw"
           }
         ],
         "formats": [],
@@ -8401,11 +8366,13 @@ export const ASTERISK_CATALOG = {
         "codecs": [
           {
             "name": "adpcmtolin",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "adpcmtolin"
           },
           {
             "name": "lintoadpcm",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "lintoadpcm"
           }
         ],
         "formats": [],
@@ -8456,11 +8423,13 @@ export const ASTERISK_CATALOG = {
         "codecs": [
           {
             "name": "alawtolin",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "alawtolin"
           },
           {
             "name": "lintoalaw",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "lintoalaw"
           }
         ],
         "formats": [],
@@ -8509,11 +8478,13 @@ export const ASTERISK_CATALOG = {
         "codecs": [
           {
             "name": "codec2tolin",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "codec2tolin"
           },
           {
             "name": "lintocodec2",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "lintocodec2"
           }
         ],
         "formats": [],
@@ -8569,12 +8540,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [],
         "functions": [],
-        "codecs": [
-          {
-            "name": "zt->t",
-            "evidence": "ast_register_translator"
-          }
-        ],
+        "codecs": [],
         "formats": [],
         "bridges": [],
         "channels": []
@@ -8624,19 +8590,23 @@ export const ASTERISK_CATALOG = {
         "codecs": [
           {
             "name": "g722tolin",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "g722tolin"
           },
           {
             "name": "lintog722",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "lintog722"
           },
           {
             "name": "g722tolin16",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "g722tolin16"
           },
           {
             "name": "lin16tog722",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "lin16tog722"
           }
         ],
         "formats": [],
@@ -8688,19 +8658,23 @@ export const ASTERISK_CATALOG = {
         "codecs": [
           {
             "name": "g726tolin",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "g726tolin"
           },
           {
             "name": "lintog726",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "lintog726"
           },
           {
             "name": "g726aal2tolin",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "g726aal2tolin"
           },
           {
             "name": "lintog726aal2",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "lintog726aal2"
           }
         ],
         "formats": [],
@@ -8752,11 +8726,13 @@ export const ASTERISK_CATALOG = {
         "codecs": [
           {
             "name": "gsmtolin",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "gsmtolin"
           },
           {
             "name": "lintogsm",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "lintogsm"
           }
         ],
         "formats": [],
@@ -8808,11 +8784,13 @@ export const ASTERISK_CATALOG = {
         "codecs": [
           {
             "name": "ilbctolin",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "ilbctolin"
           },
           {
             "name": "lintoilbc",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "lintoilbc"
           }
         ],
         "formats": [],
@@ -8864,11 +8842,13 @@ export const ASTERISK_CATALOG = {
         "codecs": [
           {
             "name": "lpc10tolin",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "lpc10tolin"
           },
           {
             "name": "lintolpc10",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "lintolpc10"
           }
         ],
         "formats": [],
@@ -8917,12 +8897,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [],
         "functions": [],
-        "codecs": [
-          {
-            "name": "translators[idx]",
-            "evidence": "ast_register_translator"
-          }
-        ],
+        "codecs": [],
         "formats": [],
         "bridges": [],
         "channels": []
@@ -8976,27 +8951,33 @@ export const ASTERISK_CATALOG = {
         "codecs": [
           {
             "name": "speextolin",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "speextolin"
           },
           {
             "name": "lintospeex",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "lintospeex"
           },
           {
             "name": "speexwbtolin16",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "speexwbtolin16"
           },
           {
             "name": "lin16tospeexwb",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "lin16tospeexwb"
           },
           {
             "name": "speexuwbtolin32",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "speexuwbtolin32"
           },
           {
             "name": "lin32tospeexuwb",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "lin32tospeexuwb"
           }
         ],
         "formats": [],
@@ -9047,11 +9028,13 @@ export const ASTERISK_CATALOG = {
         "codecs": [
           {
             "name": "ulawtolin",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "ulawtolin"
           },
           {
             "name": "lintoulaw",
-            "evidence": "ast_register_translator"
+            "evidence": "ast_register_translator",
+            "sourceName": "lintoulaw"
           }
         ],
         "formats": [],
@@ -9906,8 +9889,7 @@ export const ASTERISK_CATALOG = {
       "source": "formats/format_wav.c",
       "description": "Microsoft WAV/WAV16 format (8kHz/16kHz Signed Linear)",
       "buildConditions": [
-        "menuselect:format_wav",
-        "menuselect:format_wav_gsm"
+        "menuselect:format_wav"
       ],
       "provenance": {
         "sourceSha256": "ff98019785e5e7a324c137bca93bc3e5775c0cdd542b8155af353607a747ba2c",
@@ -9917,8 +9899,7 @@ export const ASTERISK_CATALOG = {
           "menuselectTree": "menuselect/example_menuselect-tree",
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
-            "\t\t<member name=\"format_wav\" displayname=\"Microsoft WAV format (8000hz Signed Linear)\" remove_on_change=\"formats/format_wav.o formats/format_wav.so\">",
-            "\t\t<member name=\"format_wav_gsm\" displayname=\"Microsoft WAV format (Proprietary GSM)\" remove_on_change=\"formats/format_wav_gsm.o formats/format_wav_gsm.so\">"
+            "\t\t<member name=\"format_wav\" displayname=\"Microsoft WAV format (8000hz Signed Linear)\" remove_on_change=\"formats/format_wav.o formats/format_wav.so\">"
           ]
         }
       },
@@ -11467,7 +11448,7 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
+            "name": "HangupCauseClear",
             "evidence": "ast_register_application_xml",
             "sourceName": "app"
           }
@@ -13767,18 +13748,7 @@ export const ASTERISK_CATALOG = {
       "source": "main/cdr.c",
       "description": "CDR Engine",
       "buildConditions": [
-        "menuselect:app_cdr",
-        "menuselect:app_forkcdr",
-        "menuselect:app_setcdruserfield",
-        "menuselect:cdr_csv",
-        "menuselect:cdr_custom",
-        "menuselect:cdr_manager",
-        "menuselect:cdr_odbc",
-        "menuselect:cdr_pgsql",
-        "menuselect:cdr_radius",
-        "menuselect:cdr_sqlite",
-        "menuselect:cdr_tds",
-        "menuselect:func_cdr"
+        "menuselect"
       ],
       "provenance": {
         "sourceSha256": "6088edb68bc8bdd59a8dfa2b3417a9c69ba3208c903a3079944d8339fa3ccb11",
@@ -13789,20 +13759,7 @@ export const ASTERISK_CATALOG = {
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
             "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
-            "cdr.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION)",
-            "\t\t<member name=\"app_cdr\" displayname=\"Tell Asterisk to not maintain a CDR for the current call\" remove_on_change=\"apps/app_cdr.o apps/app_cdr.so\">",
-            "\t\t<member name=\"app_forkcdr\" displayname=\"Fork The CDR into 2 separate entities.\" remove_on_change=\"apps/app_forkcdr.o apps/app_forkcdr.so\">",
-            "\t\t<member name=\"app_setcdruserfield\" displayname=\"CDR user field apps\" remove_on_change=\"apps/app_setcdruserfield.o apps/app_setcdruserfield.so\">",
-            "\t<category name=\"MENUSELECT_CDR\" displayname=\"Call Detail Recording\">",
-            "\t\t<member name=\"cdr_csv\" displayname=\"Comma Separated Values CDR Backend\" remove_on_change=\"cdr/cdr_csv.o cdr/cdr_csv.so\">",
-            "\t\t<member name=\"cdr_custom\" displayname=\"Customizable Comma Separated Values CDR Backend\" remove_on_change=\"cdr/cdr_custom.o cdr/cdr_custom.so\">",
-            "\t\t<member name=\"cdr_manager\" displayname=\"Asterisk Call Manager CDR Backend\" remove_on_change=\"cdr/cdr_manager.o cdr/cdr_manager.so\">",
-            "\t\t<member name=\"cdr_odbc\" displayname=\"ODBC CDR Backend\" remove_on_change=\"cdr/cdr_odbc.o cdr/cdr_odbc.so\">",
-            "\t\t<member name=\"cdr_pgsql\" displayname=\"PostgreSQL CDR Backend\" remove_on_change=\"cdr/cdr_pgsql.o cdr/cdr_pgsql.so\">",
-            "\t\t<member name=\"cdr_radius\" displayname=\"RADIUS CDR Backend\" remove_on_change=\"cdr/cdr_radius.o cdr/cdr_radius.so\">",
-            "\t\t<member name=\"cdr_sqlite\" displayname=\"SQLite CDR Backend\" remove_on_change=\"cdr/cdr_sqlite.o cdr/cdr_sqlite.so\">",
-            "\t\t<member name=\"cdr_tds\" displayname=\"MSSQL CDR Backend\" remove_on_change=\"cdr/cdr_tds.o cdr/cdr_tds.so\">",
-            "\t\t<member name=\"func_cdr\" displayname=\"CDR dialplan function\" remove_on_change=\"funcs/func_cdr.o funcs/func_cdr.so\">"
+            "cdr.o: _ASTCFLAGS+=$(AST_NO_FORMAT_TRUNCATION)"
           ]
         }
       },
@@ -13853,6 +13810,7 @@ export const ASTERISK_CATALOG = {
         "channels": []
       },
       "unavailableReasons": [
+        "No family-specific menuselect symbol was found for main/cdr.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/cdr.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -13927,10 +13885,7 @@ export const ASTERISK_CATALOG = {
       "source": "main/config.c",
       "description": "Configuration",
       "buildConditions": [
-        "menuselect:pbx_config",
-        "menuselect:res_config_odbc",
-        "menuselect:res_config_pgsql",
-        "menuselect:res_indications"
+        "menuselect"
       ],
       "provenance": {
         "sourceSha256": "a96fae1d2e251487dec793ab19e933ab0299f89080309e1741082c4ef89550dc",
@@ -13940,11 +13895,7 @@ export const ASTERISK_CATALOG = {
           "menuselectTree": "menuselect/example_menuselect-tree",
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
-            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
-            "\t\t<member name=\"pbx_config\" displayname=\"Text Extension Configuration\" remove_on_change=\"pbx/pbx_config.o pbx/pbx_config.so\">",
-            "\t\t<member name=\"res_config_odbc\" displayname=\"ODBC Configuration\" remove_on_change=\"res/res_config_odbc.o res/res_config_odbc.so\">",
-            "\t\t<member name=\"res_config_pgsql\" displayname=\"Postgresql RealTime Configuration Driver\" remove_on_change=\"res/res_config_pgsql.o res/res_config_pgsql.so\">",
-            "\t\t<member name=\"res_indications\" displayname=\"Indications Configuration\" remove_on_change=\"res/res_indications.o res/res_indications.so\">"
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c"
           ]
         }
       },
@@ -13991,6 +13942,7 @@ export const ASTERISK_CATALOG = {
         "channels": []
       },
       "unavailableReasons": [
+        "No family-specific menuselect symbol was found for main/config.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/config.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -14127,7 +14079,7 @@ export const ASTERISK_CATALOG = {
       "source": "main/enum.c",
       "description": "ENUM Support",
       "buildConditions": [
-        "menuselect:func_enum"
+        "menuselect"
       ],
       "provenance": {
         "sourceSha256": "e2d6b45bc46ed30dcbbe461dafc0ca43973603bbabd2ec20f8882ce9c20b7be6",
@@ -14137,8 +14089,7 @@ export const ASTERISK_CATALOG = {
           "menuselectTree": "menuselect/example_menuselect-tree",
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
-            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
-            "\t\t<member name=\"func_enum\" displayname=\"ENUM related dialplan functions\" remove_on_change=\"funcs/func_enum.o funcs/func_enum.so\">"
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c"
           ]
         }
       },
@@ -14162,6 +14113,7 @@ export const ASTERISK_CATALOG = {
         "channels": []
       },
       "unavailableReasons": [
+        "No family-specific menuselect symbol was found for main/enum.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/enum.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -14177,8 +14129,7 @@ export const ASTERISK_CATALOG = {
       "source": "main/features.c",
       "description": "Call Features",
       "buildConditions": [
-        "menuselect:chan_features",
-        "menuselect:res_features"
+        "menuselect"
       ],
       "provenance": {
         "sourceSha256": "9ce0df4d85d5786c6aa33279764b7c7b87054275df5abf67f4e263bb58d55681",
@@ -14188,9 +14139,7 @@ export const ASTERISK_CATALOG = {
           "menuselectTree": "menuselect/example_menuselect-tree",
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
-            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
-            "\t\t<member name=\"chan_features\" displayname=\"Feature Proxy Channel\" remove_on_change=\"channels/chan_features.o channels/chan_features.so\">",
-            "\t\t<member name=\"res_features\" displayname=\"Call Features Resource\" remove_on_change=\"res/res_features.o res/res_features.so\">"
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c"
           ]
         }
       },
@@ -14222,6 +14171,7 @@ export const ASTERISK_CATALOG = {
         "channels": []
       },
       "unavailableReasons": [
+        "No family-specific menuselect symbol was found for main/features.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/features.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -14299,7 +14249,7 @@ export const ASTERISK_CATALOG = {
       "source": "main/indications.c",
       "description": "Indication Tone Handling",
       "buildConditions": [
-        "menuselect:res_indications"
+        "menuselect"
       ],
       "provenance": {
         "sourceSha256": "091e9ea1669a0d6ce937e2a43ccfdd7dcb5a12ddf783eb58e607cac4004f0991",
@@ -14309,8 +14259,7 @@ export const ASTERISK_CATALOG = {
           "menuselectTree": "menuselect/example_menuselect-tree",
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
-            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
-            "\t\t<member name=\"res_indications\" displayname=\"Indications Configuration\" remove_on_change=\"res/res_indications.o res/res_indications.so\">"
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c"
           ]
         }
       },
@@ -14354,6 +14303,7 @@ export const ASTERISK_CATALOG = {
         "channels": []
       },
       "unavailableReasons": [
+        "No family-specific menuselect symbol was found for main/indications.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/indications.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -14495,7 +14445,7 @@ export const ASTERISK_CATALOG = {
       "source": "main/manager.c",
       "description": "Asterisk Manager Interface",
       "buildConditions": [
-        "menuselect:cdr_manager"
+        "menuselect"
       ],
       "provenance": {
         "sourceSha256": "45f5aee580bc45988cfd211f169ee69638cca01897df71b3bd3d2801abde4986",
@@ -14505,8 +14455,7 @@ export const ASTERISK_CATALOG = {
           "menuselectTree": "menuselect/example_menuselect-tree",
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
-            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
-            "\t\t<member name=\"cdr_manager\" displayname=\"Asterisk Call Manager CDR Backend\" remove_on_change=\"cdr/cdr_manager.o cdr/cdr_manager.so\">"
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c"
           ]
         }
       },
@@ -14778,6 +14727,7 @@ export const ASTERISK_CATALOG = {
         "channels": []
       },
       "unavailableReasons": [
+        "No family-specific menuselect symbol was found for main/manager.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/manager.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -14901,26 +14851,7 @@ export const ASTERISK_CATALOG = {
       "source": "main/sounds.c",
       "description": "Sounds Index",
       "buildConditions": [
-        "menuselect:CORE-SOUNDS-EN-ALAW",
-        "menuselect:CORE-SOUNDS-EN-G729",
-        "menuselect:CORE-SOUNDS-EN-GSM",
-        "menuselect:CORE-SOUNDS-EN-ULAW",
-        "menuselect:CORE-SOUNDS-EN-WAV",
-        "menuselect:CORE-SOUNDS-ES-ALAW",
-        "menuselect:CORE-SOUNDS-ES-G729",
-        "menuselect:CORE-SOUNDS-ES-GSM",
-        "menuselect:CORE-SOUNDS-ES-ULAW",
-        "menuselect:CORE-SOUNDS-ES-WAV",
-        "menuselect:CORE-SOUNDS-FR-ALAW",
-        "menuselect:CORE-SOUNDS-FR-G729",
-        "menuselect:CORE-SOUNDS-FR-GSM",
-        "menuselect:CORE-SOUNDS-FR-ULAW",
-        "menuselect:CORE-SOUNDS-FR-WAV",
-        "menuselect:EXTRA-SOUNDS-EN-ALAW",
-        "menuselect:EXTRA-SOUNDS-EN-G729",
-        "menuselect:EXTRA-SOUNDS-EN-GSM",
-        "menuselect:EXTRA-SOUNDS-EN-ULAW",
-        "menuselect:EXTRA-SOUNDS-EN-WAV"
+        "menuselect"
       ],
       "provenance": {
         "sourceSha256": "a9ce217632258ee66de06faf88bf5df7d916c7dc88be26fbe6f6085349a1370b",
@@ -14930,29 +14861,7 @@ export const ASTERISK_CATALOG = {
           "menuselectTree": "menuselect/example_menuselect-tree",
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
-            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c",
-            "\t<category name=\"MENUSELECT_CORE_SOUNDS\" displayname=\"Core Sound Packages\" positive_output=\"yes\">",
-            "\t\t<member name=\"CORE-SOUNDS-EN-WAV\" displayname=\"English, WAV format\">",
-            "\t\t<member name=\"CORE-SOUNDS-EN-ULAW\" displayname=\"English, mu-Law format\">",
-            "\t\t<member name=\"CORE-SOUNDS-EN-ALAW\" displayname=\"English, a-Law format\">",
-            "\t\t<member name=\"CORE-SOUNDS-EN-GSM\" displayname=\"English, GSM format\" >",
-            "\t\t<member name=\"CORE-SOUNDS-EN-G729\" displayname=\"English, G.729 format\">",
-            "\t\t<member name=\"CORE-SOUNDS-ES-WAV\" displayname=\"Spanish, WAV format\">",
-            "\t\t<member name=\"CORE-SOUNDS-ES-ULAW\" displayname=\"Spanish, mu-Law format\">",
-            "\t\t<member name=\"CORE-SOUNDS-ES-ALAW\" displayname=\"Spanish, a-Law format\">",
-            "\t\t<member name=\"CORE-SOUNDS-ES-GSM\" displayname=\"Spanish, GSM format\">",
-            "\t\t<member name=\"CORE-SOUNDS-ES-G729\" displayname=\"Spanish, G.729 format\">",
-            "\t\t<member name=\"CORE-SOUNDS-FR-WAV\" displayname=\"French, WAV format\">",
-            "\t\t<member name=\"CORE-SOUNDS-FR-ULAW\" displayname=\"French, mu-Law format\">",
-            "\t\t<member name=\"CORE-SOUNDS-FR-ALAW\" displayname=\"French, a-Law format\">",
-            "\t\t<member name=\"CORE-SOUNDS-FR-GSM\" displayname=\"French, GSM format\">",
-            "\t\t<member name=\"CORE-SOUNDS-FR-G729\" displayname=\"French, G.729 format\">",
-            "\t<category name=\"MENUSELECT_EXTRA_SOUNDS\" displayname=\"Extras Sound Packages\" positive_output=\"yes\">",
-            "\t\t<member name=\"EXTRA-SOUNDS-EN-WAV\" displayname=\"English, WAV format\">",
-            "\t\t<member name=\"EXTRA-SOUNDS-EN-ULAW\" displayname=\"English, mu-Law format\">",
-            "\t\t<member name=\"EXTRA-SOUNDS-EN-ALAW\" displayname=\"English, a-Law format\">",
-            "\t\t<member name=\"EXTRA-SOUNDS-EN-GSM\" displayname=\"English, GSM format\" >",
-            "\t\t<member name=\"EXTRA-SOUNDS-EN-G729\" displayname=\"English, G.729 format\">"
+            "MOD_SRC:=cdr.c cel.c config.c ccss.c dnsmgr.c dsp.c enum.c features.c http.c indications.c logger.c manager.c named_acl.c plc.c sounds.c udptl.c"
           ]
         }
       },
@@ -14988,6 +14897,7 @@ export const ASTERISK_CATALOG = {
         "channels": []
       },
       "unavailableReasons": [
+        "No family-specific menuselect symbol was found for main/sounds.c; configure and menuselect decide whether it is built.",
         "No dedicated source article was found for main/sounds.c; runtime help and the generated module record are the authoritative available documentation."
       ],
       "runtime": {
@@ -16089,9 +15999,7 @@ export const ASTERISK_CATALOG = {
           "menuselectTree": "menuselect/example_menuselect-tree",
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
-            "$(call MOD_ADD_C,res_ari,ari/cli.c ari/config.c ari/ari_websockets.c ari/ari_websocket_requests.c)",
-            "$(call MOD_ADD_C,res_ari_model,ari/ari_model_validators.c)",
-            "# Dependencies for res_ari_*.so are generated, so they're in this file"
+            "$(call MOD_ADD_C,res_ari,ari/cli.c ari/config.c ari/ari_websockets.c ari/ari_websocket_requests.c)"
           ]
         }
       },
@@ -17926,12 +17834,12 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_sendfax",
+            "name": "SendFAX",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_sendfax"
           },
           {
-            "name": "app_receivefax",
+            "name": "ReceiveFAX",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_receivefax"
           }
@@ -19004,17 +18912,17 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "play_moh",
+            "name": "MusicOnHold",
             "evidence": "ast_register_application_xml",
             "sourceName": "play_moh"
           },
           {
-            "name": "start_moh",
+            "name": "StartMusicOnHold",
             "evidence": "ast_register_application_xml",
             "sourceName": "start_moh"
           },
           {
-            "name": "stop_moh",
+            "name": "StopMusicOnHold",
             "evidence": "ast_register_application_xml",
             "sourceName": "stop_moh"
           }
@@ -19383,12 +19291,12 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_commit",
+            "name": "ODBC_Commit",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_commit"
           },
           {
-            "name": "app_rollback",
+            "name": "ODBC_Rollback",
             "evidence": "ast_register_application_xml",
             "sourceName": "app_rollback"
           }
@@ -19628,8 +19536,7 @@ export const ASTERISK_CATALOG = {
           "menuselectTree": "menuselect/example_menuselect-tree",
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
-            "$(call MOD_ADD_C,res_pjsip,$(wildcard res_pjsip/*.c))",
-            "$(call MOD_ADD_C,res_pjsip_session,$(wildcard res_pjsip_session/*.c))"
+            "$(call MOD_ADD_C,res_pjsip,$(wildcard res_pjsip/*.c))"
           ]
         }
       },
@@ -20883,9 +20790,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "\"PJSIPNotify\"",
+            "name": "PJSIPNotify",
             "evidence": "ast_register_application_xml",
-            "sourceName": "\"PJSIPNotify\""
+            "sourceName": "PJSIPNotify"
           }
         ],
         "functions": [],
@@ -22851,7 +22758,6 @@ export const ASTERISK_CATALOG = {
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
             "  res_agi.so: | res_speech.so",
-            "  res_agi.so_LIBS:= -lres_speech.so",
             "\t\t<member name=\"res_speech\" displayname=\"Generic Speech Recognition API\" remove_on_change=\"res/res_speech.o res/res_speech.so\">"
           ]
         }
@@ -22996,8 +22902,7 @@ export const ASTERISK_CATALOG = {
           "menuselectTree": "menuselect/example_menuselect-tree",
           "menuselectTreeSha256": "c7b6d25bd87d8ffaebb4fec8259e27816a2b3570b32a4b86b593c39713f00e5d",
           "matchedLines": [
-            "$(call MOD_ADD_C,res_stasis,$(wildcard stasis/*.c))",
-            "$(call MOD_ADD_C,res_stasis_recording,stasis_recording/stored.c)"
+            "$(call MOD_ADD_C,res_stasis,$(wildcard stasis/*.c))"
           ]
         }
       },
@@ -35142,5 +35047,5 @@ export const ASTERISK_CATALOG = {
       }
     }
   ],
-  "catalogRevision": "e3d24320e1a0c7c763af7baa65b778b64a269efc9aea93d7fcdedca90386da4f"
+  "catalogRevision": "cd56d1b29975bbe0016617be86f3fc9d211c50a20c2e04eb02e202e8796cd32b"
 } as const;

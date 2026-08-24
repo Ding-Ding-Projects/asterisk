@@ -6,6 +6,7 @@ import { relative, resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '..', '..');
 
 export function validateAsteriskCatalog(catalog, inventory, files = new Set()) {
+  if (!(files instanceof Set) || files.size === 0) throw new Error('Asterisk catalogue evidence file set is empty');
   if (catalog?.schemaVersion !== 1) throw new Error('Asterisk catalogue schemaVersion 1 required');
   if (!/^[a-f0-9]{64}$/u.test(catalog.catalogRevision ?? '')) throw new Error('Asterisk catalogue revision is missing');
   const { catalogRevision, ...catalogWithoutRevision } = catalog;
@@ -54,8 +55,12 @@ export function validateAsteriskCatalog(catalog, inventory, files = new Set()) {
     }
     if (!Array.isArray(entry.unavailableReasons) || entry.unavailableReasons.length === 0) throw new Error(`Asterisk catalogue record has no unavailable reason: ${entry.id}`);
   }
-  for (const path of [...(inventory.requiredGeneratedFiles ?? []), ...(inventory.requiredDocs ?? []), ...(inventory.requiredImplementationFiles ?? []), ...(inventory.requiredLocalizationFiles ?? []), ...(inventory.requiredActionFiles ?? []), ...(inventory.requiredEvidenceFiles ?? [])]) {
-    if (files.size > 0 && !files.has(path)) throw new Error(`Asterisk catalogue required file is absent: ${path}`);
+  const requiredFiles = [...(inventory.requiredGeneratedFiles ?? []), ...(inventory.requiredDocs ?? []), ...(inventory.requiredImplementationFiles ?? []), ...(inventory.requiredLocalizationFiles ?? []), ...(inventory.requiredActionFiles ?? []), ...(inventory.requiredEvidenceFiles ?? [])];
+  for (const path of requiredFiles) if (!files.has(path)) throw new Error(`Asterisk catalogue required file is absent: ${path}`);
+  if (files.size !== new Set(requiredFiles).size) throw new Error('Asterisk catalogue evidence file set contains unexpected paths');
+  for (const binding of inventory.requiredBindings ?? []) {
+    if (!binding || typeof binding.file !== 'string' || typeof binding.needle !== 'string') throw new Error('Asterisk catalogue binding inventory entry is malformed');
+    if (!readText(binding.file).includes(binding.needle)) throw new Error(`Asterisk catalogue production binding is absent: ${binding.file} :: ${binding.needle}`);
   }
   const actionSource = readText('console/shared/control-plane.ts');
   for (const action of inventory.requiredRuntimeActions ?? []) if (!new RegExp(`['"]${escapeRegExp(action)}['"]`).test(actionSource)) throw new Error(`Asterisk catalogue runtime action is not registered: ${action}`);

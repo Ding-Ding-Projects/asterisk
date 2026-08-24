@@ -149,6 +149,8 @@ function macroCalls(source, names) {
 
 function namedRegistrations(source) {
   const registrations = { cli: [], amiActions: [], amiEvents: [], ari: [], agi: [], applications: [], functions: [], codecs: [], formats: [], bridges: [], channels: [] };
+  const documentedApplications = [...source.matchAll(/<application\s+name="([^"]+)"/gu)].map((match) => match[1]);
+  let documentedApplicationIndex = 0;
   const add = (field, name, evidence, description, sourceName) => {
     const clean = name?.trim();
     if (!clean || clean.length > 120 || /[\r\n]/u.test(clean)) return;
@@ -166,8 +168,10 @@ function namedRegistrations(source) {
     for (const command of resolveAgiCommands(source, token)) add('agi', command, call.name, undefined, token);
   }
   for (const call of macroCalls(source, ['ast_register_application_xml', 'ast_register_application'])) {
+    const rawToken = call.args.split(',')[0].trim();
     const token = firstArgumentToken(call.args);
-    add('applications', resolveConstant(source, token) ?? token, call.name, undefined, token);
+    const name = stringLiterals(rawToken)[0] ?? resolveConstant(source, token) ?? documentedApplications[documentedApplicationIndex++];
+    if (name) add('applications', name, call.name, undefined, token);
   }
   for (const call of macroCalls(source, ['ast_manager_register', 'ast_manager_register_xml', 'ast_manager_register_xml_core'])) add('amiActions', stringLiterals(call.args)[0], call.name);
   for (const call of macroCalls(source, ['manager_event'])) {
@@ -179,15 +183,25 @@ function namedRegistrations(source) {
     const token = firstArgumentToken(call.args);
     add('functions', resolveStructField(source, token, 'name') ?? token, call.name, undefined, token);
   }
-  for (const call of macroCalls(source, ['ast_register_translator'])) add('codecs', firstArgumentToken(call.args), call.name);
+  for (const call of macroCalls(source, ['ast_register_translator'])) {
+    const token = firstArgumentToken(call.args);
+    const name = resolveStructField(source, token, 'name');
+    if (name) add('codecs', name, call.name, undefined, token);
+    else for (const arrayName of resolveStructFields(source, token.replace(/\[.*$/u, ''), 'name')) add('codecs', arrayName, call.name, undefined, token);
+  }
   for (const call of macroCalls(source, ['ast_format_def_register'])) {
     const token = firstArgumentToken(call.args);
     add('formats', resolveStructField(source, token, 'name') ?? token, call.name, undefined, token);
   }
-  for (const call of macroCalls(source, ['ast_bridge_register'])) add('bridges', firstArgumentToken(call.args), call.name);
+  for (const call of macroCalls(source, ['ast_bridge_register'])) {
+    const token = firstArgumentToken(call.args);
+    const name = resolveStructField(source, token, 'name');
+    if (name) add('bridges', name, call.name, undefined, token);
+  }
   for (const call of macroCalls(source, ['ast_channel_register'])) {
     const token = firstArgumentToken(call.args);
-    add('channels', resolveStructField(source, token, 'type') ?? token, call.name, undefined, token);
+    const name = resolveStructField(source, token, 'type');
+    if (name) add('channels', name, call.name, undefined, token);
   }
   return registrations;
 }
@@ -210,12 +224,13 @@ function cliCommandsForHandler(source, handler) {
 
 function firstArgumentToken(value) {
   const token = value.split(',')[0].trim().replace(/^[(&]*/u, '').replace(/\).*$/u, '');
-  return token.replace(/\s+/gu, ' ').trim();
+  return token.replace(/\s+/gu, ' ').trim().replace(/^"|"$/gu, '');
 }
 
 function resolveConstant(source, token) {
   if (!token || !/^[A-Za-z0-9_]+$/u.test(token)) return undefined;
-  const pattern = new RegExp(`(?:#define\\s+${token}\\s+|(?:static\\s+)?(?:const\\s+)?char\\s*\\*?\\s*${token}\\s*=\\s*)"((?:\\\\.|[^"\\\\])*)"`, 'u');
+  const escaped = token.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+  const pattern = new RegExp(`(?:#define\\s+${escaped}\\s+|(?:static\\s+)?(?:const\\s+)?char\\s*(?:\\*\\s*)?(?:const\\s+)?${escaped}\\s*(?:\\[\\s*\\])?\\s*=\\s*)"((?:\\\\.|[^"\\\\])*)"`, 'u');
   const match = pattern.exec(source);
   return match ? unquote(`"${match[1]}"`) : undefined;
 }
@@ -229,7 +244,18 @@ function resolveStructField(source, token, field) {
   const end = matchingBrace(source, open);
   const body = source.slice(open, end + 1);
   const match = new RegExp(`\\.${field}\\s*=\\s*"((?:\\\\.|[^"\\\\])*)"`, 'u').exec(body);
-  return match ? unquote(`"${match[1]}"`) : undefined;
+  if (match) return unquote(`"${match[1]}"`);
+  const pointerMatch = new RegExp(`\\b${name}(?:->|\\.)${field}\\s*=\\s*"((?:\\\\.|[^"\\\\])*)"`, 'u').exec(source);
+  return pointerMatch ? unquote(`"${pointerMatch[1]}"`) : undefined;
+}
+
+function resolveStructFields(source, token, field) {
+  if (!token || !/^[A-Za-z0-9_]+$/u.test(token)) return [];
+  const start = source.search(new RegExp(`\\b${token}\\s*(?:\\[\\s*\\])?\\s*=\\s*\\{`, 'u'));
+  if (start < 0) return [];
+  const open = source.indexOf('{', start);
+  const body = source.slice(open, matchingBrace(source, open) + 1);
+  return [...body.matchAll(new RegExp(`\\.${field}\\s*=\\s*"((?:\\\\.|[^"\\\\])*)"`, 'gu'))].map((match) => unquote(`"${match[1]}"`));
 }
 
 function resolveAgiCommands(source, token) {
@@ -245,7 +271,7 @@ function resolveAgiCommands(source, token) {
     const values = stringLiterals(match[1]);
     if (values.length > 0) commands.push(values.join(' '));
   }
-  return commands.length > 0 ? commands : [name];
+  return commands;
 }
 
 function matchingBrace(source, open) {
@@ -271,8 +297,15 @@ function buildSignals(family, sourcePath, source, makefile, menuselectTree) {
   const stem = sourcePath.replace(/\.[^.]+$/u, '').replaceAll('/', '_').toUpperCase();
   const sourceName = sourcePath.split('/').at(-1)?.replace(/\.[^.]+$/u, '') ?? '';
   const candidates = [stem, sourceName.toUpperCase(), `${family.toUpperCase()}_${sourceName.toUpperCase()}`];
-  const matchedLines = makefile.split(/\r?\n/u).filter((line) => candidates.some((candidate) => line.toUpperCase().includes(candidate)));
-  const treeMatchedLines = menuselectTree.split(/\r?\n/u).filter((line) => candidates.some((candidate) => line.toUpperCase().includes(candidate)));
+  const sourceFile = sourcePath.replaceAll('\\', '/');
+  const sourceStem = sourceFile.replace(/\.[^.]+$/u, '');
+  const matchedLines = makefile.split(/\r?\n/u).filter((line) => candidates.some((candidate) => new RegExp(`(^|[^A-Z0-9_])${candidate}([^A-Z0-9_]|$)`, 'iu').test(line)));
+  const treeMatchedLines = menuselectTree.split(/\r?\n/u).filter((line) => {
+    const match = /remove_on_change="([^"]+)"/u.exec(line);
+    if (!match) return false;
+    const path = match[1].replaceAll('\\', '/');
+    return path === `${sourceStem}.o ${sourceStem}.so` || path.includes(`${sourceStem}.o`) || path.includes(`${sourceStem}.so`);
+  });
   const conditions = [...new Set([
     ...candidates.flatMap((candidate) => makefile.toUpperCase().match(new RegExp(`MENUSELECT_[A-Z0-9_]*${candidate}[A-Z0-9_]*`, 'gu')) ?? []),
     ...matchedLines.flatMap((line) => [...line.matchAll(/get_menuselect_cflags,\s*([A-Z0-9_]+)/giu)].map((match) => match[1])),

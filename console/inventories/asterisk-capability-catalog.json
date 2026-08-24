@@ -53,6 +53,15 @@
     "console/site/asterisk-action-registry.json",
     "console/inventories/asterisk-actions-evidence.json"
   ],
+  "requiredBindings": [
+    { "file": "console/control-plane/dispatch.ts", "needle": "new AriTransport(" },
+    { "file": "console/control-plane/dispatch.ts", "needle": "new AsteriskConfigInventory(" },
+    { "file": "console/control-plane/ami-ari-transports.ts", "needle": "AMI_ACTION_REGISTRY" },
+    { "file": "console/control-plane/ami-ari-transports.ts", "needle": "ARI_OPERATION_REGISTRY" },
+    { "file": "console/app/renderer/src/App.tsx", "needle": "request('pbx.module'" },
+    { "file": "console/app/renderer/src/App.tsx", "needle": "catalogCliSteps(" },
+    { "file": "console/app/renderer/src/App.tsx", "needle": "catalogModuleGroups(" }
+  ],
   "requiredGeneratedFiles": [
     "console/control-plane/generated/asterisk-catalog.json",
     "console/control-plane/generated/asterisk-catalog.ts",
