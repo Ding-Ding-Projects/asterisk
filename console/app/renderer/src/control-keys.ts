@@ -69,13 +69,20 @@ export interface ControlBinding {
    * When this is set, `section` is ignored for matching and the first section declaring this
    * type is used instead.
    */
-  sectionType?: string;
+  sectionType?: string | ReadonlyArray<string>;
 }
 
-/** The first section declaring `type=<wanted>`, as a real pjsip.conf spells it. */
-function sectionOfType(value: ConfigValue, wanted: string): ConfigSection | undefined {
+/**
+ * The first section declaring one of the wanted types, as a real config spells it.
+ *
+ * Several types can mean one thing to a person: an IAX peer is written type=peer or
+ * type=friend depending on whether it also receives calls, and the screen that edits it does
+ * not care which. Matching only one would leave half of real files unreadable.
+ */
+function sectionOfType(value: ConfigValue, wanted: string | ReadonlyArray<string>): ConfigSection | undefined {
+  const types = new Set((typeof wanted === 'string' ? [wanted] : wanted).map((t) => t.toLowerCase()));
   return value.find((candidate) => candidate.entries.some(
-    (entry) => entry.key === 'type' && entry.value.trim().toLowerCase() === wanted,
+    (entry) => entry.key === 'type' && types.has(entry.value.trim().toLowerCase()),
   ));
 }
 
@@ -262,6 +269,29 @@ function l(control: string, section: string, key: string): ControlBinding {
  * `pjsip.conf` — nothing in those screens is mapped.
  */
 export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBinding>>> = {
+  // configs/samples/iax.conf.sample. The section is matched by type, not by name: iax.conf
+  // writes a peer as [guest] with type=user inside, the same shape pjsip uses. Both peer
+  // and friend match, because an object that also receives calls is written type=friend and
+  // this screen does not care which.
+  //
+  // ix_type stays unbound: it IS the discriminator, so binding it would let somebody change
+  // the type through the match that found the section, after which the screen is editing
+  // something it can no longer see. ix_secret_set stays unbound because it means "set a new
+  // secret" rather than carrying one -- a secret must never travel through an ordinary
+  // binding into renderer state, and from there into exports, history and screenshots.
+  iaxpeers: [
+    { ...st('ix_host', 'peer', 'host'), sectionType: ['peer', 'friend'] },  // line 486 and others: host=
+    { ...st('ix_username', 'peer', 'username'), sectionType: ['peer', 'friend'] },  // username=
+    { ...nt('ix_port', 'peer', 'port'), sectionType: ['peer', 'friend'] },  // port= (IAX2 is 4569 by default)
+    { ...st('ix_transfer', 'peer', 'transfer'), sectionType: ['peer', 'friend'] },  // transfer= no/yes/mediaonly, matching the control
+    { ...st('ix_qualify', 'peer', 'qualify'), sectionType: ['peer', 'friend'] },  // qualify= yes, no, or a millisecond threshold
+    { ...bt('ix_trunk', 'peer', 'trunk'), sectionType: ['peer', 'friend'] },  // trunk=
+    { ...st('ix_calltoken', 'peer', 'requirecalltoken'), sectionType: ['peer', 'friend'] },  // requirecalltoken= no/yes/auto, matching the control
+    { ...st('ix_context', 'peer', 'context'), sectionType: ['peer', 'friend'] },  // context=
+    { ...st('ix_accountcode', 'peer', 'accountcode'), sectionType: ['peer', 'friend'] },  // accountcode=
+    { ...st('ix_mailbox', 'peer', 'mailbox'), sectionType: ['peer', 'friend'] },  // mailbox=
+    { ...lt('ix_codecs', 'peer', 'allow'), sectionType: ['peer', 'friend'] },  // allow=, written after disallow=all as the design says
+  ],
   // configs/samples/http.conf.sample — every key below is in [general] there, checked
   // by hand against the file in this checkout rather than taken from a proposal.
   // ht_tlsaddr and ht_tlsport are two halves of one Asterisk value: tlsbindaddr is
@@ -575,8 +605,7 @@ export function applyControlValues(
     if (own === undefined) continue;
 
     let section = binding.sectionType
-      ? sections.find((sec) => sec.entries.some(
-        (entry) => entry.key === 'type' && entry.value.trim().toLowerCase() === binding.sectionType))
+      ? sectionOfType(sections, binding.sectionType)
       : sections.find((sec) => sec.name === binding.section);
     if (!section) {
       /* A type-matched binding does not invent a section. Creating [endpoint] because no

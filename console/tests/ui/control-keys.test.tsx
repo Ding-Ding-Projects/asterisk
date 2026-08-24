@@ -39,7 +39,7 @@ test('every bound screen exists in the generated SCREENS object', () => {
 test('total bound-screen and control counts are what this pass produced', () => {
   const screenCount = Object.keys(CONTROL_BINDINGS).length;
   const controlCount = allBindings().length;
-  assert.equal(screenCount, 15);
+  assert.equal(screenCount, 16);
   // 82 from the first pass, plus a_origin (ami/allowed_origins) and s_failaction
   // (security/failure_action) found on the second look, plus 21 on 2026-08-24: the eight
   // http.conf keys and the thirteen features.conf ones, which brought two whole screens
@@ -51,7 +51,10 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // http.conf with only the two halves of tlsbindaddr, which no single binding can carry.
   // And 115 once composite bindings arrived, which let the two halves of tlsbindaddr be
   // bound at last. http.conf is now completely bound, as is features.conf.
-  assert.equal(controlCount, 115);
+  // And 126 once section-by-type arrived, which let the IAX peers screen be bound at all:
+  // iax.conf writes a peer as a named section with type=peer or type=friend inside, so a
+  // binding looking for a section called peer could never have matched one.
+  assert.equal(controlCount, 126);
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -496,4 +499,55 @@ test('a fixed section like [general] still matches by name', () => {
   /* Most files genuinely do have one, and nothing about them changed. */
   const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'bindaddr', value: '127.0.0.1' }] }];
   assert.equal(readControlValues('httpd', cfg).ht_bindaddr, '127.0.0.1');
+});
+
+// ---------------------------------------------------------------- IAX peers
+
+/** An iax.conf as Asterisk receives one: the peer is the section, its type is inside. */
+const realisticIax: ConfigValue = [
+  { name: 'general', entries: [{ key: 'bindport', value: '4569' }] },
+  { name: 'carrier-a', entries: [
+    { key: 'type', value: 'friend' },
+    { key: 'host', value: '198.51.100.7' },
+    { key: 'context', value: 'from-trunk' },
+    { key: 'trunk', value: 'yes' },
+  ] },
+];
+
+test('an IAX peer is found whether it is written peer or friend', () => {
+  /* An object that also receives calls is written type=friend, and the screen editing it
+   * does not care which it is. Matching only one would leave half of real files unreadable. */
+  const asFriend = readControlValues('iaxpeers', realisticIax);
+  assert.equal(asFriend.ix_host, '198.51.100.7');
+  assert.equal(asFriend.ix_trunk, true);
+  const asPeer: ConfigValue = [{ name: 'carrier-b', entries: [
+    { key: 'type', value: 'peer' }, { key: 'host', value: '203.0.113.9' },
+  ] }];
+  assert.equal(readControlValues('iaxpeers', asPeer).ix_host, '203.0.113.9');
+});
+
+test('a user-only IAX object is not treated as a peer', () => {
+  /* [guest] with type=user is the sample's own inbound-only object. Editing it from the
+   * peers screen would change something the person did not open. */
+  const guest: ConfigValue = [{ name: 'guest', entries: [
+    { key: 'type', value: 'user' }, { key: 'context', value: 'public' },
+  ] }];
+  assert.deepEqual(readControlValues('iaxpeers', guest), {});
+});
+
+test('writing goes into the peer section and leaves [general] alone', () => {
+  const after = applyControlValues('iaxpeers', realisticIax, { ix_context: 'from-carrier' });
+  assert.equal(after[1].entries.find((e) => e.key === 'context').value, 'from-carrier');
+  assert.deepEqual(after[0], realisticIax[0], 'the general section was disturbed');
+});
+
+test('the type and the secret stay out of the bindings', () => {
+  /* ix_type IS the discriminator: binding it would let somebody change type through the very
+   * match that found the section, after which the screen edits something it can no longer
+   * see. ix_secret_set means "set a new secret" rather than carrying one, and a secret must
+   * never travel through an ordinary binding into renderer state. */
+  const unbound = unmappedControls('iaxpeers');
+  assert.deepEqual([...unbound].sort(), ['ix_secret_set', 'ix_type']);
+  const written = applyControlValues('iaxpeers', realisticIax, { ix_type: 'user', ix_secret_set: true });
+  assert.deepEqual(written, realisticIax, 'the type or a secret reached the file');
 });
