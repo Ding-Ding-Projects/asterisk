@@ -548,6 +548,11 @@ function Template(v: any) {
                     "Preview prune"
                   )
                 ),
+                h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;`) },
+                  A(v.receiptRows).map(($r, $r$i) => R($r$i, h("button", { onClick: fn($r.pick), style: sty(`min-height:44px; background:#141A15; border:1px solid #333B34; border-radius:8px; padding:7px 9px; color:${S($r.color)}; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`) },
+                      S($r.label)
+                    )))
+                ),
                 h("div", { style: sty(`font-size:11px; color:#778078; margin-top:10px;`) },
                   S(v.migrationOmissions)
                 ),

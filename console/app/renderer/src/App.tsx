@@ -254,12 +254,14 @@ export class App extends Base {
     ahead: number;
     behind: number;
     divergence: boolean;
+    comparison: 'verified' | 'unverified';
     refs: Array<{ name: string; object: string; kind: string }>;
     remotes: Array<{ name: string; url: string; fetchUrl: string; pushUrl: string }>;
     receipts: Array<{ id: string; action: string; remote: string; branch: string; status: string; observedAt: string; detail: string }>;
+    receiptError?: string;
     entries: Array<{ id: string; timestamp: string; action: string; subject: string }>;
-    backups: Array<{ path: string; createdAt: string; bytes: number; verified: boolean }>;
-  } = { branch: '', clean: false, ahead: 0, behind: 0, divergence: false, refs: [], remotes: [], receipts: [], entries: [], backups: [] };
+    backups: Array<{ path: string; createdAt: string; kind: string; bytes: number; verified: boolean; status: string; detail: string }>;
+  } = { branch: '', clean: false, ahead: 0, behind: 0, divergence: false, comparison: 'unverified', refs: [], remotes: [], receipts: [], entries: [], backups: [] };
   private migrationStatus = 'Reading local history and backup state.';
   private migrationImportSource = '';
   private migrationRemoteName = 'origin';
@@ -270,6 +272,7 @@ export class App extends Base {
   private migrationOmissionText = 'Omitted by design: credential-vault secrets, private vocabulary, source paths, and transient caches. Every omission is recorded in the manifest.';
   private migrationSearchText = '';
   private migrationRetention = 30;
+  private selectedBackupPaths = new Set<string>();
 
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
@@ -327,7 +330,7 @@ export class App extends Base {
     this.historyPending = true;
     try {
       const [git, history, backups] = await Promise.all([
-        this.request('git.history.status'),
+        this.request('git.history.status', { payload: { remote: this.migrationRemoteName, branch: this.migrationBranchName || undefined } }),
         this.request('local-history.list', { payload: { limit: 400 } }),
         this.request('backup.list'),
       ]);
@@ -340,7 +343,7 @@ export class App extends Base {
       if (history?.ok) this.historyData.entries = ((history.data as { entries?: Array<{ id: string; timestamp: string; action: string; subject: string }> }).entries ?? []).map((entry) => ({ id: entry.id, timestamp: entry.timestamp, action: entry.action, subject: entry.subject }));
       if (backups?.ok) this.historyData.backups = ((backups.data as { backups?: typeof this.historyData.backups }).backups ?? []);
       this.historyLoaded = true;
-      this.migrationStatus = `${this.historyData.entries.length} local history records, ${this.historyData.backups.length} verified backups, ${this.historyData.clean ? 'clean' : 'local changes pending'}.`;
+      this.migrationStatus = `${this.historyData.entries.length} local history records, ${this.historyData.backups.length} backup records, ${this.historyData.clean ? 'clean' : 'local changes pending'}${this.historyData.receiptError ? `; receipt problem: ${this.historyData.receiptError}` : ''}.`;
     } catch (error) {
       this.migrationStatus = error instanceof Error ? error.message : 'Local history state is unavailable.';
     } finally {
@@ -378,11 +381,9 @@ export class App extends Base {
     const remote = this.historyData.remotes[0];
     const branch = this.migrationBranchName || this.historyData.branch;
     if (!remote || !branch) { this.fire('Push not available', 'Add a validated HTTPS, SSH, or local bare-repository remote first.'); return; }
-    const response = await this.request('git.remote.push', { payload: { name: this.migrationRemoteName || remote.name, branch } });
-    const receipt = (response as { data?: { receipt?: { status?: string; detail?: string } } } | undefined)?.data?.receipt;
-    if (!response?.ok) this.fire('Push not completed', receipt?.detail ?? response?.message ?? 'The remote did not accept the normal push.');
-    else this.fire('Push verified', receipt?.detail ?? 'The remote accepted the normal push.');
-    await this.loadMigrationState();
+    const response = await this.request('git.remote.push.start', { payload: { name: this.migrationRemoteName || remote.name, branch } }); const operationId = (response?.data as { operationId?: string } | undefined)?.operationId;
+    if (!response?.ok || !operationId) { this.fire('Push not started', response?.message ?? 'The remote did not accept the normal push.'); return; }
+    this.migrationOperationId = operationId; this.forceUpdate(); await this.waitMigrationOperation(operationId, 'Push');
   };
 
   private remoteSet = async (): Promise<void> => {
@@ -400,11 +401,9 @@ export class App extends Base {
   };
 
   private remoteFetch = async (): Promise<void> => {
-    const response = await this.request('git.remote.fetch', { payload: { name: this.migrationRemoteName } });
-    const receipt = (response as { data?: { receipt?: { detail?: string } } } | undefined)?.data?.receipt;
-    if (!response?.ok) this.fire('Fetch not completed', receipt?.detail ?? response?.message ?? 'The remote did not answer.');
-    else this.fire('Fetch receipt recorded', receipt?.detail ?? 'Fetch completed without changing checked-out state.');
-    await this.loadMigrationState();
+    const response = await this.request('git.remote.fetch.start', { payload: { name: this.migrationRemoteName } }); const operationId = (response?.data as { operationId?: string } | undefined)?.operationId;
+    if (!response?.ok || !operationId) { this.fire('Fetch not started', response?.message ?? 'The remote did not answer.'); return; }
+    this.migrationOperationId = operationId; this.forceUpdate(); await this.waitMigrationOperation(operationId, 'Fetch');
   };
 
   private remoteDirectoryInput = (event: unknown): void => {
@@ -424,10 +423,11 @@ export class App extends Base {
   private migrationSearchInput = (event: unknown): void => { this.migrationSearchText = String((event as { target?: { value?: unknown } }).target?.value ?? '').slice(0, 256); this.forceUpdate(); };
   private migrationRegex = (): void => this.setState({ regexOpen: true, regexTarget: 'nav', regexX: '40%', regexY: '160px' } as never);
   private retentionInput = (event: unknown): void => { const value = Number((event as { target?: { value?: unknown } }).target?.value); if (Number.isSafeInteger(value)) this.migrationRetention = Math.max(1, Math.min(365, value)); this.forceUpdate(); };
-  private pruneBackups = (): void => this.areYouSure('Prune verified backups', `Only verified backup directories older than the newest ${this.migrationRetention} will be removed. Unverified or corrupt entries stay retained.`, 3, () => { void this.pruneBackupsConfirmed(); });
-  private pruneBackupsConfirmed = async (): Promise<void> => { const response = await this.request('backup.prune', { payload: { keep: this.migrationRetention } }); this.fire(response?.ok ? 'Backup pruning complete' : 'Backup pruning refused', response?.message ?? 'The backup list was not changed.'); await this.loadMigrationState(); };
-  private selectMigrationRemote = (name: string): void => { const remote = this.historyData.remotes.find((entry) => entry.name === name); if (!remote) return; this.migrationRemoteName = name; this.migrationRemoteUrl = remote.url; this.migrationPushUrl = remote.pushUrl; this.forceUpdate(); };
-  private selectMigrationBranch = (name: string): void => { this.migrationBranchName = name; this.forceUpdate(); };
+  private toggleBackupSelection = (path: string): void => { if (this.selectedBackupPaths.has(path)) this.selectedBackupPaths.delete(path); else this.selectedBackupPaths.add(path); this.forceUpdate(); };
+  private pruneBackups = (): void => this.areYouSure('Prune verified backups', `${this.selectedBackupPaths.size} backup records are selected. Only verified backup directories older than the newest ${this.migrationRetention} will be removed. Unverified or corrupt entries stay retained.`, 3, () => { void this.pruneBackupsConfirmed(); });
+  private pruneBackupsConfirmed = async (): Promise<void> => { const response = await this.request('backup.prune', { payload: { keep: this.migrationRetention, selectedPaths: [...this.selectedBackupPaths] } }); const data = response?.data as { removed?: number; receipts?: Array<{ path: string; status: string; detail: string; removed?: boolean }> } | undefined; const paths = (data?.receipts ?? []).filter((entry) => entry.removed === true).map((entry) => entry.path).join(', ') || 'none'; this.fire(response?.ok ? 'Backup pruning complete' : 'Backup pruning refused', response?.message ?? `${data?.removed ?? 0} paths removed: ${paths}`); this.selectedBackupPaths.clear(); await this.loadMigrationState(); };
+  private selectMigrationRemote = (name: string): void => { const remote = this.historyData.remotes.find((entry) => entry.name === name); if (!remote) return; this.migrationRemoteName = name; this.migrationRemoteUrl = remote.url; this.migrationPushUrl = remote.pushUrl; this.forceUpdate(); void this.loadMigrationState(); };
+  private selectMigrationBranch = (name: string): void => { this.migrationBranchName = name; this.forceUpdate(); void this.loadMigrationState(); };
 
   private validateMigrationImport = async (): Promise<void> => {
     if (!this.migrationImportSource) { this.toast('Choose a migration manifest first.'); return; }
@@ -440,10 +440,9 @@ export class App extends Base {
   };
 
   private confirmMigrationImport = async (): Promise<void> => {
-    const response = await this.request('migration.import', { payload: { source: this.migrationImportSource, confirmReplace: true } });
-    if (!response?.ok) this.fire('Migration not applied', response?.message ?? 'The validated bundle was not applied.');
-    else this.fire('Migration applied', response.message ?? 'The verified backup was retained and local state switched atomically.');
-    await this.loadMigrationState();
+    const response = await this.request('migration.import.start', { payload: { source: this.migrationImportSource } }); const operationId = (response?.data as { operationId?: string } | undefined)?.operationId;
+    if (!response?.ok || !operationId) { this.fire('Migration not started', response?.message ?? 'The validated bundle was not applied.'); return; }
+    this.migrationOperationId = operationId; this.migrationStatus = 'Migration running: backing up, staging, verifying, and switching atomically.'; this.forceUpdate(); await this.waitMigrationOperation(operationId, 'Migration import');
   };
 
   private importMigrationFile = (event: unknown): void => {
@@ -2068,9 +2067,9 @@ It is shown once. The phone needs it to register.`);
             { text: `+ ${selected.to}`, color: '#9FF7C4', bg: 'rgba(0,82,48,.28)' },
           ] : [{ text: 'no local history record selected', color: '#8FA394', bg: 'transparent' }],
           blameRows: commits.slice(0, 5).map((entry) => ({ sha: entry.sha, what: entry.label, who: entry.author })),
-          compareLabel: this.historyData.clean
-            ? `Working tree is clean. ${this.historyData.ahead} ahead, ${this.historyData.behind} behind, divergence ${this.historyData.divergence ? 'detected' : 'not detected'}.`
-            : 'Local changes are present. Push remains explicit and normal; no force or history rewrite is offered.',
+          compareLabel: this.historyData.comparison === 'verified'
+            ? `${this.historyData.clean ? 'Working tree is clean.' : 'Local changes are present.'} ${this.historyData.ahead} ahead, ${this.historyData.behind} behind, divergence ${this.historyData.divergence ? 'detected' : 'not detected'}.`
+            : 'Ahead, behind, and divergence counts are unverified until a remote and target branch are selected and compared.',
           histActions: [
             { icon: 'refresh', label: 'Refresh', run: () => { this.historyLoaded = false; void this.loadMigrationState(); }, bg: '#1B211C', border: '#333B34', fg: '#C4CBC2' },
             { icon: 'cloud_upload', label: 'Push after review', run: () => this.onControlAction('git-push'), bg: '#1B211C', border: '#333B34', fg: '#C4CBC2' },
@@ -2082,7 +2081,8 @@ It is shown once. The phone needs it to register.`);
             { icon: 'refresh', label: 'Refresh state', run: () => { this.historyLoaded = false; void this.loadMigrationState(); }, bg: '#1B211C', border: '#414942', fg: '#C4CBC2' },
           ],
           importMigrationFile: this.importMigrationFile,
-          backupRows: this.historyData.backups.filter((backup) => matches(`${backup.path} ${backup.createdAt} ${backup.status} ${backup.detail}`)).map((backup) => ({ label: `${backup.createdAt || 'backup'} · ${backup.bytes} bytes · ${backup.status}`, color: backup.status === 'verified' ? '#9FF7C4' : '#FFD68A', pick: () => this.toast(`${backup.path}: ${backup.detail}`), verify: () => this.toast(`${backup.path}: ${backup.detail}`) })),
+          backupRows: this.historyData.backups.filter((backup) => matches(`${backup.path} ${backup.createdAt} ${backup.status} ${backup.detail}`)).map((backup) => ({ label: `${this.selectedBackupPaths.has(backup.path) ? '☑' : '☐'} ${backup.createdAt || 'backup'} · ${backup.bytes} bytes · ${backup.status}`, color: backup.status === 'verified' ? '#9FF7C4' : '#FFD68A', pick: () => this.toggleBackupSelection(backup.path), verify: () => this.toast(`${backup.path}: ${backup.detail}`) })),
+          receiptRows: this.historyData.receipts.filter((receipt) => matches(`${receipt.id} ${receipt.action} ${receipt.remote} ${receipt.branch} ${receipt.status} ${receipt.detail}`)).map((receipt) => ({ label: `${receipt.action} · ${receipt.remote} · ${receipt.status}`, color: receipt.status === 'success' ? '#9FF7C4' : '#FFD68A', pick: () => this.toast(`${receipt.id}: ${receipt.detail}`) })),
           migrationOmissions: this.migrationOmissionText,
           migrationSearchText: this.migrationSearchText,
           migrationSearchInput: this.migrationSearchInput,
@@ -2091,7 +2091,7 @@ It is shown once. The phone needs it to register.`);
           retentionText: String(this.migrationRetention),
           retentionInput: this.retentionInput,
           pruneBackups: this.pruneBackups,
-          migrationSearchSummary: `${searchableCount} matching backups, remotes, and receipts`,
+          migrationSearchSummary: `${searchableCount} matching backups, remotes, and receipts · ${this.selectedBackupPaths.size} selected`,
           remoteNameText: this.migrationRemoteName,
           remoteUrlText: this.migrationRemoteUrl || (this.historyData.remotes[0]?.url ?? ''),
           pushUrlText: this.migrationPushUrl || (this.historyData.remotes[0]?.pushUrl ?? ''),
@@ -2102,8 +2102,8 @@ It is shown once. The phone needs it to register.`);
           remoteRemove: this.remoteRemove,
           remoteFetch: this.remoteFetch,
           remoteDirectoryInput: this.remoteDirectoryInput,
-          remoteOptions: this.historyData.remotes.map((remote) => ({ label: `remote:${remote.name}`, pick: () => this.selectMigrationRemote(remote.name), bg: remote.name === this.migrationRemoteName ? '#005230' : 'transparent', border: remote.name === this.migrationRemoteName ? '#005230' : '#414942', fg: remote.name === this.migrationRemoteName ? '#9FF7C4' : '#C4CBC2' })),
-          branchOptions: this.historyData.refs.filter((ref) => ref.name.startsWith('refs/heads/')).map((ref) => { const name = ref.name.slice('refs/heads/'.length); return { label: `branch:${name}`, pick: () => this.selectMigrationBranch(name), bg: name === (this.migrationBranchName || this.historyData.branch) ? '#005230' : 'transparent', border: name === (this.migrationBranchName || this.historyData.branch) ? '#005230' : '#414942', fg: name === (this.migrationBranchName || this.historyData.branch) ? '#9FF7C4' : '#C4CBC2' }; }),
+          remoteOptions: this.historyData.remotes.filter((remote) => matches(`${remote.name} ${remote.url} ${remote.fetchUrl} ${remote.pushUrl}`)).map((remote) => ({ label: `remote:${remote.name}`, pick: () => this.selectMigrationRemote(remote.name), bg: remote.name === this.migrationRemoteName ? '#005230' : 'transparent', border: remote.name === this.migrationRemoteName ? '#005230' : '#414942', fg: remote.name === this.migrationRemoteName ? '#9FF7C4' : '#C4CBC2' })),
+          branchOptions: this.historyData.refs.filter((ref) => ref.name.startsWith('refs/heads/')).filter((ref) => matches(ref.name)).map((ref) => { const name = ref.name.slice('refs/heads/'.length); return { label: `branch:${name}`, pick: () => this.selectMigrationBranch(name), bg: name === (this.migrationBranchName || this.historyData.branch) ? '#005230' : 'transparent', border: name === (this.migrationBranchName || this.historyData.branch) ? '#005230' : '#414942', fg: name === (this.migrationBranchName || this.historyData.branch) ? '#9FF7C4' : '#C4CBC2' }; }),
         };
       })() : {}),
 

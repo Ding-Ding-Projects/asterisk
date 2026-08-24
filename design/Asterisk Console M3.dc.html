@@ -395,6 +395,11 @@
               </label>
               <button onClick="{{ pruneBackups }}" style="min-height:44px; background:transparent; border:1px solid #FFB4AB; border-radius:10px; padding:8px 12px; color:#FFB4AB; font:inherit; cursor:pointer;">Preview prune</button>
             </div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
+              <sc-for list="{{ receiptRows }}" as="r" hint-placeholder-count="3">
+                <button onClick="{{ r.pick }}" style="min-height:44px; background:#141A15; border:1px solid #333B34; border-radius:8px; padding:7px 9px; color:{{ r.color }}; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;">{{ r.label }}</button>
+              </sc-for>
+            </div>
             <div style="font-size:11px; color:#778078; margin-top:10px;">{{ migrationOmissions }}</div>
             <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
               <span class="msym" style="font-size:17px; color:#82D9A5;">search</span>

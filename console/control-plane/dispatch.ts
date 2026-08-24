@@ -405,6 +405,11 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const operationId = typeof request.payload?.operationId === 'string' ? request.payload.operationId : '';
         return { ok: true, requestId: request.requestId, data: migration.operationStatus(operationId) };
       }
+      if (request.action === 'migration.import.start') {
+        const source = typeof request.payload?.source === 'string' ? request.payload.source : '';
+        if (!source) return { ok: false, requestId: request.requestId, code: 'MIGRATION_SOURCE_REQUIRED', message: 'Choose a migration manifest or export directory first.' };
+        return { ok: true, requestId: request.requestId, data: migration.startImport(source) };
+      }
       if (request.action === 'migration.validate') {
         const source = typeof request.payload?.source === 'string' ? request.payload.source : '';
         if (!source) return { ok: false, requestId: request.requestId, code: 'MIGRATION_SOURCE_REQUIRED', message: 'Choose a migration manifest or export directory first.' };
@@ -434,10 +439,13 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       }
       if (request.action === 'backup.prune') {
         const keep = Number(request.payload?.keep ?? 30);
-        return { ok: true, requestId: request.requestId, data: await migration.pruneBackups(keep) };
+        const selectedPaths = Array.isArray(request.payload?.selectedPaths) ? request.payload.selectedPaths.filter((path): path is string => typeof path === 'string') : [];
+        return { ok: true, requestId: request.requestId, data: await migration.pruneBackups(keep, selectedPaths) };
       }
       if (request.action === 'git.history.status') {
-        return { ok: true, requestId: request.requestId, data: await migration.gitStatus() };
+        const remote = typeof request.payload?.remote === 'string' ? request.payload.remote : undefined;
+        const branch = typeof request.payload?.branch === 'string' ? request.payload.branch : undefined;
+        return { ok: true, requestId: request.requestId, data: await migration.gitStatus(remote, branch) };
       }
       if (request.action === 'git.remote.set') {
         const name = typeof request.payload?.name === 'string' ? request.payload.name : '';
@@ -448,6 +456,12 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'git.remote.remove') {
         const name = typeof request.payload?.name === 'string' ? request.payload.name : '';
         return { ok: true, requestId: request.requestId, data: await migration.removeRemote(name) };
+      }
+      if (request.action === 'git.remote.fetch.start' || request.action === 'git.remote.push.start') {
+        const name = typeof request.payload?.name === 'string' ? request.payload.name : '';
+        if (request.action === 'git.remote.fetch.start') return { ok: true, requestId: request.requestId, data: migration.startFetchRemote(name) };
+        const branch = typeof request.payload?.branch === 'string' ? request.payload.branch : '';
+        return { ok: true, requestId: request.requestId, data: migration.startPushRemote(name, branch) };
       }
       if (request.action === 'git.remote.fetch' || request.action === 'git.remote.push') {
         const name = typeof request.payload?.name === 'string' ? request.payload.name : '';

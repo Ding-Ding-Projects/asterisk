@@ -28,12 +28,12 @@ export type ControlPlaneAction =
    * only for a `file://` origin and never survives a relaunch. */
   | 'settings.snapshot' | 'settings.write' | 'settings.remove'
   /* The desktop's complete local migration and Git history surface. */
-  | 'migration.export' | 'migration.export.start' | 'migration.operation.status' | 'migration.validate' | 'migration.import'
+  | 'migration.export' | 'migration.export.start' | 'migration.import.start' | 'migration.operation.status' | 'migration.validate' | 'migration.import'
   | 'migration.cancel'
   | 'backup.create' | 'backup.start' | 'backup.list'
   | 'backup.prune'
   | 'git.history.status' | 'git.remote.set' | 'git.remote.remove'
-  | 'git.remote.fetch' | 'git.remote.push';
+  | 'git.remote.fetch' | 'git.remote.fetch.start' | 'git.remote.push' | 'git.remote.push.start';
 
 /** The screens a `pbx.read` can answer, each backed by read-only Asterisk CLI output. */
 export type PbxReadView =

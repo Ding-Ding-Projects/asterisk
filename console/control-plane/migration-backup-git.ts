@@ -149,12 +149,13 @@ export interface GitStatusRecord {
   refs: ReadonlyArray<{ name: string; object: string; kind: string }>;
   remotes: ReadonlyArray<RemoteRecord>;
   receipts: ReadonlyArray<GitReceipt>;
+  receiptError?: string;
   receipt?: GitReceipt;
 }
 
 export interface GitReceipt {
   id: string;
-  action: "fetch" | "push";
+  action: "fetch" | "push" | "remote-set" | "remote-remove";
   remote: string;
   branch: string;
   status: "success" | "rejected" | "auth-failure" | "divergence" | "cancelled" | "unverified";
@@ -339,6 +340,13 @@ function sanitizeRecordPayload(path: string, value: unknown): { value: unknown; 
   const sanitized = sanitizeJson(value); validateSafeJson(sanitized, path); return { value: sanitized, omissions };
 }
 
+function validateRecordFile(path: string): void {
+  if (!path.toLowerCase().endsWith(".json")) return;
+  const record = sanitizeRecordPayload(path, readJsonStrict(path, MIGRATION_LIMITS.maxFileBytes));
+  if (record.omissions.length > 0) throw new Error(`${path} contains fields that were not represented by manifest omissions.`);
+  validateSafeJson(record.value, path);
+}
+
 function overlapsPath(left: string, right: string): boolean {
   const a = resolve(left); const b = resolve(right);
   return a === b || a.startsWith(`${b}${sep}`) || b.startsWith(`${a}${sep}`);
@@ -409,8 +417,9 @@ function assertManifest(value: unknown): asserts value is MigrationManifest {
   }
   for (const omission of manifest.omissions as Array<Record<string, unknown>>) {
     assertExactKeys(omission, new Set(["path", "reason", "detail"]), "Migration omission");
-    if (typeof omission.path !== "string" || omission.path.length > MIGRATION_LIMITS.maxPathLength || typeof omission.reason !== "string" || omission.reason.length > MIGRATION_LIMITS.maxStringLength || typeof omission.detail !== "string" || omission.detail.length > MIGRATION_LIMITS.maxStringLength) throw new Error("Migration omission is invalid.");
+    if (typeof omission.path !== "string" || omission.path.length > MIGRATION_LIMITS.maxPathLength || typeof omission.reason !== "string" || omission.reason.length > MIGRATION_LIMITS.maxStringLength || !["credential-vault-secret", "private-vocabulary", "source-path", "transient-cache", "unsafe-or-unsupported"].includes(omission.reason) || typeof omission.detail !== "string" || omission.detail.length > MIGRATION_LIMITS.maxStringLength) throw new Error("Migration omission is invalid.");
   }
+  const omissionPaths = new Set<string>(); const baseOmissions = new Set(["credential-vault", "personal-vocabulary", "source-paths", "transient-caches", "history/", "backups/"]); for (const omission of manifest.omissions as Array<Record<string, unknown>>) { const path = String(omission.path); if (omissionPaths.has(path)) throw new Error(`Duplicate migration omission: ${path}`); const fieldBase = path.includes("#") ? path.slice(0, path.indexOf("#")) : path; if (!baseOmissions.has(path) && !seen.has(fieldBase)) throw new Error(`Migration omission is not derived from the handwritten inventory: ${path}`); omissionPaths.add(path); }
   const git = manifest.gitHistory;
   if (git !== null && (typeof git !== "object" || git === undefined)) throw new Error("Invalid Git bundle record.");
   if (git !== null) {
@@ -442,6 +451,7 @@ export class MigrationBackupService {
   readonly #now: () => Date;
   #active?: { id: string; controller: AbortController };
   readonly #completed = new Map<string, { done: boolean; result?: unknown; error?: string }>();
+  readonly #handshakeControllers = new Map<string, AbortController>();
   constructor(options: MigrationBackupOptions) {
     this.#root = resolve(options.userDataPath); this.#history = resolve(options.historyPath ?? join(this.#root, "history")); this.#executor = options.executor; this.#now = options.now ?? (() => new Date());
     this.recoverInterruptedSwap();
@@ -459,8 +469,18 @@ export class MigrationBackupService {
     const controller = new AbortController(); this.#active = { id: operation.id, controller }; return controller.signal;
   }
   async cancel(operationId: string): Promise<{ cancelled: boolean; detail: string }> {
+    const handshake = this.#handshakeControllers.get(operationId); if (handshake) { handshake.abort(); return { cancelled: true, detail: "Cancellation requested for the pending operation." }; }
     if (!this.#active || this.#active.id !== operationId) return { cancelled: false, detail: "No matching operation is running." };
     this.#active.controller.abort(); return { cancelled: true, detail: "Cancellation requested; the operation will retain its partial record." };
+  }
+  startImport(source: string): { operationId: string } {
+    if (this.#completed.size >= MIGRATION_LIMITS.maxOperations) throw new Error("Operation result retention is full."); const operationId = randomUUID(); const controller = new AbortController(); this.#handshakeControllers.set(operationId, controller); this.#completed.set(operationId, { done: false }); void this.importMigration(source, true, controller.signal).then((result) => this.#completed.set(operationId, { done: true, result })).catch((error) => this.#completed.set(operationId, { done: true, error: sanitizeDiagnostic(error instanceof Error ? error.message : String(error)) })).finally(() => this.#handshakeControllers.delete(operationId)); return { operationId };
+  }
+  startFetchRemote(name: string): { operationId: string } {
+    const operation = this.operation("fetch"); this.writeOperations([...this.readOperations(), operation]); const signal = this.claim(operation); this.writeOperations(this.readOperations().map((entry) => entry.id === operation.id ? { ...operation, phase: "verify", detail: `Fetching remote ${name}.` } : entry)); this.#completed.set(operation.id, { done: false }); void this.fetchRemote(name, signal).then((result) => { const ok = result.receipt.status === "success"; const finished = this.finish({ ...operation, phase: "complete", completed: 1, total: 1, items: [{ path: name, state: ok ? "succeeded" : "failed", detail: result.receipt.detail }], detail: result.receipt.detail }, ok ? "succeeded" : "failed", result.receipt.detail); this.#completed.set(operation.id, { done: true, result: { ...result, operation: finished } }); }).catch((error) => { const detail = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); this.#completed.set(operation.id, { done: true, error: detail }); }).finally(() => { if (this.#active?.id === operation.id) this.#active = undefined; }); return { operationId: operation.id };
+  }
+  startPushRemote(name: string, branch: string): { operationId: string } {
+    const operation = this.operation("push"); this.writeOperations([...this.readOperations(), operation]); const signal = this.claim(operation); this.writeOperations(this.readOperations().map((entry) => entry.id === operation.id ? { ...operation, phase: "verify", detail: `Pushing ${branch} to remote ${name}.` } : entry)); this.#completed.set(operation.id, { done: false }); void this.pushRemote(name, branch, signal).then((result) => { const ok = result.receipt.status === "success"; const finished = this.finish({ ...operation, phase: "complete", completed: 1, total: 1, items: [{ path: `${name}/${branch}`, state: ok ? "succeeded" : "failed", detail: result.receipt.detail }], detail: result.receipt.detail }, ok ? "succeeded" : "failed", result.receipt.detail); this.#completed.set(operation.id, { done: true, result: { ...result, operation: finished } }); }).catch((error) => { const detail = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); this.#completed.set(operation.id, { done: true, error: detail }); }).finally(() => { if (this.#active?.id === operation.id) this.#active = undefined; }); return { operationId: operation.id };
   }
   startExport(destination?: string): { operationId: string } {
     if (this.#completed.size >= MIGRATION_LIMITS.maxOperations) throw new Error("Operation result retention is full."); const promise = this.exportMigration(destination); const operationId = this.#active?.id; if (!operationId) throw new Error("Export did not reach its operation-start handshake."); this.#completed.set(operationId, { done: false }); void promise.then((result) => this.#completed.set(operationId, { done: true, result })).catch((error) => this.#completed.set(operationId, { done: true, error: sanitizeDiagnostic(error instanceof Error ? error.message : String(error)) })); return { operationId };
@@ -545,6 +565,7 @@ export class MigrationBackupService {
     const symbolic = await execute(this.#executor, this.#history, ["symbolic-ref", "-q", "HEAD"], 30_000, signal).catch(() => "");
     const detachedHead = symbolic.trim().length === 0;
     await execute(this.#executor, this.#history, ["bundle", "create", bundle, "--all", "HEAD"], 120_000, signal);
+    if (bytes(bundle) < 1 || bytes(bundle) > MIGRATION_LIMITS.maxFileBytes) throw new Error("Git bundle exceeded its per-file byte limit immediately after creation.");
     await execute(this.#executor, this.#history, ["bundle", "verify", bundle], 30_000, signal);
     const refs = (await execute(this.#executor, this.#history, ["for-each-ref", "--format=%(refname)\t%(objectname)\t%(objecttype)"], 30_000, signal))
       .split(/\r?\n/u).filter(Boolean).map((line) => { const [name, object, kind] = line.split("\t"); return { name, object, kind }; });
@@ -559,10 +580,11 @@ export class MigrationBackupService {
 
   async exportMigration(destination?: string, signal?: AbortSignal, internalBackupRoot?: string): Promise<{ operation: MigrationOperation; path: string; manifest: MigrationManifest }> {
     const operation = this.operation("export"); this.writeOperations([...this.readOperations(), operation]);
+    let output = ""; let stage = ""; const items: OperationItem[] = [];
     const operationSignal = this.claim(operation); if (signal) signal.addEventListener("abort", () => this.#active?.controller.abort(), { once: true }); signal = operationSignal;
-    const output = validatedExportDestination(destination, this.#root, this.#history, internalBackupRoot);
-    const stage = mkdtempSync(join(tmpdir(), "ding-migration-export-")); const items: OperationItem[] = [];
     try {
+      output = validatedExportDestination(destination, this.#root, this.#history, internalBackupRoot);
+      stage = mkdtempSync(join(tmpdir(), "ding-migration-export-"));
       const inventory = this.sourceInventory(); const files = inventory.files;
       const records: MigrationFileRecord[] = []; let totalBytes = 0;
       const phase = { ...operation, phase: "stage" as const, total: files.length + 1, bytesTotal: 0, detail: "Staging application state." }; this.writeOperations(this.readOperations().map((entry) => entry.id === operation.id ? phase : entry));
@@ -583,7 +605,7 @@ export class MigrationBackupService {
       const next = { ...operation, phase: "complete" as const, completed: items.length, total: items.length, bytesDone: totalBytes, bytesTotal: totalBytes, items, detail: `Exported ${items.length} files and one verified Git bundle.` };
       return { operation: this.finish(next, "succeeded", next.detail), path: output, manifest };
     } catch (error) {
-      rmSync(stage, { recursive: true, force: true }); const detail = error instanceof Error ? error.message : String(error); const state: OperationState = signal?.aborted ? "cancelled" : "failed";
+      if (stage) rmSync(stage, { recursive: true, force: true }); const detail = error instanceof Error ? error.message : String(error); const state: OperationState = signal?.aborted ? "cancelled" : "failed";
       return { operation: this.finish({ ...operation, items }, state, detail), path: output, manifest: { schemaVersion: MIGRATION_SCHEMA_VERSION, kind: "ding-pbx-console-migration", createdAt: nowIso(this.#now), application: "Ding PBX Console", files: [], gitHistory: null, omissions: this.omissions(), retention: { backups: this.retention() } } };
     } finally { if (this.#active?.id === operation.id) this.#active = undefined; }
   }
@@ -591,7 +613,13 @@ export class MigrationBackupService {
   private retention(): number { try { const value = readJsonStrict(backupIndexPath(this.#root)); return Array.isArray(value) ? value.length : 0; } catch { return 0; } }
 
   private swapJournalPath(): string { return join(dirname(this.#root), `${basename(this.#root)}.migration-swap-journal.json`); }
-  private writeSwapJournal(value: Record<string, unknown>): void { atomicWriteFileSync(this.swapJournalPath(), `${JSON.stringify(value, null, 2)}\n`); }
+  private assertSwapJournal(value: Record<string, unknown>): void {
+    assertExactKeys(value, new Set(["schemaVersion", "oldRoot", "incomingRoot", "backupRoot", "failedIncoming", "phase", "createdAt", "recoveredAt", "detail"]), "Migration swap journal");
+    const phases = new Set(["prepared", "old-moved", "incoming-moved", "verified", "rolled-back", "abandoned-before-swap", "rolled-back-on-startup", "recovered-incoming", "recovery-failed"]); if (value.schemaVersion !== 1 || value.oldRoot !== this.#root || typeof value.phase !== "string" || !phases.has(value.phase) || typeof value.createdAt !== "string" || !Number.isFinite(Date.parse(value.createdAt))) throw new Error("Migration swap journal schema is invalid.");
+    const sibling = (candidate: unknown, prefix: string): void => { if (typeof candidate !== "string" || dirname(resolve(candidate)) !== dirname(this.#root) || !basename(resolve(candidate)).startsWith(prefix)) throw new Error("Migration swap journal sibling relationship is invalid."); };
+    sibling(value.incomingRoot, `${basename(this.#root)}.incoming-import-`); sibling(value.backupRoot, `${basename(this.#root)}.pre-import-`); sibling(value.failedIncoming, `${basename(this.#root)}.failed-import-`);
+  }
+  private writeSwapJournal(value: Record<string, unknown>): void { this.assertSwapJournal(value); atomicWriteFileSync(this.swapJournalPath(), `${JSON.stringify(value, null, 2)}\n`); }
 
   private retainTreeInBackupIndex(path: string, detail: string): void {
     if (!existsSync(this.#root)) return;
@@ -606,41 +634,42 @@ export class MigrationBackupService {
   private recoverInterruptedSwap(): void {
     const journalPath = this.swapJournalPath(); if (!existsSync(journalPath)) return;
     try {
-      const journal = readJsonStrict(journalPath) as Record<string, unknown>; const phase = String(journal.phase ?? "");
+      const journal = readJsonStrict(journalPath) as Record<string, unknown>; this.assertSwapJournal(journal); const phase = String(journal.phase ?? "");
       const oldRoot = resolve(String(journal.oldRoot ?? this.#root)); const incomingRaw = String(journal.incomingRoot ?? ""); const backupRaw = String(journal.backupRoot ?? ""); const failedRaw = String(journal.failedIncoming ?? ""); const incoming = incomingRaw ? resolve(incomingRaw) : ""; const backup = backupRaw ? resolve(backupRaw) : ""; const failed = failedRaw ? resolve(failedRaw) : "";
       assertNoLinksAlong(oldRoot, dirname(oldRoot)); if (incoming) assertNoLinksAlong(incoming, dirname(oldRoot)); if (backup) assertNoLinksAlong(backup, dirname(oldRoot)); if (failed) assertNoLinksAlong(failed, dirname(oldRoot));
       if (phase === "prepared") { if (existsSync(incoming) && !existsSync(failed)) renameRetry(incoming, failed); this.writeSwapJournal({ ...journal, phase: "abandoned-before-swap", recoveredAt: nowIso(this.#now) }); return; }
       if (phase === "old-moved") { if (!existsSync(oldRoot) && existsSync(backup)) renameRetry(backup, oldRoot); if (existsSync(incoming) && !existsSync(failed)) renameRetry(incoming, failed); if (existsSync(failed)) this.retainTreeInBackupIndex(failed, "Retained failed incoming tree after startup recovery."); this.writeSwapJournal({ ...journal, phase: "rolled-back-on-startup", recoveredAt: nowIso(this.#now) }); return; }
       if (phase === "incoming-moved" || phase === "verified") { if (existsSync(backup)) this.retainTreeInBackupIndex(backup, `Retained after interrupted import phase ${phase}.`); this.writeSwapJournal({ ...journal, phase: "recovered-incoming", recoveredAt: nowIso(this.#now) }); return; }
     } catch (error) {
-      try { this.writeSwapJournal({ phase: "recovery-failed", detail: sanitizeDiagnostic(error instanceof Error ? error.message : String(error)), recoveredAt: nowIso(this.#now) }); } catch { /* keep the original journal for manual recovery */ }
+      try { const journal = readJsonStrict(journalPath) as Record<string, unknown>; this.writeSwapJournal({ ...journal, phase: "recovery-failed", detail: sanitizeDiagnostic(error instanceof Error ? error.message : String(error)), recoveredAt: nowIso(this.#now) }); } catch { /* keep the original journal for manual recovery */ }
     }
   }
 
   private async verifyImportedRoot(root: string, manifest: MigrationManifest, signal?: AbortSignal): Promise<void> {
     assertNoLinksAlong(root); const manifestPath = join(root, "manifest.json"); if (!existsSync(manifestPath)) throw new Error("The imported root is missing its manifest.");
     const returned = readJsonStrict(manifestPath); assertManifest(returned); if (returned.createdAt !== manifest.createdAt || returned.files.length !== manifest.files.length) throw new Error("The imported root manifest changed during the swap.");
-    for (const entry of manifest.files) { const path = join(root, entry.path); if (!existsSync(path) || bytes(path) !== entry.bytes || sha256File(path).toLowerCase() !== entry.sha256.toLowerCase()) throw new Error(`The imported root failed independent verification for ${entry.path}.`); }
+    for (const entry of manifest.files) { const path = join(root, entry.path); if (!existsSync(path) || bytes(path) !== entry.bytes || sha256File(path).toLowerCase() !== entry.sha256.toLowerCase()) throw new Error(`The imported root failed independent verification for ${entry.path}.`); validateRecordFile(path); }
     if (manifest.gitHistory) await execute(this.#executor, join(root, "history"), ["fsck", "--full"], 120_000, signal);
   }
 
   async createBackup(signal?: AbortSignal): Promise<{ operation: MigrationOperation; path: string; manifest: MigrationManifest }> {
     const backupRoot = join(this.#root, "backups"); assertTreeNoLinks(backupRoot, this.#root); const path = join(backupRoot, `${Date.now()}-${randomUUID()}`); const result = await this.exportMigration(path, signal, backupRoot); const indexPath = backupIndexPath(this.#root);
     const index = (() => { try { const value = readJsonStrict(indexPath); return Array.isArray(value) ? value as Array<{ path: string; createdAt: string }> : []; } catch { return []; } })();
-    index.unshift({ path, createdAt: result.manifest.createdAt }); if (index.length > MIGRATION_LIMITS.maxRetention) throw new Error("Backup retention index is full; prune verified backups before creating another."); atomicWriteFileSync(indexPath, `${JSON.stringify(index, null, 2)}\n`);
+    index.unshift({ path, createdAt: result.manifest.createdAt, kind: "verified-backup", verified: true }); if (index.length > MIGRATION_LIMITS.maxRetention) throw new Error("Backup retention index is full; prune verified backups before creating another."); atomicWriteFileSync(indexPath, `${JSON.stringify(index, null, 2)}\n`);
     const operations = this.readOperations().map((entry) => entry.id === result.operation.id ? { ...entry, kind: "backup" as const } : entry);
     this.writeOperations(operations);
     return { ...result, operation: { ...result.operation, kind: "backup" } };
   }
 
-  async listBackups(): Promise<ReadonlyArray<{ path: string; createdAt: string; bytes: number; verified: boolean; status: "verified" | "unverified" | "corrupt" | "indexed"; detail: string }>> {
+  async listBackups(): Promise<ReadonlyArray<{ path: string; createdAt: string; kind: "verified-backup" | "retained-import-tree" | "unknown"; bytes: number; verified: boolean; status: "verified" | "unverified" | "corrupt" | "indexed"; detail: string }>> {
     try {
       const value = readJsonStrict(backupIndexPath(this.#root)); if (!Array.isArray(value)) return [];
-      const output: Array<{ path: string; createdAt: string; bytes: number; verified: boolean; status: "verified" | "unverified" | "corrupt" | "indexed"; detail: string }> = [];
+      const output: Array<{ path: string; createdAt: string; kind: "verified-backup" | "retained-import-tree" | "unknown"; bytes: number; verified: boolean; status: "verified" | "unverified" | "corrupt" | "indexed"; detail: string }> = [];
       for (const entry of value as Array<Record<string, unknown>>) {
-        const path = String(entry.path ?? ""); const createdAt = String(entry.createdAt ?? ""); if (!isAbsolute(path)) { output.push({ path, createdAt, bytes: 0, verified: false, status: "corrupt", detail: "Indexed backup path is not absolute." }); continue; }
-        try { const manifest = await this.verifyBackupDirectory(path); output.push({ path, createdAt, bytes: manifest.files.reduce((sum, item) => sum + item.bytes, 0), verified: true, status: "verified", detail: "Manifest, file hashes, and Git bundle verified." }); }
-        catch (error) { const exists = existsSync(join(path, "manifest.json")); output.push({ path, createdAt, bytes: 0, verified: false, status: exists ? "unverified" : "indexed", detail: sanitizeDiagnostic(error instanceof Error ? error.message : String(error)) }); }
+        const path = String(entry.path ?? ""); const createdAt = String(entry.createdAt ?? ""); const kind = entry.kind === "retained-import-tree" ? "retained-import-tree" : entry.kind === "verified-backup" || entry.kind === undefined ? "verified-backup" : "unknown"; if (!isAbsolute(path)) { output.push({ path, createdAt, kind, bytes: 0, verified: false, status: "corrupt", detail: "Indexed backup path is not absolute." }); continue; }
+        if (kind === "retained-import-tree") { output.push({ path, createdAt, kind, bytes: 0, verified: false, status: "indexed", detail: String(entry.detail ?? "Retained import tree. It is never pruned automatically.") }); continue; }
+        try { const manifest = await this.verifyBackupDirectory(path); output.push({ path, createdAt, kind, bytes: manifest.files.reduce((sum, item) => sum + item.bytes, 0), verified: true, status: "verified", detail: "Manifest, file hashes, and Git bundle verified." }); }
+        catch (error) { const exists = existsSync(join(path, "manifest.json")); output.push({ path, createdAt, kind, bytes: 0, verified: false, status: exists ? "unverified" : "indexed", detail: sanitizeDiagnostic(error instanceof Error ? error.message : String(error)) }); }
       }
       return output;
     } catch { return []; }
@@ -651,19 +680,19 @@ export class MigrationBackupService {
     if (!candidate.startsWith(`${backupRoot}${sep}`) || candidate === backupRoot) throw new Error("Backup path is outside the backup root.");
     assertNoLinksAlong(candidate); const manifestPath = join(candidate, "manifest.json"); if (!existsSync(manifestPath)) throw new Error("Backup manifest is missing.");
     const value = readJsonStrict(manifestPath); assertManifest(value); let total = 0;
-    for (const entry of value.files) { const file = join(candidate, entry.path); if (!existsSync(file) || bytes(file) !== entry.bytes || sha256File(file).toLowerCase() !== entry.sha256.toLowerCase()) throw new Error(`Backup file verification failed for ${entry.path}.`); total += entry.bytes; }
+    for (const entry of value.files) { const file = join(candidate, entry.path); assertNoLinksAlong(file, candidate); if (!existsSync(file) || bytes(file) !== entry.bytes || sha256File(file).toLowerCase() !== entry.sha256.toLowerCase()) throw new Error(`Backup file verification failed for ${entry.path}.`); validateRecordFile(file); total += entry.bytes; }
     if (total > MIGRATION_LIMITS.maxPayloadBytes) throw new Error("Backup exceeds the payload limit.");
     if (value.gitHistory) await execute(this.#executor, candidate, ["bundle", "verify", join(candidate, value.gitHistory.path)], 30_000);
     return value;
   }
 
-  async pruneBackups(keep: number): Promise<{ removed: number; retained: number; receipts: ReadonlyArray<{ path: string; status: string; detail: string }> }> {
+  async pruneBackups(keep: number, selectedPaths: ReadonlyArray<string> = []): Promise<{ removed: number; retained: number; receipts: ReadonlyArray<{ path: string; status: string; detail: string; removed: boolean }> }> {
     if (!Number.isSafeInteger(keep) || keep < 1 || keep > MIGRATION_LIMITS.maxRetention) throw new Error("Backup retention must be between 1 and 365.");
-    const entries = (await this.listBackups()).sort((a, b) => b.createdAt.localeCompare(a.createdAt)); const receipts: Array<{ path: string; status: string; detail: string }> = []; let removed = 0;
-    for (const entry of entries) { try { await this.verifyBackupDirectory(entry.path); receipts.push({ path: entry.path, status: "verified", detail: "Manifest, hashes, and Git bundle verified." }); } catch (error) { receipts.push({ path: entry.path, status: "unverified", detail: sanitizeDiagnostic(error instanceof Error ? error.message : String(error)) }); } }
-    const removable = receipts.filter((receipt, index) => index >= keep && receipt.status === "verified");
-    for (const receipt of removable) { assertNoLinksAlong(receipt.path); rmSync(receipt.path, { recursive: true, force: true }); removed += 1; }
-    const retained = entries.filter((entry) => !removable.some((candidate) => candidate.path === entry.path)); atomicWriteFileSync(backupIndexPath(this.#root), `${JSON.stringify(retained.map((entry) => ({ path: entry.path, createdAt: entry.createdAt })), null, 2)}\n`);
+    const entries = (await this.listBackups()).sort((a, b) => b.createdAt.localeCompare(a.createdAt)); const receipts: Array<{ path: string; status: string; detail: string; removed: boolean }> = []; let removed = 0;
+    for (const entry of entries) { try { await this.verifyBackupDirectory(entry.path); receipts.push({ path: entry.path, status: "verified", detail: "Manifest, hashes, and Git bundle verified.", removed: false }); } catch (error) { receipts.push({ path: entry.path, status: "unverified", detail: sanitizeDiagnostic(error instanceof Error ? error.message : String(error)), removed: false }); } }
+    const selected = new Set(selectedPaths.map((path) => resolve(path))); const removable = receipts.filter((receipt, index) => index >= keep && receipt.status === "verified" && (selected.size === 0 || selected.has(resolve(receipt.path))));
+    for (const receipt of removable) { assertNoLinksAlong(receipt.path); rmSync(receipt.path, { recursive: true, force: true }); receipt.removed = true; removed += 1; }
+    const retained = entries.filter((entry) => !removable.some((candidate) => candidate.path === entry.path)); atomicWriteFileSync(backupIndexPath(this.#root), `${JSON.stringify(retained.map((entry) => ({ path: entry.path, createdAt: entry.createdAt, kind: entry.kind, detail: entry.detail })), null, 2)}\n`);
     return { removed, retained: retained.length, receipts };
   }
 
@@ -677,7 +706,7 @@ export class MigrationBackupService {
       const path = assertBoundedPath(entry.path); if (seen.has(path)) throw new Error(`Duplicate file record: ${path}`); seen.add(path);
       const sourcePath = join(root, path); if (!existsSync(sourcePath) || !lstatSync(sourcePath).isFile()) throw new Error(`Migration file is missing: ${path}`); assertNoLinksAlong(sourcePath);
       const size = bytes(sourcePath); total += size; if (size !== entry.bytes || size > MIGRATION_LIMITS.maxFileBytes || sha256File(sourcePath).toLowerCase() !== entry.sha256.toLowerCase()) throw new Error(`Hash or size mismatch for ${path}.`);
-      if (path.toLowerCase().endsWith(".json")) { const json = readJsonStrict(sourcePath, MIGRATION_LIMITS.maxFileBytes); validateSafeJson(json, path); }
+      validateRecordFile(sourcePath);
     }
     if (total > MIGRATION_LIMITS.maxPayloadBytes) throw new Error("Migration payload exceeds the total size limit.");
     if (value.gitHistory) {
@@ -700,9 +729,10 @@ export class MigrationBackupService {
     let backup: { operation: MigrationOperation; path: string; manifest: MigrationManifest };
     try { backup = await this.createBackup(signal); } catch (error) { return { operation: this.finish(operation, "failed", error instanceof Error ? error.message : String(error)), manifest }; }
     if (backup.operation.state !== "succeeded") return { operation: this.finish(operation, "failed", "The automatic backup before import did not complete."), manifest };
+    let stage = ""; const items: OperationItem[] = [];
     const operationSignal = this.claim(operation); if (signal) signal.addEventListener("abort", () => this.#active?.controller.abort(), { once: true }); signal = operationSignal;
-    const manifestPath = statSync(source).isDirectory() ? join(source, "manifest.json") : source; const root = dirname(manifestPath); const stage = mkdtempSync(join(tmpdir(), "ding-migration-import-")); const items: OperationItem[] = [];
     try {
+      const manifestPath = statSync(source).isDirectory() ? join(source, "manifest.json") : source; const root = dirname(manifestPath); stage = mkdtempSync(join(dirname(this.#root), `${basename(this.#root)}.incoming-import-`)); assertNoLinksAlong(stage, dirname(this.#root));
       let total = 0; const phase = { ...operation, phase: "stage" as const, total: manifest.files.length, bytesTotal: manifest.files.reduce((sum, entry) => sum + entry.bytes, 0), detail: "Staging and validating import files." }; this.writeOperations(this.readOperations().map((entry) => entry.id === operation.id ? phase : entry));
       for (const entry of manifest.files) { if (signal?.aborted) throw new Error("Import cancelled."); const dest = join(stage, entry.path); const size = copyChecked(join(root, entry.path), dest); total += size; items.push({ path: entry.path, state: "succeeded", bytes: size }); this.writeOperations(this.readOperations().map((entry) => entry.id === operation.id ? { ...phase, completed: items.length, bytesDone: total, items } : entry)); }
       writeFileSync(join(stage, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
@@ -716,7 +746,7 @@ export class MigrationBackupService {
       renameRetry(this.#root, movedLive); this.writeSwapJournal({ schemaVersion: 1, oldRoot: this.#root, incomingRoot: stage, backupRoot: movedLive, failedIncoming, phase: "old-moved", createdAt: nowIso(this.#now) });
       try {
         renameRetry(stage, this.#root); this.writeSwapJournal({ schemaVersion: 1, oldRoot: this.#root, incomingRoot: stage, backupRoot: movedLive, failedIncoming, phase: "incoming-moved", createdAt: nowIso(this.#now) });
-        await this.verifyImportedRoot(this.#root, manifest, signal); this.writeSwapJournal({ schemaVersion: 1, oldRoot: this.#root, incomingRoot: stage, backupRoot: movedLive, failedIncoming, phase: "verified", createdAt: nowIso(this.#now) });
+        await this.verifyImportedRoot(this.#root, manifest, signal); this.retainTreeInBackupIndex(movedLive, "Previous application-data tree retained after successful import."); this.writeSwapJournal({ schemaVersion: 1, oldRoot: this.#root, incomingRoot: stage, backupRoot: movedLive, failedIncoming, phase: "verified", createdAt: nowIso(this.#now) });
       }
       catch (error) {
         if (existsSync(this.#root)) renameRetry(this.#root, failedIncoming);
@@ -725,7 +755,7 @@ export class MigrationBackupService {
         throw error;
       }
       const next = { ...operation, phase: "complete" as const, completed: items.length, total: items.length, bytesDone: total, bytesTotal: total, items, detail: `Imported ${items.length} files after a verified automatic backup. Both the prior and imported trees remain retained.` }; return { operation: this.finish(next, "succeeded", next.detail), manifest };
-    } catch (error) { rmSync(stage, { recursive: true, force: true }); return { operation: this.finish({ ...operation, items }, signal?.aborted ? "cancelled" : "failed", error instanceof Error ? error.message : String(error)), manifest }; }
+    } catch (error) { if (stage) rmSync(stage, { recursive: true, force: true }); return { operation: this.finish({ ...operation, items }, signal?.aborted ? "cancelled" : "failed", error instanceof Error ? error.message : String(error)), manifest }; }
     finally { if (this.#active?.id === operation.id) this.#active = undefined; }
   }
 
@@ -737,13 +767,14 @@ export class MigrationBackupService {
     if (refs.length > MIGRATION_LIMITS.maxRefs) throw new Error("Local history has too many refs to display safely.");
     const lines = (await execute(this.#executor, this.#history, ["remote", "-v"])).split(/\r?\n/u).filter(Boolean); const remotes: RemoteRecord[] = []; for (const line of lines) { const match = /^([^\s]+)\s+(\S+)\s+\((fetch|push)\)$/u.exec(line); if (!match) continue; const existing = remotes.find((entry) => entry.name === match[1]); if (existing) existing[match[3] === "fetch" ? "fetchUrl" : "pushUrl"] = match[2]; else remotes.push({ name: match[1], url: match[2], fetchUrl: match[3] === "fetch" ? match[2] : "", pushUrl: match[3] === "push" ? match[2] : "" }); }
     let ahead = 0; let behind = 0; let comparison: GitStatusRecord["comparison"] = "unverified"; if (remote) { const selected = remotes.find((entry) => entry.name === remote); if (selected && branch) { try { const counts = (await execute(this.#executor, this.#history, ["rev-list", "--left-right", "--count", `${branch}...${remote}/${branch}`])).trim().split(/\s+/u).map(Number); ahead = counts[0] || 0; behind = counts[1] || 0; comparison = "verified"; } catch { /* no comparison is unverified, never clean */ } } }
-    const receipts = this.readReceipts(); return { repositoryPath: this.#history, head, branch: branchName, clean: status.trim().length === 0, ahead, behind, divergence: ahead > 0 && behind > 0, comparison, refs, remotes: remotes.map((entry) => ({ ...entry, url: sanitizeDiagnostic(entry.url), fetchUrl: sanitizeDiagnostic(entry.fetchUrl), pushUrl: sanitizeDiagnostic(entry.pushUrl) })), receipts, receipt: receipts[0] };
+    let receipts: GitReceipt[] = []; let receiptError: string | undefined; try { receipts = this.readReceipts(); } catch (error) { receiptError = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); }
+    return { repositoryPath: this.#history, head, branch: branchName, clean: status.trim().length === 0, ahead, behind, divergence: ahead > 0 && behind > 0, comparison, refs, remotes: remotes.map((entry) => ({ ...entry, url: sanitizeDiagnostic(entry.url), fetchUrl: sanitizeDiagnostic(entry.fetchUrl), pushUrl: sanitizeDiagnostic(entry.pushUrl) })), receipts, receiptError, receipt: receipts[0] };
   }
 
   private readReceipts(): GitReceipt[] {
     try {
       const value = readJsonStrict(receiptPath(this.#root)); if (!Array.isArray(value) || value.length > MIGRATION_LIMITS.maxReceipts) throw new Error("Git receipt history exceeds its retention bound.");
-      for (const receipt of value as Array<Record<string, unknown>>) { assertExactKeys(receipt, new Set(["id", "action", "remote", "branch", "status", "observedAt", "detail"]), "Git receipt"); if (typeof receipt.id !== "string" || receipt.id.length > MIGRATION_LIMITS.maxStringLength || !["fetch", "push"].includes(String(receipt.action)) || typeof receipt.remote !== "string" || !REMOTE_NAME.test(receipt.remote) || typeof receipt.branch !== "string" || receipt.branch.length > MIGRATION_LIMITS.maxStringLength || !["success", "rejected", "auth-failure", "divergence", "cancelled", "unverified"].includes(String(receipt.status)) || typeof receipt.observedAt !== "string" || receipt.observedAt.length > MIGRATION_LIMITS.maxTimestampLength || !Number.isFinite(Date.parse(receipt.observedAt)) || typeof receipt.detail !== "string" || receipt.detail.length > MIGRATION_LIMITS.maxStringLength) throw new Error("Git receipt is invalid."); }
+      for (const receipt of value as Array<Record<string, unknown>>) { assertExactKeys(receipt, new Set(["id", "action", "remote", "branch", "status", "observedAt", "detail"]), "Git receipt"); if (typeof receipt.id !== "string" || receipt.id.length > MIGRATION_LIMITS.maxStringLength || !["fetch", "push", "remote-set", "remote-remove"].includes(String(receipt.action)) || typeof receipt.remote !== "string" || !REMOTE_NAME.test(receipt.remote) || typeof receipt.branch !== "string" || receipt.branch.length > MIGRATION_LIMITS.maxStringLength || !["success", "rejected", "auth-failure", "divergence", "cancelled", "unverified"].includes(String(receipt.status)) || typeof receipt.observedAt !== "string" || receipt.observedAt.length > MIGRATION_LIMITS.maxTimestampLength || !Number.isFinite(Date.parse(receipt.observedAt)) || typeof receipt.detail !== "string" || receipt.detail.length > MIGRATION_LIMITS.maxStringLength) throw new Error("Git receipt is invalid."); }
       return value as GitReceipt[];
     } catch (error) { if (error instanceof Error && (error.message.includes("retention bound") || error.message.includes("Git receipt"))) throw error; return []; }
   }
@@ -759,16 +790,18 @@ export class MigrationBackupService {
     try {
       if (existingFetch) await execute(this.#executor, this.#history, ["remote", "set-url", name, safeUrl]); else await execute(this.#executor, this.#history, ["remote", "add", name, safeUrl]);
       if (safePushUrl) await execute(this.#executor, this.#history, ["remote", "set-url", "--push", name, safePushUrl]);
+      this.writeReceipt({ id: randomUUID(), action: "remote-set", remote: name, branch: "", status: "success", observedAt: nowIso(this.#now), detail: `Remote replaced transactionally. Previous fetch configuration existed: ${existingFetch ? "yes" : "no"}. Previous push configuration existed: ${existingPush ? "yes" : "no"}.` });
       return this.gitStatus();
     } catch (error) {
       try {
         if (existingFetch) { await execute(this.#executor, this.#history, ["remote", "set-url", name, existingFetch]); if (existingPush) await execute(this.#executor, this.#history, ["remote", "set-url", "--push", name, existingPush]); }
         else await execute(this.#executor, this.#history, ["remote", "remove", name]);
-      } catch { /* preserve the original failure, and leave the recovery route visible */ }
+      } catch (rollbackError) { this.writeReceipt({ id: randomUUID(), action: "remote-set", remote: name, branch: "", status: "unverified", observedAt: nowIso(this.#now), detail: `Remote replacement failed and rollback also failed: ${sanitizeDiagnostic(rollbackError instanceof Error ? rollbackError.message : String(rollbackError))}` }); throw error; }
+      this.writeReceipt({ id: randomUUID(), action: "remote-set", remote: name, branch: "", status: "rejected", observedAt: nowIso(this.#now), detail: `Remote replacement failed and the prior configuration was restored: ${sanitizeDiagnostic(error instanceof Error ? error.message : String(error))}` });
       throw error;
     }
   }
-  async removeRemote(name: string): Promise<GitStatusRecord> { if (!REMOTE_NAME.test(name)) throw new Error("Invalid remote name."); await this.ensureHistoryRepository(); await execute(this.#executor, this.#history, ["remote", "remove", name]); return this.gitStatus(); }
+  async removeRemote(name: string): Promise<GitStatusRecord> { if (!REMOTE_NAME.test(name)) throw new Error("Invalid remote name."); await this.ensureHistoryRepository(); await execute(this.#executor, this.#history, ["remote", "remove", name]); this.writeReceipt({ id: randomUUID(), action: "remote-remove", remote: name, branch: "", status: "success", observedAt: nowIso(this.#now), detail: "Remote removed; no URL was retained." }); return this.gitStatus(); }
   async fetchRemote(name: string, signal?: AbortSignal): Promise<{ receipt: GitReceipt; status: GitStatusRecord }> {
     if (!REMOTE_NAME.test(name)) throw new Error("Invalid remote name."); const start = nowIso(this.#now); try { if (signal?.aborted) throw new Error("Fetch cancelled."); await execute(this.#executor, this.#history, ["fetch", "--prune", name], 120_000, signal); const receipt: GitReceipt = { id: randomUUID(), action: "fetch", remote: name, branch: "", status: "success", observedAt: start, detail: "Fetch completed; no local refs were checked out or rewritten." }; this.writeReceipt(receipt); return { receipt, status: await this.gitStatus() }; } catch (error) { const detail = sanitizeDiagnostic(error instanceof Error ? error.message : String(error)); const status: GitReceipt["status"] = signal?.aborted ? "cancelled" : /auth|permission|denied/iu.test(detail) ? "auth-failure" : "rejected"; const receipt = { id: randomUUID(), action: "fetch" as const, remote: name, branch: "", status, observedAt: start, detail: status === "auth-failure" ? `${detail} Re-authenticate through the operating-system credential manager, then retry.` : detail }; this.writeReceipt(receipt); return { receipt, status: await this.gitStatus() }; }
   }
