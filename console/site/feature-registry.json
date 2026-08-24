@@ -265,7 +265,7 @@
     },
     "automatic-updates": {
       "state": "implemented",
-      "note": "The static delivery workspace validates the versioned release-manifest schema, immutable HTTPS asset URLs, hashes, byte sizes, and full commit identity when a manifest is available. It exposes explicit preparing, prepared, handoff-started, handoff-unverified, and handoff-failed delivery states. Available, downloading, and ready manifest states require assets. Failed states may omit assets only when an exact commit and reason are present. The page never claims installation.",
+      "note": "The static delivery workspace validates the versioned release-manifest schema, immutable HTTPS asset URLs, hashes, byte sizes, and full commit identity when a manifest is available. It exposes explicit preparing, prepared, handoff-started, handoff-unverified, handoff-cancelled, and handoff-failed delivery states, and keeps lastPreparedExport separate from lastHandoffState and lastExport. Available, downloading, and ready manifest states require assets. Failed states may omit assets only when an exact commit and reason are present. The page never claims installation.",
       "files": ["site/history-delivery.js", "site/history.html", "site/release-manifest.js", "docs/platform/site-history-and-delivery.md"]
     }
   }

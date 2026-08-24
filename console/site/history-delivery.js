@@ -3,7 +3,7 @@
 
   const STORAGE_KEY = 'ding-pbx-site-history-delivery-v1';
   const STATE_SCHEMA_VERSION = 2;
-  const DELIVERY_STATES = new Set(['idle', 'preparing', 'prepared', 'handoff-started', 'handoff-unverified', 'handoff-failed']);
+  const DELIVERY_STATES = new Set(['idle', 'preparing', 'prepared', 'handoff-started', 'handoff-unverified', 'handoff-cancelled', 'handoff-failed']);
   const MAX_HISTORY = 250;
   const CHANGELOG = (Array.isArray(window.DING_SITE_CHANGELOG) ? window.DING_SITE_CHANGELOG : []).filter(entry => entry && /^[0-9a-f]{40}$/.test(entry.commit || '') && entry.version && entry.date && entry.summary);
   const PRODUCT_CHANGELOG = CHANGELOG.filter(entry => entry.category === 'Release');
@@ -32,7 +32,7 @@
   }
 
   function defaultState() {
-    return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: 'none', sourceVersion: STATE_SCHEMA_VERSION, recorded: false }, history: [], tabs: TAB_ROUTES.map(([idValue], index) => ({ id: idValue, pinned: index < 2 })), forge: { account: 'browser', owner: '', repository: '', route: 'copy', source: 'current-site', destination: 'new-repository' }, editor: { lastExport: '' }, delivery: { status: 'idle', reason: '' }, transfer: { status: 'idle', name: '', startedAt: '', completedAt: '', totalBytes: 0, bytesWritten: 0, interruptionRecorded: false, resume: 'never' }, update: { status: 'ready', checkedAt: '' } };
+    return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: 'none', sourceVersion: STATE_SCHEMA_VERSION, recorded: false }, history: [], tabs: TAB_ROUTES.map(([idValue], index) => ({ id: idValue, pinned: index < 2 })), forge: { account: 'browser', owner: '', repository: '', route: 'copy', source: 'current-site', destination: 'new-repository' }, editor: { lastPreparedExport: '', lastHandoffState: 'idle', lastExport: '' }, delivery: { status: 'idle', reason: '' }, transfer: { status: 'idle', name: '', startedAt: '', completedAt: '', totalBytes: 0, bytesWritten: 0, interruptionRecorded: false, resume: 'never' }, update: { status: 'ready', checkedAt: '' } };
   }
   function readState() {
     try {
@@ -47,7 +47,7 @@
       const transferStatus = ['idle', 'started', 'complete', 'cancelled', 'unavailable', 'interrupted'].includes(parsed.transfer?.status) ? parsed.transfer.status : 'idle';
       const updateStatus = ['ready', 'unavailable', 'available', 'downloading', 'failed'].includes(parsed.update?.status) ? parsed.update.status : 'ready';
       const deliveryStatus = DELIVERY_STATES.has(parsed.delivery?.status) ? parsed.delivery.status : 'idle';
-      return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: persistedVersion < STATE_SCHEMA_VERSION ? 'migrated' : 'none', sourceVersion: persistedVersion, recorded: parsed.migration?.recorded === true }, history, tabs: tabs.length ? tabs : defaults.tabs, forge, editor: { lastExport: scrubSummary(parsed.editor?.lastExport).slice(0, 120) }, delivery: { status: deliveryStatus, reason: scrubSummary(parsed.delivery?.reason).slice(0, 240) }, transfer: { status: transferStatus === 'started' ? 'interrupted' : transferStatus, name: scrubSummary(parsed.transfer?.name).slice(0, 160), startedAt: text(parsed.transfer?.startedAt).slice(0, 40), completedAt: text(parsed.transfer?.completedAt).slice(0, 40), totalBytes: Number.isFinite(parsed.transfer?.totalBytes) ? Math.max(0, parsed.transfer.totalBytes) : 0, bytesWritten: Number.isFinite(parsed.transfer?.bytesWritten) ? Math.max(0, parsed.transfer.bytesWritten) : 0, interruptionRecorded: transferStatus === 'started' ? false : parsed.transfer?.interruptionRecorded === true, resume: 'never' }, update: { status: updateStatus, checkedAt: text(parsed.update?.checkedAt).slice(0, 40) } };
+      return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: persistedVersion < STATE_SCHEMA_VERSION ? 'migrated' : 'none', sourceVersion: persistedVersion, recorded: parsed.migration?.recorded === true }, history, tabs: tabs.length ? tabs : defaults.tabs, forge, editor: { lastPreparedExport: scrubSummary(parsed.editor?.lastPreparedExport).slice(0, 120), lastHandoffState: ['idle', 'handoff-started', 'handoff-unverified', 'handoff-failed', 'handoff-cancelled'].includes(parsed.editor?.lastHandoffState) ? parsed.editor.lastHandoffState : 'idle', lastExport: scrubSummary(parsed.editor?.lastExport).slice(0, 120) }, delivery: { status: deliveryStatus, reason: scrubSummary(parsed.delivery?.reason).slice(0, 240) }, transfer: { status: transferStatus === 'started' ? 'interrupted' : transferStatus, name: scrubSummary(parsed.transfer?.name).slice(0, 160), startedAt: text(parsed.transfer?.startedAt).slice(0, 40), completedAt: text(parsed.transfer?.completedAt).slice(0, 40), totalBytes: Number.isFinite(parsed.transfer?.totalBytes) ? Math.max(0, parsed.transfer.totalBytes) : 0, bytesWritten: Number.isFinite(parsed.transfer?.bytesWritten) ? Math.max(0, parsed.transfer.bytesWritten) : 0, interruptionRecorded: transferStatus === 'started' ? false : parsed.transfer?.interruptionRecorded === true, resume: 'never' }, update: { status: updateStatus, checkedAt: text(parsed.update?.checkedAt).slice(0, 40) } };
     } catch {
       return defaultState();
     }
@@ -94,7 +94,7 @@
   function ensureMigrationAuditPanel() {
     if (document.querySelector('#migration-audit')) return;
     const status = document.querySelector('#history-status'); if (!status) return;
-    const panel = document.createElement('details'); panel.id = 'migration-audit'; panel.className = 'delivery-migration-audit'; panel.innerHTML = '<summary>State migration refusal audit</summary><p>Future saved-state versions are refused without applying their records. This separate audit contains only schema status, version, and time.</p><ul id="migration-audit-list"></ul>';
+    const panel = document.createElement('details'); panel.id = 'migration-audit'; panel.className = 'delivery-migration-audit'; panel.innerHTML = '<summary>State migration refusal audit</summary><p>Future saved-state versions are refused without applying their records. This audit is stored separately from ordinary history, contains only schema status, version, and time, and is omitted from ordinary history exports.</p><ul id="migration-audit-list"></ul>';
     status.after(panel); renderMigrationAudit();
   }
 
@@ -130,6 +130,7 @@
     const result = {};
     for (const [key, child] of Object.entries(value)) {
       if (!REDACTED_DETAIL_KEYS.has(key)) continue;
+      if (['content', 'privateVocabulary', 'credentials'].includes(key) && child !== 'omitted') continue;
       const safe = redactDetails(child, depth + 1);
       if (safe !== undefined) result[key] = safe;
     }
@@ -291,13 +292,15 @@
   }
 
   function downloadFile(name, body, type) {
+    state.editor.lastPreparedExport = scrubSummary(name);
+    state.editor.lastHandoffState = 'handoff-started';
+    persist();
     setDeliveryState('handoff-started', `Browser handoff started for ${name}`);
     const link = document.createElement('a');
     const url = URL.createObjectURL(new Blob([body], { type }));
-    try { link.href = url; link.download = name; link.click(); setDeliveryState('handoff-unverified', `Browser handoff accepted for ${name}; completion is not observable here.`); }
-    catch (error) { setDeliveryState('handoff-failed', `Browser handoff failed: ${error.message || 'unknown error'}`); }
+    try { link.href = url; link.download = name; link.click(); state.editor.lastHandoffState = 'handoff-unverified'; state.editor.lastExport = scrubSummary(name); setDeliveryState('handoff-unverified', `Browser handoff accepted for ${name}; completion is not observable here.`); }
+    catch (error) { state.editor.lastHandoffState = 'handoff-failed'; setDeliveryState('handoff-failed', `Browser handoff failed: ${error.message || 'unknown error'}`); }
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    state.editor.lastExport = name;
     persist();
     renderEditorStatus();
   }
@@ -361,7 +364,7 @@
 
   function renderEditorStatus() {
     const status = document.querySelector('#editor-status');
-    if (status) status.textContent = state.editor.lastExport ? `Last export downloaded locally: ${state.editor.lastExport}. A browser path is unavailable, so external-editor opening remains unavailable.` : 'No export prepared in this browser yet. External-editor opening remains unavailable until a browser exposes a verified local path.';
+    if (status) status.textContent = state.editor.lastPreparedExport ? `Prepared export: ${state.editor.lastPreparedExport}. Last handoff state: ${state.editor.lastHandoffState}. Last unverified export: ${state.editor.lastExport || 'none'}. A browser path is unavailable, so external-editor opening remains unavailable.` : 'No export prepared in this browser yet. External-editor opening remains unavailable until a browser exposes a verified local path.';
     const open = document.querySelector('#open-vscode');
     if (open) { open.disabled = true; open.title = 'Unavailable because browsers do not expose a verified local path to this page.'; }
   }
@@ -550,10 +553,10 @@
       if (!file) return;
       transferDestinationName = '';
       setDeliveryState('preparing', `Preparing a local write for ${file.name}`);
-      if (typeof window.showSaveFilePicker !== 'function') { transferDestinationName = ''; setDeliveryState('handoff-failed', 'API unavailable: the browser does not expose a verified local output handle.'); status.textContent = 'Unavailable: this browser does not expose a verified local output handle, so no transfer was started.'; state.transfer = { ...state.transfer, status: 'unavailable', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; persist(); renderTransfer(); return; }
+      if (typeof window.showSaveFilePicker !== 'function') { transferDestinationName = ''; state.editor.lastHandoffState = 'handoff-failed'; setDeliveryState('handoff-failed', 'API unavailable: the browser does not expose a verified local output handle.'); status.textContent = 'Unavailable: this browser does not expose a verified local output handle, so no transfer was started.'; state.transfer = { ...state.transfer, status: 'unavailable', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; persist(); renderTransfer(); return; }
       let handle;
       try { handle = await window.showSaveFilePicker({ suggestedName: file.name, types: [{ description: 'Selected file', accept: { [file.type || 'application/octet-stream']: [`.${file.name.split('.').pop() || 'bin'}`] } }] }); transferDestinationName = scrubSummary(handle.name || 'selected destination'); transferWriter = await handle.createWritable(); setDeliveryState('handoff-started', 'Writable destination accepted; measured output is beginning.'); }
-      catch (error) { transferDestinationName = ''; const pickerReason = error?.name === 'AbortError' ? 'picker-cancelled' : error?.name === 'NotAllowedError' ? 'destination-failed' : 'writable-failed'; setDeliveryState('handoff-failed', pickerReason); status.textContent = `The local destination step ended with ${pickerReason}. Nothing was written.`; state.transfer = { ...state.transfer, status: 'idle', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; renderTransfer(); return; }
+      catch (error) { transferDestinationName = ''; const pickerReason = error?.name === 'AbortError' ? 'picker-cancelled' : error?.name === 'NotAllowedError' ? 'destination-failed' : 'writable-failed'; setDeliveryState(pickerReason === 'picker-cancelled' ? 'handoff-cancelled' : 'handoff-failed', pickerReason); state.editor.lastHandoffState = pickerReason === 'picker-cancelled' ? 'handoff-cancelled' : 'handoff-failed'; persist(); status.textContent = `The local destination step ended with ${pickerReason}. Nothing was written.`; state.transfer = { ...state.transfer, status: 'idle', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; renderTransfer(); return; }
       transferAbort = new AbortController();
       state.transfer = { ...state.transfer, status: 'started', name: scrubSummary(file.name), startedAt: new Date().toISOString(), totalBytes: file.size, bytesWritten: 0, interruptionRecorded: false };
       persist(); renderTransfer();
@@ -573,7 +576,7 @@
       } catch (error) {
         try { await transferWriter?.abort(); } catch { /* abort is best effort after a failed write */ }
         transferWriter = null; transferDestinationName = ''; state.transfer.status = 'cancelled'; persist(); renderTransfer();
-        setDeliveryState('handoff-failed', error.name === 'AbortError' ? 'picker-cancelled' : 'writable-failed');
+        setDeliveryState(error.name === 'AbortError' ? 'handoff-cancelled' : 'handoff-failed', error.name === 'AbortError' ? 'voluntary-cancelled' : 'writable-failed'); state.editor.lastHandoffState = error.name === 'AbortError' ? 'handoff-cancelled' : 'handoff-failed'; persist();
         record('download-cancelled', `Cancelled the local file write for ${file.name}`, { bytes: state.transfer.bytesWritten, completion: 'not-complete' });
         status.textContent = error.name === 'AbortError' ? 'Cancelled before the local stream closed.' : `The local write failed: ${error.message || 'unknown error'}. No completion claim was made.`;
       } finally { transferAbort = null; }
@@ -592,7 +595,7 @@
       operation.running = false;
       start.disabled = false;
       cancel.hidden = true;
-      if (operation.cancelled) setDeliveryState('handoff-failed', 'Preparation cancelled before browser handoff.'); else setDeliveryState('prepared', 'Local export preparation completed before browser handoff.');
+      if (operation.cancelled) { setDeliveryState('handoff-cancelled', 'Preparation cancelled before browser handoff.'); state.editor.lastHandoffState = 'handoff-cancelled'; persist(); } else setDeliveryState('prepared', 'Local export preparation completed before browser handoff.');
       status.textContent = operation.cancelled ? 'Preparation cancelled before an export was written.' : 'Preparation complete. The redacted export is handed to the browser next, and browser download completion is unverified here.';
       if (!operation.cancelled) exportHistory('json');
     };
