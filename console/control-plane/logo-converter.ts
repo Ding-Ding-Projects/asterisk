@@ -58,6 +58,8 @@ export interface IsolatedLogoDecoderHealth {
   readonly sharpIntegrity: string;
   readonly nativePlatform: string;
   readonly nativeArch: string;
+  readonly nativeBindingPath: string;
+  readonly nativeBindingSha256: string;
   readonly nativeFiles: readonly string[];
 }
 

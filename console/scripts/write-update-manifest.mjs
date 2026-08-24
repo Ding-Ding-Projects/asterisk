@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -26,6 +27,8 @@ if (publishing) {
 
 const outDir = join(consoleRoot, 'resources');
 mkdirSync(outDir, { recursive: true });
+const logoManifestPath = join(consoleRoot, 'dist', 'logo-decoder-manifest.json');
+const logoDecoderManifestSha256 = existsSync(logoManifestPath) ? createHash('sha256').update(readFileSync(logoManifestPath)).digest('hex') : undefined;
 writeFileSync(join(outDir, 'update-manifest.json'), JSON.stringify({
   schemaVersion: 1,
   product: 'ding-pbx-console',
@@ -33,5 +36,6 @@ writeFileSync(join(outDir, 'update-manifest.json'), JSON.stringify({
   candidateCommit,
   tag,
   published: Boolean(tag),
+  ...(logoDecoderManifestSha256 ? { logoDecoderManifestSha256 } : {}),
 }, null, 2) + '\n', 'utf8');
 console.log(`Wrote resources/update-manifest.json for version ${version}, candidate ${candidateCommit}, tag ${tag ?? '(local unpublished build)'}.`);

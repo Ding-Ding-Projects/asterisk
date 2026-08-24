@@ -30,7 +30,7 @@ export type ControlPlaneAction =
   /* Local logo bytes and scheduled-source readings cross this bridge only through
    * bounded, redacted contracts. Logo sources never become URLs or paths in the
    * renderer, and Home Assistant credentials are vault references only. */
-  | 'logo.decoder.status' | 'logo.inspect' | 'logo.convert' | 'logo.cache.peek' | 'logo.cache.read' | 'logo.cache.asset.read' | 'logo.cache.write' | 'logo.cache.clear'
+  | 'logo.decoder.status' | 'logo.inspect' | 'logo.convert' | 'logo.cache.peek-stored' | 'logo.cache.read' | 'logo.cache.asset.read' | 'logo.cache.write' | 'logo.cache.clear'
   | 'external-settings.refresh' | 'external-settings.state' | 'external-settings.cancel'
   /* Local converter catalog and capability evidence. The queue and file-picker actions
    * use the same namespace so the renderer cannot invent a parallel transport. */

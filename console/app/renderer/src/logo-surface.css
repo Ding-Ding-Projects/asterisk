@@ -120,6 +120,8 @@
 }
 
 .logo-preview {
+  position: relative;
+  overflow: hidden;
   display: grid;
   place-items: center;
   width: 3.5rem;
@@ -135,7 +137,17 @@
   border: 0.28rem solid #d9e5ff;
 }
 
-.logo-preview-mark-console span { border-radius: 0.35rem; transform: rotate(45deg); }
+.logo-preview::after {
+  position: absolute;
+  inset: var(--logo-safe-top) var(--logo-safe-right) var(--logo-safe-bottom) var(--logo-safe-left);
+  border: 1px dashed rgb(255 255 255 / 70%);
+  border-radius: 0.55rem;
+  content: '';
+  pointer-events: none;
+}
+
+.logo-preview > span { transform: translate(var(--logo-focal-shift-x), var(--logo-focal-shift-y)); }
+.logo-preview-mark-console span { border-radius: 0.35rem; transform: translate(var(--logo-focal-shift-x), var(--logo-focal-shift-y)) rotate(45deg); }
 .logo-preview-mark-signal span { border-radius: 50%; box-shadow: 0 0 0 0.25rem #7fd1c8, 0 0 0 0.5rem #f5bd68; }
 .logo-preview-mark-lines span { width: 1.8rem; height: 0.28rem; border: 0; border-radius: 1rem; background: #d9e5ff; box-shadow: 0 0.48rem #7fd1c8, 0 0.96rem #f5bd68; }
 

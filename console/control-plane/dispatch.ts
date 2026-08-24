@@ -72,7 +72,7 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'daemon.status', 'daemon.start', 'daemon.stop', 'daemon.restart',
   'history.list', 'history.restore', 'media.list', 'media.upload', 'media.remove',
   'local-history.list', 'local-history.record', 'local-history.restore',
-  'logo.decoder.status', 'logo.inspect', 'logo.convert', 'logo.cache.peek', 'logo.cache.read', 'logo.cache.asset.read', 'logo.cache.write', 'logo.cache.clear',
+  'logo.decoder.status', 'logo.inspect', 'logo.convert', 'logo.cache.peek-stored', 'logo.cache.read', 'logo.cache.asset.read', 'logo.cache.write', 'logo.cache.clear',
   'external-settings.refresh', 'external-settings.state', 'external-settings.cancel',
   'converter.catalog', 'converter.pdf-capabilities', 'converter.sniff',
   'converter.queue.create', 'converter.queue.enqueue-one', 'converter.queue.page',
@@ -149,6 +149,7 @@ export interface ControlPlaneDispatcherOptions {
   logoDecoderWorkerPath?: string;
   logoDecoderManifestPath?: string;
   logoDecoderPackageLockPath?: string;
+  logoDecoderIdentityManifestPath?: string;
   logoDecoderJobScriptPath?: string;
 }
 
@@ -170,9 +171,10 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     : join(import.meta.dirname, 'logo-decoder-worker.mjs');
   const candidateManifestPath = options.logoDecoderManifestPath ?? join(import.meta.dirname, 'logo-decoder-manifest.json');
   const candidatePackageLockPath = options.logoDecoderPackageLockPath ?? join(import.meta.dirname, 'package-lock.json');
+  const candidateIdentityManifestPath = options.logoDecoderIdentityManifestPath ?? join(import.meta.dirname, '..', 'update-manifest.json');
   const boundaryReady = process.platform === 'win32' && Boolean(options.logoDecoderJobScriptPath) && existsSync(options.logoDecoderJobScriptPath!);
   const logoDecoder = boundaryReady && existsSync(candidateDecoderPath) && existsSync(candidateManifestPath) && existsSync(candidatePackageLockPath)
-    ? createIsolatedLogoDecoder({ workerPath: candidateDecoderPath, manifestPath: candidateManifestPath, packageLockPath: candidatePackageLockPath, jobScriptPath: options.logoDecoderJobScriptPath })
+    ? createIsolatedLogoDecoder({ workerPath: candidateDecoderPath, manifestPath: candidateManifestPath, packageLockPath: candidatePackageLockPath, identityManifestPath: candidateIdentityManifestPath, jobScriptPath: options.logoDecoderJobScriptPath })
     : undefined;
   const logoStore = new LogoStore({ rootPath: join(userDataPath, 'logo-cache'), reopen: logoDecoder?.reopen });
   const logoHandlers = createLogoConversionHandlers(logoDecoder, logoStoreHandlers(logoStore));
@@ -660,7 +662,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (!logoDecoder) return { ok: true, requestId: request.requestId, data: { available: false, reason: 'The packaged isolated decoder worker is unavailable.' } };
         try {
           const health = await logoDecoder.health();
-          return { ok: true, requestId: request.requestId, data: { available: true, workerVersion: health.workerVersion, workerRevision: health.workerRevision, sharpVersion: health.sharpVersion, sharpIntegrity: health.sharpIntegrity, nativePlatform: health.nativePlatform, nativeArch: health.nativeArch, nativeFiles: health.nativeFiles, formats: health.formats, peakMemoryBytes: health.peakMemoryBytes, baselineWorkingSetBytes: health.baselineWorkingSetBytes, peakWorkingSetBytes: health.peakWorkingSetBytes } };
+          return { ok: true, requestId: request.requestId, data: { available: true, workerVersion: health.workerVersion, workerRevision: health.workerRevision, sharpVersion: health.sharpVersion, sharpIntegrity: health.sharpIntegrity, nativePlatform: health.nativePlatform, nativeArch: health.nativeArch, nativeBindingPath: health.nativeBindingPath, nativeBindingSha256: health.nativeBindingSha256, nativeFiles: health.nativeFiles, formats: health.formats, peakMemoryBytes: health.peakMemoryBytes, baselineWorkingSetBytes: health.baselineWorkingSetBytes, peakWorkingSetBytes: health.peakWorkingSetBytes } };
         } catch (error) {
           return { ok: true, requestId: request.requestId, data: { available: false, reason: error instanceof Error ? error.message : 'The decoder health handshake failed.' } };
         }
@@ -685,7 +687,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'logo.cache.read') {
         return { ok: true, requestId: request.requestId, data: await logoHandlers.cache.read({ kind: 'read' }) };
       }
-      if (request.action === 'logo.cache.peek') {
+      if (request.action === 'logo.cache.peek-stored') {
         return { ok: true, requestId: request.requestId, data: await logoStore.peek() };
       }
       if (request.action === 'logo.cache.asset.read') {

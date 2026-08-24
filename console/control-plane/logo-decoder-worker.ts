@@ -1,14 +1,23 @@
 import sharp from 'sharp';
 import { createInterface } from 'node:readline';
+import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
 if (!process.argv.includes('--no-network')) process.exit(78);
 const WORKER_REVISION = 'logo-worker-2026-08-23-v4';
 
 type Target = { format: 'png' | 'jpeg' | 'webp'; width: number; height: number; alpha: boolean };
-type Crop = { fit: 'contain' | 'cover' | 'fill'; crop: { x: number; y: number; width: number; height: number }; background: { kind: 'transparent' } | { kind: 'solid'; color: string } };
+type Crop = { fit: 'contain' | 'cover' | 'fill'; crop: { x: number; y: number; width: number; height: number }; focalPoint: { x: number; y: number }; safeArea: { top: number; right: number; bottom: number; left: number }; background: { kind: 'transparent' } | { kind: 'solid'; color: string } };
 const baselineRss = process.memoryUsage().rss;
 let peakRss = baselineRss;
 const memoryProbe = setInterval(() => { peakRss = Math.max(peakRss, process.memoryUsage().rss); }, 20);
+const require = createRequire(import.meta.url);
+function nativeBinding(): { path: string; sha256: string } {
+  const packageName = `@img/sharp-${process.platform}-${process.arch}`;
+  const path = require.resolve(`${packageName}/sharp.${process.platform}-${process.arch}.node`) as string;
+  return { path, sha256: createHash('sha256').update(readFileSync(path)).digest('hex') };
+}
 
 function signature(format: Target['format']): string {
   return format === 'png' ? 'png-signature' : format === 'jpeg' ? 'jpeg-signature' : 'webp-riff-signature';
@@ -40,7 +49,8 @@ async function health(): Promise<Record<string, unknown>> {
     await reopen(bytes, { format: target.format, width: 1, height: 1, alpha: target.alpha });
     formats.push(target.format);
   }
-  return { ok: true, workerVersion: process.version, workerRevision: WORKER_REVISION, sharpVersion: (sharp.versions as Record<string, string>).sharp ?? 'unknown', nativePlatform: process.platform, nativeArch: process.arch, peakMemoryBytes: Math.max(0, peakRss - baselineRss), formats };
+  const binding = nativeBinding();
+  return { ok: true, workerVersion: process.version, workerRevision: WORKER_REVISION, sharpVersion: (sharp.versions as Record<string, string>).sharp ?? 'unknown', nativePlatform: process.platform, nativeArch: process.arch, nativeBindingPath: binding.path.replaceAll('\\', '/'), nativeBindingSha256: binding.sha256, peakMemoryBytes: Math.max(0, peakRss - baselineRss), formats };
 }
 
 async function convert(input: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -49,13 +59,28 @@ async function convert(input: Record<string, unknown>): Promise<Record<string, u
   const crop = input.crop as Crop;
   const sourceMetadata = await sharp(source, { animated: false, limitInputPixels: 16_000_000, failOn: 'error' }).metadata();
   if (!sourceMetadata.width || !sourceMetadata.height || (sourceMetadata.pages ?? 1) !== 1) throw new Error('The isolated decoder source has no bounded static dimensions.');
-  const left = Math.max(0, Math.min(sourceMetadata.width - 1, Math.floor(crop.crop.x * sourceMetadata.width)));
-  const top = Math.max(0, Math.min(sourceMetadata.height - 1, Math.floor(crop.crop.y * sourceMetadata.height)));
-  const width = Math.max(1, Math.min(sourceMetadata.width - left, Math.floor(crop.crop.width * sourceMetadata.width)));
-  const height = Math.max(1, Math.min(sourceMetadata.height - top, Math.floor(crop.crop.height * sourceMetadata.height)));
+  const cropLeft = Math.max(0, Math.min(sourceMetadata.width - 1, Math.floor(crop.crop.x * sourceMetadata.width)));
+  const cropTop = Math.max(0, Math.min(sourceMetadata.height - 1, Math.floor(crop.crop.y * sourceMetadata.height)));
+  const cropWidth = Math.max(1, Math.min(sourceMetadata.width - cropLeft, Math.floor(crop.crop.width * sourceMetadata.width)));
+  const cropHeight = Math.max(1, Math.min(sourceMetadata.height - cropTop, Math.floor(crop.crop.height * sourceMetadata.height)));
+  const targetRatio = target.width / target.height;
+  const viewportWidth = Math.max(1, Math.min(cropWidth, Math.floor(Math.min(cropWidth, cropHeight * targetRatio))));
+  const viewportHeight = Math.max(1, Math.min(cropHeight, Math.floor(Math.min(cropHeight, cropWidth / targetRatio))));
+  const focusX = crop.focalPoint.x * sourceMetadata.width;
+  const focusY = crop.focalPoint.y * sourceMetadata.height;
+  const left = Math.max(cropLeft, Math.min(cropLeft + cropWidth - viewportWidth, Math.floor(focusX - viewportWidth / 2)));
+  const top = Math.max(cropTop, Math.min(cropTop + cropHeight - viewportHeight, Math.floor(focusY - viewportHeight / 2)));
+  const width = viewportWidth;
+  const height = viewportHeight;
+  const safeLeft = Math.floor(target.width * crop.safeArea.left);
+  const safeTop = Math.floor(target.height * crop.safeArea.top);
+  const safeRight = Math.floor(target.width * crop.safeArea.right);
+  const safeBottom = Math.floor(target.height * crop.safeArea.bottom);
+  const safeWidth = target.width - safeLeft - safeRight;
+  const safeHeight = target.height - safeTop - safeBottom;
   const fit = crop.fit === 'fill' ? 'fill' : crop.fit;
   const background = crop.background.kind === 'solid' ? crop.background.color : { r: 0, g: 0, b: 0, alpha: 0 };
-  let image = sharp(source, { animated: false, limitInputPixels: 16_000_000, failOn: 'error' }).extract({ left, top, width, height }).resize(target.width, target.height, { fit, position: 'centre', background });
+  let image = sharp(source, { animated: false, limitInputPixels: 16_000_000, failOn: 'error' }).extract({ left, top, width, height }).resize(safeWidth, safeHeight, { fit, position: 'centre', background }).extend({ left: safeLeft, top: safeTop, right: safeRight, bottom: safeBottom, background });
   if (target.alpha) image = image.ensureAlpha();
   else image = image.removeAlpha();
   if (target.format === 'png') image = image.png({ compressionLevel: 9 });
@@ -64,7 +89,7 @@ async function convert(input: Record<string, unknown>): Promise<Record<string, u
   const bytes = await image.toBuffer();
   if (bytes.byteLength > 16 * 1024 * 1024) throw new Error('The isolated decoder output exceeds the bounded byte limit.');
   const reopened = await reopen(bytes, target);
-  return { ...reopened, bytesBase64: bytes.toString('base64') };
+  return { ...reopened, bytesBase64: bytes.toString('base64'), lossNotes: ['focal point applied', 'safe area applied'] };
 }
 
 const input = createInterface({ input: process.stdin, crlfDelay: Infinity });

@@ -1,4 +1,4 @@
-import { useId, type ChangeEvent } from 'react';
+import { useId, type ChangeEvent, type CSSProperties } from 'react';
 import {
   LOGO_PICKER_REGISTRATION,
   LOGO_PRESETS,
@@ -90,6 +90,15 @@ export function LogoSurface(props: LogoSurfaceProps) {
   const crop = props.state.crop;
   const setCrop = (next: LogoCropModel) => props.onStateChange({ crop: next });
   const contrastWarning = hasContrastWarning(crop.background);
+  const previewStyle = {
+    '--logo-focal-shift-x': `${(crop.focalPoint.x - 0.5) * 0.9}rem`,
+    '--logo-focal-shift-y': `${(crop.focalPoint.y - 0.5) * 0.9}rem`,
+    '--logo-safe-top': `${crop.safeArea.top * 100}%`,
+    '--logo-safe-right': `${crop.safeArea.right * 100}%`,
+    '--logo-safe-bottom': `${crop.safeArea.bottom * 100}%`,
+    '--logo-safe-left': `${crop.safeArea.left * 100}%`,
+    background: crop.background.kind === 'solid' ? crop.background.color : undefined,
+  } as CSSProperties;
 
   return (
     <section className="logo-surface" aria-labelledby="logo-surface-title">
@@ -112,7 +121,7 @@ export function LogoSurface(props: LogoSurfaceProps) {
               onClick={() => props.onStateChange({ selectedPresetId: preset.id, customLogoState: 'empty', customLogoLabel: '' })}
               disabled={props.disabled}
             >
-              <span className={`logo-preview logo-preview-${preset.previewToken}`} aria-hidden="true"><span /></span>
+              <span className={`logo-preview logo-preview-${preset.previewToken}`} style={previewStyle} aria-hidden="true"><span /></span>
               <span className="logo-preset-copy"><strong>{preset.label}</strong><small>{preset.description}</small></span>
             </button>
           </div>
@@ -167,6 +176,12 @@ export function LogoSurface(props: LogoSurfaceProps) {
         <div className="logo-number-grid" aria-label="Numeric focal point">
           <NumberField label="Focal X" value={crop.focalPoint.x} min={0} max={1} step={0.01} onChange={(value) => setCrop(updateCrop(crop, { focalPoint: { ...crop.focalPoint, x: value } }))} />
           <NumberField label="Focal Y" value={crop.focalPoint.y} min={0} max={1} step={0.01} onChange={(value) => setCrop(updateCrop(crop, { focalPoint: { ...crop.focalPoint, y: value } }))} />
+        </div>
+        <div className="logo-number-grid" aria-label="Safe area insets">
+          <NumberField label="Safe top" value={crop.safeArea.top} min={0} max={0.5} step={0.01} onChange={(value) => setCrop(updateCrop(crop, { safeArea: { ...crop.safeArea, top: value } }))} />
+          <NumberField label="Safe right" value={crop.safeArea.right} min={0} max={0.5} step={0.01} onChange={(value) => setCrop(updateCrop(crop, { safeArea: { ...crop.safeArea, right: value } }))} />
+          <NumberField label="Safe bottom" value={crop.safeArea.bottom} min={0} max={0.5} step={0.01} onChange={(value) => setCrop(updateCrop(crop, { safeArea: { ...crop.safeArea, bottom: value } }))} />
+          <NumberField label="Safe left" value={crop.safeArea.left} min={0} max={0.5} step={0.01} onChange={(value) => setCrop(updateCrop(crop, { safeArea: { ...crop.safeArea, left: value } }))} />
         </div>
         <p className="logo-help">All crop and focal values are proportions from 0 to 1. The same model is keyboard-editable and used by the local converter.</p>
         {contrastWarning && <p id={contrastId} className="logo-warning" role="alert">⚠ Check the live preview: this background may not provide enough contrast for the mark.</p>}

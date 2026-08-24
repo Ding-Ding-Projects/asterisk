@@ -1,11 +1,20 @@
 import sharp from 'sharp';
 import { createInterface } from 'node:readline';
+import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
 if (!process.argv.includes('--no-network')) process.exit(78);
 const WORKER_REVISION = 'logo-worker-2026-08-23-v4';
 const baselineRss = process.memoryUsage().rss;
 let peakRss = baselineRss;
 const memoryProbe = setInterval(() => { peakRss = Math.max(peakRss, process.memoryUsage().rss); }, 20);
+const require = createRequire(import.meta.url);
+function nativeBinding() {
+  const packageName = `@img/sharp-${process.platform}-${process.arch}`;
+  const path = require.resolve(`${packageName}/sharp.${process.platform}-${process.arch}.node`);
+  return { path, sha256: createHash('sha256').update(readFileSync(path)).digest('hex') };
+}
 const signature = (format) => format === 'png' ? 'png-signature' : format === 'jpeg' ? 'jpeg-signature' : 'webp-riff-signature';
 const alphaFor = (format, channels) => format !== 'jpeg' && (channels === 2 || channels === 4);
 
@@ -31,7 +40,8 @@ async function health() {
     await reopen(bytes, { format: target.format, width: 1, height: 1, alpha: target.alpha });
     formats.push(target.format);
   }
-  return { ok: true, workerVersion: process.version, workerRevision: WORKER_REVISION, sharpVersion: sharp.versions.sharp ?? 'unknown', nativePlatform: process.platform, nativeArch: process.arch, peakMemoryBytes: Math.max(0, peakRss - baselineRss), formats };
+  const binding = nativeBinding();
+  return { ok: true, workerVersion: process.version, workerRevision: WORKER_REVISION, sharpVersion: sharp.versions.sharp ?? 'unknown', nativePlatform: process.platform, nativeArch: process.arch, nativeBindingPath: binding.path.replaceAll('\\', '/'), nativeBindingSha256: binding.sha256, peakMemoryBytes: Math.max(0, peakRss - baselineRss), formats };
 }
 
 async function convert(input) {
@@ -40,16 +50,31 @@ async function convert(input) {
   const crop = input.crop;
   const sourceMetadata = await sharp(source, { animated: false, limitInputPixels: 16_000_000, failOn: 'error' }).metadata();
   if (!sourceMetadata.width || !sourceMetadata.height || (sourceMetadata.pages ?? 1) !== 1) throw new Error('The source has no bounded static dimensions.');
-  const left = Math.max(0, Math.min(sourceMetadata.width - 1, Math.floor(crop.crop.x * sourceMetadata.width)));
-  const top = Math.max(0, Math.min(sourceMetadata.height - 1, Math.floor(crop.crop.y * sourceMetadata.height)));
-  const width = Math.max(1, Math.min(sourceMetadata.width - left, Math.floor(crop.crop.width * sourceMetadata.width)));
-  const height = Math.max(1, Math.min(sourceMetadata.height - top, Math.floor(crop.crop.height * sourceMetadata.height)));
+  const cropLeft = Math.max(0, Math.min(sourceMetadata.width - 1, Math.floor(crop.crop.x * sourceMetadata.width)));
+  const cropTop = Math.max(0, Math.min(sourceMetadata.height - 1, Math.floor(crop.crop.y * sourceMetadata.height)));
+  const cropWidth = Math.max(1, Math.min(sourceMetadata.width - cropLeft, Math.floor(crop.crop.width * sourceMetadata.width)));
+  const cropHeight = Math.max(1, Math.min(sourceMetadata.height - cropTop, Math.floor(crop.crop.height * sourceMetadata.height)));
+  const targetRatio = target.width / target.height;
+  const viewportWidth = Math.max(1, Math.min(cropWidth, Math.floor(Math.min(cropWidth, cropHeight * targetRatio))));
+  const viewportHeight = Math.max(1, Math.min(cropHeight, Math.floor(Math.min(cropHeight, cropWidth / targetRatio))));
+  const focusX = crop.focalPoint.x * sourceMetadata.width;
+  const focusY = crop.focalPoint.y * sourceMetadata.height;
+  const left = Math.max(cropLeft, Math.min(cropLeft + cropWidth - viewportWidth, Math.floor(focusX - viewportWidth / 2)));
+  const top = Math.max(cropTop, Math.min(cropTop + cropHeight - viewportHeight, Math.floor(focusY - viewportHeight / 2)));
+  const width = viewportWidth;
+  const height = viewportHeight;
   const background = crop.background.kind === 'solid' ? crop.background.color : { r: 0, g: 0, b: 0, alpha: 0 };
-  let image = sharp(source, { animated: false, limitInputPixels: 16_000_000, failOn: 'error' }).extract({ left, top, width, height }).resize(target.width, target.height, { fit: crop.fit, position: 'centre', background });
+  const safeLeft = Math.floor(target.width * crop.safeArea.left);
+  const safeTop = Math.floor(target.height * crop.safeArea.top);
+  const safeRight = Math.floor(target.width * crop.safeArea.right);
+  const safeBottom = Math.floor(target.height * crop.safeArea.bottom);
+  const safeWidth = target.width - safeLeft - safeRight;
+  const safeHeight = target.height - safeTop - safeBottom;
+  let image = sharp(source, { animated: false, limitInputPixels: 16_000_000, failOn: 'error' }).extract({ left, top, width, height }).resize(safeWidth, safeHeight, { fit: crop.fit, position: 'centre', background }).extend({ left: safeLeft, top: safeTop, right: safeRight, bottom: safeBottom, background });
   image = target.alpha ? image.ensureAlpha() : image.removeAlpha();
   const bytes = target.format === 'png' ? await image.png({ compressionLevel: 9 }).toBuffer() : target.format === 'jpeg' ? await image.jpeg({ quality: 90, chromaSubsampling: '4:4:4' }).toBuffer() : await image.webp({ quality: 90, alphaQuality: 100 }).toBuffer();
   if (bytes.byteLength > 16 * 1024 * 1024) throw new Error('The output exceeds the bounded byte limit.');
-  return { ...(await reopen(bytes, target)), bytesBase64: bytes.toString('base64') };
+  return { ...(await reopen(bytes, target)), bytesBase64: bytes.toString('base64'), lossNotes: ['focal point applied', 'safe area applied'] };
 }
 
 const input = createInterface({ input: process.stdin, crlfDelay: Infinity });
