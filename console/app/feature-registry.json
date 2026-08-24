@@ -311,10 +311,11 @@
     },
     "forge-publishing": {
       "state": "partial",
-      "note": "The History screen now mounts a real GitHub forge-publishing flow through the typed privileged bridge. It discovers gh-managed accounts, keeps only account ids and OS-vault token references in durable state, supports active-account selection, refresh, sign-out, provider-backed personal and organization owners, fork and copy-and-push routes, capability reporting, bounded shell:false gh/git execution, atomic receipts, local history, and beside-control re-auth states. GitLab remains visible as an unavailable provider because no local CLI or OS-vault adapter is configured, and no provider token is accepted from the renderer.",
+      "note": "The History screen mounts a real GitHub forge-publishing flow through the typed privileged bridge. It discovers gh-managed accounts, confirms the actual active login, clears inherited auth variables, keeps only account ids and OS-vault token references in versioned atomic state, supports active-account selection, noninteractive sign-out, device sign-in, refresh, provider-backed personal and organization owners with partial capabilities, exact destination owner/name route semantics, fork and copy-and-push routes, ls-remote verification, bounded shell:false gh/git execution, cancellation and progress state, reloadable receipts, local history, and beside-control re-auth states. Hosted mode refuses forge actions by name. GitLab remains visible as an unavailable provider because no local CLI or OS-vault adapter is configured, and no provider token is accepted from the renderer. Runtime provider verification and built-artifact evidence remain unrun.",
       "files": [
         "control-plane/forge-publishing.ts",
         "control-plane/dispatch.ts",
+        "control-plane/executor.ts",
         "shared/control-plane.ts",
         "app/electron/main.ts",
         "app/electron/preload.ts",

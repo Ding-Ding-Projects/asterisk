@@ -249,6 +249,7 @@ export class App extends Base {
   private forgeSearch = '';
   private forgeAccounts: Array<Record<string, string | boolean>> = [];
   private forgeCapabilities: Array<Record<string, string>> = [];
+  private forgeOperation: Record<string, string | number | boolean> = { status: 'idle', progress: 0, message: 'No forge operation is running.', cancellable: false };
   private forgeOwners: Array<Record<string, string>> = [];
   private forgeReceipts: Array<Record<string, string>> = [];
   private forgeActiveAccountId = '';
@@ -318,7 +319,7 @@ export class App extends Base {
       }));
     }
     const response = await this.request('forge.accounts.list');
-    const data = response?.data as { accounts?: Array<Record<string, unknown>>; activeAccountId?: string; reauthAction?: string } | undefined;
+    const data = response?.data as { accounts?: Array<Record<string, unknown>>; activeAccountId?: string; receipts?: Array<Record<string, unknown>>; operation?: Record<string, unknown>; corruption?: string; reauthAction?: string } | undefined;
     this.forgeActiveAccountId = typeof data?.activeAccountId === 'string' ? data.activeAccountId : '';
     this.forgeAccounts = (data?.accounts ?? []).map((account) => {
       const id = String(account.id ?? '');
@@ -326,12 +327,16 @@ export class App extends Base {
       const active = id === this.forgeActiveAccountId;
       return { id, login, state: String(account.state ?? 'unknown'), tokenRef: String(account.tokenRef ?? 'vault reference unavailable'), active, activeLabel: active ? 'Active' : 'Use this', activeBg: active ? '#005230' : '#1B211C' };
     });
+    this.forgeReceipts = (data?.receipts ?? []).map((receipt) => ({ status: String(receipt.status ?? 'unknown'), message: String(receipt.message ?? ''), when: String(receipt.observedAt ?? '') })).slice(0, 12);
+    if (data?.operation) this.forgeOperation = { status: String(data.operation.status ?? 'idle'), progress: Number(data.operation.progress ?? 0), message: String(data.operation.message ?? ''), cancellable: Boolean(data.operation.cancellable) };
+    if (data?.corruption) this.forgeStatus = data.corruption;
     if (!response?.ok) {
-      this.forgeStatus = response?.message ?? 'The forge bridge did not answer.';
+      this.forgeStatus = data?.corruption ? `${data.corruption} ${response?.message ?? ''}`.trim() : (response?.message ?? 'The forge bridge did not answer.');
       this.forceUpdate();
       return;
     }
     this.forgeStatus = this.forgeAccounts.length > 0 ? `${this.forgeAccounts.length} provider account${this.forgeAccounts.length === 1 ? '' : 's'} loaded. Tokens stay in the operating-system vault.` : (data?.reauthAction ? 'No account is signed in. Re-authenticate beside this surface.' : 'No provider account was returned.');
+    if (data?.corruption) this.forgeStatus = `${data.corruption} ${this.forgeStatus}`;
     if (this.forgeActiveAccountId) await this.forgeLoadOwners();
     this.forceUpdate();
   };
@@ -346,7 +351,7 @@ export class App extends Base {
     const owners = ((response.data as { owners?: Array<Record<string, unknown>> }).owners ?? []).map((owner) => ({ id: String(owner.id ?? ''), label: `${String(owner.displayName ?? owner.login ?? '')} · ${String(owner.kind ?? '')}`, login: String(owner.login ?? ''), kind: String(owner.kind ?? '') }));
     this.forgeOwners = owners;
     this.forgeOwnerId = owners.some((owner) => owner.id === this.forgeOwnerId) ? this.forgeOwnerId : owners[0]?.id ?? '';
-    this.forgeStatus = `${owners.length} personal and organization owner${owners.length === 1 ? '' : 's'} loaded from provider data.`;
+    this.forgeStatus = response.message ?? `${owners.length} personal and organization owner${owners.length === 1 ? '' : 's'} loaded from provider data.`;
     this.forceUpdate();
   };
 
@@ -369,11 +374,16 @@ export class App extends Base {
     await this.forgeLoad();
   };
 
+  private forgeCancel = async (): Promise<void> => {
+    const response = await this.request('forge.operation.cancel');
+    this.forgeStatus = response?.ok ? 'The forge operation was cancelled and its receipt was retained.' : (response?.message ?? 'No cancellable forge operation is running.');
+    await this.forgeLoad();
+  };
+
   private forgeAdd = async (): Promise<void> => {
-    const login = window.prompt('Provider account name, with no token:')?.trim() ?? '';
-    if (!login) return;
-    const response = await this.request('forge.account.add', { payload: { provider: 'github', hostname: 'github.com', login } });
-    this.forgeStatus = response?.ok ? `Account ${login} is available.` : (response?.message ?? 'Add account needs provider re-authentication.');
+    this.forgeStatus = 'Starting the provider device sign-in flow. No token is entered here.';
+    const response = await this.request('forge.auth.sign-in', { payload: { provider: 'github', hostname: 'github.com' } });
+    this.forgeStatus = response?.ok ? 'Device sign-in completed. Refreshing provider accounts.' : (response?.message ?? 'Provider sign-in did not complete.');
     await this.forgeLoad();
   };
 
@@ -1823,6 +1833,20 @@ It is shown once. The phone needs it to register.`);
     const bridge = this.bridge();
     const readings = this.readings[screen];
     const note = this.note(screen);
+    const forgeShellState = this.state as { patterns?: Record<string, string[]>; regexTarget?: string; regexFlags?: string[] };
+    const forgePattern = forgeShellState.regexTarget === 'forge' ? (forgeShellState.patterns?.forge ?? []).join('') : '';
+    let forgeSearchError = '';
+    let forgeMatcher: (value: string) => boolean = (value) => value.toLocaleLowerCase().includes(this.forgeSearch.trim().toLocaleLowerCase());
+    if (forgePattern) {
+      try {
+        const regex = new RegExp(forgePattern.slice(0, 256), (forgeShellState.regexFlags ?? ['i']).filter((flag, index, all) => all.indexOf(flag) === index).join(''));
+        forgeMatcher = (value) => regex.test(value);
+      } catch (error) {
+        forgeSearchError = error instanceof Error ? error.message : 'Invalid regular expression.';
+        forgeMatcher = () => false;
+      }
+    }
+    const forgeSearchText = forgePattern || this.forgeSearch;
 
     return {
       ...values,
@@ -1970,11 +1994,14 @@ It is shown once. The phone needs it to register.`);
         branches: [], branchName: '', commitCount: '0 commits',
         compareLabel: NO_HISTORY,
         forgeStatus: this.forgeStatus,
+        forgeOperation: this.forgeOperation,
         forgeSearch: this.forgeSearch,
+        forgeSearchDisplay: forgeSearchText,
         forgeAccounts: this.forgeAccounts.filter((account) => {
-          const query = this.forgeSearch.trim().toLocaleLowerCase();
-          return !query || `${String(account.login)} ${String(account.state)}`.toLocaleLowerCase().includes(query);
+          const query = String(forgeSearchText).trim();
+          return !query || forgeMatcher(`${String(account.login)} ${String(account.state)} ${String(account.tokenRef)}`);
         }).map((account) => ({ ...account, activate: () => void this.forgeWithAccount(String(account.id)), refresh: () => void this.forgeRefreshAccount(String(account.id)), signOut: () => void this.forgeSignOut(String(account.id)) })),
+        forgeSearchStatus: forgeSearchError || `${this.forgeAccounts.filter((account) => !forgeSearchText || forgeMatcher(`${String(account.login)} ${String(account.state)} ${String(account.tokenRef)}`)).length} account match${this.forgeAccounts.filter((account) => !forgeSearchText || forgeMatcher(`${String(account.login)} ${String(account.state)} ${String(account.tokenRef)}`)).length === 1 ? '' : 'es'}`,
         forgeCapabilities: this.forgeCapabilities,
         forgeOwners: this.forgeOwners,
         forgeOwnerId: this.forgeOwnerId,
@@ -1982,13 +2009,14 @@ It is shown once. The phone needs it to register.`);
         forgeSourceRemote: this.forgeSourceRemote,
         forgeSourcePath: this.forgeSourcePath,
         forgeReceipts: this.forgeReceipts,
+        forgeCancel: () => void this.forgeCancel(),
         forgeLoad: () => void this.forgeLoad(),
         forgeAdd: () => void this.forgeAdd(),
         forgeReauth: () => void this.forgeAdd(),
         forgeOwnersLoad: () => void this.forgeLoadOwners(),
         forgeFork: () => void this.forgePublish('fork'),
         forgeCopyPush: () => void this.forgePublish('copy-and-push'),
-        onForgeSearch: (event: { target: { value: string } }) => { this.forgeSearch = event.target.value.slice(0, 256); this.forceUpdate(); },
+        onForgeSearch: (event: { target: { value: string } }) => { this.forgeSearch = event.target.value.slice(0, 256); this.setState({ patterns: { ...((this.state as { patterns?: Record<string, string[]> }).patterns ?? {}), forge: [] }, rxText: '' } as never); this.forceUpdate(); },
         onForgeOwner: (event: { target: { value: string } }) => { this.forgeOwnerId = event.target.value; this.forceUpdate(); },
         onForgeRepositoryName: (event: { target: { value: string } }) => { this.forgeRepositoryName = event.target.value.slice(0, 100); this.forceUpdate(); },
         onForgeSourceRemote: (event: { target: { value: string } }) => { this.forgeSourceRemote = event.target.value.slice(0, 4096); this.forceUpdate(); },

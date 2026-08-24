@@ -4,22 +4,22 @@ The History screen contains a desktop forge-publishing surface. It publishes a l
 
 ## Behavior
 
-The surface is backed by the control plane, not by renderer-only state. Refresh discovers signed-in GitHub accounts from the local `gh` sign-in store. Each row shows the provider login, an account id, a stable `gh://` vault reference, active state, refresh, sign-out, and re-authentication status. The renderer never receives a token value.
+The surface is backed by the control plane, not by renderer-only state. Refresh discovers signed-in GitHub accounts from the local `gh` sign-in store. Each row shows the provider login, an account id, a stable `gh://` vault reference, active state, refresh, sign-out, and re-authentication status. The renderer never receives a token value. Account activation runs `gh auth switch`, then confirms the provider reports that same login as active.
 
 Selecting an account activates it through `gh auth switch`, then owner discovery reads the personal owner and paginated organization owners through `gh api`. The owner picker contains only values returned by the provider. It never guesses a personal namespace or accepts an arbitrary organization name.
 
-The two publication routes are intentionally distinct:
+The two publication routes are intentionally distinct, and both require the owner to have the capability the route needs:
 
-- **Fork** invokes `gh repo fork` against the selected HTTPS source remote. Organization forks carry the selected organization explicitly. A personal fork uses the provider account that is active in the local sign-in store.
-- **Copy and push** creates the selected destination with `gh repo create`, checks the local `forge-publish` remote, refuses to overwrite an unrelated remote, then pushes the selected local `HEAD` to the chosen default branch with `git`.
+- **Fork** invokes `gh repo fork` against the selected HTTPS source remote, including the selected destination name. Organization forks carry the selected organization explicitly. A personal fork uses the provider account that is active in the local sign-in store.
+- **Copy and push** creates the selected destination with `gh repo create`, checks the local `forge-publish` remote, refuses to overwrite an unrelated remote, pushes the selected local `HEAD` to the chosen default branch with `git`, then verifies that exact commit with `git ls-remote --heads`.
 
-Every process call uses typed executable and argument arrays, `shell: false`, bounded output, and a deadline. A publication receipt records the provider, account id, owner id, route, destination URL, source commit when available, exact outcome, and timestamp. Partial creation or push outcomes remain receipts and are not reported as success.
+Every process call uses typed executable and argument arrays, `shell: false`, bounded output, a deadline, and cleared inherited authentication variables. A publication receipt records the provider, account id, owner id, route, destination URL, source commit when available, exact outcome, and timestamp. Failed, partial, and cancelled creation, push, verification, sign-in, and sign-out outcomes remain receipts and are reloaded after restart rather than being replaced by a blank state.
 
 ## Configuration
 
 The durable file is `forge-publishing.json` under the application's private data folder. It contains schema version 1, account metadata, the active account id, and redacted publication receipts. It contains no token, password, cookie, or private key. Account mutation and publication receipts are also recorded through the app's local append-only history.
 
-The source-folder field has a native folder picker. The account search is plain text by default and has an adjacent anchored regex builder. The provider capability list distinguishes GitHub, which currently supports both routes, from GitLab, which remains visible but unavailable until a local CLI and OS-vault adapter are configured.
+The source-folder field has a native folder picker. The account search is plain text by default and has an adjacent anchored full regex builder with bounded pattern length, flags, guided tokens, validation, and match counts. The provider capability list distinguishes GitHub, which currently supports both routes, from GitLab, which remains visible but unavailable until a local CLI and OS-vault adapter are configured. The active operation exposes busy, progress, cancellation, and completion state.
 
 ## Failure modes
 
@@ -29,13 +29,15 @@ If `forge-publish` already points at a different destination, copy and push stop
 
 GitLab is not silently routed through a GitHub command. It remains an explicit unavailable capability until its provider adapter exists.
 
+Hosted server mode refuses every `forge.*` action by name because it cannot safely use the desktop's local provider sign-in store or local checkout. The desktop Add account and Re-authenticate actions start the real `gh auth login --web` device sign-in flow and never collect a token in the renderer.
+
 ## Security and privacy
 
 The renderer accepts account names and owner ids, never provider tokens. Durable state stores only stable vault references. `gh` uses its own operating-system credential store, while `git` uses the configured credential helper. No token is placed in arguments, output, logs, renderer state, receipts, local history, exports, or documentation. The executor allowlist contains only the typed `git` and `gh` executables needed by this surface, and all calls use `shell: false`.
 
 ## Verification
 
-This lane did not call provider APIs, run tests, lint, build the product, package an installer, launch the desktop surface, or capture a screenshot. Static evidence is the typed action union, the dispatcher branches, the allowlisted executor calls, the generated History-screen route, the atomic state store, and the updated feature registry. Runtime provider verification remains unrun and must be performed by the parent lane through the approved desktop evidence path.
+This lane did not call provider APIs, run tests, lint, build the product, package an installer, launch the desktop surface, or capture a screenshot. Static evidence is the typed action union, the dispatcher branches, the allowlisted executor calls, the inherited-auth clearing path, device sign-in command, active-account confirmation, `git ls-remote` verification path, hosted refusal, generated History-screen route, atomic versioned state store, reloadable receipts, and updated feature registry. Runtime provider verification remains unrun and must be performed by the parent lane through the approved desktop evidence path.
 
 ## Suggested articles
 

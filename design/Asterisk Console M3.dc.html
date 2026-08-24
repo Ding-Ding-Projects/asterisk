@@ -494,14 +494,17 @@
               <span style="font-size:15px; font-weight:500;">Forge publishing</span>
               <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394;">{{ forgeStatus }}</span>
               <sc-for list="{{ forgeCapabilities }}" as="p"><span style="font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394;">{{ p.label }}: {{ p.state }}</span></sc-for>
+              <span role="status" style="font-family:'Roboto Mono',monospace; font-size:10.5px; color:#FFD68A;">{{ forgeOperation.status }} {{ forgeOperation.progress }}% · {{ forgeOperation.message }}</span>
               <div style="flex:1;"></div>
               <button onClick="{{ forgeLoad }}" style="background:#1B4D33; border:0; border-radius:999px; padding:8px 14px; color:#9FF7C4; font:inherit; cursor:pointer;">Refresh forge data</button>
             </div>
             <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
-              <input type="search" aria-label="Search forge accounts" value="{{ forgeSearch }}" onInput="{{ onForgeSearch }}" placeholder="Search accounts" style="flex:1; min-width:220px; background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#DFE4DC; font:inherit;" />
+              <input type="search" aria-label="Search forge accounts" value="{{ forgeSearchDisplay }}" onInput="{{ onForgeSearch }}" placeholder="Search accounts" style="flex:1; min-width:220px; background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#DFE4DC; font:inherit;" />
               <button onClick="{{ openForgeRegex }}" aria-label="Open forge account regex builder" style="background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; cursor:pointer;">.*</button>
+              <span role="status" style="font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394;">{{ forgeSearchStatus }}</span>
               <button onClick="{{ forgeAdd }}" style="background:transparent; border:1px solid #414942; border-radius:999px; padding:8px 14px; color:#C4CBC2; font:inherit; cursor:pointer;">Add account</button>
               <button onClick="{{ forgeReauth }}" style="background:transparent; border:1px solid #6B5A36; border-radius:999px; padding:8px 14px; color:#FFD68A; font:inherit; cursor:pointer;">Re-authenticate</button>
+              <button onClick="{{ forgeCancel }}" style="background:transparent; border:1px solid #6B3A36; border-radius:999px; padding:8px 14px; color:#FFB4AB; font:inherit; cursor:pointer;">Cancel operation</button>
             </div>
             <div role="listbox" aria-label="Signed-in forge accounts" style="display:grid; gap:8px;">
               <sc-for list="{{ forgeAccounts }}" as="a" hint-placeholder-count="2">

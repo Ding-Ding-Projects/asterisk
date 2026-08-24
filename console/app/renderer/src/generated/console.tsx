@@ -709,21 +709,30 @@ function Template(v: any) {
                   A(v.forgeCapabilities).map(($p, $p$i) => R($p$i, h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394;`) },
                       `${S($p.label)}: ${S($p.state)}`
                     ))),
+                  h("span", { role: `status`, style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#FFD68A;`) },
+                    `${S(v.forgeOperation.status)} ${S(v.forgeOperation.progress)}% · ${S(v.forgeOperation.message)}`
+                  ),
                   h("div", { style: sty(`flex:1;`) }),
                   h("button", { onClick: fn(v.forgeLoad), style: sty(`background:#1B4D33; border:0; border-radius:999px; padding:8px 14px; color:#9FF7C4; font:inherit; cursor:pointer;`) },
                     "Refresh forge data"
                   )
                 ),
                 h("div", { style: sty(`display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;`) },
-                  h("input", { type: `search`, "aria-label": `Search forge accounts`, value: v.forgeSearch, onInput: fn(v.onForgeSearch), placeholder: `Search accounts`, style: sty(`flex:1; min-width:220px; background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#DFE4DC; font:inherit;`) }),
+                  h("input", { type: `search`, "aria-label": `Search forge accounts`, value: v.forgeSearchDisplay, onInput: fn(v.onForgeSearch), placeholder: `Search accounts`, style: sty(`flex:1; min-width:220px; background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#DFE4DC; font:inherit;`) }),
                   h("button", { onClick: fn(v.openForgeRegex), "aria-label": `Open forge account regex builder`, style: sty(`background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; cursor:pointer;`) },
                     ".*"
+                  ),
+                  h("span", { role: `status`, style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394;`) },
+                    S(v.forgeSearchStatus)
                   ),
                   h("button", { onClick: fn(v.forgeAdd), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:8px 14px; color:#C4CBC2; font:inherit; cursor:pointer;`) },
                     "Add account"
                   ),
                   h("button", { onClick: fn(v.forgeReauth), style: sty(`background:transparent; border:1px solid #6B5A36; border-radius:999px; padding:8px 14px; color:#FFD68A; font:inherit; cursor:pointer;`) },
                     "Re-authenticate"
+                  ),
+                  h("button", { onClick: fn(v.forgeCancel), style: sty(`background:transparent; border:1px solid #6B3A36; border-radius:999px; padding:8px 14px; color:#FFB4AB; font:inherit; cursor:pointer;`) },
+                    "Cancel operation"
                   )
                 ),
                 h("div", { role: `listbox`, "aria-label": `Signed-in forge accounts`, style: sty(`display:grid; gap:8px;`) },

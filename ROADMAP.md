@@ -41,7 +41,7 @@
 - [x] Remove private vocabulary from every shipped and published surface, and add a hand-written-list guard with a planted-term negative regression so a new term cannot arrive unnoticed.
 - [x] Create, verify, stop and remove the console's own WSL distribution from the packaged Asterisk payload, replacing a `server.provision-bundled` action that was declared and implemented nowhere.
 - [x] Make the confirmation flow dispatch the command it guards and report the real outcome, including refusals, instead of announcing success without calling anything.
-- [ ] Mount the desktop forge-publishing runtime: GitHub account discovery, active-account controls, OS-vault references, provider-backed owner selection, fork and copy-and-push routes, bounded `shell:false` `gh`/`git` execution, atomic receipts, local history, and beside-control re-authentication are implemented on the feature branch; runtime provider verification and built-artifact evidence remain pending.
+- [ ] Mount and verify the desktop forge-publishing runtime: GitHub account discovery, active-account confirmation, noninteractive sign-out, device sign-in, inherited-auth clearing, OS-vault references, provider-backed owner selection with partial capabilities, exact fork and copy-and-push route semantics, bounded `shell:false` `gh`/`git` execution, destination `ls-remote` proof, atomic versioned state, reloadable receipts, local history, cancellation, progress, hosted refusal, and beside-control re-authentication are implemented on the feature branch; runtime provider verification and built-artifact evidence remain pending.
 
 ## Cover Asterisk's real capability surface
 

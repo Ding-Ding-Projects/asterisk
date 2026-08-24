@@ -30,7 +30,8 @@ export type ControlPlaneAction =
   /* Desktop forge publishing uses gh/git through the typed privileged bridge. */
   | 'forge.capabilities' | 'forge.accounts.list' | 'forge.account.add'
   | 'forge.account.refresh' | 'forge.account.activate' | 'forge.account.sign-out'
-  | 'forge.owners.list' | 'forge.publish' | 'forge.receipts.list';
+  | 'forge.owners.list' | 'forge.publish' | 'forge.receipts.list'
+  | 'forge.auth.sign-in' | 'forge.operation.cancel' | 'forge.operation.status';
 
 /** The screens a `pbx.read` can answer, each backed by read-only Asterisk CLI output. */
 export type PbxReadView =
