@@ -42,6 +42,11 @@
 - [x] Create, verify, stop and remove the console's own WSL distribution from the packaged Asterisk payload, replacing a `server.provision-bundled` action that was declared and implemented nowhere.
 - [x] Make the confirmation flow dispatch the command it guards and report the real outcome, including refusals, instead of announcing success without calling anything.
 
+## Attention runtime
+
+- [x] Mount the five independent attention modes from durable settings, add live desktop consumers, and persist the user-selected next action. Status: implemented-unverified in `codex/mount-attention-runtime`; the design compiler ran, but no built-artifact or UI evidence was collected in that lane.
+- [ ] Run focused built-artifact verification for attention restoration, focus dimming, low stimulation, time awareness, one thing at a time, Momentum snooze, keyboard access, and reduced-motion behavior.
+
 ## Cover Asterisk's real capability surface
 
 A survey against this checkout measured the console at roughly **12%** of Asterisk's

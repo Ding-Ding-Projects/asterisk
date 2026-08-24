@@ -30,7 +30,12 @@ import {
   IDENTITY, displayName, resetDisplayName, setDisplayName,
 } from './display-name';
 import { setEmojisEnabled } from './dialog-emojis';
-import { isAttentionMode, setModeEnabled } from './attention-modes';
+import {
+  ATTENTION_MODES, LAST_CHANGED_SETTING_KEY,
+  SNOOZED_UNTIL_SETTING_KEY, SNOOZE_MS, elapsedPhrase,
+  isAttentionMode, modeEnabled, momentumPrompt, nextAction, presentationFor, setModeEnabled,
+  setNextAction,
+} from './attention-modes';
 import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
 import { KNOWN_EDITORS, chooseEditor, clearEditorChoice } from './external-editor';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
@@ -210,11 +215,28 @@ export class App extends Base {
    *  body, so by then an override declared as a field would already have replaced the
    *  shell's and the copy would point at itself -- a recursion with no base case. */
   private readonly baseSetVal: (control: ControlRef, value: unknown) => void;
+  private readonly baseToast: (message: string) => void;
+  private attentionTimer: ReturnType<typeof setInterval> | undefined;
+  private attentionSessionStartedAt = Date.now();
+  private attentionLastChangedAt = this.attentionSessionStartedAt;
+  private attentionSnoozedUntil = 0;
+  private attentionStyle: HTMLStyleElement | undefined;
+  private attentionStatus: HTMLElement | undefined;
+  private attentionMotionQuery: MediaQueryList | undefined;
+  private attentionSyncing = false;
 
   constructor(props: Record<string, never>) {
     super(props);
     this.baseSetVal = this.setVal as (control: ControlRef, value: unknown) => void;
     this.setVal = this.languageAwareSetVal;
+    this.baseToast = this.toast as (message: string) => void;
+    this.toast = (message: string): void => {
+      /* Low stimulation keeps urgent fire() notices available but quietens ordinary
+       * informational toasts. The source is the same durable mode storage used by
+       * the switch, so there is no second notification preference to drift. */
+      if (modeEnabled(this.durableStorage.storage, 'lowStimulation')) return;
+      this.baseToast(message);
+    };
   }
   /** The chosen file's own name, kept only for display — never its contents. */
   private pickedFileNames = new Map<string, string>();
@@ -249,6 +271,145 @@ export class App extends Base {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
   }
 
+  private attentionStateValues(): Record<string, unknown> {
+    const restored: Record<string, unknown> = {};
+    for (const mode of ATTENTION_MODES) {
+      const control = Object.entries(App.ATTENTION_CONTROLS).find(([, value]) => value === mode)?.[0];
+      if (control) restored[control] = modeEnabled(this.durableStorage.storage, mode);
+    }
+    restored.att_next = nextAction(this.durableStorage.storage);
+    return restored;
+  }
+
+  /** Restores all five independent switches and the chosen next action from the one
+   * durable storage handle before the compiled controls are refreshed. */
+  private restoreAttention(): void {
+    const rawChanged = this.durableStorage.storage.getItem(LAST_CHANGED_SETTING_KEY);
+    const changed = rawChanged ? Number(rawChanged) : NaN;
+    if (Number.isFinite(changed) && changed >= 0 && changed <= Date.now()) this.attentionLastChangedAt = changed;
+    const rawSnooze = this.durableStorage.storage.getItem(SNOOZED_UNTIL_SETTING_KEY);
+    const snoozed = rawSnooze ? Number(rawSnooze) : NaN;
+    if (Number.isFinite(snoozed) && snoozed > Date.now()) this.attentionSnoozedUntil = snoozed;
+    const restored = this.attentionStateValues();
+    this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, ...restored } }));
+  }
+
+  private attentionRoot(): HTMLElement | null {
+    const drag = typeof document === 'undefined' ? null : document.querySelector('[data-window-drag]');
+    return (drag?.parentElement as HTMLElement | null) ?? null;
+  }
+
+  private ensureAttentionStyle(): void {
+    if (this.attentionStyle || typeof document === 'undefined') return;
+    const style = document.createElement('style');
+    style.dataset.attentionRuntime = 'true';
+    style.textContent = `
+      [data-attention-inactive="true"] { opacity: .46; filter: saturate(.72); transition: opacity 180ms ease, filter 180ms ease; }
+      [data-attention-current="true"] { opacity: 1; filter: none; }
+      body.attention-low-stimulation [data-attention-root="true"] { filter: saturate(.72); }
+      body.attention-low-stimulation [data-attention-root="true"] * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+      body.attention-reduced-motion [data-attention-root="true"] * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+      [data-attention-status="true"] { display:flex; flex-direction:column; gap:6px; background:#1B211C; border:1px solid #333B34; border-radius:14px; padding:10px 14px; margin:0 0 12px; color:#DFF3E5; font-size:12px; line-height:1.45; }
+      [data-attention-status="true"] [data-attention-meta] { color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; }
+      [data-attention-status="true"] [data-attention-next] { color:#9FF7C4; font-weight:500; }
+      [data-attention-status="true"] button { align-self:flex-start; border:1px solid #617066; border-radius:999px; background:#262B26; color:#DFF3E5; padding:7px 12px; min-height:32px; cursor:pointer; font:inherit; }
+      [data-attention-status="true"] button:focus-visible { outline:2px solid #9FF7C4; outline-offset:2px; }
+      @media (prefers-reduced-motion: reduce) { [data-attention-inactive="true"] { transition:none; } }
+    `;
+    document.head.append(style);
+    this.attentionStyle = style;
+  }
+
+  private attentionSetLastChanged(now = Date.now()): void {
+    this.attentionLastChangedAt = now;
+    this.durableStorage.storage.setItem(LAST_CHANGED_SETTING_KEY, String(now));
+  }
+
+  private attentionSnooze(): void {
+    this.attentionSnoozedUntil = Date.now() + SNOOZE_MS;
+    this.durableStorage.storage.setItem(SNOOZED_UNTIL_SETTING_KEY, String(this.attentionSnoozedUntil));
+    this.attentionRender();
+  }
+
+  private attentionSyncControls(): void {
+    if (this.attentionSyncing) return;
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const restored = this.attentionStateValues();
+    const changed = Object.entries(restored).some(([key, value]) => values[key] !== value);
+    if (!changed) return;
+    this.attentionSyncing = true;
+    this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, ...restored } }), () => {
+      this.attentionSyncing = false;
+    });
+  }
+
+  /** Applies the live accommodation consumers for the lifetime of this application.
+   * Focus marks the rail, group list and chrome as inactive while leaving the current
+   * work region present. Time, next action and momentum share one visible status card. */
+  private attentionRender = (): void => {
+    if (typeof document === 'undefined') return;
+    this.ensureAttentionStyle();
+    this.attentionSyncControls();
+    const root = this.attentionRoot();
+    if (!root) return;
+    root.dataset.attentionRoot = 'true';
+    const presentation = presentationFor(this.durableStorage.storage, {
+      prefersReducedMotion: this.attentionMotionQuery?.matches ?? false,
+    });
+    document.body.classList.toggle('attention-focus', presentation.dimInactive);
+    document.body.classList.toggle('attention-low-stimulation', presentation.quietNotifications);
+    document.body.classList.toggle('attention-reduced-motion', presentation.reduceMotion);
+    const main = root.children[1] as HTMLElement | undefined;
+    const inactive = [root.children[0], main?.children[0], main?.children[1]].filter(Boolean) as HTMLElement[];
+    for (const el of inactive) el.dataset.attentionInactive = presentation.dimInactive ? 'true' : 'false';
+    if (main?.children[2]) (main.children[2] as HTMLElement).dataset.attentionCurrent = 'true';
+
+    const content = main?.children[2] as HTMLElement | undefined;
+    if (!content) return;
+    let status = this.attentionStatus;
+    if (!status || !status.isConnected) {
+      status = document.createElement('div');
+      status.dataset.attentionStatus = 'true';
+      status.setAttribute('role', 'status');
+      status.setAttribute('aria-live', 'polite');
+      this.attentionStatus = status;
+      content.prepend(status);
+    }
+    const now = Date.now();
+    const prompt = momentumPrompt(
+      this.durableStorage.storage,
+      Math.max(0, now - this.attentionLastChangedAt),
+      this.attentionSnoozedUntil > 0 ? Math.max(0, now - (this.attentionSnoozedUntil - SNOOZE_MS)) : undefined,
+    );
+    const shouldShow = presentation.showElapsedTime || presentation.showNextAction || prompt.show;
+    status.hidden = !shouldShow;
+    status.replaceChildren();
+    if (!shouldShow) return;
+    if (presentation.showElapsedTime) {
+      const meta = document.createElement('div');
+      meta.dataset.attentionMeta = 'true';
+      meta.textContent = `Session elapsed: ${elapsedPhrase(now - this.attentionSessionStartedAt)} · Since last change: ${elapsedPhrase(now - this.attentionLastChangedAt)}`;
+      status.append(meta);
+    }
+    if (presentation.showNextAction) {
+      const action = document.createElement('div');
+      action.dataset.attentionNext = 'true';
+      const chosen = nextAction(this.durableStorage.storage);
+      action.textContent = chosen ? `Next action: ${chosen}` : 'Next action: none chosen yet.';
+      status.append(action);
+    }
+    if (prompt.show) {
+      const message = document.createElement('div');
+      message.textContent = prompt.message;
+      status.append(message);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = `Not now for ${elapsedPhrase(SNOOZE_MS)}`;
+      button.addEventListener('click', () => this.attentionSnooze(), { once: true });
+      status.append(button);
+    }
+  };
+
   componentDidMount() {
     super.componentDidMount?.();
     /* The durable-storage snapshot has to load before anything reads or restores
@@ -264,6 +425,7 @@ export class App extends Base {
       this.restoreLanguageMode();
       this.restoreDisplayName();
       this.restoreAppearance();
+      this.restoreAttention();
       this.forceUpdate();
     });
     /* The configured server list is not a reading from any PBX — it exists before
@@ -271,6 +433,11 @@ export class App extends Base {
      * target, so it is loaded independently of it. */
     void this.servers.load().then(() => this.forceUpdate());
     void this.discover();
+    this.attentionMotionQuery = typeof window !== 'undefined' && window.matchMedia
+      ? window.matchMedia('(prefers-reduced-motion: reduce)') : undefined;
+    this.attentionMotionQuery?.addEventListener?.('change', this.attentionRender);
+    this.attentionRender();
+    this.attentionTimer = setInterval(this.attentionRender, 1000);
     this.refreshTimer = setInterval(() => {
       if (this.target.connected) {
         void this.refresh();
@@ -283,10 +450,18 @@ export class App extends Base {
     super.componentWillUnmount?.();
     if (this.refreshTimer) clearInterval(this.refreshTimer);
     this.refreshTimer = undefined;
+    if (this.attentionTimer) clearInterval(this.attentionTimer);
+    this.attentionTimer = undefined;
+    this.attentionMotionQuery?.removeEventListener?.('change', this.attentionRender);
+    this.attentionStyle?.remove();
+    this.attentionStyle = undefined;
+    this.attentionStatus?.remove();
+    this.attentionStatus = undefined;
   }
 
   componentDidUpdate() {
     void this.refresh();
+    this.attentionRender();
   }
 
   private async request(action: string, extra: Record<string, unknown> = {}): Promise<ControlPlaneResponse | undefined> {
@@ -586,6 +761,11 @@ ${resolution.disclosure}`);
     if (control?.id?.startsWith('att_') && typeof value === 'boolean') {
       const mode = App.ATTENTION_CONTROLS[control.id];
       if (isAttentionMode(mode)) setModeEnabled(this.durableStorage.storage, mode, value);
+      this.attentionSetLastChanged();
+    }
+    if (control?.id === 'att_next' && typeof value === 'string') {
+      setNextAction(this.durableStorage.storage, value);
+      this.attentionSetLastChanged();
     }
     if (control?.id === 'dlg_emoji' && typeof value === 'boolean') {
       setEmojisEnabled(this.durableStorage.storage, value);
@@ -598,6 +778,7 @@ ${resolution.disclosure}`);
       }
     }
     this.baseSetVal(control, value);
+    this.attentionRender();
   };
 
   /** Read by the compiled `text`-kind control marked `action:'daemon-status'`/`'vocab-status'`. */

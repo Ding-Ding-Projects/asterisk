@@ -41,10 +41,15 @@ export const MODE_DESCRIPTIONS: readonly ModeDescription[] = [
 ];
 
 export const MODE_SETTING_PREFIX = 'console.attention.';
+export const NEXT_ACTION_SETTING_KEY = `${MODE_SETTING_PREFIX}nextAction`;
+export const LAST_CHANGED_SETTING_KEY = `${MODE_SETTING_PREFIX}lastChangedAt`;
+export const SNOOZED_UNTIL_SETTING_KEY = `${MODE_SETTING_PREFIX}snoozedUntil`;
+export const NEXT_ACTION_MAX_LENGTH = 140;
 
 export interface ModeStorage {
   getItem(key: string): string | null | undefined;
   setItem(key: string, value: string): void;
+  removeItem?(key: string): void;
 }
 
 export function isAttentionMode(value: unknown): value is AttentionMode {
@@ -62,6 +67,18 @@ export function setModeEnabled(storage: ModeStorage, mode: AttentionMode, enable
 
 export function enabledModes(storage: ModeStorage | undefined): AttentionMode[] {
   return ATTENTION_MODES.filter((mode) => modeEnabled(storage, mode));
+}
+
+export function nextAction(storage: ModeStorage | undefined): string {
+  const value = storage?.getItem(NEXT_ACTION_SETTING_KEY);
+  return typeof value === 'string' ? value.slice(0, NEXT_ACTION_MAX_LENGTH) : '';
+}
+
+export function setNextAction(storage: ModeStorage, value: string): void {
+  const trimmed = value.trim().slice(0, NEXT_ACTION_MAX_LENGTH);
+  if (trimmed) storage.setItem(NEXT_ACTION_SETTING_KEY, trimmed);
+  else if (storage.removeItem) storage.removeItem(NEXT_ACTION_SETTING_KEY);
+  else storage.setItem(NEXT_ACTION_SETTING_KEY, '');
 }
 
 export interface PresentationState {

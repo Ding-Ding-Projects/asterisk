@@ -419,3 +419,12 @@ one-page target preflight. The run also recorded direct `Setup.exe` launch succe
 repaired restart path, Later hiding the banner while retaining the staged candidate, and
 the visible review, apply, or discard block for two drafts. The detailed public article is
 `console/docs/platform/automatic-updates-evidence.md`. No new capture was made in this lane.
+
+## Attention runtime mount on 2026-08-23
+
+The desktop attention runtime is implemented but unverified on `codex/mount-attention-runtime`.
+`App.tsx` restores all five independent switches and the persisted `att_next` action after the durable settings snapshot loads. It applies Focus dimming without removing inactive work, Low stimulation color and motion consumers, live operating-system reduced-motion composition, session and since-last-change values, and a factual Momentum prompt with a 30-minute snooze.
+
+The checked-in design adds the `att_next` text control, generated renderer output was refreshed with `npm run compile:design`, and Cantonese labels cover the new control. Directly related records are `console/app/feature-registry.json`, `console/app/locales/feature-registry.json`, `console/docs/platform/attention-modes.md`, `console/docs/changelog/attention-runtime-mount.md`, and `ROADMAP.md`.
+
+No UI, accessibility, browser, capture, Lowlevel, broad build, packaging, or release verification was run in this lane. The next owner must run focused built-artifact checks for mount restoration, each mode's visible consumer, the next-action persistence path, Momentum snooze expiry, keyboard access, and reduced-motion behavior before marking the feature verified.

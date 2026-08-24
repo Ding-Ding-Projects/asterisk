@@ -239,11 +239,13 @@
       ]
     },
     "attention-modes": {
-      "state": "implemented",
-      "note": "Implemented 2026-08-23 as app/renderer/src/attention-modes.ts with five controls (att_focus, att_low, att_time, att_one, att_momentum) in the design, acted on through one prefix handler in App.tsx's setVal interception. Every mode is off by default and independently toggleable, which is the whole design: bundling them behind one switch means somebody who wants a quieter interface but not time nudges turns the entire feature off to escape the one part that does not suit them. Focus dims and never hides. Low stimulation composes with prefers-reduced-motion rather than overriding it, so a platform preference alone still reduces motion. Momentum respects a declined prompt for half an hour. Nothing is medical, scored or judgemental, and that is enforced by a scan over every string in the feature rather than left to review.",
+      "state": "partial",
+      "note": "Implemented-unverified 2026-08-23. app/renderer/src/attention-modes.ts defines five independent off-by-default switches, and App.tsx now restores att_focus, att_low, att_time, att_one, att_momentum, and the persisted att_next action from durable storage after mount. The application-lifetime runtime dims inactive chrome without hiding work, applies quiet color and motion consumers, composes with prefers-reduced-motion, shows session and since-last-change values in the current work region, and gives Momentum a factual 20-minute prompt with a persisted 30-minute snooze. The checked-in design adds the att_next text control and generated output was refreshed. No UI, accessibility, browser, or built-artifact verification was run in this lane, so this remains partial until the owning integration lane supplies that evidence. Nothing is medical, scored, or judgemental.",
       "files": [
         "app/renderer/src/attention-modes.ts",
         "app/renderer/src/App.tsx",
+        "design/Asterisk Console M3.dc.html",
+        "app/renderer/src/generated/console.tsx",
         "tests/ui/attention-modes.test.tsx"
       ]
     },
