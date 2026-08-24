@@ -67,8 +67,15 @@ function verifyAttentionWiring() {
     for (const [input, expected] of [
       ['path C:/Program Files/Ding PBX/settings (old),semi;tail', 'path [path omitted]'],
       ['url https://example.invalid/Program Files/(old)[x],semi;tail', 'url [url omitted]'],
+      ['path C:/Program Files/Ding PBX/settings (old), retry with bridge', 'path [path omitted], retry with bridge'],
+      ['url https://example.invalid/Program Files/(old)[x], retry after bridge', 'url [url omitted], retry after bridge'],
     ]) {
       if (redactNoticeText(input) !== expected) throw new Error('Redaction span fixture failed: ' + input);
+    }
+    for (const key of ['password', 'token', 'secret', 'PIN', 'API key', 'access token']) {
+      const input = '"' + key + ': alpha beta"';
+      const expected = '"' + key + ': [redacted]"';
+      if (redactNoticeText(input) !== expected) throw new Error('Quoted credential fixture failed: ' + key);
     }
     for (const row of ATTENTION_WIRING) {
       const markers = [row.designMarker, row.controlConstruction, row.durableKey, ...row.writerMarkers, ...row.setterMarkers, ...row.consumerMarkers];

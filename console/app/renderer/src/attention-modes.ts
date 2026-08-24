@@ -86,12 +86,26 @@ function isSensitiveQuoted(value: string): boolean {
 }
 function scanToDelimiter(value: string, start: number, _url: boolean): number {
   let index = start;
+  let parentheses = 0;
+  let brackets = 0;
   while (index < value.length) {
     const ch = value[index];
     /* Unquoted paths and URLs may legally contain spaces, parentheses, brackets,
-     * commas, and semicolons. A line boundary or a new quote is the only bounded
-     * delimiter we can trust without leaving a suffix behind. */
+     * commas, and semicolons. Keep balanced punctuation inside the span, then
+     * preserve a producer's trailing recovery text at a clear clause boundary. */
     if (/[\r\n"'`]/u.test(ch)) break;
+    if (ch === '(') { parentheses += 1; index += 1; continue; }
+    if (ch === '[') { brackets += 1; index += 1; continue; }
+    if (ch === ')' && parentheses > 0) { parentheses -= 1; index += 1; continue; }
+    if (ch === ']' && brackets > 0) { brackets -= 1; index += 1; continue; }
+    if (parentheses === 0 && brackets === 0 && (ch === ',' || ch === ';')) {
+      const next = value[index + 1] ?? '';
+      if (/\s/u.test(next)) break;
+    }
+    if (parentheses === 0 && brackets === 0 && /\s/u.test(ch)) {
+      const recovery = value.slice(index).match(/^\s+(?:retry(?:ing)?|please|again|then|because|while|but|so|cannot|could|was|were|is|has|have|will)\b/iu);
+      if (recovery) break;
+    }
     index += 1;
   }
   return index;
@@ -123,7 +137,9 @@ export function redactNoticeText(value: string): string {
     if (isQuote(ch)) {
       const end = scanQuoted(input, index + 1, ch);
       const inner = input.slice(index + 1, end);
-      output += isSensitiveQuoted(inner) ? `${ch}${inner.startsWith('http') || inner.startsWith('file:') ? URL_MARKER : PATH_MARKER}${ch}` : input.slice(index, Math.min(end + 1, input.length));
+      const quotedCredential = inner.match(CREDENTIAL_KEY);
+      if (quotedCredential) output += `${ch}${quotedCredential[0]}${CREDENTIAL_MARKER}${ch}`;
+      else output += isSensitiveQuoted(inner) ? `${ch}${inner.startsWith('http') || inner.startsWith('file:') ? URL_MARKER : PATH_MARKER}${ch}` : input.slice(index, Math.min(end + 1, input.length));
       index = Math.min(end + 1, input.length);
       continue;
     }

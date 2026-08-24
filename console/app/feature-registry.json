@@ -264,7 +264,7 @@
         "key": "console.attention.noticeHistory",
         "schemaVersion": 1,
         "maxEntries": 200,
-        "redaction": "redactNoticeText removes Windows, UNC, POSIX, relative, and PBX configuration paths, URLs, and credential-shaped values before durable write or export",
+        "redaction": "redactNoticeText uses bounded structured spans for Windows, UNC, POSIX, relative, and PBX paths plus file and HTTP URLs, preserving trailing recovery text at clause boundaries; quoted credential assignments for password, token, secret, PIN, API key, and access token are redacted before durable write or export",
         "actions": ["search", "clear", "export", "restore", "show-corrupt-state", "reset-corrupt-state"]
       },
       "mutationInventory": { "source": "app/renderer/src/attention-inventory.ts:ATTENTION_MUTATION_INVENTORY", "entries": 61, "validator": "app/renderer/src/attention-modes.ts:verifyAttentionMutationInventory", "passiveExclusions": "app/renderer/src/attention-inventory.ts:ATTENTION_MUTATION_PASSIVE_EXCLUSIONS" },
