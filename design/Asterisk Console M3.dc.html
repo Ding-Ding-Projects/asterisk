@@ -114,6 +114,18 @@
 </helmet>
 <div data-appearance-id="console-shell" style="height:100vh; display:flex; flex-direction:column; background:#0B0F0C; color:#DFE4DC; font-family:Roboto,system-ui,sans-serif; font-size:14px; overflow:hidden; position:relative;">
 
+  <sc-if value="{{ richOperationVisible }}">
+    <div data-appearance-id="rich-operation-progress" role="status" aria-live="polite" style="position:absolute; right:18px; bottom:18px; z-index:120; min-width:300px; max-width:calc(100vw - 36px); padding:14px 16px; background:#20271F; border:1px solid #414942; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,.45);">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="msym" style="font-size:19px; color:#9FF7C4;">progress_activity</span>
+        <span style="flex:1; font-size:12.5px; color:#DFE4DC;">{{ richOperationStatus }}</span>
+        <button data-appearance-id="rich-operation-cancel" onClick="{{ cancelRichOperation }}" aria-label="Cancel operation" style="min-height:40px; border:1px solid #414942; border-radius:999px; padding:7px 13px; background:transparent; color:#C4CBC2; cursor:pointer;">Cancel</button>
+      </div>
+      <progress max="100" value="{{ richOperationProgress }}" aria-label="Operation progress" style="width:100%; margin-top:10px;"></progress>
+      <small style="display:block; margin-top:6px; color:#8FA394;">Operation {{ richOperationId }}</small>
+    </div>
+  </sc-if>
+
   <div style="height:40px; flex:0 0 40px; display:flex; align-items:stretch; background:#141A15; user-select:none; overflow:hidden; min-width:0;">
     <div style="display:flex; align-items:center; gap:10px; padding:0 12px; flex:0 0 auto; white-space:nowrap;">
       <span class="msym" style="font-size:20px; color:#82D9A5; flex:0 0 auto;">deployed_code</span>

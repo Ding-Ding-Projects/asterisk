@@ -10,6 +10,8 @@ The central renderer exposes the registry to the compiled palette as `paletteIte
 
 Rich action lifecycle is ordered: allocate one operation ID, append a durable `started` record, wait for its acknowledgement, execute the action, emit the actual terminal result, then append the matching `completed`, `failed`, or `cancelled` record. If started history is unavailable, the action does not execute and the unavailable history outcome is reported. Cancellation has a separate requested signal and terminal result; an already executing action reports that cancellation was unavailable rather than pretending it stopped. Action and history outcomes are separate notifications even though they share the operation ID. Rows without a canonical target are surfaced as explicit defects and are not silently rendered as destinations.
 
+While a rich operation is active, the mounted `rich-operation-progress` surface shows its operation ID, live bounded progress, current status, and a real `rich-operation-cancel` control. The terminal-phase latch keeps one operation from producing more than one terminal history record.
+
 ## Appearance mount
 
 After the durable settings snapshot hydrates, the renderer creates the versioned `AppearanceStore`, installs the shared rainbow stylesheet, marks rendered controls with stable `data-appearance-id` values, and binds `AppearanceRuntime`. Store updates remount the real document. Values are persisted through the existing durable settings bridge, and a failed draft or apply operation leaves the previous value active with an honest notification.

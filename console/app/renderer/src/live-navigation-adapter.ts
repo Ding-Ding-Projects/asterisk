@@ -31,10 +31,18 @@ export interface LiveNavigationAdapter {
   restore(snapshot: NavigationState): NavigationState;
   subscribe(listener: (state: NavigationState) => void): () => void;
   replaceDefinitionState(definitions: NavigationState): NavigationState;
-  syncGenerated(snapshot: GeneratedNavigationSnapshot): NavigationState;
-  activateDestination(destinationId: string): NavigationState | undefined;
-  activateTarget(target: TeleportTarget): NavigationState | undefined;
+  syncGenerated(snapshot: GeneratedNavigationSnapshot): NavigationSyncResult;
+  activateDestination(destinationId: string): NavigationMutationResult;
+  activateTarget(target: TeleportTarget): NavigationMutationResult;
 }
+
+export type NavigationMutationResult =
+  | { readonly ok: true; readonly state: NavigationState; readonly revision: number }
+  | { readonly ok: false; readonly reason: 'transaction-locked' | 'stale-target' | 'unknown-destination' };
+
+export type NavigationSyncResult =
+  | { readonly ok: true; readonly state: NavigationState; readonly revision: number }
+  | { readonly ok: false; readonly state: NavigationState; readonly revision: number; readonly reason: 'transaction-locked' | 'stale-revision' };
 
 function destinationMap(state: NavigationState): Map<string, NavigationTab> {
   const map = new Map<string, NavigationTab>();
@@ -164,11 +172,11 @@ export function createLiveNavigationAdapter(initial: NavigationState): LiveNavig
     });
   };
 
-  const syncGenerated = (snapshot: GeneratedNavigationSnapshot): NavigationState => {
-    if (lockedToken !== undefined) return state;
-    if (snapshot.expectedRevision !== undefined && snapshot.expectedRevision !== state.revision) return state;
+  const syncGenerated = (snapshot: GeneratedNavigationSnapshot): NavigationSyncResult => {
+    if (lockedToken !== undefined) return { ok: false, state, revision: state.revision, reason: 'transaction-locked' };
+    if (snapshot.expectedRevision !== undefined && snapshot.expectedRevision !== state.revision) return { ok: false, state, revision: state.revision, reason: 'stale-revision' };
     const current = currentWorkspace();
-    if (!current) return state;
+    if (!current) return { ok: true, state, revision: state.revision };
     const available = destinationMap(definitions);
     const requestedOrder = stringList(snapshot.tabs);
     const requestedPinned = new Set(stringList(snapshot.pinned) ?? []);
@@ -220,24 +228,28 @@ export function createLiveNavigationAdapter(initial: NavigationState): LiveNavig
         },
       },
     };
-    return publish({ ...state, workspaces: { ...state.workspaces, [current.workspace.id]: nextWorkspace }, revision: state.revision + 1 });
+    const next = publish({ ...state, workspaces: { ...state.workspaces, [current.workspace.id]: nextWorkspace }, revision: state.revision + 1 });
+    return { ok: true, state: next, revision: next.revision };
   };
 
-  const activateDestination = (destinationId: string): NavigationState | undefined => {
+  const activateDestination = (destinationId: string): NavigationMutationResult => {
+    if (lockedToken !== undefined) return { ok: false, reason: 'transaction-locked' };
     const current = currentWorkspace();
     const definition = destinationMap(definitions).get(destinationId);
-    if (!current || !definition) return undefined;
+    if (!current || !definition) return { ok: false, reason: 'unknown-destination' };
     const existing = current.strip.tabs[definition.id] ?? definition;
     const tabs = { ...current.strip.tabs, [definition.id]: existing };
     const tabOrder = current.strip.tabOrder.includes(definition.id) ? [...current.strip.tabOrder] : [...current.strip.tabOrder, definition.id];
     const strip = { ...current.strip, tabs, tabOrder, activeTabId: definition.id };
     const workspace = { ...current.workspace, ...(definition.railId ? { railId: definition.railId } : {}), strips: { ...current.workspace.strips, [strip.id]: strip } };
-    return publish({ ...state, workspaces: { ...state.workspaces, [workspace.id]: workspace }, revision: state.revision + 1 });
+    const next = publish({ ...state, workspaces: { ...state.workspaces, [workspace.id]: workspace }, revision: state.revision + 1 });
+    return { ok: true, state: next, revision: next.revision };
   };
 
-  const activateTarget = (target: TeleportTarget): NavigationState | undefined => {
+  const activateTarget = (target: TeleportTarget): NavigationMutationResult => {
+    if (lockedToken !== undefined) return { ok: false, reason: 'transaction-locked' };
     const definition = destinationMap(definitions).get(target.destinationId);
-    if (!definition || definition.id !== target.tabId || definition.pageId !== target.pageId || !definition.teleportElementIds.includes(target.elementId)) return undefined;
+    if (!definition || definition.id !== target.tabId || definition.pageId !== target.pageId || !definition.teleportElementIds.includes(target.elementId)) return { ok: false, reason: 'stale-target' };
     return activateDestination(target.destinationId);
   };
 

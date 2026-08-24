@@ -48,6 +48,12 @@ Appearance validation iterates every required id family and direct target set. D
 
 No tests, lint, broad build, package, UI, browser, captures, dew, or cleanup ran.
 
+## Final smell repair after operation lifecycle refutation, 2026-08-24
+
+The compiler and design runtime now share an explicit `id` or `key` identity contract. `stableDynamicIdentity` refuses missing data with the design path and loop variable, and the M3 Control source gives choices, regex flags, keypad keys, order items, and pool items stable identifiers before they render. Generated direct IDs use those exact instances, with the selected mounted-state manifest compared in both directions.
+
+The navigation adapter returns explicit transaction-locked, stale-target, unknown-destination, and stale-revision results. Activation is refused under the owner transaction token, and stale generated state restores the shell from the adapter state. Rich operations mount a real progress and Cancel surface, wait for acknowledged started history, and use one terminal-phase latch for completed, failed, or cancelled history.
+
 ## Ninth refutation repair, 2026-08-24
 
 The registry now keeps one live navigation adapter rather than treating registration-time navigation as current state. It reconciles canonical destination and control targets with generated tabs, order, active screen, rail, groups, and pins. Palette activation uses that adapter to add an unopened destination and update tabs, screen, and rail together before resolving, focusing, and highlighting the exact target. Semantically identical prepared control duplicates are suppressed; material collisions remain named unavailable defects.

@@ -180,6 +180,13 @@ const EVENTS = new Set([
 ]);
 
 const DIRECT_INTERACTIVE_TAGS = new Set(['button', 'input', 'select', 'textarea', 'summary']);
+const STABLE_DYNAMIC_IDENTITY_FIELDS = Object.freeze(['id', 'key']);
+
+function assertStableDynamicIdentityContract(path, loopVariable) {
+  if (STABLE_DYNAMIC_IDENTITY_FIELDS.join('|') !== 'id|key') {
+    throw new Error(`Design path ${path}, loop variable ${loopVariable} has an invalid stable identity contract.`);
+  }
+}
 
 function annotateDirectInteractiveNodes(nodes, componentName, paths, path = '0') {
   nodes.forEach((node, index) => {
@@ -196,14 +203,15 @@ function annotateDirectInteractiveNodes(nodes, componentName, paths, path = '0')
 
 function directAppearanceId(path, scope) {
   const dynamicParts = [];
-  if (path.startsWith('m3control-')) dynamicParts.push("(S(v.ctl?.presentationId ?? v.ctl?.id ?? '') || 'missing')");
+  if (path.startsWith('m3control-')) dynamicParts.push(`stableDynamicIdentity(v.ctl, ${JSON.stringify(path)}, 'ctl')`);
   for (const [name, alias] of scope.entries()) {
     if (name.startsWith('__index:')) continue;
-    const identityExpression = `S(${alias}?.id ?? ${alias}?.key ?? '')`;
-    if (!identityExpression.includes('.id') || !identityExpression.includes('.key')) {
-      throw new Error(`Design path ${path}, loop variable ${name} lacks a stable id or key identity.`);
+    assertStableDynamicIdentityContract(path, name);
+    const identityExpression = `stableDynamicIdentity(${alias}, ${JSON.stringify(path)}, ${JSON.stringify(name)})`;
+    if (!identityExpression.includes('stableDynamicIdentity') || !identityExpression.includes(JSON.stringify(name))) {
+      throw new Error(`Design path ${path}, loop variable ${name} lacks the explicit stable id or key identity contract.`);
     }
-    dynamicParts.push(`(${identityExpression} || 'missing')`);
+    dynamicParts.push(identityExpression);
   }
   return dynamicParts.length > 0
     ? `${JSON.stringify(`direct-${path}`)} + '-' + ${dynamicParts.join(" + '-' + ")}`
@@ -422,7 +430,7 @@ function compileComponent({ name, source, componentName, extraImports = '', expo
       '/* GENERATED FILE — do not edit.',
       ' * Produced by console/scripts/compile-design.mjs from the checked-in design reference.',
       ' * Edit the design reference and recompile instead. */',
-      "import { DCLogic, h, F, A, R, S, fn, sty } from '../dc-runtime';",
+      "import { DCLogic, h, F, A, R, S, fn, sty, stableDynamicIdentity } from '../dc-runtime';",
       extraImports,
       '',
       template,
@@ -497,7 +505,7 @@ const manifest = {
     console: consoleModule.directAppearancePaths,
     m3Control: control.directAppearancePaths,
     mountedStates: {
-      shell: consoleModule.directAppearancePaths,
+      shell: [...consoleModule.directAppearancePaths, ...control.directAppearancePaths],
       palette: [...consoleModule.directAppearancePaths, ...control.directAppearancePaths],
       appearance: [...consoleModule.directAppearancePaths, ...control.directAppearancePaths],
       'palette-appearance': [...consoleModule.directAppearancePaths, ...control.directAppearancePaths],

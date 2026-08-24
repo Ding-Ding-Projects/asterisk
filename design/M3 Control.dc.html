@@ -298,11 +298,14 @@ class Component extends DCLogic {
     const describedBy = [showProvenance ? provenanceId : '', showDisabledReason ? disabledReasonId : '', showBrowseButton && browseCapabilityText ? browseCapabilityId : ''].filter(Boolean).join(' ') || undefined;
 
     const safe = (fn) => () => { if (!baseDisabled && typeof fn === 'function') fn(); };
-    const choices = (c.options || []).map((option, index) => {
+    const choices = (c.options || []).map((rawOption, index) => {
+      const option = typeof rawOption === 'string' ? { id:rawOption, key:rawOption, value:rawOption, label:rawOption } : rawOption;
+      const stableId = option && (option.id ?? option.key);
+      if (typeof stableId !== 'string' || stableId.trim() === '') throw new Error('M3 Control choice item is missing stable id/key.');
       const selected = option.on === true || option.selected === true || option.value === c.value || option.label === c.value;
       const pickFn = typeof option.pick === 'function' ? option.pick : null;
       const disabled = baseDisabled || option.disabled === true || !pickFn;
-      return Object.assign({}, option, {
+      return Object.assign({}, option, { id:stableId, key:stableId,
         label:String(option.label === undefined ? '' : option.label), selected, disabled,
         tabIndex:selected || index === 0 ? 0 : -1, pickSafe:safe(pickFn),
         accessibleLabel:String(option.label === undefined ? '' : option.label) + (selected ? ', selected' : ', not selected') + (disabled ? ', unavailable' : ''),
@@ -346,7 +349,11 @@ class Component extends DCLogic {
     };
 
     const canMove = !baseDisabled && typeof c.move === 'function';
-    const orderItems = c.items || [];
+    const orderItems = (c.items || []).map(item => {
+      const stableId = item && (item.id ?? item.key);
+      if (typeof stableId !== 'string' || stableId.trim() === '') throw new Error('M3 Control order item is missing stable id/key.');
+      return Object.assign({}, item, { id:stableId, key:stableId });
+    });
     const dragItems = orderItems.map((item, index) => {
       const upFn = typeof item.up === 'function' ? item.up : null;
       const downFn = typeof item.down === 'function' ? item.down : null;
@@ -364,8 +371,10 @@ class Component extends DCLogic {
       });
     });
     const poolItems = (c.pool || []).map(item => {
+      const stableId = item && (item.id ?? item.key);
+      if (typeof stableId !== 'string' || stableId.trim() === '') throw new Error('M3 Control pool item is missing stable id/key.');
       const addFn = typeof item.add === 'function' ? item.add : null;
-      return Object.assign({}, item, { disabled:baseDisabled || !addFn, addSafe:safe(addFn) });
+      return Object.assign({}, item, { id:stableId, key:stableId, disabled:baseDisabled || !addFn, addSafe:safe(addFn) });
     });
 
     return {
@@ -384,7 +393,7 @@ class Component extends DCLogic {
       regexInvalid, regexEngine:String(c.regexEngine || 'JavaScript RegExp'),
       regexFlags:['i','m','s','u'].map(flag => {
         const on = flags.indexOf(flag) >= 0;
-        return { label:flag, on, bg:on ? '#005230' : '#262B26', fg:on ? '#9FF7C4' : '#C4CBC2',
+        return { id:flag, key:flag, label:flag, on, bg:on ? '#005230' : '#262B26', fg:on ? '#9FF7C4' : '#C4CBC2',
           toggle:() => this.setState(value => ({ regexFlags:on ? value.regexFlags.filter(item => item !== flag) : value.regexFlags.concat([flag]) })) };
       }),
       isStepper, isSlider, stepVal:c.step || 1,
@@ -398,7 +407,7 @@ class Component extends DCLogic {
       padOpen:st.padOpen, padValue:st.padBuf || String(c.value === undefined ? '' : c.value),
       togglePad:() => { if (!numberDisabled) this.setState(value => ({ padOpen:!value.padOpen, padBuf:'' })); },
       padKeys:['1','2','3','4','5','6','7','8','9','.','0','⌫'].map(character => ({
-        label:character, accessibleLabel:character === '⌫' ? 'Backspace' : (character === '.' ? 'Decimal point' : character),
+        id:character, key:character, label:character, accessibleLabel:character === '⌫' ? 'Backspace' : (character === '.' ? 'Decimal point' : character),
         press:() => this.setState(value => ({ padBuf:character === '⌫' ? value.padBuf.slice(0, -1) : (value.padBuf + character).slice(0, 16) }))
       })),
       padClear:() => this.setState({ padBuf:'' }), padApplyDisabled:numberDisabled || !st.padBuf,

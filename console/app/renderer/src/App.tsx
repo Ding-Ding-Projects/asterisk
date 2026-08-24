@@ -279,7 +279,7 @@ export class App extends Base {
   private navigationTransactionToken: number | undefined;
   private queuedRichControlRefresh: { screenId: string; controls: ReadonlyArray<RichControlInput> } | undefined;
   private generatedNavigationRevision = 0;
-  private controlOperations = new Map<string, { controlId: string; action: string; executing: boolean; cancelled: boolean }>();
+  private controlOperations = new Map<string, { controlId: string; action: string; executing: boolean; cancelled: boolean; progress: number; status: string; terminalPhase?: 'completed' | 'failed' | 'cancelled' }>();
   /** The unlock ladder (unlock-ladder.ts) for the per-element lock's unlock dialog.
    *  Renderer-only: this app's per-element lock has no server-enforced attempt budget
    *  or time-based lockout of its own, so this in-memory instance -- like the PIN and
@@ -402,6 +402,9 @@ export class App extends Base {
       railId: (this.state as { railId?: unknown }).railId,
     });
     this.generatedNavigationRevision = syncedNavigation.revision;
+    if (!syncedNavigation.ok && syncedNavigation.reason === 'stale-revision') {
+      this.restoreNavigationShell(syncedNavigation.state, false);
+    }
     this.publishDimSumContext(true);
     this.syncLegacyAppearanceStore();
     void this.refresh();
@@ -535,10 +538,14 @@ export class App extends Base {
       expectedDynamicIds.add(`palette-row-${String(item.id)}`);
       if (item.ctl && typeof item.id === 'string') expectedDynamicIds.add(paletteControlAppearanceId(item.id));
     }
-    const directManifest = new Set<string>([
-      ...(DESIGN_MANIFEST.directAppearanceIds?.console ?? []),
-      ...(DESIGN_MANIFEST.directAppearanceIds?.m3Control ?? []),
-    ]);
+    if ([...this.controlOperations.values()].some((operation) => !operation.terminalPhase)) {
+      expectedDynamicIds.add('rich-operation-progress');
+      expectedDynamicIds.add('rich-operation-cancel');
+    }
+    const directManifest = new Set<string>(
+      DESIGN_MANIFEST.directAppearanceIds?.mountedStates?.[mountedState]
+      ?? [...(DESIGN_MANIFEST.directAppearanceIds?.console ?? []), ...(DESIGN_MANIFEST.directAppearanceIds?.m3Control ?? [])],
+    );
     const inventoryDefects = appearanceInventoryDefects(document, mountedState, expectedDynamicIds, directManifest);
     if (inventoryDefects.length > 0) {
       document.documentElement.dataset.appearanceRegistrationError = `inventory:${inventoryDefects.join(' | ')}`;
@@ -641,8 +648,9 @@ export class App extends Base {
 
   private ensurePaletteTarget(entry: RegisteredCommand): { instruction: NonNullable<ReturnType<typeof createTeleportInstruction>>; previousState: NavigationState } | undefined {
     const previousState = this.navigationAdapter.getState();
-    if (!this.navigationAdapter.activateTarget(entry.target)) {
-      this.toast(`Palette target is stale: ${entry.target.elementId}. Refresh the palette and try again.`);
+    const activated = this.navigationAdapter.activateTarget(entry.target);
+    if (!activated.ok) {
+      this.toast(`Palette target activation was refused (${activated.reason}): ${entry.target.elementId}. Refresh the palette and try again.`);
       return undefined;
     }
     const instruction = createTeleportInstruction(this.navigationAdapter.getState(), entry.target);
@@ -1032,21 +1040,21 @@ export class App extends Base {
   };
 
   private async startAndRunControlAction(controlId: string, action: string, operationId: string): Promise<void> {
-    this.controlOperations.set(operationId, { controlId, action, executing: false, cancelled: false });
+    this.controlOperations.set(operationId, { controlId, action, executing: false, cancelled: false, progress: 5, status: 'Awaiting durable started history.' });
+    this.forceUpdate();
     const started = await this.recordControlActionHistory(controlId, action, operationId, 'started');
     const operation = this.controlOperations.get(operationId);
     if (operation?.cancelled) {
-      this.fire('Action outcome', `${action} operation ${operationId} cancelled before execution.`);
-      await this.recordControlActionHistory(controlId, action, operationId, 'cancelled');
+      await this.finishControlOperation(controlId, action, operationId, 'cancelled', `cancelled before execution`);
       this.controlOperations.delete(operationId);
       return;
     }
     if (!started) {
-      this.fire('Action outcome', `${action} operation ${operationId} failed before execution because started history was unavailable.`);
-      await this.recordControlActionHistory(controlId, action, operationId, 'failed');
+      await this.finishControlOperation(controlId, action, operationId, 'failed', 'failed before execution because started history was unavailable');
       this.controlOperations.delete(operationId);
       return;
     }
+    if (operation) { operation.status = 'Executing action.'; operation.progress = 50; this.forceUpdate(); }
     await this.runControlAction(action, operationId, controlId);
     this.controlOperations.delete(operationId);
   }
@@ -1060,6 +1068,9 @@ export class App extends Base {
       return { ok: false, cancelled: false, reason };
     }
     operation.cancelled = true;
+    operation.status = 'Cancellation requested.';
+    operation.progress = 10;
+    this.forceUpdate();
     this.fire('Action cancellation requested', `${operation.action} operation ${operationId} cancellation was requested.`);
     return { ok: true, cancelled: true, reason: `Operation ${operationId} will finish as cancelled before execution.` };
   };
@@ -1067,8 +1078,7 @@ export class App extends Base {
   private async runControlAction(action: string, operationId: string, controlId?: string): Promise<void> {
     const operation = this.controlOperations.get(operationId);
     if (operation?.cancelled) {
-      if (controlId) await this.recordControlActionHistory(controlId, action, operationId, 'cancelled');
-      this.fire('Action outcome', `${action} operation ${operationId} cancelled before execution.`);
+      if (controlId) await this.finishControlOperation(controlId, action, operationId, 'cancelled', 'cancelled before execution');
       return;
     }
     if (operation) operation.executing = true;
@@ -1084,8 +1094,17 @@ export class App extends Base {
     }
     const phase = ok ? 'completed' : 'failed';
     if (operation) operation.executing = false;
+    if (controlId) await this.finishControlOperation(controlId, action, operationId, phase, detail);
+    else this.fire('Action outcome', `${action} operation ${operationId} ${phase}: ${detail}`);
+  }
+
+  private async finishControlOperation(controlId: string, action: string, operationId: string, phase: 'completed' | 'failed' | 'cancelled', detail: string): Promise<void> {
+    const operation = this.controlOperations.get(operationId);
+    if (operation?.terminalPhase) return;
+    if (operation) { operation.terminalPhase = phase; operation.progress = 100; operation.status = `${phase}: ${detail}`; }
     this.fire('Action outcome', `${action} operation ${operationId} ${phase}: ${detail}`);
-    if (controlId) await this.recordControlActionHistory(controlId, action, operationId, phase);
+    await this.recordControlActionHistory(controlId, action, operationId, phase);
+    this.forceUpdate();
   }
 
   private async recordControlActionHistory(controlId: string, action: string, operationId: string, phase: 'started' | 'completed' | 'failed' | 'cancelled' = 'started'): Promise<boolean> {
@@ -2420,9 +2439,17 @@ It is shown once. The phone needs it to register.`);
     const bridge = this.bridge();
     const readings = this.readings[screen];
     const note = this.note(screen);
+    const activeControlOperation = [...this.controlOperations.entries()].find(([, operation]) => !operation.terminalPhase);
 
     return {
       ...values,
+      richOperationVisible: Boolean(activeControlOperation),
+      richOperationId: activeControlOperation?.[0] ?? '',
+      richOperationProgress: activeControlOperation?.[1].progress ?? 0,
+      richOperationStatus: activeControlOperation?.[1].status ?? '',
+      cancelRichOperation: () => {
+        if (activeControlOperation) this.cancelControlAction(activeControlOperation[0]);
+      },
       // The "Edit appearance..." panel's real colour translator and real actions
       // (appearance.ts + colour.ts) -- see the Appearance section above renderVals.
       ...this.appearanceVals(),

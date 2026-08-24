@@ -52,6 +52,17 @@ export function S(value: unknown): string {
   return String(value);
 }
 
+/** Explicit dynamic-item identity contract for compiled interactive loops. */
+export function stableDynamicIdentity(value: unknown, designPath: string, loopVariable: string): string {
+  if (value !== null && typeof value === 'object') {
+    const record = value as { id?: unknown; key?: unknown };
+    for (const candidate of [record.id, record.key]) {
+      if (typeof candidate === 'string' && candidate.trim().length > 0) return candidate;
+    }
+  }
+  throw new Error(`Design path ${designPath}, loop variable ${loopVariable} lacks a stable id or key identity.`);
+}
+
 /** Bindings that resolve to a non-function (a placeholder, or a guarded action) must not crash. */
 export function fn(value: unknown): ((event: unknown) => void) | undefined {
   return typeof value === 'function' ? (value as (event: unknown) => void) : undefined;
