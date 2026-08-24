@@ -14,7 +14,7 @@ Restoring would itself be recorded as a new revision rather than rewriting histo
 
 **Desktop application:** Not implemented. The desktop application keeps no local version history of any kind; settings and records are overwritten in place with no way to browse or restore a prior state.
 
-**Documentation website:** Partial, runtime proof unverified. Settings mounts a bounded browser timeline with stable revision IDs, text, action, and date filters, diff output, redacted export, and a restore-record route. Per-mutation recording and live restore application for every tab, appearance, lock, authenticator, ticket, ladder, and status change remain incomplete. It stores browser metadata rather than a Git repository and omits secrets and credential digests.
+**Documentation website:** Partial, runtime proof unverified. Settings mounts a bounded browser timeline with stable revision IDs, text, action and date filters, action counts, date presets, filtered selection, diff output, redacted export, retention controls, append-only restore receipts, and a restore-record route. Source wiring records settings, tabs, appearance, locks, authenticator persistence, tickets, ladder, and status metadata. Authenticator restore is explicitly unsupported because secrets are omitted, and advanced locale-aware calendar input plus complete coverage proof remain incomplete. It stores browser metadata rather than a Git repository and omits secrets and credential digests.
 
 ## Failure modes
 

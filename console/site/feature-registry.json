@@ -1298,7 +1298,7 @@
     },
     "tab-groups-and-searches": {
       "status": "partial",
-      "note": "The tab manager persists groups, group metadata, collapse, pinning, reorder actions, four independently searchable views, and local bulk-close controls. Closed-route persistence, super-confirmation, group color rendering, and runtime proof remain incomplete.",
+      "note": "The tab manager persists groups, group metadata, collapse, pinning, reorder actions, four independently searchable views, closed routes, reopen actions, a two-key full-range close confirmation, local bulk-close controls, and route-accent colour rendering with reset and contrast status. Full element-level group appearance editing and runtime proof remain incomplete.",
       "implementation": {
         "paths": ["console/site/app.js", "console/site/styles.css"],
         "symbols": [{"path": "console/site/app.js", "name": "renderTabManager", "kind": "function"}]
@@ -1528,7 +1528,7 @@
     },
     "local-version-history": {
       "status": "partial",
-      "note": "settings.html now receives a bounded browser history surface with filters, diff output, redacted export, and a restore record path. Per-mutation recording for tabs, appearance, locks, authenticator entries, tickets, ladder, and status remains incomplete, and restore application is still limited. Runtime proof remains unverified.",
+      "note": "settings.html now receives a bounded browser history surface with per-mutation records for settings, tabs, appearance and locks, authenticator persistence, tickets, ladder, and status metadata, date and action filters with counts and presets, filtered selection, diff output, redacted export, append-only restore receipts, retention controls, and an explicit unsupported authenticator restore path because secrets are omitted. Advanced locale-aware calendar input, full record coverage proof, and runtime proof remain incomplete.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -1598,11 +1598,11 @@
       }
     },
     "changelog-viewer": {
-      "status": "absent",
-      "note": "No changelog viewer, date filter, or commit-link rendering was found in site/app.js.",
+      "status": "partial",
+      "note": "settings.html now mounts a changelog surface that consumes only validated embedded release records, supports plain-text search, an anchored regex entry, date bounds, copy, and filtered Markdown export with exact commit links. When the composer provides no record it shows an honest empty state. Locale-aware calendar presets, complete release-record composition, and runtime proof remain incomplete.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/site/app.js", "console/site/settings.html"],
+        "symbols": [{"path": "console/site/app.js", "name": "initChangelogViewer", "kind": "function"}]
       },
       "registration": {
         "paths": [],

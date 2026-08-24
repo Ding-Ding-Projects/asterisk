@@ -14,7 +14,7 @@ Its tone would follow the funny-level and language settings while every version 
 
 **Desktop application:** Not implemented. The desktop application has no in-app changelog viewer; release history is not browsable from within the application.
 
-**Documentation website:** Not implemented. The documentation website links out to release notes rather than hosting an in-app browsable, filterable, searchable changelog view.
+**Documentation website:** Partial, runtime proof unverified. `settings.html` now mounts a local viewer that consumes only a validated `site-changelog-record` supplied by the composer, filters by text and date, opens the anchored regex builder, copies the filtered Markdown, exports the filtered Markdown, and links each accepted record to its exact 40-character commit. Missing records remain an explicit empty state. The composer record, locale-aware calendar presets, and runtime proof remain incomplete.
 
 ## Failure modes
 
