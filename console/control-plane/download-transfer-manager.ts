@@ -260,7 +260,7 @@ export class DownloadTransferManager implements DownloadTransferClient {
     }
     if (command === 'pause') {
       if (!task || snapshot.status !== 'downloading' || !snapshot.canPause) return this.receipt(command, snapshot.handoffId, false, at, 'DOWNLOAD_PAUSE_UNAVAILABLE', snapshot.resumeDisabledReason ?? 'Pause is unavailable because the source does not support resumable ranges.', transferId);
-      task.pauseRequested = true; task.controller.abort(); this.emit({ ...snapshot, status: 'paused', canPause: false, canResume: true, canCancel: true, canRetry: false, observedAt: at });
+      task.pauseRequested = true; task.controller.abort();
       return this.receipt(command, snapshot.handoffId, true, at, undefined, 'Pause was recorded and the resumable temporary file is retained.', transferId);
     }
     if (command === 'resume') {
@@ -467,12 +467,20 @@ export class DownloadTransferManager implements DownloadTransferClient {
       let latest = this.snapshots.get(snapshot.transferId) ?? snapshot;
       if (error instanceof Error && error.message.startsWith('SECURE_TEMP_')) {
         try { latest = { ...latest, bytesTransferred: await this.reconcileTempSize(task.tempPath, latest.bytesTransferred) }; } catch (reconcileError) {
-          const timeoutCode = timeoutKind ? timeoutReceiptCode(timeoutKind) : 'SECURE_TEMP_SIZE_RECONCILIATION_FAILED';
-          this.emit({ ...latest, status: 'failed', canPause: false, canResume: false, canCancel: false, canRetry: true, timeoutKind, observedAt: observedAt(), error: { code: timeoutCode, message: timeoutKind ? `The transfer exceeded its ${timeoutKind} deadline while the native writer failed.` : reconcileError instanceof Error ? reconcileError.message : 'The durable temporary size could not be reconciled.', retryable: true, observedAt: observedAt() } });
+          this.emit({ ...latest, status: 'failed', canPause: false, canResume: false, canCancel: false, canRetry: true, resumeDisabledReason: 'Discard the temporary file before attempting another transfer because its durable size could not be reconciled.', timeoutKind, observedAt: observedAt(), error: { code: 'SECURE_TEMP_SIZE_RECONCILIATION_FAILED', message: reconcileError instanceof Error ? reconcileError.message : 'The durable temporary size could not be reconciled.', retryable: true, observedAt: observedAt() }, partial: undefined });
           return;
         }
       }
-      if (latest.status === 'cancelled') { await this.cleanTemp(task.tempPath); return; } if (task.pauseRequested) return;
+      if (latest.status === 'cancelled') { await this.cleanTemp(task.tempPath); return; }
+      if (task.pauseRequested || latest.status === 'paused') {
+        try { latest = { ...latest, bytesTransferred: await this.reconcileTempSize(task.tempPath, latest.bytesTransferred) }; } catch (reconcileError) {
+          this.emit({ ...latest, status: 'failed', canPause: false, canResume: false, canCancel: false, canRetry: true, resumeDisabledReason: 'Discard the temporary file before attempting another transfer because its durable size could not be reconciled.', observedAt: observedAt(), error: { code: 'SECURE_TEMP_SIZE_RECONCILIATION_FAILED', message: reconcileError instanceof Error ? reconcileError.message : 'The durable temporary size could not be reconciled.', retryable: true, observedAt: observedAt() }, partial: undefined });
+          return;
+        }
+        const canResume = Boolean(latest.resume?.acceptRanges && (latest.resume.etag || latest.resume.lastModified));
+        this.emit({ ...latest, status: 'paused', canPause: false, canResume, canCancel: true, canRetry: false, partial: { bytesTransferred: latest.bytesTransferred, reason: 'Paused after reconciling the durable temporary size acknowledged by the native writer.', canResume }, observedAt: observedAt() });
+        return;
+      }
       if (error instanceof IntegrityReadError) {
         this.emit({ ...latest, status: 'failed', bodyComplete: true, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: true, observedAt: observedAt(), error: { code: error.code, message: error.message, retryable: true, observedAt: observedAt() } });
         return;
