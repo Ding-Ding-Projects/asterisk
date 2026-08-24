@@ -389,6 +389,15 @@
               <input value="{{ historyTo }}" onChange="{{ setHistoryTo }}" placeholder="YYYY-MM-DD" style="width:125px; background:#141A15; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-family:'Roboto Mono',monospace; font-size:11.5px;" />
             </div>
             <span style="font-size:12px; color:#9AA39B; padding:8px 2px;">{{ historyResultLabel }}</span>
+            <select value="{{ historyExportFormat }}" onChange="{{ setHistoryExportFormat }}" aria-label="History export format" style="background:#141A15; border:1px solid #414942; border-radius:8px; padding:7px 9px; color:#C4CBC2; font:inherit; font-size:11.5px;">
+              <sc-for list="{{ historyExportFormats }}" as="f" hint-placeholder-count="10"><option value="{{ f.value }}">{{ f.label }}</option></sc-for>
+            </select>
+          </div>
+          <div style="background:#141A15; border:1px solid #333B34; border-radius:12px; padding:10px 14px; margin:-4px 0 12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span class="msym" style="font-size:17px; color:#FFD68A;">lock</span>
+            <span style="font-size:11.5px; color:#C4CBC2; flex:1 1 280px;">{{ historyAccessLabel }}</span>
+            <input type="password" value="{{ historyCredential }}" onChange="{{ setHistoryCredential }}" placeholder="History manager credential" aria-label="History manager credential" style="width:210px; background:#0C110D; border:1px solid #414942; border-radius:8px; padding:7px 9px; color:#E2E9E1; font:inherit; font-size:11.5px;" />
+            <button onClick="{{ authorizeHistory }}" style="background:#82D9A5; border:0; border-radius:999px; padding:8px 14px; color:#00391F; font:inherit; font-size:11.5px; font-weight:600; cursor:pointer;">Unlock history</button>
           </div>
           <sc-if value="{{ historyRegexOn }}" hint-placeholder-val="{{ true }}">
             <div style="display:flex; flex-wrap:wrap; gap:6px; margin:-4px 0 12px;">
@@ -823,6 +832,7 @@
                 <sc-for list="{{ bulkActions }}" as="b" hint-placeholder-count="6">
                   <button onClick="{{ b.run }}" style="display:flex; align-items:center; gap:6px; background:rgba(0,0,0,.24); border:0; border-radius:999px; padding:7px 14px 7px 11px; color:#9FF7C4; font:inherit; font-size:12.5px; cursor:pointer;" style-hover="background:rgba(0,0,0,.45);"><span class="msym" style="font-size:16px;">{{ b.icon }}</span>{{ b.label }}</button>
                 </sc-for>
+                <select value="{{ bulkExportFormat }}" onChange="{{ setBulkExportFormat }}" aria-label="Bulk export format" style="background:rgba(0,0,0,.24); border:1px solid rgba(159,247,196,.3); border-radius:8px; padding:7px 9px; color:#C3EFD5; font:inherit; font-size:11.5px;"><sc-for list="{{ bulkExportFormats }}" as="f" hint-placeholder-count="10"><option value="{{ f.value }}">{{ f.label }}</option></sc-for></select>
                 <button onClick="{{ clearSelection }}" style="background:transparent; border:0; color:#C3EFD5; font:inherit; font-size:12.5px; cursor:pointer; padding:7px 10px;">Clear</button>
               </div>
             </sc-if>

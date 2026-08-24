@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "surface": "windows-console",
+  "description": "Hand-written inventory of every desktop mutation that must create an app-data history event.",
+  "mutations": [
+    { "id": "settings-control", "action": "settings-changed", "owner": "App.languageAwareSetVal", "implementation": "app/renderer/src/App.tsx", "history": "local-history.record", "status": "implemented" },
+    { "id": "server-create", "action": "created", "owner": "App.onAddServer", "implementation": "app/renderer/src/App.tsx", "history": "local-history.record", "status": "implemented" },
+    { "id": "server-remove", "action": "deleted", "owner": "App.onRemoveServerRow", "implementation": "app/renderer/src/App.tsx", "history": "local-history.record", "status": "implemented" },
+    { "id": "server-active", "action": "settings-changed", "owner": "ServerSwitcher.setActive", "implementation": "app/renderer/src/servers.ts", "history": "not mounted because no active-server control exists", "status": "unmounted" },
+    { "id": "endpoint-create", "action": "created", "owner": "App.onCreateEndpoint", "implementation": "app/renderer/src/App.tsx", "history": "local-history.record", "status": "implemented" },
+    { "id": "endpoint-update", "action": "updated", "owner": "App.onSaveEndpoint", "implementation": "app/renderer/src/App.tsx", "history": "local-history.record", "status": "implemented" },
+    { "id": "endpoint-delete", "action": "deleted", "owner": "App.onDeleteEndpoint", "implementation": "app/renderer/src/App.tsx", "history": "local-history.record", "status": "implemented" },
+    { "id": "onboarding-apply", "action": "updated", "owner": "App.onboardDeploy", "implementation": "app/renderer/src/App.tsx", "history": "local-history.record", "status": "implemented" },
+    { "id": "runtime-provision", "action": "created", "owner": "App.onboardDeploy and App.provisionRuntime", "implementation": "app/renderer/src/App.tsx", "history": "local-history.record", "status": "implemented" },
+    { "id": "runtime-daemon", "action": "updated", "owner": "App.daemonAction", "implementation": "app/renderer/src/App.tsx", "history": "local-history.record", "status": "implemented" },
+    { "id": "runtime-stop", "action": "updated", "owner": "runtime control action", "implementation": "control-plane/dispatch.ts", "history": "not mounted because no runtime-stop control exists", "status": "unmounted" },
+    { "id": "runtime-remove", "action": "deleted", "owner": "runtime control action", "implementation": "control-plane/dispatch.ts", "history": "not mounted because no runtime-remove control exists", "status": "unmounted" },
+    { "id": "pbx-admin-apply", "action": "updated", "owner": "PbxAdminApp.applyAdminConfirmed", "implementation": "app/renderer/src/PbxAdminApp.tsx", "history": "local-history.record", "status": "implemented" },
+    { "id": "media-upload", "action": "created", "owner": "PbxAdminApp.onFilePicked", "implementation": "app/renderer/src/PbxAdminApp.tsx", "history": "local-history.record", "status": "implemented" },
+    { "id": "media-remove", "action": "deleted", "owner": "PbxAdminApp.removeAdminMediaConfirmed", "implementation": "app/renderer/src/PbxAdminApp.tsx", "history": "local-history.record", "status": "implemented" },
+    { "id": "history-restore", "action": "restored", "owner": "LocalHistory.restore", "implementation": "control-plane/local-history.ts", "history": "local-history.record", "status": "implemented" },
+    { "id": "history-retention", "action": "settings-changed", "owner": "LocalHistory.prune", "implementation": "control-plane/local-history.ts", "history": "immutable policy report", "status": "implemented" }
+  ]
+}

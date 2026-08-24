@@ -10,8 +10,17 @@ This handoff covers the integrated Ding PBX Console desktop application, bounded
 - `console/app/renderer/src/local-history.ts` now supplies bounded client filtering, action counts, safe search, timestamp formatting, and redacted export rows for the existing app-data Git history service.
 - `console/app/renderer/src/App.tsx` now loads `local-history.list`, records settings and server inventory mutations, exposes History refresh, action/date/search filters, metadata diff, compare selection, JSON export, and append-only restore, and uses the shared bulk/export engines for mounted table screens. `console/app/renderer/src/PbxAdminApp.tsx` records verified PBX administration applies as updated history entries.
 - `design/Asterisk Console M3.dc.html` now renders the History search and date controls. Generated renderer output was regenerated with `node console/scripts/compile-design.mjs`.
-- `node console/scripts/bundle-docs.mjs` regenerated 85 documentation articles. `node console/scripts/bundle-changelog.mjs` regenerated 20 real tag versions. No tests, lint, broad build, packaging, runtime capture, browser, or Lowlevel checks were run in this lane.
-- Open gaps remain honest: full calendar month/year navigation, a user-facing export format picker, bundled ZIP/7z archive writing, and complete per-record mutation coverage for every PBX administration path.
+- `node console/scripts/bundle-docs.mjs` regenerated 85 documentation articles. `node console/scripts/bundle-changelog.mjs` regenerated 89 real tag versions. No tests, lint, broad build, packaging, runtime capture, browser, or Lowlevel checks were run in this lane.
+- The first lane left full calendar month/year navigation, a user-facing export format picker, bundled 7z output, and complete per-record mutation coverage open. This repair adds the bounded ZIP path, mutation inventory, and honest disabled 7z catalog while retaining those remaining gaps.
+
+## History refutation repair lane, 2026-08-24
+
+- The repair adds a process-wide serialized history instance, complete-tree restore including removals, cursor pagination, total and action counts, real commit-tree inspection and comparison, bounded recursive redaction with cycle handling, opaque subject ids, and control-character rejection.
+- History browse, inspect, compare, restore, export, and retention now require a separate history-manager credential stored through the Windows Credential Manager seam in `control-plane/credential-vault.ts`. Recording remains available while the manager is locked. The desktop screen shows the lock warning, credential input, and retry route.
+- `console/inventories/history-mutations.json` is the exact hand-written mutation inventory for settings, endpoints, onboarding, runtime, server inventory, PBX administration, and media writes. Implemented mutation hooks record their redacted payloads.
+- The shared export engine now includes a validated store-mode ZIP writer and an explicit archive catalog. 7z options are listed but disabled until a bundled adapter exists. The History screen has JSON, ZIP, batch restore, and external-editor handoff seam actions.
+- `scripts/bundle-changelog.mjs` no longer truncates tags before range construction and emits the `Ding-Ding-Projects/asterisk` URL. Docs link fragments are validated against generated heading ids, and the Markdown parser handles quoted and ordered list text safely.
+- No tests, lint, broad build, packaging, UI capture, browser, or Lowlevel checks were run in this lane.
 
 ## Implemented
 

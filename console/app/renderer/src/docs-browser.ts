@@ -169,7 +169,7 @@ export function resolveLink(bundle: DocsBundle, fromArticle: DocsArticle | strin
   const from = typeof fromArticle === 'string' ? articleById(bundle, fromArticle) : fromArticle;
   if (!from) return undefined;
 
-  const withoutFragment = href.split('#')[0];
+  const [withoutFragment, fragment] = href.split('#', 2);
   if (!withoutFragment || !withoutFragment.endsWith('.md')) return undefined;
 
   const fromDir = from.id.includes('/') ? from.id.slice(0, from.id.lastIndexOf('/')) : '';
@@ -186,7 +186,13 @@ export function resolveLink(bundle: DocsBundle, fromArticle: DocsArticle | strin
   }
 
   const targetId = resolved.join('/').replace(/\.md$/, '');
-  return articleById(bundle, targetId)?.id;
+  const target = articleById(bundle, targetId);
+  if (!target) return undefined;
+  if (!fragment) return target.id;
+  let decodedFragment = fragment;
+  try { decodedFragment = decodeURIComponent(fragment); } catch { return undefined; }
+  const normalizedFragment = decodedFragment.toLowerCase().replace(/[^a-z0-9]+/gu, '-').replace(/^-|-$/gu, '');
+  return target.headings.some((heading) => heading.id === normalizedFragment) ? target.id : undefined;
 }
 
 export interface BrokenLink {

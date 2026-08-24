@@ -4,21 +4,21 @@ A Git-backed, browsable, restorable history of every user-managed record — doc
 
 ## Behavior
 
-Every user-managed setting and record change is recorded through the desktop control plane in an isolated Git repository under app data. The repository is never placed inside a user project and is never synced or pushed. The History screen reads real commits, filters by action and date, searches subjects and messages with plain text or an opted-in regular expression, shows selected metadata and redaction boundaries, and restores by adding a new commit.
+Every user-managed setting and record change is recorded through the desktop control plane in an isolated Git repository under app data. The repository is never placed inside a user project and is never synced or pushed. A process-wide serialized history instance owns all mutations, so overlapping writes cannot stage each other's files. The History screen reads cursor-paginated real commits, filters by action and inclusive date range, searches subjects and messages, shows real redacted commit-tree diffs and comparisons, and restores the complete selected tree including removals before appending a new restore commit.
 
 ## Configuration
 
-Restoring is append-only. The selected commit remains unchanged and the restore writes a new `restored` commit. History exports are JSON and contain redacted metadata only. Credential-shaped values are removed by the control-plane service before they enter the local Git repository.
+Restoring is append-only. The selected commit remains unchanged and the restore writes a new `restored` commit. The history manager has a separate credential stored in the operating-system vault. Recording can continue while the manager is locked, while browsing, diffing, comparing, restoring, exporting, and retention actions require the separate credential. History exports are JSON or validated ZIP and contain redacted metadata only. Credential-shaped values are removed by the control-plane service before they enter the local Git repository.
 
 ## Current status
 
-**Desktop application:** Implemented for the mounted desktop shell. Settings changes, server additions and removals, and PBX administration applies are recorded as local history events. The History screen has real refresh, action-count filters, date fields, search, regex mode, selection, metadata diff, restore, compare selection, and JSON export controls. An empty app-data repository is shown as empty, never filled with sample rows.
+**Desktop application:** Implemented for the mounted desktop shell. Settings, endpoint, onboarding, runtime, server, media, and PBX administration mutations are listed in `inventories/history-mutations.json` and record local history events. The History screen has real refresh, cursor pagination, all-count labels, action filters, inclusive date fields, search, regex mode, redacted tree diff, tree comparison, selection, append-only complete-tree restore, batch restore, JSON export, validated ZIP export, and external-editor handoff. An empty app-data repository is shown as empty, never filled with sample rows. 7z remains visibly unavailable until its bundled adapter exists.
 
 **Documentation website:** Not changed in this desktop-only lane.
 
 ## Failure modes
 
-If the local history repository is unavailable, the live setting or record operation is not rolled back solely because history could not be written. The History screen reports the read failure and keeps the visible list empty until the next refresh. Restore refuses malformed or unknown commit ids and reports the exact control-plane response.
+If the local history repository is unavailable, the live setting or record operation is not rolled back solely because history could not be written. A visible warning names the failure and offers retry. The History screen remains locked until its separate vault credential is accepted. Restore refuses malformed or unknown commit ids, validates the selected tree, and reports the exact control-plane response. Retention uses an explicit immutable append-only policy and reports zero removals instead of pretending to prune history.
 
 ## Accessibility and localization
 

@@ -21,7 +21,8 @@
  *    actually discarding old commits would require exactly the rewrite this class
  *    refuses to perform.
  */
-import { mkdir, stat, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { ProcessExecutor } from "./executor.js";
 
@@ -61,7 +62,22 @@ export interface LocalHistoryListOptions {
   action?: string;
   since?: string;
   until?: string;
+  query?: string;
+  cursor?: string;
   limit?: number;
+}
+
+export interface LocalHistoryPage {
+  entries: ReadonlyArray<HistoryCommit>;
+  total: number;
+  nextCursor?: string;
+  counts: Readonly<Record<string, number>>;
+}
+
+export interface HistoryTreeInspection {
+  commit: HistoryCommit;
+  files: ReadonlyArray<string>;
+  diff: string;
 }
 
 export interface LocalHistoryOptions {
@@ -72,7 +88,7 @@ export interface LocalHistoryOptions {
 }
 
 const REDACTED_MARKER = "[redacted]";
-const SECRET_KEY_NAMES = ["password", "secret", "token", "key", "pin", "credential"];
+const SECRET_KEY_NAMES = ["password", "passwd", "secret", "token", "pin", "credential", "privatekey", "accesskey"];
 
 const RECORD_SEPARATOR = "\x1e";
 const GROUP_SEPARATOR = "\x1d";
@@ -98,35 +114,48 @@ function requireSubject(subject: string): string {
   if (trimmed.length === 0) {
     throw new Error("A history entry needs a non-empty subject, so nothing was recorded.");
   }
+  if (trimmed.length > 256 || /[\u0000-\u001f\u007f]/u.test(trimmed)) {
+    throw new Error("A history subject must be at most 256 characters and contain no control characters.");
+  }
   return trimmed;
 }
 
 function isSecretKeyName(key: string): boolean {
-  const lower = key.toLowerCase();
+  const lower = key.replace(/[^a-z0-9]/giu, "").toLowerCase();
   return SECRET_KEY_NAMES.some((name) => lower === name || lower.endsWith(name));
 }
 
-/** Walks a payload and replaces any value whose key looks like a credential. */
-export function redactSecretValues(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map((entry) => redactSecretValues(entry));
+/** Walks a bounded payload and replaces credential-shaped values without looping on cycles. */
+export function redactSecretValues(value: unknown, seen = new WeakSet<object>(), depth = 0): unknown {
+  if (depth > 32) return "[redacted:depth]";
+  if (Array.isArray(value)) {
+    if (seen.has(value)) return "[redacted:cycle]";
+    seen.add(value);
+    return value.map((entry) => redactSecretValues(entry, seen, depth + 1));
+  }
   if (value !== null && typeof value === "object") {
+    if (seen.has(value)) return "[redacted:cycle]";
+    seen.add(value);
     const result: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-      result[key] = isSecretKeyName(key) ? REDACTED_MARKER : redactSecretValues(val);
+      if (/[\u0000-\u001f\u007f]/u.test(key)) {
+        result["[redacted-control-key]"] = REDACTED_MARKER;
+      } else {
+        result[key] = isSecretKeyName(key) ? REDACTED_MARKER : redactSecretValues(val, seen, depth + 1);
+      }
     }
     return result;
   }
   return value;
 }
 
-/** Turns a subject into a stable, traversal-safe filename under the repository root. */
+/** Turns a subject into a stable opaque filename under the repository root. */
+function subjectId(subject: string): string {
+  return createHash("sha256").update(subject, "utf8").digest("hex").slice(0, 32);
+}
+
 function filenameFor(subject: string): string {
-  const safe = subject
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/gu, "-")
-    .replace(/^-+|-+$/gu, "");
-  return `records/${safe.length > 0 ? safe : "record"}.json`;
+  return `records/${subjectId(subject)}.json`;
 }
 
 function commitMessage(
@@ -253,14 +282,26 @@ export class LocalHistory {
     const redactedPayload = redactSecretValues(entry.payload);
     const relativePath = filenameFor(subject);
     const absolutePath = join(this.#repositoryPath, relativePath);
-    await mkdir(dirname(absolutePath), { recursive: true });
-    await writeFile(absolutePath, `${JSON.stringify(redactedPayload, null, 2)}\n`, "utf8");
-    await this.#run(["add", "--", relativePath]);
+    await mkdir(join(this.#repositoryPath, 'records'), { recursive: true });
+    if (entry.action === "deleted") {
+      await unlink(absolutePath).catch(() => undefined);
+    } else {
+      await mkdir(dirname(absolutePath), { recursive: true });
+      await writeFile(absolutePath, `${JSON.stringify(redactedPayload, null, 2)}\n`, "utf8");
+    }
+    /* Stage the entire records tree so a delete is a real tree deletion and every
+     * commit carries the complete selected snapshot, not only the changed file. */
+    await this.#run(["add", "-A", "--", "records"]);
     return await this.#commit(entry.action, subject);
   }
 
-  /** Newest first. Filters compose: an action filter and a date range apply together. */
+  /** Compatibility list for callers that need the complete bounded result. */
   async list(options?: LocalHistoryListOptions): Promise<ReadonlyArray<HistoryCommit>> {
+    return (await this.listPage(options)).entries;
+  }
+
+  /** Newest first. Filters compose and cursor pagination is stable by commit id. */
+  async listPage(options?: LocalHistoryListOptions): Promise<LocalHistoryPage> {
     if (options?.action !== undefined) assertKnownAction(options.action);
     const since = options?.since !== undefined ? new Date(options.since) : undefined;
     const until = options?.until !== undefined ? new Date(options.until) : undefined;
@@ -275,10 +316,25 @@ export class LocalHistory {
     if (until !== undefined) {
       commits = commits.filter((commit) => new Date(commit.timestamp) <= until);
     }
-    if (options?.limit !== undefined) {
-      commits = commits.slice(0, options.limit);
+    if (options?.query) {
+      const query = options.query.slice(0, 256);
+      let matcher: (value: string) => boolean;
+      try {
+        const pattern = new RegExp(query, "iu");
+        matcher = (value) => pattern.test(value);
+      } catch {
+        matcher = (value) => value.toLocaleLowerCase().includes(query.toLocaleLowerCase());
+      }
+      commits = commits.filter((commit) => matcher(`${commit.subject} ${commit.action} ${commit.message}`));
     }
-    return commits;
+    const total = commits.length;
+    const cursor = options?.cursor ? commits.findIndex((commit) => commit.id === options.cursor) + 1 : 0;
+    const start = cursor > 0 ? cursor : 0;
+    const limit = Math.min(Math.max(options?.limit ?? 100, 1), 500);
+    const entries = commits.slice(start, start + limit);
+    const last = entries.at(-1);
+    const counts = await this.actionCounts();
+    return { entries, total, counts, ...(last && start + entries.length < total ? { nextCursor: last.id } : {}) };
   }
 
   /** How many commits exist per action, derived from the history itself. */
@@ -289,6 +345,29 @@ export class LocalHistory {
       counts[commit.action] = (counts[commit.action] ?? 0) + 1;
     }
     return counts;
+  }
+
+  private async treeFiles(commitId: string): Promise<string[]> {
+    const output = await this.#run(["ls-tree", "-r", "--name-only", commitId, "--", "records"]);
+    return output.split(/\r?\n/u).map((line) => line.trim()).filter((line) => /^records\/[0-9a-f]{32}\.json$/u.test(line));
+  }
+
+  async inspect(commitId: string): Promise<HistoryTreeInspection> {
+    const commit = (await this.#logAll()).find((entry) => entry.id === commitId);
+    if (!commit) throw new Error(`Commit ${commitId} is not in the local history.`);
+    const files = await this.treeFiles(commitId);
+    const diff = await this.#run(["show", "--format=", "--no-ext-diff", "--unified=80", commitId, "--", "records"]);
+    return { commit, files, diff: diff.slice(0, 512 * 1024) };
+  }
+
+  async compare(first: string, second: string): Promise<{ first: string; second: string; files: ReadonlyArray<string>; diff: string }> {
+    if (!/^[0-9a-f]{40}$/iu.test(first) || !/^[0-9a-f]{40}$/iu.test(second)) {
+      throw new Error("History comparison requires two full commit ids.");
+    }
+    const diff = await this.#run(["diff", "--no-ext-diff", "--unified=80", first, second, "--", "records"]);
+    const files = (await this.#run(["diff", "--name-only", first, second, "--", "records"]))
+      .split(/\r?\n/u).map((line) => line.trim()).filter(Boolean);
+    return { first, second, files, diff: diff.slice(0, 512 * 1024) };
   }
 
   /**
@@ -312,24 +391,13 @@ export class LocalHistory {
     }
     const original = parseLogRecord(commitResult.stdout.trim());
 
-    const filesOutput = await this.#run([
-      "diff-tree",
-      "--no-commit-id",
-      "--name-only",
-      "-r",
-      "--root",
-      commitId,
-    ]);
-    const files = filesOutput
-      .split(/\r?\n/u)
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-    if (files.length === 0) {
-      throw new Error(`Commit ${commitId} touched no files, so nothing was restored.`);
+    const targetFiles = await this.treeFiles(commitId);
+    const currentFiles = await this.#run(["ls-files", "--", "records"]);
+    for (const current of currentFiles.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean)) {
+      if (!targetFiles.includes(current)) await unlink(join(this.#repositoryPath, current)).catch(() => undefined);
     }
-
-    await this.#run(["checkout", commitId, "--", ...files]);
-    await this.#run(["add", "--", ...files]);
+    if (targetFiles.length > 0) await this.#run(["checkout", commitId, "--", "records"]);
+    await this.#run(["add", "-A", "--", "records"]);
     return await this.#commit("restored", original.subject, { RestoredFrom: commitId }, { allowEmpty: true });
   }
 
@@ -340,11 +408,11 @@ export class LocalHistory {
    * than destruction. A caller that genuinely wants old snapshots gone needs a
    * separate, explicitly authorized operation outside this append-only store.
    */
-  async prune(keep: number): Promise<{ kept: number }> {
+  async prune(keep: number): Promise<{ kept: number; removed: number; policy: string }> {
     if (!Number.isInteger(keep) || keep < 1) {
       throw new Error(`Retention count must be at least 1, got ${keep}.`);
     }
     const commits = await this.#logAll();
-    return { kept: Math.min(keep, commits.length) };
+    return { kept: Math.min(keep, commits.length), removed: 0, policy: "immutable-append-only" };
   }
 }

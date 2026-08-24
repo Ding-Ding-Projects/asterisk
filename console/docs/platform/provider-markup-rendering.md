@@ -4,7 +4,7 @@ Text authored elsewhere, such as release notes or imported documents, is rendere
 
 ## Behavior
 
-Provider-authored markdown-like text is rendered through the shared isolated `docs-markdown.ts` block parser. It produces headings, paragraphs, code blocks, lists, and internal link spans. React receives text as text nodes, so provider-authored angle brackets are not interpreted as DOM markup.
+Provider-authored markdown-like text is rendered through the shared isolated `docs-markdown.ts` block parser. It produces headings, paragraphs, quoted paragraphs, ordered and unordered list blocks, fenced code blocks, and internal link spans. React receives text as text nodes, so provider-authored angle brackets are not interpreted as DOM markup. Link fragments are checked against the target article's generated heading ids before navigation.
 
 ## Configuration
 
@@ -18,7 +18,7 @@ The renderer would keep an honest empty state when no content is provided, rathe
 
 ## Failure modes
 
-Malformed Markdown degrades to plain paragraphs or code text. A link only becomes an in-app navigation action when it resolves to a bundled article id. Raw HTML is never inserted into the DOM by the parser.
+Malformed Markdown degrades to plain paragraphs or code text. A link only becomes an in-app navigation action when it resolves to a bundled article id and, when present, a real heading fragment. External schemes, unsafe path forms, raw HTML, control characters, and unresolved fragments never become executable renderer content.
 
 ## Accessibility and localization
 

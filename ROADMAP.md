@@ -37,6 +37,11 @@
 - [x] Regenerate the changelog bundle from real repository tags and mount filtered search, date range, copy, export, and commit links.
 - [ ] Add a full month/year calendar picker and a user-facing coding-format picker to the History, Changelog, and Export surfaces.
 - [ ] Add a bundled ZIP/7z writer before advertising archive downloads; a text export must never be renamed as an archive.
+- [x] Protect History browse, diff, compare, restore, export, and retention with a separate operating-system-vault credential, while allowing mutation recording to continue with visible warning and retry states when the manager is locked.
+- [x] Serialize the process-wide history instance and restore complete selected trees, including removals, before appending a new restore snapshot.
+- [x] Add cursor pagination, total counts, action counts, real commit-tree inspection and comparison, bounded redaction, opaque subject ids, and control-character rejection.
+- [x] Add a hand-written mutation inventory for settings, endpoint, onboarding, runtime, server, PBX administration, and media writes.
+- [x] Add validated ZIP output, archive option metadata, omission markers, and an honest disabled 7z adapter entry until a bundled 7z implementation exists.
 
 ## Evidence and completeness
 

@@ -15,7 +15,6 @@ const repoRoot = resolve(root, '..', '..');
 const outFile = resolve(root, '..', 'app', 'renderer', 'src', 'generated', 'changelog-bundle.ts');
 
 const TAG_PREFIX = 'ding-pbx-console-v';
-const MAX_VERSIONS = 20;
 
 function git(args) {
   return execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8' }).trim();
@@ -37,8 +36,6 @@ function main() {
   } catch {
     tags = [];
   }
-
-  tags = tags.slice(0, MAX_VERSIONS);
 
   const lines = [];
   for (let i = 0; i < tags.length; i += 1) {
@@ -84,7 +81,7 @@ function main() {
 // every change is a real commit reachable from that tag, and every commit
 // id is the real 40-character SHA.
 export const CHANGELOG_MARKDOWN: string = ${JSON.stringify(markdown)};
-export const CHANGELOG_REPOSITORY_URL: string = 'https://github.com/anthropic-experimental/asterisk';
+export const CHANGELOG_REPOSITORY_URL: string = 'https://github.com/Ding-Ding-Projects/asterisk';
 `;
 
   return { outFile, body, versionCount: tags.length };

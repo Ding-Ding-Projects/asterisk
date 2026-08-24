@@ -4,7 +4,7 @@ A browsable record of every released version, filterable by date and searchable 
 
 ## Behavior
 
-The viewer lists every released version found by the build-time tag generator, with categorized changes, typed date-range fields and presets, plain-text or regex search, copy, Markdown export, and links to the exact commit that made each change.
+The viewer lists every released version found by the build-time tag generator before any display cap is applied. It records the complete tag range, with categorized changes, typed inclusive date-range fields and presets, plain-text or regex search, copy, Markdown export, and links to the exact commit in `Ding-Ding-Projects/asterisk` that made each change.
 
 ## Configuration
 
@@ -12,7 +12,7 @@ Its tone would follow the funny-level and language settings while every version 
 
 ## Current status
 
-**Desktop application:** Partial and mounted. App rail > App > Changelog renders the generated release bundle, search and date filters compose, copy and Markdown export use the filtered entries, and each real commit reference is linked. A full month and year jump calendar remains open.
+**Desktop application:** Partial and mounted. App rail > App > Changelog renders the complete generated tag bundle, search and inclusive date filters compose, copy and Markdown export use the filtered entries, and each real commit reference is linked to the correct repository. A full month and year jump calendar remains open.
 
 **Documentation website:** Not changed in this desktop-only lane.
 

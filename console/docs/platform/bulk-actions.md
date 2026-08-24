@@ -8,17 +8,17 @@ Every generated table uses the shared selection model. Plain click, Ctrl-click, 
 
 ## Configuration
 
-Export is reversible because it does not mutate the source rows. Mutating bulk operations remain unavailable on read-only PBX tables and are reported as plans rather than claimed as applied writes. Any future user-record mutation must record one local-history event and expose an undo or restore path through the app-data history service.
+Export is reversible because it does not mutate the source rows. Mutating bulk operations remain unavailable on read-only PBX tables and are reported as not applied rather than claimed as successful writes. History uses the compare selection as a real multi-select and offers serialized batch restore, with per-entry success counts and failure messages. Every completed mutation records one local-history event and exposes an append-only restore path.
 
 ## Current status
 
-**Desktop application:** Partial and mounted. All table-like screens receive the shared selection and bulk bar, with real selected-row export and honest page scope. The PBX read surfaces remain read-only, so delete, move, duplicate, and enable or disable actions are not falsely presented as successful mutations.
+**Desktop application:** Partial and mounted. All table-like screens receive the shared selection and bulk bar, with real selected-row export and honest page scope. The History screen has batch restore across compare-selected entries. The PBX read surfaces remain read-only, so delete, move, duplicate, and enable or disable actions are visibly unavailable or reported as not applied.
 
 **Documentation website:** Not changed in this desktop-only lane.
 
 ## Failure modes
 
-If a selected row is no longer in the current table, `planBulk` reports it as skipped with the reason `no longer in this table`. If the chosen export format has a shape limitation, the export reports that loss before download. Mutating actions that lack a target-specific write path are not reported as applied.
+If a selected row is no longer in the current table, `planBulk` reports it as skipped with the reason `no longer in this table`. If the chosen export format has a shape limitation, the export reports that loss before download. Mutating actions that lack a target-specific write path are not reported as applied. History batch restore continues through the selected entries and reports partial outcomes rather than turning one failure into a false all-green result.
 
 ## Accessibility and localization
 

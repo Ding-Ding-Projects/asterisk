@@ -138,24 +138,29 @@
     },
     "local-version-history": {
       "state": "partial",
-      "note": "Mounted 2026-08-24. App.tsx records settings changes and server additions/removals through local-history.record, loads the isolated app-data Git repository through local-history.list, and exposes action/date/search filters, metadata diff, compare selection, JSON export, and append-only restore through local-history.restore. The control-plane/local-history.ts service remains the owner of Git initialization and credential-shaped redaction. PBX administration applies still need a full per-record mutation inventory and the History screen's calendar needs a richer picker.",
+      "note": "Mounted and repaired 2026-08-24. App.tsx records settings, endpoint, onboarding, runtime, server, media, and PBX administration mutations through local-history.record, loads the isolated app-data Git repository through cursor-paginated local-history.list, and exposes a separate OS-vault history-manager credential before browse, inspect, compare, restore, export, or retention. The History screen has inclusive date/search/action filters, real redacted commit-tree diff and compare data, ZIP output validation, bulk restore, editor handoff seam, visible warning and retry states, and append-only complete-tree restore. The hand-written mutation inventory is console/inventories/history-mutations.json. Full 7z output remains disabled until its bundled adapter is shipped.",
       "files": [
         "app/renderer/src/local-history.ts",
         "app/renderer/src/App.tsx",
+        "app/renderer/src/date-range.ts",
         "design/Asterisk Console M3.dc.html",
         "app/renderer/src/generated/console.tsx",
         "control-plane/local-history.ts",
         "control-plane/config-history.ts",
+        "control-plane/credential-vault.ts",
+        "inventories/history-mutations.json",
         "docs/platform/local-version-history.md"
       ]
     },
     "changelog-viewer": {
       "state": "partial",
-      "note": "Wired and reachable: App rail > App > Changelog renders every version parsed from a real build-time bundle of this repository's own tag history (scripts/bundle-changelog.mjs -> generated/changelog-bundle.ts), with search (plain text + regex toggle), a date range filter, copy and Markdown export, and per-change commit links validated against real commits (tests/ui/changelog-wired.test.tsx). Confirmed rendering real entries in the built Electron app via headless CDP. Remaining gap: the date filter is typed ISO fields plus range presets, not the full month/year-jump calendar grid the contract describes.",
+      "note": "Repaired 2026-08-24: scripts/bundle-changelog.mjs now constructs every tag range before any display cap, and the generated bundle carries 89 real versions with commit links rooted at Ding-Ding-Projects/asterisk. Search, inclusive date filtering, copy and Markdown export remain mounted. Remaining gap: the date filter is typed ISO fields plus presets, not the full month/year-jump calendar grid the contract describes.",
       "files": [
         "app/renderer/src/changelog.ts",
+        "app/renderer/src/date-range.ts",
         "app/renderer/src/App.tsx",
         "app/renderer/src/generated/changelog-bundle.ts",
+        "app/renderer/src/date-range.ts",
         "design/Asterisk Console M3.dc.html",
         "scripts/bundle-changelog.mjs",
         "tests/ui/changelog-wired.test.tsx"
@@ -172,10 +177,11 @@
     },
     "complete-exports": {
       "state": "partial",
-      "note": "Mounted 2026-08-24. App.tsx uses export.ts for selected table rows, changelog output, appearance output, and app-data History output. The engine supports JSON, JSONL, YAML, TOML, XML, CSV, TSV, Markdown, HTML, and SQL with shape-aware loss descriptions. Archive output and a user-facing format picker remain open, so no archive is mislabeled as available.",
+      "note": "Repaired 2026-08-24. App.tsx uses export.ts for selected table rows, changelog output, appearance output, and app-data History output. The engine supports JSON, JSONL, YAML, TOML, XML, CSV, TSV, Markdown, HTML, and SQL with shape-aware loss descriptions, a complete archive catalog, a validated bundled ZIP writer, and explicit disabled 7z options until its bundled adapter exists. A richer user-facing format picker remains open, so no archive is mislabeled as available.",
       "files": [
         "app/renderer/src/export.ts",
         "app/renderer/src/App.tsx",
+        "app/renderer/src/external-editor.ts",
         "docs/platform/complete-exports.md"
       ]
     },

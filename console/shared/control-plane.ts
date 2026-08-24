@@ -22,7 +22,8 @@ export type ControlPlaneAction =
   /* Prompts and music-on-hold media on the target, so a "custom" choice can be given a file. */
   | 'media.list' | 'media.upload' | 'media.remove'
   /* The console's own append-only record of what it changed, kept locally. */
-  | 'local-history.list' | 'local-history.record' | 'local-history.restore'
+  | 'local-history.status' | 'local-history.authorize' | 'local-history.list' | 'local-history.record' | 'local-history.restore'
+  | 'local-history.inspect' | 'local-history.compare' | 'local-history.prune'
   /* Durable renderer settings (appearance, personal vocabulary) -- see
    * `control-plane/settings-store.ts`. The renderer's own `localStorage` is in-memory
    * only for a `file://` origin and never survives a relaunch. */

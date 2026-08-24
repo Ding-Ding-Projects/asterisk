@@ -18,6 +18,7 @@ import {
   parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime,
 } from './asterisk-parsers.js';
 import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory } from './index.js';
+import { WindowsCredentialVault } from './credential-vault.js';
 import { ServerInventory, SettingsRegistry } from './index.js';
 import type { ServerInventoryStore, ServerRecord, SettingsSnapshotStore } from './index.js';
 import { atomicWriteFileSync } from './atomic-file.js';
@@ -50,7 +51,23 @@ export interface ControlPlaneDispatcherOptions {
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
   const { userDataPath, resourcesPath, hosted } = options;
-  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
+  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker', 'powershell.exe'] });
+  const localHistory = new LocalHistory({ executor: processExecutor, repositoryPath: join(userDataPath, 'history') });
+  const historyVault = new WindowsCredentialVault(processExecutor);
+  let historyInitialized = false;
+  let historyAuthorized = false;
+  let historyQueue: Promise<unknown> = Promise.resolve();
+  const historyAccount = 'history-manager';
+  const runHistory = <T>(operation: () => Promise<T>): Promise<T> => {
+    const next = historyQueue.then(operation, operation);
+    historyQueue = next.then(() => undefined, () => undefined);
+    return next;
+  };
+  const ensureHistory = async (): Promise<void> => {
+    if (historyInitialized) return;
+    await localHistory.initialize();
+    historyInitialized = true;
+  };
   const asteriskService = new AsteriskService({ executor: processExecutor });
   const targetDiscovery = new TargetDiscovery(processExecutor);
   const cliGateway = new LocalAsteriskCliGateway(processExecutor);
@@ -517,21 +534,57 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         return { ok: true, requestId: request.requestId, data: await library.upload(root, name, contentBase64) };
       }
       if (request.action.startsWith('local-history.')) {
-        const history = new LocalHistory({ executor: processExecutor, repositoryPath: join(userDataPath, 'history') });
-        await history.initialize();
-
-        if (request.action === 'local-history.list') {
-          const opts = (request.payload ?? {}) as { action?: string; since?: string; until?: string; limit?: number };
-          return { ok: true, requestId: request.requestId, data: { entries: await history.list(opts), counts: await history.actionCounts() } };
+        if (request.action === 'local-history.status') {
+          return await runHistory(async () => {
+            await ensureHistory();
+            const configured = await historyVault.get(historyAccount).then((value) => value !== undefined).catch(() => false);
+            return { ok: true, requestId: request.requestId, data: { configured, authorized: historyAuthorized, warning: historyAuthorized ? '' : 'History manager is locked. Unlock it with its separate operating-system-vault credential.' } };
+          });
         }
-        if (request.action === 'local-history.record') {
-          const entry = request.payload as unknown as Parameters<LocalHistory['record']>[0];
-          return { ok: true, requestId: request.requestId, data: await history.record(entry) };
+        if (request.action === 'local-history.authorize') {
+          return await runHistory(async () => {
+            await ensureHistory();
+            const secret = typeof request.payload?.secret === 'string' ? request.payload.secret : '';
+            if (secret.length < 8 || secret.length > 256) return { ok: false, requestId: request.requestId, code: 'HISTORY_CREDENTIAL_INVALID', message: 'The history manager credential must be 8 to 256 characters.' };
+            const existing = await historyVault.get(historyAccount);
+            if (existing === undefined) await historyVault.set(historyAccount, secret);
+            else if (existing !== secret) return { ok: false, requestId: request.requestId, code: 'HISTORY_CREDENTIAL_MISMATCH', message: 'The history manager credential did not match.' };
+            historyAuthorized = true;
+            return { ok: true, requestId: request.requestId, data: { authorized: true, warning: '' } };
+          });
         }
-        if (request.action === 'local-history.restore') {
-          const commitId = typeof request.payload?.commitId === 'string' ? request.payload.commitId : '';
-          return { ok: true, requestId: request.requestId, data: await history.restore(commitId) };
+        if (!historyAuthorized && request.action !== 'local-history.record') {
+          return { ok: false, requestId: request.requestId, code: 'HISTORY_LOCKED', message: 'History manager is locked. Unlock it with its separate operating-system-vault credential.' };
         }
+        return await runHistory(async () => {
+          await ensureHistory();
+          if (request.action === 'local-history.list') {
+            const opts = (request.payload ?? {}) as { action?: string; since?: string; until?: string; query?: string; cursor?: string; limit?: number };
+            return { ok: true, requestId: request.requestId, data: await localHistory.listPage(opts) };
+          }
+          if (request.action === 'local-history.record') {
+            const entry = request.payload as unknown as Parameters<LocalHistory['record']>[0];
+            return { ok: true, requestId: request.requestId, data: await localHistory.record(entry) };
+          }
+          if (request.action === 'local-history.restore') {
+            const commitId = typeof request.payload?.commitId === 'string' ? request.payload.commitId : '';
+            return { ok: true, requestId: request.requestId, data: await localHistory.restore(commitId) };
+          }
+          if (request.action === 'local-history.inspect') {
+            const commitId = typeof request.payload?.commitId === 'string' ? request.payload.commitId : '';
+            return { ok: true, requestId: request.requestId, data: await localHistory.inspect(commitId) };
+          }
+          if (request.action === 'local-history.compare') {
+            const first = typeof request.payload?.first === 'string' ? request.payload.first : '';
+            const second = typeof request.payload?.second === 'string' ? request.payload.second : '';
+            return { ok: true, requestId: request.requestId, data: await localHistory.compare(first, second) };
+          }
+          if (request.action === 'local-history.prune') {
+            const keep = Number(request.payload?.keep ?? 500);
+            return { ok: true, requestId: request.requestId, data: await localHistory.prune(keep) };
+          }
+          return { ok: false, requestId: request.requestId, code: 'HISTORY_ACTION_UNAVAILABLE', message: 'The requested history action is unavailable.' };
+        });
       }
       if (request.action === 'pbx.read') {
         if (!request.view) return { ok: false, requestId: request.requestId, code: 'VIEW_REQUIRED', message: 'A read must name the screen it is for.' };

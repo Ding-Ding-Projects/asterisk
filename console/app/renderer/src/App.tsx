@@ -45,7 +45,7 @@ import {
   click as bulkClick, clearSelection as bulkClearSelection, invert as bulkInvert, planBulk, selectAll as bulkSelectAll,
   summarise as bulkSummarise, type SelectionState,
 } from './bulk';
-import { describeLoss, exportFilename, exportRows, suitableFormats, type ExportFormat } from './export';
+import { ARCHIVE_CHOICES, createZipArchive, describeLoss, exportFilename, exportOmissionMetadata, exportRows, suitableFormats, validateArchiveOptions, validateZipArchive, type ExportFormat } from './export';
 import {
   addRule, applyTheme, cssVarFor, exportTheme, importTheme, resetAll, WILDCARD_ELEMENT,
   type AppearanceProperty, type AppearanceTheme,
@@ -61,6 +61,7 @@ import {
   filterHistory, formatHistoryTimestamp, historyActionLabel, historyCounts, historyExportRows,
   HISTORY_ACTIONS, isHistoryAction, type HistoryAction, type HistoryCommit,
 } from './local-history';
+import { validateInclusiveDateRange } from './date-range';
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -255,6 +256,9 @@ export class App extends Base {
   private localHistoryCounts = historyCounts([]);
   private localHistoryPending = false;
   private localHistoryError = '';
+  private localHistoryAccess = { configured: false, authorized: false, warning: '' };
+  private localHistoryInspection: { commitId: string; files: string[]; diff: string } | undefined;
+  private localHistoryComparison: { first: string; second: string; files: string[]; diff: string } | undefined;
 
   private readonly localHistoryRepositoryLabel = 'App data history';
 
@@ -283,6 +287,7 @@ export class App extends Base {
      * anything is reachable and must be on screen whether or not discovery finds a
      * target, so it is loaded independently of it. */
     void this.servers.load().then(() => this.forceUpdate());
+    void this.refreshLocalHistoryStatus();
     void this.loadLocalHistory();
     void this.discover();
     this.refreshTimer = setInterval(() => {
@@ -318,16 +323,26 @@ export class App extends Base {
     try {
       /* Fetch the bounded recent set once, then apply the current action/date/query
        * state locally. This avoids a stale React state value racing a filter refresh. */
-      const response = await this.request('local-history.list', { payload: { limit: 500 } });
-      if (!response?.ok) {
-        this.localHistoryError = response?.message ?? 'The app-data history did not answer.';
-        this.localHistoryEntries = [];
-        this.localHistoryCounts = historyCounts([]);
-        return;
+      const allEntries: unknown[] = [];
+      let cursor: string | undefined;
+      let total = 0;
+      let counts: Record<string, number> | undefined;
+      for (let page = 0; page < 20; page += 1) {
+        const response = await this.request('local-history.list', { payload: { limit: 500, ...(cursor ? { cursor } : {}) } });
+        if (!response?.ok) {
+          this.localHistoryError = response?.message ?? 'The app-data history did not answer.';
+          this.localHistoryEntries = [];
+          this.localHistoryCounts = historyCounts([]);
+          return;
+        }
+        const data = response.data as { entries?: unknown; counts?: Record<string, number>; total?: number; nextCursor?: string } | undefined;
+        if (Array.isArray(data?.entries)) allEntries.push(...data.entries);
+        total = data?.total ?? allEntries.length;
+        counts = data?.counts;
+        cursor = data?.nextCursor;
+        if (!cursor || allEntries.length >= total) break;
       }
-      const data = response.data as { entries?: unknown; counts?: unknown } | undefined;
-      const entries = Array.isArray(data?.entries) ? data.entries : [];
-      this.localHistoryEntries = entries.filter((entry): entry is HistoryCommit => {
+      this.localHistoryEntries = allEntries.filter((entry): entry is HistoryCommit => {
         if (!entry || typeof entry !== 'object') return false;
         const value = entry as Record<string, unknown>;
         return typeof value.id === 'string'
@@ -336,7 +351,9 @@ export class App extends Base {
           && typeof value.subject === 'string'
           && typeof value.message === 'string';
       });
-      this.localHistoryCounts = historyCounts(this.localHistoryEntries);
+      this.localHistoryCounts = counts
+        ? { ...historyCounts([]), ...counts } as ReturnType<typeof historyCounts>
+        : historyCounts(this.localHistoryEntries);
     } catch (error) {
       this.localHistoryError = error instanceof Error ? error.message : 'The app-data history could not be read.';
       this.localHistoryEntries = [];
@@ -345,6 +362,36 @@ export class App extends Base {
       this.localHistoryPending = false;
       this.forceUpdate();
     }
+  };
+
+  private refreshLocalHistoryStatus = async (): Promise<void> => {
+    const response = await this.request('local-history.status');
+    if (response?.ok) {
+      this.localHistoryAccess = response.data as typeof this.localHistoryAccess;
+      if (!this.localHistoryAccess.authorized) this.localHistoryError = this.localHistoryAccess.warning;
+    }
+    this.forceUpdate();
+  };
+
+  private authorizeLocalHistory = async (): Promise<void> => {
+    const state = this.state as { historyCredential?: string };
+    const secret = state.historyCredential ?? '';
+    if (secret.length < 8) {
+      this.fire('History manager locked', 'Enter the separate history manager credential, at least 8 characters.');
+      return;
+    }
+    const response = await this.request('local-history.authorize', { payload: { secret } });
+    this.setState({ historyCredential: '' });
+    if (!response?.ok) {
+      this.localHistoryError = response?.message ?? 'The history manager credential was not accepted.';
+      this.fire('History manager locked', this.localHistoryError);
+      this.forceUpdate();
+      return;
+    }
+    this.localHistoryAccess = { configured: true, authorized: true, warning: '' };
+    this.localHistoryError = '';
+    this.toast('History manager unlocked for this session');
+    await this.loadLocalHistory();
   };
 
   /** Record one append-only settings event. Secrets are redacted again by the
@@ -374,6 +421,43 @@ export class App extends Base {
     await this.loadLocalHistory();
   };
 
+  private inspectLocalHistory = async (commitId: string): Promise<void> => {
+    const response = await this.request('local-history.inspect', { payload: { commitId } });
+    if (!response?.ok) {
+      this.localHistoryInspection = undefined;
+      this.localHistoryError = response?.message ?? 'The selected history tree could not be read.';
+      this.forceUpdate();
+      return;
+    }
+    const data = response.data as { files?: string[]; diff?: string };
+    this.localHistoryInspection = { commitId, files: data.files ?? [], diff: data.diff ?? '' };
+    this.forceUpdate();
+  };
+
+  private compareLocalHistory = async (first: string, second: string): Promise<void> => {
+    const response = await this.request('local-history.compare', { payload: { first, second } });
+    if (!response?.ok) {
+      this.localHistoryComparison = undefined;
+      this.localHistoryError = response?.message ?? 'The selected history trees could not be compared.';
+      this.forceUpdate();
+      return;
+    }
+    const data = response.data as { files?: string[]; diff?: string };
+    this.localHistoryComparison = { first, second, files: data.files ?? [], diff: data.diff ?? '' };
+    this.forceUpdate();
+  };
+
+  private pruneLocalHistory = async (): Promise<void> => {
+    const keep = Number((this.state as { historyKeep?: number }).historyKeep ?? 500);
+    const response = await this.request('local-history.prune', { payload: { keep } });
+    if (!response?.ok) {
+      this.fire('History retention unavailable', response?.message ?? 'The history manager did not answer.');
+      return;
+    }
+    const data = response.data as { kept?: number; removed?: number; policy?: string };
+    this.fire('History retention reviewed', `Policy ${data.policy ?? 'unknown'} kept ${data.kept ?? 0} entr${data.kept === 1 ? 'y' : 'ies'} and removed ${data.removed ?? 0}. The immutable policy never rewrites history.`);
+  };
+
   private exportLocalHistory = (): void => {
     const state = this.state as { historyQuery?: string; historyRegexOn?: boolean; historyFrom?: string; historyTo?: string };
     const result = filterHistory(this.localHistoryEntries, {
@@ -386,15 +470,52 @@ export class App extends Base {
       this.fire('History export unavailable', result.error);
       return;
     }
-    const text = exportRows({ rows: historyExportRows(result.entries), format: 'json' });
-    const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+    const rows = historyExportRows(result.entries);
+    const available = suitableFormats(rows);
+    const requested = (this.state as { historyExportFormat?: string }).historyExportFormat;
+    const format: ExportFormat = available.includes(requested as ExportFormat) ? requested as ExportFormat : 'json';
+    const request = { rows, format };
+    const text = exportRows(request);
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'app-data-history.json';
+    link.download = `app-data-history.${format === 'markdown' ? 'md' : format}`;
     link.click();
     URL.revokeObjectURL(url);
-    this.toast(`Exported ${result.entries.length} history entr${result.entries.length === 1 ? 'y' : 'ies'} as JSON`);
+    const omissions = exportOmissionMetadata(request).omissions;
+    this.toast(`Exported ${result.entries.length} history entr${result.entries.length === 1 ? 'y' : 'ies'} as ${format.toUpperCase()}${omissions.length ? `. Omission marker: ${omissions.join(' ')}` : ''}`);
+  };
+
+  private exportLocalHistoryZip = (): void => {
+    const state = this.state as { historyQuery?: string; historyRegexOn?: boolean; historyFrom?: string; historyTo?: string };
+    const result = filterHistory(this.localHistoryEntries, { query: state.historyQuery, regex: !!state.historyRegexOn, since: state.historyFrom, until: state.historyTo });
+    if (result.error) { this.fire('History archive unavailable', result.error); return; }
+    const archiveOptions = validateArchiveOptions({ format: 'zip', compression: 'store', level: 'store', solid: false, encryptedHeaders: false, encryptedContent: false });
+    if (!archiveOptions.ok) { this.fire('History archive unavailable', archiveOptions.reason); return; }
+    const archive = createZipArchive([{ name: 'app-data-history.json', text: exportRows({ rows: historyExportRows(result.entries), format: 'json' }) }]);
+    const validation = validateZipArchive(archive);
+    if (!validation.ok) { this.fire('History archive unavailable', validation.reason); return; }
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([archive as unknown as BlobPart], { type: 'application/zip' }));
+    link.download = 'app-data-history.zip';
+    link.click();
+    URL.revokeObjectURL(link.href);
+    this.toast(`Exported ${validation.entries} archive entr${validation.entries === 1 ? 'y' : 'ies'} as ZIP`);
+  };
+
+  /** Handoff seam for the separate external-editor lane. This lane only supplies the
+   *  existing external-editor plan and never launches a shell or duplicates detection. */
+  private openHistoryFolderInEditor = async (): Promise<void> => {
+    const bridge = this.bridge() as DesktopBridge & { externalEditor?: { openFolder?: (path: string) => Promise<{ ok: boolean; message?: string }> } };
+    const result = await bridge?.externalEditor?.openFolder?.(`${IDENTITY.dataDirectory}\\history`);
+    if (!result) {
+      this.toast('External-editor handoff is not available in this build. History remains usable without an editor.');
+    } else if (!result.ok) {
+      this.fire('Editor handoff unavailable', result.message ?? 'The selected external editor did not open the history folder.');
+    } else {
+      this.toast('History folder handed to the selected external editor');
+    }
   };
 
   /** Bounded, allowlisted discovery through the preload bridge. Never a shell command. */
@@ -577,6 +698,7 @@ export class App extends Base {
     this.readings = {};
     this.canvasReadings = undefined;
     await this.refreshDaemonStatus();
+    this.recordLocalHistory('updated', `runtime daemon ${verb}`, { target: this.target.id, verb });
     this.fire(`Phone system ${verb === 'start' ? 'started' : verb === 'stop' ? 'stopped' : 'restarted'}`, `Asterisk on ${this.target.label} answered after the ${verb}.`);
   };
 
@@ -847,6 +969,7 @@ ${resolution.disclosure}`);
         this.fire('Not created', provisioned?.message ?? 'Creating the runtime did not succeed, so there is nothing to deploy to.');
         return;
       }
+      this.recordLocalHistory('created', 'runtime provisioned', { target: this.target.id, action: 'runtime.provision' });
       await this.discover();
       if (!this.target.connected) {
         this.fire('No target', 'The runtime was created but nothing is connected yet — open Deploy & servers to finish connecting, then try the wizard again.');
@@ -886,6 +1009,7 @@ ${resolution.disclosure}`);
             this.fire('Deploy not applied', `${response?.message ?? result?.data?.result?.message ?? 'The target refused the change.'}`);
             return;
           }
+          this.recordLocalHistory('updated', 'onboarding deploy', { target: this.target.id, documents: plan.documents });
           const secretLines = plan.newExtensions.map((e) => `${e.id}: ${e.secret}`).join('\n');
           this.fire(
             'Deployed',
@@ -973,7 +1097,10 @@ ${resolution.disclosure}`);
         return Object.fromEntries(cols.map((c, i) => [c, row[i] ?? ''])) as Record<string, unknown>;
       });
       const formats = suitableFormats(records);
-      const format: ExportFormat = formats.includes('csv') ? 'csv' : (formats[0] ?? 'json');
+      const requested = (this.state as { bulkExportFormat?: string }).bulkExportFormat;
+      const format: ExportFormat = formats.includes(requested as ExportFormat)
+        ? requested as ExportFormat
+        : (formats.includes('csv') ? 'csv' : (formats[0] ?? 'json'));
       const text = exportRows({ rows: records, format, table: screen });
       const loss = describeLoss(records, format);
       const filename = exportFilename(screen, format);
@@ -990,10 +1117,27 @@ ${resolution.disclosure}`);
       return;
     }
 
-    // Every other bulk verb (Enable/Disable/Duplicate/...) has no write path in this
-    // console yet -- the plan and its honest count are real, but nothing is applied.
-    this.set('selected', []);
-    this.fire(verb, message);
+    // Every other verb has no target-specific write path on these read-only tables.
+    // Keep the selection intact and say that nothing was applied, rather than turning
+    // a plan into a false success claim.
+    this.fire(`${verb} not applied`, `${message}. This table is read-only, so no records changed.`);
+  };
+
+  private restoreHistoryBatch = async (commitIds: readonly string[]): Promise<void> => {
+    const ids = [...new Set(commitIds)].filter((id) => /^[0-9a-f]{40}$/iu.test(id));
+    if (ids.length === 0) {
+      this.fire('No history entries selected', 'Select one or more history entries first.');
+      return;
+    }
+    let done = 0;
+    const failures: string[] = [];
+    for (const id of ids) {
+      const response = await this.request('local-history.restore', { payload: { commitId: id } });
+      if (response?.ok) done += 1;
+      else failures.push(response?.message ?? id.slice(0, 10));
+    }
+    await this.loadLocalHistory();
+    this.fire('History batch complete', `${done} of ${ids.length} selected entr${ids.length === 1 ? 'y' : 'ies'} restored.${failures.length ? ` ${failures.length} failed: ${failures.join('; ')}` : ''}`);
   };
 
   /**
@@ -1034,8 +1178,12 @@ ${resolution.disclosure}`);
       ? (values.bulkActions as Array<{ icon: string; label: string; run: () => void }>)
       : [];
 
+    const records = rows.map((row) => Object.fromEntries((SCREENS as Record<string, { table?: { cols: string[] } }>)[screen]?.table?.cols.map((col, i) => [col, row[i] ?? '']) ?? []) as Record<string, unknown>);
     return {
       tableRows,
+      bulkExportFormat: (this.state as { bulkExportFormat?: string }).bulkExportFormat ?? 'csv',
+      setBulkExportFormat: (event: { target?: { value?: string } }) => this.setState({ bulkExportFormat: event.target?.value ?? 'csv' }),
+      bulkExportFormats: suitableFormats(records).map((format) => ({ value: format, label: format.toUpperCase() })),
       toggleAll: () => apply(selectedArr.length === ids.length && ids.length > 0
         ? bulkClearSelection(sel)
         : bulkSelectAll(sel, 'page', ids, ids).state),
@@ -1242,6 +1390,8 @@ It is shown once. The phone needs it to register.`);
      * value that is no longer there. */
     delete this.configs.endpoints;
     this.seeded.delete('endpoints');
+    const historyAction: HistoryAction = /created/iu.test(done) ? 'created' : /removed/iu.test(done) ? 'deleted' : 'updated';
+    this.recordLocalHistory(historyAction, `endpoint ${done.replace(/\s+(created|updated|removed)$/iu, '')}`, document.value);
     this.fire(done, summary.join('\n'));
     this.forceUpdate();
     return true;
@@ -1922,6 +2072,7 @@ It is shown once. The phone needs it to register.`);
             this.fire('Not created', `${response.message ?? 'Creating the runtime did not succeed.'}\n\n${steps}`.trim());
             return;
           }
+          this.recordLocalHistory('created', 'runtime provisioned', { action: 'runtime.provision', steps: carrier.data?.steps ?? [] });
           this.fire('Runtime ready', steps || 'The runtime was created and answered.');
           void this.discover();
         });
@@ -2066,13 +2217,14 @@ It is shown once. The phone needs it to register.`);
       bg: entry.id === selected ? '#1D2A22' : 'transparent',
       dot: entry.action === 'deleted' ? '#FFB4AB' : entry.action === 'restored' ? '#FFD68A' : '#82D9A5',
       cmpFg: compare.includes(entry.id) ? '#82D9A5' : '#778078',
-      pick: () => this.setState({ historySelected: entry.id }),
+      pick: () => { this.setState({ historySelected: entry.id }); void this.inspectLocalHistory(entry.id); },
       compare: (event: { stopPropagation?: () => void }) => {
         event?.stopPropagation?.();
         const next = compare.includes(entry.id)
           ? compare.filter((id) => id !== entry.id)
           : compare.concat(entry.id).slice(-2);
         this.setState({ historyCompare: next });
+        if (next.length === 2) void this.compareLocalHistory(next[0], next[1]);
       },
       ctx: (event: { preventDefault?: () => void }) => {
         event?.preventDefault?.();
@@ -2080,15 +2232,18 @@ It is shown once. The phone needs it to register.`);
       },
     }));
 
-    const diffLines = selectedEntry
-      ? [
-          { text: `@@ ${selectedEntry.subject} @@`, color: '#8AB4F8', bg: 'transparent' },
-          { text: `  action: ${selectedEntry.action}`, color: '#C4CBC2', bg: 'transparent' },
-          { text: `  timestamp: ${selectedEntry.timestamp}`, color: '#C4CBC2', bg: 'transparent' },
-          { text: '  payload values are redacted by the history service where they are credential-shaped', color: '#8FA394', bg: 'transparent' },
-        ]
-      : [{ text: 'No history entry selected.', color: '#8FA394', bg: 'transparent' }];
+    const diffText = selectedEntry && this.localHistoryInspection?.commitId === selectedEntry.id
+      ? this.localHistoryInspection.diff
+      : '';
+    const diffLines = diffText
+      ? diffText.split(/\r?\n/u).slice(0, 80).map((text) => ({
+          text,
+          color: text.startsWith('+') ? '#9FF7C4' : text.startsWith('-') ? '#FFB4AB' : '#C4CBC2',
+          bg: text.startsWith('+') ? 'rgba(0,82,48,.28)' : text.startsWith('-') ? 'rgba(147,0,10,.18)' : 'transparent',
+        }))
+      : [{ text: selectedEntry ? 'Select Refresh or click the entry again to read its redacted commit tree.' : 'No history entry selected.', color: '#8FA394', bg: 'transparent' }];
 
+    const dateRange = validateInclusiveDateRange(state.historyFrom ?? '', state.historyTo ?? '');
     return {
       branchName: this.localHistoryRepositoryLabel,
       commitCount: `${filtered.entries.length} entr${filtered.entries.length === 1 ? 'y' : 'ies'}`,
@@ -2102,10 +2257,16 @@ It is shown once. The phone needs it to register.`);
       histActions: [
         { icon: 'refresh', label: this.localHistoryPending ? 'Refreshing…' : 'Refresh history', run: () => void this.loadLocalHistory() },
         { icon: 'restore', label: 'Restore selected', run: () => selectedEntry && void this.restoreLocalHistory(selectedEntry.id) },
+        { icon: 'playlist_add_check', label: `Restore compared (${compare.length})`, run: () => void this.restoreHistoryBatch(compare) },
         { icon: 'download', label: 'Export history', run: this.exportLocalHistory },
+        { icon: 'archive', label: `Export ZIP (${ARCHIVE_CHOICES[0].label})`, run: this.exportLocalHistoryZip },
+        { icon: 'open_in_new', label: 'Open history folder in editor', run: this.openHistoryFolderInEditor },
+        { icon: 'rule', label: 'Review retention policy', run: this.pruneLocalHistory },
       ],
       commitRows,
-      diffFile: selectedEntry ? `${selectedEntry.subject} @ ${selectedEntry.id}` : 'no entry selected',
+      diffFile: selectedEntry
+        ? `${selectedEntry.subject} @ ${selectedEntry.id} · ${this.localHistoryInspection?.files.length ?? 0} redacted record file(s)`
+        : 'no entry selected',
       diffLines,
       diffActions: selectedEntry
         ? [
@@ -2119,7 +2280,7 @@ It is shown once. The phone needs it to register.`);
         who: 'Asterisk Local History',
       })),
       compareLabel: compare.length === 2
-        ? `Comparing ${compare[0].slice(0, 10)} with ${compare[1].slice(0, 10)}. The history service keeps both commits unchanged.`
+        ? `${this.localHistoryComparison?.files.length ?? 0} changed record file(s) between ${compare[0].slice(0, 10)} and ${compare[1].slice(0, 10)}. The history service keeps both commits unchanged.`
         : 'Select two entries with the compare buttons to compare their recorded metadata.',
       historyQuery: state.historyQuery ?? '',
       setHistoryQuery: (event: { target?: { value?: string } }) => this.setState({ historyQuery: event.target?.value ?? '' }),
@@ -2136,8 +2297,17 @@ It is shown once. The phone needs it to register.`);
       setHistoryFrom: (event: { target?: { value?: string } }) => { this.setState({ historyFrom: event.target?.value ?? '' }); void this.loadLocalHistory(); },
       historyTo: state.historyTo ?? '',
       setHistoryTo: (event: { target?: { value?: string } }) => { this.setState({ historyTo: event.target?.value ?? '' }); void this.loadLocalHistory(); },
-      historyDateError: '',
+      historyDateError: dateRange.error ?? '',
+      historyCredential: (this.state as { historyCredential?: string }).historyCredential ?? '',
+      setHistoryCredential: (event: { target?: { value?: string } }) => this.setState({ historyCredential: event.target?.value ?? '' }),
+      authorizeHistory: this.authorizeLocalHistory,
+      historyAccessLabel: this.localHistoryAccess.authorized
+        ? 'Unlocked for this session; the credential remains in the operating-system vault.'
+        : 'Locked. Enter the separate history-manager credential. The desktop reports a warning and keeps rows hidden until it is unlocked.',
       historyResultLabel: this.localHistoryError || (this.localHistoryPending ? 'Reading app-data history…' : `${filtered.entries.length} visible entr${filtered.entries.length === 1 ? 'y' : 'ies'}`),
+      historyExportFormat: (this.state as { historyExportFormat?: string }).historyExportFormat ?? 'json',
+      setHistoryExportFormat: (event: { target?: { value?: string } }) => this.setState({ historyExportFormat: event.target?.value ?? 'json' }),
+      historyExportFormats: suitableFormats(historyExportRows(filtered.entries)).map((format) => ({ label: format.toUpperCase(), value: format })),
     };
   }
 
@@ -2358,12 +2528,6 @@ It is shown once. The phone needs it to register.`);
 
   private readonly changelogAllEntries: ReadonlyArray<ChangelogEntry> = parseChangelogDetailed(CHANGELOG_MARKDOWN).entries;
 
-  private static isValidIsoDate(value: string): boolean {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-    const d = new Date(`${value}T00:00:00Z`);
-    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
-  }
-
   private applyChangelogPreset(days: number): void {
     const to = new Date();
     const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
@@ -2402,11 +2566,10 @@ It is shown once. The phone needs it to register.`);
     const state = this.state as { changelogFrom?: string; changelogTo?: string; changelogQuery?: string; changelogRegexOn?: boolean };
     const from = state.changelogFrom ?? '';
     const to = state.changelogTo ?? '';
-    const fromValid = from === '' || App.isValidIsoDate(from);
-    const toValid = to === '' || App.isValidIsoDate(to);
+    const dateRange = validateInclusiveDateRange(from, to);
     return filterAndSearch(this.changelogAllEntries, {
-      from: fromValid && from !== '' ? from : undefined,
-      to: toValid && to !== '' ? to : undefined,
+      from: dateRange.ok ? dateRange.from : undefined,
+      to: dateRange.ok ? dateRange.to : undefined,
       query: state.changelogQuery ?? '',
       regex: !!state.changelogRegexOn,
     });
@@ -2420,13 +2583,8 @@ It is shown once. The phone needs it to register.`);
     const state = this.state as { changelogFrom?: string; changelogTo?: string };
     const from = state.changelogFrom ?? '';
     const to = state.changelogTo ?? '';
-    const fromValid = from === '' || App.isValidIsoDate(from);
-    const toValid = to === '' || App.isValidIsoDate(to);
-    const dateError = !fromValid
-      ? 'From date must be a valid calendar date in YYYY-MM-DD form.'
-      : !toValid
-        ? 'To date must be a valid calendar date in YYYY-MM-DD form.'
-        : '';
+    const dateRange = validateInclusiveDateRange(from, to);
+    const dateError = dateRange.error ?? '';
 
     const { entries, error } = this.changelogFilterResult();
 

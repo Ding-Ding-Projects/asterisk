@@ -8,11 +8,11 @@ Visible table rows use the shared export engine and export the selected rows, no
 
 ## Configuration
 
-Exports are UTF-8 and carry every field represented by the selected rows. Coding formats are re-importable where their schema permits it. Archive packaging remains an explicit adapter boundary: the desktop surface must not label a JSON export as a ZIP or 7z archive until a bundled archive writer is available. When an archive adapter is unavailable, the UI reports that exact missing capability instead of pretending that a renamed text file is an archive.
+Exports are UTF-8 and carry every field represented by the selected rows. Coding formats are re-importable where their schema permits it. ZIP output is produced by the bundled store-mode writer, includes a safe relative entry name, and is validated by its local and end records before download. The archive catalog exposes compression and encryption choices honestly. 7z remains disabled with the exact missing bundled adapter and its full future option inventory: LZMA2, LZMA, PPMd, BZip2, Deflate, store through ultra levels, solid mode, AES-256 content encryption, and encrypted headers.
 
 ## Current status
 
-**Desktop application:** Partial and mounted. Table bulk export, changelog export, appearance export, and app-data history export write real files from the current filtered or selected records. A format picker is still needed for choosing among every suitable coding format from the UI, and archive output remains unavailable until a bundled writer is added.
+**Desktop application:** Partial and mounted. Table bulk export, changelog export, appearance export, app-data History JSON export, and validated ZIP export write real files from the current filtered or selected records. The shared engine exposes the complete coding-format catalog and omission markers. A richer user-facing format picker and a bundled 7z adapter remain open.
 
 **Documentation website:** Not changed in this desktop-only lane.
 

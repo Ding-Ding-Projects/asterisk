@@ -540,6 +540,23 @@ function Template(v: any) {
                 ),
                 h("span", { style: sty(`font-size:12px; color:#9AA39B; padding:8px 2px;`) },
                   S(v.historyResultLabel)
+                ),
+                h("select", { value: v.historyExportFormat, onChange: fn(v.setHistoryExportFormat), "aria-label": `History export format`, style: sty(`background:#141A15; border:1px solid #414942; border-radius:8px; padding:7px 9px; color:#C4CBC2; font:inherit; font-size:11.5px;`) },
+                  A(v.historyExportFormats).map(($f, $f$i) => R($f$i, h("option", { value: $f.value },
+                      S($f.label)
+                    )))
+                )
+              ),
+              h("div", { style: sty(`background:#141A15; border:1px solid #333B34; border-radius:12px; padding:10px 14px; margin:-4px 0 12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;`) },
+                h("span", { style: sty(`font-size:17px; color:#FFD68A;`), className: "msym" },
+                  "lock"
+                ),
+                h("span", { style: sty(`font-size:11.5px; color:#C4CBC2; flex:1 1 280px;`) },
+                  S(v.historyAccessLabel)
+                ),
+                h("input", { type: `password`, value: v.historyCredential, onChange: fn(v.setHistoryCredential), placeholder: `History manager credential`, "aria-label": `History manager credential`, style: sty(`width:210px; background:#0C110D; border:1px solid #414942; border-radius:8px; padding:7px 9px; color:#E2E9E1; font:inherit; font-size:11.5px;`) }),
+                h("button", { onClick: fn(v.authorizeHistory), style: sty(`background:#82D9A5; border:0; border-radius:999px; padding:8px 14px; color:#00391F; font:inherit; font-size:11.5px; font-weight:600; cursor:pointer;`) },
+                  "Unlock history"
                 )
               ),
               (v.historyRegexOn ? h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px; margin:-4px 0 12px;`) },
@@ -1208,6 +1225,11 @@ function Template(v: any) {
                         ),
                         S($b.label)
                       ))),
+                    h("select", { value: v.bulkExportFormat, onChange: fn(v.setBulkExportFormat), "aria-label": `Bulk export format`, style: sty(`background:rgba(0,0,0,.24); border:1px solid rgba(159,247,196,.3); border-radius:8px; padding:7px 9px; color:#C3EFD5; font:inherit; font-size:11.5px;`) },
+                      A(v.bulkExportFormats).map(($f, $f$i) => R($f$i, h("option", { value: $f.value },
+                          S($f.label)
+                        )))
+                    ),
                     h("button", { onClick: fn(v.clearSelection), style: sty(`background:transparent; border:0; color:#C3EFD5; font:inherit; font-size:12.5px; cursor:pointer; padding:7px 10px;`) },
                       "Clear"
                     )

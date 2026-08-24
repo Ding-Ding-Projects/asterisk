@@ -26,7 +26,11 @@ function spansFor(line: string): DocsSpan[] {
   let match: RegExpExecArray | null;
   while ((match = LINK_RE.exec(line)) !== null) {
     if (match.index > last) spans.push({ text: line.slice(last, match.index) });
-    spans.push({ text: match[1] || match[2], href: match[2] });
+    const href = match[2].trim();
+    const safeHref = href.startsWith('#') || href.startsWith('/') || href.startsWith('\\') || /^[a-z][a-z0-9+.-]*:/iu.test(href)
+      ? undefined
+      : href;
+    spans.push({ text: match[1] || href, ...(safeHref ? { href: safeHref } : {}) });
     last = match.index + match[0].length;
   }
   if (last < line.length) spans.push({ text: line.slice(last) });
@@ -67,7 +71,10 @@ export function parseMarkdown(body: string): DocsBlock[] {
     if (h2) { blocks.push({ kind: 'h2', text: h2[1] }); continue; }
     if (h3) { blocks.push({ kind: 'h3', text: h3[1] }); continue; }
 
-    const li = /^[-*]\s+(.*)$/.exec(line);
+    const quote = /^>\s?(.*)$/.exec(line);
+    if (quote) { blocks.push({ kind: 'paragraph', spans: spansFor(`Quote: ${quote[1]}`) }); continue; }
+
+    const li = /^(?:[-*]|\d+[.)])\s+(.*)$/.exec(line);
     if (li) { blocks.push({ kind: 'list-item', spans: spansFor(li[1]) }); continue; }
 
     blocks.push({ kind: 'paragraph', spans: spansFor(line) });
