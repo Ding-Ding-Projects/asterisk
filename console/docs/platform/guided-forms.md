@@ -14,11 +14,11 @@ Every disabled control would state, in its own tooltip or adjacent text, exactly
 
 **Desktop application:** Partial. The desktop application's server and deployment forms mix real pickers for some fields with free-text entry for others; validation messages exist for some fields but not consistently, and not every disabled control names its exact blocking condition.
 
-**Documentation website:** Partial. The site's forms, such as the settings placeholders, are minimal and mostly unvalidated; inline validation guidance is largely absent.
+**Documentation website:** Local equivalent implemented, runtime proof unverified. The converter uses a real target-format picker, bounded local source file picker, output-name field, and a genuine writable folder picker through `showDirectoryPicker` when the browser supports it. If the capability is unavailable or permission is refused, the surface explicitly falls back to browser downloads. It never labels a source upload picker as a destination.
 
 ## Failure modes
 
-A field left blank or filled incorrectly is meant to be caught inline, in plain words, before submission is attempted; several forms on both surfaces still rely on submission itself, or a generic error, to reveal that a field was wrong.
+A field left blank or filled incorrectly is meant to be caught inline, in plain words, before submission is attempted. The converter keeps its adapter catalog honest, limits output names, reports folder-picker capability and permission failures, and leaves source files untouched.
 
 ## Accessibility and localization
 
@@ -26,7 +26,7 @@ This feature is expected to follow the product's standing accessibility contract
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+This delegated source-only lane did not run tests, builds, browser checks, or captures. The site registry remains `implemented-unverified` for this local equivalent. The desktop application row remains partial.
 
 ## Suggested articles
 

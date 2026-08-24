@@ -411,11 +411,11 @@ option carries a mark and its text is not the bare value.
 
 This source-only lane extends `console/site` while preserving the site's boundary as a documentation, download, status, and settings surface. It does not claim to be the installed desktop console or a PBX runtime.
 
-- `console/site/app.js` now persists a left-default browser-style tab strip, tab order, pinned tabs, groups, four independently searchable tab views, keyboard traversal, context-menu actions, per-tab and per-element local appearance, and toy locks backed by browser-local SHA-256 digests.
-- `console/site/status.html` and `app.js` now include a local Status Hub projection. It stores a session label, state, and optional HTTP(S) evidence reference in browser storage only. It does not contact or impersonate a hosted status service.
+- `console/site/app.js` now persists a left-default browser-style route strip, tab order, pinned routes, groups, four independently searchable tab views, axis-aware keyboard traversal, navigation semantics, context-menu actions for all rendered targets, stable explicit `data-element-id` records, per-tab and per-element local appearance, and toy locks backed by browser-local SHA-256 digests.
+- `console/site/status.html` and `app.js` now include a local user-declared Status Hub projection. It stores a session label, state, and optional HTTP(S) evidence reference in browser storage only. It displays Verified only when the current composed build and release receipt validates the exact evidence URL. It does not contact or impersonate a hosted status service.
 - `console/site/downloads.html` now describes Start, browser handoff, progress-unavailable, and completion-unavailable states. The site opens only a validated immutable release asset and does not invent progress or completion.
-- `console/site/converter.html` now includes guided output naming and a native destination-folder picker hint. The browser boundary is stated plainly: results remain browser downloads and the page cannot write into the selected folder.
-- `console/site/feature-registry.json` records the affected site rows as `implemented-unverified` where a local equivalent exists, and keeps the browser-extension row partial because no extension exists in this repository.
+- `console/site/converter.html` now includes guided output naming and a real writable destination-folder picker through `showDirectoryPicker` when available. Permission refusal or unsupported browsers fall back to browser downloads, and the page never labels a source upload picker as a destination.
+- `console/site/feature-registry.json` records the affected site rows as `implemented-unverified` where a local equivalent exists, keeps `status-hub` partial because no hosted live Hub exists, and keeps the browser-extension row partial because no extension exists in this repository.
 
 No tests, lint, type checks, builds, package steps, captures, browser checks, hosting, or release actions ran in this lane. The next owner must run the site checks and built-artifact interaction proof before changing these rows to verified.
 

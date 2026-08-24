@@ -192,11 +192,11 @@ is a wish rather than a proposal. Two survived on merit.
 
 ### Static site universal completion lane, 2026-08-23
 
-- [x] Add a browser-style site tab strip with a persisted left default, edge selection, pinned-first ordering, keyboard traversal, overflow scrolling, and a local tab manager.
-- [x] Add four independent tab searches, group creation and membership, reorder and pin actions, and adjacent regex-builder controls for each tab search.
-- [x] Add context-menu actions for local per-element appearance and toy locks, with hashed local credentials and an honest browser-storage reset route.
-- [x] Add a local Status Hub projection with persisted session state and explicit no-hosted-service boundaries.
-- [x] Add guided converter destination controls, a native folder picker hint, and a truthful browser download-status handoff with Start, progress-unavailable, and completion-unavailable states.
+- [x] Add a browser-style site route strip with a persisted left default, edge selection, pinned-first ordering, axis-aware keyboard traversal, overflow scrolling, navigation semantics, and a local tab manager. Runtime proof remains unverified.
+- [x] Add four independent tab searches, group creation and membership, reorder and pin actions, and adjacent regex-builder controls for each tab search. Runtime proof remains unverified.
+- [x] Add context-menu actions for local per-element appearance and toy locks, with stable explicit data IDs, credential checks before edits or removal, hashed local credentials, and an honest browser-storage reset route. Runtime proof remains unverified.
+- [x] Add a local user-declared Status Hub projection with persisted session state and explicit no-hosted-service boundaries. It remains partial and cannot self-promote to Verified without a validated receipt.
+- [x] Add guided converter destination controls using a genuine writable folder picker when supported, an honest unavailable fallback, and a truthful browser download-status handoff with Start, progress-unavailable, and completion-unavailable states.
 - [x] Add narrow 320px layout rules for the new tab manager, status projection, and guided form surfaces.
 - [ ] Run the site suite, build, hosted publication, or built-artifact interaction proof for this lane. Those checks were intentionally not run in the delegated source-only lane.
 - [x] Add real built-artifact updater evidence for the old `0.1.0` baseline and installed `0.1.84` draft-blocked state, with source commits `745d7425df791646aef4a6972c96dcf279a6004a`, `870be47d6708b32f7fed154abf0ca3779f1fe3bb`, and `b29850dd1ae63553dc6c60ecdedc60adb6707a77`, exact release tags, SHA-256 image records, dimensions, hidden-desktop CDP method, direct installer launch, restart, Later persistence, and draft blocking documented in `console/docs/platform/automatic-updates-evidence.md`.

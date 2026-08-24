@@ -14,11 +14,11 @@ It would update one page in place rather than mint a new page per update, and ca
 
 **Desktop application:** Not implemented. No such development-status page exists for this product on the desktop application.
 
-**Documentation website:** Partial. The site composer embeds one validated build-manifest record into every published page. The status and download surfaces derive their counts, release availability, immutable URL, byte count, and digest only from that record, and show unavailable, invalid, or stale states otherwise. Live maintenance sessions and interactive question delivery are not implemented on this public surface.
+**Documentation website:** Partial. The site composer embeds one validated build-manifest record into every published page. The status and download surfaces derive their counts, release availability, immutable URL, byte count, and digest only from that record, and show unavailable, invalid, or stale states otherwise. A local Status Hub projection now stores a user-declared session label, state, and optional evidence URL in browser storage. It displays Verified only when the current composed build and release receipt validates the exact evidence URL. Live maintenance sessions, hosted updates, interactive question delivery, and remote reply delivery are not implemented on this public surface.
 
 ## Failure modes
 
-If no composed record exists, the source page says the record is unavailable. If release evidence fails schema checks or describes a different package version, the download remains disabled and the exact invalid or stale reason is shown.
+If no composed record exists, the source page says the record is unavailable. If release evidence fails schema checks or describes a different package version, the download remains disabled and the exact invalid or stale reason is shown. A user-declared Status Hub state remains unverified unless the exact current receipt supports it; the form cannot promote a label by itself.
 
 ## Accessibility and localization
 
@@ -26,7 +26,7 @@ This feature is expected to follow the product's standing accessibility contract
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+This delegated source-only lane did not run tests, builds, browser checks, or captures. The site registry remains partial because the local projection is not a hosted live Hub. The desktop application row remains not implemented.
 
 ## Suggested articles
 

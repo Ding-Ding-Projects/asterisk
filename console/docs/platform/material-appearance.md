@@ -14,11 +14,11 @@ Colors would be chosen through a continuous picker with bidirectional conversion
 
 **Desktop application:** Partial. A dark/light theme toggle exists in settings, but accent color, density, typography customization, the continuous color picker, and the per-element appearance editor are all absent.
 
-**Documentation website:** Partial. Every page exposes persisted dark, light, and high-contrast themes, density, accent, font scale, navigation docking, logo presets, and a broad color translator. These values apply live. Per-element editors and full word-processor typography remain incomplete.
+**Documentation website:** Partial. Every page exposes persisted dark, light, and high-contrast themes, density, accent, font scale, navigation docking, logo presets, and a broad color translator. These values apply live. Context-menu appearance editors now cover route tabs and stable local element targets, with credential checks before edits and resets when a target is toy-locked. Full word-processor typography, named theme presets, and a general appearance import format remain incomplete.
 
 ## Failure modes
 
-An appearance change that fails to persist (for example, a write to a locked settings file) is meant to notify the user and keep the prior appearance in effect rather than silently reverting after the fact; there is little to test that against today, since most controls do not exist yet.
+An appearance change that fails to persist keeps the prior value and reports the browser error. A locked target requires its current toy-lock value before appearance edits or reset. Export includes redacted appearance records but never credential digests, and the export is not an import or restore format.
 
 ## Accessibility and localization
 
@@ -26,7 +26,7 @@ This feature is expected to follow the product's standing accessibility contract
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+This delegated source-only lane did not run tests, builds, browser checks, or captures. The site registry remains partial because only the local equivalent was changed and full typography is incomplete. The desktop application row remains partial.
 
 ## Suggested articles
 

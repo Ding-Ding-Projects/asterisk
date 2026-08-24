@@ -797,8 +797,8 @@
       }
     },
     "status-hub": {
-      "status": "implemented-unverified",
-      "note": "site/status.html now exposes a local Status Hub projection with a session label, state, optional HTTP(S) evidence reference, persistence, and explicit no-hosted-service boundaries. It does not claim remote delivery or a hosted verdict.",
+      "status": "partial",
+      "note": "site/status.html exposes a local user-declared Status Hub projection with a session label, state, optional HTTP(S) evidence reference, persistence, and explicit no-hosted-service boundaries. It displays Verified only when the current composed build and release receipt validates the exact evidence URL. Live hosted sessions, question delivery, and remote updates remain absent.",
       "implementation": {
         "paths": ["console/site/status.html", "console/site/app.js"],
         "symbols": [{"path": "console/site/app.js", "name": "initStatusHub", "kind": "function"}]
@@ -1227,7 +1227,7 @@
     },
     "browser-style-tabs": {
       "status": "implemented-unverified",
-      "note": "site/app.js now upgrades the shared navigation into a browser-style tab strip with a left default, persisted edge choice, pinned-first overflow ordering, keyboard traversal, a tab manager, and local browser storage. It remains a documentation/download surface, not the installed console.",
+      "note": "site/app.js now upgrades the shared navigation into a browser-style route strip with a left default, persisted edge choice, pinned-first overflow ordering, keyboard traversal, a tab manager, navigation semantics, and local browser storage. Route links use navigation semantics because each route owns its own accessible main panel rather than pretending one document contains every panel.",
       "implementation": {
         "paths": ["console/site/app.js", "console/site/styles.css"],
         "symbols": [{"path": "console/site/app.js", "name": "initSiteTabs", "kind": "function"}]
@@ -2002,7 +2002,7 @@
     },
     "responsive-sizing": {
       "status": "implemented-unverified",
-      "note": "site/styles.css now documents and styles a 320px floor, narrow tab-manager cards, internally scrolling tab strips, compact dialogs, and responsive Status Hub and guided-form layouts. No runtime width verification was run in this lane.",
+      "note": "site/styles.css now documents and styles a 320px floor, narrow tab-manager cards, internally scrolling tab strips on every edge, compact dialogs, pinned-first overflow ordering, and responsive Status Hub and guided-form layouts. No runtime width verification was run in this lane.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -2529,7 +2529,7 @@
     },
     "browser-extension-download-surfaces": {
       "status": "partial",
-      "note": "The static site now supplies a truthful download handoff equivalent with a Start download dialog, browser handoff status, and explicit limits on byte progress and completion observation. No browser extension exists in this repository, so extension-originated capture remains out of scope and is not faked.",
+      "note": "The static site supplies a truthful download handoff equivalent with a Start download dialog, browser handoff status, and explicit limits on byte progress and completion observation. No browser extension exists in this repository, so extension-originated capture remains out of scope and is not faked.",
       "implementation": {
         "paths": [],
         "symbols": []

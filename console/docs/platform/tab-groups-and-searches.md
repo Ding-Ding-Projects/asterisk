@@ -8,17 +8,19 @@ Tabs are meant to support pinning and named or colored grouping, plus four separ
 
 ## Configuration
 
-Each search would carry its own adjacent regex builder and reveal a match inside a collapsed group without permanently expanding it.
+The site tab manager stores named groups, membership, pinned routes, order, and the active group locally. Each of the four searches has its own adjacent regex-builder trigger and keeps the active group collapsed state intact. Reordering and group changes are local browser operations only.
+
+The shared site export includes a versioned redacted tab and group record, including order, pins, groups, and appearance values. Toy-lock credential digests are omitted, and the file is an audit/export record rather than an import or restore format.
 
 ## Current status
 
 **Desktop application:** Not implemented. The desktop application has no concept of multiple open tabs to group or search across.
 
-**Documentation website:** Not implemented. The site has no open-tab concept either.
+**Documentation website:** Local equivalent implemented, runtime proof unverified. The shared route strip acts as the site's open-route collection and exposes group creation, group membership, pinning, reordering, and four independent searches. It does not claim that separate HTML documents share one renderer panel.
 
 ## Failure modes
 
-N/A — with no tab or group model implemented on either surface, there is no failure path to describe yet.
+The local model is bounded to the routes present in the current navigation. A route added later is appended to the primary group. Invalid saved groups, unknown route identifiers, malformed appearance records, and malformed lock digests are discarded and the valid local model remains. Regex failures remain local to their search and do not change the route order.
 
 ## Accessibility and localization
 
@@ -26,7 +28,7 @@ This feature is expected to follow the product's standing accessibility contract
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+This delegated source-only lane did not run tests, builds, browser checks, or captures. The site registry remains `implemented-unverified` for this local equivalent. The desktop application row remains not implemented.
 
 ## Suggested articles
 

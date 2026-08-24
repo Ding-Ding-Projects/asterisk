@@ -4,21 +4,21 @@ Presents application and settings content as discrete, navigable tabs rather tha
 
 ## Behavior
 
-Every major surface, including settings, is meant to use a persistent tab strip, dockable to any screen edge, with overflow handling, reordering, and pinning, rather than a single scrolling column.
+The documentation route strip is a navigation surface with browser-style tab presentation. It persists a left default, supports left, right, top, and bottom docking, keeps pinned routes first, scrolls overflow instead of clipping labels, and offers keyboard traversal. Each route keeps a real accessible `main` panel, so the site does not claim that separate HTML documents are one ARIA tabpanel.
 
 ## Configuration
 
-Tabs would support keyboard navigation with correct roles and states, and the strip would collapse gracefully at narrow widths without clipping labels.
+The strip stores its route order, pinned routes, group membership, appearance choices, and toy-lock records in bounded browser storage. Route links use navigation semantics with `aria-current` and `aria-controls="main"`; the side presentation uses vertical arrow traversal and the top or bottom presentation uses horizontal traversal. At narrow widths the side rail becomes a compact header and every edge keeps an internally scrolling strip.
 
 ## Current status
 
 **Desktop application:** Partial. A left navigation rail separates the app's screens, which gives some of the navigational benefit of tabs, but there is no true tab strip with overflow handling, reordering, pinning, or edge-docking choice.
 
-**Documentation website:** Partial. Every top-level page and composed article receives the same ARIA tablist with persisted left, right, top, and bottom docking. Left is the default, and side docking collapses to the compact header below 900px. Reordering, pinning, grouping, overflow management, and the four independent tab searches remain incomplete.
+**Documentation website:** Partial, local equivalent implemented and runtime proof unverified. Every top-level route receives the shared route strip with persisted docking, pinned-first ordering, overflow scrolling, keyboard traversal, local groups, local appearance, local toy locks, and a tab manager. The surface is navigation across separate documents, not a single ARIA tablist with hidden panels.
 
 ## Failure modes
 
-When more tabs are open than the strip can show, the intended behavior is an overflow menu listing the rest rather than silently clipping the last tab off-screen; there is no tab strip yet to overflow.
+When more routes are present than the strip can show, the strip scrolls internally and keeps pinned routes at the beginning of the ordered list. The browser page owns the actual navigation and reports that it cannot keep a remote panel open across documents.
 
 ## Accessibility and localization
 
@@ -26,7 +26,7 @@ This feature is expected to follow the product's standing accessibility contract
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+This delegated source-only lane did not run tests, builds, browser checks, or captures. The registry therefore remains `implemented-unverified` for the route-strip equivalent. The desktop application row remains partial and is not changed by this site lane.
 
 ## Suggested articles
 
