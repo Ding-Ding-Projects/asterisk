@@ -272,6 +272,7 @@ export class App extends Base {
   private migrationOmissionText = 'Omitted by design: credential-vault secrets, private vocabulary, source paths, and transient caches. Every omission is recorded in the manifest.';
   private migrationSearchText = '';
   private migrationRetention = 30;
+  private migrationRecoveryError = '';
   private selectedBackupPaths = new Set<string>();
 
   private bridge() {
@@ -329,10 +330,11 @@ export class App extends Base {
     if (this.historyPending) return;
     this.historyPending = true;
     try {
-      const [git, history, backups] = await Promise.all([
+      const [git, history, backups, recovery] = await Promise.all([
         this.request('git.history.status', { payload: { remote: this.migrationRemoteName, branch: this.migrationBranchName || undefined } }),
         this.request('local-history.list', { payload: { limit: 400 } }),
         this.request('backup.list'),
+        this.request('migration.recovery.status'),
       ]);
       if (git?.ok) {
         const value = git.data as Partial<typeof this.historyData>;
@@ -342,8 +344,9 @@ export class App extends Base {
       }
       if (history?.ok) this.historyData.entries = ((history.data as { entries?: Array<{ id: string; timestamp: string; action: string; subject: string }> }).entries ?? []).map((entry) => ({ id: entry.id, timestamp: entry.timestamp, action: entry.action, subject: entry.subject }));
       if (backups?.ok) this.historyData.backups = ((backups.data as { backups?: typeof this.historyData.backups }).backups ?? []);
+      if (recovery?.ok) this.migrationRecoveryError = (recovery.data as { resolved?: boolean; detail?: string }).resolved ? '' : String((recovery.data as { detail?: string }).detail ?? 'Migration journal recovery is unresolved.');
       this.historyLoaded = true;
-      this.migrationStatus = `${this.historyData.entries.length} local history records, ${this.historyData.backups.length} backup records, ${this.historyData.clean ? 'clean' : 'local changes pending'}${this.historyData.receiptError ? `; receipt problem: ${this.historyData.receiptError}` : ''}.`;
+      this.migrationStatus = `${this.historyData.entries.length} local history records, ${this.historyData.backups.length} backup records, ${this.historyData.clean ? 'clean' : 'local changes pending'}${this.historyData.receiptError ? `; receipt problem: ${this.historyData.receiptError}` : ''}${this.migrationRecoveryError ? `; recovery blocked: ${this.migrationRecoveryError}` : ''}.`;
     } catch (error) {
       this.migrationStatus = error instanceof Error ? error.message : 'Local history state is unavailable.';
     } finally {
@@ -419,6 +422,7 @@ export class App extends Base {
     const response = await this.request('migration.cancel', { payload: { operationId: this.migrationOperationId } });
     this.fire(response?.ok ? 'Cancellation requested' : 'Cancellation not available', response?.message ?? 'No matching operation is running.');
   };
+  private retryMigrationRecovery = async (): Promise<void> => { const response = await this.request('migration.recovery.retry'); this.fire(response?.ok ? 'Recovery state refreshed' : 'Recovery remains blocked', response?.message ?? 'The journal still needs manual recovery.'); await this.loadMigrationState(); };
 
   private migrationSearchInput = (event: unknown): void => { this.migrationSearchText = String((event as { target?: { value?: unknown } }).target?.value ?? '').slice(0, 256); this.forceUpdate(); };
   private migrationRegex = (): void => this.setState({ regexOpen: true, regexTarget: 'nav', regexX: '40%', regexY: '160px' } as never);
@@ -2088,6 +2092,8 @@ It is shown once. The phone needs it to register.`);
           migrationSearchInput: this.migrationSearchInput,
           migrationRegex: this.migrationRegex,
           migrationCancel: this.migrationCancel,
+          retryMigrationRecovery: this.retryMigrationRecovery,
+          recoveryBlocked: Boolean(this.migrationRecoveryError),
           retentionText: String(this.migrationRetention),
           retentionInput: this.retentionInput,
           pruneBackups: this.pruneBackups,

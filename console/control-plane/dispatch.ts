@@ -427,6 +427,8 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const result = await migration.cancel(operationId);
         return { ok: result.cancelled, requestId: request.requestId, code: result.cancelled ? undefined : 'MIGRATION_CANCEL_NOT_FOUND', message: result.detail, data: result } as ControlPlaneResponse;
       }
+      if (request.action === 'migration.recovery.status') return { ok: true, requestId: request.requestId, data: migration.recoveryStatus() };
+      if (request.action === 'migration.recovery.retry') return { ok: migration.retryRecovery().resolved, requestId: request.requestId, data: migration.recoveryStatus() };
       if (request.action === 'backup.create') {
         const result = await migration.createBackup();
         return { ok: result.operation.state === 'succeeded', requestId: request.requestId, code: result.operation.state === 'succeeded' ? undefined : 'BACKUP_FAILED', message: result.operation.detail, data: result } as ControlPlaneResponse;

@@ -18,9 +18,11 @@ Manual backups use the same manifest and bundle format under the private applica
 
 Backup creation returns an operation identifier before copying begins, so the cancel action can reach the active process. Startup inspects any interrupted swap journal, restores the prior tree when the old tree was moved but the incoming tree was not installed, and retains both trees when the incoming tree had already become live. Retained trees are indexed for later review rather than silently discarded.
 
+Retained import trees carry `kind: retained-import-tree`. They are inventory-only recovery records, never treated as verified backups, never removed by ordinary retention pruning, and remain available for a later explicit recovery or export decision.
+
 ## Local Git management
 
-The screen lists the local branch, exact refs, clean state, ahead/behind counts, divergence, configured remotes, and redacted fetch/push receipts. Remote and target-branch pickers use observed values, and counts stay explicitly unverified until both are selected and the comparison succeeds. Remote names are bounded. URLs may be HTTPS, SSH, or an absolute local bare-repository path, but may not contain credentials, query data, fragments, whitespace, or unsupported protocols. Fetch and push use structured Git arguments. Push is explicit and normal only: there is no checkout, switch, rebase, reset, force push, or silent URL rewrite. A divergence or authentication failure is recorded with its exact status and recovery detail.
+The screen lists the local branch, exact refs, clean state, ahead/behind counts, divergence, configured remotes, and redacted fetch/push receipts. Remote and target-branch pickers use observed values, and counts stay explicitly unverified until both are selected and the comparison succeeds. Fetch and push each receive an operation identifier before the Git process starts, so cancellation and terminal receipts remain durable. Remote names are bounded. URLs may be HTTPS, SSH, or an absolute local bare-repository path, but may not contain credentials, query data, fragments, whitespace, or unsupported protocols. Fetch and push use structured Git arguments. Push is explicit and normal only: there is no checkout, switch, rebase, reset, force push, or silent URL rewrite. A divergence or authentication failure is recorded with its exact status and recovery detail.
 
 ## Verification boundary
 

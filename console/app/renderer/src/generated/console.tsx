@@ -571,7 +571,10 @@ function Template(v: any) {
                   ),
                   h("button", { onClick: fn(v.migrationCancel), style: sty(`min-height:44px; background:transparent; border:1px solid #FFB4AB; border-radius:10px; padding:8px 12px; color:#FFB4AB; font:inherit; cursor:pointer;`) },
                     "Cancel operation"
-                  )
+                  ),
+                  (v.recoveryBlocked ? h("button", { onClick: fn(v.retryMigrationRecovery), style: sty(`min-height:44px; background:#93000A; border:0; border-radius:10px; padding:8px 12px; color:#fff; font:inherit; cursor:pointer;`) },
+                      "Retry journal recovery"
+                    ) : null)
                 ),
                 h("div", { style: sty(`display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid #333B34;`) },
                   h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
