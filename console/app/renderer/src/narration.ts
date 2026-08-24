@@ -15,6 +15,7 @@ export interface SpeechVoice {
   name: string;
   lang: string;
   engine?: string;
+  stableIdentity?: boolean;
   /** True when the voice runs locally; false when it depends on a network round-trip. */
   localService: boolean;
 }
@@ -46,7 +47,7 @@ export interface VoiceOption {
 }
 
 export function voiceOptions(engine: SpeechEngine, language: 'en' | 'zh'): VoiceOption[] {
-  const matching = engine.voices().filter((voice) => voiceMatchesLanguage(voice, language));
+  const matching = engine.voices().filter((voice) => voice.stableIdentity !== false && voiceMatchesLanguage(voice, language));
   const duplicateNames = new Set(matching.filter((voice, index) => matching.findIndex((candidate) => candidate.name === voice.name) !== index).map((voice) => voice.name));
   return [
     { id: CHOOSE_AUTOMATICALLY, label: 'Choose automatically' },
@@ -63,11 +64,18 @@ export function voiceOptions(engine: SpeechEngine, language: 'en' | 'zh'): Voice
 export function browserSpeechEngine(): SpeechEngine | undefined {
   if (typeof window === 'undefined' || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return undefined;
   const synthesis = window.speechSynthesis;
+  const voiceIdentity = (voice: SpeechSynthesisVoice): string => {
+    const normalizedLanguage = voice.lang.toLowerCase().replace('_', '-');
+    return voice.voiceURI
+      ? `web-speech:${voice.voiceURI}:${normalizedLanguage}:${voice.localService ? 'local' : 'network'}`
+      : `unstable:web-speech:${normalizedLanguage}:${voice.localService ? 'local' : 'network'}`;
+  };
   const readVoices = (): SpeechVoice[] => synthesis.getVoices().map((voice) => ({
-    id: `web-speech:${voice.voiceURI || `name:${voice.name}`}:${voice.localService ? 'local' : 'network'}`,
+    id: voiceIdentity(voice),
     name: voice.name,
     lang: voice.lang,
-    engine: voice.voiceURI ? `web-speech:${voice.voiceURI}` : 'web-speech',
+    engine: voice.voiceURI ? `web-speech:${voice.voiceURI}` : undefined,
+    stableIdentity: Boolean(voice.voiceURI),
     localService: voice.localService,
   }));
   return {
@@ -81,7 +89,7 @@ export function browserSpeechEngine(): SpeechEngine | undefined {
         const utterance = new SpeechSynthesisUtterance(request.text);
         const voice = request.voiceId && readVoices().find((candidate) => candidate.id === request.voiceId);
         if (voice) {
-          const native = synthesis.getVoices().find((candidate) => `web-speech:${candidate.voiceURI || `name:${candidate.name}`}:${candidate.localService ? 'local' : 'network'}` === voice.id);
+          const native = synthesis.getVoices().find((candidate) => voiceIdentity(candidate) === voice.id);
           if (native) utterance.voice = native;
         }
         utterance.rate = request.rate;
@@ -158,7 +166,7 @@ export function resolveVoiceStatus(
   chosenVoiceId: string | undefined,
   availableVoices: ReadonlyArray<SpeechVoice>,
 ): VoiceStatus {
-  const langVoices = availableVoices.filter((v) => voiceMatchesLanguage(v, language));
+  const langVoices = availableVoices.filter((v) => v.stableIdentity !== false && voiceMatchesLanguage(v, language));
   const deterministic = [...langVoices].sort((left, right) => left.id.localeCompare(right.id))[0];
 
   if (!chosenVoiceId) {

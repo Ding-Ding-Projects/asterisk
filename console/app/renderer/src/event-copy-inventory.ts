@@ -74,10 +74,10 @@ export const DYNAMIC_EVENT_COPY_INVENTORY: readonly DynamicEventCopyRecord[] = [
   { key: 'Wrong -- try again.', kind: 'toast', status: 'english-fallback', reason: 'Credential workflow remains plain.' },
   { key: 'The phone system did not start', kind: 'dialog-title', status: 'english-fallback', reason: 'Runtime diagnosis remains plain.' },
   { key: 'That name will not work', kind: 'dialog-title', status: 'english-fallback', reason: 'Validation diagnosis remains plain.' },
-  { key: '* unlisted dynamic event', kind: 'toast', status: 'english-fallback', reason: 'Any event not named above is deliberately plain English and receives no Cantonese funny wrapper.' },
+  { key: 'School mode name not saved', kind: 'dialog-title', status: 'english-fallback', reason: 'Validation diagnosis remains plain.' },
+  { key: 'Deployed', kind: 'dialog-title', status: 'english-fallback', reason: 'The deployment result includes target-specific values.' },
+  { key: 'Dialplan canvas is read-only', kind: 'dialog-title', status: 'english-fallback', reason: 'The canvas diagnosis remains plain.' },
 ] as const;
-
-export const DYNAMIC_EVENT_FALLBACK_POLICY = 'Any dynamic title or body absent from this inventory or the Cantonese catalog remains plain English in its Cantonese track.';
 
 export function dynamicEventCopyRecord(key: string): DynamicEventCopyRecord | undefined {
   return DYNAMIC_EVENT_COPY_INVENTORY.find((record) => record.key === key);

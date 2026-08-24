@@ -260,11 +260,7 @@ export class App extends Base {
     this.baseFire = this.fire.bind(this);
     this.toast = this.localizedToast;
     this.fire = this.localizedFire;
-    setSchoolModeNameProvider((text) => {
-      const name = schoolModeName(this.vocabStorage);
-      if (name === DEFAULT_SCHOOL_NAME) return text;
-      return text.replaceAll(DEFAULT_SCHOOL_NAME, name).replaceAll('school mode', name).replaceAll('學校模式', name);
-    });
+    setSchoolModeNameProvider((text) => this.renameSchoolText(text));
     this.speechEngine = browserSpeechEngine();
     if (this.speechEngine) {
       this.narrator = new Narrator(this.speechEngine, {
@@ -646,7 +642,7 @@ ${resolution.disclosure}`);
       ? styleFunnyText(event.yueText, 'yue', this.funnyLevels.yue)
       : event.yueText;
     return {
-      display: languageMode() === 'yue' ? yueText : languageMode() === 'both' ? `${enText} · ${yueText}` : enText,
+      display: languageMode() === 'yue' ? yueText : languageMode() === 'both' ? (enText === yueText ? enText : `${enText} · ${yueText}`) : enText,
       enText,
       yueText,
     };
@@ -655,7 +651,12 @@ ${resolution.disclosure}`);
   private renameSchoolText = (text: string): string => {
     const name = schoolModeName(this.vocabStorage);
     if (name === DEFAULT_SCHOOL_NAME) return text;
-    return text.replaceAll(DEFAULT_SCHOOL_NAME, name).replaceAll('school mode', name).replaceAll('學校模式', name);
+    const renamed = text.replaceAll(DEFAULT_SCHOOL_NAME, name).replaceAll('school mode', name).replaceAll('學校模式', name);
+    if (languageMode() === 'both') {
+      const halves = renamed.split(' · ');
+      if (halves.length === 2 && halves[0] === name && halves[1] === name) return name;
+    }
+    return renamed;
   };
 
   private localizedSchoolRecoveryLine(path: string): string {
@@ -721,6 +722,12 @@ ${resolution.disclosure}`);
         this.narrator?.setScreenReaderActive(active || this.narrationScreenReaderOverride);
         this.updateNarrationStatus();
       }
+    } catch {
+      this.platformScreenReaderActive = false;
+      this.narrator?.setScreenReaderActive(this.narrationScreenReaderOverride);
+      this.updateNarrationStatus();
+    }
+    try {
       const recovery = await this.boundedCall(() => bridge?.school?.recoveryPath() ?? Promise.resolve(undefined), 1200);
       if (recovery?.ok && recovery.path) {
         this.schoolRecoveryPath = recovery.path;
@@ -733,7 +740,9 @@ ${resolution.disclosure}`);
         this.forceUpdate();
       }
     } catch {
-      // The renderer keeps its exact documented fallback when a hosted bridge has no desktop route.
+      this.schoolRecoveryReady = false;
+      this.schoolRecoveryLine = 'The exact application-data recovery path is unavailable.';
+      this.forceUpdate();
     }
   }
 

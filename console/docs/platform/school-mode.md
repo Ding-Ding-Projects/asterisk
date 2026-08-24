@@ -12,7 +12,7 @@ The state lives in the shared durable settings snapshot. A one-second snapshot r
 
 ## Current status
 
-**Desktop application:** Implemented in the Windows desktop shell, including live shared-state polling, renaming, hidden capabilities and credential-backed unlock.
+**Desktop application:** Implemented but unverified in the packaged artifact. The Windows desktop shell includes live shared-state polling, renaming, hidden capabilities and credential-backed unlock.
 
 **Documentation website:** Not implemented. The static site has no shared operating-system credential vault.
 

@@ -8,11 +8,11 @@ The `Narration` group uses the platform speech engine adapter and queues applica
 
 ## Configuration
 
-The picker begins with `Choose automatically`, then refreshes from voices currently installed on the machine. Stable voice URI identities are persisted, not display names. Duplicate display names are disambiguated with the engine or URI. English accepts English voices, while Cantonese accepts only `zh-HK` or `yue-HK`. Rate and pitch are bounded controls from 0.5 to 2 and 0 to 2 respectively.
+The picker begins with `Choose automatically`, then refreshes from voices currently installed on the machine. Stable voice URI identities include the normalized language and engine identity and are persisted, not display names. A platform voice without a stable identity is reported unavailable for selection rather than persisted under a guessed name. Duplicate display names are disambiguated with the engine or URI. English accepts English voices, while Cantonese accepts only `zh-HK` or `yue-HK`. Rate and pitch are bounded controls from 0.5 to 2 and 0 to 2 respectively.
 
 ## Current status
 
-**Desktop application:** Implemented. The narrator is off by default and reports effective, missing, network-backed and unavailable voice states.
+**Desktop application:** Implemented but unverified in the packaged artifact. The narrator is off by default and reports effective, missing, network-backed and unavailable voice states.
 
 **Documentation website:** Not implemented. A static documentation site has no application event stream of its own.
 

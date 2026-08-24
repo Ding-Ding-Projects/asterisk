@@ -4,7 +4,7 @@
   "features": {
     "language-modes": {
       "state": "partial",
-      "note": "Implemented 2026-08-23, replacing an \"absent\" row. The mechanism is app/renderer/src/text-boundary.ts, mounted as `h` in app/renderer/src/dc-runtime.tsx -- the element factory every compiled template is built from -- so all three modes (en/yue/both) reach the compiled renderer without any generated file being edited. The `lang_mode` control went into the design and recompiled byte-identically; App.tsx intercepts it in setVal, applies it live and persists it through durable storage, restoring it on mount. PARTIAL rather than implemented, and deliberately so: the catalog covers 187 of roughly 217 design labels, so 21 of the 44 canonical features still render English in every mode. See app/locales/feature-registry.json for the per-feature breakdown, which is recomputed from the catalog by tests/contracts/language-modes.test.mjs and cannot be edited into agreement. An untranslated string renders English rather than a placeholder.",
+      "note": "Implemented 2026-08-23, replacing an \"absent\" row. The mechanism is app/renderer/src/text-boundary.ts, mounted as `h` in app/renderer/src/dc-runtime.tsx -- the element factory every compiled template is built from -- so all three modes (en/yue/both) reach the compiled renderer without any generated file being edited. The `lang_mode` control went into the design and recompiled byte-identically; App.tsx intercepts it in setVal, applies it live and persists it through durable storage, restoring it on mount. Dynamic event call sites are hand-inventoried and `verify:event-copy` fails closed on an unlisted static call or missing exact Cantonese entry. A missing translation renders plain English rather than a placeholder.",
       "files": [
         "app/renderer/src/text-boundary.ts",
         "app/renderer/src/event-copy-inventory.ts",
@@ -34,7 +34,7 @@
     "school-mode": {
       "state": "implemented-unverified",
       "note": "Implemented but unverified in the packaged artifact. The shared School predicate covers optional controls, search and palette surfaces, live generation-bounded snapshot refresh, renamable copy propagation, saved language/funny/narration/quiet restoration, an app-owned accessible credential dialog, exact recovery copy, and operating-system credential-vault account verification. Packaging now rebuilds and unpacks keytar and runs an explicit load and round-trip Chut.",
-      "files": ["app/renderer/src/school-mode.ts", "app/renderer/src/App.tsx", "app/electron/main.ts", "app/electron/preload.ts", "app/electron/preload.cjs", "shared/school-contract.ts", "scripts/verify-keytar-packaged.mjs", "electron-builder.yml", "design/Asterisk Console M3.dc.html"]
+      "files": ["app/renderer/src/school-mode.ts", "app/renderer/src/App.tsx", "app/electron/main.ts", "app/electron/preload.ts", "app/electron/preload.cjs", "shared/school-contract.ts", "scripts/verify-keytar-packaged.mjs", "inventories/release-validation.json", "electron-builder.yml", "design/Asterisk Console M3.dc.html"]
     },
     "narration": {
       "state": "implemented-unverified",

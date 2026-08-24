@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "surface": "windows-console",
+  "status": "implemented-unverified",
+  "purpose": "Hand-written release-equivalent checks for the native credential-vault add-on used by School mode.",
+  "checks": [
+    {
+      "id": "keytar-native-rebuild",
+      "command": "npm run rebuild:native",
+      "source": "console/scripts/package-squirrel.mjs",
+      "status": "implemented-unverified",
+      "evidence": "The packaging path runs electron-builder install-app-deps for win32 x64."
+    },
+    {
+      "id": "keytar-asar-unpack",
+      "source": "console/electron-builder.yml",
+      "status": "implemented-unverified",
+      "evidence": "node_modules/keytar/** is listed under asarUnpack."
+    },
+    {
+      "id": "clear-win-unpacked",
+      "source": "console/scripts/package-squirrel.mjs",
+      "status": "implemented-unverified",
+      "evidence": "The exact win-unpacked directory is removed before Electron packaging so stale native binaries cannot satisfy the probe."
+    },
+    {
+      "id": "keytar-packaged-load",
+      "command": "npm run verify:keytar:packaged",
+      "source": "console/scripts/verify-keytar-packaged.mjs",
+      "status": "implemented-unverified",
+      "evidence": "Loads keytar from app.asar.unpacked and checks the vault API."
+    },
+    {
+      "id": "keytar-vault-roundtrip",
+      "command": "npm run verify:keytar:packaged",
+      "source": "console/scripts/verify-keytar-packaged.mjs",
+      "status": "implemented-unverified",
+      "evidence": "Binds the probe service to package version and candidate commit, writes and reads an ephemeral value, deletes it, then requires post-delete absence."
+    },
+    {
+      "id": "candidate-package-identity",
+      "source": "console/scripts/package-squirrel.mjs",
+      "status": "implemented-unverified",
+      "evidence": "Candidate commit and package version are passed into the packaged probe and release identity."
+    }
+  ]
+}
