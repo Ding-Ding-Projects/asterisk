@@ -4587,7 +4587,7 @@ class Component extends DCLogic {
           return decorate([
             { icon:'data_object', label:'Open regex builder…', hint:'⌃R', run:() => this.setState({ ctxOpen:false, regexOpen:true, regexTarget:'table', regexX:s.ctxX, regexY:s.ctxY }) },
             { icon:'match_case', label:'Match case', hint:'', run:() => { close(); this.set('regexFlags', s.regexFlags.filter(f => f !== 'i')); } },
-            { icon:'select_all', label:'Whole word only', hint:'', run:() => { close(); this.toast('Whole-word matching on'); } },
+            { icon:'select_all', label:'Whole word only', hint:'', run:() => { close(); const b = '\\b'; if (s.regex[0] !== b || s.regex[s.regex.length - 1] !== b) this.set('regex', [b].concat(s.regex, [b])); } },
             { icon:'bookmark_add', label:'Save this search', hint:'', run:() => { close(); this.hostAction('save', { bucket:'search', name:S(v.tableQuery) }); } },
             { icon:'clear', label:'Clear search', hint:'⎋', run:() => { close(); const p = Object.assign({}, s.patterns); p.table = []; p.nav = []; this.setState({ patterns:p }); } },
             common[0], common[1]
