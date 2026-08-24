@@ -36,8 +36,6 @@ const STILL_ANNOUNCING = new Map([
   ['Revert just this option', 'restore replaces a whole file from a backup; there is no per-option revert, and inventing one means diffing and rewriting a single key inside a live config'],
   ['Branch from here', 'same as New branch: no repository, and the history that is git is append-only'],
   ['Lock every tab in group', 'needs the per-element lock wizard to accept a whole group'],
-  ['Duplicate step', 'needs the dialplan canvas to accept an inserted node'],
-  ['Insert condition before', 'needs the dialplan canvas to accept an inserted node'],
 ]);
 
 /* The same shape, hiding behind a confirmation. This was a real blind spot: "Delete step"
@@ -114,8 +112,12 @@ test('a removed step is actually dropped from what the canvas draws', () => {
   /* The delete handler records the removal; something has to honour it. Wired at one end
    * and consumed at neither is how a fix ships looking correct and changing nothing -- and
    * here it would restore the exact lie the fix was written to remove, silently. */
-  assert.match(design, /NODES\.filter\(n => \(s\.removedNodes \|\| \[\]\)\.indexOf\(n\.id\) < 0\)/,
-    'the node list draws removed steps');
+  assert.match(design, /NODES\.concat\(s\.addedNodes \|\| \[\]\)\.filter\(n => \(s\.removedNodes \|\| \[\]\)\.indexOf\(n\.id\) < 0\)/,
+    'the node list either draws removed steps or cannot draw added ones');
+  /* The order matters: added steps go through the removal filter too, so duplicating a step
+   * and then deleting the copy removes the copy rather than leaving it on screen. */
+  assert.ok(design.indexOf('NODES.concat(s.addedNodes') < design.indexOf('.filter(n => (s.removedNodes'),
+    'added steps bypass the removal filter, so a deleted copy would stay on the canvas');
   /* And the connections go with it, because that is what the confirmation promises. Lines
    * running to a step that is no longer there would be worse than not deleting at all. */
   assert.match(design, /edges:s\.edgeList\.filter\(\(\[a, b\]\) => \(s\.removedNodes \|\| \[\]\)\.indexOf\(a\) < 0 && \(s\.removedNodes \|\| \[\]\)\.indexOf\(b\) < 0\)/,

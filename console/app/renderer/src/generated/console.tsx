@@ -4664,7 +4664,7 @@ class ConsoleShell extends DCLogic {
         }
         return { d, stroke:sel ? '#82D9A5' : '#37483D', w:sel ? 2.5 : 1.8 };
       }),
-      nodes:NODES.filter(n => (s.removedNodes || []).indexOf(n.id) < 0).map(n => {
+      nodes:NODES.concat(s.addedNodes || []).filter(n => (s.removedNodes || []).indexOf(n.id) < 0).map(n => {
         const p = s.nodePos[n.id] || { x:n.x, y:n.y };
         const on = n.id === s.nodeId;
         return { x:p.x + 'px', y:p.y + 'px', icon:n.icon, title:n.title, detail:n.detail,
@@ -5419,8 +5419,8 @@ class ConsoleShell extends DCLogic {
           return decorate([
             { icon:'edit', label:'Edit this step…', hint:'↵', run:() => close() },
             { icon:'timeline', label:'Connect to…', hint:'C', run:() => { close(); this.addEdgeFrom(); } },
-            { icon:'content_copy', label:'Duplicate step', hint:'⌃D', run:() => { close(); this.toast('Step duplicated'); } },
-            { icon:'call_split', label:'Insert condition before', hint:'', run:() => { close(); this.toast('Condition inserted'); } },
+            { icon:'content_copy', label:'Duplicate step', hint:'⌃D', run:() => { close(); const src = NODES.concat(s.addedNodes || []).filter(n => n.id === s.nodeId)[0]; if (!src) { this.fire('Nothing to duplicate', 'No step is selected.'); return; } const seq = (s.nodeSeq || 0) + 1; const copy = Object.assign({}, src, { id:'added-' + seq, title:src.title + ' (copy)', x:src.x + 40, y:src.y + 40 }); this.setState({ addedNodes:(s.addedNodes || []).concat([copy]), nodeSeq:seq, nodeId:copy.id }); this.fire('Step duplicated', copy.title + ' is on the canvas, offset from the original.'); } },
+            { icon:'call_split', label:'Insert condition before', hint:'', run:() => { close(); const at = NODES.concat(s.addedNodes || []).filter(n => n.id === s.nodeId)[0]; if (!at) { this.fire('Nowhere to insert', 'No step is selected.'); return; } const seq = (s.nodeSeq || 0) + 1; const node = { id:'added-' + seq, x:at.x, y:Math.max(0, at.y - 96), icon:'call_split', title:'New condition', detail:'GotoIf($[<condition>]?<true>:<false>)' }; this.setState({ addedNodes:(s.addedNodes || []).concat([node]), nodeSeq:seq, nodeId:node.id }); this.fire('Condition inserted', 'An empty condition is above ' + at.title + '. Fill it in to make it do something.'); } },
             { icon:'delete', label:'Delete step', hint:'⌦', run:() => { close(); this.areYouSure('Delete this step', 'The step and its connections are removed from the dialplan.', 3, () => { const gone = (s.removedNodes || []).concat([s.nodeId]); this.setState({ removedNodes:gone }); this.fire('Step deleted', 'It is off the canvas, with its connections.'); }); } },
             common[0], common[1]
           ]);
