@@ -4,6 +4,38 @@
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.
 
+## Completeness matrix session of 2026-08-23
+
+### Scope and current commit
+
+This lane replaces the earlier 44-feature, two-surface inventory with schema version 2 of `console/inventories/surface-completeness.json`. The source audit baseline for this lane is `088ecde1a6`. The matrix is hand-written and does not discover features or routes from implementation files.
+
+### Matrix counts
+
+| Surface family | Exact count |
+| --- | ---: |
+| Desktop shell | 1 |
+| Login | 1 |
+| Setup | 1 |
+| Desktop destinations | 32 |
+| Desktop overlay states | 17 |
+| Top-level site pages | 6 |
+| Generated documentation routes | 82 |
+| Browser-extension download states | 3 |
+| **Total addressable surfaces** | **143** |
+| **Canonical features on every surface** | **44** |
+| **Feature rows** | **6,292** |
+
+The required features include local file conversion and the local Ollama suite manager. `console/inventories/exemptions.json` is schema version 2 with zero exemptions.
+
+### Evidence boundary
+
+Every row records status, demo state, exact provenance, implementation and registration symbols, route, documentation, localization, persistence, focused checks, negative evidence, built interaction, current-commit capture fields, and design-parity tuple fields. The current ultra-speed delivery boundary did not run validators, tests, or captures. No row was promoted to `verified`, and no unproven evidence is described as present.
+
+### Verification and next owner
+
+The validator is `console/scripts/verify-inventories.mjs`. The red-then-green regressions are `console/scripts/negative-surface-completeness.mjs` and `console/scripts/negative-evidence-claims.mjs`. The next owner must run them against the exact integrated default-branch commit, observe every deliberate break turn red, restore the matrix, and then capture the real built artifact and design reference under identical tuples before recording verified evidence.
+
 ## Implemented
 
 - Pinned Node.js `22.23.2` for Windows x64 from the official Node.js release service with SHA-256 `1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97`.
