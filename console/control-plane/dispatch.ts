@@ -12,6 +12,7 @@ import { join, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { WslProvisioning, MANAGED_DISTRIBUTION } from './wsl-provisioning.js';
 import type { ProvisionStep } from './wsl-provisioning.js';
+import { SettingsSourceFetcher } from './settings-source-fetcher.js';
 import { AsteriskService } from './asterisk-service.js';
 import {
   parseVoicemailUsers, parseVoicemailZones, parseConfbridgeList, parseMohClasses, parseCodecs,
@@ -47,6 +48,10 @@ export interface ControlPlaneDispatcherOptions {
   /** True when running under the hosted HTTP server rather than the desktop app. Gates
    *  the WSL-only actions above with an honest, named refusal instead of a stack trace. */
   hosted: boolean;
+  /** Hosts an external settings source may reach. Empty refuses every source. */
+  allowedSettingsSourceHosts?: readonly string[];
+  /** Reads a settings-source token from the OS credential vault. */
+  readSettingsSourceToken?: (credentialKey: string) => Promise<string | undefined>;
   /**
    * Called as each provisioning step finishes, so a caller can show progress while a
    * deploy runs rather than only when it ends. Optional: the hosted server passes
@@ -57,6 +62,13 @@ export interface ControlPlaneDispatcherOptions {
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
   const { userDataPath, resourcesPath, hosted, onProvisionStep } = options;
+  /* Built once. The allowlist starts empty, which refuses every source rather than
+   * permitting every source -- a fetcher configured with nothing is not a fetcher
+   * configured with no restrictions, and that is the safe direction for a default. */
+  const settingsSourceFetcher = new SettingsSourceFetcher({
+    allowedHosts: options.allowedSettingsSourceHosts ?? [],
+    readToken: options.readSettingsSourceToken,
+  });
   const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
   const asteriskService = new AsteriskService({ executor: processExecutor });
   const targetDiscovery = new TargetDiscovery(processExecutor);
@@ -282,6 +294,29 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         };
       }
 
+      if (request.action === 'settings.source.fetch') {
+        const payload = (request.payload ?? {}) as { url?: unknown; credentialKey?: unknown };
+        if (typeof payload.url !== 'string') {
+          return { ok: false, requestId: request.requestId, code: 'SOURCE_URL_REQUIRED',
+            message: 'A settings source needs a URL.' };
+        }
+        const result = await settingsSourceFetcher.fetchSource({
+          url: payload.url,
+          credentialKey: typeof payload.credentialKey === 'string' ? payload.credentialKey : undefined,
+        });
+        /* Two different outcomes, deliberately not collapsed. A source answering 503 is a
+         * REQUEST THAT SUCCEEDED and a response the renderer must classify -- returning it
+         * as a control-plane failure would hide the status behind a generic error and lose
+         * the difference between "the source said no" and "the source was never asked".
+         * A refused host or a timeout is the second kind: no response exists to classify. */
+        if (result.reason !== undefined) {
+          /* `reason` never carries the token: the fetcher derives it from the error's name
+           * rather than its message for exactly this reason. */
+          return { ok: false, requestId: request.requestId, code: 'SOURCE_UNREACHABLE',
+            message: result.reason };
+        }
+        return { ok: true, requestId: request.requestId, data: result };
+      }
       if (request.action === 'runtime.status') {
         const { provisioning, payloadPresent, runtime } = wslProvisioning();
         return { ok: true, requestId: request.requestId, data: { managedDistribution: MANAGED_DISTRIBUTION, bundledRuntime: runtime, status: await provisioning.status(payloadPresent) } };

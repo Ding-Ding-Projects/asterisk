@@ -17,6 +17,14 @@ export type ControlPlaneAction =
    * someone ran `asterisk -F` by hand. See `control-plane/asterisk-service.ts`.
    */
   | 'daemon.status' | 'daemon.start' | 'daemon.stop' | 'daemon.restart'
+  /*
+   * Fetches one external settings source. The privileged process makes the request
+   * because it needs the token, and returns the raw result rather than applying it --
+   * the renderer decides what a body is permitted to change, and moving that decision
+   * here would put the allowlist somewhere the person configuring the source cannot
+   * see it. See control-plane/settings-source-fetcher.ts.
+   */
+  | 'settings.source.fetch'
   | 'pbx.read' | 'pbx.command' | 'pbx.config' | 'pbx.plan'
   | 'history.list' | 'history.restore'
   /* Prompts and music-on-hold media on the target, so a "custom" choice can be given a file. */
