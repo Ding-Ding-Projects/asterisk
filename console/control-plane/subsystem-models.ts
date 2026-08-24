@@ -1017,6 +1017,32 @@ export interface PjsipEndpointFields {
   timers_min_se?: string;
   /** line 735: "Maximum session timer expiration period". */
   timers_sess_expires?: string;
+  /** "Send Connected Line updates to this endpoint". */
+  send_connected_line?: string;
+  /** "On outgoing requests, force the user portion of the Contact header". */
+  contact_user?: string;
+  /** "Domain to user in From header for requests to this endpoint". */
+  from_domain?: string;
+  /** "Username to use in From header for requests to this endpoint". */
+  from_user?: string;
+  /** "IP address used in SDP for media handling". */
+  media_address?: string;
+  /** "Whether T.38 UDPTL support is enabled or not". */
+  t38_udptl?: string;
+  /** "T.38 UDPTL error correction method": none, fec or redundancy. */
+  t38_udptl_ec?: string;
+  /** "Whether NAT support is enabled on UDPTL sessions". */
+  t38_udptl_nat?: string;
+  /** "T.38 UDPTL maximum datagram size". */
+  t38_udptl_maxdatagram?: string;
+  /** "Whether CNG tone detection is enabled". */
+  fax_detect?: string;
+  /** "Send private identification details to the endpoint" (trust outbound). */
+  trust_id_outbound?: string;
+  /** "Send the Remote-Party-ID header". */
+  send_rpid?: string;
+  /** "Send the Diversion header, conveying the diversion information". */
+  send_diversion?: string;
   /** line 115-116: "Authentication object used for outbound requests". */
   outbound_auth?: string;
   /** line 117-118: "Proxy through which to send requests, a full SIP URI must be
@@ -1162,6 +1188,19 @@ export function parsePjsip(value: ConfigValue): PjsipView {
         timers: entryValue(endpointSection, "timers"),
         timers_min_se: entryValue(endpointSection, "timers_min_se"),
         timers_sess_expires: entryValue(endpointSection, "timers_sess_expires"),
+        send_connected_line: entryValue(endpointSection, "send_connected_line"),
+        contact_user: entryValue(endpointSection, "contact_user"),
+        from_domain: entryValue(endpointSection, "from_domain"),
+        from_user: entryValue(endpointSection, "from_user"),
+        media_address: entryValue(endpointSection, "media_address"),
+        t38_udptl: entryValue(endpointSection, "t38_udptl"),
+        t38_udptl_ec: entryValue(endpointSection, "t38_udptl_ec"),
+        t38_udptl_nat: entryValue(endpointSection, "t38_udptl_nat"),
+        t38_udptl_maxdatagram: entryValue(endpointSection, "t38_udptl_maxdatagram"),
+        fax_detect: entryValue(endpointSection, "fax_detect"),
+        trust_id_outbound: entryValue(endpointSection, "trust_id_outbound"),
+        send_rpid: entryValue(endpointSection, "send_rpid"),
+        send_diversion: entryValue(endpointSection, "send_diversion"),
         outbound_auth: entryValue(endpointSection, "outbound_auth"),
         outbound_proxy: entryValue(endpointSection, "outbound_proxy"),
         rtp_timeout: entryValue(endpointSection, "rtp_timeout"),
@@ -1279,7 +1318,9 @@ const PJSIP_ENDPOINT_MANAGED_KEYS: readonly string[] = [
   "aggregate_mwi", "timers", "timers_min_se", "timers_sess_expires",
   "outbound_auth", "outbound_proxy",
   "rtp_timeout", "rtp_timeout_hold", "callerid", "device_state_busy_at",
-  "max_audio_streams", "max_video_streams", "refer_blind_progress", "auth", "aors",
+  "max_audio_streams", "max_video_streams", "refer_blind_progress",
+  "send_connected_line", "contact_user", "from_domain", "from_user", "media_address", "t38_udptl", "t38_udptl_ec", "t38_udptl_nat", "t38_udptl_maxdatagram", "fax_detect", "trust_id_outbound", "send_rpid", "send_diversion",
+  "auth", "aors",
 ];
 const PJSIP_AUTH_MANAGED_KEYS: readonly string[] = ["type", "auth_type", "username", "password", "realm"];
 const PJSIP_AOR_MANAGED_KEYS: readonly string[] = [
