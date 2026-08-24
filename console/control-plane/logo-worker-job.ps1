@@ -6,7 +6,8 @@ param(
   [Parameter(Mandatory = $true)][string]$PackageLockPath,
   [Parameter(Mandatory = $true)][long]$WorkerTimeoutMs,
   [Parameter(Mandatory = $true)][string]$ProfileName,
-  [Parameter(Mandatory = $true)][string]$RecoveryPath
+  [Parameter(Mandatory = $true)][string]$RecoveryPath,
+  [Parameter(Mandatory = $true)][string]$RecoveryScriptPath
 )
 
 function Read-ProvenPath([string]$Path) {
@@ -16,6 +17,16 @@ function Read-ProvenPath([string]$Path) {
     try { return $stream.Length } finally { $stream.Dispose() }
   } catch { throw "First inaccessible decoder path: $Path" }
 }
+
+function Get-TextHash([string]$Text) {
+  $sha = [Security.Cryptography.SHA256]::Create()
+  try { return ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Text)))).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
+}
+
+$supervisor = Get-Process -Id $PID -ErrorAction Stop
+$supervisorCim = Get-CimInstance Win32_Process -Filter "ProcessId = $PID" -ErrorAction Stop
+$resourceRoot = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($WorkerPath))
+$recoveryNonce = [Guid]::NewGuid().ToString('N')
 
 try {
   [void](Read-ProvenPath $NodePath)
@@ -33,6 +44,9 @@ try {
   [void](Read-ProvenPath $PSCommandPath)
   $hash = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant()
   if ($manifest.launcherSha256 -ne $hash) { throw "The decoder launcher digest does not match the manifest: $PSCommandPath" }
+  [void](Read-ProvenPath $RecoveryScriptPath)
+  $recoveryHash = (Get-FileHash -LiteralPath $RecoveryScriptPath -Algorithm SHA256).Hash.ToLowerInvariant()
+  if ($manifest.recoverySha256 -ne $recoveryHash) { throw "The decoder recovery helper digest does not match the manifest: $RecoveryScriptPath" }
   foreach ($entry in @($manifest.nativeFiles)) {
     if ($entry.path -notmatch '^node_modules/(sharp|@img)/.+\.(js|mjs|cjs|node|dll|exe|so|dylib|wasm)$') { throw "The decoder manifest contains an invalid runtime path: $($entry.path)" }
     $candidate = [IO.Path]::GetFullPath((Join-Path ([IO.Path]::GetDirectoryName($PackageLockPath)) ($entry.path -replace '/', '\')))
@@ -41,10 +55,21 @@ try {
     $actual = (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($actual -ne $expected) { throw "The decoder native runtime digest does not match the manifest: $($entry.path)" }
   }
-  $resourceRoot = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($WorkerPath))
   $record = [ordered]@{
+    schemaVersion = 1
     profileName = $ProfileName
+    recoveryNonce = $recoveryNonce
     supervisorPid = $PID
+    supervisorPath = $supervisor.Path
+    supervisorStartToken = $supervisor.StartTime.ToUniversalTime().ToString('o')
+    supervisorCreationTime = ([Management.ManagementDateTimeConverter]::ToDateTime([string]$supervisorCim.CreationDate)).ToUniversalTime().ToString('o')
+    supervisorCommandHash = Get-TextHash ([string]$supervisorCim.CommandLine)
+    recoveryScriptPath = [IO.Path]::GetFullPath($RecoveryScriptPath)
+    recoveryScriptHash = $recoveryHash
+    workerPid = 0
+    workerPath = [IO.Path]::GetFullPath($WorkerPath)
+    nodePath = [IO.Path]::GetFullPath($NodePath)
+    workerCommandHash = ''
     acl = @(
       [ordered]@{ path = $resourceRoot; sddl = (Get-Acl -LiteralPath $resourceRoot).Sddl }
       [ordered]@{ path = [IO.Path]::GetFullPath($NodePath); sddl = (Get-Acl -LiteralPath ([IO.Path]::GetFullPath($NodePath))).Sddl }
@@ -104,8 +129,11 @@ public static class LogoWorkerAppContainerLauncher {
     result=SetNamedSecurityInfo(path,SE_FILE_OBJECT,DACL_SECURITY_INFORMATION,IntPtr.Zero,IntPtr.Zero,addedDacl,IntPtr.Zero); if(result!=0) throw new Win32Exception((int)result,"SetNamedSecurityInfo failed");
   }
   static void RestoreResourceDacl(string path,IntPtr originalDacl){ var result=SetNamedSecurityInfo(path,SE_FILE_OBJECT,DACL_SECURITY_INFORMATION,IntPtr.Zero,IntPtr.Zero,originalDacl,IntPtr.Zero); if(result!=0) throw new Win32Exception((int)result,"Restoring decoder resource ACL failed"); }
+  static string Digest(string value){using(var sha=System.Security.Cryptography.SHA256.Create()){return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(value))).Replace("-","").ToLowerInvariant();}}
+  static void UpdateRecovery(string path,uint pid,string command){var text=System.IO.File.ReadAllText(path);text=text.Replace("\"workerPid\": 0","\"workerPid\": "+pid).Replace("\"workerCommandHash\": \"\"","\"workerCommandHash\": \""+Digest(command)+"\"");System.IO.File.WriteAllText(path,text,new UTF8Encoding(false));}
+  static bool CancelRequested(string path,string nonce){var cancel=path+".cancel"; return System.IO.File.Exists(cancel) && String.Equals(System.IO.File.ReadAllText(cancel),nonce,StringComparison.Ordinal);}
   static void Capture(ref Exception first,Action action){ try{action();}catch(Exception error){if(first==null)first=error;} }
-  public static int Run(string profile,string node,string worker,long memoryBytes,long workerTimeoutMs){
+  public static int Run(string profile,string recoveryPath,string recoveryNonce,string node,string worker,long memoryBytes,long workerTimeoutMs){
     IntPtr sid=IntPtr.Zero,job=IntPtr.Zero,attributes=IntPtr.Zero,resourceDescriptor=IntPtr.Zero,addedDacl=IntPtr.Zero,originalDacl=IntPtr.Zero,nodeDescriptor=IntPtr.Zero,nodeAddedDacl=IntPtr.Zero,nodeOriginalDacl=IntPtr.Zero; var resourceRoot=System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(worker)); if(String.IsNullOrEmpty(resourceRoot)) throw new InvalidOperationException("The decoder resource directory is unavailable"); PROCESS_INFORMATION pi=new PROCESS_INFORMATION(); int workerExit=1; Exception setupError=null,cleanupError=null;
     try{
       var hr=CreateAppContainerProfile(profile,profile,"Ding PBX Console local logo decoder",IntPtr.Zero,0,out sid);
@@ -124,11 +152,13 @@ public static class LogoWorkerAppContainerLauncher {
       uint inputFlags,outputFlags,errorFlags; if(!GetHandleInformation(startup.StartupInfo.hStdInput,out inputFlags) || !GetHandleInformation(startup.StartupInfo.hStdOutput,out outputFlags) || !GetHandleInformation(startup.StartupInfo.hStdError,out errorFlags) || (inputFlags&HANDLE_FLAG_INHERIT)==0 || (outputFlags&HANDLE_FLAG_INHERIT)==0 || (errorFlags&HANDLE_FLAG_INHERIT)==0) throw new InvalidOperationException("The decoder pipe handles are not inheritable");
       var handles = new[] { startup.StartupInfo.hStdInput, startup.StartupInfo.hStdOutput, startup.StartupInfo.hStdError }; var pinnedHandles = GCHandle.Alloc(handles, GCHandleType.Pinned);
       try { if(!UpdateProcThreadAttribute(attributes,0,(IntPtr)0x00020002,pinnedHandles.AddrOfPinnedObject(),(IntPtr)(IntPtr.Size*handles.Length),IntPtr.Zero,IntPtr.Zero)) throw new Win32Exception(Marshal.GetLastWin32Error(),"UpdateProcThreadAttribute handle list failed"); } finally { pinnedHandles.Free(); }
-      var command=new StringBuilder(Quote(node)+" --max-old-space-size=64 "+Quote(worker)+" --no-network");
+      var commandText=Quote(node)+" --max-old-space-size=64 "+Quote(worker)+" --no-network";
+      var command=new StringBuilder(commandText);
       if(!CreateProcess(null,command,IntPtr.Zero,IntPtr.Zero,true,CREATE_SUSPENDED|EXTENDED_STARTUPINFO_PRESENT|CREATE_UNICODE_ENVIRONMENT,IntPtr.Zero,null,ref startup,out pi)) throw new Win32Exception(Marshal.GetLastWin32Error(),"CreateProcess AppContainer worker failed");
+      UpdateRecovery(recoveryPath,pi.dwProcessId,commandText);
       if(!AssignProcessToJobObject(job,pi.hProcess)) throw new Win32Exception(Marshal.GetLastWin32Error(),"AssignProcessToJobObject failed");
       if(ResumeThread(pi.hThread)==unchecked((uint)-1)) throw new Win32Exception(Marshal.GetLastWin32Error(),"ResumeThread failed");
-      Console.Out.WriteLine("WORKER_PID:"+pi.dwProcessId); Console.Out.Flush(); var waitResult=WaitForSingleObject(pi.hProcess,(uint)Math.Max(1,workerTimeoutMs)); if(waitResult==WAIT_TIMEOUT){if(!TerminateProcess(pi.hProcess,124)) throw new Win32Exception(Marshal.GetLastWin32Error(),"Terminating timed-out decoder worker failed"); if(WaitForSingleObject(pi.hProcess,3000)==WAIT_TIMEOUT) throw new TimeoutException("The timed-out decoder worker did not exit.");} else if(waitResult!=0) throw new Win32Exception("WaitForSingleObject failed"); uint exit; if(!GetExitCodeProcess(pi.hProcess,out exit)) throw new Win32Exception(Marshal.GetLastWin32Error(),"GetExitCodeProcess failed"); workerExit=(int)exit; Console.Out.WriteLine("WORKER_EXIT:"+workerExit); Console.Out.Flush();
+      Console.Out.WriteLine("WORKER_PID:"+pi.dwProcessId); Console.Out.Flush(); var deadline=DateTime.UtcNow.AddMilliseconds(Math.Max(1,workerTimeoutMs)); uint waitResult=WAIT_TIMEOUT; while(waitResult==WAIT_TIMEOUT && DateTime.UtcNow<deadline){if(CancelRequested(recoveryPath,recoveryNonce)){if(!TerminateProcess(pi.hProcess,125)) throw new Win32Exception(Marshal.GetLastWin32Error(),"Terminating cancelled decoder worker failed"); workerExit=125; break;} waitResult=WaitForSingleObject(pi.hProcess,50);} if(workerExit!=125 && waitResult==WAIT_TIMEOUT){if(!TerminateProcess(pi.hProcess,124)) throw new Win32Exception(Marshal.GetLastWin32Error(),"Terminating timed-out decoder worker failed"); if(WaitForSingleObject(pi.hProcess,3000)==WAIT_TIMEOUT) throw new TimeoutException("The timed-out decoder worker did not exit.");} else if(workerExit!=125 && waitResult!=0) throw new Win32Exception("WaitForSingleObject failed"); uint exit; if(!GetExitCodeProcess(pi.hProcess,out exit)) throw new Win32Exception(Marshal.GetLastWin32Error(),"GetExitCodeProcess failed"); if(workerExit!=125) workerExit=(int)exit; Console.Out.WriteLine("WORKER_EXIT:"+workerExit); Console.Out.Flush();
     }catch(Exception error){setupError=error;}
     finally{
       Capture(ref cleanupError,()=>{if(pi.hProcess!=IntPtr.Zero){uint current; if(GetExitCodeProcess(pi.hProcess,out current) && current==259){if(!TerminateProcess(pi.hProcess,1)) throw new Win32Exception(Marshal.GetLastWin32Error(),"Terminating decoder worker failed"); if(WaitForSingleObject(pi.hProcess,3000)==0x102) throw new TimeoutException("The decoder worker did not exit after native termination.");}}});
@@ -152,6 +182,6 @@ public static class LogoWorkerAppContainerLauncher {
 }
 "@
 
-$exitCode = [LogoWorkerAppContainerLauncher]::Run($ProfileName, $NodePath, $WorkerPath, $MemoryBytes, $WorkerTimeoutMs)
+$exitCode = [LogoWorkerAppContainerLauncher]::Run($ProfileName, $RecoveryPath, $recoveryNonce, $NodePath, $WorkerPath, $MemoryBytes, $WorkerTimeoutMs)
 if ($exitCode -eq 0) { Remove-Item -LiteralPath $RecoveryPath -Force -ErrorAction SilentlyContinue }
 exit $exitCode

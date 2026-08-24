@@ -64,14 +64,20 @@ async function runtimeFiles(root: string): Promise<string[]> {
   return output;
 }
 
-function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, unknown>): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
+async function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const launcher = process.platform === 'win32' && options.jobScriptPath;
+  if (launcher) {
+    if (!options.recoveryScriptPath) throw new Error('The packaged decoder recovery path is missing before conversion.');
+    const manifest = JSON.parse((await readFile(options.manifestPath)).toString('utf8')) as { recoverySha256?: unknown };
+    const recoveryDigest = createHash('sha256').update(await readFile(options.recoveryScriptPath)).digest('hex');
+    if (typeof manifest.recoverySha256 !== 'string' || manifest.recoverySha256 !== recoveryDigest) throw new Error('The packaged decoder recovery helper digest does not match before conversion.');
+  }
+  return await new Promise((resolve, reject) => {
     const minimalEnv: NodeJS.ProcessEnv = { ELECTRON_RUN_AS_NODE: '1', PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, TEMP: process.env.TEMP, TMP: process.env.TMP };
-    const launcher = process.platform === 'win32' && options.jobScriptPath;
     const profileName = `DingLogoDecoder_${randomUUID().replaceAll('-', '')}`;
     const recoveryPath = join(process.env.TEMP ?? process.env.TMP ?? '.', `${profileName}.json`);
     const child = launcher
-      ? spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', options.jobScriptPath!, '-NodePath', process.execPath, '-WorkerPath', options.workerPath, '-MemoryBytes', String(MAX_WORKER_OS_BYTES), '-ManifestPath', options.manifestPath, '-PackageLockPath', options.packageLockPath, '-WorkerTimeoutMs', String(options.timeoutMs ?? 2_000), '-ProfileName', profileName, '-RecoveryPath', recoveryPath], { windowsHide: true, shell: false, env: minimalEnv, stdio: ['pipe', 'pipe', 'ignore'] })
+      ? spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', options.jobScriptPath!, '-NodePath', process.execPath, '-WorkerPath', options.workerPath, '-MemoryBytes', String(MAX_WORKER_OS_BYTES), '-ManifestPath', options.manifestPath, '-PackageLockPath', options.packageLockPath, '-WorkerTimeoutMs', String(options.timeoutMs ?? 2_000), '-ProfileName', profileName, '-RecoveryPath', recoveryPath, '-RecoveryScriptPath', options.recoveryScriptPath!], { windowsHide: true, shell: false, env: minimalEnv, stdio: ['pipe', 'pipe', 'ignore'] })
       : spawn(process.execPath, ['--max-old-space-size=64', options.workerPath, '--no-network'], { windowsHide: true, shell: false, env: minimalEnv, stdio: ['pipe', 'pipe', 'ignore'] });
     const limit = MAX_WORKER_RESPONSE_BYTES;
     let output = '';
@@ -80,6 +86,7 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
     let baselineWorkingSetBytes: number | undefined;
     let baselinePid: number | undefined;
     let inputSent = false;
+    let startupSent = false;
     let workerPid: number | undefined;
     let monitorPid = child.pid;
     let readySeen = !launcher;
@@ -89,6 +96,10 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
     let cleanupFailure: string | undefined;
     let finish: (error?: Error, value?: Record<string, unknown>) => void;
     const sendRequestIfReady = () => {
+      if (launcher && workerPid && baselinePid === workerPid && baselineWorkingSetBytes !== undefined && !startupSent) {
+        startupSent = true;
+        child.stdin.write('START\n');
+      }
       if (launcher && !inputSent && readySeen && workerPid && baselinePid === workerPid && baselineWorkingSetBytes !== undefined) {
         inputSent = true;
         child.stdin.end(`${JSON.stringify({ id: randomUUID(), ...request })}\n`);
@@ -121,9 +132,31 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
           if (launcher && (!readySeen || !workerExitAcknowledged || !jobCleanupAcknowledged || !cleanupComplete || cleanupFailure)) throw new Error(cleanupFailure ?? 'The isolated decoder cleanup acknowledgement was incomplete.');
         } catch (cause) {
           cleanupError = cause instanceof Error ? cause : new Error('The isolated decoder cleanup failed.');
-          if (!(await waitForChildExit(child, 2_000)) && child.exitCode === null) {
+          const childExitedAfterFailure = await waitForChildExit(child, 2_000);
+          const receiptMissing = Boolean(launcher && (!readySeen || !workerExitAcknowledged || !jobCleanupAcknowledged || !cleanupComplete || cleanupFailure));
+          if (launcher && (receiptMissing || (!childExitedAfterFailure && child.exitCode === null))) {
             if (options.recoveryScriptPath) {
-              try { await new Promise<void>((resolveRecovery, rejectRecovery) => { const recovery = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', options.recoveryScriptPath!, '-RecoveryPath', recoveryPath], { windowsHide: true, stdio: 'ignore' }); recovery.once('error', rejectRecovery); recovery.once('exit', (code) => code === 0 ? resolveRecovery() : rejectRecovery(new Error(`Decoder recovery exited with ${code}.`))); }); } catch (recoveryError) { cleanupError = new Error('The isolated decoder launcher termination and independent recovery could not be proven.', { cause: recoveryError }); }
+              try {
+                const recoveryRecord = JSON.parse((await readFile(recoveryPath)).toString('utf8')) as { recoveryNonce?: unknown };
+                if (typeof recoveryRecord.recoveryNonce !== 'string' || recoveryRecord.recoveryNonce.length < 16) throw new Error('The decoder recovery record nonce was missing before recovery.');
+                await new Promise<void>((resolveRecovery, rejectRecovery) => {
+                  const recovery = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', options.recoveryScriptPath!, '-RecoveryPath', recoveryPath], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+                  let output = '';
+                  recovery.stdout?.on('data', (chunk: Buffer) => { output += chunk.toString('utf8'); });
+                  recovery.stderr?.resume();
+                  recovery.once('error', rejectRecovery);
+                  recovery.once('exit', (code) => {
+                    if (code !== 0) { rejectRecovery(new Error(`Decoder recovery exited with ${code}.`)); return; }
+                    const receiptLine = output.trim().split(/\r?\n/u).at(-1) ?? '';
+                    try {
+                      const receipt = JSON.parse(receiptLine) as Record<string, unknown>;
+                      const complete = receipt.type === 'RECOVERY_COMPLETE' && receipt.recoveryNonce === recoveryRecord.recoveryNonce && receipt.workerExitObserved === true && receipt.aclRestored === true && receipt.profileDeleted === true && receipt.recordRemoved === true && receipt.noOrphan === true;
+                      if (!complete) throw new Error('The decoder recovery receipt was incomplete.');
+                      resolveRecovery();
+                    } catch (error) { rejectRecovery(error instanceof Error ? error : new Error('The decoder recovery receipt was invalid.')); }
+                  });
+                });
+              } catch (recoveryError) { cleanupError = new Error('The isolated decoder launcher termination and independent recovery could not be proven.', { cause: recoveryError }); }
             } else cleanupError = new Error('The isolated decoder launcher termination could not be proven by its supervisor receipt.', { cause: cleanupError });
           }
         }
@@ -140,11 +173,6 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
       while (newline >= 0) {
         const line = output.slice(0, newline).replace(/\r$/u, '');
         output = output.slice(newline + 1);
-        if (launcher && !workerPid && line === 'READY') {
-          readySeen = true;
-          newline = output.indexOf('\n');
-          continue;
-        }
         if (launcher && !workerPid) {
           const pidMatch = /^WORKER_PID:(\d+)$/u.exec(line);
           if (pidMatch) {
@@ -155,6 +183,7 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
             continue;
           }
           if (line.startsWith('ERROR:')) cleanupFailure = line;
+          else if (line === 'READY') { finish(new Error('The isolated decoder emitted READY before WORKER_PID.')); return; }
           else if (line.length > 0) { finish(new Error('The isolated decoder launcher did not emit an exact worker PID frame.')); return; }
           newline = output.indexOf('\n');
           continue;

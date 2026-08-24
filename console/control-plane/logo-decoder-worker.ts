@@ -3,7 +3,7 @@ import { createInterface } from 'node:readline';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 if (!process.argv.includes('--no-network')) process.exit(78);
@@ -25,20 +25,30 @@ function cropDigest(crop: Crop): string {
   return createHash('sha256').update(JSON.stringify({ fit: crop.fit, crop: { x: crop.crop.x, y: crop.crop.y, width: crop.crop.width, height: crop.crop.height }, focalPoint: { x: crop.focalPoint.x, y: crop.focalPoint.y }, safeArea: { top: crop.safeArea.top, right: crop.safeArea.right, bottom: crop.safeArea.bottom, left: crop.safeArea.left }, background: crop.background.kind === 'solid' ? { kind: 'solid', color: crop.background.color } : { kind: 'transparent' } }), 'utf8').digest('hex');
 }
 
+function digestFile(path: string): string {
+  return createHash('sha256').update(readFileSync(path)).digest('hex');
+}
+
 function verifyStartupResources(): void {
   const root = dirname(fileURLToPath(import.meta.url));
-  const manifest = JSON.parse(readFileSync(join(root, 'logo-decoder-manifest.json'), 'utf8')) as { nativeFiles?: Array<{ path?: unknown }> };
-  readFileSync(join(root, 'package-lock.json'));
+  const manifest = JSON.parse(readFileSync(join(root, 'logo-decoder-manifest.json'), 'utf8')) as { workerSha256?: unknown; launcherSha256?: unknown; recoverySha256?: unknown; packageLockSha256?: unknown; nativeFiles?: Array<{ path?: unknown; sha256?: unknown }> };
+  const assertDigest = (path: string, expected: unknown, label: string) => {
+    if (typeof expected !== 'string' || !/^[0-9a-f]{64}$/iu.test(expected) || digestFile(path) !== expected) throw new Error('The decoder startup ' + label + ' digest does not match the manifest.');
+  };
+  assertDigest(join(root, 'logo-decoder-worker.mjs'), manifest.workerSha256, 'worker');
+  assertDigest(join(root, 'logo-worker-job.ps1'), manifest.launcherSha256, 'launcher');
+  assertDigest(join(root, 'logo-worker-recovery.ps1'), manifest.recoverySha256, 'recovery helper');
+  assertDigest(join(root, 'package-lock.json'), manifest.packageLockSha256, 'package lock');
   if (!Array.isArray(manifest.nativeFiles) || manifest.nativeFiles.length === 0) throw new Error('The decoder startup manifest has no native runtime files.');
   for (const entry of manifest.nativeFiles) {
-    if (typeof entry.path !== 'string' || !/^node_modules\/(?:sharp|@img)\/.+\.(?:js|mjs|cjs|node|dll|exe|so|dylib|wasm)$/iu.test(entry.path)) throw new Error('The decoder startup manifest contains an invalid native runtime path.');
-    readFileSync(join(root, entry.path.replaceAll('/', '\\')));
+    if (typeof entry.path !== 'string' || typeof entry.sha256 !== 'string' || !/^[0-9a-f]{64}$/iu.test(entry.sha256) || !/^node_modules\/(?:sharp|@img)\/.+\.(?:js|mjs|cjs|node|dll|exe|so|dylib|wasm)$/iu.test(entry.path)) throw new Error('The decoder startup manifest contains an invalid native runtime path.');
+    const path = resolve(root, entry.path);
+    const relativePath = relative(root, path);
+    if (isAbsolute(relativePath) || /^(?:\.\.(?:[\\/]|$))/u.test(relativePath)) throw new Error('The decoder startup manifest contains a runtime path outside its resource root.');
+    assertDigest(path, entry.sha256, entry.path);
   }
   nativeBinding();
 }
-
-verifyStartupResources();
-process.stdout.write('READY\n');
 
 function signature(format: Target['format']): string {
   return format === 'png' ? 'png-signature' : format === 'jpeg' ? 'jpeg-signature' : 'webp-riff-signature';
@@ -114,8 +124,16 @@ async function convert(input: Record<string, unknown>): Promise<Record<string, u
 }
 
 const input = createInterface({ input: process.stdin, crlfDelay: Infinity });
+let startupReady = false;
 input.on('line', (line) => {
   void (async () => {
+    if (!startupReady) {
+      if (line !== 'START') throw new Error('The decoder startup protocol expected START before any request.');
+      verifyStartupResources();
+      startupReady = true;
+      process.stdout.write('READY\n');
+      return;
+    }
     const request = JSON.parse(line) as Record<string, unknown>;
     const result = request.operation === 'health'
       ? await health()

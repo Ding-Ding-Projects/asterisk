@@ -18,6 +18,8 @@ The shared logo contract defines three shipped presets, a local picker, crop, fi
 
 ## Failure modes
 
+The desktop decoder startup framing is strict: the supervisor emits WORKER_PID, sends START only after binding the memory baseline to that worker, and accepts READY only after the worker has opened and hashed the complete manifest, lockfile, helper set, and native runtime set. Out-of-order frames are refused. A per-run record binds the supervisor path, command digest, creation and start tokens, worker identity, recovery-helper path and digest, ACL records, and a nonce. Cooperative cancellation precedes identity-bound native recovery, and recovery must return a nonce-matched RECOVERY_COMPLETE receipt proving worker exit, ACL restoration, profile deletion, record removal, and no orphan.
+
 A malformed, spoofed, oversized, or over-dimension image is rejected before storage, with the previous valid logo staying active. Source filenames and file paths are not retained, and image bytes are omitted from site-state export with that omission stated.
 
 ## Accessibility and localization
