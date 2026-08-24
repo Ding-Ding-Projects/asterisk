@@ -797,11 +797,11 @@
       }
     },
     "status-hub": {
-      "status": "absent",
-      "note": "site/status.html exists as a page shell but no live status-hub project, session card, or question-card logic was found in site/app.js.",
+      "status": "implemented-unverified",
+      "note": "site/status.html now exposes a local Status Hub projection with a session label, state, optional HTTP(S) evidence reference, persistence, and explicit no-hosted-service boundaries. It does not claim remote delivery or a hosted verdict.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/site/status.html", "console/site/app.js"],
+        "symbols": [{"path": "console/site/app.js", "name": "initStatusHub", "kind": "function"}]
       },
       "registration": {
         "paths": [],
@@ -869,7 +869,7 @@
     },
     "material-appearance": {
       "status": "partial",
-      "note": "site/app.js implements a genuine infinite-colour-picker/translator (rgbToHsl/hsvToRgb/rgbToLab/rgbToOklab/hwbToRgb/cmykToRgb and translateColour, wired via initColourTranslator) plus theme/density/accent/font-scale controls in initSettings() with a live preview (initSettingsPreview). This covers colour translation and basic tokens well, but there is no per-element \"Edit appearance...\" editor, no Word-depth typography controls, and no named-preset export/import beyond the general settings export.",
+      "note": "site/app.js implements a genuine infinite-colour-picker/translator (rgbToHsl/hsvToRgb/rgbToLab/rgbToOklab/hwbToRgb/cmykToRgb and translateColour, wired via initColourTranslator), theme/density/accent/font-scale controls, and local per-tab or per-element appearance dialogs through the context menu. Word-depth typography and named-preset export/import remain outside this lane.",
       "implementation": {
         "paths": [
           "site/app.js",
@@ -1226,11 +1226,11 @@
       }
     },
     "browser-style-tabs": {
-      "status": "absent",
-      "note": "The site is a small multi-page static site (index/product/documentation/downloads/settings/status.html navigated as separate pages); no in-page browser-style tab strip, docking, or tab groups were found in site/app.js.",
+      "status": "implemented-unverified",
+      "note": "site/app.js now upgrades the shared navigation into a browser-style tab strip with a left default, persisted edge choice, pinned-first overflow ordering, keyboard traversal, a tab manager, and local browser storage. It remains a documentation/download surface, not the installed console.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/site/app.js", "console/site/styles.css"],
+        "symbols": [{"path": "console/site/app.js", "name": "initSiteTabs", "kind": "function"}]
       },
       "registration": {
         "paths": [],
@@ -1297,11 +1297,11 @@
       }
     },
     "tab-groups-and-searches": {
-      "status": "absent",
-      "note": "No tabs exist on the site at all (see browser-style-tabs), so there are no tab groups or tab searches.",
+      "status": "implemented-unverified",
+      "note": "The tab manager now persists groups, pinning, reorder actions, and four independently searchable views: current strip, group members, group names, and all open tabs. Each search has its own adjacent regex-builder trigger.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/site/app.js", "console/site/styles.css"],
+        "symbols": [{"path": "console/site/app.js", "name": "renderTabManager", "kind": "function"}]
       },
       "registration": {
         "paths": [],
@@ -1368,8 +1368,8 @@
       }
     },
     "command-palette": {
-      "status": "partial",
-      "note": "site/app.js implements openPalette() (line 816) opening a real <dialog id=\"command-palette\"> with a live-filtered palette-search field and renderPalette(), wired from a palette-open button and Ctrl+Shift+F was not confirmed as the activation key (only a button click and palette-search input were found) - the keyboard-shortcut activation contract is unverified.",
+      "status": "implemented-unverified",
+      "note": "site/app.js implements openPalette() in a real dialog with live filtering, an adjacent regex builder, Ctrl+Shift+F activation, and direct focus teleport to the chosen site control or Status Hub projection. Runtime verification was not run in this lane.",
       "implementation": {
         "paths": [
           "site/app.js"
@@ -1916,7 +1916,7 @@
     },
     "accessibility": {
       "status": "partial",
-      "note": "site/app.js implements a real WCAG contrast calculator (contrastRatio/contrastVerdict) used by the colour translator, and sr-only labels appear in settings.html, but no site-wide audit of focus order, ARIA roles, or reduced-motion coverage beyond the one reduceMotion() check in the counter animation (line 967) was verified.",
+      "note": "This lane adds tablist and tab roles, keyboard traversal, visible focusable tab-manager controls, labels for the four tab searches, status-live regions, touch-sized controls, and reduced-width overflow handling. A site-wide runtime audit remains unverified.",
       "implementation": {
         "paths": [
           "site/app.js",
@@ -2001,8 +2001,8 @@
       }
     },
     "responsive-sizing": {
-      "status": "absent",
-      "note": "site/styles.css was not inspected for a systematic responsive strategy in this pass; no JS-level narrow-width handling (comparable to the app's \"narrow\" screen flag) was found in site/app.js.",
+      "status": "implemented-unverified",
+      "note": "site/styles.css now documents and styles a 320px floor, narrow tab-manager cards, internally scrolling tab strips, compact dialogs, and responsive Status Hub and guided-form layouts. No runtime width verification was run in this lane.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -2158,11 +2158,11 @@
       }
     },
     "per-element-toy-locks": {
-      "status": "absent",
-      "note": "No per-element lock/unlock mechanism was found anywhere in site/app.js.",
+      "status": "implemented-unverified",
+      "note": "site/app.js now provides local toy locks for tabs and context-menu-selected elements, storing only SHA-256 digests in browser storage, with independent reset and an explicit statement that clearing site storage recovers the local lock. This is not encryption or a security boundary.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/site/app.js", "console/site/styles.css"],
+        "symbols": [{"path": "console/site/app.js", "name": "openElementLock", "kind": "function"}]
       },
       "registration": {
         "paths": [],
@@ -2528,8 +2528,8 @@
       }
     },
     "browser-extension-download-surfaces": {
-      "status": "absent",
-      "note": "This is a static documentation/marketing site; there is no browser extension and no Start-download/Downloading/complete dialog surfaces.",
+      "status": "partial",
+      "note": "The static site now supplies a truthful download handoff equivalent with a Start download dialog, browser handoff status, and explicit limits on byte progress and completion observation. No browser extension exists in this repository, so extension-originated capture remains out of scope and is not faked.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -2756,11 +2756,11 @@
       }
     },
     "guided-forms": {
-      "status": "absent",
-      "note": "No guided/picker-driven form beyond ordinary settings selects and file inputs was found; there is no enumerated-picker-over-freeform-text pattern comparable to the app's endpoint wizard.",
+      "status": "implemented-unverified",
+      "note": "converter.html now offers guided local source files, a real target-format picker, an output-name field, and a native destination-folder picker with an honest browser write boundary. Disabled or unavailable adapters remain visible with exact reasons.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/site/converter.html", "console/site/app.js", "console/site/styles.css"],
+        "symbols": [{"path": "console/site/app.js", "name": "initConverter", "kind": "function"}]
       },
       "registration": {
         "paths": [],

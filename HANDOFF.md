@@ -407,6 +407,18 @@ and matching button text finds every option **except the one currently set**, be
 option carries a mark and its text is not the bare value.
 
 
+## Static site universal completion lane, 2026-08-23
+
+This source-only lane extends `console/site` while preserving the site's boundary as a documentation, download, status, and settings surface. It does not claim to be the installed desktop console or a PBX runtime.
+
+- `console/site/app.js` now persists a left-default browser-style tab strip, tab order, pinned tabs, groups, four independently searchable tab views, keyboard traversal, context-menu actions, per-tab and per-element local appearance, and toy locks backed by browser-local SHA-256 digests.
+- `console/site/status.html` and `app.js` now include a local Status Hub projection. It stores a session label, state, and optional HTTP(S) evidence reference in browser storage only. It does not contact or impersonate a hosted status service.
+- `console/site/downloads.html` now describes Start, browser handoff, progress-unavailable, and completion-unavailable states. The site opens only a validated immutable release asset and does not invent progress or completion.
+- `console/site/converter.html` now includes guided output naming and a native destination-folder picker hint. The browser boundary is stated plainly: results remain browser downloads and the page cannot write into the selected folder.
+- `console/site/feature-registry.json` records the affected site rows as `implemented-unverified` where a local equivalent exists, and keeps the browser-extension row partial because no extension exists in this repository.
+
+No tests, lint, type checks, builds, package steps, captures, browser checks, hosting, or release actions ran in this lane. The next owner must run the site checks and built-artifact interaction proof before changing these rows to verified.
+
 ## Next owner actions
 
 Ordered by what actually blocks the next claim.

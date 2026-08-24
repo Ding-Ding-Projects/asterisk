@@ -595,6 +595,32 @@ body.attn-focus .topbar:hover,body.attn-focus .topbar:focus-within,body.attn-foc
 .menu-search-results,#context-results{display:grid;gap:6px;margin-top:12px}
 .menu-search-results button,#context-results button{display:flex;justify-content:space-between;gap:12px;width:100%;padding:12px;border:0;border-radius:var(--radius-sm);background:var(--surface-2);color:var(--on-surface);text-align:left}
 .menu-search-dialog,.anchored-builder,#page-context-menu{position:fixed;inset:auto;margin:0;z-index:250}
+.tab-manager-dialog{width:min(1080px,calc(100vw - 20px));max-height:min(90vh,860px);overflow:auto}
+.tab-manager-open{align-self:stretch}
+.tab-manager-section{display:grid;gap:10px;margin-top:16px;padding:14px;border:1px solid var(--outline-variant);border-radius:var(--radius);background:var(--surface-2)}
+.tab-manager-section h3{margin:0;font-size:.95rem}
+.tab-manager-results{display:grid;gap:8px}
+.tab-manager-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--outline-variant);border-radius:var(--radius-sm);background:var(--surface-1)}
+.tab-manager-row strong,.tab-manager-row small{display:block}
+.tab-manager-row small{margin-top:3px;color:var(--muted-2);font-family:var(--font-mono);font-size:.72rem;overflow-wrap:anywhere}
+.tab-manager-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.tab-manager-actions .text-button{min-height:36px;padding:7px 11px;font-size:.75rem;background:var(--surface-2)}
+.tab-group-picker{display:inline-flex;align-items:center;gap:6px;min-height:36px;color:var(--muted);font-size:.75rem}
+.tab-group-picker select{min-height:36px;padding-block:6px}
+#tab-manager-open{align-self:stretch;margin-top:8px;background:var(--surface-2)}
+html[data-tab-edge="left"] #site-nav,html[data-tab-edge="right"] #site-nav{max-height:calc(100vh - 220px);overflow-y:auto;overscroll-behavior:contain;padding-right:3px}
+#site-nav a[role="tab"]{position:relative;display:flex;align-items:center;gap:10px;min-height:var(--touch);padding:8px 12px;border-radius:var(--radius-sm);color:var(--muted);text-decoration:none;overflow:hidden}
+#site-nav a[role="tab"]:hover,#site-nav a[role="tab"]:focus-visible{background:var(--surface-2);color:var(--on-surface)}
+#site-nav a[role="tab"][aria-current="page"],#site-nav a[role="tab"][aria-selected="true"]{background:color-mix(in srgb,var(--tab-accent,var(--primary)) 18%,transparent);color:var(--on-surface);box-shadow:inset 3px 0 var(--tab-accent,var(--primary))}
+#site-nav a[role="tab"].tab-locked{padding-right:34px}
+#site-nav a[role="tab"].tab-locked::after{content:"🔒";position:absolute;right:10px;font-size:.82rem}
+#site-nav .tab-icon{width:24px;flex:none;text-align:center;color:var(--tab-accent,var(--primary))}
+#site-nav .tab-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#site-nav .tab-pin{margin-left:auto;color:var(--tab-accent,var(--primary));font-size:.62rem}
+.tab-manager-dialog .search-composite{width:100%}
+.tab-manager-dialog .inline-controls{align-items:end;flex-wrap:wrap}
+.tab-manager-dialog .inline-controls input{flex:1 1 220px}
+.tab-manager-dialog .inline-controls button{flex:0 0 auto}
 .wrap-anywhere{overflow-wrap:anywhere;word-break:break-word}
 .package-placeholder{display:grid;place-items:center;width:112px;height:112px;border:2px solid var(--outline);border-radius:var(--radius);background:var(--surface-2);color:var(--muted);font-family:var(--font-mono);font-size:.72rem;text-align:center;letter-spacing:.08em}
 .record-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0;list-style:none}
@@ -622,6 +648,13 @@ body.attn-focus .topbar:hover,body.attn-focus .topbar:focus-within,body.attn-foc
 .chat-box{display:grid;gap:12px;padding-top:16px;border-top:1px solid var(--outline-variant)}
 .chat-output{min-height:140px;max-height:360px;overflow:auto;padding:16px;border-radius:var(--radius);background:var(--surface-0);white-space:pre-wrap;overflow-wrap:anywhere}
 .status-chip.danger-chip{background:color-mix(in srgb,var(--danger-strong) 16%,transparent);color:var(--danger)}
+.status-hub-panel,.download-status-panel{display:grid;gap:18px;margin-top:var(--gap);padding:clamp(18px,4vw,32px);border:1px solid var(--outline-variant);border-radius:var(--radius);background:var(--surface-1)}
+.status-hub-form{display:grid;grid-template-columns:1.2fr .7fr 1.2fr auto;align-items:end;gap:12px}
+.status-hub-form label{display:flex;flex-direction:column;gap:6px}
+.status-hub-form button{white-space:nowrap}
+.download-status-panel .status-timeline{margin:0}
+.download-status-panel progress{margin-top:8px}
+.download-status-panel .card-top{align-items:flex-start}
 .brand-mark[data-logo-preset="outline"]{background:transparent;color:var(--primary);border:2px solid var(--primary)}
 .brand-mark[data-logo-preset="solid"]{border-radius:50%}
 
@@ -644,6 +677,11 @@ html[data-tab-edge="bottom"] .topbar{position:fixed;top:auto;bottom:0;width:100%
   html[data-tab-edge="left"] .site-nav,html[data-tab-edge="right"] .site-nav{flex-direction:column;align-items:stretch;margin:0}
   html[data-tab-edge="left"] .top-actions,html[data-tab-edge="right"] .top-actions{margin-left:auto;justify-content:flex-end}
   .universal-settings-grid{grid-template-columns:1fr}
+  .status-hub-form{grid-template-columns:1fr 1fr}
+  .status-hub-form label:first-child,.status-hub-form label:nth-child(3){grid-column:1/-1}
 }
 @media(max-width:560px){.record-list{grid-template-columns:1fr}.universal-controls{padding:14px}}
 @media(max-width:720px){.suite-grid{grid-template-columns:1fr}.adapter-catalog{grid-template-columns:1fr}.ollama-bridge-form,.ollama-actions{align-items:stretch;flex-direction:column}.ollama-bridge-form>*{width:100%}}
+@media(max-width:560px){.status-hub-form{grid-template-columns:1fr}.status-hub-form label:first-child,.status-hub-form label:nth-child(3){grid-column:auto}.status-hub-form button{width:100%}}
+@media(max-width:520px){.tab-manager-row{grid-template-columns:1fr}.tab-manager-actions{justify-content:flex-start}.tab-manager-actions>*{max-width:100%}.tab-manager-dialog{padding:12px}.tab-manager-section{padding:11px}}
+@media(max-width:360px){body{font-size:.92rem}.page-shell{padding-inline:12px}.topbar{padding-inline:10px}.tab-manager-dialog{width:calc(100vw - 12px)}.dialog-heading h2{font-size:1.2rem}.menu-search-trigger{font-size:.68rem;padding-inline:8px}}
