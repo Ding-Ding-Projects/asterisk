@@ -14,7 +14,7 @@
     },
     "funny-levels": {
       "state": "implemented",
-      "note": "global-settings.js supplies independent English and Cantonese sliders from 1 through 5, both defaulting to 5, persists them per visitor, and uses them to style every message emitted by the page-owned panel, narrator, and dim-sum surprise while preserving factual values.",
+      "note": "global-settings.js supplies independent English and Cantonese sliders from 1 through 5, both defaulting to 5, persists them in the canonical versioned state, mirrors them bidirectionally to the existing page runtime without lossy remapping, and uses them to style every message emitted by the page-owned panel, narrator, notices, and dim-sum surprise while preserving factual values.",
       "files": [
         "site/app.js",
         "site/global-settings.js",
@@ -51,8 +51,8 @@
       "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     },
     "dim-sum-surprise": {
-      "state": "implemented",
-      "note": "global-settings.js consumes the versioned dim-sum-cache.json records, including authoritative bilingual names, immutable catalog release tags, public image URLs, and SHA-256 values. It performs a fresh ten-percent later-visit draw, one draw per load, with first-visit, School, quiet, error, update, active-work, hidden-page, and screen-reader suppression. The rendered card uses the sanctioned public catalog image and accessible bilingual alt text, with no CSS substitute or opt-out.",
+      "state": "partial",
+      "note": "global-settings.js consumes the versioned dim-sum-cache.json records, including authoritative bilingual names, immutable catalog release tags, public image URLs, and SHA-256 values. It performs a fresh ten-percent later-visit draw, one draw per launch, with first-visit, School, quiet, error, update, active-work, hidden-page, and screen-reader suppression. The rendered card uses a verified locally cached sanctioned catalog image and accessible bilingual alt text, with no CSS substitute or opt-out. First use remains partial because it requires a bounded network fetch to populate the local image cache.",
       "files": ["site/global-settings.js", "site/dim-sum-cache.json", "docs/app/site-global-settings.md"]
     },
     "regex-builder": {

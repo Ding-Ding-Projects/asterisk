@@ -7,7 +7,10 @@
    * per visitor. It deliberately does not share the desktop application's
    * identity, credential store, or update feed.
    */
-  const STORAGE_KEY = 'ding-pbx-site-global-settings-v1';
+  const CANONICAL_STATE_KEY = 'ding-pbx-site-global-settings-v1';
+  const MIRROR_STATE_KEY = 'ding-pbx-pages-v2';
+  const STORAGE_KEY = CANONICAL_STATE_KEY;
+  const OWNED_STATE_KEYS = [CANONICAL_STATE_KEY, MIRROR_STATE_KEY, 'ding-pbx-dimsum-image-cache-v2', 'ding-pbx-vocabulary-cache', 'ding-pbx-logo-cache'];
   const SETTINGS_SCHEMA_VERSION = 2;
   const MAX_RULES = 32;
   const MAX_STATE_BYTES = 131072;
@@ -84,7 +87,7 @@
       const saved = parseUniqueJson(raw);
       if (saved.schemaVersion !== undefined && ![1, SETTINGS_SCHEMA_VERSION].includes(saved.schemaVersion)) throw new Error('Unsupported settings schema version.');
       if (!saved.schemaVersion) {
-        try { const legacy = parseUniqueJson(localStorage.getItem('ding-pbx-pages-v2') || '{}'); if (['en', 'zh', 'both'].includes(legacy.language)) saved.language = legacy.language; if (Number.isFinite(legacy.englishFunny)) saved.englishFunny = Math.min(5, Math.max(1, Math.round(Number(legacy.englishFunny) * 4 / 3 + 1))); if (Number.isFinite(legacy.cantoneseFunny)) saved.cantoneseFunny = Math.min(5, Math.max(1, Math.round(Number(legacy.cantoneseFunny) * 4 / 3 + 1))); } catch { /* the global record remains authoritative */ }
+        try { const legacy = parseUniqueJson(localStorage.getItem(MIRROR_STATE_KEY) || '{}'); if (['en', 'zh', 'both'].includes(legacy.language)) saved.language = legacy.language; if (Number.isFinite(legacy.englishFunny)) saved.englishFunny = Number(legacy.englishFunny) >= 1 && Number(legacy.englishFunny) <= 5 ? Number(legacy.englishFunny) : Math.min(5, Math.max(1, Math.round(Number(legacy.englishFunny) * 4 / 3 + 1))); if (Number.isFinite(legacy.cantoneseFunny)) saved.cantoneseFunny = Number(legacy.cantoneseFunny) >= 1 && Number(legacy.cantoneseFunny) <= 5 ? Number(legacy.cantoneseFunny) : Math.min(5, Math.max(1, Math.round(Number(legacy.cantoneseFunny) * 4 / 3 + 1))); } catch { /* the global record remains authoritative */ }
       }
       const oldSchedule = saved.schedule || {};
       const rules = Array.isArray(oldSchedule.rules) ? oldSchedule.rules : (oldSchedule.enabled ? [{
@@ -107,7 +110,8 @@
     safe.narratorPitch = Math.min(2, Math.max(0, Number(raw.narratorPitch) || 1));
     safe.dimSumShown = Math.min(100000, Math.max(0, Number(raw.dimSumShown) || 0));
     const schedule = raw.schedule || {};
-    safe.schedule = { schemaVersion: 1, lastAppliedRule: typeof schedule.lastAppliedRule === 'string' ? schedule.lastAppliedRule.slice(0, 128) : '', paused: schedule.paused === true, rules: Array.isArray(schedule.rules) ? schedule.rules.slice(0, MAX_RULES).map((rule) => ({ id: String(rule?.id || '').slice(0, 128), target: String(rule?.target || '').slice(0, 64), value: String(rule?.value || '').slice(0, 120), startDate: String(rule?.startDate || '').slice(0, 10), endDate: String(rule?.endDate || '').slice(0, 10), startTime: String(rule?.startTime || '').slice(0, 5), endTime: String(rule?.endTime || '').slice(0, 5), allDay: rule?.allDay === true, weekdays: Array.isArray(rule?.weekdays) ? rule.weekdays.filter((day) => WEEKDAYS.some(([id]) => id === day)).slice(0, 7) : [], everyDay: rule?.everyDay === true, timezone: String(rule?.timezone || '').slice(0, 80), precedence: Math.min(100, Math.max(0, Number(rule?.precedence) || 0)), source: ['local', 'https', 'home-assistant'].includes(rule?.source) ? rule.source : 'local', endpoint: String(rule?.endpoint || '').slice(0, 512), entity: String(rule?.entity || '').slice(0, 128) })) : [] };
+    safe.schedule = { schemaVersion: 1, lastAppliedRule: typeof schedule.lastAppliedRule === 'string' ? schedule.lastAppliedRule.slice(0, 128) : '', paused: schedule.paused === true, invalidTimezones: [], rules: Array.isArray(schedule.rules) ? schedule.rules.slice(0, MAX_RULES).map((rule) => ({ id: String(rule?.id || '').slice(0, 128), target: String(rule?.target || '').slice(0, 64), value: String(rule?.value || '').slice(0, 120), startDate: String(rule?.startDate || '').slice(0, 10), endDate: String(rule?.endDate || '').slice(0, 10), startTime: String(rule?.startTime || '').slice(0, 5), endTime: String(rule?.endTime || '').slice(0, 5), allDay: rule?.allDay === true, weekdays: Array.isArray(rule?.weekdays) ? rule.weekdays.filter((day) => WEEKDAYS.some(([id]) => id === day)).slice(0, 7) : [], everyDay: rule?.everyDay === true, timezone: String(rule?.timezone || '').slice(0, 80), precedence: Math.min(100, Math.max(0, Number(rule?.precedence) || 0)), source: ['local', 'https', 'home-assistant'].includes(rule?.source) ? rule.source : 'local', endpoint: String(rule?.endpoint || '').slice(0, 512), entity: String(rule?.entity || '').slice(0, 128) })) : [] };
+    safe.schedule.invalidTimezones = safe.schedule.rules.filter((rule) => !isValidTimezone(rule.timezone)).map((rule) => rule.id);
     safe.schemaVersion = SETTINGS_SCHEMA_VERSION;
     return safe;
   }
@@ -115,10 +119,13 @@
   const baseSettings = { language: state.language, theme: document.documentElement.dataset.theme || 'dark', density: document.documentElement.dataset.density || 'comfortable', narratorEnabled: state.narratorEnabled, displayName: state.displayName };
   const effectiveSettings = { ...baseSettings };
   let scheduleTimer;
+  let scheduleBoundaryTimer;
   const voices = { en: [], zh: [] };
   let voiceListener;
   let narrationCurrent = false;
   let narrationQueue = [];
+  let pageEventListener;
+  let pageStateListener;
   let regexConfig = { pattern: '', flags: 'iu', enabled: false };
   let regexReturnFocus;
   let regexTargetInput;
@@ -167,15 +174,16 @@
   const GLOBAL_PALETTE_CONTROLS = [
     ['Page settings', 'global-settings-open'], ['Language mode', 'global-language'], ['English funny level', 'global-english-funny'], ['Cantonese funny level', 'global-cantonese-funny'], ['Dialog emoji decoration', 'global-dialog-emoji'], ['School mode', 'global-school-toggle'], ['School mode name', 'global-school-name'], ['School mode reset and recovery', 'global-school-reset'], ['Narrator', 'global-narrator-enabled'], ['Narrator language', 'global-narrator-language'], ['Scheduled settings', 'global-schedule-enabled'], ['Page display name', 'global-display-name'], ['Startup dim sum status', 'global-dimsum-status'], ['Updates and downloads status', 'global-update-status']
   ];
+  const PALETTE_ZH = { 'Page settings': '頁面設定', 'Language mode': '語言模式', 'English funny level': '英文搞笑程度', 'Cantonese funny level': '廣東話搞笑程度', 'Dialog emoji decoration': '對話框表情裝飾', 'School mode': 'School mode', 'School mode name': 'School mode 名稱', 'School mode reset and recovery': 'School mode 重設同恢復', Narrator: '旁白', 'Narrator language': '旁白語言', 'Scheduled settings': '排程設定', 'Page display name': '頁面顯示名稱', 'Startup dim sum status': '啟動點心狀態', 'Updates and downloads status': '更新同下載狀態' };
 
   function save() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     let legacy = {};
-    try { legacy = parseUniqueJson(localStorage.getItem('ding-pbx-pages-v2') || '{}'); } catch { legacy = {}; }
+    try { legacy = parseUniqueJson(localStorage.getItem(MIRROR_STATE_KEY) || '{}'); } catch { legacy = {}; }
     legacy.language = state.language;
-    legacy.englishFunny = Math.min(3, Math.max(0, Math.round((state.englishFunny - 1) * 3 / 4)));
-    legacy.cantoneseFunny = Math.min(3, Math.max(0, Math.round((state.cantoneseFunny - 1) * 3 / 4)));
-    localStorage.setItem('ding-pbx-pages-v2', JSON.stringify(legacy));
+    legacy.englishFunny = state.englishFunny;
+    legacy.cantoneseFunny = state.cantoneseFunny;
+    localStorage.setItem(MIRROR_STATE_KEY, JSON.stringify(legacy));
     window.dispatchEvent(new CustomEvent('ding-global-settings-change', { detail: { language: state.language, englishFunny: state.englishFunny, cantoneseFunny: state.cantoneseFunny } }));
   }
   function parseUniqueJson(raw) {
@@ -195,27 +203,31 @@
     return [...new Uint8Array(digestValue)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
   }
   function bytesToBase64(bytes) { let binary = ''; for (let offset = 0; offset < bytes.length; offset += 8192) binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192)); return btoa(binary); }
+  async function fetchWithDeadline(url, options = {}, timeoutMs = 5000) { const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs); try { return await fetch(url, { ...options, signal: controller.signal }); } finally { clearTimeout(timer); } }
+  function withDeadline(promise, timeoutMs = 5000) { let timer; return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Operation deadline exceeded.')), timeoutMs); })]).finally(() => clearTimeout(timer)); }
   async function decodeImage(dataUrl) {
     if (typeof Image !== 'function') return false;
     return new Promise((resolve) => { const image = new Image(); image.onload = () => resolve(image.naturalWidth > 0 && image.naturalHeight > 0); image.onerror = () => resolve(false); image.src = dataUrl; });
   }
   async function loadDimSumCatalog() {
     try {
-      const response = await fetch(assetUrl(DIM_SUM_CACHE.file), { cache: 'no-store', credentials: 'omit' });
+      const response = await fetchWithDeadline(assetUrl(DIM_SUM_CACHE.file), { cache: 'no-store', credentials: 'omit', redirect: 'error' });
       if (!response.ok) throw new Error(`Cache metadata HTTP ${response.status}`);
-      const raw = await response.text(); if (new TextEncoder().encode(raw).byteLength > 131072) throw new Error('Dim-sum cache metadata is too large.');
+      const raw = await withDeadline(response.text()); if (new TextEncoder().encode(raw).byteLength > 131072) throw new Error('Dim-sum cache metadata is too large.');
       const parsed = parseUniqueJson(raw);
       if (parsed.schemaVersion !== DIM_SUM_CACHE.schemaVersion || parsed.sourceUrl !== DIM_SUM_CACHE.sourceUrl || parsed.catalogRevision !== DIM_SUM_CACHE.releaseNamespace || !Array.isArray(parsed.dishes)) throw new Error('Dim-sum cache schema or source revision is not accepted.');
       DISHES = parsed.dishes.filter((dish) => dish && typeof dish.id === 'string' && typeof dish.imageUrl === 'string' && /^https:\/\//.test(dish.imageUrl) && typeof dish.sha256 === 'string' && dish.sha256.length === 64 && typeof dish.releaseTag === 'string' && typeof dish.catalogRevision === 'string' && dish.name && typeof dish.name.en === 'string' && typeof dish.name.zhHant === 'string').map((dish) => ({ id: dish.id, en: dish.name.en, zh: dish.name.zhHant, imageUrl: dish.imageUrl, sha256: dish.sha256, releaseTag: dish.releaseTag, catalogRevision: dish.catalogRevision }));
-      const cached = parseUniqueJson(localStorage.getItem(DIM_SUM_IMAGE_CACHE_KEY) || '{}');
+      let cached = {};
+      try { cached = parseUniqueJson(localStorage.getItem(DIM_SUM_IMAGE_CACHE_KEY) || '{}'); if (cached.schemaVersion !== 1 || cached.sourceUrl !== DIM_SUM_CACHE.sourceUrl || cached.catalogRevision !== DIM_SUM_CACHE.releaseNamespace || !Array.isArray(cached.entries)) throw new Error('stale image cache'); } catch { localStorage.removeItem(DIM_SUM_IMAGE_CACHE_KEY); cached = {}; }
       const usable = [];
-      for (const dish of DISHES) { const local = cached?.entries?.find((entry) => entry.id === dish.id && entry.sha256 === dish.sha256 && typeof entry.dataUrl === 'string'); if (local && await sha256Hex(Uint8Array.from(atob(local.dataUrl.split(',')[1] || ''), (char) => char.charCodeAt(0))) === dish.sha256 && await decodeImage(local.dataUrl)) usable.push({ ...dish, dataUrl: local.dataUrl }); }
+      for (const dish of DISHES) { const local = cached?.entries?.find((entry) => entry.id === dish.id && entry.sha256 === dish.sha256 && entry.releaseTag === dish.releaseTag && entry.catalogRevision === dish.catalogRevision && typeof entry.dataUrl === 'string'); if (local && await sha256Hex(Uint8Array.from(atob(local.dataUrl.split(',')[1] || ''), (char) => char.charCodeAt(0))) === dish.sha256 && await decodeImage(local.dataUrl)) usable.push({ ...dish, dataUrl: local.dataUrl }); }
       if (usable.length) { DISHES = usable; return true; }
+      localStorage.removeItem(DIM_SUM_IMAGE_CACHE_KEY);
       const first = DISHES[0]; if (!first) return false;
-      const imageResponse = await fetch(first.imageUrl, { cache: 'force-cache', credentials: 'omit', referrerPolicy: 'no-referrer' }); if (!imageResponse.ok || !imageResponse.body) return false;
-      const reader = imageResponse.body.getReader(); const chunks = []; let total = 0; while (true) { const part = await reader.read(); if (part.done) break; total += part.value.byteLength; if (total > 1048576) { await reader.cancel(); return false; } chunks.push(part.value); }
+      const imageResponse = await fetchWithDeadline(first.imageUrl, { cache: 'force-cache', credentials: 'omit', redirect: 'error', referrerPolicy: 'no-referrer' }); if (!imageResponse.ok || !imageResponse.body) return false;
+      const reader = imageResponse.body.getReader(); const chunks = []; let total = 0; while (true) { const part = await withDeadline(reader.read()); if (part.done) break; total += part.value.byteLength; if (total > 1048576) { await reader.cancel(); return false; } chunks.push(part.value); }
       const bytes = new Uint8Array(total); let offset = 0; chunks.forEach((chunk) => { bytes.set(chunk, offset); offset += chunk.byteLength; }); const digestValue = await sha256Hex(bytes); if (digestValue !== first.sha256) return false;
-      const dataUrl = `data:image/png;base64,${bytesToBase64(bytes)}`; if (!await decodeImage(dataUrl)) return false; localStorage.setItem(DIM_SUM_IMAGE_CACHE_KEY, JSON.stringify({ schemaVersion: 1, catalogRevision: 'catalog-v1', entries: [{ id: first.id, sha256: first.sha256, dataUrl }] })); DISHES = [{ ...first, dataUrl }]; return true;
+      const dataUrl = `data:image/png;base64,${bytesToBase64(bytes)}`; if (!await decodeImage(dataUrl)) return false; localStorage.setItem(DIM_SUM_IMAGE_CACHE_KEY, JSON.stringify({ schemaVersion: 1, sourceUrl: DIM_SUM_CACHE.sourceUrl, catalogRevision: DIM_SUM_CACHE.releaseNamespace, entries: [{ id: first.id, sha256: first.sha256, releaseTag: first.releaseTag, catalogRevision: first.catalogRevision, dataUrl }] })); DISHES = [{ ...first, dataUrl }]; return true;
     } catch { DISHES = []; return false; }
   }
   function applyPanelCopy() {
@@ -252,6 +264,7 @@
     const titleNode = document.createElement('strong'); if (state.dialogEmoji) { const icon = document.createElement('span'); icon.setAttribute('aria-hidden', 'true'); icon.textContent = '◈ '; titleNode.append(icon); } const titleParts = state.language === 'both' ? title.split(' / ') : [title]; titleParts.forEach((part, index) => { if (index) titleNode.append(document.createTextNode(' / ')); const segment = document.createElement('span'); segment.className = index ? 'copy-segment copy-segment-zh' : 'copy-segment copy-segment-en'; segment.lang = index ? 'yue-HK' : 'en'; segment.textContent = part; titleNode.append(segment); });
     const bodyNode = document.createElement('span'); const bodyParts = state.language === 'both' ? body.split(' / ') : [body]; bodyParts.forEach((part, index) => { if (index) bodyNode.append(document.createTextNode(' / ')); const segment = document.createElement('span'); segment.className = index ? 'copy-segment copy-segment-zh' : 'copy-segment copy-segment-en'; segment.lang = index ? 'yue-HK' : 'en'; segment.textContent = part; bodyNode.append(segment); }); toast.append(titleNode, bodyNode);
     region.append(toast);
+    announce(title, body, 'global-notification');
     window.setTimeout(() => toast.remove(), 6000);
   }
   function setText(id, en, zh) {
@@ -377,7 +390,15 @@
     $('global-regex-i').onchange = previewRegex;
     $('global-regex-u').onchange = previewRegex;
     $('global-regex-pattern').focus();
+    positionRegexPopover();
     previewRegex();
+  }
+  function positionRegexPopover() {
+    const popover = $('global-regex-popover'); if (!popover) return;
+    const anchor = regexTargetInput || $('global-settings-search');
+    if (anchor) popover.dataset.anchorFor = anchor.id || 'global-settings-search';
+    const panel = $('global-settings-panel'); if (panel) popover.style.maxHeight = `${Math.max(180, panel.clientHeight - 120)}px`;
+    popover.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
   function previewRegex() {
     const pattern = $('global-regex-pattern')?.value.slice(0, 256) || '';
@@ -410,6 +431,7 @@
     regexReturnFocus = input;
     const saved = dropdownRegex.get(input) || { pattern: '', flags: 'iu', enabled: false };
     regexConfig = saved;
+    $('global-regex-popover')?.setAttribute('data-anchor-for', input.id || 'dropdown-search');
     openRegex();
   }
   function enhanceDropdowns() {
@@ -418,7 +440,7 @@
       select.dataset.dropdownEnhanced = 'true';
       const wrapper = document.createElement('div'); wrapper.className = 'global-dropdown-tools';
       const input = document.createElement('input'); input.type = 'search'; input.className = 'global-dropdown-search'; input.placeholder = 'Filter choices'; input.setAttribute('aria-label', `Filter ${select.getAttribute('aria-label') || select.previousElementSibling?.textContent || 'choices'}`);
-      const regex = document.createElement('button'); regex.type = 'button'; regex.className = 'regex-trigger'; regex.textContent = '.*'; regex.setAttribute('aria-label', `Build a regular expression for ${input.getAttribute('aria-label')}`); regex.dataset.globalDropdownRegex = 'true';
+      const regex = document.createElement('button'); regex.type = 'button'; regex.className = 'regex-trigger'; regex.textContent = '.*'; regex.setAttribute('aria-label', `Build a regular expression for ${input.getAttribute('aria-label')}`); regex.dataset.globalDropdownRegex = 'true'; regex.dataset.globalSettingsOwned = 'true';
       wrapper.append(input, regex); select.parentNode.insertBefore(wrapper, select);
       const filter = () => { const config = dropdownRegex.get(input); [...select.options].forEach((option) => { const text = option.textContent || ''; let visible = !input.value; if (input.value && config?.enabled) { try { visible = new RegExp(config.pattern, config.flags).test(text); } catch { visible = false; } } else if (input.value) visible = text.toLocaleLowerCase().includes(input.value.toLocaleLowerCase()); option.hidden = !visible; }); };
       input.addEventListener('input', filter); regex.onclick = () => openRegexForInput(input);
@@ -462,7 +484,7 @@
     GLOBAL_PALETTE_CONTROLS.forEach(([label, targetId]) => {
       const target = $(targetId); const hiddenBySchool = state.schoolMode && target && !target.closest('[data-school-keep]') && targetId !== 'global-school-toggle' && targetId !== 'global-school-name' && targetId !== 'global-school-reset';
       if (hiddenBySchool || (query && !label.toLocaleLowerCase().includes(query)) || existing.has(targetId)) return;
-      const item = document.createElement('button'); item.type = 'button'; item.className = 'palette-result'; item.dataset.globalPalette = targetId; item.innerHTML = `<strong>${escapeHtml(label)}</strong><span>Open exact page setting</span>`;
+      const item = document.createElement('button'); item.type = 'button'; item.className = 'palette-result'; item.dataset.globalPalette = targetId; item.innerHTML = `<strong>${escapeHtml(copy(label, PALETTE_ZH[label] || label, 'en'))}</strong><span>${escapeHtml(copy('Open exact page setting', '開啟確實頁面設定', 'en'))}</span>`;
       item.onclick = () => { $('global-settings-panel').hidden = false; $('global-settings-open').setAttribute('aria-expanded', 'true'); const panel = target?.closest('[role="tabpanel"]'); const tab = panel ? document.querySelector(`[role="tab"][aria-controls="${panel.id}"]`) : undefined; tab?.click(); target?.focus(); };
       list.append(item);
     });
@@ -506,7 +528,7 @@
       state.schedule.rules = state.schedule.rules.filter((rule) => rule.id !== confirmScheduleId);
       state.schedule.lastAppliedRule = '';
     } else if (confirmAction === 'full-reset') {
-      localStorage.removeItem(STORAGE_KEY); window.location.reload(); return;
+      OWNED_STATE_KEYS.forEach((key) => localStorage.removeItem(key)); window.location.reload(); return;
     }
     save(); applyState(); notify(copy('Local action completed', '本地操作完成', 'en'), copy('The page returned to its truthful local state.', '頁面已返回真實嘅本地狀態。', 'en')); closeConfirmation();
   }
@@ -562,6 +584,11 @@
       const dialog = document.createElement('dialog'); dialog.id = 'command-palette'; dialog.className = 'overlay-card'; dialog.setAttribute('aria-labelledby', 'global-palette-title'); dialog.innerHTML = '<form method="dialog"><div class="dialog-heading"><h2 id="global-palette-title">Command palette</h2><button class="icon-button" value="cancel" aria-label="Close">×</button></div><div class="search-composite"><label class="sr-only" for="palette-search">Search page settings and destinations</label><input id="palette-search" type="search" aria-label="Search page settings and destinations"><button type="button" class="regex-trigger" data-regex-for="palette-search" aria-label="Build a regular expression for palette search">.*</button></div><div id="palette-results" class="palette-results" role="listbox" aria-label="Page commands"></div></form></dialog>'; document.body.append(dialog);
     }
   }
+  function ensureDocumentBase() {
+    if (document.documentElement.dataset.base && document.documentElement.dataset.base !== './') return;
+    const stylesheet = document.querySelector('link[href$="styles.css"]');
+    if (stylesheet) document.documentElement.dataset.base = new URL('.', new URL(stylesheet.href, document.baseURI)).href;
+  }
   function bindPanel(openButton) {
     const panel = $('global-settings-panel');
     const close = () => { panel.hidden = true; openButton.setAttribute('aria-expanded', 'false'); openButton.focus(); };
@@ -569,6 +596,7 @@
     $('global-settings-close').onclick = close;
     $('global-settings-search').oninput = (event) => { if (regexConfig.enabled) regexConfig.pattern = event.target.value.slice(0, 256); filterSettings(); };
     $('global-regex-open').setAttribute('data-regex-for', 'global-settings-search');
+    $('global-regex-open').dataset.globalSettingsOwned = 'true';
     $('global-regex-open').setAttribute('aria-controls', 'global-regex-popover');
     $('global-regex-open').setAttribute('aria-expanded', 'false');
     $('global-regex-open').onclick = () => { $('global-regex-open').setAttribute('aria-expanded', 'true'); regexReturnFocus = $('global-settings-search'); openRegex(); };
@@ -616,6 +644,7 @@
     ensureAllDayControl();
   }
   function applyState() {
+    applyScheduleRules();
     $('global-language') && ($('global-language').value = state.language);
     $('global-english-funny') && ($('global-english-funny').value = String(state.englishFunny));
     $('global-cantonese-funny') && ($('global-cantonese-funny').value = String(state.cantoneseFunny));
@@ -633,12 +662,13 @@
     $('global-schedule-enabled') && ($('global-schedule-enabled').checked = state.schedule.rules.length > 0 && !state.schedule.paused);
     $('global-schedule-timezone') && ($('global-schedule-timezone').value = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local timezone');
     renderScheduleRules();
+    if ($('global-schedule-status') && state.schedule.invalidTimezones.length) $('global-schedule-status').textContent = 'Some saved schedule rules use an invalid IANA timezone and are paused until corrected or removed.';
     $('global-display-name') && ($('global-display-name').value = state.displayName);
     const updateStatus = $('global-update-status');
     if (updateStatus) updateStatus.textContent = copy('No verified installer or release manifest is published for this static page. No update action is available.', '此靜態頁未有已驗證安裝程式或者發行清單，暫時冇更新操作。', 'en');
     const dishStatus = $('global-dimsum-status');
     if (dishStatus) dishStatus.textContent = state.dimSumShown ? copy(`One catalog dish has been shown during a later visit. Total shown on this browser: ${state.dimSumShown}.`, `之後訪問已顯示一款目錄點心，此瀏覽器總數：${state.dimSumShown}。`, 'en') : copy('No catalog dish has been shown on this browser yet.', '此瀏覽器暫時未顯示目錄點心。', 'en');
-    applyDisplayName(); applySchoolMode(); applyPanelCopy(); applyScheduleRules(); filterSettings(); decorateDialogs();
+    applyDisplayName(); applySchoolMode(); applyPanelCopy(); filterSettings(); decorateDialogs();
   }
   function scheduleClock(now, timezone) {
     try {
@@ -651,6 +681,7 @@
     try { return new Intl.DateTimeFormat('en-US', { timeZone: timezone }).resolvedOptions().timeZone === timezone; } catch { return false; }
   }
   function scheduleRuleMatches(rule, now = new Date()) {
+    if (!isValidTimezone(rule.timezone)) return false;
     const clock = scheduleClock(now, rule.timezone);
     if (rule.startDate && clock.date < rule.startDate) return false;
     if (rule.endDate && clock.date > rule.endDate) return false;
@@ -721,7 +752,7 @@
   async function readBoundedJson(response) {
     if (!response.body) throw new Error('The source response had no body.');
     const reader = response.body.getReader(); const chunks = []; let total = 0;
-    while (true) { const part = await reader.read(); if (part.done) break; total += part.value.byteLength; if (total > MAX_ENDPOINT_BYTES) { await reader.cancel(); throw new Error('The source response exceeded the 64 KiB bound.'); } chunks.push(part.value); }
+    while (true) { const part = await withDeadline(reader.read()); if (part.done) break; total += part.value.byteLength; if (total > MAX_ENDPOINT_BYTES) { await reader.cancel(); throw new Error('The source response exceeded the 64 KiB bound.'); } chunks.push(part.value); }
     const bytes = new Uint8Array(total); let offset = 0; chunks.forEach((chunk) => { bytes.set(chunk, offset); offset += chunk.byteLength; });
     const value = parseUniqueJson(new TextDecoder().decode(bytes)); validateExternalPayload(value); return value;
   }
@@ -771,10 +802,18 @@
     applyScheduleRules();
     const after = `${effectiveSettings.language}|${effectiveSettings.theme}|${effectiveSettings.density}|${effectiveSettings.narratorEnabled}|${effectiveSettings.displayName}`;
     if (before !== after) applyState();
+    scheduleNextBoundary();
+  }
+  function scheduleNextBoundary() {
+    if (scheduleBoundaryTimer) clearTimeout(scheduleBoundaryTimer);
+    const now = new Date();
+    const milliseconds = (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 25;
+    scheduleBoundaryTimer = setTimeout(refreshScheduledState, Math.max(100, milliseconds));
   }
   function init() {
     if (window.__dingPbxGlobalSettingsInitialized) return;
     window.__dingPbxGlobalSettingsInitialized = true;
+    ensureDocumentBase();
     renderPanel();
     document.body.dataset.dimSumCache = `${DIM_SUM_CACHE.file};schema=${DIM_SUM_CACHE.schemaVersion};release=${DIM_SUM_CACHE.releaseNamespace}`;
     const dialogObserver = new MutationObserver(() => decorateDialogs());
@@ -783,12 +822,18 @@
     if ($('palette-results')) paletteObserver.observe($('palette-results'), { childList: true });
     augmentPalette();
     if (speechSynthesisAvailable()) { voiceListener = () => { refreshVoices(); }; speechSynthesis.addEventListener('voiceschanged', voiceListener); refreshVoices(); }
+    pageEventListener = (event) => { if (event.detail?.title && event.detail?.body) announce(String(event.detail.title), String(event.detail.body), String(event.detail.category || 'page-event')); };
+    window.addEventListener('ding-page-event', pageEventListener);
+    pageStateListener = (event) => { if (!event.detail) return; if (['en', 'zh', 'both'].includes(event.detail.language)) state.language = event.detail.language; if (Number.isFinite(event.detail.englishFunny)) state.englishFunny = Math.min(5, Math.max(1, Number(event.detail.englishFunny))); if (Number.isFinite(event.detail.cantoneseFunny)) state.cantoneseFunny = Math.min(5, Math.max(1, Number(event.detail.cantoneseFunny))); save(); applyState(); };
+    window.addEventListener('ding-page-state-change', pageStateListener);
+    save();
     applyState();
     dimSumReady = loadDimSumCatalog();
     maybeDimSum();
     scheduleTimer = window.setInterval(refreshScheduledState, 30000);
+    scheduleNextBoundary();
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshScheduledState(); });
-    window.addEventListener('beforeunload', () => { if (voiceListener && speechSynthesisAvailable()) speechSynthesis.removeEventListener('voiceschanged', voiceListener); dialogObserver.disconnect(); paletteObserver.disconnect(); if (scheduleTimer) clearInterval(scheduleTimer); });
+    window.addEventListener('beforeunload', () => { if (voiceListener && speechSynthesisAvailable()) speechSynthesis.removeEventListener('voiceschanged', voiceListener); if (pageEventListener) window.removeEventListener('ding-page-event', pageEventListener); if (pageStateListener) window.removeEventListener('ding-page-state-change', pageStateListener); dialogObserver.disconnect(); paletteObserver.disconnect(); if (scheduleTimer) clearInterval(scheduleTimer); if (scheduleBoundaryTimer) clearTimeout(scheduleBoundaryTimer); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true }); else init();
 })();

@@ -492,3 +492,36 @@ control until a verified release manifest exists.
 Verification remained limited to `node --check` for the changed JavaScript files and
 `git diff --check`; no tests, lint, build, browser, UI, capture, hosting, release, or cleanup
 work ran.
+
+## Pages global settings fourth refutation repair, 2026-08-24
+
+The generated article path now creates a usable settings fallback toolbar and complete command
+palette markup before the existing page runtime loads. The settings-owned regex handlers are
+explicitly excluded from the older runtime's broad regex binding, avoiding load-order collisions.
+Palette entries activate their owning tab before returning focus to the exact control. The global
+canonical state remains versioned under `ding-pbx-site-global-settings-v1`; `ding-pbx-pages-v2` is
+only a compatibility mirror, and all five funny levels now synchronize bidirectionally without
+lossy remapping, including the initial load.
+
+Dim-sum metadata is loaded from the local cache file as the only runtime authority. First use has
+a bounded deadline fetch for the sanctioned published catalog image, verifies the digest and image
+decode, stores the image in browser application storage with full source and revision identity,
+and purges invalid or stale cache records. The feature is recorded as partial until that first
+fetch succeeds. Each launch consumes one draw, including a miss, and later offline launches use
+only the verified local image data.
+
+Scheduled effective state is computed before controls render. The next minute boundary has an
+exact timeout with a recurring fallback and visibility refresh. Invalid IANA timezones remain
+visible and their rules do not apply. Pausing preserves rules. Full reset clears the canonical
+state, compatibility mirror, vocabulary and logo caches, and dim-sum image cache. The external
+source path retains a strict host allowlist and bounded deadline.
+
+Panel and notice copy now render independent English and Cantonese segments in bilingual mode.
+The existing page runtime receives global language and funny-level changes through an explicit
+event bridge, and ordinary global notices reach the bounded narrator path. The main regex builder
+keeps plain query and regex pattern, flags, and mode separate while staying attached to its
+originating field with focus return.
+
+Verification remained limited to `node --check` for the changed JavaScript files and
+`git diff --check`; no tests, lint, build, browser, UI, captures, hosting, deployment, push,
+release, or cleanup work ran.
