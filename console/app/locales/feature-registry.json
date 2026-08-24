@@ -212,8 +212,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
-      "blockedBy": "not-implemented"
+      "note": "Implemented as partial and contributing no design label, because it has no control: a picker before the decoder exists would accept a file and show nothing. The labels arrive with the picker.",
+      "blockedBy": "no-label-surface"
     },
     "local-file-converter": {
       "state": "not-localized",
