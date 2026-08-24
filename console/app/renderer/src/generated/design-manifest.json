@@ -1225,5 +1225,17 @@
         "direct-m3control-0_0_29_1_5_1"
       ]
     }
-  }
+  },
+  "interactiveLoopsWithIdentity": {
+    "console": 73,
+    "m3Control": 8,
+    "total": 81
+  },
+  "negativeIdentityChuts": [
+    "ordinary-choice-without-id-or-key",
+    "ordinary-order-item-without-id-or-key",
+    "ordinary-pool-item-without-id-or-key",
+    "paletteNodes-without-id-or-key",
+    "console-loop-without-source-identity"
+  ]
 }

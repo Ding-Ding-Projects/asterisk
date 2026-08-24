@@ -2747,7 +2747,24 @@ function Template(v: any) {
 }
 const P = { primary:'#82D9A5', onPrim:'#00391F', dim:'#9AA39B', text:'#DFE4DC' };
 
-const ctl = (id, label, kind, value, extra) => Object.assign({ id, label, kind, value }, extra || {});
+const stableChoice = (raw, context) => {
+  if (typeof raw === 'string') return { id: raw, key: raw, value: raw, label: raw };
+  if (!raw || typeof raw !== 'object') throw new Error(`${context} option must declare id, key, value, and label.`);
+  const id = raw.id ?? raw.key;
+  const key = raw.key ?? raw.id;
+  const value = raw.value;
+  if (typeof id !== 'string' || typeof key !== 'string' || typeof value !== 'string' || id.length === 0 || key.length === 0) {
+    throw new Error(`${context} option must declare stable id, key, and value.`);
+  }
+  return Object.assign({}, raw, { id, key, value, label: typeof raw.label === 'string' ? raw.label : value });
+};
+const buildCtl = (id, label, kind, value, extra) => {
+  const source = extra || {};
+  const options = Array.isArray(source.options) ? source.options.map((option) => stableChoice(option, `${id} ${kind}`)) : source.options;
+  const pool = Array.isArray(source.pool) ? source.pool.map((item) => stableChoice(item, `${id} pool`)) : source.pool;
+  return Object.assign({ id, key: id, label, kind, value }, source, { options, pool });
+};
+const ctl = buildCtl;
 
 const RAIL = [
   { id:'pbx', icon:'call', label:'PBX', groupLabel:'Telephony', groupDesc:'Endpoints, routing and everything a call touches while it is alive.' },
@@ -4116,12 +4133,12 @@ class ConsoleShell extends DCLogic {
       onInfo:() => this.showDoc(c),
       onInfoLegacy:() => this.showInfo(c.label, c.info || ('This setting is written to ' + (SCREENS[this.state.screen] || {}).file + ' as ' + c.id + '.'), null),
       set:(nv) => this.setVal(c, nv) };
-    if (c.kind === 'segmented' || c.kind === 'select') o.options = (c.options || []).map(x => ({ label:x, on:x === v, off:x !== v, pick:() => this.setVal(c, x) }));
-    if (c.kind === 'chips') o.options = (c.options || []).map(x => ({ label:x, on:(v || []).indexOf(x) >= 0, off:(v || []).indexOf(x) < 0, pick:() => this.setVal(c, (v || []).indexOf(x) >= 0 ? v.filter(y => y !== x) : (v || []).concat([x])) }));
+    if (c.kind === 'segmented' || c.kind === 'select') o.options = (c.options || []).map(x => ({ id:String(x), key:String(x), value:String(x), label:x, on:x === v, off:x !== v, pick:() => this.setVal(c, x) }));
+    if (c.kind === 'chips') o.options = (c.options || []).map(x => ({ id:String(x), key:String(x), value:String(x), label:x, on:(v || []).indexOf(x) >= 0, off:(v || []).indexOf(x) < 0, pick:() => this.setVal(c, (v || []).indexOf(x) >= 0 ? v.filter(y => y !== x) : (v || []).concat([x])) }));
     if (c.kind === 'order') {
       o.move = (from, to) => { const a = (v || []).slice(); const [m] = a.splice(from, 1); a.splice(to, 0, m); this.setVal(c, a); };
-      o.items = (v || []).map((x, i) => ({ label:x, idx:i, up:() => { const a = v.slice(); if (i > 0) { a[i] = a[i - 1]; a[i - 1] = x; this.setVal(c, a); } }, down:() => { const a = v.slice(); if (i < a.length - 1) { a[i] = a[i + 1]; a[i + 1] = x; this.setVal(c, a); } }, drop:() => this.setVal(c, v.filter(y => y !== x)) }));
-      o.pool = (c.pool || []).filter(x => (v || []).indexOf(x) < 0).map(x => ({ label:x, add:() => this.setVal(c, (v || []).concat([x])) }));
+      o.items = (v || []).map((x, i) => ({ id:String(x), key:String(x), label:x, idx:i, up:() => { const a = v.slice(); if (i > 0) { a[i] = a[i - 1]; a[i - 1] = x; this.setVal(c, a); } }, down:() => { const a = v.slice(); if (i < a.length - 1) { a[i] = a[i + 1]; a[i + 1] = x; this.setVal(c, a); } }, drop:() => this.setVal(c, v.filter(y => y !== x)) }));
+      o.pool = (c.pool || []).filter(x => (v || []).indexOf(x) < 0).map(x => ({ id:String(x), key:String(x), value:String(x), label:x, add:() => this.setVal(c, (v || []).concat([x])) }));
     }
     if (c.kind === 'switch') { o.on = !!v; o.off = !v; o.toggle = () => this.setVal(c, !v); }
     if (c.kind === 'stepper') {

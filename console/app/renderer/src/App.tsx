@@ -630,7 +630,7 @@ export class App extends Base {
       } else if (control.kind === 'order') {
         const values = Array.isArray(current) ? current : [];
         const swap = (from: number, to: number) => { if (to < 0 || to >= values.length) return; const next = values.slice(); [next[from], next[to]] = [next[to], next[from]]; execute(next); };
-        base.kind = 'order'; base.items = values.map((value, index) => ({ label: String(value), up: () => swap(index, index - 1), down: () => swap(index, index + 1), drop: () => execute(values.filter((_, itemIndex) => itemIndex !== index)) }));
+        base.kind = 'order'; base.items = values.map((value, index) => { const stableId = String(value); return { id: stableId, key: stableId, label: stableId, up: () => swap(index, index - 1), down: () => swap(index, index + 1), drop: () => execute(values.filter((_, itemIndex) => itemIndex !== index)) }; });
       } else if (control.kind === 'action') {
         base.kind = 'action'; base.onAction = () => execute(undefined); base.actionLabel = entry.label;
       } else {

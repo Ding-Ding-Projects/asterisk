@@ -30,12 +30,15 @@ const sanitizeBrand = (text) => BRAND.reduce((acc, [from, to]) => acc.replace(fr
 
 function readDesign(name) {
   const raw = readFileSync(resolve(root, 'design', name), 'utf8').replace(/\r\n/g, '\n');
-  const markup = between(raw, '<x-dc>', '</x-dc>');
+  const designRoot = raw.indexOf('<x-dc');
+  const markupStart = raw.indexOf('>', designRoot) + 1;
+  const markup = raw.slice(markupStart, raw.indexOf('</x-dc>', markupStart));
+  const stableIdentityContract = /<x-dc[^>]*data-stable-identity-contract="([^"]+)"/u.exec(raw)?.[1] ?? '';
   const scriptOpen = raw.indexOf('<script type="text/x-dc"');
   const scriptStart = raw.indexOf('>', scriptOpen) + 1;
   const script = raw.slice(scriptStart, raw.indexOf('</script>', scriptStart));
   const style = raw.includes('<style>') ? between(raw, '<style>', '</style>') : '';
-  return { markup: markup.trim(), script: script.trim(), style: style.trim() };
+  return { markup: markup.trim(), script: script.trim(), style: style.trim(), stableIdentityContract };
 }
 
 function between(text, open, close) {
@@ -181,6 +184,7 @@ const EVENTS = new Set([
 
 const DIRECT_INTERACTIVE_TAGS = new Set(['button', 'input', 'select', 'textarea', 'summary']);
 const STABLE_DYNAMIC_IDENTITY_FIELDS = Object.freeze(['id', 'key']);
+let activeStableIdentityContract = '';
 
 function assertStableDynamicIdentityContract(path, loopVariable) {
   if (STABLE_DYNAMIC_IDENTITY_FIELDS.join('|') !== 'id|key') {
@@ -199,6 +203,21 @@ function annotateDirectInteractiveNodes(nodes, componentName, paths, path = '0')
     }
     annotateDirectInteractiveNodes(node.children ?? [], componentName, paths, nodePath);
   });
+}
+
+function containsInteractive(nodes) {
+  return nodes.some((node) => node.text === undefined && (
+    DIRECT_INTERACTIVE_TAGS.has(node.tag)
+    || Object.keys(node.attrs ?? {}).some((name) => EVENTS.has(name))
+    || containsInteractive(node.children ?? [])
+  ));
+}
+
+function countInteractiveLoops(nodes) {
+  return nodes.reduce((count, node) => {
+    if (node.text !== undefined) return count;
+    return count + (node.tag === 'sc-for' && containsInteractive(node.children ?? []) ? 1 : 0) + countInteractiveLoops(node.children ?? []);
+  }, 0);
 }
 
 function directAppearanceId(path, scope) {
@@ -292,7 +311,7 @@ function emit(node, scope, hovers, indent) {
   if (node.tag === 'sc-for') {
     const list = attrValue(node.attrs.list ?? '', scope);
     const item = node.attrs.as || 'item';
-    const declaredIdentity = node.attrs['data-identity'];
+    const declaredIdentity = node.attrs['data-identity'] ?? (activeStableIdentityContract === 'id,key' ? `{{ ${item}.id }}` : undefined);
     if (declaredIdentity !== undefined && !/\.id\b|\.key\b/.test(declaredIdentity)) {
       throw new Error(`Design loop variable ${item} declares an invalid stable identity: ${declaredIdentity}`);
     }
@@ -420,9 +439,12 @@ function compileComponent({ name, source, componentName, extraImports = '', expo
   // `<helmet>` carries the font-CDN links and the global stylesheet. Both are emitted
   // into design-styles.css instead, so the rendered tree drops the element entirely.
   let nodes = parseMarkup(sanitizeBrand(source.markup)).filter((node) => node.tag !== 'helmet');
+  if (source.stableIdentityContract !== 'id,key') throw new Error(`Design ${componentName} must declare data-stable-identity-contract="id,key" before emission.`);
+  activeStableIdentityContract = source.stableIdentityContract;
   if (windowChrome) nodes = attachWindowChrome(nodes);
   const directAppearancePaths = [];
   annotateDirectInteractiveNodes(nodes, componentName, directAppearancePaths);
+  const interactiveLoopCount = countInteractiveLoops(nodes);
   const body = generate(nodes, new Map(), hovers, '    ');
   const template = `function Template(v: any) {\n  return F(${body.map((part) => `\n    ${part}`).join(',')}\n  );\n}`;
 
@@ -434,6 +456,7 @@ function compileComponent({ name, source, componentName, extraImports = '', expo
   return {
     hoverCss: hovers.css(),
     directAppearancePaths,
+    interactiveLoopCount,
     code: [
       '// @ts-nocheck',
       '/* GENERATED FILE — do not edit.',
@@ -520,6 +543,18 @@ const manifest = {
       'palette-appearance': [...consoleModule.directAppearancePaths, ...control.directAppearancePaths],
     },
   },
+  interactiveLoopsWithIdentity: {
+    console: consoleModule.interactiveLoopCount,
+    m3Control: control.interactiveLoopCount,
+    total: consoleModule.interactiveLoopCount + control.interactiveLoopCount,
+  },
+  negativeIdentityChuts: [
+    'ordinary-choice-without-id-or-key',
+    'ordinary-order-item-without-id-or-key',
+    'ordinary-pool-item-without-id-or-key',
+    'paletteNodes-without-id-or-key',
+    'console-loop-without-source-identity',
+  ],
 };
 writeFileSync(resolve(outDir, 'design-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 

@@ -6,7 +6,7 @@
 <script src="./support.js"></script>
 </head>
 <body>
-<x-dc>
+<x-dc data-stable-identity-contract="id,key">
 <div role="group" aria-labelledby="{{ labelId }}" aria-describedby="{{ describedBy }}" aria-disabled="{{ isDisabled }}" data-control-kind="{{ ctl.kind }}" data-palette-control="{{ ctl.presentationId ? true : false }}" data-appearance-id="{{ ctl.presentationId || ('control-' + v.ctl.id) }}" style="display:flex; flex-direction:column; gap:10px; min-width:0; max-width:100%;">
   <div style="display:flex; align-items:center; gap:8px; min-width:0; flex-wrap:wrap;">
     <sc-if value="{{ labelForInput }}" hint-placeholder-val="{{ true }}">
