@@ -34,7 +34,8 @@ import {
   ATTENTION_WIRING, LAST_CHANGED_SETTING_KEY, NEXT_ACTION_MAX_LENGTH, NEXT_ACTION_SETTING_KEY,
   MODE_SETTING_PREFIX, NOTICE_HISTORY_MAX_ENTRIES, NOTICE_HISTORY_SCHEMA_VERSION, NOTICE_HISTORY_SETTING_KEY,
   SNOOZED_UNTIL_SETTING_KEY, SNOOZE_MIGRATION_TOLERANCE_MS, SNOOZE_MS, elapsedPhrase,
-  isAttentionMode, modeEnabled, momentumPrompt, nextAction, presentationFor, redactNoticeText, setModeEnabled,
+  isAttentionMode, modeEnabled, momentumPrompt, nextAction, presentationFor, redactNoticeText, sensitiveSpanForValue, setModeEnabled,
+  type NoticeSensitiveSpan,
   setNextAction,
 } from './attention-modes';
 import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
@@ -255,10 +256,9 @@ export class App extends Base {
     else if (severity === 'warning') this.notifyWarning(message);
     else this.notifyInfo(message);
   };
-  notifyEvent = (title: string, body: string, severity: AttentionNoticeSeverity = 'info'): void => {
-    if (severity === 'error') this.notifyErrorEvent(title, body);
-    else if (severity === 'warning') this.notifyWarningEvent(title, body);
-    else this.notifyInfoEvent(title, body);
+  notifyEvent = (title: string, body: string, severity: AttentionNoticeSeverity = 'info', spans: readonly NoticeSensitiveSpan[] = []): void => {
+    const fire = this.fire as unknown as (nextTitle: string, nextBody: string, nextSeverity: AttentionNoticeSeverity, nextSpans?: readonly NoticeSensitiveSpan[]) => void;
+    fire(title, body, severity, spans);
   };
 
   constructor(props: Record<string, never>) {
@@ -267,15 +267,15 @@ export class App extends Base {
     this.setVal = this.languageAwareSetVal;
     this.baseToast = this.toast as (message: string, severity?: AttentionNoticeSeverity) => void;
     this.baseFire = this.fire as (title: string, body: string, severity?: AttentionNoticeSeverity) => void;
-    this.toast = (message: string, severity: AttentionNoticeSeverity = 'info'): void => {
-      if (severity !== 'info') this.attentionRecordNotice(severity, 'Notification', message);
+    this.toast = (message: string, severity: AttentionNoticeSeverity = 'info', spans: readonly NoticeSensitiveSpan[] = []): void => {
+      if (severity !== 'info') this.attentionRecordNotice(severity, 'Notification', message, spans);
       /* Low stimulation suppresses informational messages only. Warnings and errors
        * stay visible and are retained by the reviewable history below. */
       if (severity === 'info' && modeEnabled(this.durableStorage.storage, 'lowStimulation')) return;
       this.baseToast(message, severity);
     };
-    this.fire = (title: string, body: string, severity: AttentionNoticeSeverity = 'info'): void => {
-      if (severity !== 'info') this.attentionRecordNotice(severity, title, body);
+    this.fire = (title: string, body: string, severity: AttentionNoticeSeverity = 'info', spans: readonly NoticeSensitiveSpan[] = []): void => {
+      if (severity !== 'info') this.attentionRecordNotice(severity, title, body, spans);
       if (severity === 'info' && modeEnabled(this.durableStorage.storage, 'lowStimulation')) return;
       this.baseFire(title, body, severity);
     };
@@ -323,8 +323,10 @@ export class App extends Base {
     return restored;
   }
 
-  private attentionRecordNotice(severity: 'warning' | 'error', title: string, body: string): void {
-    this.attentionNoticeHistory = [{ severity, title: redactNoticeText(title), body: redactNoticeText(body) }, ...this.attentionNoticeHistory].slice(0, NOTICE_HISTORY_MAX_ENTRIES);
+  private attentionRecordNotice(severity: 'warning' | 'error', title: string, body: string, spans: readonly NoticeSensitiveSpan[] = []): void {
+    const titleSpans = spans.filter((span) => span.end <= title.length);
+    const bodySpans = spans.filter((span) => span.end <= body.length);
+    this.attentionNoticeHistory = [{ severity, title: redactNoticeText(title, titleSpans), body: redactNoticeText(body, bodySpans) }, ...this.attentionNoticeHistory].slice(0, NOTICE_HISTORY_MAX_ENTRIES);
     this.attentionPersistHistory();
     this.attentionRender();
   }
@@ -1337,7 +1339,9 @@ ${resolution.disclosure}`);
       URL.revokeObjectURL(url);
       this.set('selected', []);
       const lossNote = loss.length > 0 ? ` ${loss.join(' ')}` : '';
-      this.notifyEvent('Exported', `${message} Saved as ${filename} — ${format.toUpperCase()}, UTF-8, LF line endings.${lossNote}`);
+      const noticeBody = `${message} Saved as ${filename} — ${format.toUpperCase()}, UTF-8, LF line endings.${lossNote}`;
+      const filenameSpan = sensitiveSpanForValue(noticeBody, filename, 'path');
+      this.notifyEvent('Exported', noticeBody, 'info', filenameSpan ? [filenameSpan] : []);
       return;
     }
 
@@ -1579,9 +1583,11 @@ ${resolution.disclosure}`);
     /* Shown once, and deliberately never in the plan above: a plan gets read aloud and
      * screenshotted, and a password has no business in one. */
     if (applied) {
-      this.notifyEvent('Write this password down', `${String((this.state as { values: Record<string, unknown> }).values[WIZARD_CONTROLS.name] ?? '')}: ${draft.secret}
+      const noticeBody = `${String((this.state as { values: Record<string, unknown> }).values[WIZARD_CONTROLS.name] ?? '')}: ${draft.secret}
 
-It is shown once. The phone needs it to register.`);
+It is shown once. The phone needs it to register.`;
+      const secretSpan = sensitiveSpanForValue(noticeBody, draft.secret, 'credential');
+      this.notifyEvent('Write this password down', noticeBody, 'info', secretSpan ? [secretSpan] : []);
     }
   };
 

@@ -13,7 +13,7 @@ function verifyAttentionWiring() {
   const source = `
     import { readFileSync } from 'node:fs';
     import { resolve } from 'node:path';
-    import { ATTENTION_MUTATION_INVENTORY, ATTENTION_SEVERITY_PRODUCERS, ATTENTION_SEVERITY_ROUTES, ATTENTION_WIRING, redactNoticeText, verifyAttentionMutationInventory, verifyAttentionSeverityProducers, verifyAttentionWiring } from './console/app/renderer/src/attention-modes.ts';
+    import { ATTENTION_MUTATION_INVENTORY, ATTENTION_SEVERITY_PRODUCERS, ATTENTION_SEVERITY_ROUTES, ATTENTION_STRUCTURED_NOTICE_PRODUCERS, ATTENTION_WIRING, redactNoticeText, verifyAttentionMutationInventory, verifyAttentionSeverityProducers, verifyAttentionStructuredNoticeProducers, verifyAttentionWiring } from './console/app/renderer/src/attention-modes.ts';
     const root = resolve(${JSON.stringify(root)});
     const sources = {
       design: readFileSync(resolve(root, 'design/Asterisk Console M3.dc.html'), 'utf8'),
@@ -64,6 +64,7 @@ function verifyAttentionWiring() {
     verifyAttentionWiring(sources);
     verifyAttentionMutationInventory({ app: sources.app, generated: sources.generated });
     verifyAttentionSeverityProducers(sources);
+    verifyAttentionStructuredNoticeProducers({ app: sources.app, generated: sources.generated });
     for (const [input, expected] of [
       ['path C:/Program Files/Ding PBX/settings (old),semi;tail', 'path [path omitted]'],
       ['url https://example.invalid/Program Files/(old)[x],semi;tail', 'url [url omitted]'],
@@ -71,6 +72,14 @@ function verifyAttentionWiring() {
       ['url https://example.invalid/Program Files/(old)[x], retry after bridge', 'url [url omitted], retry after bridge'],
     ]) {
       if (redactNoticeText(input) !== expected) throw new Error('Redaction span fixture failed: ' + input);
+    }
+    for (const row of ATTENTION_STRUCTURED_NOTICE_PRODUCERS) {
+      const file = row.file === 'App.tsx' ? 'app' : 'generated';
+      const broken = { ...sources, [file]: sources[file].replace(row.marker, '') };
+      let turnedRed = false;
+      try { verifyAttentionStructuredNoticeProducers({ app: broken.app, generated: broken.generated }); } catch { turnedRed = true; }
+      if (!turnedRed) throw new Error('Structured notice producer fixture stayed green for ' + row.id);
+      verifyAttentionStructuredNoticeProducers({ app: sources.app, generated: sources.generated });
     }
     for (const key of ['password', 'token', 'secret', 'PIN', 'API key', 'access token']) {
       const input = '"' + key + ': alpha beta"';

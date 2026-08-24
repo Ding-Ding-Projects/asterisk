@@ -70,6 +70,16 @@ const REDACTION_OUTPUT_LIMIT = 500;
 const PATH_MARKER = '[path omitted]';
 const URL_MARKER = '[url omitted]';
 const CREDENTIAL_MARKER = '[redacted]';
+export type SensitiveSpanKind = 'path' | 'url' | 'credential';
+export interface NoticeSensitiveSpan { readonly start: number; readonly end: number; readonly kind: SensitiveSpanKind; }
+export function sensitiveSpanForValue(text: string, value: string, kind: SensitiveSpanKind): NoticeSensitiveSpan | undefined {
+  if (!value) return undefined;
+  const start = text.indexOf(value);
+  return start < 0 ? undefined : { start, end: start + value.length, kind };
+}
+function markerForSpan(kind: SensitiveSpanKind): string {
+  return kind === 'url' ? URL_MARKER : kind === 'credential' ? CREDENTIAL_MARKER : PATH_MARKER;
+}
 const CREDENTIAL_KEY = /^(?:password|passphrase|secret|token|pin|code|api[_ -]?key|access[_ -]?token|refresh[_ -]?token|credential)\s*[:=]\s*/iu;
 const PBX_BASENAME = /^(?:pjsip|extensions|queues|http|acl|asterisk|modules|logger|rtp|cdr|cel|features|musiconhold|voicemail)(?:\.conf)?(?:[\\/]|$)/iu;
 
@@ -128,7 +138,7 @@ function scanQuoted(value: string, start: number, quote: string): number {
  * than applying a chain of regex replacements, so a path, URL, or whitespace-bearing
  * credential cannot leave an identifying suffix behind after one replacement.
  */
-export function redactNoticeText(value: string): string {
+function redactUnstructuredText(value: string): string {
   const input = String(value).slice(0, REDACTION_INPUT_LIMIT);
   let output = '';
   let index = 0;
@@ -175,6 +185,25 @@ export function redactNoticeText(value: string): string {
     output += ch;
     index += 1;
   }
+  return output.slice(0, REDACTION_OUTPUT_LIMIT);
+}
+
+/** Redacts producer-tagged spans exactly, then scans only unstructured gaps. */
+export function redactNoticeText(value: string, spans: readonly NoticeSensitiveSpan[] = []): string {
+  const input = String(value).slice(0, REDACTION_INPUT_LIMIT);
+  const ordered = spans
+    .filter((span) => Number.isInteger(span.start) && Number.isInteger(span.end) && span.start >= 0 && span.end > span.start && span.end <= input.length)
+    .sort((left, right) => left.start - right.start)
+    .filter((span, index, all) => index === 0 || span.start >= all[index - 1].end);
+  if (ordered.length === 0) return redactUnstructuredText(input);
+  let output = '';
+  let cursor = 0;
+  for (const span of ordered) {
+    output += redactUnstructuredText(input.slice(cursor, span.start));
+    output += markerForSpan(span.kind);
+    cursor = span.end;
+  }
+  output += redactUnstructuredText(input.slice(cursor));
   return output.slice(0, REDACTION_OUTPUT_LIMIT);
 }
 
@@ -275,6 +304,22 @@ export function verifyAttentionSeverityProducers(sources: { app: string; generat
     if (routeEntries.length !== route.branches.length) throw new Error(`Severity route ${route.id} inventory count drifted.`);
     for (const branch of route.branches) {
       if (!routeEntries.some((entry) => entry.helper === branch.helper && entry.passive)) throw new Error(`Severity route ${route.id} lacks passive inventory for ${branch.helper}.`);
+    }
+  }
+}
+
+export function verifyAttentionStructuredNoticeProducers(sources: { app: string; generated: string }, inventory = ATTENTION_STRUCTURED_NOTICE_PRODUCERS): void {
+  for (const entry of inventory) {
+    const source = entry.file === 'App.tsx' ? sources.app : sources.generated;
+    const count = source.split(entry.marker).length - 1;
+    if (count !== 1) throw new Error(`Structured notice producer ${entry.id} must have one implementation marker, found ${count}.`);
+  }
+  for (const [file, source] of [['App.tsx', sources.app], ['generated/console.tsx', sources.generated] ] as const) {
+    const lines = source.split(/\r?\n/u);
+    for (let index = 0; index < lines.length; index += 1) {
+      if (!/sensitiveSpanForValue\(/u.test(lines[index])) continue;
+      const entries = inventory.filter((entry) => entry.file === file && entry.line === index + 1);
+      if (entries.length !== 1) throw new Error(`Unlisted structured notice producer at ${file}:${index + 1}.`);
     }
   }
 }
@@ -463,9 +508,10 @@ import {
   ATTENTION_MUTATION_PASSIVE_EXCLUSIONS,
   ATTENTION_SEVERITY_PRODUCERS,
   ATTENTION_SEVERITY_ROUTES,
+  ATTENTION_STRUCTURED_NOTICE_PRODUCERS,
   ATTENTION_WIRING,
   type AttentionSeverityProducerSite,
   type AttentionWiringRow,
 } from './attention-inventory.js';
-export { ATTENTION_MUTATION_ACTIONS, ATTENTION_MUTATION_INVENTORY, ATTENTION_MUTATION_PASSIVE_EXCLUSIONS, ATTENTION_SEVERITY_PRODUCERS, ATTENTION_SEVERITY_ROUTES, ATTENTION_WIRING } from './attention-inventory.js';
+export { ATTENTION_MUTATION_ACTIONS, ATTENTION_MUTATION_INVENTORY, ATTENTION_MUTATION_PASSIVE_EXCLUSIONS, ATTENTION_SEVERITY_PRODUCERS, ATTENTION_SEVERITY_ROUTES, ATTENTION_STRUCTURED_NOTICE_PRODUCERS, ATTENTION_WIRING } from './attention-inventory.js';
 export type { AttentionSeverityProducerSite, AttentionWiringRow } from './attention-inventory.js';
