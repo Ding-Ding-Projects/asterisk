@@ -76,7 +76,9 @@ export type AuthenticatorErrorCode =
   | 'not-found';
 
 const MAX_TEXT = 256;
-const MAX_SECRET = 512;
+export const MAX_AUTHENTICATOR_SECRET = 80;
+export const MAX_AUTHENTICATOR_PAIRING_BYTES = 100;
+const MAX_SECRET = MAX_AUTHENTICATOR_SECRET;
 
 function text(value: string, field: string): string {
   const normalized = value.trim();

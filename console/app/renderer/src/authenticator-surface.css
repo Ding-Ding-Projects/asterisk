@@ -1,4 +1,8 @@
 .auth-surface { color:#e4ebe4; background:#101511; border:1px solid #304036; border-radius:24px; padding:24px; display:flex; flex-direction:column; gap:18px; font-family:Roboto,system-ui,sans-serif; }
+.destructive-gate { border:1px solid #ffb4ab; animation:auth-gate-progress 300ms ease-out; }.destructive-gate.completion-animation { border-color:#9ff7c4; animation:auth-gate-complete 500ms ease-out; }
+@keyframes auth-gate-progress { from { transform:scale(.98); opacity:.65; } to { transform:scale(1); opacity:1; } }
+@keyframes auth-gate-complete { 0% { transform:scale(.98); box-shadow:0 0 0 rgba(159,247,196,0); } 100% { transform:scale(1); box-shadow:0 0 22px rgba(159,247,196,.35); } }
+@media (prefers-reduced-motion:reduce) { .destructive-gate,.destructive-gate.completion-animation { animation:none; } }
 .auth-header,.auth-list-toolbar,.auth-entry-heading,.auth-actions,.auth-fields,.auth-toolbar-controls,.inline-confirm { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
 .auth-header { justify-content:space-between; align-items:flex-start; }
 .auth-kicker { color:#9ff7c4; font:600 11px/1.2 'Roboto Mono',monospace; letter-spacing:.14em; margin:0 0 6px; }

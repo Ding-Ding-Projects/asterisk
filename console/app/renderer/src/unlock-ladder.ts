@@ -260,6 +260,7 @@ export class UnlockLadder {
   readonly #hasAuthoritativeWait?: (lockoutId: string) => Promise<boolean>;
   readonly #clearAuthoritativeWait?: (lockoutId: string) => Promise<boolean>;
   readonly #challenges = new Map<string, InternalChallenge>();
+  readonly #budgetChains = new Map<string, Promise<void>>();
 
   constructor(options: UnlockLadderOptions) {
     this.#now = options.now;
@@ -555,6 +556,11 @@ export class UnlockLadder {
   }
 
   async #budgetRemaining(scopeId: string, atMs: number): Promise<number> {
+    const previous = this.#budgetChains.get(scopeId) ?? Promise.resolve(); let release!: () => void; const current = new Promise<void>((resolve) => { release = resolve; }); this.#budgetChains.set(scopeId, current); await previous;
+    try { return await this.#budgetRemainingUnsafe(scopeId, atMs); } finally { release(); if (this.#budgetChains.get(scopeId) === current) this.#budgetChains.delete(scopeId); }
+  }
+
+  async #budgetRemainingUnsafe(scopeId: string, atMs: number): Promise<number> {
     const timestamps = await this.#stateStore.readClearedWaits(scopeId);
     const active = activeBudgetTimestamps(timestamps, atMs);
     if (active.length !== timestamps.length) {
@@ -564,6 +570,11 @@ export class UnlockLadder {
   }
 
   async #recordClearedWait(scopeId: string, atMs: number): Promise<void> {
+    const previous = this.#budgetChains.get(scopeId) ?? Promise.resolve(); let release!: () => void; const current = new Promise<void>((resolve) => { release = resolve; }); this.#budgetChains.set(scopeId, current); await previous;
+    try { await this.#recordClearedWaitUnsafe(scopeId, atMs); } finally { release(); if (this.#budgetChains.get(scopeId) === current) this.#budgetChains.delete(scopeId); }
+  }
+
+  async #recordClearedWaitUnsafe(scopeId: string, atMs: number): Promise<void> {
     const timestamps = await this.#stateStore.readClearedWaits(scopeId);
     const active = activeBudgetTimestamps(timestamps, atMs);
     if (active.length >= this.#maxClearedWaitsPerHour) {

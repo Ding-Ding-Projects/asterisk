@@ -31,6 +31,7 @@ export interface LockManagerSurfaceProps {
   surfaceId?: string;
   onNotice?: (message: string, detail?: string) => void;
   onOpenSupportTickets?: () => void;
+  onOpenUnlockLadder?: (lockoutId: string) => void;
 }
 
 type DurationChoice = 'surface' | 'until-application-closes' | 'minutes';
@@ -46,7 +47,7 @@ function lockIsOpen(record: ToyLockRecord, surfaceId?: string): boolean {
   return isToyLockOpen(record, { at: new Date(), surfaceId, applicationSessionOpen: true });
 }
 
-export function LockManagerSurface({ client, credentials, surfaceId, onNotice, onOpenSupportTickets }: LockManagerSurfaceProps) {
+export function LockManagerSurface({ client, credentials, surfaceId, onNotice, onOpenSupportTickets, onOpenUnlockLadder }: LockManagerSurfaceProps) {
   const [records, setRecords] = useState<ReadonlyArray<ToyLockRecord>>([]);
   const [targetId, setTargetId] = useState('');
   const [method, setMethod] = useState<'password' | 'totp'>('password');
@@ -99,22 +100,22 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
       await refresh();
       onNotice?.('One independent toy lock was created. It is a speed bump, not a security boundary.');
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'The toy lock could not be created.'); }
-    finally { setBusy(false); }
+    finally { setBusy(false); setCredentialValue(''); }
   };
 
   const unlock = async (record: ToyLockRecord) => {
     if (busy) return;
     setBusy(true);
     const candidate = candidateById[record.id] ?? '';
-    if (candidate.length > 512) { setError('The unlock value is too long.'); setBusy(false); return; }
+    if (candidate.length > 512) { setError('The unlock value is too long.'); setCandidateById((current) => ({ ...current, [record.id]: '' })); setBusy(false); return; }
     try {
       const result = await withDeadline(client.unlock(record.id, new TextEncoder().encode(candidate), surfaceId));
       if (!result.ok) throw new Error(result.message);
       setCandidateById((current) => ({ ...current, [record.id]: '' }));
       await refresh();
       onNotice?.(`Lock for ${record.targetId} is open for its selected duration.`);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'The lock value did not match.'); }
-    finally { setBusy(false); }
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'The lock value did not match.'); onOpenUnlockLadder?.(record.id); }
+    finally { setBusy(false); setCandidateById((current) => ({ ...current, [record.id]: '' })); }
   };
 
   const relock = async (record: ToyLockRecord) => {

@@ -38,6 +38,7 @@ function verifyTotp(secret: string, code: string, atMs = Date.now()): boolean {
 
 export class ElectronCredentialVault implements AuthLockVault {
   readonly #path: string;
+  #mutation: Promise<void> = Promise.resolve();
   constructor(path: string) { this.#path = path; }
   get available(): boolean { return safeStorage.isEncryptionAvailable(); }
 
@@ -57,7 +58,10 @@ export class ElectronCredentialVault implements AuthLockVault {
     atomicWriteFileSync(this.#path, `${JSON.stringify(document)}\n`);
   }
 
-  async setSecret(key: string, secret: string, kind: "reversible" | "password-hash" | "totp" = "reversible") {
+  async #serialize<T>(operation: () => Promise<T>): Promise<T> { const prior = this.#mutation; let release!: () => void; this.#mutation = new Promise<void>((resolve) => { release = resolve; }); await prior; try { return await operation(); } finally { release(); } }
+
+  async setSecret(key: string, secret: string, kind: "reversible" | "password-hash" | "totp" = "reversible") { return await this.#serialize(() => this.#setSecret(key, secret, kind)); }
+  async #setSecret(key: string, secret: string, kind: "reversible" | "password-hash" | "totp" = "reversible") {
     if (!this.available) return { ok: false as const, code: "vault-unavailable" as const, message: "The operating-system credential vault is unavailable." };
     if (!KEY.test(key) || typeof secret !== "string" || secret.length < 1 || secret.length > 4_096) return { ok: false as const, code: "vault-error" as const, message: "The credential request is outside its safety bound." };
     try {
@@ -66,7 +70,7 @@ export class ElectronCredentialVault implements AuthLockVault {
         const salt = randomBytes(16);
         const parameters = { N: 32_768, r: 8, p: 1 };
         const hash = scryptSync(secret, salt, 32, parameters).toString("base64");
-        document.entries[key] = { kind: "password-hash", hash, salt: salt.toString("base64"), parameters };
+        document.entries[key] = { kind: "password-hash", ciphertext: safeStorage.encryptString(JSON.stringify({ hash, salt: salt.toString("base64"), parameters })).toString("base64") };
       } else {
         document.entries[key] = { kind, ciphertext: safeStorage.encryptString(secret).toString("base64") };
       }
@@ -88,14 +92,16 @@ export class ElectronCredentialVault implements AuthLockVault {
     catch { return { ok: false as const, code: "vault-error" as const, message: "The operating-system credential vault could not read the credential." }; }
   }
 
-  async deleteSecret(key: string) {
+  async deleteSecret(key: string) { return await this.#serialize(() => this.#deleteSecret(key)); }
+  async #deleteSecret(key: string) {
     if (!this.available) return { ok: false as const, code: "vault-unavailable" as const, message: "The operating-system credential vault is unavailable." };
     try { const document = this.#read(); if (!(key in document.entries)) return { ok: false as const, code: "vault-error" as const, message: "The credential reference was not found." }; delete document.entries[key]; this.#write(document); return { ok: true as const, value: undefined }; }
     catch { return { ok: false as const, code: "vault-error" as const, message: "The operating-system credential vault could not remove the credential." }; }
   }
 
   async has(reference: ToyLockCredentialReference): Promise<boolean> { try { return Boolean(this.#read().entries[reference.vaultAccount]); } catch { return false; } }
-  async verify(reference: ToyLockCredentialReference, candidate: Uint8Array): Promise<boolean> {
+  async verify(reference: ToyLockCredentialReference, candidate: Uint8Array): Promise<boolean> { return await this.#serialize(() => this.#verify(reference, candidate)); }
+  async #verify(reference: ToyLockCredentialReference, candidate: Uint8Array): Promise<boolean> {
     const value = new TextDecoder().decode(candidate);
     try {
       const entry = this.#read().entries[reference.vaultAccount];
@@ -104,9 +110,23 @@ export class ElectronCredentialVault implements AuthLockVault {
         if (!entry.ciphertext) return false;
         return verifyTotp(safeStorage.decryptString(Buffer.from(entry.ciphertext, "base64")), value);
       }
-      if (!entry.hash || !entry.salt || !entry.parameters) return false;
-      const supplied = scryptSync(value, Buffer.from(entry.salt, "base64"), 32, entry.parameters);
-      const expected = Buffer.from(entry.hash, "base64");
+      let hash = entry.hash; let salt = entry.salt; let parameters = entry.parameters;
+      if (entry.kind === "password-hash" && entry.ciphertext) {
+        const envelope = JSON.parse(safeStorage.decryptString(Buffer.from(entry.ciphertext, "base64"))) as { hash?: string; salt?: string; parameters?: { N: number; r: number; p: number } };
+        hash = envelope.hash; salt = envelope.salt; parameters = envelope.parameters;
+      } else if (entry.kind === "reversible" && entry.ciphertext) {
+        const legacy = safeStorage.decryptString(Buffer.from(entry.ciphertext, "base64"));
+        const expectedLegacy = Buffer.from(legacy, "utf8"); const suppliedLegacy = Buffer.from(value, "utf8");
+        const matches = expectedLegacy.length === suppliedLegacy.length && timingSafeEqual(expectedLegacy, suppliedLegacy);
+        if (matches) {
+          const migratedSalt = randomBytes(16); const migratedParameters = { N: 32_768, r: 8, p: 1 }; const migratedHash = scryptSync(legacy, migratedSalt, 32, migratedParameters).toString("base64");
+          const document = this.#read(); document.entries[reference.vaultAccount] = { kind: "password-hash", ciphertext: safeStorage.encryptString(JSON.stringify({ hash: migratedHash, salt: migratedSalt.toString("base64"), parameters: migratedParameters })).toString("base64") }; this.#write(document);
+        }
+        return matches;
+      }
+      if (!hash || !salt || !parameters) return false;
+      const supplied = scryptSync(value, Buffer.from(salt, "base64"), 32, parameters);
+      const expected = Buffer.from(hash, "base64");
       return expected.length === supplied.length && timingSafeEqual(expected, supplied);
     } catch { return false; }
   }

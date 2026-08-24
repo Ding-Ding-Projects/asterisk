@@ -22,16 +22,7 @@ import { LocalHistory } from "./local-history.js";
 import type { ProcessExecutor } from "./executor.js";
 import { atomicWriteFileSync } from "./atomic-file.js";
 import { UnlockLadder, type UnlockLadderAnswer, type UnlockLadderGradeResult, type UnlockLadderIssueResult, type UnlockLadderLockoutState, type UnlockLadderStateStore, type MoleHitReceipt } from "../app/renderer/src/unlock-ladder.js";
-
-export type SupportTicketStatus = "received" | "reviewed" | "resolution-ready";
-export interface SupportTicket {
-  id: string;
-  category: string;
-  description: string;
-  severity: string;
-  status: SupportTicketStatus;
-  createdAt: string;
-}
+import { nextSupportTicketStatus, SUPPORT_TICKET_CATEGORIES, SUPPORT_TICKET_DISCLOSURE, SUPPORT_TICKET_SEVERITIES, type SupportTicket, type SupportTicketCategory, type SupportTicketSeverity, type SupportTicketStatus } from "../shared/support-tickets.js";
 
 export interface AuthLockVault extends CredentialVault, ToyLockCredentialVault {
   setSecret(key: string, secret: string, kind?: "reversible" | "password-hash" | "totp"): Promise<VaultResult<undefined>>;
@@ -65,8 +56,10 @@ async function writeJson(path: string, value: unknown): Promise<void> {
 export class FileAuthenticatorMetadataStore implements AuthenticatorMetadataStore {
   readonly #path: string;
   readonly available = true;
+  #mutation: Promise<void> = Promise.resolve();
 
   constructor(path: string) { this.#path = path; }
+  async #serialize<T>(operation: () => Promise<T>): Promise<T> { const prior = this.#mutation; let release!: () => void; this.#mutation = new Promise<void>((resolve) => { release = resolve; }); await prior; try { return await operation(); } finally { release(); } }
 
   async read(): Promise<AuthenticatorMetadataResult<ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>>> {
     try {
@@ -78,15 +71,20 @@ export class FileAuthenticatorMetadataStore implements AuthenticatorMetadataStor
     }
   }
 
-  async write(entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>): Promise<AuthenticatorMetadataResult<undefined>> {
+  async write(entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>): Promise<AuthenticatorMetadataResult<undefined>> { return await this.#serialize(() => this.#write(entries)); }
+  async #write(entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>): Promise<AuthenticatorMetadataResult<undefined>> {
     try {
       if (entries.length > 10_000) return { ok: false, code: "metadata-error" };
-      await writeJson(this.#path, { version: 1, entries });
+      const previous = await readJson<{ version: 1; pendingRemovals?: string[]; tombstones?: string[] }>(this.#path, { version: 1 });
+      await writeJson(this.#path, { version: 1, entries, pendingRemovals: previous.pendingRemovals ?? [], tombstones: previous.tombstones ?? [] });
       return { ok: true, value: undefined };
     } catch {
       return { ok: false, code: "metadata-error" };
     }
   }
+  async beginRemoval(id: string): Promise<AuthenticatorMetadataResult<undefined>> { return await this.#serialize(async () => { try { const value = await readJson<{ version: 1; entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>; pendingRemovals?: string[] }>(this.#path, { version: 1, entries: [], pendingRemovals: [] }); const pending = new Set(value.pendingRemovals ?? []); pending.add(id); await writeJson(this.#path, { ...value, pendingRemovals: [...pending] }); return { ok: true, value: undefined }; } catch { return { ok: false, code: "metadata-error" }; } }); }
+  async completeRemoval(id: string): Promise<AuthenticatorMetadataResult<undefined>> { return await this.#serialize(async () => { try { const value = await readJson<{ version: 1; entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>; pendingRemovals?: string[] }>(this.#path, { version: 1, entries: [], pendingRemovals: [] }); await writeJson(this.#path, { ...value, pendingRemovals: (value.pendingRemovals ?? []).filter((candidate) => candidate !== id), tombstones: [...((value as { tombstones?: string[] }).tombstones ?? []), id].slice(-10_000) }); return { ok: true, value: undefined }; } catch { return { ok: false, code: "metadata-error" }; } }); }
+  async rollbackRemoval(id: string): Promise<AuthenticatorMetadataResult<undefined>> { return await this.#serialize(async () => { try { const value = await readJson<{ version: 1; entries: ReadonlyArray<import("../shared/authenticator.js").AuthenticatorEntryRecord>; pendingRemovals?: string[] }>(this.#path, { version: 1, entries: [], pendingRemovals: [] }); await writeJson(this.#path, { ...value, pendingRemovals: (value.pendingRemovals ?? []).filter((candidate) => candidate !== id) }); return { ok: true, value: undefined }; } catch { return { ok: false, code: "metadata-error" }; } }); }
 }
 
 class FileSupportTicketStore {
@@ -96,16 +94,21 @@ class FileSupportTicketStore {
   async list(): Promise<ReadonlyArray<SupportTicket>> {
     const value = await readJson<{ version: 1; tickets: ReadonlyArray<SupportTicket> }>(this.#path, { version: 1, tickets: [] });
     if (value.version !== 1 || !Array.isArray(value.tickets) || value.tickets.length > 10_000) throw new Error("Support Ticket storage is malformed.");
-    return value.tickets;
+    return value.tickets.map((ticket) => {
+      const legacy = ticket as SupportTicket & { createdAt?: string; status: SupportTicketStatus | 'received' | 'reviewed' | 'resolution-ready' };
+      const status = legacy.status === 'received' ? 'Open' : legacy.status === 'reviewed' ? 'Triaged' : legacy.status === 'resolution-ready' ? 'Resolved' : legacy.status;
+      return { ...legacy, status, openedAt: legacy.openedAt ?? legacy.createdAt ?? new Date(0).toISOString(), firstResponse: legacy.firstResponse ?? 'This local desk has no human reader.' } as SupportTicket;
+    });
   }
 
   async create(input: { category: string; description: string; severity: string }): Promise<SupportTicket> {
-    if (input.category.trim().length < 1 || input.category.length > 128) throw new Error("A ticket category is required.");
+    if (!SUPPORT_TICKET_CATEGORIES.includes(input.category as SupportTicketCategory)) throw new Error("Pick a supported ticket category.");
     if (input.description.trim().length < 1 || input.description.length > 2_000) throw new Error("A bounded ticket description is required.");
-    if (input.severity.trim().length < 1 || input.severity.length > 128) throw new Error("A ticket severity is required.");
+    if (!SUPPORT_TICKET_SEVERITIES.includes(input.severity as SupportTicketSeverity)) throw new Error("Pick a supported ticket severity.");
     const tickets = [...await this.list()];
     if (tickets.length >= 10_000) throw new Error("The local ticket list is full.");
-    const ticket: SupportTicket = { id: `TKT-${randomBytes(6).toString("hex").toUpperCase()}`, category: input.category.trim(), description: input.description.trim(), severity: input.severity.trim(), status: "received", createdAt: new Date().toISOString() };
+    const openedAt = new Date().toISOString();
+    const ticket: SupportTicket = { id: `DING-${randomBytes(6).toString("hex").toUpperCase()}`, category: input.category as SupportTicketCategory, description: input.description.trim(), severity: input.severity as SupportTicketSeverity, status: "Open", openedAt, firstResponse: "Thank you for contacting support. This local desk has read the manual once and nobody is coming." };
     await writeJson(this.#path, { version: 1, tickets: [...tickets, ticket] });
     return ticket;
   }
@@ -115,8 +118,7 @@ class FileSupportTicketStore {
     const index = tickets.findIndex((ticket) => ticket.id === id);
     if (index < 0) throw new Error("The local ticket was not found.");
     const current = tickets[index]!;
-    const status: SupportTicketStatus = current.status === "received" ? "reviewed" : "resolution-ready";
-    const next = { ...current, status };
+    const next = { ...current, status: nextSupportTicketStatus(current.status) };
     tickets[index] = next;
     await writeJson(this.#path, { version: 1, tickets });
     return next;
@@ -154,6 +156,7 @@ class FileUnlockLadderStateStore implements UnlockLadderStateStore {
     await this.#serialize(async () => { const document = await this.#read(); document.budgets[budgetScopeId] = [...timestamps]; await this.#write(document); });
   }
   async hasWait(lockoutId: string): Promise<boolean> { const wait = (await this.#read()).waits[lockoutId]; return Boolean(wait && wait.expiresAt > Date.now()); }
+  async createWait(lockoutId: string, durationMs = 30_000): Promise<void> { await this.#serialize(async () => { const document = await this.#read(); document.waits[lockoutId] = { expiresAt: Date.now() + Math.min(Math.max(durationMs, 1_000), 24 * 60 * 60 * 1_000) }; await this.#write(document); }); }
   async clearWait(lockoutId: string): Promise<boolean> { return await this.#serialize(async () => { const document = await this.#read(); if (!document.waits[lockoutId]) return false; delete document.waits[lockoutId]; await this.#write(document); return true; }); }
 }
 
@@ -188,6 +191,7 @@ export interface AuthLockRuntimeOptions {
   executor: ProcessExecutor;
   historyProtector?: HistorySnapshotProtector;
   recovery: ToyLockRecoveryMetadata;
+  trustedTime?: () => Promise<number | undefined>;
 }
 
 export function createAuthLockRuntime(options: AuthLockRuntimeOptions) {
@@ -241,14 +245,18 @@ export function createAuthLockRuntime(options: AuthLockRuntimeOptions) {
       if (!record) return { ok: false, code: "not-found", message: "Authenticator entry was not found." };
       const secret = await vault.getSecret(record.credentialReference);
       if (!secret.ok) return { ok: false, code: secret.code, message: secret.message };
-      const atMs = Date.now();
+        const localMs = Date.now();
+        const trustedMs = options.trustedTime ? await options.trustedTime() : undefined;
+        const atMs = trustedMs ?? localMs;
       try {
-        return { ok: true, value: { current: generateCode(secret.value, record.parameters, atMs), next: generateCode(secret.value, record.parameters, atMs + record.parameters.period * 1_000), secondsRemaining: record.parameters.period - (Math.floor(atMs / 1_000) % record.parameters.period), clockOffsetMs: 0, clockWarning: "No external time source is configured. Code timing uses the privileged system clock.", observedAt: new Date(atMs).toISOString() } };
+        const offset = trustedMs === undefined ? undefined : trustedMs - localMs;
+        return { ok: true, value: { current: generateCode(secret.value, record.parameters, atMs), next: generateCode(secret.value, record.parameters, atMs + record.parameters.period * 1_000), secondsRemaining: record.parameters.period - (Math.floor(atMs / 1_000) % record.parameters.period), clockOffsetMs: offset, clockWarning: trustedMs === undefined ? "Trusted HTTPS time is unavailable offline. Code timing uses the privileged system clock." : (Math.abs(offset) > record.parameters.period * 1_000 ? `The local clock differs from trusted HTTPS time by about ${Math.round(Math.abs(offset) / 1_000)} seconds.` : undefined), observedAt: new Date(atMs).toISOString() } };
       } catch { return { ok: false, code: "vault-error", message: "The authenticator code could not be generated." }; }
     },
     async initializeHistory() { return await history.initialize(); },
     async issueLadder(request: { lockoutId: string; budgetScopeId: string; schoolMode: boolean }): Promise<UnlockLadderIssueResult> { return await ladder.issue(request); },
     async hitLadder(nonce: string, spawnId: number, cell: number): Promise<{ ok: true; value: MoleHitReceipt } | { ok: false; reason: string }> { return await ladder.recordMoleHit(nonce, spawnId, cell); },
+    async createLadderWait(lockoutId: string, durationMs?: number): Promise<void> { await ladderState.createWait(lockoutId, durationMs); },
     async gradeLadder(nonce: string, answer: UnlockLadderAnswer): Promise<UnlockLadderGradeResult> { return await ladder.grade(nonce, answer); },
   };
 }

@@ -40,6 +40,9 @@ export interface ToyLockCredentialVault {
 export interface LockRecordPersistence {
   load(): Promise<ReadonlyArray<ToyLockRecord>>;
   save(records: ReadonlyArray<ToyLockRecord>): Promise<void>;
+  beginRemoval?(id: string): Promise<void>;
+  completeRemoval?(id: string): Promise<void>;
+  rollbackRemoval?(id: string): Promise<void>;
 }
 
 interface LockStoreOptions {
@@ -52,6 +55,8 @@ interface LockStoreOptions {
 interface StoredLockDocument {
   version: 1;
   records: ReadonlyArray<ToyLockRecord>;
+  pendingRemovals?: ReadonlyArray<string>;
+  tombstones?: ReadonlyArray<string>;
 }
 
 function persistentLockRecord(record: ToyLockRecord): ToyLockRecord {
@@ -112,12 +117,14 @@ function validateLoadedRecord(value: unknown): ToyLockRecord {
 export class FileLockRecordPersistence implements LockRecordPersistence {
   readonly #path: string;
   readonly #createTemporaryId: () => string;
+  #mutation: Promise<void> = Promise.resolve();
 
   constructor(path: string, createTemporaryId: () => string) {
     if (!isAbsolute(path)) throw new Error("Lock persistence requires an absolute file path.");
     this.#path = path;
     this.#createTemporaryId = createTemporaryId;
   }
+  async #serialize<T>(operation: () => Promise<T>): Promise<T> { const prior = this.#mutation; let release!: () => void; this.#mutation = new Promise<void>((resolve) => { release = resolve; }); await prior; try { return await operation(); } finally { release(); } }
 
   async load(): Promise<ReadonlyArray<ToyLockRecord>> {
     let raw: string;
@@ -137,12 +144,14 @@ export class FileLockRecordPersistence implements LockRecordPersistence {
     return parsed.records.map(validateLoadedRecord);
   }
 
-  async save(records: ReadonlyArray<ToyLockRecord>): Promise<void> {
+  async save(records: ReadonlyArray<ToyLockRecord>): Promise<void> { await this.#serialize(() => this.#save(records)); }
+  async #save(records: ReadonlyArray<ToyLockRecord>): Promise<void> {
     if (records.length > 10_000) throw new Error("The lock record limit is 10,000 elements.");
     await mkdir(dirname(this.#path), { recursive: true });
     const temporaryPath = `${this.#path}.${this.#createTemporaryId()}.tmp`;
+    const previous = await this.#readDocument();
     const bytes = `${JSON.stringify(
-      { version: 1, records: records.map(persistentLockRecord) },
+      { ...previous, version: 1, records: records.map(persistentLockRecord) },
       null,
       2,
     )}\n`;
@@ -154,6 +163,11 @@ export class FileLockRecordPersistence implements LockRecordPersistence {
       throw error;
     }
   }
+  async beginRemoval(id: string): Promise<void> { await this.#serialize(async () => { const document = await this.#readDocument(); await this.#writeDocument({ ...document, pendingRemovals: [...new Set([...(document.pendingRemovals ?? []), id])] }); }); }
+  async completeRemoval(id: string): Promise<void> { await this.#serialize(async () => { const document = await this.#readDocument(); await this.#writeDocument({ ...document, pendingRemovals: (document.pendingRemovals ?? []).filter((candidate) => candidate !== id), tombstones: [...(document.tombstones ?? []), id].slice(-10_000) }); }); }
+  async rollbackRemoval(id: string): Promise<void> { await this.#serialize(async () => { const document = await this.#readDocument(); await this.#writeDocument({ ...document, pendingRemovals: (document.pendingRemovals ?? []).filter((candidate) => candidate !== id) }); }); }
+  async #readDocument(): Promise<StoredLockDocument> { try { const raw = await readFile(this.#path, "utf8"); return JSON.parse(raw) as StoredLockDocument; } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return { version: 1, records: [] }; throw error; } }
+  async #writeDocument(document: StoredLockDocument): Promise<void> { await mkdir(dirname(this.#path), { recursive: true }); const temporaryPath = `${this.#path}.${this.#createTemporaryId()}.tmp`; await writeFile(temporaryPath, `${JSON.stringify(document, null, 2)}\n`, { encoding: "utf8", flag: "wx" }); try { await renameWithTransientRetry(temporaryPath, this.#path); } catch (error) { await unlink(temporaryPath).catch(() => undefined); throw error; } }
 }
 
 async function renameWithTransientRetry(source: string, destination: string): Promise<void> {
@@ -325,18 +339,20 @@ export class ToyLockStore {
     }
     const next = new Map(this.#records);
     next.delete(id);
+    await this.#persistence.beginRemoval?.(id);
     const persisted = await this.#persist(next);
-    if (!persisted.ok) return persisted;
+    if (!persisted.ok) { await this.#persistence.rollbackRemoval?.(id); return persisted; }
     try {
       if (!(await this.#vault.remove(record.credential))) {
-        await this.#persistence.save([...this.#records.values()]);
+        await this.#persistence.save([...this.#records.values()]); await this.#persistence.rollbackRemoval?.(id);
         return failure("vault-reference-missing", "The credential could not be removed, so the lock record was kept.");
       }
     } catch {
-      await this.#persistence.save([...this.#records.values()]).catch(() => undefined);
+      await this.#persistence.save([...this.#records.values()]).catch(() => undefined); const rollback = this.#persistence.rollbackRemoval?.(id); if (rollback) await rollback.catch(() => undefined);
       return failure("vault-unavailable", "The credential vault could not remove this lock.");
     }
     this.#records = next;
+    await this.#persistence.completeRemoval?.(id);
     return { ok: true, value: { removed: true } };
   }
 

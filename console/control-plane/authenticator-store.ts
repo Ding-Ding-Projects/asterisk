@@ -19,6 +19,9 @@ export interface AuthenticatorMetadataStore {
   readonly available: boolean;
   read(): Promise<AuthenticatorMetadataResult<ReadonlyArray<AuthenticatorEntryRecord>>>;
   write(entries: ReadonlyArray<AuthenticatorEntryRecord>): Promise<AuthenticatorMetadataResult<undefined>>;
+  beginRemoval?(id: string): Promise<AuthenticatorMetadataResult<undefined>>;
+  completeRemoval?(id: string): Promise<AuthenticatorMetadataResult<undefined>>;
+  rollbackRemoval?(id: string): Promise<AuthenticatorMetadataResult<undefined>>;
 }
 
 export interface TotpCodeVerifier {
@@ -244,25 +247,32 @@ export class AuthenticatorStore {
     const existing = current.value.find((entry) => entry.id === id);
     if (!existing) return { ok: false, code: "not-found", message: "Authenticator entry was not found." };
 
+    if (this.#metadata.beginRemoval) {
+      const tombstone = await this.#metadata.beginRemoval(id);
+      if (!tombstone.ok) return metadataFailure(tombstone);
+    }
     let secretResult;
     try {
       secretResult = await this.#vault.getSecret(existing.credentialReference);
     } catch {
+      await this.#metadata.rollbackRemoval?.(id);
       return vaultFailure("vault-error");
     }
-    if (!secretResult.ok) return vaultFailure(secretResult.code);
+    if (!secretResult.ok) { await this.#metadata.rollbackRemoval?.(id); return vaultFailure(secretResult.code); }
 
     let deleted;
     try { deleted = await this.#vault.deleteSecret(existing.credentialReference); }
-    catch { return vaultFailure("vault-error"); }
-    if (!deleted.ok) return vaultFailure(deleted.code);
+    catch { await this.#metadata.rollbackRemoval?.(id); return vaultFailure("vault-error"); }
+    if (!deleted.ok) { await this.#metadata.rollbackRemoval?.(id); return vaultFailure(deleted.code); }
 
     const written = await this.#writeRecords(current.value.filter((entry) => entry.id !== id));
     if (!written.ok) {
       try { await this.#vault.setSecret(existing.credentialReference, secretResult.value); }
       catch { return vaultFailure("vault-error"); }
+      await this.#metadata.rollbackRemoval?.(id);
       return metadataFailure(written);
     }
+    await this.#metadata.completeRemoval?.(id);
     return { ok: true, value: undefined };
   }
 

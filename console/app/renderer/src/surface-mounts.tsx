@@ -59,6 +59,8 @@ const authenticatorClient: AuthenticatorClient = {
 };
 const historyClient: AuthenticatorHistoryClient = {
   record: (entry) => bridgeRequest('local-history.record', { ...entry, snapshot: entry.snapshot ?? { kind: 'authenticator-redacted', stableRecordId: entry.stableRecordId, action: entry.action, subject: entry.subject } }),
+  list: () => bridgeRequest('local-history.list', { limit: 200 }),
+  restore: (commitId) => bridgeRequest('authenticator.restore', { commitId }),
 };
 
 let lockRecords: ReadonlyArray<ToyLockRecord> = [];
@@ -191,7 +193,7 @@ const ollamaClient: OllamaSuiteClient = {
 function routeFromHash(): SurfaceRoute | undefined {
   const value = window.location.hash.slice(1);
   if (!value.startsWith('surface=')) return undefined;
-  const route = value.slice('surface='.length);
+  const route = value.slice('surface='.length).split('&', 1)[0];
   if (window.dingDesktop?.platform === 'web' && (route === 'authenticator' || route === 'locks' || route === 'support-tickets' || route === 'unlock-ladder')) return undefined;
   return route === 'converter' || route === 'ollama' || route === 'docs' || route === 'changelog' || route === 'authenticator' || route === 'locks' || route === 'support-tickets' || route === 'unlock-ladder' ? route : undefined;
 }
@@ -199,6 +201,7 @@ function routeFromHash(): SurfaceRoute | undefined {
 export function SurfaceMounts() {
   const [route, setRoute] = useState<SurfaceRoute | undefined>(() => routeFromHash());
   const [, setRecoveryRevision] = useState(0);
+  const lockoutId = new URLSearchParams(window.location.hash.slice(1)).get('lockout') ?? 'console-surface-lockout';
   useEffect(() => {
     const onHash = () => setRoute(routeFromHash());
     window.addEventListener('hashchange', onHash);
@@ -220,9 +223,9 @@ export function SurfaceMounts() {
       {route === 'docs' ? <DocsSurface bundle={DOCS_BUNDLE} /> : null}
       {route === 'changelog' ? <ChangelogSurface markdown={CHANGELOG_MARKDOWN} repositoryUrl={CHANGELOG_REPOSITORY_URL} /> : null}
       {route === 'authenticator' ? <AuthenticatorSurface client={authenticatorClient} history={historyClient} /> : null}
-      {route === 'locks' ? <LockManagerSurface client={lockClient} credentials={lockCredentials} surfaceId="locks" onOpenSupportTickets={() => { window.location.hash = 'surface=support-tickets'; }} /> : null}
+      {route === 'locks' ? <LockManagerSurface client={lockClient} credentials={lockCredentials} surfaceId="locks" onOpenSupportTickets={() => { window.location.hash = 'surface=support-tickets'; }} onOpenUnlockLadder={(id) => { window.location.hash = `surface=unlock-ladder&lockout=${encodeURIComponent(id)}`; }} /> : null}
       {route === 'support-tickets' ? <SupportTicketsSurface client={supportTicketsClient} applicationDataPath={lockRecovery.applicationDataPath} openApplicationDataFolder={(path) => window.dingDesktop?.localAuth?.openApplicationDataFolder(path) ?? Promise.resolve({ ok: false, message: 'The privileged application bridge is unavailable.' })} /> : null}
-      {route === 'unlock-ladder' ? <UnlockLadderSurface client={unlockLadderClient} lockoutId="console-surface-lockout" budgetScopeId="console-surface" /> : null}
+      {route === 'unlock-ladder' ? <UnlockLadderSurface client={unlockLadderClient} lockoutId={lockoutId} budgetScopeId="console-surface" /> : null}
     </aside>
   );
 }

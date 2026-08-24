@@ -5,8 +5,9 @@ import type {
   AuthenticatorResult,
   AuthenticatorCodeSnapshot,
 } from '../../../shared/authenticator';
+import { MAX_AUTHENTICATOR_PAIRING_BYTES } from '../../../shared/authenticator';
 import { pairingUri, type TotpAlgorithm } from './totp';
-import { qrSvg } from './qr';
+import { qrMatrix } from './qr';
 
 export type { AuthenticatorCodeSnapshot } from '../../../shared/authenticator';
 
@@ -22,6 +23,8 @@ export interface AuthenticatorClient {
 
 export interface AuthenticatorHistoryClient {
   record(entry: { action: 'created' | 'updated' | 'deleted'; subject: string; stableRecordId: string; snapshot?: unknown }): Promise<unknown>;
+  list?(): Promise<unknown>;
+  restore?(commitId: string): Promise<unknown>;
 }
 
 export type PairingDescriptor = {
@@ -33,7 +36,7 @@ export type PairingDescriptor = {
   /** The URI is passed to a local QR renderer by the host surface. */
   qrValue: string;
   qrAccessibleLabel: string;
-  qrSvg: string;
+  qrMatrix: boolean[][];
 };
 
 export type AuthenticatorExportRow = Omit<AuthenticatorEntry, 'id'> & { id: string };
@@ -55,6 +58,7 @@ export function buildPairingDescriptor(input: AuthenticatorRegistration): Pairin
     period: input.period ?? 30,
   };
   const uri = pairingUri({ issuer: input.issuer, account: input.account, parameters: { ...parameters, secret: input.secret } });
+  if (new TextEncoder().encode(uri).byteLength > MAX_AUTHENTICATOR_PAIRING_BYTES) throw new Error(`The pairing value exceeds the bundled QR capacity of ${MAX_AUTHENTICATOR_PAIRING_BYTES} bytes.`);
   return {
     uri,
     issuer: input.issuer.trim(),
@@ -63,7 +67,7 @@ export function buildPairingDescriptor(input: AuthenticatorRegistration): Pairin
     parameters,
     qrValue: uri,
     qrAccessibleLabel: `Local QR pairing for ${input.issuer.trim()} and ${input.account.trim()}. The same pairing value is available as a manual code.`,
-    qrSvg: qrSvg(uri, `Local QR pairing for ${input.issuer.trim()} and ${input.account.trim()}`),
+    qrMatrix: qrMatrix(uri),
   };
 }
 
@@ -104,7 +108,11 @@ export function exportAuthenticatorEntries(entries: ReadonlyArray<AuthenticatorE
 export async function recordAuthHistory(
   history: AuthenticatorHistoryClient | undefined,
   entry: { action: 'created' | 'updated' | 'deleted'; subject: string; stableRecordId: string; snapshot?: unknown },
+  onWarning?: (message: string) => void,
 ): Promise<void> {
   if (!history) return;
-  await withDeadline(history.record(entry)).catch(() => undefined);
+  try {
+    const result = await withDeadline(history.record(entry));
+    if (result && typeof result === 'object' && 'ok' in result && (result as { ok?: boolean }).ok === false) onWarning?.('The live change succeeded, but its local history receipt is unavailable.');
+  } catch { onWarning?.('The live change succeeded, but its local history receipt is unavailable.'); }
 }
