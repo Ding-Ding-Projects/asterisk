@@ -6,9 +6,12 @@ param(
     [string]$PreflightEvidencePath = '',
     [string]$SnapshotEncryptionKeyFile = '',
     [string]$TlsCertificateSha256 = '',
+    [string]$TlsCertFile = '',
+    [string]$TlsKeyFile = '',
     [string]$SessionCookieFile = '',
     [string]$ComposeFile = "$PSScriptRoot\docker-compose.yml",
     [int]$AdminPort = 8088,
+    [string]$BindAddress = '127.0.0.1',
     [string]$ProjectName = 'ding-pbx-control-plane',
     [int]$OperationTimeoutMinutes = 30,
     [switch]$Execute
@@ -33,8 +36,10 @@ if ($record.schemaVersion -ne 1 -or $record.volumeSchemaVersion -ne 1 -or $recor
 if ([string]::IsNullOrWhiteSpace($ImageRef)) { $ImageRef = [string]$record.sourceImage }
 if ($ImageRef -notmatch '@sha256:[0-9a-f]{64}$') { throw 'ImageRef must be an immutable image@sha256 reference.' }
 if ($Execute -and ([string]::IsNullOrWhiteSpace($ManifestPath) -or [string]::IsNullOrWhiteSpace($PreflightEvidencePath) -or [string]::IsNullOrWhiteSpace($SnapshotEncryptionKeyFile) -or $TlsCertificateSha256 -notmatch '^[0-9a-fA-F]{64}$' -or [string]::IsNullOrWhiteSpace($SessionCookieFile))) { throw 'Execute requires the compatible manifest, fresh preflight evidence, protected encryption key, TLS pin, and readiness credential.' }
+if ($Execute -and ([string]::IsNullOrWhiteSpace($TlsCertFile) -or [string]::IsNullOrWhiteSpace($TlsKeyFile))) { throw 'Execute requires protected TLS certificate and private key paths.' }
 if ([string]::IsNullOrWhiteSpace($SnapshotEncryptionKeyFile)) { throw 'SnapshotEncryptionKeyFile is required to validate encrypted snapshot archives.' }
 if ($Execute) {
+    Recover-PlaintextPaths
     foreach ($path in @($ManifestPath, $PreflightEvidencePath, $SnapshotEncryptionKeyFile, $SessionCookieFile)) {
         if (-not [System.IO.Path]::IsPathRooted($path) -or [System.IO.Path]::GetFullPath($path).StartsWith($repoRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'Restore input paths must be absolute and outside the repository.' }
     }
@@ -45,6 +50,8 @@ if ($Execute) {
     if (@($keyAcl.Access | Where-Object { $_.AccessControlType -eq 'Allow' -and $_.IdentityReference -match 'Everyone|BUILTIN\\Users|Authenticated Users|^Users$' }).Count -gt 0) { throw 'Snapshot encryption key file is readable by a broad group.' }
     $sessionAcl = Get-Acl -LiteralPath $SessionCookieFile
     if (@($sessionAcl.Access | Where-Object { $_.AccessControlType -eq 'Allow' -and $_.IdentityReference -match 'Everyone|BUILTIN\\Users|Authenticated Users|^Users$' }).Count -gt 0) { throw 'Readiness credential file is readable by a broad group.' }
+    foreach ($tlsPath in @($TlsCertFile, $TlsKeyFile)) { if (-not [System.IO.Path]::IsPathRooted($tlsPath) -or [System.IO.Path]::GetFullPath($tlsPath).StartsWith($repoRoot.TrimEnd('\') + '\') -or -not (Test-Path -LiteralPath $tlsPath -PathType Leaf)) { throw 'TLS material must be existing absolute paths outside the repository.' }; if ((Get-Item -LiteralPath $tlsPath).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'TLS material cannot be a reparse point.' } }
+    $tlsKeyAcl = Get-Acl -LiteralPath $TlsKeyFile; if (@($tlsKeyAcl.Access | Where-Object { $_.AccessControlType -eq 'Allow' -and $_.IdentityReference -match 'Everyone|BUILTIN\\Users|Authenticated Users|^Users$' }).Count -gt 0) { throw 'TLS private key is readable by a broad group.' }
 }
 
 function Get-Keys { $master=[System.IO.File]::ReadAllBytes($SnapshotEncryptionKeyFile); $salt=[Text.Encoding]::UTF8.GetBytes('ding-pbx-snapshot-hkdf-v1'); $extract=[Security.Cryptography.HMACSHA256]::new($salt); try{$prk=$extract.ComputeHash($master)}finally{$extract.Dispose()}; function Expand([byte[]]$prk,[byte[]]$info,[int]$length){$result=New-Object byte[] $length;$previous=[byte[]]::new(0);$offset=0;[byte]$counter=1;while($offset -lt $length){$input=New-Object byte[] ($previous.Length+$info.Length+1);[Buffer]::BlockCopy($previous,0,$input,0,$previous.Length);[Buffer]::BlockCopy($info,0,$input,$previous.Length,$info.Length);$input[$input.Length-1]=$counter;$h=[Security.Cryptography.HMACSHA256]::new($prk);try{$previous=$h.ComputeHash($input)}finally{$h.Dispose()};$copy=[Math]::Min($previous.Length,$length-$offset);[Buffer]::BlockCopy($previous,0,$result,$offset,$copy);$offset+=$copy;$counter++};return $result};$enc=Expand $prk ([Text.Encoding]::UTF8.GetBytes('encryption-v1')) 32;$mac=Expand $prk ([Text.Encoding]::UTF8.GetBytes('integrity-v1')) 32;return [pscustomobject]@{ encryption=$enc; integrity=$mac; formatVersion=1; keyDerivation='HKDF-SHA256'; algorithm='AES-256-CBC+HMAC-SHA256' } }
@@ -53,7 +60,7 @@ function Read-Exact($Stream, [byte[]]$Buffer) { $offset=0; while($offset -lt $Bu
 function Test-ConstantTimeEqual([byte[]]$Left, [byte[]]$Right) { if($Left.Length -ne $Right.Length){return $false};$difference=0;for($i=0;$i -lt $Left.Length;$i++){$difference=$difference -bor ($Left[$i]-bxor $Right[$i])};return $difference -eq 0 }
 function Unprotect-Archive([string]$Path) {
     $item=Get-Item -LiteralPath $Path; if($item.Length -lt 48 -or $item.Length -gt $MaxEncryptedArchiveBytes){throw 'Encrypted snapshot archive is outside the size bound.'}; $keys=Get-Keys; $stream=[System.IO.File]::OpenRead($Path); $iv=New-Object byte[] 16; try{Read-Exact $stream $iv}finally{$stream.Dispose()}; $expected=New-Object byte[] 32; $stream=[System.IO.File]::OpenRead($Path); try{$stream.Seek(-32,[IO.SeekOrigin]::End)|Out-Null;Read-Exact $stream $expected}finally{$stream.Dispose()};$actual=Get-Hmac $Path $keys.integrity; if(-not (Test-ConstantTimeEqual $expected $actual)){throw 'Encrypted snapshot archive integrity validation failed.'}
-    $plain=Join-Path $snapshotPath ("restore-decrypted.{0}.tar" -f ([guid]::NewGuid().ToString('N'))); $out=[System.IO.File]::Create($plain); $aes=[System.Security.Cryptography.Aes]::Create(); $aes.Key=$keys.encryption; $aes.IV=$iv; $aes.Mode='CBC'; $aes.Padding='PKCS7'; $input=[System.IO.File]::OpenRead($Path)
+    $plain=Join-Path $snapshotPath ("restore-decrypted.{0}.tar" -f ([guid]::NewGuid().ToString('N'))); Register-PlaintextPath $plain 'planned'; $out=[System.IO.File]::Create($plain); Register-PlaintextPath $plain 'created'; $aes=[System.Security.Cryptography.Aes]::Create(); $aes.Key=$keys.encryption; $aes.IV=$iv; $aes.Mode='CBC'; $aes.Padding='PKCS7'; $input=[System.IO.File]::OpenRead($Path)
     try{$input.Seek(16,[IO.SeekOrigin]::Begin)|Out-Null;$crypto=[System.Security.Cryptography.CryptoStream]::new($out,$aes.CreateDecryptor(),[System.Security.Cryptography.CryptoStreamMode]::Write); try{$remaining=$input.Length-48;$buffer=New-Object byte[] 1048576;while($remaining -gt 0){$read=$input.Read($buffer,0,[int][Math]::Min($buffer.Length,$remaining));if($read -le 0){throw 'Encrypted snapshot archive ended before ciphertext completed.'};$crypto.Write($buffer,0,$read);$remaining-=$read};$crypto.FlushFinalBlock()}finally{$crypto.Dispose()}}catch{if(Test-Path -LiteralPath $plain){Remove-Item -LiteralPath $plain -Force};throw}finally{$input.Dispose();$aes.Dispose();$out.Dispose()};if((Get-Item -LiteralPath $plain).Length -gt $MaxPlainArchiveBytes){Remove-Item -LiteralPath $plain -Force;throw 'Decrypted snapshot archive exceeds the size bound.'};return $plain
 }
 function Assert-ReadinessCredential {
@@ -62,12 +69,14 @@ function Assert-ReadinessCredential {
     return $cookie
 }
 function Register-PlaintextPath([string]$Path, [string]$State) { $journalPath=Join-Path $snapshotPath 'plaintext-recovery-journal.json';$journal=if(Test-Path -LiteralPath $journalPath){Get-Content -Raw -LiteralPath $journalPath|ConvertFrom-Json}else{[pscustomobject]@{schemaVersion=1;paths=@()}};$journal.paths=@($journal.paths|Where-Object path -ne $Path)+@([pscustomobject]@{path=$Path;state=$State;recordedAt=[DateTimeOffset]::UtcNow.ToString('o')});$tmp="$journalPath.$([guid]::NewGuid().ToString('N')).tmp";[IO.File]::WriteAllText($tmp,($journal|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false));Move-Item -LiteralPath $tmp -Destination $journalPath -Force }
+function Recover-PlaintextPaths { $journalPath=Join-Path $snapshotPath 'plaintext-recovery-journal.json';if(-not(Test-Path -LiteralPath $journalPath)){return};$journal=Get-Content -Raw -LiteralPath $journalPath|ConvertFrom-Json;foreach($entry in @($journal.paths|Where-Object state -in @('planned','created'))){if(Test-Path -LiteralPath $entry.path -PathType Leaf){$item=Get-Item -LiteralPath $entry.path;if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){throw "Plaintext recovery path is a reparse point: $($entry.path)"};Remove-Item -LiteralPath $entry.path -Force};Register-PlaintextPath $entry.path 'erased'}}
 function Invoke-AuthenticatedReadiness {
     $cookie = Assert-ReadinessCredential
     $handler = [System.Net.Http.HttpClientHandler]::new()
     $handler.ServerCertificateCustomValidationCallback = { param($request, $certificate, $chain, $errors); if ($null -eq $certificate) { return $false }; $actual = ([BitConverter]::ToString($certificate.GetCertHash([Security.Cryptography.HashAlgorithmName]::SHA256))).Replace('-', '').ToLowerInvariant(); return $actual -eq $TlsCertificateSha256.ToLowerInvariant() }
     $client = [System.Net.Http.HttpClient]::new($handler); $client.Timeout = [TimeSpan]::FromSeconds(5)
-    try { $client.DefaultRequestHeaders.Add('Cookie', $cookie); $response = $client.GetAsync("https://127.0.0.1:$AdminPort/api/v1/ready").GetAwaiter().GetResult(); $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json; if (-not $response.IsSuccessStatusCode -or $body.status -ne 'ready' -or [string]$body.asteriskVersion -notmatch '^[0-9]+\.[0-9]+') { throw 'Standalone restore readiness verification failed.' } } finally { $client.Dispose(); $handler.Dispose() }
+    $probeAddress = if ($BindAddress -in @('0.0.0.0', '::', '[::]', '*')) { '127.0.0.1' } else { $BindAddress }
+    try { $client.DefaultRequestHeaders.Add('Cookie', $cookie); $response = $client.GetAsync("https://$probeAddress`:$AdminPort/api/v1/ready").GetAwaiter().GetResult(); $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json; if (-not $response.IsSuccessStatusCode -or $body.status -ne 'ready' -or [string]$body.asteriskVersion -notmatch '^[0-9]+\.[0-9]+') { throw 'Standalone restore readiness verification failed.' } } finally { $client.Dispose(); $handler.Dispose() }
 }
 
 function Get-TarExecutable {
@@ -103,7 +112,7 @@ function Validate-Archive([string]$Path, $Expected) {
 
 foreach ($archive in @($record.archives)) { Assert-OperationDeadline; Validate-Archive (Join-Path $snapshotPath $archive.archive) $archive }
 if (-not $Execute) {
-    Write-Host "Plan only. Restore command is: powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\restore-volume-snapshots.ps1`" -SnapshotDirectory `"$snapshotPath`" -ImageRef `"$ImageRef`" -ManifestPath `"$ManifestPath`" -PreflightEvidencePath `"$PreflightEvidencePath`" -SnapshotEncryptionKeyFile `"$SnapshotEncryptionKeyFile`" -TlsCertificateSha256 `"$TlsCertificateSha256`" -SessionCookieFile `"$SessionCookieFile`" -ComposeFile `"$ComposeFile`" -ProjectName `"$ProjectName`" -AdminPort $AdminPort -Execute"
+    Write-Host "Plan only. Restore command is: powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\restore-volume-snapshots.ps1`" -SnapshotDirectory `"$snapshotPath`" -ImageRef `"$ImageRef`" -ManifestPath `"$ManifestPath`" -PreflightEvidencePath `"$PreflightEvidencePath`" -SnapshotEncryptionKeyFile `"$SnapshotEncryptionKeyFile`" -TlsCertificateSha256 `"$TlsCertificateSha256`" -TlsCertFile `"$TlsCertFile`" -TlsKeyFile `"$TlsKeyFile`" -SessionCookieFile `"$SessionCookieFile`" -BindAddress `"$BindAddress`" -ComposeFile `"$ComposeFile`" -ProjectName `"$ProjectName`" -AdminPort $AdminPort -Execute"
     exit 0
 }
 
@@ -112,7 +121,7 @@ Assert-ExternalDeploymentManifest -Manifest $manifest -ManifestPath $ManifestPat
 if ($manifest.image -ne $ImageRef -or $manifest.sourceCommit -ne $record.sourceCommit -or [int]$manifest.adminPort -ne $AdminPort -or $manifest.volumeSchemaVersion -ne $record.volumeSchemaVersion -or $manifest.mountProfile -ne $record.mountProfile -or $manifest.sourceTreeSha256 -ne $record.sourceTreeSha256 -or $manifest.dockerfileSha256 -ne $record.dockerfileSha256 -or $manifest.consoleLockSha256 -ne $record.consoleLockSha256 -or $manifest.inputManifestSha256 -ne $record.inputManifestSha256 -or $manifest.aptSbomSha256 -ne $record.aptSbomSha256 -or $manifest.ubuntuSnapshot -ne $record.ubuntuSnapshot -or $manifest.runtimeBaseImage -ne $record.runtimeBaseImage -or $manifest.nodeBuildBaseImage -ne $record.nodeBuildBaseImage) { throw 'Restore image is not the snapshot source or a manifest-declared compatible image.' }
 if ($manifest.preflightEvidencePath -ne $PreflightEvidencePath -or (Get-FileHash -LiteralPath $PreflightEvidencePath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $manifest.preflightEvidenceSha256) { throw 'Restore preflight evidence does not match the external deployment manifest.' }
 $evidence = Get-Content -Raw -LiteralPath $PreflightEvidencePath | ConvertFrom-Json
-if ([DateTimeOffset]::Parse([string]$evidence.expiresAt) -le [DateTimeOffset]::UtcNow -or @($evidence.checks | Where-Object { -not $_.ok }).Count -gt 0) { throw 'Restore requires fresh successful preflight evidence.' }
+if ([DateTimeOffset]::Parse([string]$evidence.expiresAt) -le [DateTimeOffset]::UtcNow -or $evidence.bindAddress -ne $BindAddress -or $evidence.projectName -ne $ProjectName -or [int]$evidence.requiredPort -ne $AdminPort -or @($evidence.checks | Where-Object { -not $_.ok }).Count -gt 0) { throw 'Restore requires fresh successful preflight evidence matching the reviewed target and bind endpoint.' }
 $existingId = (& docker compose --project-name $ProjectName --file $ComposeFile ps -q control-plane 2>$null).Trim()
 if ($existingId) {
     if ($existingId -notmatch '^[0-9a-f]{12,64}$') { throw 'The existing restore project container id is invalid.' }

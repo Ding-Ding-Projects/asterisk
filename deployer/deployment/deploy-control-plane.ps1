@@ -56,6 +56,13 @@ function Assert-ProtectedExternalPath([string]$Path, [string]$Kind) {
     }
     return $full
 }
+function Assert-TlsMaterial([string]$CertificatePath, [string]$KeyPath) {
+    $cert = Assert-ProtectedExternalPath $CertificatePath 'TLS certificate'
+    $key = Assert-ProtectedExternalPath $KeyPath 'TLS private key'
+    foreach ($itemPath in @($cert, $key)) { if (-not (Test-Path -LiteralPath $itemPath -PathType Leaf)) { throw "TLS material is missing: $itemPath" }; $item = Get-Item -LiteralPath $itemPath; if ($item.Length -lt 1 -or $item.Length -gt 1024*1024) { throw "TLS material has an invalid size: $itemPath" }; $acl=Get-Acl -LiteralPath $itemPath; if ([string]::IsNullOrWhiteSpace([string]$acl.Owner)) { throw "TLS material has no owner ACL: $itemPath" } }
+    $keyAcl=Get-Acl -LiteralPath $key; if (@($keyAcl.Access | Where-Object { $_.AccessControlType -eq 'Allow' -and $_.IdentityReference -match 'Everyone|BUILTIN\\Users|Authenticated Users|^Users$' }).Count -gt 0) { throw 'TLS private key is readable by a broad group.' }
+    return [pscustomobject]@{ certificate=$cert; key=$key }
+}
 
 function Assert-ProtectedSessionCredentialFile([string]$Path) {
     $full = Assert-ProtectedExternalPath $Path 'Session credential file'
@@ -83,6 +90,7 @@ function Assert-ProtectedSnapshotDirectory([string]$Path) {
 }
 
 if ($Execute) {
+    Assert-TlsMaterial $TlsCertFile $TlsKeyFile | Out-Null
     $SessionCookieFile = Assert-ProtectedSessionCredentialFile $SessionCookieFile
     $SnapshotDirectory = Assert-ProtectedSnapshotDirectory $SnapshotDirectory
     $SnapshotEncryptionKeyFile = Assert-ProtectedExternalPath $SnapshotEncryptionKeyFile 'Snapshot encryption key file'
@@ -93,6 +101,7 @@ if ($Execute) {
     if (@($keyAcl.Access | Where-Object { $_.AccessControlType -eq 'Allow' -and $_.IdentityReference -match 'Everyone|BUILTIN\\Users|Authenticated Users|^Users$' }).Count -gt 0) { throw 'Snapshot encryption key file is readable by a broad group.' }
     if ($TlsCertificateSha256 -notmatch '^[0-9a-fA-F]{64}$') { throw 'Execute requires a SHA-256 TLS certificate pin.' }
     $TlsCertificateSha256 = $TlsCertificateSha256.ToLowerInvariant()
+    Recover-PlaintextPaths
 }
 $manifest = Get-Content -Raw -LiteralPath $ManifestPath | ConvertFrom-Json
 Assert-ExternalDeploymentManifest -Manifest $manifest -ManifestPath $ManifestPath -ImageReference $ImageRef -ProjectName $ProjectName -Port $AdminPort | Out-Null
@@ -269,6 +278,9 @@ function Register-PlaintextPath([string]$Path, [string]$State) {
     $journal.paths = @($journal.paths | Where-Object path -ne $Path) + @([pscustomobject]@{ path=$Path; state=$State; recordedAt=[DateTimeOffset]::UtcNow.ToString('o') })
     $temporary = "$journalPath.$([guid]::NewGuid().ToString('N')).tmp"; [System.IO.File]::WriteAllText($temporary, ($journal | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false)); Move-Item -LiteralPath $temporary -Destination $journalPath -Force
 }
+function Recover-PlaintextPaths {
+    $journalPath=Join-Path $SnapshotDirectory 'plaintext-recovery-journal.json'; if(-not (Test-Path -LiteralPath $journalPath)){return}; $journal=Get-Content -Raw -LiteralPath $journalPath|ConvertFrom-Json; foreach($entry in @($journal.paths|Where-Object state -in @('planned','created'))){ if(Test-Path -LiteralPath $entry.path -PathType Leaf){$item=Get-Item -LiteralPath $entry.path;if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){throw "Plaintext recovery path is a reparse point: $($entry.path)"};Remove-Item -LiteralPath $entry.path -Force}; Register-PlaintextPath $entry.path 'erased' }
+}
 
 function Get-SnapshotEncryptionKeys {
     $bytes = [System.IO.File]::ReadAllBytes($SnapshotEncryptionKeyFile)
@@ -319,7 +331,7 @@ function Protect-SnapshotArchive([string]$PlainPath) {
 }
 
 function Unprotect-SnapshotArchive([string]$EncryptedPath) {
-    $keys = Get-SnapshotEncryptionKeys; $item=Get-Item -LiteralPath $EncryptedPath; if($item.Length -lt 48 -or $item.Length -gt $MaxEncryptedArchiveBytes){throw 'Encrypted snapshot archive is outside the size bound.'}; $stream=[System.IO.File]::OpenRead($EncryptedPath);$iv=New-Object byte[] 16;try{Read-Exact $stream $iv}finally{$stream.Dispose()};$expected=New-Object byte[] 32;$stream=[System.IO.File]::OpenRead($EncryptedPath);try{$stream.Seek(-32,[IO.SeekOrigin]::End)|Out-Null;Read-Exact $stream $expected}finally{$stream.Dispose()};$actual=Get-FileHmacSha256 $EncryptedPath $keys.integrity;if(-not (Test-ConstantTimeEqual $expected $actual)){throw 'Encrypted snapshot archive integrity validation failed.'};$temporary=Join-Path $SnapshotDirectory ("snapshot-decrypted.{0}.tar"-f([guid]::NewGuid().ToString('N')));$output=[System.IO.File]::Create($temporary);$input=[System.IO.File]::OpenRead($EncryptedPath);$aes=[System.Security.Cryptography.Aes]::Create();$aes.Key=$keys.encryption;$aes.IV=$iv;$aes.Mode='CBC';$aes.Padding='PKCS7';try{$input.Seek(16,[IO.SeekOrigin]::Begin)|Out-Null;$crypto=[Security.Cryptography.CryptoStream]::new($output,$aes.CreateDecryptor(),[Security.Cryptography.CryptoStreamMode]::Write);try{$remaining=$input.Length-48;$buffer=New-Object byte[] 1048576;while($remaining -gt 0){$read=$input.Read($buffer,0,[int][Math]::Min($buffer.Length,$remaining));if($read -le 0){throw 'Encrypted snapshot archive ended before ciphertext completed.'};$crypto.Write($buffer,0,$read);$remaining-=$read};$crypto.FlushFinalBlock()}finally{$crypto.Dispose()}}catch{if(Test-Path -LiteralPath $temporary){Remove-Item -LiteralPath $temporary -Force};throw}finally{$input.Dispose();$aes.Dispose();$output.Dispose()};if((Get-Item -LiteralPath $temporary).Length -gt $MaxPlainArchiveBytes){Remove-Item -LiteralPath $temporary -Force;throw 'Decrypted snapshot archive exceeds the size bound.'};return $temporary
+    $keys = Get-SnapshotEncryptionKeys; $item=Get-Item -LiteralPath $EncryptedPath; if($item.Length -lt 48 -or $item.Length -gt $MaxEncryptedArchiveBytes){throw 'Encrypted snapshot archive is outside the size bound.'}; $stream=[System.IO.File]::OpenRead($EncryptedPath);$iv=New-Object byte[] 16;try{Read-Exact $stream $iv}finally{$stream.Dispose()};$expected=New-Object byte[] 32;$stream=[System.IO.File]::OpenRead($EncryptedPath);try{$stream.Seek(-32,[IO.SeekOrigin]::End)|Out-Null;Read-Exact $stream $expected}finally{$stream.Dispose()};$actual=Get-FileHmacSha256 $EncryptedPath $keys.integrity;if(-not (Test-ConstantTimeEqual $expected $actual)){throw 'Encrypted snapshot archive integrity validation failed.'};$temporary=Join-Path $SnapshotDirectory ("snapshot-decrypted.{0}.tar"-f([guid]::NewGuid().ToString('N')));Register-PlaintextPath $temporary 'planned';$output=[System.IO.File]::Create($temporary);Register-PlaintextPath $temporary 'created';$input=[System.IO.File]::OpenRead($EncryptedPath);$aes=[System.Security.Cryptography.Aes]::Create();$aes.Key=$keys.encryption;$aes.IV=$iv;$aes.Mode='CBC';$aes.Padding='PKCS7';try{$input.Seek(16,[IO.SeekOrigin]::Begin)|Out-Null;$crypto=[Security.Cryptography.CryptoStream]::new($output,$aes.CreateDecryptor(),[Security.Cryptography.CryptoStreamMode]::Write);try{$remaining=$input.Length-48;$buffer=New-Object byte[] 1048576;while($remaining -gt 0){$read=$input.Read($buffer,0,[int][Math]::Min($buffer.Length,$remaining));if($read -le 0){throw 'Encrypted snapshot archive ended before ciphertext completed.'};$crypto.Write($buffer,0,$read);$remaining-=$read};$crypto.FlushFinalBlock()}finally{$crypto.Dispose()}}catch{if(Test-Path -LiteralPath $temporary){Remove-Item -LiteralPath $temporary -Force;Register-PlaintextPath $temporary 'erased'};throw}finally{$input.Dispose();$aes.Dispose();$output.Dispose()};if((Get-Item -LiteralPath $temporary).Length -gt $MaxPlainArchiveBytes){Remove-Item -LiteralPath $temporary -Force;Register-PlaintextPath $temporary 'erased';throw 'Decrypted snapshot archive exceeds the size bound.'};return $temporary
 }
 
 function Stop-OwnedServiceForSnapshot($Transaction) {
@@ -389,7 +401,7 @@ function Snapshot-Volumes {
     $SnapshotDirectory = Assert-ProtectedSnapshotDirectory $SnapshotDirectory
     $snapshotRunId = ([guid]::NewGuid().ToString('N'))
     $volumes = @('ding-pbx-control-plane-data', 'ding-pbx-control-plane-asterisk-etc', 'ding-pbx-control-plane-asterisk-lib', 'ding-pbx-control-plane-asterisk-log', 'ding-pbx-control-plane-asterisk-spool')
-    $journal = [ordered]@{ schemaVersion = 1; snapshotId = $snapshotRunId; state = 'started'; createdAt = [DateTimeOffset]::UtcNow.ToString('o'); volumeResults = @(); retention = [ordered]@{ keepDays = $SnapshotRetentionDays; cleanup = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\cleanup-volume-snapshots.ps1`" -SnapshotParent `"$([System.IO.Path]::GetDirectoryName($SnapshotDirectory))`" -SnapshotEncryptionKeyFile `"<protected-key-path>`" -RetentionDays $SnapshotRetentionDays -Execute; remove only complete, recoverability-verified snapshot directories" } }
+    $journal = [ordered]@{ schemaVersion = 1; snapshotId = $snapshotRunId; state = 'started'; createdAt = [DateTimeOffset]::UtcNow.ToString('o'); volumeResults = @(); retention = [ordered]@{ keepDays = $SnapshotRetentionDays; cleanup = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\cleanup-volume-snapshots.ps1`" -SnapshotParent `"$([System.IO.Path]::GetDirectoryName($SnapshotDirectory))`" -SnapshotEncryptionKeyFile `"<protected-key-path>`" -TaskManifestPath `"<task-owned-manifest-path>`" -RetentionDays $SnapshotRetentionDays -Execute; remove only complete, recoverability-verified snapshot directories" } }
     Write-SnapshotJournal $journal
     foreach ($volume in $volumes) {
         Assert-OperationDeadline
