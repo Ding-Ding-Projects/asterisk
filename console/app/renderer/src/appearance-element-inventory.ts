@@ -51,6 +51,11 @@ export function appearanceInventoryDefects(
   const defects: string[] = [];
   for (const id of expected) if (!observed.has(id)) defects.push(`Mounted state ${state} is missing expected appearance id ${id}.`);
   for (const id of expectedDynamicIds) if (!observed.has(id)) defects.push(`Mounted state ${state} is missing generated appearance id ${id}.`);
+  for (const path of directManifestPaths) {
+    if (!observed.has(path) && ![...observed].some((id) => id.startsWith(`${path}-`))) {
+      defects.push(`Mounted state ${state} is missing direct appearance id manifest entry ${path}.`);
+    }
+  }
   for (const id of observed) {
     if (expected.has(id) || expectedDynamicIds.has(id)) continue;
     if (id.startsWith(DIRECT_INTERACTIVE_APPEARANCE_ID_PREFIX)) {

@@ -199,7 +199,11 @@ function directAppearanceId(path, scope) {
   if (path.startsWith('m3control-')) dynamicParts.push("(S(v.ctl?.presentationId ?? v.ctl?.id ?? '') || 'missing')");
   for (const [name, alias] of scope.entries()) {
     if (name.startsWith('__index:')) continue;
-    dynamicParts.push(`(S(${alias}?.id ?? ${alias}?.key ?? '') || 'missing')`);
+    const identityExpression = `S(${alias}?.id ?? ${alias}?.key ?? '')`;
+    if (!identityExpression.includes('.id') || !identityExpression.includes('.key')) {
+      throw new Error(`Design path ${path}, loop variable ${name} lacks a stable id or key identity.`);
+    }
+    dynamicParts.push(`(${identityExpression} || 'missing')`);
   }
   return dynamicParts.length > 0
     ? `${JSON.stringify(`direct-${path}`)} + '-' + ${dynamicParts.join(" + '-' + ")}`

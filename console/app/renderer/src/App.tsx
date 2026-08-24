@@ -279,6 +279,7 @@ export class App extends Base {
   private navigationTransactionToken: number | undefined;
   private queuedRichControlRefresh: { screenId: string; controls: ReadonlyArray<RichControlInput> } | undefined;
   private generatedNavigationRevision = 0;
+  private controlOperations = new Map<string, { controlId: string; action: string; executing: boolean; cancelled: boolean }>();
   /** The unlock ladder (unlock-ladder.ts) for the per-element lock's unlock dialog.
    *  Renderer-only: this app's per-element lock has no server-enforced attempt budget
    *  or time-based lockout of its own, so this in-memory instance -- like the PIN and
@@ -1024,14 +1025,53 @@ export class App extends Base {
     if (canonicalControlId) {
       const operationId = crypto.randomUUID();
       this.fire('Action started', `${action} from ${canonicalControlId}. Operation ${operationId} started; history acknowledgement is pending.`);
-      void this.recordControlActionHistory(canonicalControlId, action, operationId);
-      void this.runControlAction(action, operationId, canonicalControlId);
+      void this.startAndRunControlAction(canonicalControlId, action, operationId);
       return;
     }
     void this.runControlAction(action, crypto.randomUUID());
   };
 
+  private async startAndRunControlAction(controlId: string, action: string, operationId: string): Promise<void> {
+    this.controlOperations.set(operationId, { controlId, action, executing: false, cancelled: false });
+    const started = await this.recordControlActionHistory(controlId, action, operationId, 'started');
+    const operation = this.controlOperations.get(operationId);
+    if (operation?.cancelled) {
+      this.fire('Action outcome', `${action} operation ${operationId} cancelled before execution.`);
+      await this.recordControlActionHistory(controlId, action, operationId, 'cancelled');
+      this.controlOperations.delete(operationId);
+      return;
+    }
+    if (!started) {
+      this.fire('Action outcome', `${action} operation ${operationId} failed before execution because started history was unavailable.`);
+      await this.recordControlActionHistory(controlId, action, operationId, 'failed');
+      this.controlOperations.delete(operationId);
+      return;
+    }
+    await this.runControlAction(action, operationId, controlId);
+    this.controlOperations.delete(operationId);
+  }
+
+  cancelControlAction = (operationId: string): { ok: boolean; cancelled: boolean; reason: string } => {
+    const operation = this.controlOperations.get(operationId);
+    if (!operation) return { ok: false, cancelled: false, reason: `Operation ${operationId} is not active.` };
+    if (operation.executing) {
+      const reason = `Operation ${operationId} is already executing and cannot be cancelled.`;
+      this.fire('Action cancellation outcome', reason);
+      return { ok: false, cancelled: false, reason };
+    }
+    operation.cancelled = true;
+    this.fire('Action cancellation requested', `${operation.action} operation ${operationId} cancellation was requested.`);
+    return { ok: true, cancelled: true, reason: `Operation ${operationId} will finish as cancelled before execution.` };
+  };
+
   private async runControlAction(action: string, operationId: string, controlId?: string): Promise<void> {
+    const operation = this.controlOperations.get(operationId);
+    if (operation?.cancelled) {
+      if (controlId) await this.recordControlActionHistory(controlId, action, operationId, 'cancelled');
+      this.fire('Action outcome', `${action} operation ${operationId} cancelled before execution.`);
+      return;
+    }
+    if (operation) operation.executing = true;
     let ok = false;
     let detail = 'No action handler is registered for this control.';
     if (action === 'vocab-clear') {
@@ -1043,11 +1083,12 @@ export class App extends Base {
       detail = ok ? 'The observed daemon state matches the requested action.' : 'The requested daemon state was not independently observed.';
     }
     const phase = ok ? 'completed' : 'failed';
+    if (operation) operation.executing = false;
     this.fire('Action outcome', `${action} operation ${operationId} ${phase}: ${detail}`);
-    if (controlId) void this.recordControlActionHistory(controlId, action, operationId, phase);
+    if (controlId) await this.recordControlActionHistory(controlId, action, operationId, phase);
   }
 
-  private async recordControlActionHistory(controlId: string, action: string, operationId: string, phase: 'started' | 'completed' | 'failed' | 'cancelled' = 'started'): Promise<void> {
+  private async recordControlActionHistory(controlId: string, action: string, operationId: string, phase: 'started' | 'completed' | 'failed' | 'cancelled' = 'started'): Promise<boolean> {
     const response = await this.request('local-history.record', {
       payload: { action: 'settings-changed', stableRecordId: controlId, subject: `${action} ${phase}`, metadata: { source: 'rich-control', operationId, phase }, snapshot: { controlId, action, operationId, phase } },
     }).catch(() => undefined);
@@ -1055,6 +1096,7 @@ export class App extends Base {
     const acknowledged = response?.ok === true && nested?.ok !== false && nested?.status !== 'failed';
     if (acknowledged) this.fire('Action history outcome', `${action} operation ${operationId} ${phase} was acknowledged by local history.`);
     else this.fire('Action history outcome', `${action} operation ${operationId} ${phase} could not be recorded by local history.`);
+    return acknowledged;
   }
 
   // ---------------------------------------------------------------- server add / remove
@@ -2388,6 +2430,7 @@ It is shown once. The phone needs it to register.`);
       richControlRegistry: this.richControlRegistration.registry,
       richControlDefinitions: this.richControlRegistration.definitions,
       richControlDefects: this.richControlRegistration.defects,
+      cancelControlAction: this.cancelControlAction,
       richPaletteRows: this.richControlRegistration.registry.entries
         .filter((entry) => Boolean(entry.control))
         .map((entry) => ({

@@ -82,6 +82,12 @@ Navigation CAS now carries an expected adapter revision. Stale generated snapsho
 
 No tests, lint, broad build, package, UI, browser, captures, dew, or cleanup ran in this smell repair.
 
+## Lifecycle ordering repair after smell, 2026-08-24
+
+Rich actions now wait for acknowledged durable `started` history before execution. The operation then emits the actual terminal outcome and appends the matching `completed`, `failed`, or `cancelled` history record in order. A cancellation request is distinct from a cancellation result, and an already executing action reports that cancellation was unavailable. Started-history refusal prevents the action from running and records the history-unavailable outcome.
+
+The navigation owner rejects stale activation and generated snapshots through revision compare-and-swap. Rollback, generated restoration, render-triggered definition refresh, and synchronized publication stay under one transaction token until restoration completes. The direct-ID compiler ledger compares observed IDs against the mounted-state manifest in both directions, while dynamic IDs expand only from stable `id` or `key` values.
+
 ## Scope
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.
