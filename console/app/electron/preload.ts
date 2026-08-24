@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { ControlPlaneRequest, ControlPlaneResponse, DingDesktopApi, UpdaterStatusForRenderer, UpdaterRestartResult } from '../../shared/control-plane.js';
-import type { DownloadCommand, DownloadTransferReceipt, DownloadTransferSnapshot, ExtensionDownloadHandoff } from '../../shared/download-transfer.js';
+import type { DownloadCommand, DownloadSurfaceKind, DownloadTransferReceipt, DownloadTransferSnapshot, ExtensionDownloadHandoff } from '../../shared/download-transfer.js';
 
 const api: DingDesktopApi = {
   platform: process.platform,
@@ -18,6 +18,7 @@ const api: DingDesktopApi = {
     cancelHandoff: (handoffId: string) => ipcRenderer.invoke('download:cancel-handoff', handoffId) as Promise<DownloadTransferReceipt>,
     command: (transferId: string, command: Exclude<DownloadCommand, 'start'>) => ipcRenderer.invoke('download:command', transferId, command) as Promise<DownloadTransferReceipt>,
     getSnapshot: (transferId: string) => ipcRenderer.invoke('download:snapshot', transferId) as Promise<DownloadTransferSnapshot | undefined>,
+    getLatestSnapshot: () => ipcRenderer.invoke('download:latest-snapshot') as Promise<DownloadTransferSnapshot | undefined>,
     subscribe: (transferId: string, listener: (snapshot: DownloadTransferSnapshot) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, snapshot: DownloadTransferSnapshot) => { if (snapshot.transferId === transferId) listener(snapshot); };
       ipcRenderer.on('download:snapshot', handler);
@@ -30,6 +31,12 @@ const api: DingDesktopApi = {
       ipcRenderer.on('download:handoff', handler);
       return () => ipcRenderer.removeListener('download:handoff', handler);
     },
+    onHandoffCancelled: (listener: (handoffId: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, handoffId: string) => listener(handoffId);
+      ipcRenderer.on('download:handoff-cancelled', handler);
+      return () => ipcRenderer.removeListener('download:handoff-cancelled', handler);
+    },
+    closeWindow: (kind: DownloadSurfaceKind) => ipcRenderer.invoke('download:close-window', kind) as Promise<void>,
   },
   converter: {
     pickFile: () => ipcRenderer.invoke('converter:pick-file'),

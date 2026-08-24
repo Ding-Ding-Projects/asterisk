@@ -38,7 +38,7 @@ import { OllamaChat, createOllamaChatHandlers } from './ollama-chat.js';
 import { DownloadTransferManager } from './download-transfer-manager.js';
 import { createStatusHubClient, createVaultReference, type StatusHubClient } from './status-hub-client.js';
 import type { StatusHubCredentialReferences, StatusHubProjectRegistrationRequest } from '../shared/status-hub.js';
-import type { ExtensionDownloadHandoff, DownloadCommand } from '../shared/download-transfer.js';
+import type { DownloadTransferReceipt, ExtensionDownloadHandoff, DownloadCommand } from '../shared/download-transfer.js';
 import type { ConverterRequest, ConverterSniffResult } from '../shared/converter.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
 import type { ChangePlan, ReadOnlyCommand, TargetProfile } from './index.js';
@@ -336,6 +336,12 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       : { ok: false, requestId, code: result.error.code, message: result.error.message };
   }
 
+  function downloadReceiptResult(requestId: string, receipt: DownloadTransferReceipt): ControlPlaneResponse {
+    return receipt.accepted
+      ? { ok: true, requestId, data: receipt }
+      : { ok: false, requestId, code: receipt.code ?? 'DOWNLOAD_REQUEST_REFUSED', message: receipt.detail ?? 'The download request was refused.' };
+  }
+
   const rootfsDownloader = {
     async download(url: string, destination: string) {
       const response = await fetch(url, { redirect: 'error' });
@@ -611,9 +617,9 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
             ? { ok: true, requestId: request.requestId, data: result }
             : { ok: false, requestId: request.requestId, code: 'DOWNLOAD_HANDOFF_REFUSED', message: result.detail };
         }
-        if (request.action === 'download.handoffs') return { ok: true, requestId: request.requestId, data: downloadTransfers.listHandoffs() };
+        if (request.action === 'download.handoffs') return { ok: true, requestId: request.requestId, data: downloadTransfers.listPendingHandoffs() };
         if (request.action === 'download.start') {
-          return { ok: true, requestId: request.requestId, data: await downloadTransfers.start(request.payload as unknown as ExtensionDownloadHandoff) };
+          return downloadReceiptResult(request.requestId, await downloadTransfers.start(request.payload as unknown as ExtensionDownloadHandoff));
         }
         if (request.action === 'download.snapshot') {
           const transferId = typeof request.payload?.transferId === 'string' ? request.payload.transferId : '';
@@ -621,12 +627,12 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         }
         if (request.action === 'download.cancel-handoff') {
           const handoffId = typeof request.payload?.handoffId === 'string' ? request.payload.handoffId : '';
-          return { ok: true, requestId: request.requestId, data: await downloadTransfers.cancelHandoff(handoffId) };
+          return downloadReceiptResult(request.requestId, await downloadTransfers.cancelHandoff(handoffId));
         }
         if (request.action === 'download.command') {
           const transferId = typeof request.payload?.transferId === 'string' ? request.payload.transferId : '';
           const command = request.payload?.command as Exclude<DownloadCommand, 'start'>;
-          return { ok: true, requestId: request.requestId, data: await downloadTransfers.command(transferId, command) };
+          return downloadReceiptResult(request.requestId, await downloadTransfers.command(transferId, command));
         }
       }
       if (request.action.startsWith('ollama.')) {

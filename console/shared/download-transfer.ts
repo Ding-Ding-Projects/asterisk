@@ -46,6 +46,14 @@ export interface TransferError {
   observedAt: string;
 }
 
+export type TransferTimeoutKind = 'header' | 'body-idle' | 'total';
+
+export interface DownloadResumeSupport {
+  acceptRanges: boolean;
+  etag?: string;
+  lastModified?: string;
+}
+
 export interface PartialTransferOutcome {
   bytesTransferred: number;
   reason: string;
@@ -67,7 +75,10 @@ export interface DownloadTransferSnapshot {
   deadlineAt?: string;
   observedAt: string;
   error?: TransferError;
+  timeoutKind?: TransferTimeoutKind;
   partial?: PartialTransferOutcome;
+  resume?: DownloadResumeSupport;
+  resumeDisabledReason?: string;
   canPause: boolean;
   canResume: boolean;
   canCancel: boolean;
@@ -81,6 +92,7 @@ export interface DownloadTransferReceipt {
   accepted: boolean;
   observedAt: string;
   status: DownloadTransferStatus | 'rejected';
+  code?: string;
   detail?: string;
 }
 

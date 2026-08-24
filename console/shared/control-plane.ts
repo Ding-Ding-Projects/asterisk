@@ -1,4 +1,4 @@
-import type { DownloadTransferClient, DownloadTransferSnapshot, ExtensionDownloadHandoff } from './download-transfer.js';
+import type { DownloadSurfaceKind, DownloadTransferClient, DownloadTransferSnapshot, ExtensionDownloadHandoff } from './download-transfer.js';
 
 /**
  * `runtime.*` manage the console's own WSL distribution, created from the Asterisk
@@ -101,8 +101,11 @@ export interface DingDesktopApi {
   statusHub: { baseUrl?: string };
   downloads: DownloadTransferClient & {
     getSnapshot(transferId: string): Promise<DownloadTransferSnapshot | undefined>;
+    getLatestSnapshot(): Promise<DownloadTransferSnapshot | undefined>;
     submitHandoff(handoff: ExtensionDownloadHandoff): Promise<{ accepted: boolean; detail: string }>;
     onHandoff(listener: (handoff: ExtensionDownloadHandoff) => void): () => void;
+    onHandoffCancelled(listener: (handoffId: string) => void): () => void;
+    closeWindow(kind: DownloadSurfaceKind): Promise<void>;
   };
   converter: {
     pickFile(): Promise<{ sourcePath: string; name: string; bytes: number; lastModified?: string } | undefined>;

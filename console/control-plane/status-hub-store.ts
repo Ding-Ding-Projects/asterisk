@@ -15,6 +15,7 @@ import {
 export interface StatusHubStoreOptions {
   client: StatusHubClient;
   projectId: string;
+  registration?: StatusHubProjectRegistrationRequest;
   pollReplies?: boolean;
 }
 
@@ -37,7 +38,8 @@ const EMPTY_STATE: StatusHubClientState = Object.freeze({
  */
 export class StatusHubStore {
   private readonly client: StatusHubClient;
-  private readonly projectId: string;
+  private projectId: string;
+  private readonly registration?: StatusHubProjectRegistrationRequest;
   private readonly pollReplies: boolean;
   private readonly listeners = new Set<StatusHubStoreListener>();
   private readonly polling = new Map<string, StatusHubPollingHandle>();
@@ -48,6 +50,7 @@ export class StatusHubStore {
   constructor(options: StatusHubStoreOptions) {
     this.client = options.client;
     this.projectId = options.projectId;
+    this.registration = options.registration;
     this.pollReplies = options.pollReplies ?? true;
   }
 
@@ -66,10 +69,11 @@ export class StatusHubStore {
     const generation = this.client.beginGeneration();
     this.generation = generation.id;
     this.update({ availability: 'loading', error: undefined, generation: generation.id });
-    const [projectResult, sessionsResult] = await Promise.all([
-      this.client.getProject(this.projectId, generation),
-      this.client.listSessions(this.projectId, generation),
-    ]);
+    const projectResult = this.state.project || !this.registration
+      ? await this.client.getProject(this.projectId, generation)
+      : await this.client.registerProject(this.registration, generation);
+    if (projectResult.ok) this.projectId = projectResult.value.projectId;
+    const sessionsResult = await this.client.listSessions(this.projectId, generation);
     if (this.disposed || !generation.isCurrent()) return;
 
     const project = projectResult.ok ? projectResult.value : this.state.project;
@@ -128,6 +132,13 @@ export class StatusHubStore {
     this.stopPolling();
     this.client.beginGeneration().cancel();
     this.listeners.clear();
+  }
+
+  /** Stop polling when the route leaves, while keeping the reusable store mountable. */
+  stop(): void {
+    if (this.disposed) return;
+    this.stopPolling();
+    this.client.beginGeneration().cancel();
   }
 
   private async refreshSession(sessionId: string, generation: ReturnType<StatusHubClient['beginGeneration']>): Promise<void> {

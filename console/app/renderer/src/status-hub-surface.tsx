@@ -17,6 +17,7 @@ export function StatusHubSurface({ store, heading = 'Status Hub' }: StatusHubSur
 
   useEffect(() => {
     void store.mount();
+    return () => store.stop();
   }, [store]);
 
   const setAnswer = (questionId: string, value: string) => {

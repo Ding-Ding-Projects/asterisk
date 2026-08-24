@@ -113,9 +113,12 @@ export function installHttpBridge(): void {
       cancelHandoff: (handoffId: string) => unavailableTransfer('cancel', handoffId),
       command: (_transferId: string, command: Exclude<DownloadCommand, 'start'>) => unavailableTransfer(command),
       getSnapshot: async (_transferId: string): Promise<DownloadTransferSnapshot | undefined> => undefined,
+      getLatestSnapshot: async (): Promise<DownloadTransferSnapshot | undefined> => undefined,
       subscribe: (_transferId: string, _listener: (snapshot: DownloadTransferSnapshot) => void) => () => {},
       submitHandoff: async (_handoff: ExtensionDownloadHandoff) => ({ accepted: false, detail: 'Browser-extension transfer handoff is unavailable in hosted mode.' }),
       onHandoff: (_listener: (handoff: ExtensionDownloadHandoff) => void) => () => {},
+      onHandoffCancelled: (_listener: (handoffId: string) => void) => () => {},
+      closeWindow: async (_kind: 'start' | 'progress' | 'complete') => {},
     },
     converter: {
       pickFile: async () => { throw new Error('The hosted server cannot open a desktop file picker. Choose a local file through the site surface.'); },

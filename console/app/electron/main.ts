@@ -1,11 +1,11 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
 import { createVaultReference } from '../../control-plane/status-hub-client.js';
 import type { ControlPlaneRequest, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
-import type { DownloadCommand, ExtensionDownloadHandoff } from '../../shared/download-transfer.js';
+import type { DownloadCommand, DownloadSurfaceKind, ExtensionDownloadHandoff } from '../../shared/download-transfer.js';
 import { isExtensionDownloadHandoff } from '../../shared/download-transfer.js';
 import {
   parseVersion, resolveLatestUpdate, validateReleaseIdentity, initialUpdaterState, beganChecking, checkSucceeded,
@@ -18,6 +18,9 @@ import {
 } from './updater-runtime.js';
 
 let mainWindow: BrowserWindow | null = null;
+const downloadWindows = new Map<DownloadSurfaceKind, BrowserWindow>();
+let downloadOriginWindow: BrowserWindow | null = null;
+let pendingHandoffId: string | undefined;
 function vaultReferenceFromEnvironment(name: string) {
   const value = process.env[name];
   if (!value) return undefined;
@@ -190,16 +193,92 @@ ipcMain.on('window:close', () => mainWindow?.close());
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
 ipcMain.handle('download:submit-handoff', async (_event, handoff: ExtensionDownloadHandoff) => {
   if (!isExtensionDownloadHandoff(handoff)) return { accepted: false, detail: 'The extension handoff failed its bounded validation.' };
-  const result = downloadTransfers.registerHandoff(handoff);
-  if (result.accepted) mainWindow?.webContents.send('download:handoff', handoff);
+  const senderWindow = BrowserWindow.fromWebContents(_event.sender) ?? mainWindow;
+  let chosenPath = downloadTransfers.isDestinationApproved(handoff.destinationPath) ? handoff.destinationPath : undefined;
+  if (!chosenPath) {
+    if (handoff.destinationKind === 'folder') {
+      const approved = await dialog.showOpenDialog(senderWindow ?? undefined, { properties: ['openDirectory'], title: 'Choose the download destination folder' });
+      chosenPath = approved.canceled ? undefined : approved.filePaths[0];
+    } else {
+      const approved = await dialog.showSaveDialog(senderWindow ?? undefined, { defaultPath: handoff.destinationPath, title: 'Choose the download destination file' });
+      chosenPath = approved.canceled ? undefined : approved.filePath;
+    }
+    if (!chosenPath) return { accepted: false, detail: 'The native destination picker was cancelled; no handoff was recorded.' };
+    const approvedRoot = downloadTransfers.approveDestinationRoot(handoff.destinationKind === 'folder' ? chosenPath : dirname(chosenPath));
+    if (!approvedRoot.accepted) return { accepted: false, detail: approvedRoot.detail };
+  }
+  if (!chosenPath) return { accepted: false, detail: 'No approved destination path is available.' };
+  const result = downloadTransfers.registerHandoff({ ...handoff, destinationPath: chosenPath });
+  if (result.accepted && result.handoff) { pendingHandoffId = result.handoff.handoffId; openDownloadWindow('start', senderWindow ?? undefined); broadcast('download:handoff', result.handoff); }
   return result;
 });
-ipcMain.handle('download:handoffs', async () => downloadTransfers.listHandoffs());
-ipcMain.handle('download:start', async (_event, handoff: ExtensionDownloadHandoff) => downloadTransfers.start(handoff));
-ipcMain.handle('download:cancel-handoff', async (_event, handoffId: string) => downloadTransfers.cancelHandoff(handoffId));
+
+function routeForDownloadWindow(kind: DownloadSurfaceKind): string {
+  return kind === 'start' ? 'download/start' : kind === 'progress' ? 'download/progress' : 'download/complete';
+}
+
+function openDownloadWindow(kind: DownloadSurfaceKind, origin?: BrowserWindow): BrowserWindow {
+  const existing = downloadWindows.get(kind);
+  if (existing && !existing.isDestroyed()) { existing.show(); existing.focus(); return existing; }
+  downloadOriginWindow = origin ?? downloadOriginWindow ?? mainWindow;
+  const window = new BrowserWindow({
+    width: kind === 'complete' ? 620 : 760,
+    height: kind === 'complete' ? 220 : 720,
+    minWidth: 420,
+    minHeight: kind === 'complete' ? 180 : 420,
+    frame: false,
+    show: false,
+    alwaysOnTop: true,
+    parent: mainWindow ?? undefined,
+    backgroundColor: '#101510',
+    title: kind === 'start' ? 'Start download' : kind === 'progress' ? 'Downloading' : 'Download complete',
+    webPreferences: { preload: join(import.meta.dirname, '../../../app/electron/preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
+  });
+  downloadWindows.set(kind, window);
+  window.once('ready-to-show', () => { window.show(); window.focus(); });
+  window.on('closed', () => {
+    if (downloadWindows.get(kind) === window) downloadWindows.delete(kind);
+    if (kind === 'start' && pendingHandoffId) {
+      const handoffId = pendingHandoffId; pendingHandoffId = undefined;
+      void downloadTransfers.cancelHandoff(handoffId).then((receipt) => { if (receipt.accepted) broadcast('download:handoff-cancelled', handoffId); });
+    }
+    downloadOriginWindow?.focus();
+  });
+  if (process.env.VITE_DEV_SERVER_URL) void window.loadURL(`${process.env.VITE_DEV_SERVER_URL}#surface=${routeForDownloadWindow(kind)}`);
+  else void window.loadFile(join(import.meta.dirname, '../../../dist/index.html'), { hash: `surface=${routeForDownloadWindow(kind)}` });
+  return window;
+}
+
+function closeDownloadWindow(kind: DownloadSurfaceKind): void {
+  const window = downloadWindows.get(kind);
+  if (window && !window.isDestroyed()) window.close();
+  if (kind === 'start') downloadOriginWindow?.focus();
+}
+
+function broadcast(channel: string, payload: unknown): void {
+  for (const window of BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send(channel, payload);
+}
+ipcMain.handle('download:handoffs', async () => downloadTransfers.listPendingHandoffs());
+ipcMain.handle('download:start', async (_event, handoff: ExtensionDownloadHandoff) => {
+  const senderWindow = BrowserWindow.fromWebContents(_event.sender) ?? mainWindow;
+  const receipt = await downloadTransfers.start(handoff);
+  if (receipt.accepted) { pendingHandoffId = undefined; closeDownloadWindow('start'); openDownloadWindow('progress', senderWindow ?? undefined); }
+  return receipt;
+});
+ipcMain.handle('download:cancel-handoff', async (_event, handoffId: string) => {
+  const receipt = await downloadTransfers.cancelHandoff(handoffId);
+  if (receipt.accepted) { if (pendingHandoffId === handoffId) pendingHandoffId = undefined; closeDownloadWindow('start'); broadcast('download:handoff-cancelled', handoffId); }
+  return receipt;
+});
 ipcMain.handle('download:command', async (_event, transferId: string, command: Exclude<DownloadCommand, 'start'>) => downloadTransfers.command(transferId, command));
 ipcMain.handle('download:snapshot', async (_event, transferId: string) => downloadTransfers.getSnapshot(transferId));
-downloadTransfers.subscribeGlobal((snapshot) => mainWindow?.webContents.send('download:snapshot', snapshot));
+ipcMain.handle('download:latest-snapshot', async () => downloadTransfers.getLatestSnapshot());
+ipcMain.handle('download:close-window', async (_event, kind: DownloadSurfaceKind) => { closeDownloadWindow(kind); });
+downloadTransfers.subscribeGlobal((snapshot) => {
+  broadcast('download:snapshot', snapshot);
+  if (snapshot.status === 'queued' || snapshot.status === 'downloading' || snapshot.status === 'paused' || snapshot.status === 'partial') openDownloadWindow('progress');
+  if (snapshot.status === 'completed' || snapshot.status === 'failed' || snapshot.status === 'cancelled') { closeDownloadWindow('progress'); openDownloadWindow('complete'); }
+});
 ipcMain.handle('converter:pick-file', async () => {
   const result = await dialog.showOpenDialog(mainWindow ?? undefined, { properties: ['openFile'], title: 'Choose a local source file' });
   const sourcePath = result.canceled ? undefined : result.filePaths[0];
@@ -231,7 +310,7 @@ ipcMain.handle('converter:confirm-overwrite', async (_event, request: { destinat
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();
 } else {
-  app.whenReady().then(createWindow).then(scheduleUpdateChecks);
+  app.whenReady().then(createWindow).then(async () => { await downloadTransfers.initialize(); const handoffs = downloadTransfers.listPendingHandoffs(); if (handoffs.length > 0) { pendingHandoffId = handoffs.at(-1)?.handoffId; openDownloadWindow('start'); } }).then(scheduleUpdateChecks);
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 }

@@ -17,7 +17,7 @@ function outcome(snapshot: DownloadTransferSnapshot): string {
 /** A factual, non-blocking completion notification. The caller supplies the observed outcome. */
 export function DownloadCompleteSurface({ snapshot, onDismiss }: DownloadCompleteSurfaceProps) {
   return (
-    <aside className="download-surface download-complete-surface" role="status" aria-live="polite" aria-label="Download result" data-window-intent="always-on-top">
+    <aside className="download-surface download-complete-surface" role="status" aria-live="polite" aria-label="Download result">
       <div className="download-complete-surface__icon" aria-hidden="true">{snapshot.status === 'completed' ? '✓' : '!'}</div>
       <div className="download-complete-surface__body">
         <p className="download-surface__eyebrow">Transfer result</p>

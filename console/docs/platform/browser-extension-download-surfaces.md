@@ -4,11 +4,11 @@ A companion browser extension's Start-download and in-progress-download dialogs,
 
 ## Behavior
 
-A Start-download dialog is meant to name the proposed file, source, and destination before anything transfers; a separate always-on-top Downloading dialog would show live progress, rate, and pause/resume/cancel controls for the real transfer underway.
+A Start-download window names the proposed file, source, and destination before anything transfers. Dedicated always-on-top Downloading and completion windows show live progress or the final observed outcome for the real transfer underway.
 
 ## Configuration
 
-Both dialogs would reflect the actual queued and in-flight transfer rather than a simulated progress value.
+The native destination picker or a persisted approved destination root supplies the destination. The privileged transfer manager records the original handoff, applies bounded header, body-idle, and total deadlines, streams into a unique adjacent temporary file, validates bytes, and publishes atomically. Range pause and resume are enabled only when the source supplies both byte-range support and a stable validator.
 
 ## Current status
 
@@ -18,7 +18,7 @@ Both dialogs would reflect the actual queued and in-flight transfer rather than 
 
 ## Failure modes
 
-Malformed or non-HTTPS handoffs are refused before transfer. Missing source bodies, HTTP errors, destination conflicts, cancellation, short responses, bounded-size violations, and transfer failures remain visible as failure or partial outcomes. Hosted mode reports the exact unavailable boundary.
+Malformed or non-HTTPS handoffs are refused before transfer. Mismatched replayed handoffs, non-absolute or unapproved destinations, lexical containment failures, symlink or reparse components, destination conflicts, header timeout, body-idle timeout, total timeout, missing source bodies, HTTP errors, cancellation, short responses, bounded-size violations, and transfer failures remain visible as typed failure or partial outcomes. Hosted mode reports the exact unavailable boundary.
 
 ## Accessibility and localization
 
