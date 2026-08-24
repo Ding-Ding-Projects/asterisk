@@ -70,6 +70,18 @@ export interface ControlBinding {
    * type is used instead.
    */
   sectionType?: string | ReadonlyArray<string>;
+  /**
+   * Set when the setting is expressed by the key being PRESENT rather than by its value.
+   *
+   * `deny=` is the clearest case: denying by default means a line carrying 0.0.0.0/0.0.0.0
+   * exists, and not denying means there is no deny line at all. Writing `deny=no` is not the
+   * off state -- it is a line Asterisk tries to read as a network and rejects.
+   *
+   * `whenPresent` is the value written for the true state; false removes the entry. Reading
+   * treats a missing key as false rather than as nothing to report, which is the difference
+   * between a switch that shows its real state and one that shows nothing until touched.
+   */
+  presence?: { whenPresent: string };
 }
 
 /**
@@ -493,6 +505,11 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   // falls. a_deny is unmapped because the real `deny=` key takes a CIDR string, not a
   // boolean.
   ami: [
+    // manager.conf.sample line 97: ;deny=0.0.0.0/0.0.0.0 -- denying by default is the LINE
+    // existing, not a yes or a no, so the off state removes it. Writing deny=no would be a
+    // line Asterisk tries to read as a network.
+    { control: 'a_deny', section: 'general', key: 'deny', kind: 'boolean',
+      presence: { whenPresent: '0.0.0.0/0.0.0.0' } },
     // manager.conf.sample line 34: ;tlsbindaddr=0.0.0.0:5039 -- address and port in one
     // value, the same shape as http.conf, so the port owns its half and leaves the address.
     { control: 'a_tlsport', section: 'general', key: 'tlsbindaddr', kind: 'number',
@@ -571,7 +588,19 @@ export function readControlValues(screen: string, value: ConfigValue | undefined
       ? sectionOfType(value, binding.sectionType)
       : value.find((candidate) => candidate.name === binding.section);
     const entry = section?.entries.find((e) => e.key === binding.key);
-    if (!entry) continue;
+    if (!entry) {
+      /* A presence control reports false for a missing key rather than staying silent: the
+       * absence IS the setting, and a switch that shows nothing until somebody touches it is
+       * hiding the state it exists to show. */
+      if (binding.presence && section) out[binding.control] = false;
+      continue;
+    }
+    if (binding.presence) {
+      /* Present means true whatever it carries, because the value is the network being
+       * denied rather than a yes or a no. */
+      out[binding.control] = true;
+      continue;
+    }
     const rawValue = binding.composite
       ? splitComposite(entry.value, binding.composite.separator)[binding.composite.part]
       : entry.value;
@@ -629,6 +658,17 @@ export function applyControlValues(
     const raw = binding.composite
       ? joinComposite(idx === -1 ? '' : entries[idx].value, binding.composite.separator, binding.composite.part, own)
       : own;
+    if (binding.presence) {
+      /* The off state is the key not being there. Removing rather than writing "no" is the
+       * whole point: "no" is a line Asterisk would try to read as a value. */
+      if (changes[binding.control] === true) {
+        if (idx === -1) entries.push({ key: binding.key, value: binding.presence.whenPresent });
+        else entries[idx] = { key: binding.key, value: binding.presence.whenPresent };
+      } else if (idx !== -1) {
+        entries.splice(idx, 1);
+      }
+      continue;
+    }
     if (idx === -1) {
       entries.push({ key: binding.key, value: raw });
     } else {

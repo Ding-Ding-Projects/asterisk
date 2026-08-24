@@ -57,7 +57,9 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // And 127 with the manager TLS port, which is the same address:port shape as http.conf.
   // The remainder is recorded in docs/platform/unbound-controls.md: most of them are not
   // waiting for a key, they are shapes no single binding can carry.
-  assert.equal(controlCount, 127);
+  // And 128 with deny-by-default, whose off state is the key being absent rather than a
+  // value: deny=no is a line Asterisk tries to read as a network.
+  assert.equal(controlCount, 128);
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -374,10 +376,9 @@ test('unmappedControls reflects the two controls bound on this second look', () 
    * thing from the setting being unbindable -- and worth separating, because one is a
    * decision and the other is a gap. */
   assert.ok(!unmappedControls('ami').includes('a_tlsport'));
-  // and every control genuinely refused on a second look is still refused
-  for (const stillUnbound of ['a_deny']) {
-    assert.ok(unmappedControls('ami').includes(stillUnbound), `expected ${stillUnbound} to remain unmapped`);
-  }
+  /* a_deny left the list too, once a binding could mean the key is absent. Both it and
+   * a_tlsport were recorded as refused when what was really missing was a shape. */
+  assert.ok(!unmappedControls('ami').includes('a_deny'));
   for (const stillUnbound of [
     's_acl', 's_permit', 's_failban', 's_bantime', 's_guest', 's_cert', 's_method', 's_verify', 's_ciphers',
   ]) {
@@ -559,4 +560,43 @@ test('the type and the secret stay out of the bindings', () => {
   assert.deepEqual([...unbound].sort(), ['ix_secret_set', 'ix_type']);
   const written = applyControlValues('iaxpeers', realisticIax, { ix_type: 'user', ix_secret_set: true });
   assert.deepEqual(written, realisticIax, 'the type or a secret reached the file');
+});
+
+// ---------------------------------------------------------------- settings that are a presence
+
+test('a switch whose off state is the key not being there reads both ways', () => {
+  /* Denying by default is the deny LINE existing, not a yes or a no. A missing key is the
+   * off state, not an absence of information, so the switch shows false rather than nothing
+   * -- a switch that shows nothing until somebody touches it hides the state it exists for. */
+  const denied: ConfigValue = [{ name: 'general', entries: [{ key: 'deny', value: '0.0.0.0/0.0.0.0' }] }];
+  const open: ConfigValue = [{ name: 'general', entries: [{ key: 'port', value: '5038' }] }];
+  assert.equal(readControlValues('ami', denied).a_deny, true);
+  assert.equal(readControlValues('ami', open).a_deny, false);
+});
+
+test('turning it off removes the line rather than writing no', () => {
+  /* deny=no is not the off state. It is a line Asterisk tries to read as a network. */
+  const denied: ConfigValue = [{ name: 'general', entries: [
+    { key: 'deny', value: '0.0.0.0/0.0.0.0' }, { key: 'port', value: '5038' },
+  ] }];
+  const after = applyControlValues('ami', denied, { a_deny: false });
+  assert.deepEqual(after[0].entries, [{ key: 'port', value: '5038' }]);
+});
+
+test('turning it on writes the value the setting actually needs', () => {
+  const open: ConfigValue = [{ name: 'general', entries: [{ key: 'port', value: '5038' }] }];
+  const after = applyControlValues('ami', open, { a_deny: true });
+  assert.deepEqual(after[0].entries[1], { key: 'deny', value: '0.0.0.0/0.0.0.0' });
+});
+
+test('whatever the line carries, its presence means on', () => {
+  /* The value is the network being denied, so a different network is still a deny. */
+  const narrow: ConfigValue = [{ name: 'general', entries: [{ key: 'deny', value: '10.0.0.0/8' }] }];
+  assert.equal(readControlValues('ami', narrow).a_deny, true);
+});
+
+test('a section that does not exist reports nothing rather than false', () => {
+  /* False would claim the setting is off in a file that has no such section at all, which is
+   * a different thing from knowing it is off. */
+  assert.equal(readControlValues('ami', [{ name: 'other', entries: [] }]).a_deny, undefined);
 });
