@@ -7,6 +7,7 @@ files:
   - dist-electron/**/*
   - app/electron/preload.cjs
   - app/electron/preload-probe.cjs
+  - app/electron/probe-path.cjs
 asarUnpack:
   - node_modules/keytar/**
 extraResources:

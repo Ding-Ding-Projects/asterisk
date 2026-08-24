@@ -1,7 +1,7 @@
 import * as keytar from 'keytar';
 
 type WorkerRequest = {
-  operation: 'set' | 'verify' | 'deleteAndCheck';
+  operation: 'set' | 'verify' | 'delete' | 'absence';
   service: string;
   account: string;
   value?: string;
@@ -43,9 +43,12 @@ async function run(request: WorkerRequest): Promise<WorkerResponse> {
         ? { ok: true, matched: false, missing: true }
         : { ok: true, matched: stored === request.value, missing: false };
     }
-    const deleted = await keytar.deletePassword(request.service, request.account);
+    if (request.operation === 'delete') {
+      const deleted = await keytar.deletePassword(request.service, request.account);
+      return { ok: deleted, deleted };
+    }
     const absent = (await keytar.getPassword(request.service, request.account)) === null;
-    return { ok: deleted && absent, deleted, absent };
+    return { ok: absent, absent };
   } catch {
     return { ok: false, error: 'The operating-system credential vault worker could not complete the operation.' };
   }

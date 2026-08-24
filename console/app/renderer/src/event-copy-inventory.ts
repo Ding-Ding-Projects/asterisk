@@ -109,48 +109,37 @@ type CensusCall = {
   fallback: 'plain-english-track';
 };
 
-const censusRecords: DynamicEventCopyRecord[] = [];
-const censusRecordByKey = new Map<string, DynamicEventCopyRecord>();
-for (const call of census.calls as CensusCall[]) {
-  const key = call.literal ?? call.id;
-  const existing = censusRecordByKey.get(key);
-  if (existing) {
-    const updated = { ...existing, callIds: [...(existing.callIds ?? [existing.callId!]), call.id] };
-    censusRecordByKey.set(key, updated);
-    const index = censusRecords.findIndex((record) => record.key === key);
-    if (index >= 0) censusRecords[index] = updated;
-    continue;
-  }
-  const record: DynamicEventCopyRecord = {
-    key,
-    kind: call.kind === 'toast' ? 'toast' : 'dialog-title',
-    status: call.status,
-    callId: call.id,
-    callIds: [call.id],
-    sourceId: call.sourceId,
-    location: call.location,
-    shape: call.shape,
-    fallback: call.fallback,
-    reason: call.status === 'english-fallback' ? 'The source census requires the plain English track.' : undefined,
-  };
-  censusRecordByKey.set(key, record);
-  censusRecords.push(record);
+const censusCalls = census.calls as CensusCall[];
+const censusRecords: DynamicEventCopyRecord[] = censusCalls.map((call) => ({
+  key: call.id,
+  kind: call.kind === 'toast' ? 'toast' : 'dialog-title',
+  status: call.status,
+  callId: call.id,
+  callIds: [call.id],
+  sourceId: call.sourceId,
+  location: call.location,
+  shape: call.shape,
+  fallback: call.fallback,
+  reason: call.status === 'english-fallback' ? 'The source census requires the plain English track.' : undefined,
+}));
+const recordsByCallId = new Map(censusRecords.map((record) => [record.callId!, record]));
+const literalCounts = new Map<string, number>();
+for (const call of censusCalls) if (call.literal) literalCounts.set(call.literal, (literalCounts.get(call.literal) ?? 0) + 1);
+const recordsByText = new Map<string, DynamicEventCopyRecord>();
+for (let index = 0; index < censusCalls.length; index += 1) {
+  const literal = censusCalls[index].literal;
+  if (literal && literalCounts.get(literal) === 1) recordsByText.set(literal, censusRecords[index]);
 }
+for (const record of EXPLICIT_EVENT_COPY_INVENTORY) if (!recordsByText.has(record.key)) recordsByText.set(record.key, record);
 
-const recordsByKey = new Map<string, DynamicEventCopyRecord>();
-for (const record of censusRecords) recordsByKey.set(record.key, record);
-for (const record of EXPLICIT_EVENT_COPY_INVENTORY) {
-  if (!recordsByKey.has(record.key)) recordsByKey.set(record.key, record);
-}
-
-export const DYNAMIC_EVENT_COPY_INVENTORY: readonly DynamicEventCopyRecord[] = Object.freeze([...recordsByKey.values()]);
+export const DYNAMIC_EVENT_COPY_INVENTORY: readonly DynamicEventCopyRecord[] = Object.freeze([...censusRecords, ...EXPLICIT_EVENT_COPY_INVENTORY]);
 
 export function dynamicEventCopyRecord(key: string, kind?: DynamicEventCopyRecord['kind']): DynamicEventCopyRecord | undefined {
-  const record = recordsByKey.get(key);
-  if (!record || !kind || record.kind === kind) return record;
+  const record = recordsByCallId.get(key) ?? recordsByText.get(key);
+  if (!record || !kind || record.kind === kind || record.kind === 'dialog-title' && kind === 'dialog-body') return record;
   return undefined;
 }
 
 export function dynamicEventCopyRecordByCallId(callId: string): DynamicEventCopyRecord | undefined {
-  return censusRecords.find((record) => record.callIds?.includes(callId));
+  return recordsByCallId.get(callId);
 }

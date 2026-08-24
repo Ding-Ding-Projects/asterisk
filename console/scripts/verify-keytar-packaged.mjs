@@ -1,9 +1,12 @@
 #!/usr/bin/env node
-import { existsSync, lstatSync, readFileSync, rmSync } from 'node:fs';
-import { dirname, join, resolve as resolvePath } from 'node:path';
-import { spawn, spawnSync } from 'node:child_process';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
+import probePath from '../app/electron/probe-path.cjs';
+
+const { assertNoReparseAncestors } = probePath;
 
 const consoleRoot = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const unpackedRoot = join(consoleRoot, 'dist', 'squirrel-windows', 'win-unpacked');
@@ -33,22 +36,7 @@ if (provenance.product !== expected.product || provenance.packageVersion !== exp
 
 const resultPath = join(process.env.TEMP || process.env.TMP || consoleRoot, `ding-pbx-keytar-probe-${randomUUID()}.json`);
 const profilePath = join(process.env.TEMP || process.env.TMP || consoleRoot, `ding-pbx-keytar-profile-${randomUUID()}`);
-function assertNoSymlinkAncestors(target) {
-  let current = resolvePath(target);
-  while (true) {
-    if (existsSync(current) && (lstatSync(current).isSymbolicLink() || isNativeReparsePoint(current))) throw new Error(`Probe profile path contains a symlink or reparse point: ${current}`);
-    const parent = dirname(current);
-    if (parent === current) return;
-    current = parent;
-  }
-}
-function isNativeReparsePoint(path) {
-  if (process.platform !== 'win32') return false;
-  const result = spawnSync('fsutil.exe', ['reparsepoint', 'query', path], { stdio: 'ignore', windowsHide: true, shell: false });
-  if (result.error) throw result.error;
-  return result.status === 0;
-}
-assertNoSymlinkAncestors(profilePath);
+assertNoReparseAncestors(profilePath);
 let child;
 let childExitProven = false;
 const cleanup = { childExit: null, childExitProven: false, childKillRequested: false, resultRead: false, resultDeleted: false, profileDeleted: false, profileRetainedForensics: false, resultRetainedForensics: false };
@@ -82,13 +70,13 @@ try {
   for (const key of ['provenanceMatched', 'writeSucceeded', 'readMatched', 'deleteSucceeded', 'absentAfterDelete']) {
     if (result[key] !== true) throw new Error(`Packaged main-process IPC keytar probe did not prove ${key}.`);
   }
-  if (!result.cleanup || !Number.isInteger(result.cleanup.deleteAttempts) || result.cleanup.deleteAttempts < 1 || !Number.isInteger(result.cleanup.vaultOperations) || result.cleanup.vaultOperations < 3 || result.cleanup.cleanupError) throw new Error('Packaged main-process IPC keytar probe did not return strict deletion evidence.');
+  if (!result.cleanup || result.cleanup.maxDeleteAttempts !== 3 || !Number.isInteger(result.cleanup.deleteAttempts) || result.cleanup.deleteAttempts < 1 || result.cleanup.deleteAttempts > result.cleanup.maxDeleteAttempts || !Number.isInteger(result.cleanup.cleanupPasses) || result.cleanup.cleanupPasses < 1 || result.cleanup.cleanupPasses > 2 || !Number.isInteger(result.cleanup.vaultOperations) || result.cleanup.vaultOperations !== 2 + (result.cleanup.deleteAttempts * 2) || result.cleanup.cleanupError) throw new Error('Packaged main-process IPC keytar probe did not return cumulative bounded deletion evidence.');
   const artifact = result.artifact;
   const provenanceSha256 = createHash('sha256').update(readFileSync(provenancePath)).digest('hex');
   const executableDigest = releaseIdentity.artifacts?.executable;
   if (!artifact || !executableDigest || executableDigest.name !== 'Ding PBX Console.exe' || artifact.executableSha256 !== executableDigest.sha256 || artifact.executableVersion !== expected.packageVersion || artifact.executableProduct !== releaseIdentity.productName) throw new Error('Packaged executable identity does not match the release identity.');
   if (!artifact || artifact.product !== expected.product || artifact.packageVersion !== expected.packageVersion || artifact.candidateCommit !== expected.candidateCommit || artifact.appId !== expected.appId || artifact.provenanceSha256 !== provenanceSha256 || artifact.probeUserDataMatches !== true) throw new Error('Packaged main-process IPC probe returned mismatched or unredacted artifact identity.');
-  if (!result.cleanup || result.cleanup.deleteAttempts < 1 || result.cleanup.cleanupError) throw new Error('Packaged main-process IPC probe returned incomplete cleanup evidence.');
+  if (!result.cleanup || result.cleanup.maxDeleteAttempts !== 3 || result.cleanup.vaultOperations !== 2 + (result.cleanup.deleteAttempts * 2) || result.cleanup.cleanupError) throw new Error('Packaged main-process IPC probe returned incomplete cumulative cleanup evidence.');
 } finally {
   if (child && !child.killed) { cleanup.childKillRequested = true; child.kill(); }
   try { rmSync(resultPath, { force: true }); cleanup.resultDeleted = true; } catch { cleanup.resultDeleted = false; cleanup.resultRetainedForensics = true; console.error(`Retained keytar probe result for local diagnostics at ${resultPath}`); }

@@ -394,13 +394,15 @@ The School credential now uses the shared `keytar` OS-vault account contract in
 `scripts/verify-keytar-packaged.mjs` to load the packaged native module and complete a vault
 round-trip. The packaging controller now stages candidate provenance before the builder, compares
 the final release identity with independent controller values, and passes that identity into a
-probe-only preload and main-process IPC route. The probe asserts the requested isolated application
-data path before dispatcher initialization, waits for a bounded post-kill exit deadline, records
-each cleanup result, and retains the forensic profile when child exit cannot be proven. The event
-census has exact stable records for 276 App, design, and generated event calls, plus the 12 App
-template records, with an explicit localized or plain-English fallback status for each. These
-records and the release checks remain `implemented-unverified` because package execution was not
-run in this lane.
+probe-only preload and main-process IPC route. Credential operations run in isolated cancellable
+workers with cumulative bounded cleanup evidence. The probe asserts the requested isolated
+application data path before dispatcher initialization, uses the shared production reparse
+validator, waits for a bounded post-kill exit deadline, records each cleanup result, and retains
+the forensic profile when child exit cannot be proven. The event census has one runtime record and
+stable call ID for each of 276 App, design, and generated event calls, plus the 12 App template
+records, with an explicit localized or plain-English fallback status for each. These records and
+the release checks remain `implemented-unverified` because package execution was not run in this
+lane.
 
 
 ## Next owner actions

@@ -1,11 +1,12 @@
 import { app, BrowserWindow, ipcMain, utilityProcess } from 'electron';
-import { spawnSync } from 'node:child_process';
-import { existsSync, lstatSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve as resolvePath } from 'node:path';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve as resolvePath } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
 import { SCHOOL_CREDENTIAL_ACCOUNT, SCHOOL_CREDENTIAL_SERVICE } from '../../shared/school-contract.js';
+// @ts-ignore CommonJS helper is shared with the standalone junction fixture.
+import { assertNoReparseAncestors } from './probe-path.cjs';
 import type { ControlPlaneRequest, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
 import {
   parseVersion, resolveLatestUpdate, validateReleaseIdentity, initialUpdaterState, beganChecking, checkSucceeded,
@@ -23,23 +24,8 @@ let probeAuthorizationConsumed = false;
 const probeModeRequested = process.argv.some((value) => value.startsWith('--school-vault-probe-result='));
 const requestedProbeUserData = probeModeRequested ? process.argv.find((value) => value.startsWith('--user-data-dir='))?.slice('--user-data-dir='.length) : undefined;
 if (probeModeRequested && !requestedProbeUserData) throw new Error('Probe mode requires an isolated user-data path.');
-function assertNoSymlinkAncestors(target: string): void {
-  let current = resolvePath(target);
-  while (true) {
-    if (existsSync(current) && (lstatSync(current).isSymbolicLink() || isNativeReparsePoint(current))) throw new Error(`Probe user-data path contains a symlink or reparse point: ${current}`);
-    const parent = dirname(current);
-    if (parent === current) return;
-    current = parent;
-  }
-}
-function isNativeReparsePoint(path: string): boolean {
-  if (process.platform !== 'win32') return false;
-  const result = spawnSync('fsutil.exe', ['reparsepoint', 'query', path], { stdio: 'ignore', windowsHide: true, shell: false });
-  if (result.error) throw result.error;
-  return result.status === 0;
-}
 if (requestedProbeUserData) {
-  assertNoSymlinkAncestors(requestedProbeUserData);
+  assertNoReparseAncestors(requestedProbeUserData);
   app.setPath('userData', resolvePath(requestedProbeUserData));
   const actualProbeUserData = resolvePath(app.getPath('userData'));
   if (actualProbeUserData !== resolvePath(requestedProbeUserData)) throw new Error(`Probe user-data equality failed: requested and actual paths are both present but equality is ${actualProbeUserData === resolvePath(requestedProbeUserData)}.`);
@@ -48,7 +34,7 @@ const probeUserDataMatches = probeModeRequested && requestedProbeUserData ? reso
 const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false });
 const { controlPlaneRequest } = dispatcher;
 type KeytarWorkerRequest = {
-  operation: 'set' | 'verify' | 'deleteAndCheck';
+  operation: 'set' | 'verify' | 'delete' | 'absence';
   service: string;
   account: string;
   value?: string;
@@ -350,23 +336,27 @@ ipcMain.handle('school:packaged-vault-probe', async (_event, authorization: unkn
   let absentAfterDelete = false;
   let vaultOperations = 0;
   let deleteAttempts = 0;
+  let cleanupPasses = 0;
+  const maxDeleteAttempts = 3;
   let cleanupError: string | undefined;
   const runVaultOperation = async (operation: KeytarWorkerRequest): Promise<KeytarWorkerResponse> => {
     vaultOperations += 1;
     return await runKeytarWorker(operation);
   };
   const cleanupProbe = async (): Promise<void> => {
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
-      deleteAttempts = attempt;
+    cleanupPasses += 1;
+    while (deleteAttempts < maxDeleteAttempts) {
+      deleteAttempts += 1;
       try {
-        const result = await runVaultOperation({ operation: 'deleteAndCheck', service, account });
-        if (result.ok && result.deleted && result.absent) {
+        const deleted = await runVaultOperation({ operation: 'delete', service, account });
+        const absent = await runVaultOperation({ operation: 'absence', service, account });
+        if (deleted.ok && deleted.deleted && absent.ok && absent.absent) {
           deleteSucceeded = true;
           absentAfterDelete = true;
           cleanupError = undefined;
           return;
         }
-        cleanupError = `Vault deletion attempt ${attempt} did not prove both deletion and absence.`;
+        cleanupError = `Vault deletion attempt ${deleteAttempts} did not prove both deletion and absence.`;
       } catch (error) {
         cleanupError = error instanceof Error ? error.message : String(error);
       }
@@ -384,7 +374,7 @@ ipcMain.handle('school:packaged-vault-probe', async (_event, authorization: unkn
   const executableSha256 = createHash('sha256').update(readFileSync(process.execPath)).digest('hex');
   return {
     provenanceMatched, writeSucceeded, readMatched, deleteSucceeded, absentAfterDelete,
-    cleanup: { deleteAttempts, vaultOperations, cleanupError },
+    cleanup: { deleteAttempts, maxDeleteAttempts, cleanupPasses, vaultOperations, cleanupError },
     artifact: { product: String(candidate.product ?? ''), packageVersion: String(candidate.packageVersion ?? ''), candidateCommit: String(candidate.candidateCommit ?? ''), appId: String(candidate.appId ?? ''), provenanceSha256, probeUserDataMatches, executableSha256, executableVersion: app.getVersion(), executableProduct: app.getName() },
   };
 });

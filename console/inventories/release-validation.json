@@ -35,7 +35,7 @@
       "command": "node scripts/verify-probe-path-fixture.mjs",
       "source": "console/app/electron/preload-probe.cjs",
       "status": "implemented-unverified",
-      "evidence": "The probe-only preload is packaged separately; the normal preload and shared desktop API type contain no packaged-vault probe capability. The native path fixture accepts an ordinary profile and rejects a junction."
+      "evidence": "The probe-only preload is packaged separately; the normal preload and shared desktop API type contain no packaged-vault probe capability. The real junction fixture imports the shared production reparse validator, accepts an ordinary profile, and rejects a junction."
     },
     {
       "id": "candidate-provenance",
@@ -48,7 +48,7 @@
       "command": "node scripts/verify-keytar-packaged.mjs",
       "source": "console/scripts/verify-keytar-packaged.mjs",
       "status": "implemented-unverified",
-      "evidence": "Binds the probe service to package version and candidate commit, writes and reads an ephemeral value, deletes it, then requires post-delete absence."
+      "evidence": "Binds the probe service to package version and candidate commit, writes and reads an ephemeral value in isolated workers, deletes it with cumulative bounded attempts, then requires post-delete absence and the exact worker-operation relation."
     },
     {
       "id": "candidate-package-identity",

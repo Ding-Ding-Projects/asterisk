@@ -43,7 +43,7 @@ import {
   IDENTITY, displayName, resetDisplayName, setDisplayName,
 } from './display-name';
 import { setEmojisEnabled } from './dialog-emojis';
-import { dynamicEventCopyRecord } from './event-copy-inventory';
+import { dynamicEventCopyRecord, dynamicEventCopyRecordByCallId } from './event-copy-inventory';
 import { isAttentionMode, setModeEnabled } from './attention-modes';
 import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
 import { KNOWN_EDITORS, chooseEditor, clearEditorChoice } from './external-editor';
@@ -149,8 +149,10 @@ interface Shell {
   moveNode(id: string, dx: number, dy: number): void;
   addEdgeFrom(): void;
   toast(message: string): void;
+  toastWithId(callId: string, message: string): void;
   areYouSure(title: string, body: string, seconds: number, onConfirm: () => void): void;
   fire(title: string, body: string): void;
+  fireWithId(callId: string, title: string, body: string): void;
 }
 
 /** The shape the compiled shell hands every control callback. */
@@ -493,10 +495,10 @@ export class App extends Base {
     void this.refreshDaemonStatus();
     if (state === 'daemonAnswering') return;
 
-    this.toast('Starting the phone system…');
+    this.toastWithId('event-app-event-source-498-toast-0', 'Starting the phone system…');
     const started = await this.request('daemon.start');
     if (!started?.ok) {
-      this.fire('The phone system did not start', started?.message ?? 'Asterisk did not answer after it was started.');
+      this.fireWithId('event-app-event-source-501-fire-0', 'The phone system did not start', started?.message ?? 'Asterisk did not answer after it was started.');
       return;
     }
     /* Anything read before this point was read against a daemon that was not up, so it
@@ -528,10 +530,10 @@ export class App extends Base {
       const result = loadVocabularyFile(this.vocabStorage, text);
       this.pickedFileNames.set(ctl.id, result.ok ? file.name : `${file.name} — rejected`);
       this.forceUpdate();
-      if (result.ok) this.toast(result.status);
-      else this.fire('Vocabulary file rejected', result.status);
+      if (result.ok) this.toastWithId('event-app-event-source-533-toast-0', result.status);
+      else this.fireWithId('event-app-event-source-534-fire-0', 'Vocabulary file rejected', result.status);
     };
-    reader.onerror = () => this.fire('Vocabulary file not read', 'The file could not be read from disk.');
+    reader.onerror = () => this.fireWithId('event-app-event-source-536-fire-0', 'Vocabulary file not read', 'The file could not be read from disk.');
     reader.readAsText(file);
   };
 
@@ -539,20 +541,20 @@ export class App extends Base {
     const result = clearVocabulary(this.vocabStorage);
     this.pickedFileNames.delete(ctl.id);
     this.forceUpdate();
-    this.toast(result.status);
+    this.toastWithId('event-app-event-source-544-toast-0', result.status);
   };
 
   // ---------------------------------------------------------------- daemon lifecycle
 
   private daemonAction = async (verb: 'start' | 'stop' | 'restart'): Promise<void> => {
     if (!this.target.connected) {
-      this.fire('No target connected', 'Connect to a server first — there is nothing to start, stop, or restart yet.');
+      this.fireWithId('event-app-event-source-551-fire-0', 'No target connected', 'Connect to a server first — there is nothing to start, stop, or restart yet.');
       return;
     }
-    this.toast(`${verb === 'start' ? 'Starting' : verb === 'stop' ? 'Stopping' : 'Restarting'} the phone system…`);
+    this.toastWithId('event-app-event-source-554-toast-0', `${verb === 'start' ? 'Starting' : verb === 'stop' ? 'Stopping' : 'Restarting'} the phone system…`);
     const response = await this.request(`daemon.${verb}`);
     if (!response?.ok) {
-      this.fire('Not done', response?.message ?? `The phone system did not ${verb}.`);
+      this.fireWithId('event-app-event-source-557-fire-0', 'Not done', response?.message ?? `The phone system did not ${verb}.`);
       await this.refreshDaemonStatus();
       return;
     }
@@ -560,7 +562,7 @@ export class App extends Base {
     this.readings = {};
     this.canvasReadings = undefined;
     await this.refreshDaemonStatus();
-    this.fire(`Phone system ${verb === 'start' ? 'started' : verb === 'stop' ? 'stopped' : 'restarted'}`, `Asterisk on ${this.target.label} answered after the ${verb}.`);
+    this.fireWithId('event-app-event-source-565-fire-0', `Phone system ${verb === 'start' ? 'started' : verb === 'stop' ? 'stopped' : 'restarted'}`, `Asterisk on ${this.target.label} answered after the ${verb}.`);
   };
 
   private refreshDaemonStatus = async (): Promise<void> => {
@@ -597,11 +599,11 @@ export class App extends Base {
       draw: Math.random(),
     });
     if ('problems' in result) {
-      this.fire('That ticket will not file', result.problems[0].message);
+      this.fireWithId('event-app-event-source-602-fire-0', 'That ticket will not file', result.problems[0].message);
       return;
     }
     const resolution = resolutionFor(IDENTITY.dataDirectory);
-    this.fire(`Ticket ${result.id} — ${result.status}`,
+    this.fireWithId('event-app-event-source-606-fire-0', `Ticket ${result.id} — ${result.status}`,
       `${result.firstResponse}
 
 ${resolution.instructions}
@@ -634,10 +636,10 @@ ${resolution.disclosure}`);
     if (isLanguageMode(saved)) setLanguageMode(saved);
   }
 
-  private currentFunnyEvent(text: string, kind: 'toast' | 'dialog-title' | 'dialog-body' = 'toast'): { display: string; enText: string; yueText: string } {
+  private currentFunnyEvent(text: string, kind: 'toast' | 'dialog-title' | 'dialog-body' = 'toast', callId?: string): { display: string; enText: string; yueText: string } {
     const event = localizeEventText(text, this.renameSchoolText);
     const enText = styleFunnyText(event.enText, 'en', this.funnyLevels.en);
-    const inventory = dynamicEventCopyRecord(text, kind);
+    const inventory = callId ? dynamicEventCopyRecordByCallId(callId) : dynamicEventCopyRecord(text, kind);
     const yueText = event.translated && inventory?.status !== 'english-fallback'
       ? styleFunnyText(event.yueText, 'yue', this.funnyLevels.yue)
       : event.yueText;
@@ -682,6 +684,23 @@ ${resolution.disclosure}`);
   private localizedFire = (title: string, body: string): void => {
     const titleEvent = this.currentFunnyEvent(title, 'dialog-title');
     const bodyEvent = this.currentFunnyEvent(body, 'dialog-body');
+    this.baseFire(titleEvent.display, bodyEvent.display);
+    this.narrator?.enqueue('dialog', `${titleEvent.display}. ${bodyEvent.display}`, {
+      isError: /not |failed|error|cannot|could not|rejected|unavailable/iu.test(body),
+      enText: `${titleEvent.enText}. ${bodyEvent.enText}`,
+      yueText: `${titleEvent.yueText}。${bodyEvent.yueText}`,
+    });
+  };
+
+  private toastWithId = (callId: string, message: string): void => {
+    const event = this.currentFunnyEvent(message, 'toast', callId);
+    this.baseToast(event.display);
+    this.narrator?.enqueue('notification', event.display, { enText: event.enText, yueText: event.yueText });
+  };
+
+  private fireWithId = (callId: string, title: string, body: string): void => {
+    const titleEvent = this.currentFunnyEvent(title, 'dialog-title', callId);
+    const bodyEvent = this.currentFunnyEvent(body, 'dialog-body', callId);
     this.baseFire(titleEvent.display, bodyEvent.display);
     this.narrator?.enqueue('dialog', `${titleEvent.display}. ${bodyEvent.display}`, {
       isError: /not |failed|error|cannot|could not|rejected|unavailable/iu.test(body),
@@ -936,7 +955,7 @@ ${resolution.disclosure}`);
   private configureSchoolCredential = async (): Promise<void> => {
     if (this.schoolCredentialPromptOpen) return;
     if (!this.schoolRecoveryReady) {
-      this.fire('School mode recovery path unavailable', this.schoolRecoveryLine);
+      this.fireWithId('event-app-event-source-958-fire-0', 'School mode recovery path unavailable', this.schoolRecoveryLine);
       return;
     }
     this.schoolCredentialKind = 'set';
@@ -949,7 +968,7 @@ ${resolution.disclosure}`);
   private unlockSchoolMode = async (): Promise<void> => {
     if (this.schoolCredentialPromptOpen) return;
     if (!this.schoolRecoveryReady) {
-      this.fire('School mode recovery path unavailable', this.schoolRecoveryLine);
+      this.fireWithId('event-app-event-source-971-fire-0', 'School mode recovery path unavailable', this.schoolRecoveryLine);
       return;
     }
     this.schoolCredentialKind = 'verify';
@@ -1001,7 +1020,7 @@ ${resolution.disclosure}`);
         ? await this.boundedCall(() => bridge?.school?.setCredential(value) ?? Promise.resolve(undefined), 1800)
         : await this.boundedCall(() => bridge?.school?.verifyCredential(value) ?? Promise.resolve(undefined), 1800);
       if (!result?.ok) {
-        this.fire(this.schoolCredentialKind === 'set' ? 'School mode credential not saved' : 'School mode remains on', result?.reason ?? 'The operating-system credential vault is unavailable.');
+        this.fireWithId('event-app-event-source-1023-fire-0', this.schoolCredentialKind === 'set' ? 'School mode credential not saved' : 'School mode remains on', result?.reason ?? 'The operating-system credential vault is unavailable.');
         return;
       }
       this.schoolCredentialOpen = false;
@@ -1010,9 +1029,9 @@ ${resolution.disclosure}`);
       this.schoolCredentialOrigin = null;
       if (this.schoolCredentialKind === 'verify') {
         this.applySchoolMode(false, true);
-        this.toast(`${schoolModeName(this.vocabStorage)} unlocked. Earlier language and funny levels are back.`);
+        this.toastWithId('event-app-event-source-1032-toast-0', `${schoolModeName(this.vocabStorage)} unlocked. Earlier language and funny levels are back.`);
       } else {
-        this.toast('School mode unlock credential saved locally.');
+        this.toastWithId('event-app-event-source-1034-toast-0', 'School mode unlock credential saved locally.');
       }
       this.forceUpdate();
     } finally {
@@ -1049,13 +1068,13 @@ ${resolution.disclosure}`);
       if (problems.length > 0) {
         /* Report it rather than storing a name the module refused, which would leave
          * the control showing something the app would not accept back. */
-        this.fire('That name will not work', problems[0].message);
+        this.fireWithId('event-app-event-source-1071-fire-0', 'That name will not work', problems[0].message);
         return;
       }
     }
     if (control?.id === 'id_name_reset' && value === true) {
       resetDisplayName(this.durableStorage.storage);
-      this.toast(`Name restored to ${IDENTITY.productName}`);
+      this.toastWithId('event-app-event-source-1077-toast-0', `Name restored to ${IDENTITY.productName}`);
     }
     /* The five attention modes share one prefix and one handler, so adding a sixth is
      * a registry entry rather than another branch here. */
@@ -1065,7 +1084,7 @@ ${resolution.disclosure}`);
     }
     if (control?.id === 'ed_clear' && value === true) {
       clearEditorChoice(this.durableStorage.storage);
-      this.toast('Editor choice forgotten');
+      this.toastWithId('event-app-event-source-1087-toast-0', 'Editor choice forgotten');
     }
     if (control?.id === 'sup_open' && value === true) {
       this.fileSupportTicket();
@@ -1114,7 +1133,7 @@ ${resolution.disclosure}`);
     if (control?.id === 'school_name' && typeof value === 'string') {
       const problems = renameSchoolMode(this.vocabStorage, value);
       if (problems.length > 0) {
-        this.fire('School mode name not saved', problems[0]!);
+        this.fireWithId('event-app-event-source-1136-fire-0', 'School mode name not saved', problems[0]!);
         this.baseSetVal(control, schoolModeName(this.vocabStorage));
         return;
       }
@@ -1174,18 +1193,18 @@ ${resolution.disclosure}`);
     }
     const created = await this.servers.add(input as never);
     this.forceUpdate();
-    if (created) this.fire('Connection added', `${created.name} is now in the server list below.`);
-    else this.fire('Not added', 'The control plane did not accept that connection.');
+    if (created) this.fireWithId('event-app-event-source-1196-fire-0', 'Connection added', `${created.name} is now in the server list below.`);
+    else this.fireWithId('event-app-event-source-1197-fire-0', 'Not added', 'The control plane did not accept that connection.');
   };
 
   /** The design has already run this past `areYouSure` before calling it. */
   onRemoveServerRow = async (name: string): Promise<void> => {
     const server = this.servers.servers.find((s) => s.name === name);
-    if (!server) { this.fire('Not found', `${name} is no longer in the server list.`); return; }
+    if (!server) { this.fireWithId('event-app-event-source-1203-fire-0', 'Not found', `${name} is no longer in the server list.`); return; }
     const removed = await this.servers.remove(server.id);
     this.forceUpdate();
-    if (removed) this.fire('Connection removed', `${name} was removed from the server list.`);
-    else this.fire('Not removed', 'The control plane did not accept that removal.');
+    if (removed) this.fireWithId('event-app-event-source-1206-fire-0', 'Connection removed', `${name} was removed from the server list.`);
+    else this.fireWithId('event-app-event-source-1207-fire-0', 'Not removed', 'The control plane did not accept that removal.');
   };
 
   // ---------------------------------------------------------------- onboarding wizard
@@ -1243,13 +1262,13 @@ ${resolution.disclosure}`);
     const created = await this.servers.add(input as never);
     this.forceUpdate();
     if (created) {
-      this.fire('Connected', `${created.name} was added to the server list and is available on Deploy & servers.`);
+      this.fireWithId('event-app-event-source-1265-fire-0', 'Connected', `${created.name} was added to the server list and is available on Deploy & servers.`);
       void this.discover();
       this.set('onboardOpen', false);
       this.set('screen', 'servers');
       this.set('railId', 'app');
     } else {
-      this.fire('Not connected', 'The control plane did not accept that connection. Nothing was written.');
+      this.fireWithId('event-app-event-source-1271-fire-0', 'Not connected', 'The control plane did not accept that connection. Nothing was written.');
     }
   }
 
@@ -1261,18 +1280,18 @@ ${resolution.disclosure}`);
   private async onboardDeploy(): Promise<void> {
     if (!this.target.connected) {
       if (!canProvision(this.runtime)) {
-        this.fire('No target', `Nothing is connected and a runtime cannot be created here: ${runtimeLabel(this.runtime)}`);
+        this.fireWithId('event-app-event-source-1283-fire-0', 'No target', `Nothing is connected and a runtime cannot be created here: ${runtimeLabel(this.runtime)}`);
         return;
       }
-      this.toast('Creating the Asterisk runtime for the wizard — this takes a while.');
+      this.toastWithId('event-app-event-source-1286-toast-0', 'Creating the Asterisk runtime for the wizard — this takes a while.');
       const provisioned = await this.request('runtime.provision');
       if (!provisioned?.ok) {
-        this.fire('Not created', provisioned?.message ?? 'Creating the runtime did not succeed, so there is nothing to deploy to.');
+        this.fireWithId('event-app-event-source-1289-fire-0', 'Not created', provisioned?.message ?? 'Creating the runtime did not succeed, so there is nothing to deploy to.');
         return;
       }
       await this.discover();
       if (!this.target.connected) {
-        this.fire('No target', 'The runtime was created but nothing is connected yet — open Deploy & servers to finish connecting, then try the wizard again.');
+        this.fireWithId('event-app-event-source-1294-fire-0', 'No target', 'The runtime was created but nothing is connected yet — open Deploy & servers to finish connecting, then try the wizard again.');
         return;
       }
     }
@@ -1291,7 +1310,7 @@ ${resolution.disclosure}`);
     ].filter((line, i, arr) => line !== '' || arr[i - 1] !== '');
 
     if (plan.summary.length === 0) {
-      this.fire('Nothing to change', 'The target already matches what the wizard would have written, so nothing was touched.');
+      this.fireWithId('event-app-event-source-1313-fire-0', 'Nothing to change', 'The target already matches what the wizard would have written, so nothing was touched.');
       this.set('onboardOpen', false);
       this.set('screen', 'servers');
       this.set('railId', 'app');
@@ -1306,11 +1325,11 @@ ${resolution.disclosure}`);
           const response = await this.request('pbx.apply', { serverId: this.target.id, payload: { documents: plan.documents } });
           const result = (response as { data?: { result?: { status: string; message?: string } }; message?: string } | undefined);
           if (!response?.ok) {
-            this.fire('Deploy not applied', `${response?.message ?? result?.data?.result?.message ?? 'The target refused the change.'}`);
+            this.fireWithId('event-app-event-source-1328-fire-0', 'Deploy not applied', `${response?.message ?? result?.data?.result?.message ?? 'The target refused the change.'}`);
             return;
           }
           const secretLines = plan.newExtensions.map((e) => `${e.id}: ${e.secret}`).join('\n');
-          this.fire(
+          this.fireWithId('event-app-event-source-1332-fire-0',
             'Deployed',
             [
               `Applied: ${plan.summary.join('; ')}.`,
@@ -1346,13 +1365,13 @@ ${resolution.disclosure}`);
    */
   onPickRow = (name: string): void => {
     const value = this.pjsipValue();
-    if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
+    if (!value) { this.fireWithId('event-app-event-source-1368-fire-0', 'Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
     const endpoint = findEndpoint(value, name);
-    if (!endpoint) { this.fire('Not loaded', `${name} is not in this target's pjsip.conf.`); return; }
+    if (!endpoint) { this.fireWithId('event-app-event-source-1370-fire-0', 'Not loaded', `${name} is not in this target's pjsip.conf.`); return; }
     this.editingEndpoint = name;
     const state = this.state as { values: Record<string, unknown> };
     this.setState({ values: { ...state.values, ...controlValuesFor(endpoint) } } as never);
-    this.toast(`${name} loaded into the editor below.`);
+    this.toastWithId('event-app-event-source-1374-toast-0', `${name} loaded into the editor below.`);
   };
 
   /**
@@ -1387,7 +1406,7 @@ ${resolution.disclosure}`);
 
     if (verb === 'Exported') {
       if (plan.affected.length === 0) {
-        this.fire('Nothing to export', message);
+        this.fireWithId('event-app-event-source-1409-fire-0', 'Nothing to export', message);
         return;
       }
       const byId = new Map(rows.map((r) => [r[0], r] as const));
@@ -1409,14 +1428,14 @@ ${resolution.disclosure}`);
       URL.revokeObjectURL(url);
       this.set('selected', []);
       const lossNote = loss.length > 0 ? ` ${loss.join(' ')}` : '';
-      this.fire('Exported', `${message} Saved as ${filename} — ${format.toUpperCase()}, UTF-8, LF line endings.${lossNote}`);
+      this.fireWithId('event-app-event-source-1431-fire-0', 'Exported', `${message} Saved as ${filename} — ${format.toUpperCase()}, UTF-8, LF line endings.${lossNote}`);
       return;
     }
 
     // Every other bulk verb (Enable/Disable/Duplicate/...) has no write path in this
     // console yet -- the plan and its honest count are real, but nothing is applied.
     this.set('selected', []);
-    this.fire(verb, message);
+    this.fireWithId('event-app-event-source-1438-fire-0', verb, message);
   };
 
   /**
@@ -1500,7 +1519,7 @@ ${resolution.disclosure}`);
       s.lockX || '40%',
       s.lockY || '22%',
     );
-    this.fire('Authenticator paired', 'A real TOTP secret was generated locally for this element.');
+    this.fireWithId('event-app-event-source-1522-fire-0', 'Authenticator paired', 'A real TOTP secret was generated locally for this element.');
   };
 
   /**
@@ -1519,16 +1538,16 @@ ${resolution.disclosure}`);
     const needsPin = s.lockMethod.indexOf('PIN') >= 0;
     const needsPw = s.lockMethod.indexOf('Password') >= 0;
     const needsTotp = s.lockMethod.indexOf('TOTP') >= 0;
-    if (needsPin && s.pin.length < 4) { this.toast('Set at least a four-digit PIN first'); return; }
-    if (needsPw && (s.password || '').length < 4) { this.toast('Set a passphrase first'); return; }
-    if (needsTotp && !s.totpPendingSecret) { this.toast('Pair the built-in authenticator first'); return; }
+    if (needsPin && s.pin.length < 4) { this.toastWithId('event-app-event-source-1541-toast-0', 'Set at least a four-digit PIN first'); return; }
+    if (needsPw && (s.password || '').length < 4) { this.toastWithId('event-app-event-source-1542-toast-0', 'Set a passphrase first'); return; }
+    if (needsTotp && !s.totpPendingSecret) { this.toastWithId('event-app-event-source-1543-toast-0', 'Pair the built-in authenticator first'); return; }
     const L = { ...s.locks };
     L[s.lockKey] = {
       method: s.lockMethod, pin: s.pin, password: s.password, target: s.lockTarget,
       ...(needsTotp ? { totpSecret: s.totpPendingSecret } : {}),
     };
     this.setState({ locks: L, lockOpen: false, totpPendingSecret: undefined, totpPendingUri: undefined } as never);
-    this.toast(`${s.lockTarget} is locked with ${s.lockMethod} -- the surface is now disabled`);
+    this.toastWithId('event-app-event-source-1550-toast-0', `${s.lockTarget} is locked with ${s.lockMethod} -- the surface is now disabled`);
   };
 
   /**
@@ -1556,18 +1575,18 @@ ${resolution.disclosure}`);
       if (count >= 3) {
         const result = this.ladder.issue(s.unlockKey);
         if (result.rung === 'clock') {
-          this.toast(`${message} -- ${result.reason}`);
+          this.toastWithId('event-app-event-source-1578-toast-0', `${message} -- ${result.reason}`);
           return;
         }
         if (result.rung === 'moles') {
-          this.toast(`${message} -- the next challenge needs a visual board this build cannot show yet. Wait it out.`);
+          this.toastWithId('event-app-event-source-1582-toast-0', `${message} -- the next challenge needs a visual board this build cannot show yet. Wait it out.`);
           return;
         }
         this.setState({ ladderActive: true, ladderChallenge: result, ladderDigits: '', ladderSumsAnswers: [] } as never);
-        this.toast(`${message} -- or clear a quick challenge instead of waiting. It only clears the wait, not this credential.`);
+        this.toastWithId('event-app-event-source-1586-toast-0', `${message} -- or clear a quick challenge instead of waiting. It only clears the wait, not this credential.`);
         return;
       }
-      this.toast(message);
+      this.toastWithId('event-app-event-source-1589-toast-0', message);
     };
 
     if (m.indexOf('PIN') >= 0 && s.unlockPin !== L.pin) { wrong('Wrong PIN -- the surface stays locked'); return; }
@@ -1586,7 +1605,7 @@ ${resolution.disclosure}`);
       locks: n, unlockOpen: false, unlockPin: '', unlockPw: '', unlockTotpDigits: '', unlockPhase: undefined,
       ladderActive: false, ladderChallenge: null,
     } as never);
-    this.fire('Unlocked', 'Welcome back.');
+    this.fireWithId('event-app-event-source-1608-fire-0', 'Unlocked', 'Welcome back.');
   };
 
   /**
@@ -1600,38 +1619,38 @@ ${resolution.disclosure}`);
   private finishLadderGrade(result: GradeResult, lockKey: string): void {
     if (result.cleared) {
       this.setState({ ladderActive: false, ladderChallenge: null, ladderDigits: '', ladderSumsAnswers: [] } as never);
-      this.toast('Challenge cleared -- the wait is over. You still need the real PIN, passphrase or code.');
+      this.toastWithId('event-app-event-source-1622-toast-0', 'Challenge cleared -- the wait is over. You still need the real PIN, passphrase or code.');
       return;
     }
     const next = this.ladder.issue(lockKey);
     if (next.rung === 'clock' || next.rung === 'moles') {
       this.setState({ ladderActive: false, ladderChallenge: null } as never);
-      this.toast(next.rung === 'clock'
+      this.toastWithId('event-app-event-source-1628-toast-0', next.rung === 'clock'
         ? `Wrong. ${next.reason}`
         : 'Wrong. The next challenge needs a visual board this build cannot show yet.');
       return;
     }
     this.setState({ ladderChallenge: next, ladderDigits: '', ladderSumsAnswers: [] } as never);
-    this.toast('Wrong -- try again.');
+    this.toastWithId('event-app-event-source-1634-toast-0', 'Wrong -- try again.');
   }
 
   /** Writes the controls back onto the endpoint they were loaded from. */
   onSaveEndpoint = async (): Promise<void> => {
     const value = this.pjsipValue();
-    if (!value || !this.editingEndpoint) { this.fire('Nothing to save', 'Select an endpoint first.'); return; }
+    if (!value || !this.editingEndpoint) { this.fireWithId('event-app-event-source-1640-fire-0', 'Nothing to save', 'Select an endpoint first.'); return; }
     const edit = applyControlValues(value, this.editingEndpoint, (this.state as { values: Record<string, unknown> }).values);
-    if ('error' in edit) { this.fire('Not saved', edit.error); return; }
-    if (edit.summary.length === 0) { this.toast('Nothing changed, so nothing was written.'); return; }
+    if ('error' in edit) { this.fireWithId('event-app-event-source-1642-fire-0', 'Not saved', edit.error); return; }
+    if (edit.summary.length === 0) { this.toastWithId('event-app-event-source-1643-toast-0', 'Nothing changed, so nothing was written.'); return; }
     await this.writePjsip(editDocument(edit, PJSIP_RESOURCE), edit.summary, `${this.editingEndpoint} updated`);
   };
 
   /** Removes the loaded endpoint, meaning all three of its sections. */
   onDeleteEndpoint = (): void => {
     const value = this.pjsipValue();
-    if (!value || !this.editingEndpoint) { this.fire('Nothing to remove', 'Select an endpoint first.'); return; }
+    if (!value || !this.editingEndpoint) { this.fireWithId('event-app-event-source-1650-fire-0', 'Nothing to remove', 'Select an endpoint first.'); return; }
     const name = this.editingEndpoint;
     const removal = removeEndpoint(value, name);
-    if ('error' in removal) { this.fire('Not removed', removal.error); return; }
+    if ('error' in removal) { this.fireWithId('event-app-event-source-1653-fire-0', 'Not removed', removal.error); return; }
     this.areYouSure('Remove ' + name, removal.summary.join('\n'), 3, () => {
       void this.writePjsip(editDocument(removal, PJSIP_RESOURCE), removal.summary, `${name} removed`).then(() => {
         this.editingEndpoint = '';
@@ -1643,12 +1662,12 @@ ${resolution.disclosure}`);
   onCreateEndpoint = async (): Promise<void> => {
     const value = this.pjsipValue() ?? [];
     const draft = buildEndpointDraft(value, (this.state as { values: Record<string, unknown> }).values);
-    if ('error' in draft) { this.fire('Not created', draft.error); return; }
+    if ('error' in draft) { this.fireWithId('event-app-event-source-1665-fire-0', 'Not created', draft.error); return; }
     const applied = await this.writePjsip(endpointDocument(draft), draft.summary, `${draft.view.endpoints.slice(-1)[0].name} created`);
     /* Shown once, and deliberately never in the plan above: a plan gets read aloud and
      * screenshotted, and a password has no business in one. */
     if (applied) {
-      this.fire('Write this password down', `${String((this.state as { values: Record<string, unknown> }).values[WIZARD_CONTROLS.name] ?? '')}: ${draft.secret}
+      this.fireWithId('event-app-event-source-1670-fire-0', 'Write this password down', `${String((this.state as { values: Record<string, unknown> }).values[WIZARD_CONTROLS.name] ?? '')}: ${draft.secret}
 
 It is shown once. The phone needs it to register.`);
     }
@@ -1658,14 +1677,14 @@ It is shown once. The phone needs it to register.`);
   private async writePjsip(document: { resource: string; value: ConfigValue }, summary: string[], done: string): Promise<boolean> {
     const payload = { documents: [{ resource: document.resource, value: document.value }] };
     const planned = await this.request('pbx.plan', { serverId: this.target.id, payload });
-    if (!planned?.ok) { this.fire('Not written', planned?.message ?? 'The control plane did not answer.'); return false; }
+    if (!planned?.ok) { this.fireWithId('event-app-event-source-1680-fire-0', 'Not written', planned?.message ?? 'The control plane did not answer.'); return false; }
     const applied = await this.request('pbx.apply', { serverId: this.target.id, payload });
-    if (!applied?.ok) { this.fire('Not written', applied?.message ?? 'The change was planned but not applied.'); return false; }
+    if (!applied?.ok) { this.fireWithId('event-app-event-source-1682-fire-0', 'Not written', applied?.message ?? 'The change was planned but not applied.'); return false; }
     /* The reading is now stale, and a stale reading is how the next edit gets built on a
      * value that is no longer there. */
     delete this.configs.endpoints;
     this.seeded.delete('endpoints');
-    this.fire(done, summary.join('\n'));
+    this.fireWithId('event-app-event-source-1687-fire-0', done, summary.join('\n'));
     this.forceUpdate();
     return true;
   }
@@ -1800,7 +1819,7 @@ It is shown once. The phone needs it to register.`);
   /** Real dialplan nodes/edges in the design's canvas shapes, with a bezier path per edge
    *  computed the same way the design computes it for its own sample graph. */
   private canvasVals(designVals: Record<string, unknown>): Record<string, unknown> {
-    const readOnlyCanvas = () => this.fire(
+    const readOnlyCanvas = () => this.fireWithId('event-app-event-source-1822-fire-0',
       'Dialplan canvas is read-only',
       'This graph is read from the live target. Adding, deleting, duplicating, or rewiring a step needs a configuration-write path that this console does not provide.',
     );
@@ -2199,7 +2218,7 @@ It is shown once. The phone needs it to register.`);
             copy: () => {
               const clipboard = (navigator as { clipboard?: { writeText?: (text: string) => Promise<void> } }).clipboard;
               if (clipboard?.writeText) void clipboard.writeText(text);
-              this.toast(`${text} copied`);
+              this.toastWithId('event-app-event-source-2221-toast-0', `${text} copied`);
             },
           };
         })
@@ -2219,7 +2238,7 @@ It is shown once. The phone needs it to register.`);
     this.setState((st: { values: Record<string, unknown> }) => ({
       values: { ...st.values, ap_hue: Math.floor(Math.random() * 360) },
     }));
-    this.fire('Bold choice', 'Nobody will ever say it is boring.');
+    this.fireWithId('event-app-event-source-2241-fire-0', 'Bold choice', 'Nobody will ever say it is boring.');
   }
 
   /** Clears the persisted theme, drops the four values back to the design's own
@@ -2235,12 +2254,12 @@ It is shown once. The phone needs it to register.`);
       return { values: next };
     });
     this.applyAppearanceToDom(resetAll(this.buildAppearanceTheme(this.currentAppearanceValues())));
-    this.toast('Appearance reset to the design system');
+    this.toastWithId('event-app-event-source-2257-toast-0', 'Appearance reset to the design system');
   }
 
   private saveAppearance(): void {
     this.syncAppearance();
-    this.fire('Appearance saved', 'It will still be set the next time this opens.');
+    this.fireWithId('event-app-event-source-2262-fire-0', 'Appearance saved', 'It will still be set the next time this opens.');
   }
 
   /** Downloads the real appearance.ts JSON export (schema-versioned, re-importable)
@@ -2248,7 +2267,7 @@ It is shown once. The phone needs it to register.`);
    *  happened. */
   private exportAppearance(): void {
     if (typeof document === 'undefined') {
-      this.toast('Export is not available in this environment.');
+      this.toastWithId('event-app-event-source-2270-toast-0', 'Export is not available in this environment.');
       return;
     }
     const json = exportTheme(this.buildAppearanceTheme(this.currentAppearanceValues()));
@@ -2259,7 +2278,7 @@ It is shown once. The phone needs it to register.`);
     a.download = 'asterisk-console-appearance.json';
     a.click();
     URL.revokeObjectURL(url);
-    this.toast('Appearance exported as JSON');
+    this.toastWithId('event-app-event-source-2281-toast-0', 'Appearance exported as JSON');
   }
 
   renderVals() {
@@ -2337,8 +2356,8 @@ It is shown once. The phone needs it to register.`);
           connected: this.target.connected,
           serverId: this.target.id,
           request: (action, extra) => this.request(action, extra) as Promise<CeremonyResponse | undefined>,
-          toast: (message) => this.toast(message),
-          fire: (title, body) => this.fire(title, body),
+          toast: (message) => this.toastWithId('event-app-event-source-2359-toast-0', message),
+          fire: (title, body) => this.fireWithId('event-app-event-source-2360-fire-0', title, body),
         });
       },
       /* The real file, for the screens that edit one. A screen showing the target's own
@@ -2360,13 +2379,13 @@ It is shown once. The phone needs it to register.`);
       canProvisionRuntime: canProvision(this.runtime),
       provisionRuntime: () => {
         if (!canProvision(this.runtime)) {
-          this.fire('Not available', runtimeLabel(this.runtime));
+          this.fireWithId('event-app-event-source-2382-fire-0', 'Not available', runtimeLabel(this.runtime));
           return;
         }
-        this.toast('Creating the Asterisk runtime — this imports a root filesystem and takes a while.');
+        this.toastWithId('event-app-event-source-2385-toast-0', 'Creating the Asterisk runtime — this imports a root filesystem and takes a while.');
         void this.request('runtime.provision').then((response) => {
           if (!response) {
-            this.fire('Not run', 'The desktop bridge is unavailable, so nothing was created.');
+            this.fireWithId('event-app-event-source-2388-fire-0', 'Not run', 'The desktop bridge is unavailable, so nothing was created.');
             return;
           }
           /* `data` lives only on the success branch of the response union, so the steps
@@ -2378,10 +2397,10 @@ It is shown once. The phone needs it to register.`);
             .map((step) => `${step.ok ? 'ok' : 'failed'}: ${step.name} — ${step.detail}`)
             .join('\n');
           if (!response.ok) {
-            this.fire('Not created', `${response.message ?? 'Creating the runtime did not succeed.'}\n\n${steps}`.trim());
+            this.fireWithId('event-app-event-source-2400-fire-0', 'Not created', `${response.message ?? 'Creating the runtime did not succeed.'}\n\n${steps}`.trim());
             return;
           }
-          this.fire('Runtime ready', steps || 'The runtime was created and answered.');
+          this.fireWithId('event-app-event-source-2403-fire-0', 'Runtime ready', steps || 'The runtime was created and answered.');
           void this.discover();
         });
       },
@@ -2732,8 +2751,8 @@ It is shown once. The phone needs it to register.`);
     const { entries } = this.changelogFilterResult();
     const text = toPlainText(entries);
     void navigator.clipboard.writeText(text).then(
-      () => this.toast('Changelog copied to the clipboard'),
-      () => this.toast('Could not reach the clipboard'),
+      () => this.toastWithId('event-app-event-source-2754-toast-0', 'Changelog copied to the clipboard'),
+      () => this.toastWithId('event-app-event-source-2755-toast-0', 'Could not reach the clipboard'),
     );
   }
 
