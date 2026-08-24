@@ -332,6 +332,7 @@
         "app/renderer/src/bounded-regex.ts",
         "app/renderer/src/PbxAdminApp.tsx",
         "control-plane/freepbx-runtime.ts",
+        "control-plane/freepbx-family-runtime.ts",
         "control-plane/dispatch.ts",
         "inventories/freepbx-module-surface.json",
         "inventories/freepbx-module-evidence.json",

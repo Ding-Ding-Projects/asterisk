@@ -25,6 +25,7 @@ import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProces
 import type { ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
 import { FreePbxRuntimeAdapter, type FreePbxBackupReceipt, type FreePbxBackupReceiptStore, type FreePbxModuleAction } from './freepbx-runtime.js';
+import { FreePbxFamilyRuntime } from './freepbx-family-runtime.js';
 import freePbxCatalogJson from '../catalog/freepbx-module-catalog.json' with { type: 'json' };
 
 /**
@@ -40,6 +41,7 @@ export const HOSTED_UNSUPPORTED_ACTIONS = new Set<string>([
   'freepbx.handshake',
   'freepbx.backup',
   'freepbx.backup.list',
+  'freepbx.family.schema', 'freepbx.family.read', 'freepbx.family.plan', 'freepbx.family.apply',
 ]);
 
 export interface ControlPlaneDispatcherOptions {
@@ -66,6 +68,18 @@ function freePbxCatalogEntries() {
     apiCapabilities: Array.isArray(module.apiCapabilities) ? module.apiCapabilities.filter((capability): capability is string => typeof capability === 'string') : [],
     sourceRevision: typeof (module.source as Record<string, unknown> | undefined)?.revision === 'string' ? String((module.source as Record<string, unknown>).revision) : null,
     localInstalled: module.localInstalled === true,
+    availabilityReason: String((module.availability as Record<string, unknown> | undefined)?.reason ?? 'No availability reason was published.'),
+  }));
+}
+
+function freePbxFamilyEntries() {
+  return (freePbxCatalogJson.modules as Array<Record<string, unknown>>).map((module) => ({
+    moduleId: String(module.moduleId), name: String(module.name), version: String(module.version),
+    configurationResources: Array.isArray(module.configurationResources) ? module.configurationResources.filter((resource): resource is string => typeof resource === 'string') : [],
+    uiFamilies: Array.isArray(module.uiFamilies) ? module.uiFamilies.filter((family): family is string => typeof family === 'string') : [],
+    apiCapabilities: Array.isArray(module.apiCapabilities) ? module.apiCapabilities.filter((capability): capability is string => typeof capability === 'string') : [],
+    sourceRevision: typeof (module.source as Record<string, unknown> | undefined)?.revision === 'string' ? String((module.source as Record<string, unknown>).revision) : null,
+    entitlementClass: module.entitlementClass === 'commercial' || module.entitlementClass === 'open' ? module.entitlementClass : 'unknown' as const,
     availabilityReason: String((module.availability as Record<string, unknown> | undefined)?.reason ?? 'No availability reason was published.'),
   }));
 }
@@ -481,6 +495,21 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           return { ok: false, requestId: request.requestId, code: 'COMMAND_FAILED', message: result.stderr.trim() || `The command exited with ${result.exitCode}.` };
         }
         return { ok: true, requestId: request.requestId, data: { command, output: result.stdout, durationMs: result.durationMs, observedAt: new Date().toISOString() } };
+      }
+      if (request.action === 'freepbx.family.schema' || request.action === 'freepbx.family.read' || request.action === 'freepbx.family.plan' || request.action === 'freepbx.family.apply') {
+        const target = await resolveTarget(request.serverId);
+        if (target.connectionKind !== 'wsl' || !target.wslDistribution) return { ok: false, requestId: request.requestId, code: 'FREEPBX_FAMILY_TRANSPORT_UNSUPPORTED', message: 'This family backend currently supports only a discovered WSL target. The selected container or remote transport has no approved configuration transaction route.' };
+        const moduleId = typeof request.payload?.moduleId === 'string' ? request.payload.moduleId.trim() : '';
+        if (!moduleId) return { ok: false, requestId: request.requestId, code: 'FREEPBX_MODULE_REQUIRED', message: 'A catalog module ID is required.' };
+        const runtime = new FreePbxFamilyRuntime({ executor: processExecutor, distribution: target.wslDistribution, catalog: freePbxFamilyEntries() });
+        if (request.action === 'freepbx.family.schema') return { ok: true, requestId: request.requestId, data: runtime.schema(moduleId) };
+        if (request.action === 'freepbx.family.read') return { ok: true, requestId: request.requestId, data: await runtime.read(moduleId) };
+        const documents = Array.isArray(request.payload?.documents) ? request.payload.documents as Array<{ resource: string; value: never }> : [];
+        if (documents.length === 0) return { ok: false, requestId: request.requestId, code: 'FREEPBX_DOCUMENTS_REQUIRED', message: 'A family write must include the target-backed configuration documents.' };
+        const result = request.action === 'freepbx.family.plan'
+          ? await runtime.plan(moduleId, target.id, documents)
+          : await runtime.apply(moduleId, target.id, documents);
+        return { ok: true, requestId: request.requestId, data: result };
       }
       if (request.action === 'freepbx.modules') {
         const target = await resolveTarget(request.serverId);

@@ -149,6 +149,7 @@ export class PbxAdminApp extends App {
   private freePbxBackupJobs: FreePbxBackupJob[] = [];
   private freePbxBackupReceipt: FreePbxBackupReceipt | undefined;
   private freePbxBackupJobId = 'freepbx-catalog:backup-job';
+  private freePbxFamilySchemas = new Map<string, { backend: string; fields: Array<{ key: string; source: string; kind: string }>; unavailableReason?: string }>();
 
   private adminRequest = async (action: string, extra: Record<string, unknown> = {}): Promise<ControlPlaneResponse | undefined> => {
     const bridge = window.dingDesktop;
@@ -455,6 +456,13 @@ export class PbxAdminApp extends App {
     this.forceUpdate();
   };
 
+  private loadFreePbxFamilySchema = async (feature: PbxFeatureDefinition, target: string): Promise<void> => {
+    const module = this.freePbxModuleForFeature(feature);
+    if (!module || this.freePbxFamilySchemas.has(module.moduleId)) return;
+    const response = await this.adminRequest('freepbx.family.schema', { serverId: target, payload: { moduleId: module.moduleId } });
+    if (response?.ok) this.freePbxFamilySchemas.set(module.moduleId, response.data as { backend: string; fields: Array<{ key: string; source: string; kind: string }>; unavailableReason?: string });
+  };
+
   private createFreePbxBackup = async (): Promise<void> => {
     const target = this.selectedTarget(this.stateValues().screen);
     const jobId = String(this.stateValues().values[this.freePbxBackupJobId] ?? '').split(' · ')[0]!.trim();
@@ -547,6 +555,7 @@ export class PbxAdminApp extends App {
       await this.loadAdminHistory(screen, feature);
     }
     if (feature.tools?.includes('media')) await this.loadAdminMedia(screen);
+    if (feature.id !== 'freepbx-catalog' && this.adminTargets[0]) await this.loadFreePbxFamilySchema(feature, this.selectedTarget(screen));
     if (feature.id === 'freepbx-catalog' && this.freePbxRuntimeModules.size === 0) await this.refreshFreePbxCatalog();
   };
 
@@ -639,9 +648,10 @@ export class PbxAdminApp extends App {
     if (freePbxModule) {
       const moduleForm = buildFreePbxModuleForm(freePbxModule.moduleId, feature, resources, liveValuesByResource);
       const actionInfo = freePbxModule.availability.reason;
+      const familySchema = this.freePbxFamilySchemas.get(freePbxModule.moduleId);
       groups.push({
         title: 'FreePBX module metadata',
-        desc: `${freePbxModule.name} ${freePbxModule.version} · ${freePbxModule.license}. ${actionInfo}`,
+        desc: `${freePbxModule.name} ${freePbxModule.version} · ${freePbxModule.license}. ${familySchema ? `Backend ${familySchema.backend}, ${familySchema.fields.length} module-specific schema fields. ${familySchema.unavailableReason ?? ''}` : ''} ${actionInfo}`,
         ctls: [
           actionControl(`freepbx:${freePbxModule.moduleId}:install`, 'Install module', 'freepbx-module-install', actionInfo),
           actionControl(`freepbx:${freePbxModule.moduleId}:enable`, 'Enable module', 'freepbx-module-enable', actionInfo),

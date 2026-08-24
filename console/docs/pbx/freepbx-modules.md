@@ -44,6 +44,12 @@ The form renderer uses the adapter to keep module-specific identity and multi-re
 separate, while entity and published-API fields remain explicitly non-actionable until their typed
 target route exists.
 
+The server-side family routes are `freepbx.family.schema`, `freepbx.family.read`,
+`freepbx.family.plan`, and `freepbx.family.apply`. Configuration-backed families use the existing
+allowlisted resource transport, structured planner, transaction backup, post-read comparison, and
+rollback. Published-API families remain disabled unless the official metadata supplies an endpoint,
+method, and authentication contract. The console never invents an API URL from a module label.
+
 ## Native module families
 
 Every family below uses the same schema-driven form contract. The form begins with values read from

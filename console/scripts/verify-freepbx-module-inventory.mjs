@@ -8,6 +8,7 @@ const inventory = JSON.parse(readFileSync(resolve(root, 'console/inventories/fre
 const evidence = JSON.parse(readFileSync(resolve(root, 'console/inventories/freepbx-module-evidence.json'), 'utf8'));
 const runtimeSource = readFileSync(resolve(root, 'console/control-plane/freepbx-runtime.ts'), 'utf8');
 const adapterSource = readFileSync(resolve(root, 'console/app/renderer/src/freepbx-module-adapters.ts'), 'utf8');
+const familyRuntimeSource = readFileSync(resolve(root, 'console/control-plane/freepbx-family-runtime.ts'), 'utf8');
 
 function unique(values, label) {
   const duplicates = values.filter((value, index) => values.indexOf(value) !== index);
@@ -17,7 +18,7 @@ function unique(values, label) {
 
 function verify(catalogValue, inventoryValue) {
   if (catalogValue.schemaVersion !== 1 || inventoryValue.schemaVersion !== 1) throw new Error('FreePBX catalog and inventory must use schemaVersion 1.');
-  if (inventoryValue.catalogDestination !== 'freepbx-catalog' || inventoryValue.runtimeAdapter !== 'console/control-plane/freepbx-runtime.ts' || typeof inventoryValue.sourceAuthority !== 'string' || inventoryValue.exclusionRecords !== 'catalog.exclusions') throw new Error('FreePBX inventory is missing the native catalog destination, runtime adapter, source authority, or exclusion records.');
+  if (inventoryValue.catalogDestination !== 'freepbx-catalog' || inventoryValue.runtimeAdapter !== 'console/control-plane/freepbx-runtime.ts' || inventoryValue.familyRuntime !== 'console/control-plane/freepbx-family-runtime.ts' || typeof inventoryValue.sourceAuthority !== 'string' || inventoryValue.exclusionRecords !== 'catalog.exclusions') throw new Error('FreePBX inventory is missing the native catalog destination, runtime adapter, family backend, source authority, or exclusion records.');
   if (!Array.isArray(catalogValue.exclusions) || catalogValue.counts?.exclusions !== catalogValue.exclusions.length) throw new Error('FreePBX catalog exclusions are missing or miscounted.');
   if (inventoryValue.expectedCounts?.publishedModules !== catalogValue.modules.length || inventoryValue.expectedCounts?.exclusions !== catalogValue.exclusions.length || inventoryValue.expectedCounts?.families !== inventoryValue.families.length || inventoryValue.expectedCounts?.actionableRecords !== catalogValue.modules.length || inventoryValue.expectedCounts?.nonActionableRecords !== catalogValue.exclusions.length) throw new Error('FreePBX catalog counts no longer match the hand-written expected counts.');
   const catalogIds = unique(catalogValue.modules.map((module) => module.moduleId), 'catalog module ids');
@@ -85,9 +86,17 @@ function verifyAdapters(source) {
   }
 }
 
+function verifyFamilyRuntime(source) {
+  for (const marker of ['FAMILY_BACKENDS', 'new WslConfigTransport', 'StructuredConfigPlanner', 'new ConfigTransaction', "backend: 'published-api'", "backend: 'metadata-only'"]) {
+    if (!source.includes(marker)) throw new Error(`FreePBX family backend is missing ${marker}.`);
+  }
+  if (/child_process|(?<![.\w])spawn\s*\(/u.test(source)) throw new Error('FreePBX family backend must use the typed ProcessExecutor boundary.');
+}
+
 const result = verify(catalog, inventory);
 verifyRuntime(runtimeSource);
 verifyAdapters(adapterSource);
+verifyFamilyRuntime(familyRuntimeSource);
 if (process.argv.includes('--probe-negative')) {
   const broken = { ...inventory, modules: inventory.modules.slice(1) };
   let failedClosed = false;

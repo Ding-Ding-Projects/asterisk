@@ -505,3 +505,9 @@ and input lengths and is used for module and exclusion search.
 Static inventory, adapter, runtime-boundary, source syntax, JSON, and documentation checks remain
 green. No live target, WSL, container, database, web service, fwconsole, built artifact, UI
 interaction, or capture was run in this lane.
+
+The family backend follow-up adds `freepbx.family.schema`, `freepbx.family.read`,
+`freepbx.family.plan`, and `freepbx.family.apply`. Configuration-backed families use the existing
+allowlisted resource transport, structured planner, transaction backup, post-read comparison, and
+rollback. Entity and published-API families stay disabled unless the official metadata supplies a
+real endpoint and operation contract. No API URL or database query is inferred from a module label.
