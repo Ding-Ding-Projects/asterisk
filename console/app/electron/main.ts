@@ -1,12 +1,14 @@
 import { app, BrowserWindow, dialog, ipcMain, type WebContents } from 'electron';
 import { stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { createServer, type Server } from 'node:net';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
 import { createVaultReference } from '../../control-plane/status-hub-client.js';
 import type { ControlPlaneRequest, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
 import type { DownloadCommand, DownloadSurfaceKind, ExtensionDownloadHandoff } from '../../shared/download-transfer.js';
 import { isExtensionDownloadHandoff } from '../../shared/download-transfer.js';
+import { DOWNLOAD_NATIVE_MESSAGE_LIMIT, DOWNLOAD_NATIVE_PIPE, isNativeDownloadIngressMessage } from '../../shared/native-messaging.js';
 import {
   parseVersion, resolveLatestUpdate, validateReleaseIdentity, initialUpdaterState, beganChecking, checkSucceeded,
   updateFailed, beganDownloading, downloadReady, dismissedForNow, verifyDownload, findDigestForAsset,
@@ -21,6 +23,7 @@ let mainWindow: BrowserWindow | null = null;
 interface DownloadWindowRecord { window: BrowserWindow; handoffId?: string; transferId?: string; origin?: BrowserWindow | null; }
 const downloadWindows = new Map<DownloadSurfaceKind, DownloadWindowRecord>();
 let downloadOriginWindow: BrowserWindow | null = null;
+let nativeIngressServer: Server | undefined;
 function vaultReferenceFromEnvironment(name: string) {
   const value = process.env[name];
   if (!value) return undefined;
@@ -191,9 +194,8 @@ ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindow.unmaximize() : mainWindow?.maximize());
 ipcMain.on('window:close', () => mainWindow?.close());
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
-ipcMain.handle('download:submit-handoff', async (_event, handoff: ExtensionDownloadHandoff) => {
+async function acceptExtensionHandoff(handoff: ExtensionDownloadHandoff, senderWindow: BrowserWindow | null): Promise<{ accepted: boolean; detail: string }> {
   if (!isExtensionDownloadHandoff(handoff)) return { accepted: false, detail: 'The extension handoff failed its bounded validation.' };
-  const senderWindow = BrowserWindow.fromWebContents(_event.sender) ?? mainWindow;
   let chosenPath = downloadTransfers.isDestinationApproved(handoff.destinationPath) ? handoff.destinationPath : undefined;
   if (!chosenPath) {
     if (handoff.destinationKind === 'folder') {
@@ -211,7 +213,39 @@ ipcMain.handle('download:submit-handoff', async (_event, handoff: ExtensionDownl
   const result = downloadTransfers.registerHandoff({ ...handoff, destinationPath: chosenPath });
   if (result.accepted && result.handoff) openNextPendingStart(senderWindow);
   return result;
-});
+}
+
+ipcMain.handle('download:submit-handoff', async (_event, handoff: ExtensionDownloadHandoff) => acceptExtensionHandoff(handoff, BrowserWindow.fromWebContents(_event.sender) ?? mainWindow));
+
+function startNativeDownloadIngress(): void {
+  if (process.platform !== 'win32' || nativeIngressServer) return;
+  nativeIngressServer = createServer((socket) => {
+    let buffer = '';
+    let settled = false;
+    const finish = (response: { accepted: boolean; detail: string }) => {
+      if (settled) return;
+      settled = true;
+      socket.end(`${JSON.stringify(response)}\n`);
+    };
+    socket.setTimeout(15_000, () => finish({ accepted: false, detail: 'The native ingress exceeded its bounded deadline.' }));
+    socket.on('data', (chunk) => {
+      if (settled) return;
+      buffer += chunk.toString('utf8');
+      if (Buffer.byteLength(buffer, 'utf8') > DOWNLOAD_NATIVE_MESSAGE_LIMIT) { finish({ accepted: false, detail: 'The native ingress message exceeded its bounded size.' }); return; }
+      const newline = buffer.indexOf('\n');
+      if (newline < 0) return;
+      const text = buffer.slice(0, newline);
+      try {
+        const message: unknown = JSON.parse(text);
+        if (!isNativeDownloadIngressMessage(message)) { finish({ accepted: false, detail: 'The native ingress extension identity or handoff shape was refused.' }); return; }
+        void acceptExtensionHandoff(message.handoff, mainWindow).then(finish).catch((error) => finish({ accepted: false, detail: error instanceof Error ? error.message : 'The native ingress handoff was refused.' }));
+      } catch { finish({ accepted: false, detail: 'The native ingress message was not valid JSON.' }); }
+    });
+    socket.on('error', () => { if (!settled) finish({ accepted: false, detail: 'The native ingress connection failed.' }); });
+  });
+  nativeIngressServer.on('error', () => { nativeIngressServer = undefined; });
+  nativeIngressServer.listen(DOWNLOAD_NATIVE_PIPE);
+}
 
 function windowRecordForContents(contents: WebContents): DownloadWindowRecord | undefined {
   return [...downloadWindows.values()].find((record) => record.window.webContents === contents);
@@ -364,7 +398,7 @@ ipcMain.handle('converter:confirm-overwrite', async (_event, request: { destinat
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();
 } else {
-  app.whenReady().then(createWindow).then(async () => {
+  app.whenReady().then(() => { createWindow(); startNativeDownloadIngress(); }).then(async () => {
     await downloadTransfers.initialize();
     const latest = downloadTransfers.getLatestSnapshot();
     if (latest?.status === 'partial') openDownloadWindow('progress', { handoffId: latest.handoffId, transferId: latest.transferId, origin: mainWindow });
@@ -374,6 +408,7 @@ if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
       if (handoffs.length > 0) openNextPendingStart(mainWindow);
     }
   }).then(scheduleUpdateChecks);
+  app.on('will-quit', () => { nativeIngressServer?.close(); nativeIngressServer = undefined; });
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 }

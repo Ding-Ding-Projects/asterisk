@@ -12,13 +12,15 @@ The native destination picker or a persisted approved destination root supplies 
 
 ## Current status
 
-**Desktop application:** Implemented as three explicit routes: `#surface=download/start`, `#surface=download/progress`, and `#surface=download/complete`. The preload accepts an extension handoff, the privileged transfer manager persists it, and each surface reads real receipts or transfer snapshots. There is no extension package in this Oak Kay, so an external extension remains an integration input rather than simulated content.
+**Desktop application:** Implemented as three explicit routes: `#surface=download/start`, `#surface=download/progress`, and `#surface=download/complete`. The packaged submission-only native-messaging host accepts an authenticated extension handoff, the privileged transfer manager persists it, and each surface reads real receipts or transfer snapshots. The companion extension itself is not shipped in this Oak Kay, so its browser-side capture remains an external integration input rather than simulated content.
+
+The supported ingress is the packaged submission-only native-messaging host `com.dingdingprojects.asterisk.downloads`. Chrome or Edge authenticates the sender through the manifest `allowed_origins` allowlist, the host repeats the exact extension id check, and the desktop named-pipe ingress accepts only one bounded `download-handoff` message. The ingress can submit a handoff and receive its receipt, but it exposes no transfer command, snapshot, queue, or credential operation. `register-native-host.ps1` writes the install-resolved manifest path and the per-user browser registration.
 
 **Documentation website:** Unavailable. The hosted bridge exposes a typed unavailable receipt because a static documentation surface cannot own a desktop file transfer or an always-on-top window.
 
 ## Failure modes
 
-Malformed or non-HTTPS handoffs are refused before transfer. Mismatched replayed handoffs, non-absolute or unapproved destinations, lexical containment failures, symlink or reparse components, destination conflicts, header timeout, body-idle timeout, total timeout, missing source bodies, HTTP errors, cancellation, short responses, bounded-size violations, and transfer failures remain visible as typed failure or partial outcomes. Hosted mode reports the exact unavailable boundary.
+Malformed or non-HTTPS handoffs are refused before transfer. Mismatched replayed handoffs, unauthenticated ingress, non-absolute or unapproved destinations, lexical containment failures, symlink or reparse components, destination conflicts, header timeout, body-idle timeout, total timeout, missing source bodies, HTTP errors, cancellation, short responses, bounded-size violations, and transfer failures remain visible as typed failure or partial outcomes. The destination parent is checked again after directory creation immediately before the temporary open. Hosted mode reports the exact unavailable boundary.
 
 ## Accessibility and localization
 
