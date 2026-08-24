@@ -9,6 +9,7 @@ import type { BackendResponse, ChatSession, OllamaRuntimeEvidence, OllamaSuiteSn
 import type { ConverterBackendHandlers } from '../../../shared/converter';
 import { AuthenticatorSurface } from './authenticator-surface';
 import type { AuthenticatorClient, AuthenticatorHistoryClient } from './authenticator-surface-state';
+import type { HistoryRestoreReceipt } from '../../../shared/history';
 import type { AuthenticatorRegistration } from '../../../shared/authenticator';
 import { LockManagerSurface } from './lock-manager-surface';
 import type { ToyLockClient, ToyLockCredentialClient } from './lock-manager-surface';
@@ -60,7 +61,7 @@ const authenticatorClient: AuthenticatorClient = {
 const historyClient: AuthenticatorHistoryClient = {
   record: async (entry) => { const result = await bridgeRequest<{ ok: boolean; message?: string }>('local-history.record', { ...entry, snapshot: entry.snapshot ?? { kind: 'authenticator-redacted', stableRecordId: entry.stableRecordId, action: entry.action, subject: entry.subject } }); return result.ok ? { ok: true } : { ok: false, warning: result.message ?? 'The local history receipt was unavailable.' }; },
   list: async () => { const result = await bridgeRequest<{ entries?: { ok?: boolean; value?: ReadonlyArray<{ commitId: string; timestamp: string; action: string; subject: string }>; code?: string; message?: string } }>('local-history.list', { limit: 200 }); if (result.entries?.ok) { const entries = result.entries.value ?? []; return { status: entries.length === 0 ? 'verified-empty' as const : 'verified' as const, entries }; } return { status: result.entries?.code === 'invalid-request' ? 'malformed' as const : 'unavailable' as const, entries: [], warning: result.entries?.message ?? 'The local history list was unavailable.' }; },
-  restore: (commitId) => bridgeRequest('authenticator.restore', { commitId }),
+  restore: (commitId) => bridgeRequest<HistoryRestoreReceipt>('authenticator.restore', { commitId }),
 };
 
 let lockRecords: ReadonlyArray<ToyLockRecord> = [];

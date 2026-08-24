@@ -55,7 +55,7 @@ interface LockStoreOptions {
 interface StoredLockDocument {
   version: 1;
   records: ReadonlyArray<ToyLockRecord>;
-  pendingRemovals?: ReadonlyArray<{ id: string; credential: ToyLockCredentialReference }>;
+  pendingRemovals?: ReadonlyArray<{ id: string; credential: ToyLockCredentialReference } | string>;
   tombstones?: ReadonlyArray<string>;
 }
 
@@ -166,7 +166,7 @@ export class FileLockRecordPersistence implements LockRecordPersistence {
   async beginRemoval(id: string, credential: ToyLockCredentialReference): Promise<void> { await this.#serialize(async () => { const document = await this.#readDocument(); await this.#writeDocument({ ...document, pendingRemovals: [...(document.pendingRemovals ?? []).filter((candidate) => candidate.id !== id), { id, credential }] }); }); }
   async completeRemoval(id: string): Promise<void> { await this.#serialize(async () => { const document = await this.#readDocument(); await this.#writeDocument({ ...document, pendingRemovals: (document.pendingRemovals ?? []).filter((candidate) => candidate.id !== id), tombstones: [...(document.tombstones ?? []), id].slice(-10_000) }); }); }
   async rollbackRemoval(id: string): Promise<void> { await this.#serialize(async () => { const document = await this.#readDocument(); await this.#writeDocument({ ...document, pendingRemovals: (document.pendingRemovals ?? []).filter((candidate) => candidate.id !== id) }); }); }
-  async reconcile(vault: ToyLockCredentialVault): Promise<void> { if (!vault.available) return; await this.#serialize(async () => { const document = await this.#readDocument(); const records = [...document.records]; const pending = (document.pendingRemovals ?? []).filter((item): item is { id: string; credential: ToyLockCredentialReference } => typeof item === 'object' && typeof item.id === 'string' && Boolean(item.credential)); for (const item of pending) { const record = records.find((candidate) => candidate.id === item.id); if (await vault.has(record?.credential ?? item.credential)) continue; const index = records.findIndex((candidate) => candidate.id === item.id); if (index >= 0) records.splice(index, 1); document.tombstones = [...(document.tombstones ?? []), item.id].slice(-10_000); } await this.#writeDocument({ ...document, records, pendingRemovals: pending.filter((item) => records.some((record) => record.id === item.id)) }); }); }
+  async reconcile(vault: ToyLockCredentialVault): Promise<void> { await this.#serialize(async () => { const document = await this.#readDocument(); const records = [...document.records]; const pending: Array<{ id: string; credential: ToyLockCredentialReference }> = []; for (const raw of document.pendingRemovals ?? []) { const item = typeof raw === 'string' ? undefined : raw; const id = typeof raw === 'string' ? raw : raw.id; const record = records.find((candidate) => candidate.id === id); const credential = record?.credential ?? item?.credential; if (!credential) { document.tombstones = [...(document.tombstones ?? []), id].slice(-10_000); continue; } if (!vault.available) { pending.push({ id, credential }); continue; } if (await vault.has(credential) && !(await vault.remove(credential))) { pending.push({ id, credential }); continue; } const index = records.findIndex((candidate) => candidate.id === id); if (index >= 0) records.splice(index, 1); document.tombstones = [...(document.tombstones ?? []), id].slice(-10_000); } await this.#writeDocument({ ...document, records, pendingRemovals: pending }); }); }
   async #readDocument(): Promise<StoredLockDocument> { try { const raw = await readFile(this.#path, "utf8"); return JSON.parse(raw) as StoredLockDocument; } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return { version: 1, records: [] }; throw error; } }
   async #writeDocument(document: StoredLockDocument): Promise<void> { await mkdir(dirname(this.#path), { recursive: true }); const temporaryPath = `${this.#path}.${this.#createTemporaryId()}.tmp`; await writeFile(temporaryPath, `${JSON.stringify(document, null, 2)}\n`, { encoding: "utf8", flag: "wx" }); try { await renameWithTransientRetry(temporaryPath, this.#path); } catch (error) { await unlink(temporaryPath).catch(() => undefined); throw error; } }
 }
@@ -287,7 +287,8 @@ export class ToyLockStore {
     return { ok: true, value: record };
   }
 
-  async unlock(
+  async unlock(id: string, candidate: Uint8Array, surfaceId?: string): Promise<LockStoreResult<ToyLockRecord>> { return await this.#serialize(() => this.#unlock(id, candidate, surfaceId)); }
+  async #unlock(
     id: string,
     candidate: Uint8Array,
     surfaceId?: string,
@@ -322,7 +323,8 @@ export class ToyLockStore {
     return { ok: true, value: unlocked };
   }
 
-  async relock(id: string): Promise<LockStoreResult<ToyLockRecord>> {
+  async relock(id: string): Promise<LockStoreResult<ToyLockRecord>> { return await this.#serialize(() => this.#relock(id)); }
+  async #relock(id: string): Promise<LockStoreResult<ToyLockRecord>> {
     if (!this.#ready) return failure("persistence-unavailable", "The lock store is unavailable.");
     const record = this.#records.get(id);
     if (!record) return failure("lock-not-found", "The requested lock does not exist.", false);

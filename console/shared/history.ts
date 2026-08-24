@@ -75,6 +75,12 @@ export type HistoryResult<T> =
   | { ok: true; value: T }
   | { ok: false; code: HistoryFailureCode; message: string; recoverable: boolean };
 
+export type HistoryRestoreReceipt =
+  | { status: "applied"; entry: unknown }
+  | { status: "non-restorable"; message: string }
+  | { status: "unavailable"; message: string }
+  | { status: "malformed"; message: string };
+
 export function historyFailure(
   code: HistoryFailureCode,
   message: string,

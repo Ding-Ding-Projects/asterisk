@@ -41,6 +41,7 @@ import type { ChangePlan, ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
 import { createAuthLockRuntime, type AuthLockVault } from './auth-lock-runtime.js';
 import type { HistorySnapshotProtector } from '../shared/history.js';
+import type { HistoryRestoreReceipt } from '../shared/history.js';
 import type { ToyLockCredentialReference } from '../shared/locks.js';
 
 /**
@@ -930,12 +931,13 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'authenticator.restore') {
         const commitId = typeof request.payload?.commitId === 'string' ? request.payload.commitId : '';
         const restored = await authLocks.history.restore(commitId);
-        if (!restored.ok) return { ok: true, requestId: request.requestId, data: { status: 'unavailable', message: restored.message } };
-        if (restored.value.snapshot && typeof restored.value.snapshot === 'object' && (restored.value.snapshot as { kind?: string }).kind === 'authenticator-entry-deleted') return { ok: true, requestId: request.requestId, data: { status: 'non-restorable', message: 'This deletion is explicitly non-restorable because its vault credential was removed.' } };
+        if (!restored.ok) return { ok: true, requestId: request.requestId, data: { status: 'unavailable', message: restored.message } satisfies HistoryRestoreReceipt };
+        if (!restored.value.snapshot || typeof restored.value.snapshot !== 'object') return { ok: true, requestId: request.requestId, data: { status: 'malformed', message: 'The selected history snapshot is malformed.' } satisfies HistoryRestoreReceipt };
+        if ((restored.value.snapshot as { kind?: string }).kind === 'authenticator-entry-deleted') return { ok: true, requestId: request.requestId, data: { status: 'non-restorable', message: 'This deletion is explicitly non-restorable because its vault credential was removed.' } satisfies HistoryRestoreReceipt };
         const applied = await authLocks.authenticator.restoreRedacted(restored.value.snapshot);
-        if (!applied.ok) return { ok: true, requestId: request.requestId, data: { status: 'unavailable', message: applied.message } };
+        if (!applied.ok) return { ok: true, requestId: request.requestId, data: { status: 'unavailable', message: applied.message } satisfies HistoryRestoreReceipt };
         await authLocks.history.record({ action: 'restored', stableRecordId: applied.value.id, subject: `Authenticator ${applied.value.issuer} restored`, snapshot: { kind: 'authenticator-entry', entry: applied.value } });
-        return { ok: true, requestId: request.requestId, data: { status: 'applied', entry: applied.value } };
+        return { ok: true, requestId: request.requestId, data: { status: 'applied', entry: applied.value } satisfies HistoryRestoreReceipt };
       }
       if (request.action === 'toy-lock.initialize') {
         return { ok: true, requestId: request.requestId, data: await authLocks.locksReady };

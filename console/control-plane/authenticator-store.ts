@@ -281,7 +281,8 @@ export class AuthenticatorStore {
     return { ok: true, value: undefined };
   }
 
-  async restoreRedacted(snapshot: unknown): Promise<AuthenticatorResult<AuthenticatorEntry>> {
+  async restoreRedacted(snapshot: unknown): Promise<AuthenticatorResult<AuthenticatorEntry>> { return await this.#serialize(() => this.#restoreRedacted(snapshot)); }
+  async #restoreRedacted(snapshot: unknown): Promise<AuthenticatorResult<AuthenticatorEntry>> {
     if (!snapshot || typeof snapshot !== "object") return { ok: false, code: "invalid-input", message: "The authenticator restore snapshot is malformed." };
     const entry = (snapshot as { entry?: AuthenticatorEntry }).entry;
     if (!entry || typeof entry.id !== "string") return { ok: false, code: "invalid-input", message: "The authenticator restore snapshot has no entry." };

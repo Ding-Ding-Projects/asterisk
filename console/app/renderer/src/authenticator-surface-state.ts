@@ -6,6 +6,7 @@ import type {
   AuthenticatorCodeSnapshot,
 } from '../../../shared/authenticator';
 import { MAX_AUTHENTICATOR_PAIRING_BYTES } from '../../../shared/authenticator';
+import type { HistoryRestoreReceipt } from '../../../shared/history';
 import { pairingUri, type TotpAlgorithm } from './totp';
 import { qrMatrix } from './qr';
 
@@ -24,7 +25,7 @@ export interface AuthenticatorClient {
 export interface AuthenticatorHistoryClient {
   record(entry: { action: 'created' | 'updated' | 'deleted'; subject: string; stableRecordId: string; snapshot?: unknown }): Promise<{ ok: boolean; warning?: string }>;
   list?(): Promise<{ status: 'verified-empty' | 'verified' | 'unavailable' | 'malformed'; entries: ReadonlyArray<{ commitId: string; timestamp: string; action: string; subject: string }>; warning?: string }>;
-  restore?(commitId: string): Promise<unknown>;
+  restore?(commitId: string): Promise<HistoryRestoreReceipt>;
 }
 
 export type PairingDescriptor = {
