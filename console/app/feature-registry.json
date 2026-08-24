@@ -21,9 +21,12 @@
       "files": []
     },
     "dialog-emojis": {
-      "state": "absent",
-      "note": "No show-emojis-in-dialogs toggle exists; dialog/toast copy in App.tsx has no emoji decoration control.",
-      "files": []
+      "state": "partial",
+      "note": "Implemented 2026-08-23 as app/renderer/src/dialog-emojis.ts: a persisted toggle, off by default, decorating a dialog heading and body and nothing else. buildDialog enforces the boundary by shape rather than by everyone remembering it -- an emoji never reaches a button, an action label or an accessible name, because a screen reader announces an emoji by its Unicode description and a decorated accessible name is heard on every focus. Decoration does not stack on a re-render and an unrecognised stored value reads as off. PARTIAL because no control is wired into the design yet.",
+      "files": [
+        "app/renderer/src/dialog-emojis.ts",
+        "tests/ui/dialog-emojis.test.tsx"
+      ]
     },
     "school-mode": {
       "state": "absent",
@@ -244,9 +247,12 @@
       ]
     },
     "app-display-name": {
-      "state": "absent",
-      "note": "No renameable-display-name setting exists; the product name (Ding PBX Console) is hardcoded in the compiled console with no user-facing rename control.",
-      "files": []
+      "state": "partial",
+      "note": "Implemented 2026-08-23 as app/renderer/src/display-name.ts: validation, persistence, one-action reset, and a per-surface split so the chosen name reaches the title bar, About and notifications while diagnostics, crash logs, issue reports, the update feed and the installer keep the shipped name -- a reader of a bug report has to know what software it came from. The whole safety of the feature is that IDENTITY is a frozen constant with no path from the display name: a rename that moved the application-data directory would orphan every stored profile, credential and history while the app looked freshly installed. Asserted directly, and proven by breaking it. PARTIAL because no control is wired into the design yet; the module and its rules are complete and the surface is not.",
+      "files": [
+        "app/renderer/src/display-name.ts",
+        "tests/ui/display-name.test.tsx"
+      ]
     },
     "guided-forms": {
       "state": "partial",
