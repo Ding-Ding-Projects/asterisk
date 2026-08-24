@@ -2,7 +2,7 @@
 /* GENERATED FILE — do not edit.
  * Produced by console/scripts/compile-design.mjs from the checked-in design reference.
  * Edit the design reference and recompile instead. */
-import { DCLogic, h, F, A, R, S, fn, sty, stableDynamicIdentity } from '../dc-runtime';
+import { DCLogic, h, F, A, I, R, S, fn, sty, stableDynamicIdentity } from '../dc-runtime';
 import M3Control from './m3-control';
 function Template(v: any) {
   return F(
@@ -52,7 +52,7 @@ function Template(v: any) {
         ),
         h("div", { style: sty(`display:flex; align-items:center; gap:8px; padding-right:4px; flex:0 0 auto;`) },
           h("div", { style: sty(`display:flex; border:1px solid #414942; border-radius:999px; overflow:hidden; height:28px;`) },
-            A(v.modeOpts).map(($o, $o$i) => R($o$i, F(
+            I(v.modeOpts, "{{ modeOpts }}", "o").map(($o, $o$i) => R($o$i, F(
               ($o.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_3_7_1_1_1_1" + '-' + stableDynamicIdentity($o, "consoleshell-0_1_3_7_1_1_1_1", "o"), "data-direct-interactive": true, onClick: fn($o.pick), style: sty(`display:flex; align-items:center; gap:5px; background:#005230; color:#9FF7C4; border:0; padding:0 13px; font:inherit; font-size:12px; font-weight:500; cursor:pointer;`) },
                   h("span", { style: sty(`font-size:15px;`), className: "msym" },
                     "check"
@@ -89,7 +89,7 @@ function Template(v: any) {
         )
       ),
       h("div", { "data-appearance-id": `console-tab-strip`, "data-tab-strip": ``, role: `tablist`, "aria-label": `Open console tabs`, "aria-orientation": v.tabOrientation, onKeyDown: v.onTabListKeyDown, style: sty(`${S(v.tabStripStyle)}`) },
-        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { "data-appearance-id": `tab-group-${S($g.id)}`, role: `group`, "aria-label": $g.name, "aria-expanded": $g.expanded, onClick: fn($g.toggle), onContextMenu: fn($g.ctx), style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
+        I(v.tabGroups, "{{ tabGroups }}", "g").map(($g, $g$i) => R($g$i, h("div", { "data-appearance-id": `tab-group-${S($g.id)}`, role: `group`, "aria-label": $g.name, "aria-expanded": $g.expanded, onClick: fn($g.toggle), onContextMenu: fn($g.ctx), style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
             h("span", { style: sty(`width:9px; height:9px; border-radius:50%; background:${S($g.colour)};`) }),
             h("span", { style: sty(`font-size:12px; font-weight:500; color:#DFE4DC; white-space:nowrap;`) },
               S($g.name)
@@ -101,7 +101,7 @@ function Template(v: any) {
               S($g.chevron)
             )
           ))),
-        A(v.tabs).map(($t, $t$i) => R($t$i, F(
+        I(v.tabs, "{{ tabs }}", "t").map(($t, $t$i) => R($t$i, F(
           ($t.on ? h("div", { "data-appearance-id": `tab-${S($t.id)}`, role: `tab`, "aria-selected": `true`, "aria-controls": `console-panel`, tabIndex: `0`, draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`) },
               ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
               h("span", { style: sty(`width:7px; height:7px; border-radius:50%; background:${S($t.colour)}; flex:0 0 auto;`) }),
@@ -148,7 +148,7 @@ function Template(v: any) {
           h("span", { style: sty(`font-size:11px; color:#778078;`) },
             "Tab strip"
           ),
-          A(v.dockOpts).map(($d, $d$i) => R($d$i, F(
+          I(v.dockOpts, "{{ dockOpts }}", "d").map(($d, $d$i) => R($d$i, F(
             ($d.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_9_3_1_1" + '-' + stableDynamicIdentity($d, "consoleshell-0_1_5_9_3_1_1", "d"), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer; display:flex; align-items:center; justify-content:center;`) },
                 h("span", { style: sty(`font-size:16px;`), className: "msym" },
                   S($d.icon)
@@ -160,7 +160,7 @@ function Template(v: any) {
                 )
               ) : null)
           ))),
-          A(v.tabSearchSlots).map(($q, $q$i) => R($q$i, h("div", { role: `search`, "aria-label": $q.label, style: sty(`display:flex; align-items:center; gap:4px; background:#141A15; border:1px solid #333B34; border-radius:10px; padding:2px 5px;`) },
+          I(v.tabSearchSlots, "{{ tabSearchSlots }}", "q").map(($q, $q$i) => R($q$i, h("div", { role: `search`, "aria-label": $q.label, style: sty(`display:flex; align-items:center; gap:4px; background:#141A15; border:1px solid #333B34; border-radius:10px; padding:2px 5px;`) },
               h("input", { "data-appearance-id": "direct-consoleshell-0_1_5_9_5_1_1" + '-' + stableDynamicIdentity($q, "consoleshell-0_1_5_9_5_1_1", "q"), "data-direct-interactive": true, type: `search`, value: $q.value, onInput: fn($q.input), placeholder: $q.label, "aria-label": $q.label, style: sty(`width:112px; background:transparent; border:0; color:#DFE4DC; font:inherit; font-size:11px;`) }),
               h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_9_5_1_3" + '-' + stableDynamicIdentity($q, "consoleshell-0_1_5_9_5_1_3", "q"), "data-direct-interactive": true, onClick: fn($q.regex), "aria-label": `Open regex builder for ${S($q.label)}`, style: sty(`background:transparent; border:0; color:#82D9A5; cursor:pointer;`) },
                 h("span", { className: "msym" },
@@ -172,7 +172,7 @@ function Template(v: any) {
       ),
       h("div", { "data-appearance-id": `console-panel`, "data-shell-content": ``, id: `console-panel`, role: `tabpanel`, style: sty(`${S(v.workspaceInsetStyle)}`) },
         h("div", { style: sty(`width:88px; flex:0 0 88px; background:#0B0F0C; display:flex; flex-direction:column; align-items:center; padding:8px 0 12px; gap:4px; overflow-y:auto;`) },
-          A(v.rail).map(($r, $r$i) => R($r$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_1_1_1" + '-' + stableDynamicIdentity($r, "consoleshell-0_1_7_1_1_1", "r"), "data-direct-interactive": true, onClick: fn($r.pick), style: sty(`width:100%; background:transparent; border:0; cursor:pointer; padding:4px 0 2px; display:flex; flex-direction:column; align-items:center; gap:4px;`) },
+          I(v.rail, "{{ rail }}", "r").map(($r, $r$i) => R($r$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_1_1_1" + '-' + stableDynamicIdentity($r, "consoleshell-0_1_7_1_1_1", "r"), "data-direct-interactive": true, onClick: fn($r.pick), style: sty(`width:100%; background:transparent; border:0; cursor:pointer; padding:4px 0 2px; display:flex; flex-direction:column; align-items:center; gap:4px;`) },
               ($r.on ? h("span", { style: sty(`width:56px; height:32px; border-radius:16px; background:#005230; display:flex; align-items:center; justify-content:center; animation:m3Ripple .5s ease-out;`) },
                   h("span", { style: sty(`font-size:22px; color:#9FF7C4;`), className: "msym" },
                     S($r.icon)
@@ -219,7 +219,7 @@ function Template(v: any) {
             )
           ),
           h("div", { style: sty(`flex:1; overflow-y:auto; padding:0 10px 8px;`) },
-            A(v.sections).map(($s, $s$i) => R($s$i, F(
+            I(v.sections, "{{ sections }}", "s").map(($s, $s$i) => R($s$i, F(
               ($s.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_3_5_1_1_1" + '-' + stableDynamicIdentity($s, "consoleshell-0_1_7_3_5_1_1_1", "s"), "data-direct-interactive": true, onClick: fn($s.pick), style: sty(`width:100%; text-align:left; background:#005230; border:0; border-radius:999px; padding:9px 14px; margin-bottom:3px; cursor:pointer; display:flex; align-items:center; gap:11px; animation:m3Bounce .32s cubic-bezier(.2,1.3,.4,1);`) },
                   h("span", { style: sty(`font-size:19px; color:#9FF7C4;`), className: "msym" },
                     S($s.icon)
@@ -360,7 +360,7 @@ function Template(v: any) {
                     )
                   ),
                   h("div", { style: sty(`display:flex; flex-direction:column; gap:6px;`) },
-                    A(v.liveCalls).map(($c, $c$i) => R($c$i, h("div", { style: sty(`display:grid; grid-template-columns:minmax(120px,1.4fr) minmax(80px,1fr) 74px 96px; align-items:center; gap:10px; background:#141A15; border-radius:12px; padding:10px 12px; animation:m3Slide .3s cubic-bezier(.2,0,0,1) both;`) },
+                    I(v.liveCalls, "{{ liveCalls }}", "c").map(($c, $c$i) => R($c$i, h("div", { style: sty(`display:grid; grid-template-columns:minmax(120px,1.4fr) minmax(80px,1fr) 74px 96px; align-items:center; gap:10px; background:#141A15; border-radius:12px; padding:10px 12px; animation:m3Slide .3s cubic-bezier(.2,0,0,1) both;`) },
                         h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:12px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
                           S($c.chan)
                         ),
@@ -416,7 +416,7 @@ function Template(v: any) {
                       "Quick actions"
                     ),
                     h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:8px;`) },
-                      A(v.quickActions).map(($q, $q$i) => R($q$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_7_3_3_3_3_1_1" + '-' + stableDynamicIdentity($q, "consoleshell-0_1_7_5_3_7_3_3_3_3_1_1", "q"), "data-direct-interactive": true, onClick: fn($q.run), style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h11" },
+                      I(v.quickActions, "{{ quickActions }}", "q").map(($q, $q$i) => R($q$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_7_3_3_3_3_1_1" + '-' + stableDynamicIdentity($q, "consoleshell-0_1_7_5_3_7_3_3_3_3_1_1", "q"), "data-direct-interactive": true, onClick: fn($q.run), style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h11" },
                           h("span", { style: sty(`font-size:17px;`), className: "msym" },
                             S($q.icon)
                           ),
@@ -449,7 +449,7 @@ function Template(v: any) {
                   )
                 ),
                 h("div", { style: sty(`display:flex; gap:8px; margin-top:18px; flex-wrap:wrap;`) },
-                  A(v.funLevels).map(($l, $l$i) => R($l$i, F(
+                  I(v.funLevels, "{{ funLevels }}", "l").map(($l, $l$i) => R($l$i, F(
                     ($l.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_9_1_3_1_1_1" + '-' + stableDynamicIdentity($l, "consoleshell-0_1_7_5_3_9_1_3_1_1_1", "l"), "data-direct-interactive": true, onClick: fn($l.pick), style: sty(`flex:1; min-width:150px; text-align:left; background:#9FF7C4; border:0; border-radius:16px; padding:13px 15px; cursor:pointer; animation:m3Bounce .34s cubic-bezier(.2,1.4,.4,1);`) },
                         h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:24px; font-weight:700; color:#00391F;`) },
                           S($l.num)
@@ -510,7 +510,7 @@ function Template(v: any) {
                     S(v.branchName)
                   )
                 ),
-                A(v.branches).map(($b, $b$i) => R($b$i, F(
+                I(v.branches, "{{ branches }}", "b").map(($b, $b$i) => R($b$i, F(
                   ($b.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_11_1_3_1_1" + '-' + stableDynamicIdentity($b, "consoleshell-0_1_7_5_3_11_1_3_1_1", "b"), "data-direct-interactive": true, onClick: fn($b.pick), style: sty(`background:#005230; border:0; border-radius:999px; padding:7px 14px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer;`) },
                       S($b.label)
                     ) : null),
@@ -519,7 +519,7 @@ function Template(v: any) {
                     ) : null)
                 ))),
                 h("div", { style: sty(`flex:1;`) }),
-                A(v.histActions).map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_11_1_7_1" + '-' + stableDynamicIdentity($a, "consoleshell-0_1_7_5_3_11_1_7_1", "a"), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:#1B211C; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h11" },
+                I(v.histActions, "{{ histActions }}", "a").map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_11_1_7_1" + '-' + stableDynamicIdentity($a, "consoleshell-0_1_7_5_3_11_1_7_1", "a"), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:#1B211C; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h11" },
                     h("span", { style: sty(`font-size:16px;`), className: "msym" },
                       S($a.icon)
                     ),
@@ -536,7 +536,7 @@ function Template(v: any) {
                       S(v.commitCount)
                     ),
                     h("div", { style: sty(`flex:1;`) }),
-                    A(v.histFilters).map(($f, $f$i) => R($f$i, F(
+                    I(v.histFilters, "{{ histFilters }}", "f").map(($f, $f$i) => R($f$i, F(
                       ($f.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_11_3_1_1_7_1_1" + '-' + stableDynamicIdentity($f, "consoleshell-0_1_7_5_3_11_3_1_1_7_1_1", "f"), "data-direct-interactive": true, onClick: fn($f.pick), style: sty(`background:#005230; border:0; border-radius:8px; padding:5px 11px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;`) },
                           S($f.label)
                         ) : null),
@@ -546,7 +546,7 @@ function Template(v: any) {
                     )))
                   ),
                   h("div", { style: sty(`max-height:460px; overflow-y:auto;`) },
-                    A(v.commitRows).map(($c, $c$i) => R($c$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_11_3_1_3_1_1" + '-' + stableDynamicIdentity($c, "consoleshell-0_1_7_5_3_11_3_1_3_1_1", "c"), "data-direct-interactive": true, onClick: fn($c.pick), onContextMenu: fn($c.ctx), style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), className: "k-h15" },
+                    I(v.commitRows, "{{ commitRows }}", "c").map(($c, $c$i) => R($c$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_11_3_1_3_1_1" + '-' + stableDynamicIdentity($c, "consoleshell-0_1_7_5_3_11_3_1_3_1_1", "c"), "data-direct-interactive": true, onClick: fn($c.pick), onContextMenu: fn($c.ctx), style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), className: "k-h15" },
                         h("div", { style: sty(`display:flex; flex-direction:column; align-items:center; padding-top:3px; flex:0 0 auto;`) },
                           h("span", { style: sty(`width:11px; height:11px; border-radius:50%; background:${S($c.dot)}; border:2px solid #0F1510;`) }),
                           h("span", { style: sty(`width:2px; flex:1; min-height:22px; background:#333B34;`) })
@@ -589,7 +589,7 @@ function Template(v: any) {
                         )))
                     ),
                     h("div", { style: sty(`display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;`) },
-                      A(v.diffActions).map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_11_3_3_1_7_1_1" + '-' + stableDynamicIdentity($a, "consoleshell-0_1_7_5_3_11_3_3_1_7_1_1", "a"), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:${S($a.bg)}; border:0; border-radius:999px; padding:9px 15px 9px 12px; color:${S($a.fg)}; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`) },
+                      I(v.diffActions, "{{ diffActions }}", "a").map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_11_3_3_1_7_1_1" + '-' + stableDynamicIdentity($a, "consoleshell-0_1_7_5_3_11_3_3_1_7_1_1", "a"), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:${S($a.bg)}; border:0; border-radius:999px; padding:9px 15px 9px 12px; color:${S($a.fg)}; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`) },
                           h("span", { style: sty(`font-size:16px;`), className: "msym" },
                             S($a.icon)
                           ),
@@ -626,7 +626,7 @@ function Template(v: any) {
             ) : null),
             (v.isTrunkAuth ? F(
               h("div", { style: sty(`display:flex; flex-direction:column; gap:10px; margin-bottom:12px;`) },
-                A(v.authRequests).map(($a, $a$i) => R($a$i, h("div", { style: sty(`background:#1B211C; border-radius:18px; padding:18px 20px; animation:m3Rise .38s cubic-bezier(.2,1.1,.35,1) both;`) },
+                I(v.authRequests, "{{ authRequests }}", "a").map(($a, $a$i) => R($a$i, h("div", { style: sty(`background:#1B211C; border-radius:18px; padding:18px 20px; animation:m3Rise .38s cubic-bezier(.2,1.1,.35,1) both;`) },
                     h("div", { style: sty(`display:flex; align-items:flex-start; gap:14px;`) },
                       h("span", { style: sty(`font-size:24px; color:${S($a.iconColor)}; flex:0 0 auto;`), className: "msym" },
                         S($a.icon)
@@ -738,7 +738,7 @@ function Template(v: any) {
                   A(v.basicCtls).map(($c, $c$i) => R($c$i, h(M3Control, { ctl: $c })))
                 ),
                 h("div", { style: sty(`display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;`) },
-                  A(v.oneClickModes).map(($m, $m$i) => R($m$i, F(
+                  I(v.oneClickModes, "{{ oneClickModes }}", "m").map(($m, $m$i) => R($m$i, F(
                     ($m.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_15_1_5_1_1_1" + '-' + stableDynamicIdentity($m, "consoleshell-0_1_7_5_3_15_1_5_1_1_1", "m"), "data-direct-interactive": true, onClick: fn($m.pick), style: sty(`display:flex; align-items:center; gap:6px; background:#9FF7C4; border:0; border-radius:999px; padding:7px 15px; color:#00391F; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`) },
                         h("span", { style: sty(`font-size:16px;`), className: "msym" },
                           "check"
@@ -784,7 +784,7 @@ function Template(v: any) {
             ) : null),
             (v.isCanvas ? h("div", { style: sty(`background:#141A15; border-radius:16px; padding:10px; display:flex; flex-direction:column; gap:10px; height:100%; min-height:560px; position:${S(v.canvasPosition)}; inset:${S(v.canvasInset)}; z-index:${S(v.canvasZ)};`) },
                 h("div", { style: sty(`display:flex; align-items:center; gap:8px; flex-wrap:wrap;`) },
-                  A(v.canvasTools).map(($t, $t$i) => R($t$i, F(
+                  I(v.canvasTools, "{{ canvasTools }}", "t").map(($t, $t$i) => R($t$i, F(
                     ($t.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_17_1_1_1_1_1" + '-' + stableDynamicIdentity($t, "consoleshell-0_1_7_5_3_17_1_1_1_1_1", "t"), "data-direct-interactive": true, onClick: fn($t.pick), style: sty(`display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#9FF7C4; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`) },
                         h("span", { style: sty(`font-size:17px;`), className: "msym" },
                           S($t.icon)
@@ -799,7 +799,7 @@ function Template(v: any) {
                       ) : null)
                   ))),
                   h("div", { style: sty(`flex:1;`) }),
-                  A(v.canvasToggles).map(($t, $t$i) => R($t$i, F(
+                  I(v.canvasToggles, "{{ canvasToggles }}", "t").map(($t, $t$i) => R($t$i, F(
                     ($t.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_17_1_1_5_1_1" + '-' + stableDynamicIdentity($t, "consoleshell-0_1_7_5_3_17_1_1_5_1_1", "t"), "data-direct-interactive": true, onClick: fn($t.pick), title: $t.label, style: sty(`width:32px; height:32px; border-radius:9px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;`) },
                         h("span", { style: sty(`font-size:17px;`), className: "msym" },
                           S($t.icon)
@@ -835,7 +835,7 @@ function Template(v: any) {
                 h("div", { style: sty(`flex:1; display:grid; grid-template-columns:1fr 300px; gap:10px; min-height:0;`) },
                   h("div", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_17_1_3_1", "data-direct-interactive": true, onClick: fn(v.canvasBgClick), onDragOver: fn(v.canvasDragOver), onDrop: fn(v.canvasDrop), style: sty(`position:relative; border-radius:12px; background-color:#0C110D; background-image:radial-gradient(#222A23 1px, transparent 1px); background-size:22px 22px; overflow:hidden;`) },
                     h("div", { style: sty(`position:absolute; left:10px; top:10px; z-index:3; display:flex; gap:5px; background:rgba(20,26,21,.9); border-radius:999px; padding:4px;`) },
-                      A(v.canvasLayers).map(($l, $l$i) => R($l$i, F(
+                      I(v.canvasLayers, "{{ canvasLayers }}", "l").map(($l, $l$i) => R($l$i, F(
                         ($l.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_17_1_3_1_1_1_1_1" + '-' + stableDynamicIdentity($l, "consoleshell-0_1_7_5_3_17_1_3_1_1_1_1_1", "l"), "data-direct-interactive": true, onClick: fn($l.pick), style: sty(`background:#005230; border:0; border-radius:999px; padding:5px 12px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;`) },
                             S($l.label)
                           ) : null),
@@ -845,7 +845,7 @@ function Template(v: any) {
                       )))
                     ),
                     h("div", { style: sty(`position:absolute; right:10px; bottom:10px; z-index:3; display:flex; gap:5px; background:rgba(20,26,21,.9); border-radius:12px; padding:5px;`) },
-                      A(v.canvasOps).map(($o, $o$i) => R($o$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_17_1_3_1_3_1_1" + '-' + stableDynamicIdentity($o, "consoleshell-0_1_7_5_3_17_1_3_1_3_1_1", "o"), "data-direct-interactive": true, onClick: fn($o.run), title: $o.label, style: sty(`width:30px; height:30px; border-radius:8px; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h11" },
+                      I(v.canvasOps, "{{ canvasOps }}", "o").map(($o, $o$i) => R($o$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_17_1_3_1_3_1_1" + '-' + stableDynamicIdentity($o, "consoleshell-0_1_7_5_3_17_1_3_1_3_1_1", "o"), "data-direct-interactive": true, onClick: fn($o.run), title: $o.label, style: sty(`width:30px; height:30px; border-radius:8px; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h11" },
                           h("span", { style: sty(`font-size:17px;`), className: "msym" },
                             S($o.icon)
                           )
@@ -854,7 +854,7 @@ function Template(v: any) {
                     h("svg", { viewBox: `0 0 760 420`, preserveAspectRatio: `none`, style: sty(`position:absolute; left:0; top:0; width:760px; height:420px; pointer-events:none;`) },
                       A(v.edges).map(($e, $e$i) => R($e$i, h("path", { d: $e.d, fill: `none`, stroke: $e.stroke, strokeWidth: $e.w })))
                     ),
-                    A(v.nodes).map(($n, $n$i) => R($n$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_17_1_3_1_7_1" + '-' + stableDynamicIdentity($n, "consoleshell-0_1_7_5_3_17_1_3_1_7_1", "n"), "data-direct-interactive": true, draggable: `true`, onDragStart: fn($n.onDragStart), onDragEnd: fn($n.onDragEnd), onClick: fn($n.pick), onContextMenu: fn($n.ctx), style: sty(`position:absolute; left:${S($n.x)}; top:${S($n.y)}; width:196px; border-radius:14px; background:#1B211C; border:2px solid ${S($n.border)}; padding:11px 13px; cursor:grab; box-shadow:0 4px 12px rgba(0,0,0,.45); transition:left .26s cubic-bezier(.2,0,0,1), top .26s cubic-bezier(.2,0,0,1), border-color .2s ease, box-shadow .2s ease;`) },
+                    I(v.nodes, "{{ nodes }}", "n").map(($n, $n$i) => R($n$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_17_1_3_1_7_1" + '-' + stableDynamicIdentity($n, "consoleshell-0_1_7_5_3_17_1_3_1_7_1", "n"), "data-direct-interactive": true, draggable: `true`, onDragStart: fn($n.onDragStart), onDragEnd: fn($n.onDragEnd), onClick: fn($n.pick), onContextMenu: fn($n.ctx), style: sty(`position:absolute; left:${S($n.x)}; top:${S($n.y)}; width:196px; border-radius:14px; background:#1B211C; border:2px solid ${S($n.border)}; padding:11px 13px; cursor:grab; box-shadow:0 4px 12px rgba(0,0,0,.45); transition:left .26s cubic-bezier(.2,0,0,1), top .26s cubic-bezier(.2,0,0,1), border-color .2s ease, box-shadow .2s ease;`) },
                         h("div", { style: sty(`display:flex; align-items:center; gap:8px;`) },
                           h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                             S($n.icon)
@@ -909,7 +909,7 @@ function Template(v: any) {
                           ) : null)
                       ))),
                     h("div", { style: sty(`position:absolute; left:16px; bottom:14px; display:flex; gap:8px;`) },
-                      A(v.paletteNodes).map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_17_1_3_1_9_1_1" + '-' + stableDynamicIdentity($p, "consoleshell-0_1_7_5_3_17_1_3_1_9_1_1", "p"), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`display:flex; align-items:center; gap:6px; background:#1B211C; border:1px solid #414942; border-radius:999px; padding:7px 13px 7px 10px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h21" },
+                      I(v.paletteNodes, "{{ paletteNodes }}", "p").map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_17_1_3_1_9_1_1" + '-' + stableDynamicIdentity($p, "consoleshell-0_1_7_5_3_17_1_3_1_9_1_1", "p"), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`display:flex; align-items:center; gap:6px; background:#1B211C; border:1px solid #414942; border-radius:999px; padding:7px 13px 7px 10px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h21" },
                           h("span", { style: sty(`font-size:16px;`), className: "msym" },
                             S($p.icon)
                           ),
@@ -943,7 +943,7 @@ function Template(v: any) {
                         )
                       ),
                       h("div", { style: sty(`display:flex; flex-direction:column; gap:8px;`) },
-                        A(v.edgeRows).map(($e, $e$i) => R($e$i, h("div", { style: sty(`background:#141A15; border-radius:10px; padding:9px 10px;`) },
+                        I(v.edgeRows, "{{ edgeRows }}", "e").map(($e, $e$i) => R($e$i, h("div", { style: sty(`background:#141A15; border-radius:10px; padding:9px 10px;`) },
                             h("div", { style: sty(`display:flex; align-items:center; gap:6px;`) },
                               h("span", { style: sty(`flex:1; font-size:11.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
                                 S($e.from)
@@ -964,7 +964,7 @@ function Template(v: any) {
                               "Goes to"
                             ),
                             h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;`) },
-                              A($e.toOpts).map(($o, $o$i) => R($o$i, F(
+                              I($e.toOpts, "{{ e.toOpts }}", "o").map(($o, $o$i) => R($o$i, F(
                                 ($o.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_17_1_3_3_9_3_1_1_5_1_1_1" + '-' + stableDynamicIdentity($e, "consoleshell-0_1_7_5_3_17_1_3_3_9_3_1_1_5_1_1_1", "e") + '-' + stableDynamicIdentity($o, "consoleshell-0_1_7_5_3_17_1_3_3_9_3_1_1_5_1_1_1", "o"), "data-direct-interactive": true, onClick: fn($o.pick), style: sty(`background:#005230; border:0; border-radius:6px; padding:4px 9px; color:#9FF7C4; font:inherit; font-size:10.5px; font-weight:500; cursor:pointer;`) },
                                     S($o.label)
                                   ) : null),
@@ -997,7 +997,7 @@ function Template(v: any) {
                     h("span", { style: sty(`font-size:12.5px; color:#9AA39B; flex:0 0 auto;`) },
                       "Filter"
                     ),
-                    A(v.tableFilters).map(($f, $f$i) => R($f$i, F(
+                    I(v.tableFilters, "{{ tableFilters }}", "f").map(($f, $f$i) => R($f$i, F(
                       ($f.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_19_1_1_1_11_1_1" + '-' + stableDynamicIdentity($f, "consoleshell-0_1_7_5_3_19_1_1_1_11_1_1", "f"), "data-direct-interactive": true, onClick: fn($f.pick), style: sty(`display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:5px 12px; color:#9FF7C4; font:inherit; font-size:12px; font-weight:500; cursor:pointer;`) },
                           h("span", { style: sty(`font-size:15px;`), className: "msym" },
                             "check"
@@ -1024,7 +1024,7 @@ function Template(v: any) {
                       S(v.selectionLabel)
                     ),
                     h("div", { style: sty(`flex:1;`) }),
-                    A(v.bulkActions).map(($b, $b$i) => R($b$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_19_1_3_1_7_1" + '-' + stableDynamicIdentity($b, "consoleshell-0_1_7_5_3_19_1_3_1_7_1", "b"), "data-direct-interactive": true, onClick: fn($b.run), style: sty(`display:flex; align-items:center; gap:6px; background:rgba(0,0,0,.24); border:0; border-radius:999px; padding:7px 14px 7px 11px; color:#9FF7C4; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h23" },
+                    I(v.bulkActions, "{{ bulkActions }}", "b").map(($b, $b$i) => R($b$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_19_1_3_1_7_1" + '-' + stableDynamicIdentity($b, "consoleshell-0_1_7_5_3_19_1_3_1_7_1", "b"), "data-direct-interactive": true, onClick: fn($b.run), style: sty(`display:flex; align-items:center; gap:6px; background:rgba(0,0,0,.24); border:0; border-radius:999px; padding:7px 14px 7px 11px; color:#9FF7C4; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h23" },
                         h("span", { style: sty(`font-size:16px;`), className: "msym" },
                           S($b.icon)
                         ),
@@ -1057,7 +1057,7 @@ function Template(v: any) {
                       )
                     )
                   ) : null),
-                A(v.tableRows).map(($r, $r$i) => R($r$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_19_1_9_1" + '-' + stableDynamicIdentity($r, "consoleshell-0_1_7_5_3_19_1_9_1", "r"), "data-direct-interactive": true, onContextMenu: fn($r.ctx), style: sty(`display:grid; grid-template-columns:44px ${S(v.tableGrid)}; gap:10px; padding:12px 16px; border-top:1px solid #262B26; cursor:pointer; align-items:center; background:${S($r.bg)}; animation:m3Slide .26s cubic-bezier(.2,0,0,1) both; ${S($r.rnd)}`), className: "k-h15" },
+                I(v.tableRows, "{{ tableRows }}", "r").map(($r, $r$i) => R($r$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_19_1_9_1" + '-' + stableDynamicIdentity($r, "consoleshell-0_1_7_5_3_19_1_9_1", "r"), "data-direct-interactive": true, onContextMenu: fn($r.ctx), style: sty(`display:grid; grid-template-columns:44px ${S(v.tableGrid)}; gap:10px; padding:12px 16px; border-top:1px solid #262B26; cursor:pointer; align-items:center; background:${S($r.bg)}; animation:m3Slide .26s cubic-bezier(.2,0,0,1) both; ${S($r.rnd)}`), className: "k-h15" },
                     h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_19_1_9_1_1" + '-' + stableDynamicIdentity($r, "consoleshell-0_1_7_5_3_19_1_9_1_1", "r"), "data-direct-interactive": true, onClick: fn($r.toggle), style: sty(`width:20px; height:20px; border-radius:5px; border:2px solid ${S($r.border)}; background:${S($r.checkBg)}; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;`) },
                       h("span", { style: sty(`font-size:15px; color:#00391F;`), className: "msym" },
                         S($r.checkIcon)
@@ -1088,7 +1088,7 @@ function Template(v: any) {
                     "Pick each part. Nothing is typed — the console assembles a real CLI command and shows you what it will do before it runs."
                   ),
                   h("div", { style: sty(`display:flex; flex-direction:column; gap:14px;`) },
-                    A(v.cliSteps).map(($s, $s$i) => R($s$i, h("div", null,
+                    I(v.cliSteps, "{{ cliSteps }}", "s").map(($s, $s$i) => R($s$i, h("div", null,
                         h("div", { style: sty(`display:flex; align-items:center; gap:7px; margin-bottom:7px;`) },
                           h("span", { style: sty(`font-size:12px; font-weight:500; color:#C4CBC2;`) },
                             S($s.label)
@@ -1100,7 +1100,7 @@ function Template(v: any) {
                           )
                         ),
                         h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:7px;`) },
-                          A($s.options).map(($o, $o$i) => R($o$i, F(
+                          I($s.options, "{{ s.options }}", "o").map(($o, $o$i) => R($o$i, F(
                             ($o.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_21_1_1_5_1_1_3_1_1_1" + '-' + stableDynamicIdentity($s, "consoleshell-0_1_7_5_3_21_1_1_5_1_1_3_1_1_1", "s") + '-' + stableDynamicIdentity($o, "consoleshell-0_1_7_5_3_21_1_1_5_1_1_3_1_1_1", "o"), "data-direct-interactive": true, onClick: fn($o.pick), style: sty(`background:#005230; border:0; border-radius:8px; padding:7px 14px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12.5px; font-weight:500; cursor:pointer;`) },
                                 S($o.label)
                               ) : null),
@@ -1157,13 +1157,13 @@ function Template(v: any) {
                       )
                     ),
                     h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:7px; margin-bottom:12px;`) },
-                      A(v.regexTokens).map(($t, $t$i) => R($t$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_23_1_1_1_3_1_1" + '-' + stableDynamicIdentity($t, "consoleshell-0_1_7_5_3_23_1_1_1_3_1_1", "t"), "data-direct-interactive": true, onClick: fn($t.remove), style: sty(`display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:8px; padding:6px 10px 6px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`) },
+                      I(v.regexTokens, "{{ regexTokens }}", "t").map(($t, $t$i) => R($t$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_23_1_1_1_3_1_1" + '-' + stableDynamicIdentity($t, "consoleshell-0_1_7_5_3_23_1_1_1_3_1_1", "t"), "data-direct-interactive": true, onClick: fn($t.remove), style: sty(`display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:8px; padding:6px 10px 6px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`) },
                           S($t.label),
                           h("span", { style: sty(`font-size:14px;`), className: "msym" },
                             "close"
                           )
                         ))),
-                      A(v.regexPalette).map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_23_1_1_1_3_3_1" + '-' + stableDynamicIdentity($p, "consoleshell-0_1_7_5_3_23_1_1_1_3_3_1", "p"), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:6px 12px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`), className: "k-h21" },
+                      I(v.regexPalette, "{{ regexPalette }}", "p").map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_23_1_1_1_3_3_1" + '-' + stableDynamicIdentity($p, "consoleshell-0_1_7_5_3_23_1_1_1_3_3_1", "p"), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:6px 12px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`), className: "k-h21" },
                           S($p.label)
                         )))
                     ),
@@ -1189,7 +1189,7 @@ function Template(v: any) {
                   )
                 ),
                 h("div", { style: sty(`display:flex; flex-direction:column; gap:12px;`) },
-                  A(v.memPanels).map(($p, $p$i) => R($p$i, h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:16px 18px;`) },
+                  I(v.memPanels, "{{ memPanels }}", "p").map(($p, $p$i) => R($p$i, h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:16px 18px;`) },
                       h("div", { style: sty(`display:flex; align-items:center; gap:8px; margin-bottom:10px;`) },
                         h("span", { style: sty(`font-size:19px; color:#82D9A5;`), className: "msym" },
                           S($p.icon)
@@ -1227,7 +1227,7 @@ function Template(v: any) {
                       )
                     ),
                     (v.docsRegexOn ? h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px; margin-bottom:2px;`) },
-                        A(v.docsRegexPalette).map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_25_1_1_1_3_1_1_1" + '-' + stableDynamicIdentity($p, "consoleshell-0_1_7_5_3_25_1_1_1_3_1_1_1", "p"), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
+                        I(v.docsRegexPalette, "{{ docsRegexPalette }}", "p").map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_25_1_1_1_3_1_1_1" + '-' + stableDynamicIdentity($p, "consoleshell-0_1_7_5_3_25_1_1_1_3_1_1_1", "p"), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
                             S($p.label)
                           )))
                       ) : null),
@@ -1240,7 +1240,7 @@ function Template(v: any) {
                       S(v.docsResultsLabel)
                     ),
                     h("div", { style: sty(`overflow-y:auto; flex:1;`) },
-                      A(v.docsResults).map(($r, $r$i) => R($r$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_25_1_1_3_3_1_1" + '-' + stableDynamicIdentity($r, "consoleshell-0_1_7_5_3_25_1_1_3_3_1_1", "r"), "data-direct-interactive": true, onClick: fn($r.select), style: sty(`padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($r.bg)};`), className: "k-h15" },
+                      I(v.docsResults, "{{ docsResults }}", "r").map(($r, $r$i) => R($r$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_25_1_1_3_3_1_1" + '-' + stableDynamicIdentity($r, "consoleshell-0_1_7_5_3_25_1_1_3_3_1_1", "r"), "data-direct-interactive": true, onClick: fn($r.select), style: sty(`padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($r.bg)};`), className: "k-h15" },
                           h("div", { style: sty(`display:flex; align-items:center; gap:8px;`) },
                             h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#82D9A5; text-transform:uppercase;`) },
                               S($r.category)
@@ -1266,7 +1266,7 @@ function Template(v: any) {
                     )
                   ),
                   h("div", { style: sty(`font-size:13.5px; color:#C4CBC2; line-height:1.7; max-width:78ch; overflow-y:auto;`) },
-                    A(v.docsBlocks).map(($b, $b$i) => R($b$i, F(
+                    I(v.docsBlocks, "{{ docsBlocks }}", "b").map(($b, $b$i) => R($b$i, F(
                       ($b.isH1 ? h("div", { style: sty(`font-size:20px; font-weight:500; color:#E2E9E1; margin:14px 0 6px;`) },
                           S($b.text)
                         ) : null),
@@ -1284,7 +1284,7 @@ function Template(v: any) {
                             "•"
                           ),
                           h("span", null,
-                            A($b.spans).map(($sp, $sp$i) => R($sp$i, F(
+                            I($b.spans, "{{ b.spans }}", "sp").map(($sp, $sp$i) => R($sp$i, F(
                               ($sp.isLink ? h("span", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_25_1_3_3_1_9_1_3_1_1_1" + '-' + stableDynamicIdentity($b, "consoleshell-0_1_7_5_3_25_1_3_3_1_9_1_3_1_1_1", "b") + '-' + stableDynamicIdentity($sp, "consoleshell-0_1_7_5_3_25_1_3_3_1_9_1_3_1_1_1", "sp"), "data-direct-interactive": true, onClick: fn($sp.onClick), style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
                                   S($sp.text)
                                 ) : null),
@@ -1295,7 +1295,7 @@ function Template(v: any) {
                           )
                         ) : null),
                       ($b.isParagraph ? h("div", { style: sty(`margin:8px 0;`) },
-                          A($b.spans).map(($sp, $sp$i) => R($sp$i, F(
+                          I($b.spans, "{{ b.spans }}", "sp").map(($sp, $sp$i) => R($sp$i, F(
                             ($sp.isLink ? h("span", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_25_1_3_3_1_11_1_1_1_1" + '-' + stableDynamicIdentity($b, "consoleshell-0_1_7_5_3_25_1_3_3_1_11_1_1_1_1", "b") + '-' + stableDynamicIdentity($sp, "consoleshell-0_1_7_5_3_25_1_3_3_1_11_1_1_1_1", "sp"), "data-direct-interactive": true, onClick: fn($sp.onClick), style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
                                 S($sp.text)
                               ) : null),
@@ -1310,7 +1310,7 @@ function Template(v: any) {
                       h("div", { style: sty(`font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:8px;`) },
                         "Suggested articles"
                       ),
-                      A(v.docsSuggested).map(($sg, $sg$i) => R($sg$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_25_1_3_5_1_3_1" + '-' + stableDynamicIdentity($sg, "consoleshell-0_1_7_5_3_25_1_3_5_1_3_1", "sg"), "data-direct-interactive": true, onClick: fn($sg.select), style: sty(`display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;`), className: "k-h24" },
+                      I(v.docsSuggested, "{{ docsSuggested }}", "sg").map(($sg, $sg$i) => R($sg$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_25_1_3_5_1_3_1" + '-' + stableDynamicIdentity($sg, "consoleshell-0_1_7_5_3_25_1_3_5_1_3_1", "sg"), "data-direct-interactive": true, onClick: fn($sg.select), style: sty(`display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;`), className: "k-h24" },
                           h("span", { style: sty(`font-size:15px;`), className: "msym" },
                             S($sg.icon)
                           ),
@@ -1334,7 +1334,7 @@ function Template(v: any) {
                     h("input", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_27_1_1_3_3", "data-direct-interactive": true, value: v.changelogTo, onChange: fn(v.setChangelogTo), placeholder: `YYYY-MM-DD`, style: sty(`width:130px; background:#0C110D; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-family:'Roboto Mono',monospace; font-size:12px;`) })
                   ),
                   h("div", { style: sty(`display:flex; gap:6px; flex-wrap:wrap;`) },
-                    A(v.changelogPresets).map(($pr, $pr$i) => R($pr$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_27_1_1_5_1_1" + '-' + stableDynamicIdentity($pr, "consoleshell-0_1_7_5_3_27_1_1_5_1_1", "pr"), "data-direct-interactive": true, onClick: fn($pr.apply), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:6px 12px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h0" },
+                    I(v.changelogPresets, "{{ changelogPresets }}", "pr").map(($pr, $pr$i) => R($pr$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_27_1_1_5_1_1" + '-' + stableDynamicIdentity($pr, "consoleshell-0_1_7_5_3_27_1_1_5_1_1", "pr"), "data-direct-interactive": true, onClick: fn($pr.apply), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:6px 12px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h0" },
                         S($pr.label)
                       )))
                   ),
@@ -1365,7 +1365,7 @@ function Template(v: any) {
                   )
                 ),
                 (v.changelogRegexOn ? h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px;`) },
-                    A(v.changelogRegexPalette).map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_27_1_3_1_1_1" + '-' + stableDynamicIdentity($p, "consoleshell-0_1_7_5_3_27_1_3_1_1_1", "p"), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
+                    I(v.changelogRegexPalette, "{{ changelogRegexPalette }}", "p").map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_5_3_27_1_3_1_1_1" + '-' + stableDynamicIdentity($p, "consoleshell-0_1_7_5_3_27_1_3_1_1_1", "p"), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
                         S($p.label)
                       )))
                   ) : null),
@@ -1462,7 +1462,7 @@ function Template(v: any) {
                     S($b)
                   )))
               ) : null),
-            A(v.groups).map(($g, $g$i) => R($g$i, h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:18px 20px; margin-bottom:12px; animation:m3Rise .36s cubic-bezier(.2,0,0,1) both; ${S($g.rnd)}`) },
+            I(v.groups, "{{ groups }}", "g").map(($g, $g$i) => R($g$i, h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:18px 20px; margin-bottom:12px; animation:m3Rise .36s cubic-bezier(.2,0,0,1) both; ${S($g.rnd)}`) },
                 h("div", { style: sty(`display:flex; align-items:flex-start; gap:12px; margin-bottom:16px;`) },
                   h("div", { style: sty(`flex:1;`) },
                     h("div", { style: sty(`font-size:15.5px; font-weight:500;`) },
@@ -1500,7 +1500,7 @@ function Template(v: any) {
               S(v.infoTitle)
             ),
             h("span", { style: sty(`display:flex; gap:2px; flex:0 0 auto;`) }),
-            A(v.infoDockOpts).map(($d, $d$i) => R($d$i, F(
+            I(v.infoDockOpts, "{{ infoDockOpts }}", "d").map(($d, $d$i) => R($d$i, F(
               ($d.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_9_3_1_9_1_1" + '-' + stableDynamicIdentity($d, "consoleshell-0_1_9_3_1_9_1_1", "d"), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:24px; height:24px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;`) },
                   h("span", { style: sty(`font-size:14px;`), className: "msym" },
                     S($d.icon)
@@ -1579,7 +1579,7 @@ function Template(v: any) {
               )
             ),
             h("div", { style: sty(`display:flex; gap:3px; flex:0 0 auto;`) },
-              A(v.wizardDockOpts).map(($d, $d$i) => R($d$i, F(
+              I(v.wizardDockOpts, "{{ wizardDockOpts }}", "d").map(($d, $d$i) => R($d$i, F(
                 ($d.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_11_1_1_5_1_1_1" + '-' + stableDynamicIdentity($d, "consoleshell-0_1_11_1_1_5_1_1_1", "d"), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;`) },
                     h("span", { style: sty(`font-size:15px;`), className: "msym" },
                       S($d.icon)
@@ -1602,7 +1602,7 @@ function Template(v: any) {
             A(v.wizardSteps).map(($s, $s$i) => R($s$i, h("div", { style: sty(`flex:1; height:4px; border-radius:2px; background:${S($s.bg)};`) })))
           ),
           h("div", { style: sty(`padding:0 14px 10px; display:flex; gap:4px; overflow-x:auto;`) },
-            A(v.wizardRail).map(($w, $w$i) => R($w$i, F(
+            I(v.wizardRail, "{{ wizardRail }}", "w").map(($w, $w$i) => R($w$i, F(
               ($w.current ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_11_1_5_1_1_1" + '-' + stableDynamicIdentity($w, "consoleshell-0_1_11_1_5_1_1_1", "w"), "data-direct-interactive": true, onClick: fn($w.go), style: sty(`display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:999px; padding:6px 12px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer; white-space:nowrap;`) },
                   h("span", { style: sty(`width:16px; height:16px; border-radius:50%; background:#9FF7C4; color:#00391F; font-size:10px; display:flex; align-items:center; justify-content:center;`) },
                     S($w.num)
@@ -1692,7 +1692,7 @@ function Template(v: any) {
             )
           ),
           h("div", { style: sty(`max-height:420px; overflow-y:auto; padding:8px;`) },
-            A(v.paletteItems).map(($p, $p$i) => R($p$i, F(
+            I(v.paletteItems, "{{ paletteItems }}", "p").map(($p, $p$i) => R($p$i, F(
               ($p.rich ? h("div", { "data-appearance-id": `palette-row-${S($p.id)}`, style: sty(`display:flex; flex-direction:column; gap:8px; padding:9px 12px; border-radius:12px; background:#1B211C;`), className: "k-h27" },
                   h("button", { "data-appearance-id": "direct-consoleshell-0_1_13_3_3_1_1_1_1" + '-' + stableDynamicIdentity($p, "consoleshell-0_1_13_3_3_1_1_1_1", "p"), "data-direct-interactive": true, disabled: $p.disabled, "aria-disabled": $p.disabled, onClick: fn($p.go), style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; padding:0; cursor:pointer;`) },
                     h("span", { style: sty(`font-size:19px; color:#82D9A5;`), className: "msym" },
@@ -1893,7 +1893,7 @@ function Template(v: any) {
                   )
                 ),
                 h("div", { style: sty(`display:grid; grid-template-columns:repeat(4,1fr); gap:8px;`) },
-                  A(v.moleCells).map(($m, $m$i) => R($m$i, F(
+                  I(v.moleCells, "{{ moleCells }}", "m").map(($m, $m$i) => R($m$i, F(
                     ($m.up ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_17_1_1_11_1_3_1_1_1" + '-' + stableDynamicIdentity($m, "consoleshell-0_1_17_1_1_11_1_3_1_1_1", "m"), "data-direct-interactive": true, onClick: fn($m.whack), style: sty(`height:74px; border-radius:14px; background:#005230; border:2px solid #82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; animation:m3Pop .12s ease-out;`) },
                         h("span", { style: sty(`font-size:32px; color:#9FF7C4;`), className: "msym" },
                           "radio_button_checked"
@@ -2032,7 +2032,7 @@ function Template(v: any) {
               "Regex builder"
             ),
             h("div", { style: sty(`flex:1;`) }),
-            A(v.regexDockOpts).map(($d, $d$i) => R($d$i, F(
+            I(v.regexDockOpts, "{{ regexDockOpts }}", "d").map(($d, $d$i) => R($d$i, F(
               ($d.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_23_3_1_9_1_1" + '-' + stableDynamicIdentity($d, "consoleshell-0_1_23_3_1_9_1_1", "d"), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;`) },
                   h("span", { style: sty(`font-size:15px;`), className: "msym" },
                     S($d.icon)
@@ -2064,7 +2064,7 @@ function Template(v: any) {
             )
           ),
           h("div", { style: sty(`display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;`) },
-            A(v.rxTools).map(($t, $t$i) => R($t$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_23_3_7_1_1" + '-' + stableDynamicIdentity($t, "consoleshell-0_1_23_3_7_1_1", "t"), "data-direct-interactive": true, onClick: fn($t.run), title: $t.title, style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:5px 10px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
+            I(v.rxTools, "{{ rxTools }}", "t").map(($t, $t$i) => R($t$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_23_3_7_1_1" + '-' + stableDynamicIdentity($t, "consoleshell-0_1_23_3_7_1_1", "t"), "data-direct-interactive": true, onClick: fn($t.run), title: $t.title, style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:5px 10px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
                 h("span", { style: sty(`font-size:14px;`), className: "msym" },
                   S($t.icon)
                 ),
@@ -2080,19 +2080,19 @@ function Template(v: any) {
             )
           ),
           h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;`) },
-            A(v.regexChips).map(($t, $t$i) => R($t$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_23_3_11_1_1" + '-' + stableDynamicIdentity($t, "consoleshell-0_1_23_3_11_1_1", "t"), "data-direct-interactive": true, onClick: fn($t.remove), style: sty(`display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:8px; padding:6px 9px 6px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`) },
+            I(v.regexChips, "{{ regexChips }}", "t").map(($t, $t$i) => R($t$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_23_3_11_1_1" + '-' + stableDynamicIdentity($t, "consoleshell-0_1_23_3_11_1_1", "t"), "data-direct-interactive": true, onClick: fn($t.remove), style: sty(`display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:8px; padding:6px 9px 6px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`) },
                 S($t.label),
                 h("span", { style: sty(`font-size:14px;`), className: "msym" },
                   "close"
                 )
               )))
           ),
-          A(v.regexGroups).map(($g, $g$i) => R($g$i, h("div", { style: sty(`margin-top:14px;`) },
+          I(v.regexGroups, "{{ regexGroups }}", "g").map(($g, $g$i) => R($g$i, h("div", { style: sty(`margin-top:14px;`) },
               h("div", { style: sty(`font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:7px;`) },
                 S($g.title)
               ),
               h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px;`) },
-                A($g.items).map(($i, $i$i) => R($i$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_23_3_13_1_3_1_1" + '-' + stableDynamicIdentity($g, "consoleshell-0_1_23_3_13_1_3_1_1", "g") + '-' + stableDynamicIdentity($i, "consoleshell-0_1_23_3_13_1_3_1_1", "i"), "data-direct-interactive": true, onClick: fn($i.add), style: sty(`display:flex; flex-direction:column; align-items:flex-start; gap:2px; background:#1B211C; border:1px solid #414942; border-radius:10px; padding:7px 11px; cursor:pointer;`), className: "k-h16" },
+                I($g.items, "{{ g.items }}", "i").map(($i, $i$i) => R($i$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_23_3_13_1_3_1_1" + '-' + stableDynamicIdentity($g, "consoleshell-0_1_23_3_13_1_3_1_1", "g") + '-' + stableDynamicIdentity($i, "consoleshell-0_1_23_3_13_1_3_1_1", "i"), "data-direct-interactive": true, onClick: fn($i.add), style: sty(`display:flex; flex-direction:column; align-items:flex-start; gap:2px; background:#1B211C; border:1px solid #414942; border-radius:10px; padding:7px 11px; cursor:pointer;`), className: "k-h16" },
                     h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:12px; color:#9FF7C4;`) },
                       S($i.token)
                     ),
@@ -2103,7 +2103,7 @@ function Template(v: any) {
               )
             ))),
           h("div", { style: sty(`margin-top:14px; display:flex; flex-wrap:wrap; gap:6px;`) },
-            A(v.regexFlags).map(($f, $f$i) => R($f$i, F(
+            I(v.regexFlags, "{{ regexFlags }}", "f").map(($f, $f$i) => R($f$i, F(
               ($f.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_23_3_15_1_1_1" + '-' + stableDynamicIdentity($f, "consoleshell-0_1_23_3_15_1_1_1", "f"), "data-direct-interactive": true, onClick: fn($f.toggle), style: sty(`display:flex; align-items:center; gap:5px; background:#1B4D33; border:0; border-radius:8px; padding:6px 12px; color:#9FF7C4; font:inherit; font-size:12px; font-weight:500; cursor:pointer;`) },
                   h("span", { style: sty(`font-size:14px;`), className: "msym" },
                     "check"
@@ -2158,7 +2158,7 @@ function Template(v: any) {
               )
             )
           ),
-          A(v.ctxItems).map(($i, $i$i) => R($i$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_3_5_1" + '-' + stableDynamicIdentity($i, "consoleshell-0_1_25_3_5_1", "i"), "data-direct-interactive": true, role: `menuitem`, "aria-disabled": $i.disabled, title: $i.reason, onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h27" },
+          I(v.ctxItems, "{{ ctxItems }}", "i").map(($i, $i$i) => R($i$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_3_5_1" + '-' + stableDynamicIdentity($i, "consoleshell-0_1_25_3_5_1", "i"), "data-direct-interactive": true, role: `menuitem`, "aria-disabled": $i.disabled, title: $i.reason, onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h27" },
               h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                 S($i.icon)
               ),
@@ -2171,7 +2171,7 @@ function Template(v: any) {
             )))
         ),
         (v.subOpen ? h("div", { role: `menu`, "aria-label": `Nested actions`, style: sty(`position:absolute; left:${S(v.subX)}; top:${S(v.subY)}; width:230px; max-height:calc(100vh - 24px); overflow:auto; background:#252B25; border:1px solid #414942; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);`) },
-            A(v.subItems).map(($i, $i$i) => R($i$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_5_1_1_1" + '-' + stableDynamicIdentity($i, "consoleshell-0_1_25_5_1_1_1", "i"), "data-direct-interactive": true, role: `menuitem`, "aria-disabled": $i.disabled, title: $i.reason, onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h27" },
+            I(v.subItems, "{{ subItems }}", "i").map(($i, $i$i) => R($i$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_5_1_1_1" + '-' + stableDynamicIdentity($i, "consoleshell-0_1_25_5_1_1_1", "i"), "data-direct-interactive": true, role: `menuitem`, "aria-disabled": $i.disabled, title: $i.reason, onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h27" },
                 h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                   S($i.icon)
                 ),
@@ -2193,7 +2193,7 @@ function Template(v: any) {
               "Lock this element"
             ),
             h("div", { style: sty(`flex:1;`) }),
-            A(v.lockDockOpts).map(($d, $d$i) => R($d$i, F(
+            I(v.lockDockOpts, "{{ lockDockOpts }}", "d").map(($d, $d$i) => R($d$i, F(
               ($d.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_27_1_1_9_1_1" + '-' + stableDynamicIdentity($d, "consoleshell-0_1_27_1_1_9_1_1", "d"), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;`) },
                   h("span", { style: sty(`font-size:15px;`), className: "msym" },
                     S($d.icon)
@@ -2225,7 +2225,7 @@ function Template(v: any) {
             S(v.lockStepBody)
           ),
           (v.lockPickMethod ? h("div", { style: sty(`display:flex; flex-direction:column; gap:6px;`) },
-              A(v.lockMethods).map(($m, $m$i) => R($m$i, F(
+              I(v.lockMethods, "{{ lockMethods }}", "m").map(($m, $m$i) => R($m$i, F(
                 ($m.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_27_1_11_1_1_1_1" + '-' + stableDynamicIdentity($m, "consoleshell-0_1_27_1_11_1_1_1_1", "m"), "data-direct-interactive": true, onClick: fn($m.pick), style: sty(`display:flex; align-items:center; gap:10px; background:#005230; border:0; border-radius:12px; padding:12px 14px; color:#9FF7C4; font:inherit; font-size:13px; font-weight:500; cursor:pointer; text-align:left;`) },
                     h("span", { style: sty(`font-size:19px;`), className: "msym" },
                       S($m.icon)
@@ -2261,7 +2261,7 @@ function Template(v: any) {
                 A(v.pinDots).map(($d, $d$i) => R($d$i, h("span", { style: sty(`width:15px; height:15px; border-radius:50%; background:${S($d.bg)}; border:2px solid #414942; transition:background .12s;`) })))
               ),
               h("div", { style: sty(`display:grid; grid-template-columns:repeat(3,1fr); gap:7px;`) },
-                A(v.pinKeys).map(($k, $k$i) => R($k$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_27_1_13_1_5_1_1" + '-' + stableDynamicIdentity($k, "consoleshell-0_1_27_1_13_1_5_1_1", "k"), "data-direct-interactive": true, onClick: fn($k.press), style: sty(`height:50px; border-radius:10px; background:linear-gradient(#20281F,#171D18); border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .07s, background .12s; box-shadow:0 2px 0 #0C110D;`), className: "k-h28" },
+                I(v.pinKeys, "{{ pinKeys }}", "k").map(($k, $k$i) => R($k$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_27_1_13_1_5_1_1" + '-' + stableDynamicIdentity($k, "consoleshell-0_1_27_1_13_1_5_1_1", "k"), "data-direct-interactive": true, onClick: fn($k.press), style: sty(`height:50px; border-radius:10px; background:linear-gradient(#20281F,#171D18); border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .07s, background .12s; box-shadow:0 2px 0 #0C110D;`), className: "k-h28" },
                     S($k.label)
                   )))
               ),
@@ -2301,7 +2301,7 @@ function Template(v: any) {
                 )
               ),
               h("div", { style: sty(`display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;`) },
-                A(v.pwBuilders).map(($b, $b$i) => R($b$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_27_1_15_1_5_1_1" + '-' + stableDynamicIdentity($b, "consoleshell-0_1_27_1_15_1_5_1_1", "b"), "data-direct-interactive": true, onClick: fn($b.run), style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:6px 11px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
+                I(v.pwBuilders, "{{ pwBuilders }}", "b").map(($b, $b$i) => R($b$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_27_1_15_1_5_1_1" + '-' + stableDynamicIdentity($b, "consoleshell-0_1_27_1_15_1_5_1_1", "b"), "data-direct-interactive": true, onClick: fn($b.run), style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:6px 11px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
                     h("span", { style: sty(`font-size:14px;`), className: "msym" },
                       S($b.icon)
                     ),
@@ -2387,7 +2387,7 @@ function Template(v: any) {
                 A(v.unlockDots).map(($d, $d$i) => R($d$i, h("span", { style: sty(`width:14px; height:14px; border-radius:50%; background:${S($d.bg)}; border:2px solid #414942;`) })))
               ) : null),
             h("div", { style: sty(`display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;`) },
-              A(v.unlockKeys).map(($k, $k$i) => R($k$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_1_15_1_1" + '-' + stableDynamicIdentity($k, "consoleshell-0_1_29_1_1_15_1_1", "k"), "data-direct-interactive": true, onClick: fn($k.press), style: sty(`height:50px; border-radius:14px; background:#1B211C; border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .08s;`), className: "k-h29" },
+              I(v.unlockKeys, "{{ unlockKeys }}", "k").map(($k, $k$i) => R($k$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_1_15_1_1" + '-' + stableDynamicIdentity($k, "consoleshell-0_1_29_1_1_15_1_1", "k"), "data-direct-interactive": true, onClick: fn($k.press), style: sty(`height:50px; border-radius:14px; background:#1B211C; border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .08s;`), className: "k-h29" },
                   S($k.label)
                 )))
             ),
@@ -2419,7 +2419,7 @@ function Template(v: any) {
             )
           ),
           h("div", { style: sty(`padding:0 20px 10px; display:flex; gap:5px; flex-wrap:wrap;`) },
-            A(v.appearStates).map(($t, $t$i) => R($t$i, F(
+            I(v.appearStates, "{{ appearStates }}", "t").map(($t, $t$i) => R($t$i, F(
               ($t.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_31_1_3_1_1_1" + '-' + stableDynamicIdentity($t, "consoleshell-0_1_31_1_3_1_1_1", "t"), "data-direct-interactive": true, onClick: fn($t.pick), style: sty(`background:#005230; border:0; border-radius:999px; padding:6px 13px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;`) },
                   S($t.label)
                 ) : null),
@@ -2453,13 +2453,13 @@ function Template(v: any) {
                 h("div", { style: sty(`width:56px; border-radius:12px; background:${S(v.colorValue)}; border:1px solid #414942; flex:0 0 auto;`) }),
                 h("div", { style: sty(`flex:1; display:flex; flex-direction:column; gap:7px;`) },
                   h("div", { style: sty(`display:flex; gap:2px; height:26px; border-radius:8px; overflow:hidden;`) },
-                    A(v.hueStops).map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_31_1_7_1_3_3_1_1_1" + '-' + stableDynamicIdentity($h, "consoleshell-0_1_31_1_7_1_3_3_1_1_1", "h"), "data-direct-interactive": true, onClick: fn($h.pick), title: $h.label, style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.color)};`) })))
+                    I(v.hueStops, "{{ hueStops }}", "h").map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_31_1_7_1_3_3_1_1_1" + '-' + stableDynamicIdentity($h, "consoleshell-0_1_31_1_7_1_3_3_1_1_1", "h"), "data-direct-interactive": true, onClick: fn($h.pick), title: $h.label, style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.color)};`) })))
                   ),
                   h("div", { style: sty(`display:flex; gap:2px; height:22px; border-radius:8px; overflow:hidden;`) },
-                    A(v.shadeStops).map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_31_1_7_1_3_3_3_1_1" + '-' + stableDynamicIdentity($h, "consoleshell-0_1_31_1_7_1_3_3_3_1_1", "h"), "data-direct-interactive": true, onClick: fn($h.pick), style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.color)};`) })))
+                    I(v.shadeStops, "{{ shadeStops }}", "h").map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_31_1_7_1_3_3_3_1_1" + '-' + stableDynamicIdentity($h, "consoleshell-0_1_31_1_7_1_3_3_3_1_1", "h"), "data-direct-interactive": true, onClick: fn($h.pick), style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.color)};`) })))
                   ),
                   h("div", { style: sty(`display:flex; gap:6px; flex-wrap:wrap;`) },
-                    A(v.colorActions).map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_31_1_7_1_3_3_5_1_1" + '-' + stableDynamicIdentity($a, "consoleshell-0_1_31_1_7_1_3_3_5_1_1", "a"), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:5px 10px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
+                    I(v.colorActions, "{{ colorActions }}", "a").map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_31_1_7_1_3_3_5_1_1" + '-' + stableDynamicIdentity($a, "consoleshell-0_1_31_1_7_1_3_3_5_1_1", "a"), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:5px 10px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
                         h("span", { style: sty(`font-size:14px;`), className: "msym" },
                           S($a.icon)
                         ),
@@ -2469,7 +2469,7 @@ function Template(v: any) {
                 )
               ),
               h("div", { style: sty(`display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;`) },
-                A(v.colorFormats).map(($f, $f$i) => R($f$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_31_1_7_1_5_1_1" + '-' + stableDynamicIdentity($f, "consoleshell-0_1_31_1_7_1_5_1_1", "f"), "data-direct-interactive": true, onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h30" },
+                I(v.colorFormats, "{{ colorFormats }}", "f").map(($f, $f$i) => R($f$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_31_1_7_1_5_1_1" + '-' + stableDynamicIdentity($f, "consoleshell-0_1_31_1_7_1_5_1_1", "f"), "data-direct-interactive": true, onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h30" },
                     S($f.label)
                   )))
               )
@@ -2490,7 +2490,7 @@ function Template(v: any) {
               )))
           ),
           h("div", { style: sty(`padding:12px 20px; border-top:1px solid #262B26; display:flex; gap:8px; flex-wrap:wrap;`) },
-            A(v.appearActions).map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_31_1_9_1_1" + '-' + stableDynamicIdentity($a, "consoleshell-0_1_31_1_9_1_1", "a"), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:999px; padding:9px 15px 9px 12px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h11" },
+            I(v.appearActions, "{{ appearActions }}", "a").map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_31_1_9_1_1" + '-' + stableDynamicIdentity($a, "consoleshell-0_1_31_1_9_1_1", "a"), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:999px; padding:9px 15px 9px 12px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h11" },
                 h("span", { style: sty(`font-size:16px;`), className: "msym" },
                   S($a.icon)
                 ),
@@ -2535,7 +2535,7 @@ function Template(v: any) {
                 )
               ),
               h("div", { style: sty(`display:grid; grid-template-columns:repeat(4,1fr); gap:8px;`) },
-                A(v.sureCells).map(($c, $c$i) => R($c$i, F(
+                I(v.sureCells, "{{ sureCells }}", "c").map(($c, $c$i) => R($c$i, F(
                   ($c.up ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_33_1_1_5_3_1_1_1" + '-' + stableDynamicIdentity($c, "consoleshell-0_1_33_1_1_5_3_1_1_1", "c"), "data-direct-interactive": true, onClick: fn($c.hit), style: sty(`height:54px; border-radius:14px; background:#005230; border:2px solid #82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; animation:m3Pop .12s ease-out;`) },
                       h("span", { style: sty(`font-size:24px; color:#9FF7C4;`), className: "msym" },
                         "touch_app"
@@ -2584,7 +2584,7 @@ function Template(v: any) {
             )
           ),
           (v.tabFilterIsColour ? h("div", { style: sty(`display:flex; flex-direction:column; gap:6px; margin-top:14px;`) },
-              A(v.tabFilterColours).map(($c, $c$i) => R($c$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_35_3_3_1_1_1" + '-' + stableDynamicIdentity($c, "consoleshell-0_1_35_3_3_1_1_1", "c"), "data-direct-interactive": true, onClick: fn($c.pick), style: sty(`display:flex; align-items:center; gap:11px; background:#141A15; border:2px solid ${S($c.border)}; border-radius:12px; padding:10px 13px; cursor:pointer; text-align:left;`), className: "k-h27" },
+              I(v.tabFilterColours, "{{ tabFilterColours }}", "c").map(($c, $c$i) => R($c$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_35_3_3_1_1_1" + '-' + stableDynamicIdentity($c, "consoleshell-0_1_35_3_3_1_1_1", "c"), "data-direct-interactive": true, onClick: fn($c.pick), style: sty(`display:flex; align-items:center; gap:11px; background:#141A15; border:2px solid ${S($c.border)}; border-radius:12px; padding:10px 13px; cursor:pointer; text-align:left;`), className: "k-h27" },
                   h("span", { style: sty(`width:18px; height:18px; border-radius:50%; background:${S($c.colour)}; flex:0 0 auto;`) }),
                   h("div", { style: sty(`flex:1; min-width:0;`) },
                     h("div", { style: sty(`font-size:12.5px; color:#DFE4DC;`) },
@@ -2656,21 +2656,21 @@ function Template(v: any) {
             h("span", { style: sty(`width:36px; height:36px; border-radius:10px; background:${S(v.cpickValue)}; border:1px solid #414942; animation:${S(v.cpickAnim)};`) })
           ),
           h("div", { style: sty(`display:flex; gap:2px; height:26px; border-radius:8px; overflow:hidden; margin-top:12px;`) },
-            A(v.cpickHues).map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_37_3_3_1_1" + '-' + stableDynamicIdentity($h, "consoleshell-0_1_37_3_3_1_1", "h"), "data-direct-interactive": true, onClick: fn($h.pick), title: $h.label, style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.colour)};`) })))
+            I(v.cpickHues, "{{ cpickHues }}", "h").map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_37_3_3_1_1" + '-' + stableDynamicIdentity($h, "consoleshell-0_1_37_3_3_1_1", "h"), "data-direct-interactive": true, onClick: fn($h.pick), title: $h.label, style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.colour)};`) })))
           ),
           h("div", { style: sty(`display:flex; gap:2px; height:20px; border-radius:8px; overflow:hidden; margin-top:4px;`) },
-            A(v.cpickShades).map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_37_3_5_1_1" + '-' + stableDynamicIdentity($h, "consoleshell-0_1_37_3_5_1_1", "h"), "data-direct-interactive": true, onClick: fn($h.pick), style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.colour)};`) })))
+            I(v.cpickShades, "{{ cpickShades }}", "h").map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_37_3_5_1_1" + '-' + stableDynamicIdentity($h, "consoleshell-0_1_37_3_5_1_1", "h"), "data-direct-interactive": true, onClick: fn($h.pick), style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.colour)};`) })))
           ),
           h("div", { style: sty(`display:flex; flex-direction:column; gap:12px; margin-top:14px;`) },
             A(v.cpickCtls).map(($c, $c$i) => R($c$i, h(M3Control, { ctl: $c })))
           ),
           h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;`) },
-            A(v.cpickFormats).map(($f, $f$i) => R($f$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_37_3_9_1_1" + '-' + stableDynamicIdentity($f, "consoleshell-0_1_37_3_9_1_1", "f"), "data-direct-interactive": true, onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h30" },
+            I(v.cpickFormats, "{{ cpickFormats }}", "f").map(($f, $f$i) => R($f$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_37_3_9_1_1" + '-' + stableDynamicIdentity($f, "consoleshell-0_1_37_3_9_1_1", "f"), "data-direct-interactive": true, onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h30" },
                 S($f.label)
               )))
           ),
           h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;`) },
-            A(v.tabColourOpts).map(($c, $c$i) => R($c$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_37_3_11_1_1" + '-' + stableDynamicIdentity($c, "consoleshell-0_1_37_3_11_1_1", "c"), "data-direct-interactive": true, onClick: fn($c.pick), style: sty(`width:34px; height:34px; border-radius:10px; background:${S($c.colour)}; border:2px solid ${S($c.border)}; cursor:pointer;`) }))),
+            I(v.tabColourOpts, "{{ tabColourOpts }}", "c").map(($c, $c$i) => R($c$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_37_3_11_1_1" + '-' + stableDynamicIdentity($c, "consoleshell-0_1_37_3_11_1_1", "c"), "data-direct-interactive": true, onClick: fn($c.pick), style: sty(`width:34px; height:34px; border-radius:10px; background:${S($c.colour)}; border:2px solid ${S($c.border)}; cursor:pointer;`) }))),
             h("button", { "data-appearance-id": "direct-consoleshell-0_1_37_3_11_3", "data-direct-interactive": true, onClick: fn(v.cpickApply), style: sty(`flex:1; min-width:120px; background:#82D9A5; border:0; border-radius:10px; padding:0 16px; color:#00391F; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`) },
               "Use this colour"
             )
@@ -2680,7 +2680,7 @@ function Template(v: any) {
                 "Already used by other tabs"
               ),
               h("div", { style: sty(`display:flex; flex-direction:column; gap:6px;`) },
-                A(v.usedColours).map(($u, $u$i) => R($u$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_37_3_13_1_3_1_1" + '-' + stableDynamicIdentity($u, "consoleshell-0_1_37_3_13_1_3_1_1", "u"), "data-direct-interactive": true, onClick: fn($u.pick), style: sty(`display:flex; align-items:center; gap:10px; background:#141A15; border:0; border-radius:10px; padding:9px 12px; cursor:pointer; text-align:left;`), className: "k-h27" },
+                I(v.usedColours, "{{ usedColours }}", "u").map(($u, $u$i) => R($u$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_37_3_13_1_3_1_1" + '-' + stableDynamicIdentity($u, "consoleshell-0_1_37_3_13_1_3_1_1", "u"), "data-direct-interactive": true, onClick: fn($u.pick), style: sty(`display:flex; align-items:center; gap:10px; background:#141A15; border:0; border-radius:10px; padding:9px 12px; cursor:pointer; text-align:left;`), className: "k-h27" },
                     h("span", { style: sty(`width:14px; height:14px; border-radius:50%; background:${S($u.colour)};`) }),
                     h("span", { style: sty(`flex:1; font-size:12.5px; color:#DFE4DC;`) },
                       S($u.tabs)
@@ -2758,6 +2758,7 @@ const stableChoice = (raw, context) => {
   }
   return Object.assign({}, raw, { id, key, value, label: typeof raw.label === 'string' ? raw.label : value });
 };
+const optionValue = (raw) => raw && typeof raw === 'object' ? raw.value : raw;
 const buildCtl = (id, label, kind, value, extra) => {
   const source = extra || {};
   const options = Array.isArray(source.options) ? source.options.map((option) => stableChoice(option, `${id} ${kind}`)) : source.options;
@@ -4133,12 +4134,12 @@ class ConsoleShell extends DCLogic {
       onInfo:() => this.showDoc(c),
       onInfoLegacy:() => this.showInfo(c.label, c.info || ('This setting is written to ' + (SCREENS[this.state.screen] || {}).file + ' as ' + c.id + '.'), null),
       set:(nv) => this.setVal(c, nv) };
-    if (c.kind === 'segmented' || c.kind === 'select') o.options = (c.options || []).map(x => ({ id:String(x), key:String(x), value:String(x), label:x, on:x === v, off:x !== v, pick:() => this.setVal(c, x) }));
-    if (c.kind === 'chips') o.options = (c.options || []).map(x => ({ id:String(x), key:String(x), value:String(x), label:x, on:(v || []).indexOf(x) >= 0, off:(v || []).indexOf(x) < 0, pick:() => this.setVal(c, (v || []).indexOf(x) >= 0 ? v.filter(y => y !== x) : (v || []).concat([x])) }));
+    if (c.kind === 'segmented' || c.kind === 'select') o.options = (c.options || []).map(x => { const value = String(optionValue(x)); const label = x && typeof x === 'object' && typeof x.label === 'string' ? x.label : value; return { id:x.id || x.key || value, key:x.key || x.id || value, value, label, on:value === String(v), off:value !== String(v), pick:() => this.setVal(c, value) }; });
+    if (c.kind === 'chips') o.options = (c.options || []).map(x => { const value = String(optionValue(x)); const label = x && typeof x === 'object' && typeof x.label === 'string' ? x.label : value; const selected = (v || []).map(String).indexOf(value) >= 0; return { id:x.id || x.key || value, key:x.key || x.id || value, value, label, on:selected, off:!selected, pick:() => this.setVal(c, (v || []).map(String).indexOf(value) >= 0 ? v.filter(y => String(y) !== value) : (v || []).concat([value])) }; });
     if (c.kind === 'order') {
       o.move = (from, to) => { const a = (v || []).slice(); const [m] = a.splice(from, 1); a.splice(to, 0, m); this.setVal(c, a); };
       o.items = (v || []).map((x, i) => ({ id:String(x), key:String(x), label:x, idx:i, up:() => { const a = v.slice(); if (i > 0) { a[i] = a[i - 1]; a[i - 1] = x; this.setVal(c, a); } }, down:() => { const a = v.slice(); if (i < a.length - 1) { a[i] = a[i + 1]; a[i + 1] = x; this.setVal(c, a); } }, drop:() => this.setVal(c, v.filter(y => y !== x)) }));
-      o.pool = (c.pool || []).filter(x => (v || []).indexOf(x) < 0).map(x => ({ id:String(x), key:String(x), value:String(x), label:x, add:() => this.setVal(c, (v || []).concat([x])) }));
+      o.pool = (c.pool || []).map(x => { const value = String(optionValue(x)); const label = x && typeof x === 'object' && typeof x.label === 'string' ? x.label : value; return { id:x.id || x.key || value, key:x.key || x.id || value, value, label, add:() => this.setVal(c, (v || []).concat([value])) }; }).filter(x => (v || []).map(String).indexOf(x.value) < 0);
     }
     if (c.kind === 'switch') { o.on = !!v; o.off = !v; o.toggle = () => this.setVal(c, !v); }
     if (c.kind === 'stepper') {
@@ -4287,13 +4288,13 @@ class ConsoleShell extends DCLogic {
       connectionDisabled:connection.state !== 'verified',
       connectionReason:connection.reason || '',
       openConnection:() => this.showInfo('Connection', connection.summary || connection.reason || 'No verified connection data is available.', 'Connection facts come from the host. This shell never invents a target, protocol, port, security state, or uptime.', '38%', '70px'),
-      modeOpts:['Beginner','Expert'].map(m => ({ label:m, on:s.mode === m, off:s.mode !== m, pick:() => this.setState({ mode:m }) })),
+      modeOpts:['Beginner','Expert'].map(m => ({ id:m, key:m, value:m, label:m, on:s.mode === m, off:s.mode !== m, pick:() => this.setState({ mode:m }) })),
       togglePalette:() => this.set('paletteOpen', !s.paletteOpen),
       startOnboarding:() => this.setState({ onboardOpen:true, onboardStep:0 }),
 
-      rail:RAIL.map(r => ({ icon:r.icon, label:r.label, on:r.id === s.railId, off:r.id !== s.railId, pick:() => this.setState({ railId:r.id, screen:ORDER.find(k => SCREENS[k].rail === r.id) }) })),
+      rail:RAIL.map(r => ({ id:r.id, key:r.id, value:r.id, icon:r.icon, label:r.label, on:r.id === s.railId, off:r.id !== s.railId, pick:() => this.setState({ railId:r.id, screen:ORDER.find(k => SCREENS[k].rail === r.id) }) })),
       groupLabel:railDef.groupLabel, groupDesc:railDef.groupDesc,
-      sections:secIds.map(k => { const hs = (host.screens && host.screens[k]) || {}; return { label:SCREENS[k].label, icon:SCREENS[k].icon, badge:hs.count === undefined ? '—' : String(hs.count), on:k === s.screen, off:k !== s.screen, pick:() => this.openScreen(k) }; }),
+      sections:secIds.map(k => { const hs = (host.screens && host.screens[k]) || {}; return { id:k, key:k, value:k, label:SCREENS[k].label, icon:SCREENS[k].icon, badge:hs.count === undefined ? '—' : String(hs.count), on:k === s.screen, off:k !== s.screen, pick:() => this.openScreen(k) }; }),
       dirtyLabel:(host.changeState && host.changeState.label) || 'Change state unavailable',
 
       screenKey:s.screen + ':' + s.railId + ':' + s.mode,
@@ -4333,12 +4334,12 @@ class ConsoleShell extends DCLogic {
         { icon:'pan_tool', label:'Pan', id:'pan' }, { icon:'crop_free', label:'Marquee', id:'marquee' },
         { icon:'content_cut', label:'Split', id:'split' }, { icon:'comment', label:'Comment', id:'comment' },
         { icon:'straighten', label:'Measure', id:'measure' }
-      ].map(t => ({ icon:t.icon, label:t.label, on:s.canvasTool === t.id, off:s.canvasTool !== t.id, pick:() => { this.set('canvasTool', t.id); this.toast(t.label + ' tool active'); } })),
+      ].map(t => ({ id:t.id, key:t.id, value:t.id, icon:t.icon, label:t.label, on:s.canvasTool === t.id, off:s.canvasTool !== t.id, pick:() => { this.set('canvasTool', t.id); this.toast(t.label + ' tool active'); } })),
       canvasToggles:[
         { icon:'grid_on', label:'Grid', k:'grid' }, { icon:'grid_goldenratio', label:'Snap', k:'snap' },
         { icon:'straighten', label:'Guides', k:'guides' }, { icon:'map', label:'Minimap', k:'minimap' }
-      ].map(t => ({ icon:t.icon, label:t.label, on:!!s[t.k], off:!s[t.k], pick:() => this.set(t.k, !s[t.k]) })),
-      canvasLayers:['Dialplan', 'IVR', 'Queues', 'Annotations'].map(l => ({ label:l, on:s.layer === l, off:s.layer !== l, pick:() => this.set('layer', l) })),
+      ].map(t => ({ id:t.k, key:t.k, value:t.k, icon:t.icon, label:t.label, on:!!s[t.k], off:!s[t.k], pick:() => this.set(t.k, !s[t.k]) })),
+      canvasLayers:['Dialplan', 'IVR', 'Queues', 'Annotations'].map(l => ({ id:l, key:l, value:l, label:l, on:s.layer === l, off:s.layer !== l, pick:() => this.set('layer', l) })),
       zoomLabel:s.zoom + '%',
       zoomIn:() => this.set('zoom', Math.min(200, s.zoom + 10)),
       zoomOut:() => this.set('zoom', Math.max(40, s.zoom - 10)),
@@ -4364,7 +4365,7 @@ class ConsoleShell extends DCLogic {
       nodes:NODES.map(n => {
         const p = s.nodePos[n.id] || { x:n.x, y:n.y };
         const on = n.id === s.nodeId;
-        return { x:p.x + 'px', y:p.y + 'px', icon:n.icon, title:n.title, detail:n.detail,
+        return { id:n.id, key:n.id, value:n.id, x:p.x + 'px', y:p.y + 'px', icon:n.icon, title:n.title, detail:n.detail,
           border:on ? '#82D9A5' : '#333B34', selected:on, unselected:!on,
           pick:() => this.set('nodeId', n.id),
           onDragStart:(e) => { const r = e.currentTarget.getBoundingClientRect(); this.setState({ nodeId:n.id, nodeDrag:{ id:n.id, dx:e.clientX - r.left, dy:e.clientY - r.top } }); },
@@ -4391,16 +4392,17 @@ class ConsoleShell extends DCLogic {
       },
       canvasDragOver:(e) => e.preventDefault(),
       canvasOps:[
-        { icon:'auto_awesome_mosaic', label:'Auto-arrange', run:() => { this.setState({ nodePos:{} }); this.toast('Steps arranged left to right by call order'); } },
-        { icon:'align_horizontal_left', label:'Align left', run:() => { const p = {}; NODES.forEach(n => { p[n.id] = { x:40, y:(s.nodePos[n.id] || n).y }; }); this.setState({ nodePos:p }); } },
-        { icon:'vertical_distribute', label:'Distribute', run:() => { const p = {}; NODES.forEach((n, i) => { p[n.id] = { x:(s.nodePos[n.id] || n).x, y:20 + i * 66 }; }); this.setState({ nodePos:p }); } },
-        { icon:'fit_screen', label:'Fit to view', run:() => { this.set('zoom', 100); this.toast('Zoom reset and canvas centred'); } },
-        { icon:'undo', label:'Undo layout', run:() => { this.setState({ nodePos:{} }); this.toast('Layout reverted'); } }
+        { id:'auto-arrange', icon:'auto_awesome_mosaic', label:'Auto-arrange', run:() => { this.setState({ nodePos:{} }); this.toast('Steps arranged left to right by call order'); } },
+        { id:'align-left', icon:'align_horizontal_left', label:'Align left', run:() => { const p = {}; NODES.forEach(n => { p[n.id] = { x:40, y:(s.nodePos[n.id] || n).y }; }); this.setState({ nodePos:p }); } },
+        { id:'distribute', icon:'vertical_distribute', label:'Distribute', run:() => { const p = {}; NODES.forEach((n, i) => { p[n.id] = { x:(s.nodePos[n.id] || n).x, y:20 + i * 66 }; }); this.setState({ nodePos:p }); } },
+        { id:'fit-view', icon:'fit_screen', label:'Fit to view', run:() => { this.set('zoom', 100); this.toast('Zoom reset and canvas centred'); } },
+        { id:'undo-layout', icon:'undo', label:'Undo layout', run:() => { this.setState({ nodePos:{} }); this.toast('Layout reverted'); } }
       ],
       edgeRows:s.edgeList.map((e, i) => ({
+        id:`${e[0]}-${e[1]}-${i}`, key:`${e[0]}-${e[1]}-${i}`,
         from:NODES.find(n => n.id === e[0]).title, to:NODES.find(n => n.id === e[1]).title,
-        fromOpts:NODES.map(n => ({ label:n.title, on:n.id === e[0], off:n.id !== e[0], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][0] = n.id; this.setState({ edgeList:L }); } })),
-        toOpts:NODES.map(n => ({ label:n.title, on:n.id === e[1], off:n.id !== e[1], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][1] = n.id; this.setState({ edgeList:L }); } })),
+        fromOpts:NODES.map(n => ({ id:n.id, key:n.id, value:n.id, label:n.title, on:n.id === e[0], off:n.id !== e[0], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][0] = n.id; this.setState({ edgeList:L }); } })),
+        toOpts:NODES.map(n => ({ id:n.id, key:n.id, value:n.id, label:n.title, on:n.id === e[1], off:n.id !== e[1], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][1] = n.id; this.setState({ edgeList:L }); } })),
         del:() => this.setState({ edgeList:s.edgeList.filter((_, j) => j !== i) })
       })),
       addEdge:() => this.setState({ edgeList:s.edgeList.concat([['n1', 'n2']]) }),
@@ -4411,8 +4413,8 @@ class ConsoleShell extends DCLogic {
       toggleFullscreen:() => { this.set('fullscreen', !s.fullscreen); },
       fsIcon:s.fullscreen ? 'fullscreen_exit' : 'fullscreen',
       paletteNodes:[
-        { icon:'add_call', label:'Dial' }, { icon:'dialpad', label:'Menu' }, { icon:'groups', label:'Queue' }, { icon:'call_split', label:'Condition' }, { icon:'voicemail', label:'Voicemail' }
-      ].map(p => ({ icon:p.icon, label:p.label, add:() => this.invokeHost('canvas.add-node', { nodeType:p.label }) })),
+        { id:'dial', icon:'add_call', label:'Dial' }, { id:'menu', icon:'dialpad', label:'Menu' }, { id:'queue', icon:'groups', label:'Queue' }, { id:'condition', icon:'call_split', label:'Condition' }, { id:'voicemail', icon:'voicemail', label:'Voicemail' }
+      ].map(p => ({ id:p.id, key:p.id, value:p.id, icon:p.icon, label:p.label, add:() => this.invokeHost('canvas.add-node', { nodeType:p.label }) })),
       nodeTitle:node.title, nodeApp:node.detail.split('\n')[0],
       nodeCtls:(NODE_CTLS[node.id] || []).map(c => Object.assign(this.buildCtl(c), { narrow:true })),
 
@@ -4420,7 +4422,7 @@ class ConsoleShell extends DCLogic {
       tableHasState:tableState !== 'verified' || tbl.rows.length === 0,
       tableStateBg:tableNotice.bg, tableStateFg:tableNotice.fg, tableStateIcon:tableNotice.icon,
       tableStateTitle:tableNotice.title, tableStateBody:tableNotice.body,
-      tableFilters:['All','Healthy','Attention'].map(f => ({ label:f, on:s.tableFilter === f, off:s.tableFilter !== f, pick:() => this.set('tableFilter', f) })),
+      tableFilters:['All','Healthy','Attention'].map(f => ({ id:f.toLowerCase(), key:f.toLowerCase(), value:f, label:f, on:s.tableFilter === f, off:s.tableFilter !== f, pick:() => this.set('tableFilter', f) })),
       hasSelection:sel.length > 0,
       selectionLabel:sel.length + ' of ' + tbl.rows.length + ' selected',
       allBorder:sel.length ? '#82D9A5' : '#8B938C', allBg:sel.length ? '#82D9A5' : 'transparent',
@@ -4459,7 +4461,7 @@ class ConsoleShell extends DCLogic {
       cliSteps:CLI_STEPS.map(st => ({
         label:st.label,
         info:() => this.showInfo(st.label, 'This part of the command chooses ' + st.label.toLowerCase() + '. The console only ever offers combinations that exist in this build of Asterisk, so an invalid command cannot be assembled.', 'Think of it like ordering food from pictures instead of writing the order down. You cannot misspell anything.'),
-        options:st.options.map(o => ({ label:o, on:s.cli[st.id] === o, off:s.cli[st.id] !== o, pick:() => this.setState({ cli:Object.assign({}, s.cli, { [st.id]:o }) }) }))
+        options:st.options.map(o => ({ id:o, key:o, value:o, label:o, on:s.cli[st.id] === o, off:s.cli[st.id] !== o, pick:() => this.setState({ cli:Object.assign({}, s.cli, { [st.id]:o }) }) }))
       })),
       cliCommand:'asterisk -rx "' + cliCmd + '"',
       cliExplain:'Asks the running PBX to list every ' + s.cli.target + ' it currently knows about. Read-only, but it still passes through confirmation because it touches production.',
@@ -4468,8 +4470,8 @@ class ConsoleShell extends DCLogic {
 
       regexValue:s.regex.join(''),
       regexMatches:(host.regex && host.regex.matchCount !== undefined ? host.regex.matchCount : 0) + ' verified matches',
-      regexTokens:s.regex.map((t, i) => ({ label:t, remove:() => this.set('regex', s.regex.filter((_, j) => j !== i)) })),
-      regexPalette:['^', '$', '\\d+', '[a-z]+', '.*', '\\.md$', '(a|b)'].map(p => ({ label:p, add:() => this.set('regex', s.regex.concat([p])) })),
+      regexTokens:s.regex.map((t, i) => ({ id:`token-${i}-${t}`, key:`token-${i}-${t}`, value:t, label:t, remove:() => this.set('regex', s.regex.filter((_, j) => j !== i)) })),
+      regexPalette:['^', '$', '\\d+', '[a-z]+', '.*', '\\.md$', '(a|b)'].map(p => ({ id:p, key:p, value:p, label:p, add:() => this.set('regex', s.regex.concat([p])) })),
       memRows:host.memory && Array.isArray(host.memory.rows) ? host.memory.rows : [],
       memPanels:(host.memory && Array.isArray(host.memory.panels) ? host.memory.panels : []).map(panel => Object.assign({}, panel, { rows:Array.isArray(panel.rows) ? panel.rows : [], act:() => panel.actionId ? this.ceremony(panel.action || panel.title, panel.actionId, panel.payload || {}) : this.notify('warning', 'Action unavailable', 'The host did not supply an action handler descriptor.') })),
 
@@ -4479,7 +4481,7 @@ class ConsoleShell extends DCLogic {
       toggleDocsRegex:() => this.set('docsRegexOn', !s.docsRegexOn),
       docsRegexBg:s.docsRegexOn ? '#005230' : 'transparent',
       docsRegexColor:s.docsRegexOn ? '#9FF7C4' : '#778078',
-      docsRegexPalette:['^', '$', '\d+', '[a-z]+', '.*', '\.md$'].map(p => ({ label:p, add:() => this.set('docsQuery', (s.docsQuery || '') + p) })),
+      docsRegexPalette:['^', '$', '\d+', '[a-z]+', '.*', '\.md$'].map(p => ({ id:p, key:p, value:p, label:p, add:() => this.set('docsQuery', (s.docsQuery || '') + p) })),
       docsQueryError:'',
       docsResultsLabel:'No verified documentation index',
       docsCategories:[],
@@ -4522,7 +4524,7 @@ class ConsoleShell extends DCLogic {
       toggleChangelogRegex:() => this.set('changelogRegexOn', !s.changelogRegexOn),
       changelogRegexBg:s.changelogRegexOn ? '#005230' : 'transparent',
       changelogRegexColor:s.changelogRegexOn ? '#9FF7C4' : '#778078',
-      changelogRegexPalette:['^', '$', '\d+', '[a-z]+', '.*', 'fix'].map(p => ({ label:p, add:() => this.set('changelogQuery', (s.changelogQuery || '') + p) })),
+      changelogRegexPalette:['^', '$', '\d+', '[a-z]+', '.*', 'fix'].map(p => ({ id:p, key:p, value:p, label:p, add:() => this.set('changelogQuery', (s.changelogQuery || '') + p) })),
       changelogQueryError:'',
       changelogFrom:'',
       setChangelogFrom:(e) => this.set('changelogFrom', e.target.value),
@@ -4544,6 +4546,7 @@ class ConsoleShell extends DCLogic {
       changelogExport:() => this.exportChangelog(),
 
       groups:(sc.groups || []).map((g, gi) => ({
+        id:`group:${g.title}`, key:`group:${g.title}`,
         rnd:this.rnd(gi + 1),
         title:g.title, desc:g.desc,
         wizard:() => this.setState({ wizardOpen:true, wizardStep:0 }),
@@ -4557,6 +4560,7 @@ class ConsoleShell extends DCLogic {
       })),
 
       tabGroups:s.groups.map(g => ({
+        id:g.id, key:g.id, value:g.id,
         name:g.name, colour:g.colour, count:g.tabs.length + '', bg:'#141A15',
         expanded:!g.collapsed,
         chevron:g.collapsed ? 'chevron_right' : 'expand_more',
@@ -4577,11 +4581,11 @@ class ConsoleShell extends DCLogic {
       },
       cancelRename:() => this.set('renameOpen', false),
       tabColourOpen:s.tabColourOpen,
-      tabColourOpts:['#82D9A5', '#FFD68A', '#FFB4AB', '#8AB4F8', '#D8A9F0', '#DFE4DC'].map(c => ({ colour:c, border:s.tabColours[s.renameKey] === c ? '#DFE4DC' : 'transparent', pick:() => this.applyColour(c) })),
+      tabColourOpts:['#82D9A5', '#FFD68A', '#FFB4AB', '#8AB4F8', '#D8A9F0', '#DFE4DC'].map(c => ({ id:c, key:c, value:c, colour:c, border:s.tabColours[s.renameKey] === c ? '#DFE4DC' : 'transparent', pick:() => this.applyColour(c) })),
       cpickValue:'hsl(' + this.v('cp_hue', 148) + ' ' + this.v('cp_sat', 60) + '% ' + this.v('cp_light', 62) + '%)',
       cpickAnim:this.v('cp_rainbow', false) ? ('m3Rainbow ' + this.v('cp_speed', 6) + 's ' + (this.v('cp_ease', 'linear') === 'steps' ? 'steps(12)' : this.v('cp_ease', 'linear')) + ' infinite ' + (this.v('cp_dir', 'Forward') === 'Reverse' ? 'reverse' : (this.v('cp_dir', 'Forward') === 'Ping-pong' ? 'alternate' : 'normal'))) : 'none',
-      cpickHues:Array.from({ length:24 }, (_, i) => { const h = Math.round(i * 15); return { colour:'hsl(' + h + ' 70% 55%)', label:h + '°', pick:() => this.setVal({ id:'cp_hue', label:'Hue' }, h) }; }),
-      cpickShades:Array.from({ length:14 }, (_, i) => { const l = 8 + i * 6.4; return { colour:'hsl(' + this.v('cp_hue', 148) + ' ' + this.v('cp_sat', 60) + '% ' + Math.round(l) + '%)', pick:() => this.setVal({ id:'cp_light', label:'Lightness' }, Math.round(l)) }; }),
+      cpickHues:Array.from({ length:24 }, (_, i) => { const h = Math.round(i * 15); return { id:String(h), key:String(h), value:String(h), colour:'hsl(' + h + ' 70% 55%)', label:h + '°', pick:() => this.setVal({ id:'cp_hue', label:'Hue' }, h) }; }),
+      cpickShades:Array.from({ length:14 }, (_, i) => { const l = 8 + i * 6.4; const id = String(Math.round(l)); return { id, key:id, value:id, colour:'hsl(' + this.v('cp_hue', 148) + ' ' + this.v('cp_sat', 60) + '% ' + Math.round(l) + '%)', pick:() => this.setVal({ id:'cp_light', label:'Lightness' }, Math.round(l)) }; }),
       cpickCtls:[
         ctl('cp_hue', 'Hue', 'slider', 148, { min:0, max:360, unit:'°' }),
         ctl('cp_sat', 'Saturation', 'slider', 60, { min:0, max:100, unit:'%' }),
@@ -4592,7 +4596,7 @@ class ConsoleShell extends DCLogic {
         ctl('cp_dir', 'Direction', 'segmented', 'Forward', { options:['Forward', 'Reverse', 'Ping-pong'] })
       ].map(this.buildCtl),
       cpickFormats:(() => { const h = this.v('cp_hue', 148), sa = this.v('cp_sat', 60), l = this.v('cp_light', 62);
-        return [['hsl', 'hsl(' + h + ' ' + sa + '% ' + l + '%)'], ['oklch', 'oklch(' + (l / 100).toFixed(2) + ' 0.13 ' + h + ')'], ['hsl deg', h + 'deg'], ['css var', '--tab-accent']].map(([k, v2]) => ({ label:k + ' · ' + v2, copy:() => this.invokeHost('clipboard.copy', { text:v2, source:'tab-colour-picker' }) })); })(),
+        return [['hsl', 'hsl(' + h + ' ' + sa + '% ' + l + '%)'], ['oklch', 'oklch(' + (l / 100).toFixed(2) + ' 0.13 ' + h + ')'], ['hsl deg', h + 'deg'], ['css var', '--tab-accent']].map(([k, v2]) => ({ id:k, key:k, value:v2, label:k + ' · ' + v2, copy:() => this.invokeHost('clipboard.copy', { text:v2, source:'tab-colour-picker' }) })); })(),
       cpickIsGroup:(s.renameKey || '').indexOf('group:') === 0,
       cpickLabel:(s.renameKey || '').indexOf('group:') === 0 ? 'Group colour' : 'Tab colour',
       cpickApply:() => this.applyColour(this.v('cp_rainbow', false) ? 'rainbow' : 'hsl(' + this.v('cp_hue', 148) + ' ' + this.v('cp_sat', 60) + '% ' + this.v('cp_light', 62) + '%)'),
@@ -4600,7 +4604,7 @@ class ConsoleShell extends DCLogic {
       usedColours:(() => {
         const by = {};
         Object.keys(s.tabColours).forEach(k => { const c = s.tabColours[k]; (by[c] = by[c] || []).push(s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)); });
-        return Object.keys(by).map(c => ({ colour:c, tabs:by[c].join(', '), pick:() => this.applyColour(c) }));
+        return Object.keys(by).map(c => ({ id:c, key:c, value:c, colour:c, tabs:by[c].join(', '), pick:() => this.applyColour(c) }));
       })(),
       tabFilterOpen:s.tabFilterOpen,
       tabFilterTitle:s.tabFilterMode === 'not' ? 'Close tabs NOT containing…' : (s.tabFilterMode === 'colour' ? 'Close tabs by colour' : 'Close tabs containing…'),
@@ -4610,7 +4614,7 @@ class ConsoleShell extends DCLogic {
         const by = {};
         s.tabs.forEach(t => { const c = s.tabColours[t] || 'none'; (by[c] = by[c] || []).push(s.tabNames[t] || (SCREENS[t] ? SCREENS[t].title : t)); });
         return Object.keys(by).map(c => ({
-          colour:c === 'none' ? '#414942' : c,
+          id:c, key:c, value:c, colour:c === 'none' ? '#414942' : c,
           label:c === 'none' ? 'No colour' : c,
           tabs:by[c].join(', '), count:by[c].length + ' tab' + (by[c].length === 1 ? '' : 's'),
           on:s.tabFilterColour === c,
@@ -4670,7 +4674,7 @@ class ConsoleShell extends DCLogic {
       tabs:s.tabs.filter(k => { const g = s.groups.find(x => x.tabs.indexOf(k) >= 0); return !(g && (g.collapsed || g.hidden)); }).map((k) => {
         const i = s.tabs.indexOf(k);
         return {
-        label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), icon:SCREENS[k] ? SCREENS[k].icon : 'tab',
+        id:k, key:k, value:k, label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), icon:SCREENS[k] ? SCREENS[k].icon : 'tab',
         colour:s.tabColours[k] || '#82D9A5',
         dropTarget:s.tabOver === i && s.tabDrag >= 0 && s.tabDrag !== i,
         edge:(s.tabOver === i && s.tabDrag >= 0 && s.tabDrag !== i) ? '#82D9A5' : 'transparent',

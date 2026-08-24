@@ -185,6 +185,8 @@ const EVENTS = new Set([
 const DIRECT_INTERACTIVE_TAGS = new Set(['button', 'input', 'select', 'textarea', 'summary']);
 const STABLE_DYNAMIC_IDENTITY_FIELDS = Object.freeze(['id', 'key']);
 let activeStableIdentityContract = '';
+let activeComponentName = '';
+let activeInteractiveIdentityRecords = [];
 
 function assertStableDynamicIdentityContract(path, loopVariable) {
   if (STABLE_DYNAMIC_IDENTITY_FIELDS.join('|') !== 'id|key') {
@@ -218,6 +220,27 @@ function countInteractiveLoops(nodes) {
     if (node.text !== undefined) return count;
     return count + (node.tag === 'sc-for' && containsInteractive(node.children ?? []) ? 1 : 0) + countInteractiveLoops(node.children ?? []);
   }, 0);
+}
+
+export function validateInteractiveIdentity(markup) {
+  const nodes = parseMarkup(markup);
+  const missing = [];
+  const walk = (items, path = '0') => {
+    items.forEach((node, index) => {
+      if (node.text !== undefined) return;
+      const nodePath = `${path}_${index}`;
+      if (node.tag === 'sc-for' && containsInteractive(node.children ?? []) && node.attrs['data-identity'] === undefined) {
+        missing.push({ path: nodePath, loopVariable: node.attrs.as || 'item', list: node.attrs.list || '<unknown>' });
+      }
+      walk(node.children ?? [], nodePath);
+    });
+  };
+  walk(nodes);
+  if (missing.length > 0) {
+    const first = missing[0];
+    throw new Error(`Interactive identity validation failed at ${first.path}, loop variable ${first.loopVariable}, list ${first.list}.`);
+  }
+  return countInteractiveLoops(nodes);
 }
 
 function directAppearanceId(path, scope) {
@@ -311,7 +334,19 @@ function emit(node, scope, hovers, indent) {
   if (node.tag === 'sc-for') {
     const list = attrValue(node.attrs.list ?? '', scope);
     const item = node.attrs.as || 'item';
-    const declaredIdentity = node.attrs['data-identity'] ?? (activeStableIdentityContract === 'id,key' ? `{{ ${item}.id }}` : undefined);
+    const declaredIdentity = node.attrs['data-identity'];
+    if (containsInteractive(node.children ?? []) && declaredIdentity === undefined) {
+      throw new Error(`Design loop variable ${item} at source path ${node.attrs.list ?? '<unknown>'} is interactive but has no explicit data-identity id/key declaration.`);
+    }
+    if (containsInteractive(node.children ?? [])) {
+      activeInteractiveIdentityRecords.push({
+        component: activeComponentName,
+        family: activeComponentName === 'ConsoleShell' ? 'console' : 'm3Control',
+        producer: node.attrs.list ?? '<unknown>',
+        loopVariable: item,
+        identityExpression: declaredIdentity,
+      });
+    }
     if (declaredIdentity !== undefined && !/\.id\b|\.key\b/.test(declaredIdentity)) {
       throw new Error(`Design loop variable ${item} declares an invalid stable identity: ${declaredIdentity}`);
     }
@@ -321,7 +356,8 @@ function emit(node, scope, hovers, indent) {
     inner.set(item, alias);
     if (declaredIdentity !== undefined) inner.set(`__identity:${item}`, declaredIdentity);
     const children = emitChildren(node, inner, hovers, indent);
-    return `A(${list}).map((${alias}, ${index}) => R(${index}, ${wrapFragment(children, indent)}))`;
+    const sourceList = declaredIdentity === undefined ? `A(${list})` : `I(${list}, ${JSON.stringify(node.attrs.list ?? '<unknown>')}, ${JSON.stringify(item)})`;
+    return `${sourceList}.map((${alias}, ${index}) => R(${index}, ${wrapFragment(children, indent)}))`;
   }
 
   if (node.tag === 'dc-import') {
@@ -441,6 +477,8 @@ function compileComponent({ name, source, componentName, extraImports = '', expo
   let nodes = parseMarkup(sanitizeBrand(source.markup)).filter((node) => node.tag !== 'helmet');
   if (source.stableIdentityContract !== 'id,key') throw new Error(`Design ${componentName} must declare data-stable-identity-contract="id,key" before emission.`);
   activeStableIdentityContract = source.stableIdentityContract;
+  activeComponentName = componentName;
+  activeInteractiveIdentityRecords = [];
   if (windowChrome) nodes = attachWindowChrome(nodes);
   const directAppearancePaths = [];
   annotateDirectInteractiveNodes(nodes, componentName, directAppearancePaths);
@@ -457,12 +495,13 @@ function compileComponent({ name, source, componentName, extraImports = '', expo
     hoverCss: hovers.css(),
     directAppearancePaths,
     interactiveLoopCount,
+    interactiveIdentityRecords: activeInteractiveIdentityRecords,
     code: [
       '// @ts-nocheck',
       '/* GENERATED FILE — do not edit.',
       ' * Produced by console/scripts/compile-design.mjs from the checked-in design reference.',
       ' * Edit the design reference and recompile instead. */',
-      "import { DCLogic, h, F, A, R, S, fn, sty, stableDynamicIdentity } from '../dc-runtime';",
+      "import { DCLogic, h, F, A, I, R, S, fn, sty, stableDynamicIdentity } from '../dc-runtime';",
       extraImports,
       '',
       template,
@@ -548,6 +587,7 @@ const manifest = {
     m3Control: control.interactiveLoopCount,
     total: consoleModule.interactiveLoopCount + control.interactiveLoopCount,
   },
+  interactiveIdentityRecords: [...consoleModule.interactiveIdentityRecords, ...control.interactiveIdentityRecords],
   negativeIdentityChuts: [
     'ordinary-choice-without-id-or-key',
     'ordinary-order-item-without-id-or-key',

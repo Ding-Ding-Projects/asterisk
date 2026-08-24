@@ -142,7 +142,7 @@
     </div>
     <div style="display:flex; align-items:center; gap:8px; padding-right:4px; flex:0 0 auto;">
       <div style="display:flex; border:1px solid #414942; border-radius:999px; overflow:hidden; height:28px;">
-        <sc-for list="{{ modeOpts }}" as="o" hint-placeholder-count="2">
+        <sc-for list="{{ modeOpts }}" as="o" data-identity="{{ o.id }}" hint-placeholder-count="2">
           <sc-if value="{{ o.on }}" hint-placeholder-val="{{ true }}">
             <button onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:5px; background:#005230; color:#9FF7C4; border:0; padding:0 13px; font:inherit; font-size:12px; font-weight:500; cursor:pointer;"><span class="msym" style="font-size:15px;">check</span>{{ o.label }}</button>
           </sc-if>
@@ -161,7 +161,7 @@
   </div>
 
   <div data-appearance-id="console-tab-strip" data-tab-strip role="tablist" aria-label="Open console tabs" aria-orientation="{{ tabOrientation }}" onKeyDown="{{ onTabListKeyDown }}" style="{{ tabStripStyle }}">
-    <sc-for list="{{ tabGroups }}" as="g" hint-placeholder-count="1">
+    <sc-for list="{{ tabGroups }}" as="g" data-identity="{{ g.id }}" hint-placeholder-count="1">
       <div data-appearance-id="tab-group-{{ g.id }}" role="group" aria-label="{{ g.name }}" aria-expanded="{{ g.expanded }}" onClick="{{ g.toggle }}" onContextMenu="{{ g.ctx }}" style="display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:{{ g.bg }}; border-radius:10px; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid {{ g.colour }};">
         <span style="width:9px; height:9px; border-radius:50%; background:{{ g.colour }};"></span>
         <span style="font-size:12px; font-weight:500; color:#DFE4DC; white-space:nowrap;">{{ g.name }}</span>
@@ -169,7 +169,7 @@
         <span class="msym" style="font-size:16px; color:#9AA39B;">{{ g.chevron }}</span>
       </div>
     </sc-for>
-    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+    <sc-for list="{{ tabs }}" as="t" data-identity="{{ t.id }}" hint-placeholder-count="4">
       <sc-if value="{{ t.on }}" hint-placeholder-val="{{ true }}">
         <div data-appearance-id="tab-{{ t.id }}" role="tab" aria-selected="true" aria-controls="console-panel" tabindex="0" draggable="true" onDragStart="{{ t.onDragStart }}" onDragOver="{{ t.onDragOver }}" onDrop="{{ t.onDrop }}" onDragEnd="{{ t.onDragEnd }}" onClick="{{ t.go }}" onContextMenu="{{ t.ctx }}" style="display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid {{ t.edge }}; border-right:2px solid {{ t.edge }};">
           <sc-if value="{{ t.inGroup }}" hint-placeholder-val="{{ true }}"><span style="width:3px; height:18px; border-radius:2px; background:{{ t.groupColour }}; flex:0 0 auto;"></span></sc-if>
@@ -194,7 +194,7 @@
     <div style="flex:1;"></div>
     <div style="display:flex; align-items:center; gap:4px; padding-bottom:4px;">
       <span style="font-size:11px; color:#778078;">Tab strip</span>
-      <sc-for list="{{ dockOpts }}" as="d" hint-placeholder-count="4">
+      <sc-for list="{{ dockOpts }}" as="d" data-identity="{{ d.id }}" hint-placeholder-count="4">
         <sc-if value="{{ d.on }}" hint-placeholder-val="{{ true }}">
           <button onClick="{{ d.pick }}" title="{{ d.label }}" style="width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer; display:flex; align-items:center; justify-content:center;"><span class="msym" style="font-size:16px;">{{ d.icon }}</span></button>
         </sc-if>
@@ -202,7 +202,7 @@
           <button onClick="{{ d.pick }}" title="{{ d.label }}" style="width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center;" style-hover="background:#1B211C; color:#C4CBC2;"><span class="msym" style="font-size:16px;">{{ d.icon }}</span></button>
         </sc-if>
       </sc-for>
-      <sc-for list="{{ tabSearchSlots }}" as="q" hint-placeholder-count="4">
+      <sc-for list="{{ tabSearchSlots }}" as="q" data-identity="{{ q.id }}" hint-placeholder-count="4">
         <div role="search" aria-label="{{ q.label }}" style="display:flex; align-items:center; gap:4px; background:#141A15; border:1px solid #333B34; border-radius:10px; padding:2px 5px;">
           <input type="search" value="{{ q.value }}" onInput="{{ q.input }}" placeholder="{{ q.label }}" aria-label="{{ q.label }}" style="width:112px; background:transparent; border:0; color:#DFE4DC; font:inherit; font-size:11px;" />
           <button onClick="{{ q.regex }}" aria-label="Open regex builder for {{ q.label }}" style="background:transparent; border:0; color:#82D9A5; cursor:pointer;"><span class="msym">data_object</span></button>
@@ -214,7 +214,7 @@
   <div data-appearance-id="console-panel" data-shell-content id="console-panel" role="tabpanel" style="{{ workspaceInsetStyle }}">
 
     <div style="width:88px; flex:0 0 88px; background:#0B0F0C; display:flex; flex-direction:column; align-items:center; padding:8px 0 12px; gap:4px; overflow-y:auto;">
-      <sc-for list="{{ rail }}" as="r" hint-placeholder-count="6">
+      <sc-for list="{{ rail }}" as="r" data-identity="{{ r.id }}" hint-placeholder-count="6">
         <button onClick="{{ r.pick }}" style="width:100%; background:transparent; border:0; cursor:pointer; padding:4px 0 2px; display:flex; flex-direction:column; align-items:center; gap:4px;">
           <sc-if value="{{ r.on }}" hint-placeholder-val="{{ true }}">
             <span style="width:56px; height:32px; border-radius:16px; background:#005230; display:flex; align-items:center; justify-content:center; animation:m3Ripple .5s ease-out;"><span class="msym" style="font-size:22px; color:#9FF7C4;">{{ r.icon }}</span></span>
@@ -242,7 +242,7 @@
         </div>
       </div>
       <div style="flex:1; overflow-y:auto; padding:0 10px 8px;">
-        <sc-for list="{{ sections }}" as="s" hint-placeholder-count="8">
+        <sc-for list="{{ sections }}" as="s" data-identity="{{ s.id }}" hint-placeholder-count="8">
           <sc-if value="{{ s.on }}" hint-placeholder-val="{{ true }}">
             <button onClick="{{ s.pick }}" style="width:100%; text-align:left; background:#005230; border:0; border-radius:999px; padding:9px 14px; margin-bottom:3px; cursor:pointer; display:flex; align-items:center; gap:11px; animation:m3Bounce .32s cubic-bezier(.2,1.3,.4,1);">
               <span class="msym" style="font-size:19px; color:#9FF7C4;">{{ s.icon }}</span>
@@ -331,7 +331,7 @@
                 <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#9AA39B;">{{ dashboardRefresh }}</span>
               </div>
               <div style="display:flex; flex-direction:column; gap:6px;">
-                <sc-for list="{{ liveCalls }}" as="c" hint-placeholder-count="5">
+                <sc-for list="{{ liveCalls }}" as="c" data-identity="{{ c.id }}" hint-placeholder-count="5">
                   <div style="display:grid; grid-template-columns:minmax(120px,1.4fr) minmax(80px,1fr) 74px 96px; align-items:center; gap:10px; background:#141A15; border-radius:12px; padding:10px 12px; animation:m3Slide .3s cubic-bezier(.2,0,0,1) both;">
                     <span style="font-family:'Roboto Mono',monospace; font-size:12px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ c.chan }}</span>
                     <span style="font-size:12px; color:#9AA39B;">{{ c.peer }}</span>
@@ -360,7 +360,7 @@
               <div style="background:#1B211C; border-radius:16px; padding:16px 18px; flex:1;">
                 <div style="font-size:15px; font-weight:500; margin-bottom:10px;">Quick actions</div>
                 <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                  <sc-for list="{{ quickActions }}" as="q" hint-placeholder-count="6">
+                  <sc-for list="{{ quickActions }}" as="q" data-identity="{{ q.id }}" hint-placeholder-count="6">
                     <button onClick="{{ q.run }}" style="display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:17px;">{{ q.icon }}</span>{{ q.label }}</button>
                   </sc-for>
                 </div>
@@ -382,7 +382,7 @@
               </div>
             </div>
             <div style="display:flex; gap:8px; margin-top:18px; flex-wrap:wrap;">
-              <sc-for list="{{ funLevels }}" as="l" hint-placeholder-count="5">
+              <sc-for list="{{ funLevels }}" as="l" data-identity="{{ l.id }}" hint-placeholder-count="5">
                 <sc-if value="{{ l.on }}" hint-placeholder-val="{{ true }}">
                   <button onClick="{{ l.pick }}" style="flex:1; min-width:150px; text-align:left; background:#9FF7C4; border:0; border-radius:16px; padding:13px 15px; cursor:pointer; animation:m3Bounce .34s cubic-bezier(.2,1.4,.4,1);">
                     <div style="font-family:'Roboto Mono',monospace; font-size:24px; font-weight:700; color:#00391F;">{{ l.num }}</div>
@@ -417,7 +417,7 @@
               <span class="msym" style="font-size:17px; color:#82D9A5;">account_tree</span>
               <span style="font-family:'Roboto Mono',monospace; font-size:12.5px; color:#DFE4DC;">{{ branchName }}</span>
             </div>
-            <sc-for list="{{ branches }}" as="b" hint-placeholder-count="3">
+            <sc-for list="{{ branches }}" as="b" data-identity="{{ b.id }}" hint-placeholder-count="3">
               <sc-if value="{{ b.on }}" hint-placeholder-val="{{ true }}">
                 <button onClick="{{ b.pick }}" style="background:#005230; border:0; border-radius:999px; padding:7px 14px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer;">{{ b.label }}</button>
               </sc-if>
@@ -426,7 +426,7 @@
               </sc-if>
             </sc-for>
             <div style="flex:1;"></div>
-            <sc-for list="{{ histActions }}" as="a" hint-placeholder-count="5">
+            <sc-for list="{{ histActions }}" as="a" data-identity="{{ a.id }}" hint-placeholder-count="5">
               <button onClick="{{ a.run }}" style="display:flex; align-items:center; gap:6px; background:#1B211C; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:16px;">{{ a.icon }}</span>{{ a.label }}</button>
             </sc-for>
           </div>
@@ -436,7 +436,7 @@
                 <span style="font-size:15px; font-weight:500;">Commits</span>
                 <span style="font-family:'Roboto Mono',monospace; font-size:11.5px; color:#8FA394;">{{ commitCount }}</span>
                 <div style="flex:1;"></div>
-                <sc-for list="{{ histFilters }}" as="f" hint-placeholder-count="4">
+                <sc-for list="{{ histFilters }}" as="f" data-identity="{{ f.id }}" hint-placeholder-count="4">
                   <sc-if value="{{ f.on }}" hint-placeholder-val="{{ true }}">
                     <button onClick="{{ f.pick }}" style="background:#005230; border:0; border-radius:8px; padding:5px 11px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;">{{ f.label }}</button>
                   </sc-if>
@@ -446,7 +446,7 @@
                 </sc-for>
               </div>
               <div style="max-height:460px; overflow-y:auto;">
-                <sc-for list="{{ commitRows }}" as="c" hint-placeholder-count="6">
+                <sc-for list="{{ commitRows }}" as="c" data-identity="{{ c.id }}" hint-placeholder-count="6">
                   <div onClick="{{ c.pick }}" onContextMenu="{{ c.ctx }}" style="display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:{{ c.bg }}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;" style-hover="background:#232A24;">
                     <div style="display:flex; flex-direction:column; align-items:center; padding-top:3px; flex:0 0 auto;">
                       <span style="width:11px; height:11px; border-radius:50%; background:{{ c.dot }}; border:2px solid #0F1510;"></span>
@@ -475,7 +475,7 @@
                   </sc-for>
                 </div>
                 <div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
-                  <sc-for list="{{ diffActions }}" as="a" hint-placeholder-count="4">
+                  <sc-for list="{{ diffActions }}" as="a" data-identity="{{ a.id }}" hint-placeholder-count="4">
                     <button onClick="{{ a.run }}" style="display:flex; align-items:center; gap:6px; background:{{ a.bg }}; border:0; border-radius:999px; padding:9px 15px 9px 12px; color:{{ a.fg }}; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;"><span class="msym" style="font-size:16px;">{{ a.icon }}</span>{{ a.label }}</button>
                   </sc-for>
                 </div>
@@ -500,7 +500,7 @@
 
         <sc-if value="{{ isTrunkAuth }}">
           <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:12px;">
-            <sc-for list="{{ authRequests }}" as="a" hint-placeholder-count="3">
+            <sc-for list="{{ authRequests }}" as="a" data-identity="{{ a.id }}" hint-placeholder-count="3">
               <div style="background:#1B211C; border-radius:18px; padding:18px 20px; animation:m3Rise .38s cubic-bezier(.2,1.1,.35,1) both;">
                 <div style="display:flex; align-items:flex-start; gap:14px;">
                   <span class="msym" style="font-size:24px; color:{{ a.iconColor }}; flex:0 0 auto;">{{ a.icon }}</span>
@@ -565,7 +565,7 @@
               </sc-for>
             </div>
             <div style="display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;">
-              <sc-for list="{{ oneClickModes }}" as="m" hint-placeholder-count="3">
+              <sc-for list="{{ oneClickModes }}" as="m" data-identity="{{ m.id }}" hint-placeholder-count="3">
                 <sc-if value="{{ m.on }}" hint-placeholder-val="{{ true }}">
                   <button onClick="{{ m.pick }}" style="display:flex; align-items:center; gap:6px; background:#9FF7C4; border:0; border-radius:999px; padding:7px 15px; color:#00391F; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;"><span class="msym" style="font-size:16px;">check</span>{{ m.label }}</button>
                 </sc-if>
@@ -600,7 +600,7 @@
         <sc-if value="{{ isCanvas }}">
           <div style="background:#141A15; border-radius:16px; padding:10px; display:flex; flex-direction:column; gap:10px; height:100%; min-height:560px; position:{{ canvasPosition }}; inset:{{ canvasInset }}; z-index:{{ canvasZ }};">
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-              <sc-for list="{{ canvasTools }}" as="t" hint-placeholder-count="6">
+              <sc-for list="{{ canvasTools }}" as="t" data-identity="{{ t.id }}" hint-placeholder-count="6">
                 <sc-if value="{{ t.on }}" hint-placeholder-val="{{ true }}">
                   <button onClick="{{ t.pick }}" style="display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#9FF7C4; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;"><span class="msym" style="font-size:17px;">{{ t.icon }}</span>{{ t.label }}</button>
                 </sc-if>
@@ -609,7 +609,7 @@
                 </sc-if>
               </sc-for>
               <div style="flex:1;"></div>
-              <sc-for list="{{ canvasToggles }}" as="t" hint-placeholder-count="4">
+              <sc-for list="{{ canvasToggles }}" as="t" data-identity="{{ t.id }}" hint-placeholder-count="4">
                 <sc-if value="{{ t.on }}" hint-placeholder-val="{{ true }}">
                   <button onClick="{{ t.pick }}" title="{{ t.label }}" style="width:32px; height:32px; border-radius:9px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;"><span class="msym" style="font-size:17px;">{{ t.icon }}</span></button>
                 </sc-if>
@@ -627,7 +627,7 @@
             <div style="flex:1; display:grid; grid-template-columns:1fr 300px; gap:10px; min-height:0;">
               <div onClick="{{ canvasBgClick }}" onDragOver="{{ canvasDragOver }}" onDrop="{{ canvasDrop }}" style="position:relative; border-radius:12px; background-color:#0C110D; background-image:radial-gradient(#222A23 1px, transparent 1px); background-size:22px 22px; overflow:hidden;">
                 <div style="position:absolute; left:10px; top:10px; z-index:3; display:flex; gap:5px; background:rgba(20,26,21,.9); border-radius:999px; padding:4px;">
-                  <sc-for list="{{ canvasLayers }}" as="l" hint-placeholder-count="4">
+                  <sc-for list="{{ canvasLayers }}" as="l" data-identity="{{ l.id }}" hint-placeholder-count="4">
                     <sc-if value="{{ l.on }}" hint-placeholder-val="{{ true }}">
                       <button onClick="{{ l.pick }}" style="background:#005230; border:0; border-radius:999px; padding:5px 12px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;">{{ l.label }}</button>
                     </sc-if>
@@ -637,7 +637,7 @@
                   </sc-for>
                 </div>
                 <div style="position:absolute; right:10px; bottom:10px; z-index:3; display:flex; gap:5px; background:rgba(20,26,21,.9); border-radius:12px; padding:5px;">
-                  <sc-for list="{{ canvasOps }}" as="o" hint-placeholder-count="5">
+                  <sc-for list="{{ canvasOps }}" as="o" data-identity="{{ o.id }}" hint-placeholder-count="5">
                     <button onClick="{{ o.run }}" title="{{ o.label }}" style="width:30px; height:30px; border-radius:8px; background:transparent; border:0; color:#9AA39B; cursor:pointer;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:17px;">{{ o.icon }}</span></button>
                   </sc-for>
                 </div>
@@ -646,7 +646,7 @@
                     <path d="{{ e.d }}" fill="none" stroke="{{ e.stroke }}" stroke-width="{{ e.w }}"></path>
                   </sc-for>
                 </svg>
-                <sc-for list="{{ nodes }}" as="n" hint-placeholder-count="5">
+                <sc-for list="{{ nodes }}" as="n" data-identity="{{ n.id }}" hint-placeholder-count="5">
                   <div draggable="true" onDragStart="{{ n.onDragStart }}" onDragEnd="{{ n.onDragEnd }}" onClick="{{ n.pick }}" onContextMenu="{{ n.ctx }}" style="position:absolute; left:{{ n.x }}; top:{{ n.y }}; width:196px; border-radius:14px; background:#1B211C; border:2px solid {{ n.border }}; padding:11px 13px; cursor:grab; box-shadow:0 4px 12px rgba(0,0,0,.45); transition:left .26s cubic-bezier(.2,0,0,1), top .26s cubic-bezier(.2,0,0,1), border-color .2s ease, box-shadow .2s ease;">
                     <div style="display:flex; align-items:center; gap:8px;">
                       <span class="msym" style="font-size:18px; color:#82D9A5;">{{ n.icon }}</span>
@@ -669,7 +669,7 @@
                   </div>
                 </sc-for>
                 <div style="position:absolute; left:16px; bottom:14px; display:flex; gap:8px;">
-                  <sc-for list="{{ paletteNodes }}" as="p" hint-placeholder-count="4">
+                  <sc-for list="{{ paletteNodes }}" as="p" data-identity="{{ p.id }}" hint-placeholder-count="4">
                     <button onClick="{{ p.add }}" style="display:flex; align-items:center; gap:6px; background:#1B211C; border:1px solid #414942; border-radius:999px; padding:7px 13px 7px 10px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;" style-hover="border-color:#82D9A5; color:#9FF7C4;"><span class="msym" style="font-size:16px;">{{ p.icon }}</span>{{ p.label }}</button>
                   </sc-for>
                 </div>
@@ -690,7 +690,7 @@
                     <button onClick="{{ addEdge }}" title="Add a connection" style="width:26px; height:26px; border-radius:50%; background:#262B26; border:0; color:#9FF7C4; cursor:pointer;" style-hover="background:#005230;"><span class="msym" style="font-size:16px;">add</span></button>
                   </div>
                   <div style="display:flex; flex-direction:column; gap:8px;">
-                    <sc-for list="{{ edgeRows }}" as="e" hint-placeholder-count="4">
+                    <sc-for list="{{ edgeRows }}" as="e" data-identity="{{ e.id }}" hint-placeholder-count="4">
                       <div style="background:#141A15; border-radius:10px; padding:9px 10px;">
                         <div style="display:flex; align-items:center; gap:6px;">
                           <span style="flex:1; font-size:11.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ e.from }}</span>
@@ -700,7 +700,7 @@
                         </div>
                         <div style="font-size:10.5px; color:#8FA394; margin-top:7px;">Goes to</div>
                         <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">
-                          <sc-for list="{{ e.toOpts }}" as="o" hint-placeholder-count="3">
+                          <sc-for list="{{ e.toOpts }}" as="o" data-identity="{{ o.id }}" hint-placeholder-count="3">
                             <sc-if value="{{ o.on }}" hint-placeholder-val="{{ true }}">
                               <button onClick="{{ o.pick }}" style="background:#005230; border:0; border-radius:6px; padding:4px 9px; color:#9FF7C4; font:inherit; font-size:10.5px; font-weight:500; cursor:pointer;">{{ o.label }}</button>
                             </sc-if>
@@ -727,7 +727,7 @@
                 <button onClick="{{ openTableRegex }}" title="Regex builder" style="width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#005230;"><span class="msym" style="font-size:16px;">data_object</span></button>
                 <span style="width:1px; height:20px; background:#333B34; flex:0 0 auto;"></span>
                 <span style="font-size:12.5px; color:#9AA39B; flex:0 0 auto;">Filter</span>
-                <sc-for list="{{ tableFilters }}" as="f" hint-placeholder-count="3">
+                <sc-for list="{{ tableFilters }}" as="f" data-identity="{{ f.id }}" hint-placeholder-count="3">
                   <sc-if value="{{ f.on }}" hint-placeholder-val="{{ true }}">
                     <button onClick="{{ f.pick }}" style="display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:5px 12px; color:#9FF7C4; font:inherit; font-size:12px; font-weight:500; cursor:pointer;"><span class="msym" style="font-size:15px;">check</span>{{ f.label }}</button>
                   </sc-if>
@@ -743,7 +743,7 @@
                 <span class="msym" style="font-size:19px; color:#9FF7C4;">checklist</span>
                 <span style="font-size:13px; font-weight:500; color:#DFF3E5;">{{ selectionLabel }}</span>
                 <div style="flex:1;"></div>
-                <sc-for list="{{ bulkActions }}" as="b" hint-placeholder-count="6">
+                <sc-for list="{{ bulkActions }}" as="b" data-identity="{{ b.id }}" hint-placeholder-count="6">
                   <button onClick="{{ b.run }}" style="display:flex; align-items:center; gap:6px; background:rgba(0,0,0,.24); border:0; border-radius:999px; padding:7px 14px 7px 11px; color:#9FF7C4; font:inherit; font-size:12.5px; cursor:pointer;" style-hover="background:rgba(0,0,0,.45);"><span class="msym" style="font-size:16px;">{{ b.icon }}</span>{{ b.label }}</button>
                 </sc-for>
                 <button onClick="{{ clearSelection }}" style="background:transparent; border:0; color:#C3EFD5; font:inherit; font-size:12.5px; cursor:pointer; padding:7px 10px;">Clear</button>
@@ -762,7 +762,7 @@
                 </div>
               </div>
             </sc-if>
-            <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="6">
+            <sc-for list="{{ tableRows }}" as="r" data-identity="{{ r.id }}" hint-placeholder-count="6">
               <div onContextMenu="{{ r.ctx }}" style="display:grid; grid-template-columns:44px {{ tableGrid }}; gap:10px; padding:12px 16px; border-top:1px solid #262B26; cursor:pointer; align-items:center; background:{{ r.bg }}; animation:m3Slide .26s cubic-bezier(.2,0,0,1) both; {{ r.rnd }}" style-hover="background:#232A24;">
                 <button onClick="{{ r.toggle }}" style="width:20px; height:20px; border-radius:5px; border:2px solid {{ r.border }}; background:{{ r.checkBg }}; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;"><span class="msym" style="font-size:15px; color:#00391F;">{{ r.checkIcon }}</span></button>
                 <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="5">
@@ -787,14 +787,14 @@
               <div style="font-size:15px; font-weight:500; margin-bottom:4px;">Command builder</div>
               <div style="font-size:12.5px; color:#9AA39B; margin-bottom:14px; line-height:1.5;">Pick each part. Nothing is typed — the console assembles a real CLI command and shows you what it will do before it runs.</div>
               <div style="display:flex; flex-direction:column; gap:14px;">
-                <sc-for list="{{ cliSteps }}" as="s" hint-placeholder-count="3">
+                <sc-for list="{{ cliSteps }}" as="s" data-identity="{{ s.id }}" hint-placeholder-count="3">
                   <div>
                     <div style="display:flex; align-items:center; gap:7px; margin-bottom:7px;">
                       <span style="font-size:12px; font-weight:500; color:#C4CBC2;">{{ s.label }}</span>
                       <button onClick="{{ s.info }}" style="width:20px; height:20px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center;" style-hover="background:#005230;"><span class="msym" style="font-size:14px;">info</span></button>
                     </div>
                     <div style="display:flex; flex-wrap:wrap; gap:7px;">
-                      <sc-for list="{{ s.options }}" as="o" hint-placeholder-count="4">
+                      <sc-for list="{{ s.options }}" as="o" data-identity="{{ o.id }}" hint-placeholder-count="4">
                         <sc-if value="{{ o.on }}" hint-placeholder-val="{{ true }}">
                           <button onClick="{{ o.pick }}" style="background:#005230; border:0; border-radius:8px; padding:7px 14px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12.5px; font-weight:500; cursor:pointer;">{{ o.label }}</button>
                         </sc-if>
@@ -836,10 +836,10 @@
                   <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#82D9A5;">{{ regexMatches }}</span>
                 </div>
                 <div style="display:flex; flex-wrap:wrap; gap:7px; margin-bottom:12px;">
-                  <sc-for list="{{ regexTokens }}" as="t" hint-placeholder-count="5">
+                  <sc-for list="{{ regexTokens }}" as="t" data-identity="{{ t.id }}" hint-placeholder-count="5">
                     <button onClick="{{ t.remove }}" style="display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:8px; padding:6px 10px 6px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;">{{ t.label }}<span class="msym" style="font-size:14px;">close</span></button>
                   </sc-for>
-                  <sc-for list="{{ regexPalette }}" as="p" hint-placeholder-count="6">
+                  <sc-for list="{{ regexPalette }}" as="p" data-identity="{{ p.id }}" hint-placeholder-count="6">
                     <button onClick="{{ p.add }}" style="background:transparent; border:1px dashed #414942; border-radius:8px; padding:6px 12px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;" style-hover="border-color:#82D9A5; color:#9FF7C4;">{{ p.label }}</button>
                   </sc-for>
                 </div>
@@ -857,7 +857,7 @@
               </div>
             </div>
             <div style="display:flex; flex-direction:column; gap:12px;">
-              <sc-for list="{{ memPanels }}" as="p" hint-placeholder-count="3">
+              <sc-for list="{{ memPanels }}" as="p" data-identity="{{ p.id }}" hint-placeholder-count="3">
                 <div style="background:#1B211C; border-radius:16px; padding:16px 18px;">
                   <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                     <span class="msym" style="font-size:19px; color:#82D9A5;">{{ p.icon }}</span>
@@ -887,7 +887,7 @@
                 </div>
                 <sc-if value="{{ docsRegexOn }}" hint-placeholder-val="{{ true }}">
                   <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:2px;">
-                    <sc-for list="{{ docsRegexPalette }}" as="p" hint-placeholder-count="6">
+                    <sc-for list="{{ docsRegexPalette }}" as="p" data-identity="{{ p.id }}" hint-placeholder-count="6">
                       <button onClick="{{ p.add }}" style="background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;" style-hover="border-color:#82D9A5; color:#9FF7C4;">{{ p.label }}</button>
                     </sc-for>
                   </div>
@@ -899,7 +899,7 @@
               <div style="background:#1B211C; border-radius:16px; overflow:hidden; flex:1; min-height:420px; display:flex; flex-direction:column;">
                 <div style="padding:12px 16px; font-size:12px; color:#9AA39B;">{{ docsResultsLabel }}</div>
                 <div style="overflow-y:auto; flex:1;">
-                  <sc-for list="{{ docsResults }}" as="r" hint-placeholder-count="8">
+                    <sc-for list="{{ docsResults }}" as="r" data-identity="{{ r.id }}" hint-placeholder-count="8">
                     <div onClick="{{ r.select }}" style="padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:{{ r.bg }};" style-hover="background:#232A24;">
                       <div style="display:flex; align-items:center; gap:8px;">
                         <span style="font-family:'Roboto Mono',monospace; font-size:10.5px; color:#82D9A5; text-transform:uppercase;">{{ r.category }}</span>
@@ -917,7 +917,7 @@
                 <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394; text-transform:uppercase;">{{ docsSelectedCategory }}</span>
               </div>
               <div style="font-size:13.5px; color:#C4CBC2; line-height:1.7; max-width:78ch; overflow-y:auto;">
-                <sc-for list="{{ docsBlocks }}" as="b" hint-placeholder-count="6">
+                  <sc-for list="{{ docsBlocks }}" as="b" data-identity="{{ b.id }}" hint-placeholder-count="6">
                   <sc-if value="{{ b.isH1 }}">
                     <div style="font-size:20px; font-weight:500; color:#E2E9E1; margin:14px 0 6px;">{{ b.text }}</div>
                   </sc-if>
@@ -934,7 +934,7 @@
                     <div style="display:flex; gap:8px; margin:2px 0;">
                       <span style="color:#8FA394;">•</span>
                       <span>
-                        <sc-for list="{{ b.spans }}" as="sp" hint-placeholder-count="2">
+                        <sc-for list="{{ b.spans }}" as="sp" data-identity="{{ sp.id }}" hint-placeholder-count="2">
                           <sc-if value="{{ sp.isLink }}">
                             <span onClick="{{ sp.onClick }}" style="color:#9FF7C4; text-decoration:underline; cursor:pointer;">{{ sp.text }}</span>
                           </sc-if>
@@ -947,7 +947,7 @@
                   </sc-if>
                   <sc-if value="{{ b.isParagraph }}" hint-placeholder-val="{{ true }}">
                     <div style="margin:8px 0;">
-                      <sc-for list="{{ b.spans }}" as="sp" hint-placeholder-count="3">
+                      <sc-for list="{{ b.spans }}" as="sp" data-identity="{{ sp.id }}" hint-placeholder-count="3">
                         <sc-if value="{{ sp.isLink }}">
                           <span onClick="{{ sp.onClick }}" style="color:#9FF7C4; text-decoration:underline; cursor:pointer;">{{ sp.text }}</span>
                         </sc-if>
@@ -962,7 +962,7 @@
               <sc-if value="{{ docsHasSuggested }}">
                 <div style="margin-top:14px; background:#0C110D; border-radius:12px; padding:14px 16px;">
                   <div style="font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:8px;">Suggested articles</div>
-                  <sc-for list="{{ docsSuggested }}" as="sg" hint-placeholder-count="4">
+                <sc-for list="{{ docsSuggested }}" as="sg" data-identity="{{ sg.id }}" hint-placeholder-count="4">
                     <div onClick="{{ sg.select }}" style="display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;" style-hover="color:#C7FFDD;"><span class="msym" style="font-size:15px;">{{ sg.icon }}</span>{{ sg.title }}</div>
                   </sc-for>
                 </div>
@@ -983,7 +983,7 @@
                 <input value="{{ changelogTo }}" onChange="{{ setChangelogTo }}" placeholder="YYYY-MM-DD" style="width:130px; background:#0C110D; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-family:'Roboto Mono',monospace; font-size:12px;" />
               </div>
               <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                <sc-for list="{{ changelogPresets }}" as="pr" hint-placeholder-count="4">
+                <sc-for list="{{ changelogPresets }}" as="pr" data-identity="{{ pr.id }}" hint-placeholder-count="4">
                   <button onClick="{{ pr.apply }}" style="background:transparent; border:1px solid #414942; border-radius:999px; padding:6px 12px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;" style-hover="background:#262B26;">{{ pr.label }}</button>
                 </sc-for>
               </div>
@@ -999,7 +999,7 @@
             </div>
             <sc-if value="{{ changelogRegexOn }}" hint-placeholder-val="{{ true }}">
               <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                <sc-for list="{{ changelogRegexPalette }}" as="p" hint-placeholder-count="6">
+                <sc-for list="{{ changelogRegexPalette }}" as="p" data-identity="{{ p.id }}" hint-placeholder-count="6">
                   <button onClick="{{ p.add }}" style="background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;" style-hover="border-color:#82D9A5; color:#9FF7C4;">{{ p.label }}</button>
                 </sc-for>
               </div>
@@ -1089,7 +1089,7 @@
           </div>
         </sc-if>
 
-        <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+        <sc-for list="{{ groups }}" as="g" data-identity="{{ g.id }}" hint-placeholder-count="3">
           <div style="background:#1B211C; border-radius:16px; padding:18px 20px; margin-bottom:12px; animation:m3Rise .36s cubic-bezier(.2,0,0,1) both; {{ g.rnd }}">
             <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:16px;">
               <div style="flex:1;">
@@ -1117,7 +1117,7 @@
         <span class="msym" style="font-size:18px; color:#82D9A5; flex:0 0 auto;">school</span>
         <span style="flex:1 1 auto; min-width:0; font-size:14.5px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ infoTitle }}</span>
         <span style="display:flex; gap:2px; flex:0 0 auto;"></span>
-        <sc-for list="{{ infoDockOpts }}" as="d" hint-placeholder-count="6">
+        <sc-for list="{{ infoDockOpts }}" as="d" data-identity="{{ d.id }}" hint-placeholder-count="6">
           <sc-if value="{{ d.on }}" hint-placeholder-val="{{ true }}">
             <button onClick="{{ d.pick }}" title="{{ d.label }}" style="width:24px; height:24px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;"><span class="msym" style="font-size:14px;">{{ d.icon }}</span></button>
           </sc-if>
@@ -1166,7 +1166,7 @@
           <div style="font-size:17px; font-weight:500; margin-top:4px;">{{ wizardTitle }}</div>
         </div>
         <div style="display:flex; gap:3px; flex:0 0 auto;">
-          <sc-for list="{{ wizardDockOpts }}" as="d" hint-placeholder-count="6">
+          <sc-for list="{{ wizardDockOpts }}" as="d" data-identity="{{ d.id }}" hint-placeholder-count="6">
             <sc-if value="{{ d.on }}" hint-placeholder-val="{{ true }}">
               <button onClick="{{ d.pick }}" title="{{ d.label }}" style="width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;"><span class="msym" style="font-size:15px;">{{ d.icon }}</span></button>
             </sc-if>
@@ -1183,7 +1183,7 @@
         </sc-for>
       </div>
       <div style="padding:0 14px 10px; display:flex; gap:4px; overflow-x:auto;">
-        <sc-for list="{{ wizardRail }}" as="w" hint-placeholder-count="5">
+        <sc-for list="{{ wizardRail }}" as="w" data-identity="{{ w.id }}" hint-placeholder-count="5">
           <sc-if value="{{ w.current }}" hint-placeholder-val="{{ true }}">
             <button onClick="{{ w.go }}" style="display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:999px; padding:6px 12px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer; white-space:nowrap;"><span style="width:16px; height:16px; border-radius:50%; background:#9FF7C4; color:#00391F; font-size:10px; display:flex; align-items:center; justify-content:center;">{{ w.num }}</span>{{ w.label }}</button>
           </sc-if>
@@ -1240,7 +1240,7 @@
         <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#778078;">Ctrl ⇧ F</span>
       </div>
       <div style="max-height:420px; overflow-y:auto; padding:8px;">
-        <sc-for list="{{ paletteItems }}" as="p" hint-placeholder-count="8">
+          <sc-for list="{{ paletteItems }}" as="p" data-identity="{{ p.id }}" hint-placeholder-count="8">
           <sc-if value="{{ p.rich }}">
             <div data-appearance-id="palette-row-{{ p.id }}" style="display:flex; flex-direction:column; gap:8px; padding:9px 12px; border-radius:12px; background:#1B211C;" style-hover="background:#333B34;">
               <button disabled="{{ p.disabled }}" aria-disabled="{{ p.disabled }}" onClick="{{ p.go }}" style="width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; padding:0; cursor:pointer;">
@@ -1365,7 +1365,7 @@
               </div>
             </div>
             <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
-              <sc-for list="{{ moleCells }}" as="m" hint-placeholder-count="12">
+              <sc-for list="{{ moleCells }}" as="m" data-identity="{{ m.id }}" hint-placeholder-count="12">
                 <sc-if value="{{ m.up }}" hint-placeholder-val="{{ true }}">
                   <button onClick="{{ m.whack }}" style="height:74px; border-radius:14px; background:#005230; border:2px solid #82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; animation:m3Pop .12s ease-out;"><span class="msym" style="font-size:32px; color:#9FF7C4;">radio_button_checked</span></button>
                 </sc-if>
@@ -1466,7 +1466,7 @@
         <span class="msym" style="font-size:20px; color:#82D9A5;">data_object</span>
         <span style="font-size:16px; font-weight:500;">Regex builder</span>
         <div style="flex:1;"></div>
-        <sc-for list="{{ regexDockOpts }}" as="d" hint-placeholder-count="6">
+        <sc-for list="{{ regexDockOpts }}" as="d" data-identity="{{ d.id }}" hint-placeholder-count="6">
           <sc-if value="{{ d.on }}" hint-placeholder-val="{{ true }}">
             <button onClick="{{ d.pick }}" title="{{ d.label }}" style="width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;"><span class="msym" style="font-size:15px;">{{ d.icon }}</span></button>
           </sc-if>
@@ -1484,7 +1484,7 @@
         <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:{{ regexValidColor }};">{{ regexValid }}</span>
       </div>
       <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
-        <sc-for list="{{ rxTools }}" as="t" hint-placeholder-count="5">
+        <sc-for list="{{ rxTools }}" as="t" data-identity="{{ t.id }}" hint-placeholder-count="5">
           <button onClick="{{ t.run }}" title="{{ t.title }}" style="display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:5px 10px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;" style-hover="border-color:#82D9A5; color:#9FF7C4;"><span class="msym" style="font-size:14px;">{{ t.icon }}</span>{{ t.label }}</button>
         </sc-for>
       </div>
@@ -1493,15 +1493,15 @@
         <div style="font-size:12.5px; color:#C4CBC2; line-height:1.55;">{{ regexExplain }}</div>
       </div>
       <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
-        <sc-for list="{{ regexChips }}" as="t" hint-placeholder-count="3">
+        <sc-for list="{{ regexChips }}" as="t" data-identity="{{ t.id }}" hint-placeholder-count="3">
           <button onClick="{{ t.remove }}" style="display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:8px; padding:6px 9px 6px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;">{{ t.label }}<span class="msym" style="font-size:14px;">close</span></button>
         </sc-for>
       </div>
-      <sc-for list="{{ regexGroups }}" as="g" hint-placeholder-count="4">
+      <sc-for list="{{ regexGroups }}" as="g" data-identity="{{ g.id }}" hint-placeholder-count="4">
         <div style="margin-top:14px;">
           <div style="font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:7px;">{{ g.title }}</div>
           <div style="display:flex; flex-wrap:wrap; gap:6px;">
-            <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="6">
+            <sc-for list="{{ g.items }}" as="i" data-identity="{{ i.id }}" hint-placeholder-count="6">
               <button onClick="{{ i.add }}" style="display:flex; flex-direction:column; align-items:flex-start; gap:2px; background:#1B211C; border:1px solid #414942; border-radius:10px; padding:7px 11px; cursor:pointer;" style-hover="border-color:#82D9A5;">
                 <span style="font-family:'Roboto Mono',monospace; font-size:12px; color:#9FF7C4;">{{ i.token }}</span>
                 <span style="font-size:10.5px; color:#9AA39B;">{{ i.label }}</span>
@@ -1511,7 +1511,7 @@
         </div>
       </sc-for>
       <div style="margin-top:14px; display:flex; flex-wrap:wrap; gap:6px;">
-        <sc-for list="{{ regexFlags }}" as="f" hint-placeholder-count="4">
+        <sc-for list="{{ regexFlags }}" as="f" data-identity="{{ f.id }}" hint-placeholder-count="4">
           <sc-if value="{{ f.on }}" hint-placeholder-val="{{ true }}">
             <button onClick="{{ f.toggle }}" style="display:flex; align-items:center; gap:5px; background:#1B4D33; border:0; border-radius:8px; padding:6px 12px; color:#9FF7C4; font:inherit; font-size:12px; font-weight:500; cursor:pointer;"><span class="msym" style="font-size:14px;">check</span>{{ f.label }}</button>
           </sc-if>
@@ -1545,7 +1545,7 @@
         <input type="search" value="{{ contextQuery }}" onInput="{{ onContextQuery }}" placeholder="Filter actions" aria-label="Filter this menu" style="flex:1; min-width:0; background:transparent; border:0; color:#DFE4DC; font:inherit; font-size:12px;" />
         <button onClick="{{ openContextRegex }}" aria-label="Open regex builder for this menu" style="background:transparent; border:0; color:#82D9A5; cursor:pointer;"><span class="msym">data_object</span></button>
       </div>
-      <sc-for list="{{ ctxItems }}" as="i" hint-placeholder-count="6">
+        <sc-for list="{{ ctxItems }}" as="i" data-identity="{{ i.id }}" hint-placeholder-count="6">
         <button role="menuitem" aria-disabled="{{ i.disabled }}" title="{{ i.reason }}" onClick="{{ i.act }}" onMouseEnter="{{ i.hover }}" style="width:100%; display:flex; align-items:center; gap:11px; background:{{ i.bg }}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;" style-hover="background:#333B34;">
           <span class="msym" style="font-size:18px; color:#82D9A5;">{{ i.icon }}</span>
           <span style="flex:1;">{{ i.label }}</span>
@@ -1555,7 +1555,7 @@
     </div>
     <sc-if value="{{ subOpen }}">
       <div role="menu" aria-label="Nested actions" style="position:absolute; left:{{ subX }}; top:{{ subY }}; width:230px; max-height:calc(100vh - 24px); overflow:auto; background:#252B25; border:1px solid #414942; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);">
-        <sc-for list="{{ subItems }}" as="i" hint-placeholder-count="6">
+        <sc-for list="{{ subItems }}" as="i" data-identity="{{ i.id }}" hint-placeholder-count="6">
           <button role="menuitem" aria-disabled="{{ i.disabled }}" title="{{ i.reason }}" onClick="{{ i.run }}" style="width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;" style-hover="background:#333B34;">
             <span class="msym" style="font-size:18px; color:#82D9A5;">{{ i.icon }}</span>
             <span style="flex:1;">{{ i.label }}</span>
@@ -1572,7 +1572,7 @@
         <span class="msym" style="font-size:20px; color:#82D9A5;">lock</span>
         <span style="font-size:16px; font-weight:500;">Lock this element</span>
         <div style="flex:1;"></div>
-        <sc-for list="{{ lockDockOpts }}" as="d" hint-placeholder-count="6">
+        <sc-for list="{{ lockDockOpts }}" as="d" data-identity="{{ d.id }}" hint-placeholder-count="6">
           <sc-if value="{{ d.on }}" hint-placeholder-val="{{ true }}">
             <button onClick="{{ d.pick }}" title="{{ d.label }}" style="width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;"><span class="msym" style="font-size:15px;">{{ d.icon }}</span></button>
           </sc-if>
@@ -1585,7 +1585,7 @@
       </div>
       <div style="margin-top:8px; font-family:'Roboto Mono',monospace; font-size:11.5px; color:#9FF7C4; background:#141A15; border-radius:8px; padding:8px 12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ lockTarget }}</div>
       <div style="display:flex; gap:5px; margin:14px 0;">
-        <sc-for list="{{ lockSteps }}" as="s" hint-placeholder-count="4">
+          <sc-for list="{{ lockSteps }}" as="s" hint-placeholder-count="4">
           <div style="flex:1; height:4px; border-radius:2px; background:{{ s.bg }};"></div>
         </sc-for>
       </div>
@@ -1593,7 +1593,7 @@
       <div style="font-size:12.5px; color:#9AA39B; line-height:1.6; margin-bottom:14px;">{{ lockStepBody }}</div>
       <sc-if value="{{ lockPickMethod }}" hint-placeholder-val="{{ true }}">
         <div style="display:flex; flex-direction:column; gap:6px;">
-          <sc-for list="{{ lockMethods }}" as="m" hint-placeholder-count="5">
+          <sc-for list="{{ lockMethods }}" as="m" data-identity="{{ m.id }}" hint-placeholder-count="5">
             <sc-if value="{{ m.on }}" hint-placeholder-val="{{ true }}">
               <button onClick="{{ m.pick }}" style="display:flex; align-items:center; gap:10px; background:#005230; border:0; border-radius:12px; padding:12px 14px; color:#9FF7C4; font:inherit; font-size:13px; font-weight:500; cursor:pointer; text-align:left;"><span class="msym" style="font-size:19px;">{{ m.icon }}</span><span style="flex:1;">{{ m.label }}</span><span class="msym" style="font-size:18px;">radio_button_checked</span></button>
             </sc-if>
@@ -1615,7 +1615,7 @@
             </sc-for>
           </div>
           <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:7px;">
-            <sc-for list="{{ pinKeys }}" as="k" hint-placeholder-count="12">
+          <sc-for list="{{ pinKeys }}" as="k" data-identity="{{ k.id }}" hint-placeholder-count="12">
               <button onClick="{{ k.press }}" style="height:50px; border-radius:10px; background:linear-gradient(#20281F,#171D18); border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .07s, background .12s; box-shadow:0 2px 0 #0C110D;" style-hover="background:#005230; color:#9FF7C4;" style-active="transform:translateY(2px); box-shadow:none;">{{ k.label }}</button>
             </sc-for>
           </div>
@@ -1642,7 +1642,7 @@
             <button onClick="{{ pinReveal }}" style="width:28px; height:28px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;" style-hover="background:#262B26; color:#82D9A5;"><span class="msym" style="font-size:17px;">{{ pinEyeIcon }}</span></button>
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
-            <sc-for list="{{ pwBuilders }}" as="b" hint-placeholder-count="4">
+          <sc-for list="{{ pwBuilders }}" as="b" data-identity="{{ b.id }}" hint-placeholder-count="4">
               <button onClick="{{ b.run }}" style="display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:6px 11px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;" style-hover="border-color:#82D9A5; color:#9FF7C4;"><span class="msym" style="font-size:14px;">{{ b.icon }}</span>{{ b.label }}</button>
             </sc-for>
           </div>
@@ -1705,7 +1705,7 @@
           </div>
         </sc-if>
         <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;">
-          <sc-for list="{{ unlockKeys }}" as="k" hint-placeholder-count="12">
+        <sc-for list="{{ unlockKeys }}" as="k" data-identity="{{ k.id }}" hint-placeholder-count="12">
             <button onClick="{{ k.press }}" style="height:50px; border-radius:14px; background:#1B211C; border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .08s;" style-hover="background:#005230; color:#9FF7C4;" style-active="transform:scale(.92);">{{ k.label }}</button>
           </sc-for>
         </div>
@@ -1728,7 +1728,7 @@
         <button onClick="{{ closeAppear }}" style="width:34px; height:34px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;" style-hover="background:#262B26;"><span class="msym" style="font-size:19px;">close</span></button>
       </div>
       <div style="padding:0 20px 10px; display:flex; gap:5px; flex-wrap:wrap;">
-        <sc-for list="{{ appearStates }}" as="t" hint-placeholder-count="5">
+        <sc-for list="{{ appearStates }}" as="t" data-identity="{{ t.id }}" hint-placeholder-count="5">
           <sc-if value="{{ t.on }}" hint-placeholder-val="{{ true }}">
             <button onClick="{{ t.pick }}" style="background:#005230; border:0; border-radius:999px; padding:6px 13px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;">{{ t.label }}</button>
           </sc-if>
@@ -1754,24 +1754,24 @@
             <div style="width:56px; border-radius:12px; background:{{ colorValue }}; border:1px solid #414942; flex:0 0 auto;"></div>
             <div style="flex:1; display:flex; flex-direction:column; gap:7px;">
               <div style="display:flex; gap:2px; height:26px; border-radius:8px; overflow:hidden;">
-                <sc-for list="{{ hueStops }}" as="h" hint-placeholder-count="18">
+                <sc-for list="{{ hueStops }}" as="h" data-identity="{{ h.id }}" hint-placeholder-count="18">
                   <button onClick="{{ h.pick }}" title="{{ h.label }}" style="flex:1; border:0; padding:0; cursor:pointer; background:{{ h.color }};"></button>
                 </sc-for>
               </div>
               <div style="display:flex; gap:2px; height:22px; border-radius:8px; overflow:hidden;">
-                <sc-for list="{{ shadeStops }}" as="h" hint-placeholder-count="12">
+                <sc-for list="{{ shadeStops }}" as="h" data-identity="{{ h.id }}" hint-placeholder-count="12">
                   <button onClick="{{ h.pick }}" style="flex:1; border:0; padding:0; cursor:pointer; background:{{ h.color }};"></button>
                 </sc-for>
               </div>
               <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                <sc-for list="{{ colorActions }}" as="a" hint-placeholder-count="4">
+                <sc-for list="{{ colorActions }}" as="a" data-identity="{{ a.id }}" hint-placeholder-count="4">
                   <button onClick="{{ a.run }}" style="display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:5px 10px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;" style-hover="border-color:#82D9A5; color:#9FF7C4;"><span class="msym" style="font-size:14px;">{{ a.icon }}</span>{{ a.label }}</button>
                 </sc-for>
               </div>
             </div>
           </div>
           <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
-            <sc-for list="{{ colorFormats }}" as="f" hint-placeholder-count="4">
+            <sc-for list="{{ colorFormats }}" as="f" data-identity="{{ f.id }}" hint-placeholder-count="4">
               <button onClick="{{ f.copy }}" style="background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;" style-hover="color:#9FF7C4;">{{ f.label }}</button>
             </sc-for>
           </div>
@@ -1792,7 +1792,7 @@
         </sc-for>
       </div>
       <div style="padding:12px 20px; border-top:1px solid #262B26; display:flex; gap:8px; flex-wrap:wrap;">
-        <sc-for list="{{ appearActions }}" as="a" hint-placeholder-count="4">
+        <sc-for list="{{ appearActions }}" as="a" data-identity="{{ a.id }}" hint-placeholder-count="4">
           <button onClick="{{ a.run }}" style="display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:999px; padding:9px 15px 9px 12px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:16px;">{{ a.icon }}</span>{{ a.label }}</button>
         </sc-for>
       </div>
@@ -1819,7 +1819,7 @@
             <span style="font-family:'Roboto Mono',monospace; font-size:15px; color:#82D9A5;">{{ sureProgress }}</span>
           </div>
           <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
-            <sc-for list="{{ sureCells }}" as="c" hint-placeholder-count="8">
+          <sc-for list="{{ sureCells }}" as="c" data-identity="{{ c.id }}" hint-placeholder-count="8">
               <sc-if value="{{ c.up }}" hint-placeholder-val="{{ true }}">
                 <button onClick="{{ c.hit }}" style="height:54px; border-radius:14px; background:#005230; border:2px solid #82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; animation:m3Pop .12s ease-out;"><span class="msym" style="font-size:24px; color:#9FF7C4;">touch_app</span></button>
               </sc-if>
@@ -1856,7 +1856,7 @@
       </div>
       <sc-if value="{{ tabFilterIsColour }}" hint-placeholder-val="{{ true }}">
         <div style="display:flex; flex-direction:column; gap:6px; margin-top:14px;">
-          <sc-for list="{{ tabFilterColours }}" as="c" hint-placeholder-count="3">
+          <sc-for list="{{ tabFilterColours }}" as="c" data-identity="{{ c.id }}" hint-placeholder-count="3">
             <button onClick="{{ c.pick }}" style="display:flex; align-items:center; gap:11px; background:#141A15; border:2px solid {{ c.border }}; border-radius:12px; padding:10px 13px; cursor:pointer; text-align:left;" style-hover="background:#333B34;">
               <span style="width:18px; height:18px; border-radius:50%; background:{{ c.colour }}; flex:0 0 auto;"></span>
               <div style="flex:1; min-width:0;">
@@ -1904,12 +1904,12 @@
         <span style="width:36px; height:36px; border-radius:10px; background:{{ cpickValue }}; border:1px solid #414942; animation:{{ cpickAnim }};"></span>
       </div>
       <div style="display:flex; gap:2px; height:26px; border-radius:8px; overflow:hidden; margin-top:12px;">
-        <sc-for list="{{ cpickHues }}" as="h" hint-placeholder-count="18">
+        <sc-for list="{{ cpickHues }}" as="h" data-identity="{{ h.id }}" hint-placeholder-count="18">
           <button onClick="{{ h.pick }}" title="{{ h.label }}" style="flex:1; border:0; padding:0; cursor:pointer; background:{{ h.colour }};"></button>
         </sc-for>
       </div>
       <div style="display:flex; gap:2px; height:20px; border-radius:8px; overflow:hidden; margin-top:4px;">
-        <sc-for list="{{ cpickShades }}" as="h" hint-placeholder-count="12">
+        <sc-for list="{{ cpickShades }}" as="h" data-identity="{{ h.id }}" hint-placeholder-count="12">
           <button onClick="{{ h.pick }}" style="flex:1; border:0; padding:0; cursor:pointer; background:{{ h.colour }};"></button>
         </sc-for>
       </div>
@@ -1919,12 +1919,12 @@
         </sc-for>
       </div>
       <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;">
-        <sc-for list="{{ cpickFormats }}" as="f" hint-placeholder-count="4">
+        <sc-for list="{{ cpickFormats }}" as="f" data-identity="{{ f.id }}" hint-placeholder-count="4">
           <button onClick="{{ f.copy }}" style="background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;" style-hover="color:#9FF7C4;">{{ f.label }}</button>
         </sc-for>
       </div>
       <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;">
-        <sc-for list="{{ tabColourOpts }}" as="c" hint-placeholder-count="6">
+        <sc-for list="{{ tabColourOpts }}" as="c" data-identity="{{ c.id }}" hint-placeholder-count="6">
           <button onClick="{{ c.pick }}" style="width:34px; height:34px; border-radius:10px; background:{{ c.colour }}; border:2px solid {{ c.border }}; cursor:pointer;"></button>
         </sc-for>
         <button onClick="{{ cpickApply }}" style="flex:1; min-width:120px; background:#82D9A5; border:0; border-radius:10px; padding:0 16px; color:#00391F; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;">Use this colour</button>
@@ -1933,7 +1933,7 @@
         <div style="margin-top:16px;">
           <div style="font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:8px;">Already used by other tabs</div>
           <div style="display:flex; flex-direction:column; gap:6px;">
-            <sc-for list="{{ usedColours }}" as="u" hint-placeholder-count="3">
+            <sc-for list="{{ usedColours }}" as="u" data-identity="{{ u.id }}" hint-placeholder-count="3">
               <button onClick="{{ u.pick }}" style="display:flex; align-items:center; gap:10px; background:#141A15; border:0; border-radius:10px; padding:9px 12px; cursor:pointer; text-align:left;" style-hover="background:#333B34;">
                 <span style="width:14px; height:14px; border-radius:50%; background:{{ u.colour }};"></span>
                 <span style="flex:1; font-size:12.5px; color:#DFE4DC;">{{ u.tabs }}</span>
@@ -2000,6 +2000,7 @@ const stableChoice = (raw, context) => {
   }
   return Object.assign({}, raw, { id, key, value, label: typeof raw.label === 'string' ? raw.label : value });
 };
+const optionValue = (raw) => raw && typeof raw === 'object' ? raw.value : raw;
 const buildCtl = (id, label, kind, value, extra) => {
   const source = extra || {};
   const options = Array.isArray(source.options) ? source.options.map((option) => stableChoice(option, `${id} ${kind}`)) : source.options;
@@ -3375,12 +3376,12 @@ class Component extends DCLogic {
       onInfo:() => this.showDoc(c),
       onInfoLegacy:() => this.showInfo(c.label, c.info || ('This setting is written to ' + (SCREENS[this.state.screen] || {}).file + ' as ' + c.id + '.'), null),
       set:(nv) => this.setVal(c, nv) };
-    if (c.kind === 'segmented' || c.kind === 'select') o.options = (c.options || []).map(x => ({ id:String(x), key:String(x), value:String(x), label:x, on:x === v, off:x !== v, pick:() => this.setVal(c, x) }));
-    if (c.kind === 'chips') o.options = (c.options || []).map(x => ({ id:String(x), key:String(x), value:String(x), label:x, on:(v || []).indexOf(x) >= 0, off:(v || []).indexOf(x) < 0, pick:() => this.setVal(c, (v || []).indexOf(x) >= 0 ? v.filter(y => y !== x) : (v || []).concat([x])) }));
+    if (c.kind === 'segmented' || c.kind === 'select') o.options = (c.options || []).map(x => { const value = String(optionValue(x)); const label = x && typeof x === 'object' && typeof x.label === 'string' ? x.label : value; return { id:x.id || x.key || value, key:x.key || x.id || value, value, label, on:value === String(v), off:value !== String(v), pick:() => this.setVal(c, value) }; });
+    if (c.kind === 'chips') o.options = (c.options || []).map(x => { const value = String(optionValue(x)); const label = x && typeof x === 'object' && typeof x.label === 'string' ? x.label : value; const selected = (v || []).map(String).indexOf(value) >= 0; return { id:x.id || x.key || value, key:x.key || x.id || value, value, label, on:selected, off:!selected, pick:() => this.setVal(c, (v || []).map(String).indexOf(value) >= 0 ? v.filter(y => String(y) !== value) : (v || []).concat([value])) }; });
     if (c.kind === 'order') {
       o.move = (from, to) => { const a = (v || []).slice(); const [m] = a.splice(from, 1); a.splice(to, 0, m); this.setVal(c, a); };
       o.items = (v || []).map((x, i) => ({ id:String(x), key:String(x), label:x, idx:i, up:() => { const a = v.slice(); if (i > 0) { a[i] = a[i - 1]; a[i - 1] = x; this.setVal(c, a); } }, down:() => { const a = v.slice(); if (i < a.length - 1) { a[i] = a[i + 1]; a[i + 1] = x; this.setVal(c, a); } }, drop:() => this.setVal(c, v.filter(y => y !== x)) }));
-      o.pool = (c.pool || []).filter(x => (v || []).indexOf(x) < 0).map(x => ({ id:String(x), key:String(x), value:String(x), label:x, add:() => this.setVal(c, (v || []).concat([x])) }));
+      o.pool = (c.pool || []).map(x => { const value = String(optionValue(x)); const label = x && typeof x === 'object' && typeof x.label === 'string' ? x.label : value; return { id:x.id || x.key || value, key:x.key || x.id || value, value, label, add:() => this.setVal(c, (v || []).concat([value])) }; }).filter(x => (v || []).map(String).indexOf(x.value) < 0);
     }
     if (c.kind === 'switch') { o.on = !!v; o.off = !v; o.toggle = () => this.setVal(c, !v); }
     if (c.kind === 'stepper') {
@@ -3529,13 +3530,13 @@ class Component extends DCLogic {
       connectionDisabled:connection.state !== 'verified',
       connectionReason:connection.reason || '',
       openConnection:() => this.showInfo('Connection', connection.summary || connection.reason || 'No verified connection data is available.', 'Connection facts come from the host. This shell never invents a target, protocol, port, security state, or uptime.', '38%', '70px'),
-      modeOpts:['Beginner','Expert'].map(m => ({ label:m, on:s.mode === m, off:s.mode !== m, pick:() => this.setState({ mode:m }) })),
+      modeOpts:['Beginner','Expert'].map(m => ({ id:m, key:m, value:m, label:m, on:s.mode === m, off:s.mode !== m, pick:() => this.setState({ mode:m }) })),
       togglePalette:() => this.set('paletteOpen', !s.paletteOpen),
       startOnboarding:() => this.setState({ onboardOpen:true, onboardStep:0 }),
 
-      rail:RAIL.map(r => ({ icon:r.icon, label:r.label, on:r.id === s.railId, off:r.id !== s.railId, pick:() => this.setState({ railId:r.id, screen:ORDER.find(k => SCREENS[k].rail === r.id) }) })),
+      rail:RAIL.map(r => ({ id:r.id, key:r.id, value:r.id, icon:r.icon, label:r.label, on:r.id === s.railId, off:r.id !== s.railId, pick:() => this.setState({ railId:r.id, screen:ORDER.find(k => SCREENS[k].rail === r.id) }) })),
       groupLabel:railDef.groupLabel, groupDesc:railDef.groupDesc,
-      sections:secIds.map(k => { const hs = (host.screens && host.screens[k]) || {}; return { label:SCREENS[k].label, icon:SCREENS[k].icon, badge:hs.count === undefined ? '—' : String(hs.count), on:k === s.screen, off:k !== s.screen, pick:() => this.openScreen(k) }; }),
+      sections:secIds.map(k => { const hs = (host.screens && host.screens[k]) || {}; return { id:k, key:k, value:k, label:SCREENS[k].label, icon:SCREENS[k].icon, badge:hs.count === undefined ? '—' : String(hs.count), on:k === s.screen, off:k !== s.screen, pick:() => this.openScreen(k) }; }),
       dirtyLabel:(host.changeState && host.changeState.label) || 'Change state unavailable',
 
       screenKey:s.screen + ':' + s.railId + ':' + s.mode,
@@ -3575,12 +3576,12 @@ class Component extends DCLogic {
         { icon:'pan_tool', label:'Pan', id:'pan' }, { icon:'crop_free', label:'Marquee', id:'marquee' },
         { icon:'content_cut', label:'Split', id:'split' }, { icon:'comment', label:'Comment', id:'comment' },
         { icon:'straighten', label:'Measure', id:'measure' }
-      ].map(t => ({ icon:t.icon, label:t.label, on:s.canvasTool === t.id, off:s.canvasTool !== t.id, pick:() => { this.set('canvasTool', t.id); this.toast(t.label + ' tool active'); } })),
+      ].map(t => ({ id:t.id, key:t.id, value:t.id, icon:t.icon, label:t.label, on:s.canvasTool === t.id, off:s.canvasTool !== t.id, pick:() => { this.set('canvasTool', t.id); this.toast(t.label + ' tool active'); } })),
       canvasToggles:[
         { icon:'grid_on', label:'Grid', k:'grid' }, { icon:'grid_goldenratio', label:'Snap', k:'snap' },
         { icon:'straighten', label:'Guides', k:'guides' }, { icon:'map', label:'Minimap', k:'minimap' }
-      ].map(t => ({ icon:t.icon, label:t.label, on:!!s[t.k], off:!s[t.k], pick:() => this.set(t.k, !s[t.k]) })),
-      canvasLayers:['Dialplan', 'IVR', 'Queues', 'Annotations'].map(l => ({ label:l, on:s.layer === l, off:s.layer !== l, pick:() => this.set('layer', l) })),
+      ].map(t => ({ id:t.k, key:t.k, value:t.k, icon:t.icon, label:t.label, on:!!s[t.k], off:!s[t.k], pick:() => this.set(t.k, !s[t.k]) })),
+      canvasLayers:['Dialplan', 'IVR', 'Queues', 'Annotations'].map(l => ({ id:l, key:l, value:l, label:l, on:s.layer === l, off:s.layer !== l, pick:() => this.set('layer', l) })),
       zoomLabel:s.zoom + '%',
       zoomIn:() => this.set('zoom', Math.min(200, s.zoom + 10)),
       zoomOut:() => this.set('zoom', Math.max(40, s.zoom - 10)),
@@ -3606,7 +3607,7 @@ class Component extends DCLogic {
       nodes:NODES.map(n => {
         const p = s.nodePos[n.id] || { x:n.x, y:n.y };
         const on = n.id === s.nodeId;
-        return { x:p.x + 'px', y:p.y + 'px', icon:n.icon, title:n.title, detail:n.detail,
+        return { id:n.id, key:n.id, value:n.id, x:p.x + 'px', y:p.y + 'px', icon:n.icon, title:n.title, detail:n.detail,
           border:on ? '#82D9A5' : '#333B34', selected:on, unselected:!on,
           pick:() => this.set('nodeId', n.id),
           onDragStart:(e) => { const r = e.currentTarget.getBoundingClientRect(); this.setState({ nodeId:n.id, nodeDrag:{ id:n.id, dx:e.clientX - r.left, dy:e.clientY - r.top } }); },
@@ -3633,16 +3634,17 @@ class Component extends DCLogic {
       },
       canvasDragOver:(e) => e.preventDefault(),
       canvasOps:[
-        { icon:'auto_awesome_mosaic', label:'Auto-arrange', run:() => { this.setState({ nodePos:{} }); this.toast('Steps arranged left to right by call order'); } },
-        { icon:'align_horizontal_left', label:'Align left', run:() => { const p = {}; NODES.forEach(n => { p[n.id] = { x:40, y:(s.nodePos[n.id] || n).y }; }); this.setState({ nodePos:p }); } },
-        { icon:'vertical_distribute', label:'Distribute', run:() => { const p = {}; NODES.forEach((n, i) => { p[n.id] = { x:(s.nodePos[n.id] || n).x, y:20 + i * 66 }; }); this.setState({ nodePos:p }); } },
-        { icon:'fit_screen', label:'Fit to view', run:() => { this.set('zoom', 100); this.toast('Zoom reset and canvas centred'); } },
-        { icon:'undo', label:'Undo layout', run:() => { this.setState({ nodePos:{} }); this.toast('Layout reverted'); } }
+        { id:'auto-arrange', icon:'auto_awesome_mosaic', label:'Auto-arrange', run:() => { this.setState({ nodePos:{} }); this.toast('Steps arranged left to right by call order'); } },
+        { id:'align-left', icon:'align_horizontal_left', label:'Align left', run:() => { const p = {}; NODES.forEach(n => { p[n.id] = { x:40, y:(s.nodePos[n.id] || n).y }; }); this.setState({ nodePos:p }); } },
+        { id:'distribute', icon:'vertical_distribute', label:'Distribute', run:() => { const p = {}; NODES.forEach((n, i) => { p[n.id] = { x:(s.nodePos[n.id] || n).x, y:20 + i * 66 }; }); this.setState({ nodePos:p }); } },
+        { id:'fit-view', icon:'fit_screen', label:'Fit to view', run:() => { this.set('zoom', 100); this.toast('Zoom reset and canvas centred'); } },
+        { id:'undo-layout', icon:'undo', label:'Undo layout', run:() => { this.setState({ nodePos:{} }); this.toast('Layout reverted'); } }
       ],
       edgeRows:s.edgeList.map((e, i) => ({
+        id:`${e[0]}-${e[1]}-${i}`, key:`${e[0]}-${e[1]}-${i}`,
         from:NODES.find(n => n.id === e[0]).title, to:NODES.find(n => n.id === e[1]).title,
-        fromOpts:NODES.map(n => ({ label:n.title, on:n.id === e[0], off:n.id !== e[0], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][0] = n.id; this.setState({ edgeList:L }); } })),
-        toOpts:NODES.map(n => ({ label:n.title, on:n.id === e[1], off:n.id !== e[1], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][1] = n.id; this.setState({ edgeList:L }); } })),
+        fromOpts:NODES.map(n => ({ id:n.id, key:n.id, value:n.id, label:n.title, on:n.id === e[0], off:n.id !== e[0], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][0] = n.id; this.setState({ edgeList:L }); } })),
+        toOpts:NODES.map(n => ({ id:n.id, key:n.id, value:n.id, label:n.title, on:n.id === e[1], off:n.id !== e[1], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][1] = n.id; this.setState({ edgeList:L }); } })),
         del:() => this.setState({ edgeList:s.edgeList.filter((_, j) => j !== i) })
       })),
       addEdge:() => this.setState({ edgeList:s.edgeList.concat([['n1', 'n2']]) }),
@@ -3653,8 +3655,8 @@ class Component extends DCLogic {
       toggleFullscreen:() => { this.set('fullscreen', !s.fullscreen); },
       fsIcon:s.fullscreen ? 'fullscreen_exit' : 'fullscreen',
       paletteNodes:[
-        { icon:'add_call', label:'Dial' }, { icon:'dialpad', label:'Menu' }, { icon:'groups', label:'Queue' }, { icon:'call_split', label:'Condition' }, { icon:'voicemail', label:'Voicemail' }
-      ].map(p => ({ icon:p.icon, label:p.label, add:() => this.invokeHost('canvas.add-node', { nodeType:p.label }) })),
+        { id:'dial', icon:'add_call', label:'Dial' }, { id:'menu', icon:'dialpad', label:'Menu' }, { id:'queue', icon:'groups', label:'Queue' }, { id:'condition', icon:'call_split', label:'Condition' }, { id:'voicemail', icon:'voicemail', label:'Voicemail' }
+      ].map(p => ({ id:p.id, key:p.id, value:p.id, icon:p.icon, label:p.label, add:() => this.invokeHost('canvas.add-node', { nodeType:p.label }) })),
       nodeTitle:node.title, nodeApp:node.detail.split('\n')[0],
       nodeCtls:(NODE_CTLS[node.id] || []).map(c => Object.assign(this.buildCtl(c), { narrow:true })),
 
@@ -3662,7 +3664,7 @@ class Component extends DCLogic {
       tableHasState:tableState !== 'verified' || tbl.rows.length === 0,
       tableStateBg:tableNotice.bg, tableStateFg:tableNotice.fg, tableStateIcon:tableNotice.icon,
       tableStateTitle:tableNotice.title, tableStateBody:tableNotice.body,
-      tableFilters:['All','Healthy','Attention'].map(f => ({ label:f, on:s.tableFilter === f, off:s.tableFilter !== f, pick:() => this.set('tableFilter', f) })),
+      tableFilters:['All','Healthy','Attention'].map(f => ({ id:f.toLowerCase(), key:f.toLowerCase(), value:f, label:f, on:s.tableFilter === f, off:s.tableFilter !== f, pick:() => this.set('tableFilter', f) })),
       hasSelection:sel.length > 0,
       selectionLabel:sel.length + ' of ' + tbl.rows.length + ' selected',
       allBorder:sel.length ? '#82D9A5' : '#8B938C', allBg:sel.length ? '#82D9A5' : 'transparent',
@@ -3701,7 +3703,7 @@ class Component extends DCLogic {
       cliSteps:CLI_STEPS.map(st => ({
         label:st.label,
         info:() => this.showInfo(st.label, 'This part of the command chooses ' + st.label.toLowerCase() + '. The console only ever offers combinations that exist in this build of Asterisk, so an invalid command cannot be assembled.', 'Think of it like ordering food from pictures instead of writing the order down. You cannot misspell anything.'),
-        options:st.options.map(o => ({ label:o, on:s.cli[st.id] === o, off:s.cli[st.id] !== o, pick:() => this.setState({ cli:Object.assign({}, s.cli, { [st.id]:o }) }) }))
+        options:st.options.map(o => ({ id:o, key:o, value:o, label:o, on:s.cli[st.id] === o, off:s.cli[st.id] !== o, pick:() => this.setState({ cli:Object.assign({}, s.cli, { [st.id]:o }) }) }))
       })),
       cliCommand:'asterisk -rx "' + cliCmd + '"',
       cliExplain:'Asks the running PBX to list every ' + s.cli.target + ' it currently knows about. Read-only, but it still passes through confirmation because it touches production.',
@@ -3710,8 +3712,8 @@ class Component extends DCLogic {
 
       regexValue:s.regex.join(''),
       regexMatches:(host.regex && host.regex.matchCount !== undefined ? host.regex.matchCount : 0) + ' verified matches',
-      regexTokens:s.regex.map((t, i) => ({ label:t, remove:() => this.set('regex', s.regex.filter((_, j) => j !== i)) })),
-      regexPalette:['^', '$', '\\d+', '[a-z]+', '.*', '\\.md$', '(a|b)'].map(p => ({ label:p, add:() => this.set('regex', s.regex.concat([p])) })),
+      regexTokens:s.regex.map((t, i) => ({ id:`token-${i}-${t}`, key:`token-${i}-${t}`, value:t, label:t, remove:() => this.set('regex', s.regex.filter((_, j) => j !== i)) })),
+      regexPalette:['^', '$', '\\d+', '[a-z]+', '.*', '\\.md$', '(a|b)'].map(p => ({ id:p, key:p, value:p, label:p, add:() => this.set('regex', s.regex.concat([p])) })),
       memRows:host.memory && Array.isArray(host.memory.rows) ? host.memory.rows : [],
       memPanels:(host.memory && Array.isArray(host.memory.panels) ? host.memory.panels : []).map(panel => Object.assign({}, panel, { rows:Array.isArray(panel.rows) ? panel.rows : [], act:() => panel.actionId ? this.ceremony(panel.action || panel.title, panel.actionId, panel.payload || {}) : this.notify('warning', 'Action unavailable', 'The host did not supply an action handler descriptor.') })),
 
@@ -3721,7 +3723,7 @@ class Component extends DCLogic {
       toggleDocsRegex:() => this.set('docsRegexOn', !s.docsRegexOn),
       docsRegexBg:s.docsRegexOn ? '#005230' : 'transparent',
       docsRegexColor:s.docsRegexOn ? '#9FF7C4' : '#778078',
-      docsRegexPalette:['^', '$', '\d+', '[a-z]+', '.*', '\.md$'].map(p => ({ label:p, add:() => this.set('docsQuery', (s.docsQuery || '') + p) })),
+      docsRegexPalette:['^', '$', '\d+', '[a-z]+', '.*', '\.md$'].map(p => ({ id:p, key:p, value:p, label:p, add:() => this.set('docsQuery', (s.docsQuery || '') + p) })),
       docsQueryError:'',
       docsResultsLabel:'No verified documentation index',
       docsCategories:[],
@@ -3764,7 +3766,7 @@ class Component extends DCLogic {
       toggleChangelogRegex:() => this.set('changelogRegexOn', !s.changelogRegexOn),
       changelogRegexBg:s.changelogRegexOn ? '#005230' : 'transparent',
       changelogRegexColor:s.changelogRegexOn ? '#9FF7C4' : '#778078',
-      changelogRegexPalette:['^', '$', '\d+', '[a-z]+', '.*', 'fix'].map(p => ({ label:p, add:() => this.set('changelogQuery', (s.changelogQuery || '') + p) })),
+      changelogRegexPalette:['^', '$', '\d+', '[a-z]+', '.*', 'fix'].map(p => ({ id:p, key:p, value:p, label:p, add:() => this.set('changelogQuery', (s.changelogQuery || '') + p) })),
       changelogQueryError:'',
       changelogFrom:'',
       setChangelogFrom:(e) => this.set('changelogFrom', e.target.value),
@@ -3786,6 +3788,7 @@ class Component extends DCLogic {
       changelogExport:() => this.exportChangelog(),
 
       groups:(sc.groups || []).map((g, gi) => ({
+        id:`group:${g.title}`, key:`group:${g.title}`,
         rnd:this.rnd(gi + 1),
         title:g.title, desc:g.desc,
         wizard:() => this.setState({ wizardOpen:true, wizardStep:0 }),
@@ -3799,6 +3802,7 @@ class Component extends DCLogic {
       })),
 
       tabGroups:s.groups.map(g => ({
+        id:g.id, key:g.id, value:g.id,
         name:g.name, colour:g.colour, count:g.tabs.length + '', bg:'#141A15',
         expanded:!g.collapsed,
         chevron:g.collapsed ? 'chevron_right' : 'expand_more',
@@ -3819,11 +3823,11 @@ class Component extends DCLogic {
       },
       cancelRename:() => this.set('renameOpen', false),
       tabColourOpen:s.tabColourOpen,
-      tabColourOpts:['#82D9A5', '#FFD68A', '#FFB4AB', '#8AB4F8', '#D8A9F0', '#DFE4DC'].map(c => ({ colour:c, border:s.tabColours[s.renameKey] === c ? '#DFE4DC' : 'transparent', pick:() => this.applyColour(c) })),
+      tabColourOpts:['#82D9A5', '#FFD68A', '#FFB4AB', '#8AB4F8', '#D8A9F0', '#DFE4DC'].map(c => ({ id:c, key:c, value:c, colour:c, border:s.tabColours[s.renameKey] === c ? '#DFE4DC' : 'transparent', pick:() => this.applyColour(c) })),
       cpickValue:'hsl(' + this.v('cp_hue', 148) + ' ' + this.v('cp_sat', 60) + '% ' + this.v('cp_light', 62) + '%)',
       cpickAnim:this.v('cp_rainbow', false) ? ('m3Rainbow ' + this.v('cp_speed', 6) + 's ' + (this.v('cp_ease', 'linear') === 'steps' ? 'steps(12)' : this.v('cp_ease', 'linear')) + ' infinite ' + (this.v('cp_dir', 'Forward') === 'Reverse' ? 'reverse' : (this.v('cp_dir', 'Forward') === 'Ping-pong' ? 'alternate' : 'normal'))) : 'none',
-      cpickHues:Array.from({ length:24 }, (_, i) => { const h = Math.round(i * 15); return { colour:'hsl(' + h + ' 70% 55%)', label:h + '°', pick:() => this.setVal({ id:'cp_hue', label:'Hue' }, h) }; }),
-      cpickShades:Array.from({ length:14 }, (_, i) => { const l = 8 + i * 6.4; return { colour:'hsl(' + this.v('cp_hue', 148) + ' ' + this.v('cp_sat', 60) + '% ' + Math.round(l) + '%)', pick:() => this.setVal({ id:'cp_light', label:'Lightness' }, Math.round(l)) }; }),
+      cpickHues:Array.from({ length:24 }, (_, i) => { const h = Math.round(i * 15); return { id:String(h), key:String(h), value:String(h), colour:'hsl(' + h + ' 70% 55%)', label:h + '°', pick:() => this.setVal({ id:'cp_hue', label:'Hue' }, h) }; }),
+      cpickShades:Array.from({ length:14 }, (_, i) => { const l = 8 + i * 6.4; const id = String(Math.round(l)); return { id, key:id, value:id, colour:'hsl(' + this.v('cp_hue', 148) + ' ' + this.v('cp_sat', 60) + '% ' + Math.round(l) + '%)', pick:() => this.setVal({ id:'cp_light', label:'Lightness' }, Math.round(l)) }; }),
       cpickCtls:[
         ctl('cp_hue', 'Hue', 'slider', 148, { min:0, max:360, unit:'°' }),
         ctl('cp_sat', 'Saturation', 'slider', 60, { min:0, max:100, unit:'%' }),
@@ -3834,7 +3838,7 @@ class Component extends DCLogic {
         ctl('cp_dir', 'Direction', 'segmented', 'Forward', { options:['Forward', 'Reverse', 'Ping-pong'] })
       ].map(this.buildCtl),
       cpickFormats:(() => { const h = this.v('cp_hue', 148), sa = this.v('cp_sat', 60), l = this.v('cp_light', 62);
-        return [['hsl', 'hsl(' + h + ' ' + sa + '% ' + l + '%)'], ['oklch', 'oklch(' + (l / 100).toFixed(2) + ' 0.13 ' + h + ')'], ['hsl deg', h + 'deg'], ['css var', '--tab-accent']].map(([k, v2]) => ({ label:k + ' · ' + v2, copy:() => this.invokeHost('clipboard.copy', { text:v2, source:'tab-colour-picker' }) })); })(),
+        return [['hsl', 'hsl(' + h + ' ' + sa + '% ' + l + '%)'], ['oklch', 'oklch(' + (l / 100).toFixed(2) + ' 0.13 ' + h + ')'], ['hsl deg', h + 'deg'], ['css var', '--tab-accent']].map(([k, v2]) => ({ id:k, key:k, value:v2, label:k + ' · ' + v2, copy:() => this.invokeHost('clipboard.copy', { text:v2, source:'tab-colour-picker' }) })); })(),
       cpickIsGroup:(s.renameKey || '').indexOf('group:') === 0,
       cpickLabel:(s.renameKey || '').indexOf('group:') === 0 ? 'Group colour' : 'Tab colour',
       cpickApply:() => this.applyColour(this.v('cp_rainbow', false) ? 'rainbow' : 'hsl(' + this.v('cp_hue', 148) + ' ' + this.v('cp_sat', 60) + '% ' + this.v('cp_light', 62) + '%)'),
@@ -3842,7 +3846,7 @@ class Component extends DCLogic {
       usedColours:(() => {
         const by = {};
         Object.keys(s.tabColours).forEach(k => { const c = s.tabColours[k]; (by[c] = by[c] || []).push(s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)); });
-        return Object.keys(by).map(c => ({ colour:c, tabs:by[c].join(', '), pick:() => this.applyColour(c) }));
+        return Object.keys(by).map(c => ({ id:c, key:c, value:c, colour:c, tabs:by[c].join(', '), pick:() => this.applyColour(c) }));
       })(),
       tabFilterOpen:s.tabFilterOpen,
       tabFilterTitle:s.tabFilterMode === 'not' ? 'Close tabs NOT containing…' : (s.tabFilterMode === 'colour' ? 'Close tabs by colour' : 'Close tabs containing…'),
@@ -3852,7 +3856,7 @@ class Component extends DCLogic {
         const by = {};
         s.tabs.forEach(t => { const c = s.tabColours[t] || 'none'; (by[c] = by[c] || []).push(s.tabNames[t] || (SCREENS[t] ? SCREENS[t].title : t)); });
         return Object.keys(by).map(c => ({
-          colour:c === 'none' ? '#414942' : c,
+          id:c, key:c, value:c, colour:c === 'none' ? '#414942' : c,
           label:c === 'none' ? 'No colour' : c,
           tabs:by[c].join(', '), count:by[c].length + ' tab' + (by[c].length === 1 ? '' : 's'),
           on:s.tabFilterColour === c,
@@ -3912,7 +3916,7 @@ class Component extends DCLogic {
       tabs:s.tabs.filter(k => { const g = s.groups.find(x => x.tabs.indexOf(k) >= 0); return !(g && (g.collapsed || g.hidden)); }).map((k) => {
         const i = s.tabs.indexOf(k);
         return {
-        label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), icon:SCREENS[k] ? SCREENS[k].icon : 'tab',
+        id:k, key:k, value:k, label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), icon:SCREENS[k] ? SCREENS[k].icon : 'tab',
         colour:s.tabColours[k] || '#82D9A5',
         dropTarget:s.tabOver === i && s.tabDrag >= 0 && s.tabDrag !== i,
         edge:(s.tabOver === i && s.tabDrag >= 0 && s.tabDrag !== i) ? '#82D9A5' : 'transparent',

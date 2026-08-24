@@ -2028,12 +2028,12 @@ It is shown once. The phone needs it to register.`);
       nodeApp: source && source.steps[0] ? `${source.steps[0].app}(${source.steps[0].data})` : '',
       addEdge: readOnlyCanvas,
       paletteNodes: [
-        { icon: 'add_call', label: 'Dial' },
-        { icon: 'dialpad', label: 'Menu' },
-        { icon: 'groups', label: 'Queue' },
-        { icon: 'call_split', label: 'Condition' },
-        { icon: 'voicemail', label: 'Voicemail' },
-      ].map((item) => ({ ...item, add: readOnlyCanvas })),
+        { id: 'dial', icon: 'add_call', label: 'Dial' },
+        { id: 'menu', icon: 'dialpad', label: 'Menu' },
+        { id: 'queue', icon: 'groups', label: 'Queue' },
+        { id: 'condition', icon: 'call_split', label: 'Condition' },
+        { id: 'voicemail', icon: 'voicemail', label: 'Voicemail' },
+      ].map((item) => ({ ...item, key: item.id, value: item.id, add: readOnlyCanvas })),
       canvasBgClick: () => this.set('nodeId', ''),
       ...(canvasContextItems ? { ctxItems: canvasContextItems } : {}),
     };

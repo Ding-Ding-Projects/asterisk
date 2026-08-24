@@ -144,8 +144,17 @@ function richKind(control: RichControlInput): 'switch' | 'checkbox' | 'text' | '
 function optionsFor(control: RichControlInput): ReadonlyArray<{ readonly id: string; readonly key: string; readonly value: string; readonly label: string }> {
   if (!Array.isArray(control.options)) return [];
   return control.options
-    .filter((value): value is string => typeof value === 'string')
-    .map((value) => ({ id: value, key: value, value, label: value }));
+    .map((raw) => {
+      if (typeof raw === 'string') return { id: raw, key: raw, value: raw, label: raw };
+      if (!raw || typeof raw !== 'object') return undefined;
+      const item = raw as { id?: unknown; key?: unknown; value?: unknown; label?: unknown };
+      const value = typeof item.value === 'string' ? item.value : undefined;
+      const id = typeof item.id === 'string' ? item.id : typeof item.key === 'string' ? item.key : value;
+      const key = typeof item.key === 'string' ? item.key : typeof item.id === 'string' ? item.id : value;
+      if (!value || !id || !key) return undefined;
+      return { id, key, value, label: typeof item.label === 'string' ? item.label : value };
+    })
+    .filter((value): value is { readonly id: string; readonly key: string; readonly value: string; readonly label: string } => Boolean(value));
 }
 
 function groupsFor(screen: DesignScreen): RichControlInput[] {

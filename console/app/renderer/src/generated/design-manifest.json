@@ -1231,6 +1231,575 @@
     "m3Control": 8,
     "total": 81
   },
+  "interactiveIdentityRecords": [
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ modeOpts }}",
+      "loopVariable": "o",
+      "identityExpression": "{{ o.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ tabGroups }}",
+      "loopVariable": "g",
+      "identityExpression": "{{ g.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ tabs }}",
+      "loopVariable": "t",
+      "identityExpression": "{{ t.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ dockOpts }}",
+      "loopVariable": "d",
+      "identityExpression": "{{ d.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ tabSearchSlots }}",
+      "loopVariable": "q",
+      "identityExpression": "{{ q.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ rail }}",
+      "loopVariable": "r",
+      "identityExpression": "{{ r.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ sections }}",
+      "loopVariable": "s",
+      "identityExpression": "{{ s.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ liveCalls }}",
+      "loopVariable": "c",
+      "identityExpression": "{{ c.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ quickActions }}",
+      "loopVariable": "q",
+      "identityExpression": "{{ q.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ funLevels }}",
+      "loopVariable": "l",
+      "identityExpression": "{{ l.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ branches }}",
+      "loopVariable": "b",
+      "identityExpression": "{{ b.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ histActions }}",
+      "loopVariable": "a",
+      "identityExpression": "{{ a.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ histFilters }}",
+      "loopVariable": "f",
+      "identityExpression": "{{ f.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ commitRows }}",
+      "loopVariable": "c",
+      "identityExpression": "{{ c.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ diffActions }}",
+      "loopVariable": "a",
+      "identityExpression": "{{ a.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ authRequests }}",
+      "loopVariable": "a",
+      "identityExpression": "{{ a.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ oneClickModes }}",
+      "loopVariable": "m",
+      "identityExpression": "{{ m.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ canvasTools }}",
+      "loopVariable": "t",
+      "identityExpression": "{{ t.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ canvasToggles }}",
+      "loopVariable": "t",
+      "identityExpression": "{{ t.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ canvasLayers }}",
+      "loopVariable": "l",
+      "identityExpression": "{{ l.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ canvasOps }}",
+      "loopVariable": "o",
+      "identityExpression": "{{ o.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ nodes }}",
+      "loopVariable": "n",
+      "identityExpression": "{{ n.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ paletteNodes }}",
+      "loopVariable": "p",
+      "identityExpression": "{{ p.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ edgeRows }}",
+      "loopVariable": "e",
+      "identityExpression": "{{ e.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ e.toOpts }}",
+      "loopVariable": "o",
+      "identityExpression": "{{ o.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ tableFilters }}",
+      "loopVariable": "f",
+      "identityExpression": "{{ f.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ bulkActions }}",
+      "loopVariable": "b",
+      "identityExpression": "{{ b.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ tableRows }}",
+      "loopVariable": "r",
+      "identityExpression": "{{ r.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ cliSteps }}",
+      "loopVariable": "s",
+      "identityExpression": "{{ s.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ s.options }}",
+      "loopVariable": "o",
+      "identityExpression": "{{ o.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ regexTokens }}",
+      "loopVariable": "t",
+      "identityExpression": "{{ t.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ regexPalette }}",
+      "loopVariable": "p",
+      "identityExpression": "{{ p.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ memPanels }}",
+      "loopVariable": "p",
+      "identityExpression": "{{ p.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ docsRegexPalette }}",
+      "loopVariable": "p",
+      "identityExpression": "{{ p.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ docsResults }}",
+      "loopVariable": "r",
+      "identityExpression": "{{ r.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ docsBlocks }}",
+      "loopVariable": "b",
+      "identityExpression": "{{ b.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ b.spans }}",
+      "loopVariable": "sp",
+      "identityExpression": "{{ sp.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ b.spans }}",
+      "loopVariable": "sp",
+      "identityExpression": "{{ sp.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ docsSuggested }}",
+      "loopVariable": "sg",
+      "identityExpression": "{{ sg.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ changelogPresets }}",
+      "loopVariable": "pr",
+      "identityExpression": "{{ pr.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ changelogRegexPalette }}",
+      "loopVariable": "p",
+      "identityExpression": "{{ p.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ groups }}",
+      "loopVariable": "g",
+      "identityExpression": "{{ g.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ infoDockOpts }}",
+      "loopVariable": "d",
+      "identityExpression": "{{ d.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ wizardDockOpts }}",
+      "loopVariable": "d",
+      "identityExpression": "{{ d.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ wizardRail }}",
+      "loopVariable": "w",
+      "identityExpression": "{{ w.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ paletteItems }}",
+      "loopVariable": "p",
+      "identityExpression": "{{ p.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ moleCells }}",
+      "loopVariable": "m",
+      "identityExpression": "{{ m.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ regexDockOpts }}",
+      "loopVariable": "d",
+      "identityExpression": "{{ d.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ rxTools }}",
+      "loopVariable": "t",
+      "identityExpression": "{{ t.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ regexChips }}",
+      "loopVariable": "t",
+      "identityExpression": "{{ t.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ regexGroups }}",
+      "loopVariable": "g",
+      "identityExpression": "{{ g.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ g.items }}",
+      "loopVariable": "i",
+      "identityExpression": "{{ i.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ regexFlags }}",
+      "loopVariable": "f",
+      "identityExpression": "{{ f.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ ctxItems }}",
+      "loopVariable": "i",
+      "identityExpression": "{{ i.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ subItems }}",
+      "loopVariable": "i",
+      "identityExpression": "{{ i.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ lockDockOpts }}",
+      "loopVariable": "d",
+      "identityExpression": "{{ d.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ lockMethods }}",
+      "loopVariable": "m",
+      "identityExpression": "{{ m.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ pinKeys }}",
+      "loopVariable": "k",
+      "identityExpression": "{{ k.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ pwBuilders }}",
+      "loopVariable": "b",
+      "identityExpression": "{{ b.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ unlockKeys }}",
+      "loopVariable": "k",
+      "identityExpression": "{{ k.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ appearStates }}",
+      "loopVariable": "t",
+      "identityExpression": "{{ t.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ hueStops }}",
+      "loopVariable": "h",
+      "identityExpression": "{{ h.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ shadeStops }}",
+      "loopVariable": "h",
+      "identityExpression": "{{ h.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ colorActions }}",
+      "loopVariable": "a",
+      "identityExpression": "{{ a.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ colorFormats }}",
+      "loopVariable": "f",
+      "identityExpression": "{{ f.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ appearActions }}",
+      "loopVariable": "a",
+      "identityExpression": "{{ a.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ sureCells }}",
+      "loopVariable": "c",
+      "identityExpression": "{{ c.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ tabFilterColours }}",
+      "loopVariable": "c",
+      "identityExpression": "{{ c.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ cpickHues }}",
+      "loopVariable": "h",
+      "identityExpression": "{{ h.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ cpickShades }}",
+      "loopVariable": "h",
+      "identityExpression": "{{ h.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ cpickFormats }}",
+      "loopVariable": "f",
+      "identityExpression": "{{ f.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ tabColourOpts }}",
+      "loopVariable": "c",
+      "identityExpression": "{{ c.id }}"
+    },
+    {
+      "component": "ConsoleShell",
+      "family": "console",
+      "producer": "{{ usedColours }}",
+      "loopVariable": "u",
+      "identityExpression": "{{ u.id }}"
+    },
+    {
+      "component": "M3Control",
+      "family": "m3Control",
+      "producer": "{{ choices }}",
+      "loopVariable": "o",
+      "identityExpression": "{{ o.id }}"
+    },
+    {
+      "component": "M3Control",
+      "family": "m3Control",
+      "producer": "{{ choices }}",
+      "loopVariable": "o",
+      "identityExpression": "{{ o.id }}"
+    },
+    {
+      "component": "M3Control",
+      "family": "m3Control",
+      "producer": "{{ regexFlags }}",
+      "loopVariable": "f",
+      "identityExpression": "{{ f.id }}"
+    },
+    {
+      "component": "M3Control",
+      "family": "m3Control",
+      "producer": "{{ filteredChoices }}",
+      "loopVariable": "o",
+      "identityExpression": "{{ o.id }}"
+    },
+    {
+      "component": "M3Control",
+      "family": "m3Control",
+      "producer": "{{ choices }}",
+      "loopVariable": "o",
+      "identityExpression": "{{ o.id }}"
+    },
+    {
+      "component": "M3Control",
+      "family": "m3Control",
+      "producer": "{{ padKeys }}",
+      "loopVariable": "k",
+      "identityExpression": "{{ k.id }}"
+    },
+    {
+      "component": "M3Control",
+      "family": "m3Control",
+      "producer": "{{ dragItems }}",
+      "loopVariable": "i",
+      "identityExpression": "{{ i.id }}"
+    },
+    {
+      "component": "M3Control",
+      "family": "m3Control",
+      "producer": "{{ poolItems }}",
+      "loopVariable": "p",
+      "identityExpression": "{{ p.id }}"
+    }
+  ],
   "negativeIdentityChuts": [
     "ordinary-choice-without-id-or-key",
     "ordinary-order-item-without-id-or-key",
