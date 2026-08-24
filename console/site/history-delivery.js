@@ -2,7 +2,8 @@
   'use strict';
 
   const STORAGE_KEY = 'ding-pbx-site-history-delivery-v1';
-  const STATE_SCHEMA_VERSION = 2;
+  const STATE_SCHEMA_VERSION = 3;
+  const HISTORY_EXPORT_SCHEMA_VERSION = 2;
   const DELIVERY_STATES = new Set(['idle', 'preparing', 'prepared', 'handoff-started', 'handoff-unverified', 'handoff-cancelled', 'handoff-failed']);
   const MAX_HISTORY = 250;
   const CHANGELOG = (Array.isArray(window.DING_SITE_CHANGELOG) ? window.DING_SITE_CHANGELOG : []).filter(entry => entry && /^[0-9a-f]{40}$/.test(entry.commit || '') && entry.version && entry.date && entry.summary);
@@ -31,6 +32,33 @@
     return new URL(name, document.baseURI).href;
   }
 
+  function migrateLegacyEvent(event) {
+    if (event && typeof event.params === 'object') return normalizeEventParams(event.action, event.params);
+    const details = event?.details && typeof event.details === 'object' ? event.details : {};
+    if (event?.action === 'restored' && EVENT_ACTIONS.has(details.sourceAction) && /^[a-z0-9_-]{1,100}$/i.test(details.sourceEvent || '')) return { sourceAction: details.sourceAction, sourceEvent: details.sourceEvent };
+    if (event?.action === 'pruned' && Number.isInteger(details.eventCount) && Number.isInteger(details.retention)) return { count: details.eventCount, retention: details.retention };
+    if (['download-started', 'download-complete', 'download-cancelled'].includes(event?.action) && Number.isInteger(details.bytes)) return { bytes: details.bytes, status: event.action === 'download-started' ? 'writing' : event.action === 'download-complete' ? 'stream-closed' : 'cancelled' };
+    if (event?.action === 'download-interrupted' && details.status === 'interrupted') return { status: 'interrupted' };
+    if (event?.action === 'update-check' && EVENT_ENUMS.updateStatus.has(details.status)) return { status: details.status };
+    if (event?.action === 'update-reload') return { status: 'requested' };
+    if (event?.action === 'recovery-opened' && EVENT_ENUMS.recoveryAction.has(details.action)) return { action: details.action };
+    if (event?.action === 'forge-preview' && EVENT_ENUMS.source.has(details.source) && EVENT_ENUMS.destination.has(details.destination) && EVENT_ENUMS.account.has(details.account) && EVENT_ENUMS.route.has(details.route)) return { source: details.source, destination: details.destination, account: details.account, route: details.route, status: 'preview-ready' };
+    if (event?.action === 'forge-handoff' && EVENT_ENUMS.source.has(details.source) && EVENT_ENUMS.destination.has(details.destination) && EVENT_ENUMS.account.has(details.account) && EVENT_ENUMS.route.has(details.route)) return { source: details.source, destination: details.destination, account: details.account, route: details.route, status: 'preview-opened' };
+    if (event?.action === 'provider-preview' && details.content === 'omitted') return { status: 'rendered' };
+    return null;
+  }
+  function migrateLegacyHistory(events) {
+    const counts = { imported: 0, omitted: 0, refused: 0 };
+    const migrated = [];
+    for (const event of Array.isArray(events) ? events : []) {
+      if (!event || typeof event !== 'object' || typeof event.id !== 'string' || typeof event.timestamp !== 'string' || typeof event.action !== 'string') { counts.omitted += 1; continue; }
+      const params = migrateLegacyEvent(event);
+      if (!params) { counts.refused += 1; continue; }
+      migrated.push({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: event.action, params }); counts.imported += 1;
+    }
+    return { events: migrated.slice(-MAX_HISTORY), counts };
+  }
+
   function defaultState() {
     return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: 'none', sourceVersion: STATE_SCHEMA_VERSION, recorded: false }, history: [], tabs: TAB_ROUTES.map(([idValue], index) => ({ id: idValue, pinned: index < 2 })), forge: { account: 'browser', owner: '', repository: '', route: 'copy', source: 'current-site', destination: 'new-repository' }, editor: { lastPreparedExport: '', lastHandoffState: 'idle', lastExport: '' }, delivery: { status: 'idle', reason: '' }, transfer: { status: 'idle', handoffState: 'idle', name: '', startedAt: '', completedAt: '', totalBytes: 0, bytesWritten: 0, interruptionRecorded: false, resume: 'never' }, update: { status: 'ready', checkedAt: '' } };
   }
@@ -40,7 +68,8 @@
       const defaults = defaultState();
       const persistedVersion = Number(parsed.schemaVersion ?? 1);
       if (!Number.isInteger(persistedVersion) || persistedVersion > STATE_SCHEMA_VERSION) return { ...defaults, migration: { status: 'future-version-refused', sourceVersion: persistedVersion, recorded: false } };
-      const history = Array.isArray(parsed.history) ? parsed.history.filter(event => event && typeof event === 'object' && typeof event.id === 'string' && typeof event.timestamp === 'string' && typeof event.action === 'string' && normalizeEventParams(event.action, event.params)).slice(-MAX_HISTORY).map(event => ({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: event.action, params: normalizeEventParams(event.action, event.params) })) : [];
+      const migratedLegacy = persistedVersion < STATE_SCHEMA_VERSION ? migrateLegacyHistory(parsed.history) : { events: Array.isArray(parsed.history) ? parsed.history.filter(event => event && typeof event === 'object' && typeof event.id === 'string' && typeof event.timestamp === 'string' && typeof event.action === 'string' && normalizeEventParams(event.action, event.params)).slice(-MAX_HISTORY).map(event => ({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: event.action, params: normalizeEventParams(event.action, event.params) })) : [], counts: { imported: 0, omitted: 0, refused: 0 } };
+      const history = migratedLegacy.events;
       const allowedTabs = new Set(TAB_ROUTES.map(([idValue]) => idValue));
       const tabs = Array.isArray(parsed.tabs) ? parsed.tabs.filter(tab => tab && allowedTabs.has(tab.id)).map(tab => ({ id: tab.id, pinned: Boolean(tab.pinned) })) : defaults.tabs;
       const forge = parsed.forge && typeof parsed.forge === 'object' ? { account: ['browser', 'manual'].includes(parsed.forge.account) ? parsed.forge.account : 'browser', owner: scrubSummary(parsed.forge.owner).slice(0, 80), repository: scrubSummary(parsed.forge.repository).slice(0, 100), route: ['copy', 'fork'].includes(parsed.forge.route) ? parsed.forge.route : 'copy', source: ['current-site', 'local-export', 'selected-file'].includes(parsed.forge.source) ? parsed.forge.source : 'current-site', destination: ['new-repository', 'existing-repository'].includes(parsed.forge.destination) ? parsed.forge.destination : 'new-repository' } : defaults.forge;
@@ -48,7 +77,10 @@
       const updateStatus = ['ready', 'unavailable', 'available', 'downloading', 'failed'].includes(parsed.update?.status) ? parsed.update.status : 'ready';
       const deliveryStatus = DELIVERY_STATES.has(parsed.delivery?.status) ? parsed.delivery.status : 'idle';
       const transferHandoffState = ['idle', 'handoff-started', 'prepared', 'handoff-cancelled', 'handoff-failed'].includes(parsed.transfer?.handoffState) ? parsed.transfer.handoffState : 'idle';
-      return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: persistedVersion < STATE_SCHEMA_VERSION ? 'migrated' : 'none', sourceVersion: persistedVersion, recorded: parsed.migration?.recorded === true }, history, tabs: tabs.length ? tabs : defaults.tabs, forge, editor: { lastPreparedExport: scrubSummary(parsed.editor?.lastPreparedExport).slice(0, 120), lastHandoffState: ['idle', 'handoff-started', 'handoff-unverified', 'handoff-failed', 'handoff-cancelled'].includes(parsed.editor?.lastHandoffState) ? parsed.editor.lastHandoffState : 'idle', lastExport: scrubSummary(parsed.editor?.lastExport).slice(0, 120) }, delivery: { status: deliveryStatus, reason: scrubSummary(parsed.delivery?.reason).slice(0, 240) }, transfer: { status: transferStatus === 'started' ? 'interrupted' : transferStatus, handoffState: transferHandoffState, name: scrubSummary(parsed.transfer?.name).slice(0, 160), startedAt: text(parsed.transfer?.startedAt).slice(0, 40), completedAt: text(parsed.transfer?.completedAt).slice(0, 40), totalBytes: Number.isFinite(parsed.transfer?.totalBytes) ? Math.max(0, parsed.transfer.totalBytes) : 0, bytesWritten: Number.isFinite(parsed.transfer?.bytesWritten) ? Math.max(0, parsed.transfer.bytesWritten) : 0, interruptionRecorded: transferStatus === 'started' ? false : parsed.transfer?.interruptionRecorded === true, resume: 'never' }, update: { status: updateStatus, checkedAt: text(parsed.update?.checkedAt).slice(0, 40) } };
+      const persistedCounts = parsed.migration?.counts && typeof parsed.migration.counts === 'object' ? { imported: Number.isInteger(parsed.migration.counts.imported) ? parsed.migration.counts.imported : 0, omitted: Number.isInteger(parsed.migration.counts.omitted) ? parsed.migration.counts.omitted : 0, refused: Number.isInteger(parsed.migration.counts.refused) ? parsed.migration.counts.refused : 0 } : { imported: 0, omitted: 0, refused: 0 };
+      const migrationStatus = persistedVersion < STATE_SCHEMA_VERSION ? (migratedLegacy.counts.refused || migratedLegacy.counts.omitted ? 'migrated-with-loss' : 'migrated') : ['migrated', 'migrated-with-loss'].includes(parsed.migration?.status) ? parsed.migration.status : 'none';
+      const migrationCounts = persistedVersion < STATE_SCHEMA_VERSION ? migratedLegacy.counts : persistedCounts;
+      return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: migrationStatus, sourceVersion: persistedVersion < STATE_SCHEMA_VERSION ? persistedVersion : parsed.migration?.sourceVersion || persistedVersion, recorded: parsed.migration?.recorded === true, counts: migrationCounts }, history, tabs, forge, editor: { lastPreparedExport: scrubSummary(parsed.editor?.lastPreparedExport).slice(0, 120), lastHandoffState: ['idle', 'handoff-started', 'handoff-unverified', 'handoff-failed', 'handoff-cancelled'].includes(parsed.editor?.lastHandoffState) ? parsed.editor.lastHandoffState : 'idle', lastExport: scrubSummary(parsed.editor?.lastExport).slice(0, 120) }, delivery: { status: deliveryStatus, reason: scrubSummary(parsed.delivery?.reason).slice(0, 240) }, transfer: { status: transferStatus === 'started' ? 'interrupted' : transferStatus, handoffState: transferHandoffState, name: scrubSummary(parsed.transfer?.name).slice(0, 160), startedAt: text(parsed.transfer?.startedAt).slice(0, 40), completedAt: text(parsed.transfer?.completedAt).slice(0, 40), totalBytes: Number.isFinite(parsed.transfer?.totalBytes) ? Math.max(0, parsed.transfer.totalBytes) : 0, bytesWritten: Number.isFinite(parsed.transfer?.bytesWritten) ? Math.max(0, parsed.transfer.bytesWritten) : 0, interruptionRecorded: transferStatus === 'started' ? false : parsed.transfer?.interruptionRecorded === true, resume: 'never' }, update: { status: updateStatus, checkedAt: text(parsed.update?.checkedAt).slice(0, 40) } };
     } catch {
       return defaultState();
     }
@@ -75,12 +107,12 @@
     const output = document.querySelector('#delivery-state'); if (output) output.textContent = `Delivery state: ${status}. ${state.delivery.reason || 'No additional detail.'}`;
     return true;
   }
-  function appendMigrationAudit(status, sourceVersion) {
+  function appendMigrationAudit(status, sourceVersion, counts = { imported: 0, omitted: 0, refused: 0 }) {
     try {
       const key = `${STORAGE_KEY}-migration-audit`;
       const audit = JSON.parse(localStorage.getItem(key) || '[]');
       if (!audit.some(item => item.status === status && item.sourceVersion === sourceVersion)) {
-        audit.push({ schemaVersion: 1, status, sourceVersion, timestamp: new Date().toISOString() });
+        audit.push({ schemaVersion: 1, status, sourceVersion, imported: counts.imported, omitted: counts.omitted, refused: counts.refused, timestamp: new Date().toISOString() });
         localStorage.setItem(key, JSON.stringify(audit.slice(-20)));
       }
     } catch { /* refusal remains visible even when audit storage is unavailable */ }
@@ -89,7 +121,7 @@
     const host = document.querySelector('#migration-audit-list'); if (!host) return;
     try {
       const audit = JSON.parse(localStorage.getItem(`${STORAGE_KEY}-migration-audit`) || '[]');
-      host.innerHTML = audit.length ? audit.slice().reverse().map(item => `<li>${escapeHtml(item.status)} · saved state version ${escapeHtml(item.sourceVersion)} · ${escapeHtml(formatDate(item.timestamp))}</li>`).join('') : '<li>No refused future-state audit records.</li>';
+      host.innerHTML = audit.length ? audit.slice().reverse().map(item => `<li>${escapeHtml(item.status)} · saved state version ${escapeHtml(item.sourceVersion)} · imported ${escapeHtml(item.imported || 0)}, omitted ${escapeHtml(item.omitted || 0)}, refused ${escapeHtml(item.refused || 0)} · ${escapeHtml(formatDate(item.timestamp))}</li>`).join('') : '<li>No migration refusal audit records.</li>';
     } catch { host.textContent = 'Migration audit is unavailable because local audit storage could not be read.'; }
   }
   function ensureMigrationAuditPanel() {
@@ -131,14 +163,17 @@
     if (['forge-preview', 'forge-handoff'].includes(action)) return EVENT_ENUMS.source.has(params.source) && EVENT_ENUMS.destination.has(params.destination) && EVENT_ENUMS.account.has(params.account) && EVENT_ENUMS.route.has(params.route) && EVENT_ENUMS.forgeStatus.has(params.status) ? { source: params.source, destination: params.destination, account: params.account, route: params.route, status: params.status } : null;
     if (action === 'tab-pin') return EVENT_ENUMS.tab.has(params.tab) && typeof params.pinned === 'boolean' ? { tab: params.tab, pinned: params.pinned } : null;
     if (action === 'provider-preview') return params.status === 'rendered' ? { status: params.status } : null;
-    if (action === 'state-migration') return integer(params.fromVersion) !== null && params.toVersion === STATE_SCHEMA_VERSION && params.status === 'migrated' ? { fromVersion: integer(params.fromVersion), toVersion: STATE_SCHEMA_VERSION, status: params.status } : null;
+    if (action === 'state-migration') return integer(params.fromVersion) !== null && params.toVersion === STATE_SCHEMA_VERSION && ['migrated', 'migrated-with-loss'].includes(params.status) && integer(params.imported) !== null && integer(params.omitted) !== null && integer(params.refused) !== null ? { fromVersion: integer(params.fromVersion), toVersion: STATE_SCHEMA_VERSION, status: params.status, imported: integer(params.imported), omitted: integer(params.omitted), refused: integer(params.refused) } : null;
     return null;
   }
   function eventSentence(event) {
     const p = event.params || {};
-    const en = { updated: `Updated ${p.field} settings`, restored: `Restored a ${p.sourceAction} event as a new event`, pruned: `Pruned ${p.count} older events, retaining ${p.retention}`, 'download-started': `Started writing ${p.bytes} bytes`, 'download-complete': `Finished writing ${p.bytes} bytes`, 'download-cancelled': `Cancelled after writing ${p.bytes} bytes`, 'download-interrupted': 'Marked a previous write as interrupted', 'update-check': `Checked update state: ${p.status}`, 'update-reload': 'Requested a page reload', 'recovery-opened': `Opened recovery action: ${p.action}`, 'forge-preview': `Prepared a ${p.route} provider preview`, 'forge-handoff': `Opened a ${p.route} provider preview`, 'tab-pin': `${p.pinned ? 'Pinned' : 'Unpinned'} the ${p.tab} route`, 'provider-preview': 'Rendered a safe provider preview', 'state-migration': `Migrated saved state from version ${p.fromVersion} to ${p.toVersion}` }[event.action] || 'Recorded a local event';
-    const zh = { updated: `更新咗 ${p.field} 設定`, restored: `將 ${p.sourceAction} 記錄另存成新記錄`, pruned: `清理咗 ${p.count} 個舊記錄，保留 ${p.retention} 個`, 'download-started': `開始寫入 ${p.bytes} bytes`, 'download-complete': `完成寫入 ${p.bytes} bytes`, 'download-cancelled': `寫入 ${p.bytes} bytes 後取消`, 'download-interrupted': '標記上一個寫入為中斷', 'update-check': `檢查更新狀態：${p.status}`, 'update-reload': '要求重新載入頁面', 'recovery-opened': `開啟恢復動作：${p.action}`, 'forge-preview': `準備咗 ${p.route} provider preview`, 'forge-handoff': `開啟咗 ${p.route} provider preview`, 'tab-pin': `${p.pinned ? '釘選' : '取消釘選'} ${p.tab} 路線`, 'provider-preview': '安全顯示 provider preview', 'state-migration': `將 state 由版本 ${p.fromVersion} 遷移到 ${p.toVersion}` }[event.action] || '記錄咗一項本地事件';
-    try { const mode = JSON.parse(localStorage.getItem('ding-pbx-pages-v2') || '{}').language; return mode === 'zh' ? zh : mode === 'both' ? `${en} · ${zh}` : en; } catch { return en; }
+    const en = { updated: `Updated ${p.field} settings`, restored: `Restored a ${p.sourceAction} event as a new event`, pruned: `Pruned ${p.count} older events, retaining ${p.retention}`, 'download-started': `Started writing ${p.bytes} bytes`, 'download-complete': `Finished writing ${p.bytes} bytes`, 'download-cancelled': `Cancelled after writing ${p.bytes} bytes`, 'download-interrupted': 'Marked a previous write as interrupted', 'update-check': `Checked update state: ${p.status}`, 'update-reload': 'Requested a page reload', 'recovery-opened': `Opened recovery action: ${p.action}`, 'forge-preview': `Prepared a ${p.route} provider preview`, 'forge-handoff': `Opened a ${p.route} provider preview`, 'tab-pin': `${p.pinned ? 'Pinned' : 'Unpinned'} the ${p.tab} route`, 'provider-preview': 'Rendered a safe provider preview', 'state-migration': `${p.status === 'migrated-with-loss' ? 'Migrated with recorded refusals' : 'Migrated'} saved state from version ${p.fromVersion} to ${p.toVersion}, imported ${p.imported}, omitted ${p.omitted}, refused ${p.refused}` }[event.action] || 'Recorded a local event';
+    const zh = { updated: `更新咗 ${p.field} 設定`, restored: `將 ${p.sourceAction} 記錄另存成新記錄`, pruned: `清理咗 ${p.count} 個舊記錄，保留 ${p.retention} 個`, 'download-started': `開始寫入 ${p.bytes} bytes`, 'download-complete': `完成寫入 ${p.bytes} bytes`, 'download-cancelled': `寫入 ${p.bytes} bytes 後取消`, 'download-interrupted': '標記上一個寫入為中斷', 'update-check': `檢查更新狀態：${p.status}`, 'update-reload': '要求重新載入頁面', 'recovery-opened': `開啟恢復動作：${p.action}`, 'forge-preview': `準備咗 ${p.route} provider preview`, 'forge-handoff': `開啟咗 ${p.route} provider preview`, 'tab-pin': `${p.pinned ? '釘選' : '取消釘選'} ${p.tab} 路線`, 'provider-preview': '安全顯示 provider preview', 'state-migration': `${p.status === 'migrated-with-loss' ? '遷移時有記錄拒絕' : '完成遷移'} state 由版本 ${p.fromVersion} 到 ${p.toVersion}，匯入 ${p.imported}、省略 ${p.omitted}、拒絕 ${p.refused}` }[event.action] || '記錄咗一項本地事件';
+    try { const prefs = JSON.parse(localStorage.getItem('ding-pbx-pages-v2') || '{}'); const mode = prefs.language; const enLevel = Number.isInteger(prefs.englishFunny) ? prefs.englishFunny : 0; const zhLevel = Number.isInteger(prefs.cantoneseFunny) ? prefs.cantoneseFunny : 0; const style = (sentence, level, language) => level >= 3 ? `${sentence}${language === 'zh' ? '，本地記低喇。' : ' Logged locally.'}` : level === 2 ? `${sentence}${language === 'zh' ? '。' : '.'}` : sentence; const styledEn = style(en, enLevel, 'en'); const styledZh = style(zh, zhLevel, 'zh'); return mode === 'zh' ? styledZh : mode === 'both' ? `${styledEn} · ${styledZh}` : styledEn; } catch { return en; }
+  }
+  function eventSearchProjection(event) {
+    return `${event.action} ${eventSentence(event)} ${JSON.stringify(event.params || {}).slice(0, 500)}`.slice(0, 900);
   }
   function redactDetails(value, depth = 0) {
     if (depth > 3 || value === null || value === undefined) return undefined;
@@ -212,7 +247,7 @@
     if (!validDateRange(historyQuery)) return [];
     return state.history.filter(event => withinDate(event.timestamp, historyQuery.from, historyQuery.to)
       && (historyQuery.action === 'all' || event.action === historyQuery.action)
-      && matchesQuery(`${event.action} ${eventSentence(event)}`, historyQuery));
+      && matchesQuery(eventSearchProjection(event), historyQuery));
   }
 
   function filterChangelog() {
@@ -337,11 +372,11 @@
   function exportHistory(format = 'json') {
     const rows = historyExportRows();
     if (format === 'markdown') {
-      const body = `# Local history export\n\nPrivate vocabulary, credentials, source paths, and file contents were omitted.\n\n| Timestamp | Action | Summary |\n| --- | --- | --- |\n${rows.map(row => `| ${row.timestamp} | ${row.action} | ${row.summary.replaceAll('|', '\\|')} |`).join('\n')}\n`;
+      const body = `# Local history export\n\nExport schema version: ${HISTORY_EXPORT_SCHEMA_VERSION}. Private vocabulary, credentials, source paths, and file contents were omitted.\n\n| Timestamp | Action | Text |\n| --- | --- | --- |\n${rows.map(row => `| ${row.timestamp} | ${row.action} | ${String(row.text || '').replaceAll('|', '\\|')} |`).join('\n')}\n`;
       downloadFile('ding-pbx-site-history.md', body, 'text/markdown');
       return;
     }
-    downloadFile('ding-pbx-site-history.json', JSON.stringify({ schemaVersion: 1, exportedAt: new Date().toISOString(), privateVocabulary: 'omitted', credentials: 'omitted', events: rows }, null, 2), 'application/json');
+    downloadFile('ding-pbx-site-history.json', JSON.stringify({ schemaVersion: HISTORY_EXPORT_SCHEMA_VERSION, eventSchemaVersion: STATE_SCHEMA_VERSION, exportedAt: new Date().toISOString(), privateVocabulary: 'omitted', credentials: 'omitted', events: rows }, null, 2), 'application/json');
   }
 
   function renderHistory() {
@@ -369,7 +404,8 @@
     if (status) status.textContent = validDateRange(historyQuery) ? `${rows.length} of ${state.history.length} local events shown` : 'Invalid date range. Use ISO dates and ensure From is not after To.';
     const migration = document.querySelector('#history-status');
     if (migration && state.migration?.status === 'future-version-refused') migration.textContent = `Saved state version ${state.migration.sourceVersion} is newer than this page understands, so it was refused and no saved events were applied.`;
-    else if (migration && state.migration?.status === 'migrated') migration.textContent = `Saved state version ${state.migration.sourceVersion} was migrated to version ${STATE_SCHEMA_VERSION}.`;
+    else if (migration && state.migration?.status === 'migrated-with-loss') { const counts = state.migration.counts || { imported: 0, omitted: 0, refused: 0 }; migration.textContent = `Saved state version ${state.migration.sourceVersion} was migrated with recorded loss. Imported ${counts.imported}, omitted ${counts.omitted}, refused ${counts.refused}. This is not a lossless migration.`; }
+    else if (migration && state.migration?.status === 'migrated') migration.textContent = `Saved state version ${state.migration.sourceVersion} was migrated to version ${STATE_SCHEMA_VERSION} with no omitted or refused records.`;
   }
 
   function renderChangelog() {
@@ -820,8 +856,9 @@
     document.addEventListener('keydown', event => { if (event.key === 'Escape') closeContextMenu(); if (event.ctrlKey && event.shiftKey && event.key.toLocaleLowerCase() === 'f') { event.preventDefault(); openPaletteRoute(); } if (event.ctrlKey && event.key === 'Enter' && ['history-event-field', 'history-event-status'].includes(document.activeElement?.id)) { event.preventDefault(); document.querySelector('#history-record')?.click(); } });
     renderPage();
     ensureRail();
-    if (state.migration?.status === 'migrated' && !state.migration.recorded) { state.migration.recorded = true; persist(); record('state-migration', { fromVersion: state.migration.sourceVersion, toVersion: STATE_SCHEMA_VERSION, status: 'migrated' }); }
+    if (['migrated', 'migrated-with-loss'].includes(state.migration?.status) && !state.migration.recorded) { state.migration.recorded = true; persist(); const counts = state.migration.counts || { imported: 0, omitted: 0, refused: 0 }; record('state-migration', { fromVersion: state.migration.sourceVersion, toVersion: STATE_SCHEMA_VERSION, status: state.migration.status, imported: counts.imported, omitted: counts.omitted, refused: counts.refused }); }
     if (state.migration?.status === 'future-version-refused') { appendMigrationAudit('future-version-refused', state.migration.sourceVersion); renderMigrationAudit(); }
+    if (state.migration?.status === 'migrated-with-loss') { appendMigrationAudit('migrated-with-loss', state.migration.sourceVersion, state.migration.counts); renderMigrationAudit(); }
     ensurePaletteOpener();
     if (state.transfer.status === 'interrupted' && !state.transfer.interruptionRecorded) { state.transfer.interruptionRecorded = true; persist(); record('download-interrupted', { status: 'interrupted' }); }
     document.querySelectorAll('#history-delivery-page .delivery-panel, #history-delivery-mount .delivery-panel').forEach(panel => { panel.dataset.deliveryContext = 'panel'; });
