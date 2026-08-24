@@ -312,7 +312,7 @@ export class App extends Base {
       this.externalEditorStatus = await bridge.externalEditor.detect();
       this.forceUpdate();
     } catch (error) {
-      this.externalEditorStatus = { editors: [], noEditorMessage: error instanceof Error ? error.message : 'Editor detection is unavailable.', persistenceState: 'invalid' };
+      this.externalEditorStatus = { editors: [], noEditorMessage: '', detectionError: error instanceof Error ? error.message : 'Editor detection is unavailable.', persistenceState: 'invalid' };
       this.forceUpdate();
     }
   }
@@ -767,11 +767,22 @@ ${resolution.disclosure}`);
   controlActionText = (action: string): string => {
     if (action === 'daemon-status') return this.daemonStatusLine;
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
-    if (action === 'editor-status') return this.externalEditorStatus.noEditorMessage ?? `${this.externalEditorStatus.editors.filter((editor) => editor.available).length} editor(s) detected.`;
+    if (action === 'editor-status') {
+      if (this.externalEditorStatus.detectionError) return `${localizeText('Editor detection unavailable')}: ${this.externalEditorStatus.detectionError}`;
+      if (this.externalEditorStatus.editors.filter((editor) => editor.available).length === 0) return localizeText('No supported editor is installed');
+      return `${this.externalEditorStatus.editors.filter((editor) => editor.available).length} ${localizeText('Editors detected')}`;
+    }
     if (action === 'editor-persistence') {
       const operation = this.externalEditorStatus.operation;
-      if (operation?.state === 'running') return `${operation.message} ${Math.round(operation.progress * 100)}%`;
-      return this.externalEditorStatus.persistenceMessage ?? `Saved editor settings: ${this.externalEditorStatus.persistenceState}.`;
+      if (operation) {
+        const stageKeys: Record<string, string> = { 'pick-executable': 'Choose executable', 'pick-folder': 'Choose folder', launch: 'Launch editor', materialize: 'Materialize export', persist: 'Save editor settings', detect: 'Detect editors' };
+        const stateKeys: Record<string, string> = { running: 'Operation in progress', completed: 'Operation complete', failed: 'Operation failed', cancelled: 'Operation cancelled' };
+        return `${localizeText(stateKeys[operation.state] ?? 'Operation in progress')}: ${localizeText(stageKeys[operation.kind] ?? 'Editor operation')} ${Math.round(operation.progress * 100)}%`;
+      }
+      const persistenceLabel = localizeText(`Editor settings ${this.externalEditorStatus.persistenceState}`);
+      return this.externalEditorStatus.persistenceMessage
+        ? `${localizeText('Editor settings state')}: ${persistenceLabel} · ${this.externalEditorStatus.persistenceMessage}`
+        : `${localizeText('Editor settings state')}: ${persistenceLabel}`;
     }
     if (action === 'editor-project-status') return this.externalProjectFolder ? `Session only local folder: ${this.externalProjectFolder}` : 'Session only: no local project folder chosen.';
     return '';
@@ -1918,7 +1929,7 @@ It is shown once. The phone needs it to register.`);
               off: editor.id !== this.externalEditorStatus.selectedId,
               pick: () => {
                 if (!editor.available) {
-                  this.fire('Editor unavailable', `${editor.name} is saved but not installed at the moment. Choose another editor or restore that installation.`);
+                  this.fire(localizeText('Saved editor unavailable'), `${editor.name} · ${localizeText('Choose another editor')} · ${localizeText('Use explicit Visual Studio Code download')}`);
                   return;
                 }
                 void bridge?.externalEditor.choose(editor.id).then((next) => {

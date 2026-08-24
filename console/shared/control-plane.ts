@@ -99,6 +99,7 @@ export interface ExternalEditorStatus {
   editors: ExternalEditorCandidate[];
   selectedId?: string;
   noEditorMessage?: string;
+  detectionError?: string;
   persistenceState: 'valid' | 'missing' | 'invalid';
   persistenceMessage?: string;
   operation?: ExternalEditorOperation;
