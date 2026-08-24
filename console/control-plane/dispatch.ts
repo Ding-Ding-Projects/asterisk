@@ -455,7 +455,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         }
         if (request.action === 'forge.publish') {
           const result = await forge.publish((request.payload ?? {}) as import('./forge-publishing.js').ForgePublishRequest);
-          return { ok: result.status === 'succeeded', requestId: request.requestId, code: result.status === 'succeeded' ? undefined : `FORGE_${result.status.toUpperCase().replaceAll('-', '_')}`, message: result.status === 'succeeded' ? undefined : result.message, data: { receipt: result.receipt ?? result.data, reauthAction: result.reauthAction } } as ControlPlaneResponse;
+          return { ok: result.status === 'succeeded', requestId: request.requestId, code: result.status === 'succeeded' ? undefined : `FORGE_${result.status.toUpperCase().replaceAll('-', '_')}`, message: result.status === 'succeeded' ? undefined : result.message, data: { receipt: result.receipt ?? result.data, operation: forge.state().operation, reauthAction: result.reauthAction } } as ControlPlaneResponse;
         }
         if (request.action === 'forge.receipts.list') {
           return { ok: true, requestId: request.requestId, data: { receipts: forge.state().receipts, operation: forge.state().operation, corruption: forge.state().corruption } };

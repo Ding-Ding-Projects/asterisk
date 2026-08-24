@@ -11,7 +11,7 @@ if (gh.length !== 1 || helper.length !== 1) throw new Error('Forge digest genera
 if (!/^[0-9a-f]{64}$/iu.test(gh[0].sha256) || !/^[0-9a-f]{64}$/iu.test(gh[0].archiveSha256)) throw new Error('Forge digest generation requires valid executable and archive SHA-256 values.');
 if (!/^[0-9a-f]{64}$/iu.test(helper[0].sha256)) throw new Error('Forge digest generation requires a valid helper SHA-256 value.');
 const provenance = gh[0].archiveDigestProvenance;
-if (!provenance || provenance.algorithm !== 'SHA-256' || provenance.scope !== 'bootstrap-only' || typeof provenance.releaseAsset !== 'string' || !provenance.releaseAsset.startsWith('github-release:') || !Array.isArray(provenance.sources) || provenance.sources.length < 2 || provenance.sources.some((source) => source.value !== gh[0].archiveSha256 || typeof source.identity !== 'string' || !source.identity.startsWith('github-release:'))) {
+if (!provenance || provenance.algorithm !== 'SHA-256' || provenance.scope !== 'bootstrap-only' || typeof provenance.releaseAsset !== 'string' || !provenance.releaseAsset.startsWith('github-release:') || !Array.isArray(provenance.sources) || provenance.sources.length < 2 || provenance.sources.some((source) => source.value !== gh[0].archiveSha256 || source.identity !== provenance.releaseAsset)) {
   throw new Error('Forge archive digest provenance is missing, incomplete, or disagrees with archiveSha256.');
 }
 const output = `/* GENERATED FILE. Run console/scripts/generate-forge-digests.mjs from dependency-manifest.json. */\nexport const FORGE_GH_SHA256 = ${JSON.stringify(gh[0].sha256)};\nexport const FORGE_GH_ARCHIVE_SHA256 = ${JSON.stringify(gh[0].archiveSha256)};\nexport const FORGE_CONPTY_HELPER_SHA256 = ${JSON.stringify(helper[0].sha256)};\n`;

@@ -254,6 +254,7 @@ export class App extends Base {
   private forgeDevice: Record<string, string> = { status: 'idle', operationId: 'idle', sessionId: '', revision: '0', message: 'No device sign-in is running.' };
   private forgePollTimer: ReturnType<typeof setInterval> | undefined;
   private forgeLoadGeneration = 0;
+  private forgePublishGeneration = 0;
   private forgeOwners: Array<Record<string, string>> = [];
   private forgeReceipts: Array<Record<string, string>> = [];
   private forgeActiveAccountId = '';
@@ -475,8 +476,13 @@ export class App extends Base {
   };
 
   private forgePublish = async (route: 'fork' | 'copy-and-push'): Promise<void> => {
+    const generation = ++this.forgePublishGeneration;
     const response = await this.request('forge.publish', { payload: { provider: 'github', route, accountId: this.forgeActiveAccountId, ownerId: this.forgeOwnerId, repositoryName: this.forgeRepositoryName, sourceRemote: this.forgeSourceRemote, sourcePath: this.forgeSourcePath, visibility: 'private', defaultBranch: 'main' } });
-    const data = response?.ok ? response.data as { receipt?: { message?: string; status?: string } } : undefined;
+    if (generation !== this.forgePublishGeneration) return;
+    const data = response?.ok ? response.data as { receipt?: { message?: string; status?: string }; operation?: Record<string, unknown> } : undefined;
+    if (data?.operation && String(data.operation.id ?? '') === String(this.forgeOperation.id ?? '')) {
+      this.forgeOperation = { id: String(data.operation.id ?? 'idle'), status: String(data.operation.status ?? 'idle'), progress: Number(data.operation.progress ?? 0), message: String(data.operation.message ?? ''), cancellable: Boolean(data.operation.cancellable) };
+    }
     this.forgeStatus = data?.receipt?.message ?? response?.message ?? 'The provider did not confirm publication.';
     if (data?.receipt) this.forgeReceipts = [{ status: String(data.receipt.status ?? 'unknown'), message: String(data.receipt.message ?? ''), when: new Date().toISOString() }, ...this.forgeReceipts].slice(0, 12);
     this.forceUpdate();

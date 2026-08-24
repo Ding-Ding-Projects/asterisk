@@ -426,6 +426,16 @@ function parseGhAccounts(stdout: string, now: string): ForgeAccount[] {
   });
 }
 
+function hasGithubAuthInventory(stdout: string): boolean {
+  try {
+    const parsed = JSON.parse(stdout) as unknown;
+    const hosts = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>).hosts : undefined;
+    return !!hosts && typeof hosts === "object" && !Array.isArray(hosts) && Array.isArray((hosts as Record<string, unknown>)[GITHUB_HOST]);
+  } catch {
+    return false;
+  }
+}
+
 function resultFromCommand(result: CommandResult, action: string): string {
   if (result.status === "timedOut") return `${action} timed out before the provider confirmed an outcome.`;
   if (result.status === "cancelled") return `${action} was cancelled before the provider confirmed an outcome.`;
@@ -489,7 +499,8 @@ export class ForgePublisher {
     this.#bundledGhPath = options.bundledGhPath;
     this.#bundledGhSha256 = options.bundledGhSha256;
     this.#conptyHelperSha256 = options.conptyHelperSha256;
-    this.#state = parseForgeState(options.store.read());
+    const saved = options.store.read();
+    this.#state = saved ?? defaultState();
   }
 
   capabilities(): ReadonlyArray<ForgeProviderCapabilities> {
@@ -519,7 +530,7 @@ export class ForgePublisher {
   }
 
   private addReceipt(receipt: ForgeReceipt, expectedOperationId?: string, expectedSessionId?: string): void {
-    if (expectedOperationId && (this.#state.operation.id !== expectedOperationId || this.#state.operation.status !== "running" || (expectedSessionId && this.#state.device?.sessionId !== expectedSessionId))) return;
+    if (expectedOperationId && (this.#state.operation.id !== expectedOperationId || (expectedSessionId && this.#state.device?.sessionId !== expectedSessionId))) return;
     this.#state.receipts = [receipt, ...this.#state.receipts].slice(0, MAX_RECEIPTS);
     this.save();
   }
@@ -553,10 +564,11 @@ export class ForgePublisher {
     return { status: "cancelled", message: this.#state.operation.message, data: this.#state.operation };
   }
 
-  private async gh(args: ReadonlyArray<string>, timeoutMs = 30_000, interactive = false, input?: string, redactedValues?: ReadonlyArray<string>): Promise<CommandResult> {
-    const operationId = this.#state.operation.id;
+  private async gh(args: ReadonlyArray<string>, timeoutMs = 30_000, interactive = false, input?: string, redactedValues?: ReadonlyArray<string>, controller = this.#abortController, expectedOperationId = this.#state.operation.id): Promise<CommandResult> {
+    const operationId = expectedOperationId;
+    if (!this.isCurrentOperationIdentity(operationId)) return { status: "cancelled", exitCode: null, stdout: "", stderr: "The forge command belongs to a stale operation.", durationMs: 0 };
     this.updateOperation(Math.max(5, this.#state.operation.progress), interactive ? "Waiting for the provider device sign-in flow." : "Running the provider command.");
-    const result = await this.execute({ executable: "gh", args, input, redactedValues, timeoutMs, maxOutputBytes: 4 * 1024 * 1024, signal: this.#abortController?.signal, environment: { GH_HOST: GITHUB_HOST, GH_PROMPT_DISABLED: interactive ? "0" : "1" }, clearEnvironmentKeys: AUTH_ENVIRONMENT_KEYS });
+    const result = await this.execute({ executable: "gh", args, input, redactedValues, timeoutMs, maxOutputBytes: 4 * 1024 * 1024, signal: controller?.signal, environment: { GH_HOST: GITHUB_HOST, GH_PROMPT_DISABLED: interactive ? "0" : "1" }, clearEnvironmentKeys: AUTH_ENVIRONMENT_KEYS }, operationId);
     if (!this.isCurrentOperation(operationId)) return result;
     this.updateOperation(result.status === "succeeded" ? Math.min(95, this.#state.operation.progress + 20) : this.#state.operation.progress, result.status === "succeeded" ? "Provider command returned." : result.status === "cancelled" ? "Provider command cancelled." : "Provider command returned a failure.");
     return result;
@@ -599,6 +611,10 @@ export class ForgePublisher {
 
   private isCurrentOperation(operationId: string): boolean {
     return this.#state.operation.id === operationId && this.#state.operation.status === "running";
+  }
+
+  private isCurrentOperationIdentity(operationId: string): boolean {
+    return this.#state.operation.id === operationId;
   }
 
   private fileSha256(path: string): string {
@@ -701,8 +717,8 @@ export class ForgePublisher {
     } finally { if (this.#conptySessionId === sessionId && this.#state.operation.id === operationId) { this.#conptySessionId = undefined; this.#deviceTask = undefined; this.#signInBaselineAccountIds.clear(); this.#signInBaselineCredentialStates.clear(); this.#lastConPtyState = undefined; } }
   }
 
-  private async verifyDestinationIdentity(ownerLogin: string, repositoryName: string, expectedUrl: string): Promise<{ ok: boolean; status: ForgeReceiptStatus; message: string }> {
-    const result = await this.gh(["repo", "view", `${ownerLogin}/${repositoryName}`, "--json", "nameWithOwner,url"]);
+  private async verifyDestinationIdentity(ownerLogin: string, repositoryName: string, expectedUrl: string, controller = this.#abortController, operationId = this.#state.operation.id): Promise<{ ok: boolean; status: ForgeReceiptStatus; message: string }> {
+    const result = await this.gh(["repo", "view", `${ownerLogin}/${repositoryName}`, "--json", "nameWithOwner,url"], 30_000, false, undefined, undefined, controller, operationId);
     if (result.status !== "succeeded") return { ok: false, status: receiptStatus(result, true), message: resultFromCommand(result, "Reading the destination repository identity") };
     try {
       const parsed = JSON.parse(result.stdout) as { nameWithOwner?: unknown; url?: unknown };
@@ -714,20 +730,33 @@ export class ForgePublisher {
     }
   }
 
-  private async git(args: ReadonlyArray<string>, cwd: string, timeoutMs = 60_000, controller = this.#abortController, mutateOperation = true): Promise<CommandResult> {
-    const operationId = mutateOperation ? this.#state.operation.id : undefined;
+  private async git(args: ReadonlyArray<string>, cwd: string, timeoutMs = 60_000, controller = this.#abortController, mutateOperation = true, expectedOperationId = this.#state.operation.id): Promise<CommandResult> {
+    const operationId = mutateOperation ? expectedOperationId : undefined;
+    if (mutateOperation && !this.isCurrentOperationIdentity(operationId!)) return { status: "cancelled", exitCode: null, stdout: "", stderr: "The git command belongs to a stale operation.", durationMs: 0 };
     if (mutateOperation) this.updateOperation(Math.max(5, this.#state.operation.progress), "Running the local git command.");
     const result = await this.execute({ executable: "git", args, cwd, timeoutMs, maxOutputBytes: 4 * 1024 * 1024, signal: controller?.signal, environment: { GIT_TERMINAL_PROMPT: "0" }, clearEnvironmentKeys: AUTH_ENVIRONMENT_KEYS }, operationId ?? null);
     return !mutateOperation || (!!operationId && this.isCurrentOperation(operationId)) ? result : { ...result, status: "cancelled" };
   }
 
-  private async rollbackAddedRemote(cwd: string): Promise<{ state: ForgePublicationReceipt["localRemoteState"]; recoveryAction: string }> {
+  private async rollbackPublicationRemote(cwd: string, operationId: string, expectedUrl: string, addedForgeRemote: boolean, changedExistingPushUrl: boolean): Promise<{ state: ForgePublicationReceipt["localRemoteState"]; recoveryAction: string }> {
+    if (!this.isCurrentOperationIdentity(operationId)) return { state: "retained-after-failure", recoveryAction: "The forge-publish remote was retained because this outcome belongs to an older operation. Review its effective URL before retrying." };
     const cleanupController = new AbortController();
     const timer = setTimeout(() => cleanupController.abort(), 30_000);
-    const removed = await this.git(["remote", "remove", "forge-publish"], cwd, 30_000, cleanupController, false);
-    clearTimeout(timer);
-    if (removed.status === "succeeded") return { state: "added-and-rolled-back", recoveryAction: "The forge-publish remote was added by this attempt and was removed after the publication outcome became non-successful. Re-run publication after reviewing the retained receipt." };
-    return { state: "retained-after-failure", recoveryAction: "The forge-publish remote was retained because rollback did not complete. Review its effective URL before retrying; no local configuration was silently discarded." };
+    try {
+      const current = await this.git(["remote", "get-url", "--push", "forge-publish"], cwd, 30_000, cleanupController, false);
+      const urls = current.status === "succeeded" ? current.stdout.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean) : [];
+      const matches = urls.length === 1 && (urls[0] === expectedUrl || urls[0] === `${expectedUrl}.git`);
+      if (!matches) return { state: "retained-after-failure", recoveryAction: "The forge-publish remote was retained because its current effective URL was not the URL created by this operation." };
+      const restored = addedForgeRemote
+        ? await this.git(["remote", "remove", "forge-publish"], cwd, 30_000, cleanupController, false)
+        : changedExistingPushUrl
+          ? await this.git(["config", "--unset-all", "remote.forge-publish.pushurl"], cwd, 30_000, cleanupController, false)
+          : { status: "succeeded" as const };
+      if (restored.status === "succeeded") return { state: addedForgeRemote ? "added-and-rolled-back" : "pre-existing", recoveryAction: addedForgeRemote ? "The forge-publish remote was added by this attempt and was removed after the publication outcome became non-successful." : "The pre-existing forge-publish push URL mutation was reverted after the publication outcome became non-successful." };
+      return { state: "retained-after-failure", recoveryAction: "The forge-publish remote was retained because rollback did not complete. Review its effective URL before retrying; no local configuration was silently discarded." };
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   private async execute(request: CommandRequest, expectedOperationId: string | null = this.#state.operation.id): Promise<CommandResult> {
@@ -959,10 +988,12 @@ export class ForgePublisher {
     }
     const reread = await this.gh(["auth", "status", "--hostname", account.hostname, "--json", "hosts"]);
     if (!this.isCurrentOperation(operationId)) return { status: "cancelled", message: "The sign-out verification result was stale and was not applied." };
-    const stillPresent = reread.status === "succeeded" && parseGhAccounts(reread.stdout, this.#now().toISOString()).some((candidate) => candidate.id === account.id || candidate.login === account.login);
-    if (reread.status !== "succeeded" || stillPresent) {
-      const status = reread.status === "cancelled" || reread.status === "timedOut" ? "unknown-side-effect" : "partial";
-      const receipt = this.makeAccountReceipt(status, "sign-out", account, `${reread.status === "succeeded" ? `The provider still reports ${account.login} as available.` : resultFromCommand(reread, "Re-reading account state after sign-out")} Logout removes local gh authentication only and does not revoke provider authorization.`);
+    const completeInventory = reread.status === "succeeded" && hasGithubAuthInventory(reread.stdout);
+    const stillPresent = completeInventory && parseGhAccounts(reread.stdout, this.#now().toISOString()).some((candidate) => candidate.id === account.id || candidate.login === account.login);
+    if (!completeInventory || stillPresent) {
+      const status = reread.status === "cancelled" || reread.status === "timedOut" || !completeInventory ? "unknown-side-effect" : "partial";
+      const reason = !completeInventory ? "The provider returned an incomplete account inventory after sign-out." : `The provider still reports ${account.login} as available.`;
+      const receipt = this.makeAccountReceipt(status, "sign-out", account, `${reason} Logout removes local gh authentication only and does not revoke provider authorization.`);
       this.addReceipt(receipt, operationId); this.finishOperation("failed", receipt.message, operationId); return { status, message: receipt.message, receipt };
     }
     if (!this.isCurrentOperation(operationId)) return { status: "cancelled", message: "The sign-out result was stale and was not applied." };
@@ -1056,126 +1087,130 @@ export class ForgePublisher {
     if (active.status !== "succeeded") return { status: active.status, message: active.message, reauthAction: active.reauthAction };
     if (route === "fork" && !PROVIDER_CAPABILITIES.github.supportsFork) return { status: "unavailable", message: "The selected provider does not expose a fork route." };
     if (!this.beginOperation("publish", route === "fork" ? "Forking the source repository." : "Creating and pushing the destination repository.")) return { status: "failed", message: "Another forge operation is already running." };
+    const operationId = this.#state.operation.id;
+    const controller = this.#abortController!;
 
     const observedAt = this.#now().toISOString();
     const repositoryUrl = `https://github.com/${ownerLogin}/${repositoryName}`;
     let sourceCommit: string | undefined;
     let effectivePushUrl = "";
     let addedForgeRemote = false;
+    let changedExistingPushUrl = false;
     if (route === "copy-and-push") {
-      const head = await this.git(["rev-parse", "HEAD"], sourcePath!);
+      const head = await this.git(["rev-parse", "HEAD"], sourcePath!, 60_000, controller, true, operationId);
       if (head.status !== "succeeded") {
         const status = head.status === "cancelled" ? "cancelled" : "failed";
         const receipt = this.makeReceipt(status, account, ownerId, route, repositoryName, repositoryUrl, undefined, resultFromCommand(head, "Reading the local source commit"), observedAt);
-        this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
+        this.addReceipt(receipt, operationId); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message, operationId); await this.record("updated", `forge publication ${repositoryName}`, receipt);
         return { status, message: receipt.message, receipt, data: receipt };
       }
       sourceCommit = head.stdout.trim();
       if (!SAFE_COMMIT.test(sourceCommit)) {
         const receipt = this.makeReceipt("failed", account, ownerId, route, repositoryName, repositoryUrl, undefined, "The local source did not return a valid commit id.", observedAt);
-        this.addReceipt(receipt); this.finishOperation("failed", receipt.message); return { status: "failed", message: receipt.message, receipt, data: receipt };
+        this.addReceipt(receipt, operationId); this.finishOperation("failed", receipt.message, operationId); return { status: "failed", message: receipt.message, receipt, data: receipt };
       }
-      const create = await this.gh(["repo", "create", `${ownerLogin}/${repositoryName}`, visibility === "public" ? "--public" : "--private", ...(description ? ["--description", description] : [])]);
+      const create = await this.gh(["repo", "create", `${ownerLogin}/${repositoryName}`, visibility === "public" ? "--public" : "--private", ...(description ? ["--description", description] : [])], 30_000, false, undefined, undefined, controller, operationId);
       if (create.status !== "succeeded") {
         const status = receiptStatus(create, true);
         const receipt = this.makeReceipt(status, account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, resultFromCommand(create, "Creating the destination repository"), observedAt);
-        this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
+        this.addReceipt(receipt, operationId); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message, operationId); await this.record("updated", `forge publication ${repositoryName}`, receipt);
         return { status, message: receipt.message, receipt, data: receipt };
       }
-      const identity = await this.verifyDestinationIdentity(ownerLogin, repositoryName, repositoryUrl);
+      const identity = await this.verifyDestinationIdentity(ownerLogin, repositoryName, repositoryUrl, controller, operationId);
       if (!identity.ok) {
         const receipt = this.makeReceipt(identity.status, account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, identity.message, observedAt);
-        this.addReceipt(receipt); this.finishOperation(identity.status === "cancelled" ? "cancelled" : "failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
+        this.addReceipt(receipt, operationId); this.finishOperation(identity.status === "cancelled" ? "cancelled" : "failed", receipt.message, operationId); await this.record("updated", `forge publication ${repositoryName}`, receipt);
         return { status: identity.status, message: receipt.message, receipt, data: receipt };
       }
-      const remote = await this.git(["remote", "get-url", "--push", "forge-publish"], sourcePath!);
+      const remote = await this.git(["remote", "get-url", "--push", "forge-publish"], sourcePath!, 60_000, controller, true, operationId);
       const pushUrls = remote.status === "succeeded" ? remote.stdout.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean) : [];
       if (pushUrls.length > 1) {
         const receipt = this.makeReceipt("failed", account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, "The forge-publish remote has more than one push URL, so the destination cannot be proved uniquely.", observedAt);
-        this.addReceipt(receipt); this.finishOperation("failed", receipt.message); return { status: "failed", message: receipt.message, receipt, data: receipt };
+         this.addReceipt(receipt, operationId); this.finishOperation("failed", receipt.message, operationId); return { status: "failed", message: receipt.message, receipt, data: receipt };
       }
       effectivePushUrl = pushUrls[0] ?? "";
       if (!effectivePushUrl) {
-        const fetchRemote = await this.git(["remote", "get-url", "forge-publish"], sourcePath!);
+        const fetchRemote = await this.git(["remote", "get-url", "forge-publish"], sourcePath!, 60_000, controller, true, operationId);
         const fetchUrls = fetchRemote.status === "succeeded" ? fetchRemote.stdout.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean) : [];
         if (fetchUrls.length > 1) {
           const receipt = this.makeReceipt("failed", account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, "The forge-publish remote has more than one effective URL, so the destination cannot be proved uniquely.", observedAt);
-          this.addReceipt(receipt); this.finishOperation("failed", receipt.message); return { status: "failed", message: receipt.message, receipt, data: receipt };
+           this.addReceipt(receipt, operationId); this.finishOperation("failed", receipt.message, operationId); return { status: "failed", message: receipt.message, receipt, data: receipt };
         }
         if (fetchUrls.length === 1) {
-          const setPush = await this.git(["remote", "set-url", "--push", "forge-publish", fetchUrls[0]!], sourcePath!);
+          const setPush = await this.git(["remote", "set-url", "--push", "forge-publish", fetchUrls[0]!], sourcePath!, 60_000, controller, true, operationId);
           if (setPush.status !== "succeeded") {
             const status = setPush.status === "cancelled" ? "cancelled" : "partial";
             const receipt = this.makeReceipt(status, account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, resultFromCommand(setPush, "Setting the destination push URL"), observedAt);
-            this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
+             this.addReceipt(receipt, operationId); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message, operationId); await this.record("updated", `forge publication ${repositoryName}`, receipt);
             return { status, message: receipt.message, receipt, data: receipt };
           }
+          changedExistingPushUrl = true;
         }
       }
       if (!effectivePushUrl) {
-        const add = await this.git(["remote", "add", "forge-publish", repositoryUrl], sourcePath!);
+        const add = await this.git(["remote", "add", "forge-publish", repositoryUrl], sourcePath!, 60_000, controller, true, operationId);
         if (add.status !== "succeeded") {
           const status = add.status === "cancelled" ? "cancelled" : "partial";
           const receipt = this.makeReceipt(status, account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, resultFromCommand(add, "Adding the destination remote"), observedAt);
-          this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
+           this.addReceipt(receipt, operationId); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message, operationId); await this.record("updated", `forge publication ${repositoryName}`, receipt);
           return { status, message: receipt.message, receipt, data: receipt };
         }
         addedForgeRemote = true;
       }
-      const effectiveRemote = await this.git(["remote", "get-url", "--push", "forge-publish"], sourcePath!);
+      const effectiveRemote = await this.git(["remote", "get-url", "--push", "forge-publish"], sourcePath!, 60_000, controller, true, operationId);
       const effectiveUrls = effectiveRemote.status === "succeeded" ? effectiveRemote.stdout.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean) : [];
       if (effectiveUrls.length !== 1) {
         const status = effectiveRemote.status === "cancelled" ? "cancelled" : "partial";
         const receipt = this.makeReceipt(status, account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, effectiveUrls.length > 1 ? "The forge-publish remote has more than one effective push URL, so the destination cannot be proved uniquely." : resultFromCommand(effectiveRemote, "Reading the effective destination push URL"), observedAt);
-        if (addedForgeRemote) { Object.assign(receipt, await this.rollbackAddedRemote(sourcePath!)); receipt.message = `${receipt.message} ${receipt.recoveryAction ?? ""}`.trim(); }
-        this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
+        if (addedForgeRemote || changedExistingPushUrl) { Object.assign(receipt, await this.rollbackPublicationRemote(sourcePath!, operationId, repositoryUrl, addedForgeRemote, changedExistingPushUrl)); receipt.message = `${receipt.message} ${receipt.recoveryAction ?? ""}`.trim(); }
+         this.addReceipt(receipt, operationId); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message, operationId); await this.record("updated", `forge publication ${repositoryName}`, receipt);
         return { status, message: receipt.message, receipt, data: receipt };
       }
       effectivePushUrl = effectiveUrls[0]!;
       if (effectivePushUrl !== repositoryUrl && effectivePushUrl !== `${repositoryUrl}.git`) {
         const receipt = this.makeReceipt("failed", account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, "The local forge-publish remote already points somewhere else, so it was not changed.", observedAt);
-        if (addedForgeRemote) { Object.assign(receipt, await this.rollbackAddedRemote(sourcePath!)); receipt.message = `${receipt.message} ${receipt.recoveryAction ?? ""}`.trim(); }
-        this.addReceipt(receipt); this.finishOperation("failed", receipt.message); return { status: "failed", message: receipt.message, receipt, data: receipt };
+        if (addedForgeRemote || changedExistingPushUrl) { Object.assign(receipt, await this.rollbackPublicationRemote(sourcePath!, operationId, repositoryUrl, addedForgeRemote, changedExistingPushUrl)); receipt.message = `${receipt.message} ${receipt.recoveryAction ?? ""}`.trim(); }
+         this.addReceipt(receipt, operationId); this.finishOperation("failed", receipt.message, operationId); return { status: "failed", message: receipt.message, receipt, data: receipt };
       }
-      const pushed = await this.git(["push", effectivePushUrl, `HEAD:${defaultBranch}`], sourcePath!, 120_000);
+      const pushed = await this.git(["push", effectivePushUrl, `HEAD:${defaultBranch}`], sourcePath!, 120_000, controller, true, operationId);
       if (pushed.status !== "succeeded") {
         const status = pushed.status === "cancelled" ? "cancelled" : "partial";
         const receipt = this.makeReceipt(status, account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, resultFromCommand(pushed, "Pushing the local source"), observedAt);
         receipt.effectivePushUrl = effectivePushUrl;
-        if (addedForgeRemote) { Object.assign(receipt, await this.rollbackAddedRemote(sourcePath!)); receipt.message = `${receipt.message} ${receipt.recoveryAction ?? ""}`.trim(); }
-        this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message);
+        if (addedForgeRemote || changedExistingPushUrl) { Object.assign(receipt, await this.rollbackPublicationRemote(sourcePath!, operationId, repositoryUrl, addedForgeRemote, changedExistingPushUrl)); receipt.message = `${receipt.message} ${receipt.recoveryAction ?? ""}`.trim(); }
+         this.addReceipt(receipt, operationId); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message, operationId);
         await this.record("updated", `forge publication ${repositoryName}`, receipt);
         return { status, message: receipt.message, receipt, data: receipt };
       }
-      const verified = await this.git(["ls-remote", "--heads", effectivePushUrl, defaultBranch], sourcePath!, 30_000);
+      const verified = await this.git(["ls-remote", "--heads", effectivePushUrl, defaultBranch], sourcePath!, 30_000, controller, true, operationId);
       const verifiedCommit = verified.status === "succeeded" ? /^([0-9a-f]{40})\s+refs\/heads\//iu.exec(verified.stdout.trim())?.[1] : undefined;
       if (verifiedCommit !== sourceCommit) {
         const status = verified.status === "cancelled" ? "cancelled" : "partial";
         const receipt = this.makeReceipt(status, account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, verified.status === "succeeded" ? `The destination answered with ${verifiedCommit ?? "no matching commit"}, not ${sourceCommit}.` : resultFromCommand(verified, "Verifying the destination commit"), observedAt);
         receipt.effectivePushUrl = effectivePushUrl;
-        if (addedForgeRemote) { Object.assign(receipt, await this.rollbackAddedRemote(sourcePath!)); receipt.message = `${receipt.message} ${receipt.recoveryAction ?? ""}`.trim(); }
-        this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
+        if (addedForgeRemote || changedExistingPushUrl) { Object.assign(receipt, await this.rollbackPublicationRemote(sourcePath!, operationId, repositoryUrl, addedForgeRemote, changedExistingPushUrl)); receipt.message = `${receipt.message} ${receipt.recoveryAction ?? ""}`.trim(); }
+         this.addReceipt(receipt, operationId); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message, operationId); await this.record("updated", `forge publication ${repositoryName}`, receipt);
         return { status, message: receipt.message, receipt, data: receipt };
       }
     } else {
       const args = ["repo", "fork", sourceRemote!, "--remote=false", "--fork-name", repositoryName];
       if (ownerKind === "organization") args.push("--org", ownerLogin);
-      const fork = await this.gh(args, 120_000);
+      const fork = await this.gh(args, 120_000, false, undefined, undefined, controller, operationId);
       if (fork.status !== "succeeded") {
         const status = receiptStatus(fork, true);
         const receipt = this.makeReceipt(status, account, ownerId, route, repositoryName, repositoryUrl, undefined, resultFromCommand(fork, "Forking the source repository"), observedAt);
-        this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message); return { status, message: receipt.message, receipt, data: receipt };
+        this.addReceipt(receipt, operationId); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message, operationId); return { status, message: receipt.message, receipt, data: receipt };
       }
-      const identity = await this.verifyDestinationIdentity(ownerLogin, repositoryName, repositoryUrl);
+      const identity = await this.verifyDestinationIdentity(ownerLogin, repositoryName, repositoryUrl, controller, operationId);
       if (!identity.ok) {
         const receipt = this.makeReceipt(identity.status, account, ownerId, route, repositoryName, repositoryUrl, undefined, identity.message, observedAt);
-        this.addReceipt(receipt); this.finishOperation(identity.status === "cancelled" ? "cancelled" : "failed", receipt.message); return { status: identity.status, message: receipt.message, receipt, data: receipt };
+        this.addReceipt(receipt, operationId); this.finishOperation(identity.status === "cancelled" ? "cancelled" : "failed", receipt.message, operationId); return { status: identity.status, message: receipt.message, receipt, data: receipt };
       }
     }
     const receipt = this.makeReceipt("succeeded", account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, route === "fork" ? "The provider confirmed the fork request." : `The destination accepted commit ${sourceCommit}.`, observedAt);
     if (route === "copy-and-push") receipt.effectivePushUrl = effectivePushUrl;
-    this.addReceipt(receipt);
-    this.finishOperation("succeeded", receipt.message);
+    this.addReceipt(receipt, operationId);
+    this.finishOperation("succeeded", receipt.message, operationId);
     await this.record("created", `forge publication ${repositoryName}`, receipt);
     return { status: "succeeded", message: receipt.message, receipt, data: receipt };
   }
