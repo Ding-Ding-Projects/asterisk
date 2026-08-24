@@ -65,7 +65,7 @@ export function readCurrentIdentity(): CurrentIdentity | undefined {
   if (!existsSync(path)) return undefined;
   try {
     const parsed = JSON.parse(readFileSync(path, 'utf8')) as { schemaVersion?: number; product?: unknown; version?: unknown; candidateCommit?: unknown; tag?: unknown; published?: unknown };
-    if (parsed.schemaVersion !== 1 || parsed.product !== 'ding-pbx-console' || typeof parsed.version !== 'string' || !/^\d+\.\d+\.\d+$/u.test(parsed.version) || typeof parsed.candidateCommit !== 'string' || !/^[0-9a-f]{40}$/u.test(parsed.candidateCommit) || typeof parsed.published !== 'boolean' || (parsed.tag !== null && (typeof parsed.tag !== 'string' || !/^ding-pbx-console-v\d+\.\d+\.\d+-r\d+$/u.test(parsed.tag)))) return undefined;
+    if (parsed.schemaVersion !== 1 || parsed.product !== 'ding-pbx-console' || typeof parsed.version !== 'string' || !/^\d+\.\d+\.\d+$/u.test(parsed.version) || typeof parsed.candidateCommit !== 'string' || !/^[0-9a-f]{40}$/u.test(parsed.candidateCommit) || typeof parsed.published !== 'boolean' || (parsed.tag !== null && (typeof parsed.tag !== 'string' || !/^ding-pbx-console-v(?:0\.0\.\d+|\d+\.\d+\.\d+)-r\d+$/u.test(parsed.tag)))) return undefined;
     return { version: parsed.version, candidateCommit: parsed.candidateCommit, tag: parsed.tag === null ? undefined : parsed.tag };
   } catch { return undefined; }
 }

@@ -11,12 +11,12 @@ const packageJson = JSON.parse(readFileSync(join(consoleRoot, 'package.json'), '
 const version = process.env.DING_PBX_VERSION ?? packageJson.version;
 const candidateCommit = process.env.DING_PBX_CANDIDATE_COMMIT ?? spawnSync('git', ['-C', repoRoot, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout.trim();
 const runAttempt = process.env.GITHUB_RUN_ATTEMPT;
-const tag = process.env.DING_PBX_RELEASE_TAG ?? (process.env.GITHUB_RUN_NUMBER && runAttempt ? `ding-pbx-console-v${version}-r${runAttempt}` : null);
+const tag = process.env.DING_PBX_RELEASE_TAG ?? (process.env.GITHUB_RUN_NUMBER && runAttempt ? `ding-pbx-console-v0.0.${process.env.GITHUB_RUN_NUMBER}-r${runAttempt}` : null);
 
 if (!/^\d+\.\d+\.\d+$/u.test(version)) throw new Error('DING_PBX_VERSION must be an explicit numeric semantic version.');
 if (!/^[0-9a-f]{40}$/u.test(candidateCommit)) throw new Error('DING_PBX_CANDIDATE_COMMIT must be the explicit 40-character candidate commit.');
 if (process.env.GITHUB_ACTIONS === 'true' && (version === '0.1.0' || tag === null)) throw new Error('The first repaired published package must be newer than 0.1.0 and carry a release tag.');
-if (tag !== null && tag !== `ding-pbx-console-v${version}-r${runAttempt}`) throw new Error('DING_PBX_RELEASE_TAG does not match the package version and run attempt.');
+if (tag !== null && tag !== `ding-pbx-console-v0.0.${process.env.GITHUB_RUN_NUMBER}-r${runAttempt}`) throw new Error('DING_PBX_RELEASE_TAG must use the legacy-compatible tag shape for this package version.');
 
 const head = spawnSync('git', ['-C', repoRoot, 'rev-parse', 'HEAD'], { encoding: 'utf8', shell: false });
 if (head.status !== 0 || head.stdout.trim() !== candidateCommit) throw new Error(`Candidate commit ${candidateCommit} does not match checkout HEAD ${head.stdout.trim()}.`);

@@ -103,7 +103,7 @@ jobs:
     env:
       DING_PBX_VERSION: 0.1.${{ github.run_number }}
       DING_PBX_CANDIDATE_COMMIT: ${{ github.sha }}
-      DING_PBX_RELEASE_TAG: ding-pbx-console-v0.1.${{ github.run_number }}-r${{ github.run_attempt }}
+      DING_PBX_RELEASE_TAG: ding-pbx-console-v0.0.${{ github.run_number }}-r${{ github.run_attempt }}
     steps:
       - name: Check out the exact source commit
         uses: actions/checkout@v4
@@ -172,7 +172,7 @@ jobs:
     env:
       DING_PBX_VERSION: 0.1.${{ github.run_number }}
       DING_PBX_CANDIDATE_COMMIT: ${{ github.sha }}
-      DING_PBX_RELEASE_TAG: ding-pbx-console-v0.1.${{ github.run_number }}-r${{ github.run_attempt }}
+      DING_PBX_RELEASE_TAG: ding-pbx-console-v0.0.${{ github.run_number }}-r${{ github.run_attempt }}
     steps:
       - name: Check out release records
         uses: actions/checkout@v4

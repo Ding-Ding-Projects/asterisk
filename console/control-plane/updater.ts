@@ -58,14 +58,18 @@ export interface ResolvedUpdate {
   identityAsset: ReleaseAsset;
 }
 
-const TAG_PATTERN = /^ding-pbx-console-v(\d+)\.(\d+)\.(\d+)-r(\d+)$/u;
+const LEGACY_TAG_PATTERN = /^ding-pbx-console-v0\.0\.(\d+)-r(\d+)$/u;
+const MODERN_TAG_PATTERN = /^ding-pbx-console-v(\d+)\.(\d+)\.(\d+)-r(\d+)$/u;
 const VERSION_PATTERN = /^(\d+)\.(\d+)\.(\d+)$/u;
 const SHA_PATTERN = /^[0-9a-f]{64}$/iu;
 const COMMIT_PATTERN = /^[0-9a-f]{40}$/u;
 
 export function parseReleaseTag(tag: string): ReleaseOrdinal | undefined {
-  const match = TAG_PATTERN.exec(tag.trim());
-  return match ? [Number(match[1]), Number(match[2]), Number(match[3]), Number(match[4])] : undefined;
+  const value = tag.trim();
+  const legacy = LEGACY_TAG_PATTERN.exec(value);
+  if (legacy) return [0, 1, Number(legacy[1]), Number(legacy[2])];
+  const modern = MODERN_TAG_PATTERN.exec(value);
+  return modern ? [Number(modern[1]), Number(modern[2]), Number(modern[3]), Number(modern[4])] : undefined;
 }
 
 export function parseVersion(version: string): Version | undefined {
