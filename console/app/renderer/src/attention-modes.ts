@@ -44,6 +44,9 @@ export const MODE_SETTING_PREFIX = 'console.attention.';
 export const NEXT_ACTION_SETTING_KEY = `${MODE_SETTING_PREFIX}nextAction`;
 export const LAST_CHANGED_SETTING_KEY = `${MODE_SETTING_PREFIX}lastChangedAt`;
 export const SNOOZED_UNTIL_SETTING_KEY = `${MODE_SETTING_PREFIX}snoozedUntil`;
+export const NOTICE_HISTORY_SETTING_KEY = `${MODE_SETTING_PREFIX}noticeHistory`;
+export const NOTICE_HISTORY_SCHEMA_VERSION = 1;
+export const NOTICE_HISTORY_MAX_ENTRIES = 200;
 export const NEXT_ACTION_MAX_LENGTH = 140;
 
 /** Handwritten control wiring inventory. Each row names one control, its durable
@@ -57,6 +60,35 @@ export const ATTENTION_WIRING = [
   { control: 'att_next', storageKey: 'console.attention.nextAction', writer: 'generated setVal -> onUserMutation; App.languageAwareSetVal -> setNextAction plus attentionWrite', consumer: 'App.attentionRender -> data-attention-next' },
 ] as const;
 
+export const ATTENTION_MUTATION_ACTIONS = [
+  { action: 'set', key: 'canvasTool', state: 'canvasTool' },
+  { action: 'set', key: 'grid', state: 'grid' },
+  { action: 'set', key: 'snap', state: 'snap' },
+  { action: 'set', key: 'guides', state: 'guides' },
+  { action: 'set', key: 'minimap', state: 'minimap' },
+  { action: 'set', key: 'layer', state: 'layer' },
+  { action: 'set', key: 'zoom', state: 'zoom' },
+  { action: 'set', key: 'pinned', state: 'pinned' },
+  { action: 'set', key: 'dock', state: 'dock' },
+  { action: 'set', key: 'fullscreen', state: 'fullscreen' },
+  { action: 'set', key: 'branch', state: 'branch' },
+  { action: 'set', key: 'sortList', state: 'sortList' },
+] as const;
+
+export interface RedactedNotice {
+  severity: 'warning' | 'error';
+  title: string;
+  body: string;
+}
+
+export function redactNoticeText(value: string): string {
+  return value
+    .replace(/(?:[A-Za-z]:\\|\\\\)[^\s)]+/g, '[path omitted]')
+    .replace(/\b(?:https?|file):\/\/[^\s]+/gi, '[url omitted]')
+    .replace(/\b(password|passphrase|secret|token|pin|code)\s*[:=]\s*[^\s,.;]+/gi, '$1: [redacted]')
+    .slice(0, 500);
+}
+
 /** Executable wiring Chut for the handwritten inventory. A missing row, duplicate
  * control, control absent from the design, or consumer absent from the runtime fails
  * closed. Callers provide the checked-in source text, so a negative regression can
@@ -69,14 +101,23 @@ export function verifyAttentionWiring(sources: { design: string; app: string; ge
     controls.add(row.control);
     const controlBoundary = new RegExp(`\\b${row.control}\\b`);
     if (!controlBoundary.test(sources.design)) throw new Error(`Missing design control: ${row.control}`);
+    if (!sources.app.includes(`'${row.control}'`)) throw new Error(`Missing App control construction: ${row.control}`);
     if (!sources.app.includes(row.storageKey)) throw new Error(`Missing durable key: ${row.storageKey}`);
     const writerSource = `${sources.app}\n${sources.generated}`;
     if (!writerSource.includes('onUserMutation')) throw new Error(`Missing mutation writer for ${row.control}`);
+    if (row.control === 'att_next' ? !sources.app.includes('setNextAction') : !sources.app.includes('setModeEnabled')) {
+      throw new Error(`Missing exact mode writer for ${row.control}`);
+    }
     const consumer = row.consumer.split(' -> ').at(-1) ?? row.consumer;
     const consumerTokens = consumer.split(/\s+(?:plus|and)\s+/).filter(Boolean);
     if (consumerTokens.some((token) => !sources.app.includes(token))) throw new Error(`Missing exact consumer for ${row.control}`);
   }
   if (controls.size !== 6) throw new Error('Attention wiring controls are incomplete.');
+  for (const action of ATTENTION_MUTATION_ACTIONS) {
+    if (!sources.generated.includes(`action:'${action.action}'`) || !sources.generated.includes(`key:'${action.key}'`)) {
+      throw new Error(`Missing exact mutation action: ${action.action}:${action.key}`);
+    }
+  }
 }
 
 export interface ModeStorage {

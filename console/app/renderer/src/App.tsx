@@ -32,8 +32,9 @@ import {
 import { setEmojisEnabled } from './dialog-emojis';
 import {
   ATTENTION_WIRING, LAST_CHANGED_SETTING_KEY, NEXT_ACTION_MAX_LENGTH, NEXT_ACTION_SETTING_KEY,
-  MODE_SETTING_PREFIX, SNOOZED_UNTIL_SETTING_KEY, SNOOZE_MIGRATION_TOLERANCE_MS, SNOOZE_MS, elapsedPhrase,
-  isAttentionMode, modeEnabled, momentumPrompt, nextAction, presentationFor, setModeEnabled,
+  MODE_SETTING_PREFIX, NOTICE_HISTORY_MAX_ENTRIES, NOTICE_HISTORY_SCHEMA_VERSION, NOTICE_HISTORY_SETTING_KEY,
+  SNOOZED_UNTIL_SETTING_KEY, SNOOZE_MIGRATION_TOLERANCE_MS, SNOOZE_MS, elapsedPhrase,
+  isAttentionMode, modeEnabled, momentumPrompt, nextAction, presentationFor, redactNoticeText, setModeEnabled,
   setNextAction,
 } from './attention-modes';
 import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
@@ -229,6 +230,8 @@ export class App extends Base {
   private attentionPersistenceState: 'saved' | 'pending' | 'session-only' | 'retry' = 'saved';
   private attentionPendingWrites = new Map<string, { value: string | null; generation: number }>();
   private attentionWriteGenerations = new Map<string, number>();
+  private attentionFailedKeys = new Set<string>();
+  private attentionSessionOnlyKeys = new Set<string>();
   private attentionNoticeHistory: Array<{ severity: 'warning' | 'error'; title: string; body: string }> = [];
   private attentionHistoryQuery = '';
 
@@ -243,6 +246,16 @@ export class App extends Base {
   notifyInfoEvent = (title: string, body: string): void => this.fire(title, body, 'info');
   notifyWarningEvent = (title: string, body: string): void => this.fire(title, body, 'warning');
   notifyErrorEvent = (title: string, body: string): void => this.fire(title, body, 'error');
+  notifyMessage = (message: string, severity: AttentionNoticeSeverity = 'info'): void => {
+    if (severity === 'error') this.notifyError(message);
+    else if (severity === 'warning') this.notifyWarning(message);
+    else this.notifyInfo(message);
+  };
+  notifyEvent = (title: string, body: string, severity: AttentionNoticeSeverity = 'info'): void => {
+    if (severity === 'error') this.notifyErrorEvent(title, body);
+    else if (severity === 'warning') this.notifyWarningEvent(title, body);
+    else this.notifyInfoEvent(title, body);
+  };
 
   constructor(props: Record<string, never>) {
     super(props);
@@ -307,13 +320,43 @@ export class App extends Base {
   }
 
   private attentionRecordNotice(severity: 'warning' | 'error', title: string, body: string): void {
-    this.attentionNoticeHistory = [{ severity, title, body }, ...this.attentionNoticeHistory];
+    this.attentionNoticeHistory = [{ severity, title: redactNoticeText(title), body: redactNoticeText(body) }, ...this.attentionNoticeHistory].slice(0, NOTICE_HISTORY_MAX_ENTRIES);
+    this.attentionPersistHistory();
     this.attentionRender();
+  }
+
+  private attentionPersistHistory(): void {
+    this.attentionWrite(NOTICE_HISTORY_SETTING_KEY, JSON.stringify({
+      schemaVersion: NOTICE_HISTORY_SCHEMA_VERSION,
+      entries: this.attentionNoticeHistory,
+    }));
+  }
+
+  private restoreAttentionHistory(): void {
+    const raw = this.durableStorage.storage.getItem(NOTICE_HISTORY_SETTING_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as { schemaVersion?: number; entries?: unknown };
+      if (parsed.schemaVersion !== NOTICE_HISTORY_SCHEMA_VERSION || !Array.isArray(parsed.entries)) return;
+      this.attentionNoticeHistory = parsed.entries.filter((entry): entry is { severity: 'warning' | 'error'; title: string; body: string } => {
+        if (!entry || typeof entry !== 'object') return false;
+        const value = entry as Record<string, unknown>;
+        return (value.severity === 'warning' || value.severity === 'error')
+          && typeof value.title === 'string' && typeof value.body === 'string';
+      }).slice(0, NOTICE_HISTORY_MAX_ENTRIES).map((entry) => ({
+        severity: entry.severity,
+        title: redactNoticeText(entry.title),
+        body: redactNoticeText(entry.body),
+      }));
+    } catch {
+      this.attentionNoticeHistory = [];
+    }
   }
 
   private attentionClearHistory(): void {
     this.attentionNoticeHistory = [];
     this.attentionHistoryQuery = '';
+    this.attentionPersistHistory();
     this.onUserMutation('attention-history-clear');
     this.attentionRender();
   }
@@ -330,9 +373,12 @@ export class App extends Base {
   }
 
   private attentionPersistenceNotice(): string {
-    if (this.attentionPersistenceState === 'pending') return 'Attention settings are being saved.';
-    if (this.attentionPersistenceState === 'session-only') return 'Attention settings are active for this session only because the desktop bridge is unavailable.';
-    if (this.attentionPersistenceState === 'retry') return 'Attention settings could not be saved. The current values remain active, and a retry is available.';
+    const pending = [...this.attentionPendingWrites.keys()].join(', ');
+    const failed = [...this.attentionFailedKeys.keys()].join(', ');
+    const sessionOnly = [...this.attentionSessionOnlyKeys.keys()].join(', ');
+    if (this.attentionPersistenceState === 'pending') return `Saving attention keys: ${pending}.`;
+    if (this.attentionPersistenceState === 'session-only') return `Session-only attention keys: ${sessionOnly || pending}. The desktop bridge is unavailable.`;
+    if (this.attentionPersistenceState === 'retry') return `Attention keys needing retry: ${failed || pending}. Current values remain active.`;
     return '';
   }
 
@@ -340,6 +386,8 @@ export class App extends Base {
     const generation = (this.attentionWriteGenerations.get(key) ?? 0) + 1;
     this.attentionWriteGenerations.set(key, generation);
     this.attentionPendingWrites.set(key, { value, generation });
+    this.attentionFailedKeys.delete(key);
+    this.attentionSessionOnlyKeys.delete(key);
     this.attentionPersistenceState = this.bridge() ? 'pending' : 'session-only';
     this.attentionRender();
     const result = value === null
@@ -348,18 +396,22 @@ export class App extends Base {
     void result.then((outcome) => {
       if (!outcome.durable) {
         if (this.attentionPendingWrites.get(key)?.generation !== generation) return;
+        this.attentionSessionOnlyKeys.add(key);
         this.attentionPersistenceState = 'session-only';
         this.attentionRender();
         return;
       }
       if (!outcome.ok) {
         if (this.attentionPendingWrites.get(key)?.generation !== generation) return;
+        this.attentionFailedKeys.add(key);
         this.attentionPersistenceState = 'retry';
         this.attentionRender();
         return;
       }
       if (this.attentionPendingWrites.get(key)?.generation !== generation) return;
       this.attentionPendingWrites.delete(key);
+      this.attentionFailedKeys.delete(key);
+      this.attentionSessionOnlyKeys.delete(key);
       if (this.attentionPendingWrites.size === 0) this.attentionPersistenceState = 'saved';
       this.attentionRender();
     });
@@ -580,6 +632,7 @@ export class App extends Base {
       this.restoreDisplayName();
       this.restoreAppearance();
       this.restoreAttention();
+      this.restoreAttentionHistory();
       this.forceUpdate();
     });
     /* The configured server list is not a reading from any PBX — it exists before
@@ -737,10 +790,10 @@ export class App extends Base {
     void this.refreshDaemonStatus();
     if (state === 'daemonAnswering') return;
 
-    this.toast('Starting the phone system…');
+    this.notifyMessage('Starting the phone system…');
     const started = await this.request('daemon.start');
     if (!started?.ok) {
-      this.fire('The phone system did not start', started?.message ?? 'Asterisk did not answer after it was started.', 'error');
+      this.notifyEvent('The phone system did not start', started?.message ?? 'Asterisk did not answer after it was started.', 'error');
       return;
     }
     /* Anything read before this point was read against a daemon that was not up, so it
@@ -774,11 +827,11 @@ export class App extends Base {
       this.forceUpdate();
       if (result.ok) {
         this.onUserMutation('vocabulary-load');
-        this.toast(result.status);
+        this.notifyMessage(result.status);
       }
-      else this.fire('Vocabulary file rejected', result.status, 'error');
+      else this.notifyEvent('Vocabulary file rejected', result.status, 'error');
     };
-    reader.onerror = () => this.fire('Vocabulary file not read', 'The file could not be read from disk.', 'error');
+    reader.onerror = () => this.notifyEvent('Vocabulary file not read', 'The file could not be read from disk.', 'error');
     reader.readAsText(file);
   };
 
@@ -787,20 +840,20 @@ export class App extends Base {
     this.pickedFileNames.delete(ctl.id);
     this.forceUpdate();
     this.onUserMutation('vocabulary-clear');
-    this.toast(result.status);
+    this.notifyMessage(result.status);
   };
 
   // ---------------------------------------------------------------- daemon lifecycle
 
   private daemonAction = async (verb: 'start' | 'stop' | 'restart'): Promise<void> => {
     if (!this.target.connected) {
-      this.fire('No target connected', 'Connect to a server first — there is nothing to start, stop, or restart yet.', 'warning');
+      this.notifyEvent('No target connected', 'Connect to a server first — there is nothing to start, stop, or restart yet.', 'warning');
       return;
     }
-    this.toast(`${verb === 'start' ? 'Starting' : verb === 'stop' ? 'Stopping' : 'Restarting'} the phone system…`);
+    this.notifyMessage(`${verb === 'start' ? 'Starting' : verb === 'stop' ? 'Stopping' : 'Restarting'} the phone system…`);
     const response = await this.request(`daemon.${verb}`);
     if (!response?.ok) {
-      this.fire('Not done', response?.message ?? `The phone system did not ${verb}.`, 'error');
+      this.notifyEvent('Not done', response?.message ?? `The phone system did not ${verb}.`, 'error');
       await this.refreshDaemonStatus();
       return;
     }
@@ -808,7 +861,7 @@ export class App extends Base {
     this.readings = {};
     this.canvasReadings = undefined;
     await this.refreshDaemonStatus();
-    this.fire(`Phone system ${verb === 'start' ? 'started' : verb === 'stop' ? 'stopped' : 'restarted'}`, `Asterisk on ${this.target.label} answered after the ${verb}.`);
+    this.notifyEvent(`Phone system ${verb === 'start' ? 'started' : verb === 'stop' ? 'stopped' : 'restarted'}`, `Asterisk on ${this.target.label} answered after the ${verb}.`);
   };
 
   private refreshDaemonStatus = async (): Promise<void> => {
@@ -845,12 +898,12 @@ export class App extends Base {
       draw: Math.random(),
     });
     if ('problems' in result) {
-      this.fire('That ticket will not file', result.problems[0].message, 'error');
+      this.notifyEvent('That ticket will not file', result.problems[0].message, 'error');
       return;
     }
     const resolution = resolutionFor(IDENTITY.dataDirectory);
     this.onUserMutation('support-ticket');
-    this.fire(`Ticket ${result.id} — ${result.status}`,
+    this.notifyEvent(`Ticket ${result.id} — ${result.status}`,
       `${result.firstResponse}
 
 ${resolution.instructions}
@@ -895,13 +948,13 @@ ${resolution.disclosure}`);
       if (problems.length > 0) {
         /* Report it rather than storing a name the module refused, which would leave
          * the control showing something the app would not accept back. */
-        this.fire('That name will not work', problems[0].message, 'error');
+        this.notifyEvent('That name will not work', problems[0].message, 'error');
         return;
       }
     }
     if (control?.id === 'id_name_reset' && value === true) {
       resetDisplayName(this.durableStorage.storage);
-      this.toast(`Name restored to ${IDENTITY.productName}`);
+      this.notifyMessage(`Name restored to ${IDENTITY.productName}`);
     }
     /* The five attention modes share one prefix and one handler, so adding a sixth is
      * a registry entry rather than another branch here. */
@@ -911,7 +964,7 @@ ${resolution.disclosure}`);
     }
     if (control?.id === 'ed_clear' && value === true) {
       clearEditorChoice(this.durableStorage.storage);
-      this.toast('Editor choice forgotten');
+      this.notifyMessage('Editor choice forgotten');
     }
     if (control?.id === 'sup_open' && value === true) {
       this.fileSupportTicket();
@@ -980,22 +1033,22 @@ ${resolution.disclosure}`);
     this.forceUpdate();
     if (created) {
       this.onUserMutation('server-add');
-      this.fire('Connection added', `${created.name} is now in the server list below.`);
+      this.notifyEvent('Connection added', `${created.name} is now in the server list below.`);
     }
-    else this.fire('Not added', 'The control plane did not accept that connection.', 'error');
+    else this.notifyEvent('Not added', 'The control plane did not accept that connection.', 'error');
   };
 
   /** The design has already run this past `areYouSure` before calling it. */
   onRemoveServerRow = async (name: string): Promise<void> => {
     const server = this.servers.servers.find((s) => s.name === name);
-    if (!server) { this.fire('Not found', `${name} is no longer in the server list.`, 'error'); return; }
+    if (!server) { this.notifyEvent('Not found', `${name} is no longer in the server list.`, 'error'); return; }
     const removed = await this.servers.remove(server.id);
     this.forceUpdate();
     if (removed) {
       this.onUserMutation('server-remove');
-      this.fire('Connection removed', `${name} was removed from the server list.`);
+      this.notifyEvent('Connection removed', `${name} was removed from the server list.`);
     }
-    else this.fire('Not removed', 'The control plane did not accept that removal.', 'error');
+    else this.notifyEvent('Not removed', 'The control plane did not accept that removal.', 'error');
   };
 
   // ---------------------------------------------------------------- onboarding wizard
@@ -1054,13 +1107,13 @@ ${resolution.disclosure}`);
     this.forceUpdate();
     if (created) {
       this.onUserMutation('onboarding-connect');
-      this.fire('Connected', `${created.name} was added to the server list and is available on Deploy & servers.`);
+      this.notifyEvent('Connected', `${created.name} was added to the server list and is available on Deploy & servers.`);
       void this.discover();
       this.set('onboardOpen', false);
       this.set('screen', 'servers');
       this.set('railId', 'app');
     } else {
-      this.fire('Not connected', 'The control plane did not accept that connection. Nothing was written.', 'error');
+      this.notifyEvent('Not connected', 'The control plane did not accept that connection. Nothing was written.', 'error');
     }
   }
 
@@ -1072,18 +1125,18 @@ ${resolution.disclosure}`);
   private async onboardDeploy(): Promise<void> {
     if (!this.target.connected) {
       if (!canProvision(this.runtime)) {
-        this.fire('No target', `Nothing is connected and a runtime cannot be created here: ${runtimeLabel(this.runtime)}`, 'warning');
+        this.notifyEvent('No target', `Nothing is connected and a runtime cannot be created here: ${runtimeLabel(this.runtime)}`, 'warning');
         return;
       }
-      this.toast('Creating the Asterisk runtime for the wizard — this takes a while.');
+      this.notifyMessage('Creating the Asterisk runtime for the wizard — this takes a while.');
       const provisioned = await this.request('runtime.provision');
       if (!provisioned?.ok) {
-        this.fire('Not created', provisioned?.message ?? 'Creating the runtime did not succeed, so there is nothing to deploy to.', 'error');
+        this.notifyEvent('Not created', provisioned?.message ?? 'Creating the runtime did not succeed, so there is nothing to deploy to.', 'error');
         return;
       }
       await this.discover();
       if (!this.target.connected) {
-        this.fire('No target', 'The runtime was created but nothing is connected yet — open Deploy & servers to finish connecting, then try the wizard again.', 'warning');
+        this.notifyEvent('No target', 'The runtime was created but nothing is connected yet — open Deploy & servers to finish connecting, then try the wizard again.', 'warning');
         return;
       }
     }
@@ -1102,7 +1155,7 @@ ${resolution.disclosure}`);
     ].filter((line, i, arr) => line !== '' || arr[i - 1] !== '');
 
     if (plan.summary.length === 0) {
-      this.fire('Nothing to change', 'The target already matches what the wizard would have written, so nothing was touched.');
+      this.notifyEvent('Nothing to change', 'The target already matches what the wizard would have written, so nothing was touched.', 'warning');
       this.set('onboardOpen', false);
       this.set('screen', 'servers');
       this.set('railId', 'app');
@@ -1117,11 +1170,11 @@ ${resolution.disclosure}`);
           const response = await this.request('pbx.apply', { serverId: this.target.id, payload: { documents: plan.documents } });
           const result = (response as { data?: { result?: { status: string; message?: string } }; message?: string } | undefined);
           if (!response?.ok) {
-            this.fire('Deploy not applied', `${response?.message ?? result?.data?.result?.message ?? 'The target refused the change.'}`, 'error');
+            this.notifyEvent('Deploy not applied', `${response?.message ?? result?.data?.result?.message ?? 'The target refused the change.'}`, 'error');
             return;
           }
           const secretLines = plan.newExtensions.map((e) => `${e.id}: ${e.secret}`).join('\n');
-          this.fire(
+          this.notifyEvent(
             'Deployed',
             [
               `Applied: ${plan.summary.join('; ')}.`,
@@ -1158,13 +1211,13 @@ ${resolution.disclosure}`);
    */
   onPickRow = (name: string): void => {
     const value = this.pjsipValue();
-    if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.', 'warning'); return; }
+    if (!value) { this.notifyEvent('Not loaded', 'The pjsip.conf on this target has not been read yet.', 'warning'); return; }
     const endpoint = findEndpoint(value, name);
-    if (!endpoint) { this.fire('Not loaded', `${name} is not in this target's pjsip.conf.`, 'warning'); return; }
+    if (!endpoint) { this.notifyEvent('Not loaded', `${name} is not in this target's pjsip.conf.`, 'warning'); return; }
     this.editingEndpoint = name;
     const state = this.state as { values: Record<string, unknown> };
     this.setState({ values: { ...state.values, ...controlValuesFor(endpoint) } } as never);
-    this.toast(`${name} loaded into the editor below.`);
+    this.notifyMessage(`${name} loaded into the editor below.`);
   };
 
   /**
@@ -1199,7 +1252,7 @@ ${resolution.disclosure}`);
 
     if (verb === 'Exported') {
       if (plan.affected.length === 0) {
-        this.fire('Nothing to export', message, 'warning');
+        this.notifyEvent('Nothing to export', message, 'warning');
         return;
       }
       const byId = new Map(rows.map((r) => [r[0], r] as const));
@@ -1221,14 +1274,14 @@ ${resolution.disclosure}`);
       URL.revokeObjectURL(url);
       this.set('selected', []);
       const lossNote = loss.length > 0 ? ` ${loss.join(' ')}` : '';
-      this.fire('Exported', `${message} Saved as ${filename} — ${format.toUpperCase()}, UTF-8, LF line endings.${lossNote}`);
+      this.notifyEvent('Exported', `${message} Saved as ${filename} — ${format.toUpperCase()}, UTF-8, LF line endings.${lossNote}`);
       return;
     }
 
     // Every other bulk verb (Enable/Disable/Duplicate/...) has no write path in this
     // console yet -- the plan and its honest count are real, but nothing is applied.
     this.set('selected', []);
-    this.fire(verb, message);
+    this.notifyEvent(verb, message);
   };
 
   /**
@@ -1313,7 +1366,7 @@ ${resolution.disclosure}`);
       s.lockX || '40%',
       s.lockY || '22%',
     );
-    this.fire('Authenticator paired', 'A real TOTP secret was generated locally for this element.');
+    this.notifyEvent('Authenticator paired', 'A real TOTP secret was generated locally for this element.');
   };
 
   /**
@@ -1332,9 +1385,9 @@ ${resolution.disclosure}`);
     const needsPin = s.lockMethod.indexOf('PIN') >= 0;
     const needsPw = s.lockMethod.indexOf('Password') >= 0;
     const needsTotp = s.lockMethod.indexOf('TOTP') >= 0;
-    if (needsPin && s.pin.length < 4) { this.toast('Set at least a four-digit PIN first'); return; }
-    if (needsPw && (s.password || '').length < 4) { this.toast('Set a passphrase first'); return; }
-    if (needsTotp && !s.totpPendingSecret) { this.toast('Pair the built-in authenticator first'); return; }
+    if (needsPin && s.pin.length < 4) { this.notifyMessage('Set at least a four-digit PIN first'); return; }
+    if (needsPw && (s.password || '').length < 4) { this.notifyMessage('Set a passphrase first'); return; }
+    if (needsTotp && !s.totpPendingSecret) { this.notifyMessage('Pair the built-in authenticator first'); return; }
     const L = { ...s.locks };
     L[s.lockKey] = {
       method: s.lockMethod, pin: s.pin, password: s.password, target: s.lockTarget,
@@ -1342,7 +1395,7 @@ ${resolution.disclosure}`);
     };
     this.setState({ locks: L, lockOpen: false, totpPendingSecret: undefined, totpPendingUri: undefined } as never);
     this.onUserMutation('lock-create');
-    this.toast(`${s.lockTarget} is locked with ${s.lockMethod} -- the surface is now disabled`);
+    this.notifyMessage(`${s.lockTarget} is locked with ${s.lockMethod} -- the surface is now disabled`);
   };
 
   /**
@@ -1370,18 +1423,18 @@ ${resolution.disclosure}`);
       if (count >= 3) {
         const result = this.ladder.issue(s.unlockKey);
         if (result.rung === 'clock') {
-          this.toast(`${message} -- ${result.reason}`);
+          this.notifyWarning(`${message} -- ${result.reason}`);
           return;
         }
         if (result.rung === 'moles') {
-          this.toast(`${message} -- the next challenge needs a visual board this build cannot show yet. Wait it out.`);
+          this.notifyWarning(`${message} -- the next challenge needs a visual board this build cannot show yet. Wait it out.`);
           return;
         }
         this.setState({ ladderActive: true, ladderChallenge: result, ladderDigits: '', ladderSumsAnswers: [] } as never);
-        this.toast(`${message} -- or clear a quick challenge instead of waiting. It only clears the wait, not this credential.`);
+        this.notifyWarning(`${message} -- or clear a quick challenge instead of waiting. It only clears the wait, not this credential.`);
         return;
       }
-      this.toast(message);
+      this.notifyWarning(message);
     };
 
     if (m.indexOf('PIN') >= 0 && s.unlockPin !== L.pin) { wrong('Wrong PIN -- the surface stays locked'); return; }
@@ -1401,7 +1454,7 @@ ${resolution.disclosure}`);
       ladderActive: false, ladderChallenge: null,
     } as never);
     this.onUserMutation('lock-remove');
-    this.fire('Unlocked', 'Welcome back.');
+    this.notifyEvent('Unlocked', 'Welcome back.');
   };
 
   /**
@@ -1415,38 +1468,38 @@ ${resolution.disclosure}`);
   private finishLadderGrade(result: GradeResult, lockKey: string): void {
     if (result.cleared) {
       this.setState({ ladderActive: false, ladderChallenge: null, ladderDigits: '', ladderSumsAnswers: [] } as never);
-      this.toast('Challenge cleared -- the wait is over. You still need the real PIN, passphrase or code.');
+      this.notifyInfo('Challenge cleared -- the wait is over. You still need the real PIN, passphrase or code.');
       return;
     }
     const next = this.ladder.issue(lockKey);
     if (next.rung === 'clock' || next.rung === 'moles') {
       this.setState({ ladderActive: false, ladderChallenge: null } as never);
-      this.toast(next.rung === 'clock'
+      this.notifyMessage(next.rung === 'clock'
         ? `Wrong. ${next.reason}`
         : 'Wrong. The next challenge needs a visual board this build cannot show yet.');
       return;
     }
     this.setState({ ladderChallenge: next, ladderDigits: '', ladderSumsAnswers: [] } as never);
-    this.toast('Wrong -- try again.');
+    this.notifyWarning('Wrong -- try again.');
   }
 
   /** Writes the controls back onto the endpoint they were loaded from. */
   onSaveEndpoint = async (): Promise<void> => {
     const value = this.pjsipValue();
-    if (!value || !this.editingEndpoint) { this.fire('Nothing to save', 'Select an endpoint first.', 'warning'); return; }
+    if (!value || !this.editingEndpoint) { this.notifyEvent('Nothing to save', 'Select an endpoint first.', 'warning'); return; }
     const edit = applyControlValues(value, this.editingEndpoint, (this.state as { values: Record<string, unknown> }).values);
-    if ('error' in edit) { this.fire('Not saved', edit.error, 'error'); return; }
-    if (edit.summary.length === 0) { this.toast('Nothing changed, so nothing was written.'); return; }
+    if ('error' in edit) { this.notifyEvent('Not saved', edit.error, 'error'); return; }
+    if (edit.summary.length === 0) { this.notifyMessage('Nothing changed, so nothing was written.'); return; }
     await this.writePjsip(editDocument(edit, PJSIP_RESOURCE), edit.summary, `${this.editingEndpoint} updated`);
   };
 
   /** Removes the loaded endpoint, meaning all three of its sections. */
   onDeleteEndpoint = (): void => {
     const value = this.pjsipValue();
-    if (!value || !this.editingEndpoint) { this.fire('Nothing to remove', 'Select an endpoint first.', 'warning'); return; }
+    if (!value || !this.editingEndpoint) { this.notifyEvent('Nothing to remove', 'Select an endpoint first.', 'warning'); return; }
     const name = this.editingEndpoint;
     const removal = removeEndpoint(value, name);
-    if ('error' in removal) { this.fire('Not removed', removal.error, 'error'); return; }
+    if ('error' in removal) { this.notifyEvent('Not removed', removal.error, 'error'); return; }
     this.areYouSure('Remove ' + name, removal.summary.join('\n'), 3, () => {
       void this.writePjsip(editDocument(removal, PJSIP_RESOURCE), removal.summary, `${name} removed`).then(() => {
         this.editingEndpoint = '';
@@ -1458,12 +1511,12 @@ ${resolution.disclosure}`);
   onCreateEndpoint = async (): Promise<void> => {
     const value = this.pjsipValue() ?? [];
     const draft = buildEndpointDraft(value, (this.state as { values: Record<string, unknown> }).values);
-    if ('error' in draft) { this.fire('Not created', draft.error, 'error'); return; }
+    if ('error' in draft) { this.notifyEvent('Not created', draft.error, 'error'); return; }
     const applied = await this.writePjsip(endpointDocument(draft), draft.summary, `${draft.view.endpoints.slice(-1)[0].name} created`);
     /* Shown once, and deliberately never in the plan above: a plan gets read aloud and
      * screenshotted, and a password has no business in one. */
     if (applied) {
-      this.fire('Write this password down', `${String((this.state as { values: Record<string, unknown> }).values[WIZARD_CONTROLS.name] ?? '')}: ${draft.secret}
+      this.notifyEvent('Write this password down', `${String((this.state as { values: Record<string, unknown> }).values[WIZARD_CONTROLS.name] ?? '')}: ${draft.secret}
 
 It is shown once. The phone needs it to register.`);
     }
@@ -1473,14 +1526,14 @@ It is shown once. The phone needs it to register.`);
   private async writePjsip(document: { resource: string; value: ConfigValue }, summary: string[], done: string): Promise<boolean> {
     const payload = { documents: [{ resource: document.resource, value: document.value }] };
     const planned = await this.request('pbx.plan', { serverId: this.target.id, payload });
-    if (!planned?.ok) { this.fire('Not written', planned?.message ?? 'The control plane did not answer.', 'error'); return false; }
+    if (!planned?.ok) { this.notifyEvent('Not written', planned?.message ?? 'The control plane did not answer.', 'error'); return false; }
     const applied = await this.request('pbx.apply', { serverId: this.target.id, payload });
-    if (!applied?.ok) { this.fire('Not written', applied?.message ?? 'The change was planned but not applied.', 'error'); return false; }
+    if (!applied?.ok) { this.notifyEvent('Not written', applied?.message ?? 'The change was planned but not applied.', 'error'); return false; }
     /* The reading is now stale, and a stale reading is how the next edit gets built on a
      * value that is no longer there. */
     delete this.configs.endpoints;
     this.seeded.delete('endpoints');
-    this.fire(done, summary.join('\n'));
+    this.notifyEvent(done, summary.join('\n'));
     this.onUserMutation('endpoint-write');
     this.forceUpdate();
     return true;
@@ -1616,7 +1669,7 @@ It is shown once. The phone needs it to register.`);
   /** Real dialplan nodes/edges in the design's canvas shapes, with a bezier path per edge
    *  computed the same way the design computes it for its own sample graph. */
   private canvasVals(designVals: Record<string, unknown>): Record<string, unknown> {
-    const readOnlyCanvas = () => this.fire(
+    const readOnlyCanvas = () => this.notifyWarningEvent(
       'Dialplan canvas is read-only',
       'This graph is read from the live target. Adding, deleting, duplicating, or rewiring a step needs a configuration-write path that this console does not provide.',
     );
@@ -2015,7 +2068,7 @@ It is shown once. The phone needs it to register.`);
             copy: () => {
               const clipboard = (navigator as { clipboard?: { writeText?: (text: string) => Promise<void> } }).clipboard;
               if (clipboard?.writeText) void clipboard.writeText(text);
-              this.toast(`${text} copied`);
+              this.notifyMessage(`${text} copied`);
             },
           };
         })
@@ -2036,7 +2089,7 @@ It is shown once. The phone needs it to register.`);
       values: { ...st.values, ap_hue: Math.floor(Math.random() * 360) },
     }));
     this.onUserMutation('appearance-random');
-    this.fire('Bold choice', 'Nobody will ever say it is boring.');
+    this.notifyEvent('Bold choice', 'Nobody will ever say it is boring.');
   }
 
   /** Clears the persisted theme, drops the four values back to the design's own
@@ -2053,13 +2106,13 @@ It is shown once. The phone needs it to register.`);
     });
     this.applyAppearanceToDom(resetAll(this.buildAppearanceTheme(this.currentAppearanceValues())));
     this.onUserMutation('appearance-reset');
-    this.toast('Appearance reset to the design system');
+    this.notifyMessage('Appearance reset to the design system');
   }
 
   private saveAppearance(): void {
     this.syncAppearance();
     this.onUserMutation('appearance-save');
-    this.fire('Appearance saved', 'It will still be set the next time this opens.');
+    this.notifyEvent('Appearance saved', 'It will still be set the next time this opens.');
   }
 
   /** Downloads the real appearance.ts JSON export (schema-versioned, re-importable)
@@ -2067,7 +2120,7 @@ It is shown once. The phone needs it to register.`);
    *  happened. */
   private exportAppearance(): void {
     if (typeof document === 'undefined') {
-      this.toast('Export is not available in this environment.');
+      this.notifyMessage('Export is not available in this environment.');
       return;
     }
     const json = exportTheme(this.buildAppearanceTheme(this.currentAppearanceValues()));
@@ -2078,7 +2131,7 @@ It is shown once. The phone needs it to register.`);
     a.download = 'asterisk-console-appearance.json';
     a.click();
     URL.revokeObjectURL(url);
-    this.toast('Appearance exported as JSON');
+    this.notifyMessage('Appearance exported as JSON');
   }
 
   renderVals() {
@@ -2145,13 +2198,13 @@ It is shown once. The phone needs it to register.`);
       canProvisionRuntime: canProvision(this.runtime),
       provisionRuntime: () => {
         if (!canProvision(this.runtime)) {
-          this.fire('Not available', runtimeLabel(this.runtime));
+          this.notifyEvent('Not available', runtimeLabel(this.runtime), 'warning');
           return;
         }
-        this.toast('Creating the Asterisk runtime — this imports a root filesystem and takes a while.');
+        this.notifyMessage('Creating the Asterisk runtime — this imports a root filesystem and takes a while.');
         void this.request('runtime.provision').then((response) => {
           if (!response) {
-            this.fire('Not run', 'The desktop bridge is unavailable, so nothing was created.');
+            this.notifyEvent('Not run', 'The desktop bridge is unavailable, so nothing was created.', 'error');
             return;
           }
           /* `data` lives only on the success branch of the response union, so the steps
@@ -2163,10 +2216,10 @@ It is shown once. The phone needs it to register.`);
             .map((step) => `${step.ok ? 'ok' : 'failed'}: ${step.name} — ${step.detail}`)
             .join('\n');
           if (!response.ok) {
-            this.fire('Not created', `${response.message ?? 'Creating the runtime did not succeed.'}\n\n${steps}`.trim());
+            this.notifyEvent('Not created', `${response.message ?? 'Creating the runtime did not succeed.'}\n\n${steps}`.trim(), 'error');
             return;
           }
-          this.fire('Runtime ready', steps || 'The runtime was created and answered.');
+          this.notifyEvent('Runtime ready', steps || 'The runtime was created and answered.');
           void this.discover();
         });
       },
@@ -2517,8 +2570,8 @@ It is shown once. The phone needs it to register.`);
     const { entries } = this.changelogFilterResult();
     const text = toPlainText(entries);
     void navigator.clipboard.writeText(text).then(
-      () => this.toast('Changelog copied to the clipboard'),
-      () => this.toast('Could not reach the clipboard'),
+      () => this.notifyMessage('Changelog copied to the clipboard'),
+      () => this.notifyError('Could not reach the clipboard'),
     );
   }
 

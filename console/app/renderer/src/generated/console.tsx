@@ -4003,7 +4003,22 @@ class ConsoleShell extends DCLogic {
   };
 
   onUserMutation = (_source) => {};
-  isUserMutationKey = (key) => ['canvasTool','grid','snap','guides','minimap','layer','zoom','pinned','dock','branch','tabs','tabNames','tabColours','groups','nodePos','edgeList','fullscreen','values','locks','authAnswers','sortList'].indexOf(key) >= 0;
+  notifyInfo = (message) => this.toast(message, 'info');
+  notifyWarning = (message) => this.toast(message, 'warning');
+  notifyError = (message) => this.toast(message, 'error');
+  notifyInfoEvent = (title, body) => this.fire(title, body, 'info');
+  notifyWarningEvent = (title, body) => this.fire(title, body, 'warning');
+  notifyErrorEvent = (title, body) => this.fire(title, body, 'error');
+  USER_MUTATION_ACTIONS = [
+    { action:'set', key:'canvasTool', state:'canvasTool' }, { action:'set', key:'grid', state:'grid' },
+    { action:'set', key:'snap', state:'snap' }, { action:'set', key:'guides', state:'guides' },
+    { action:'set', key:'minimap', state:'minimap' }, { action:'set', key:'layer', state:'layer' },
+    { action:'set', key:'zoom', state:'zoom' }, { action:'set', key:'pinned', state:'pinned' },
+    { action:'set', key:'dock', state:'dock' }, { action:'set', key:'fullscreen', state:'fullscreen' },
+    { action:'set', key:'branch', state:'branch' },
+    { action:'set', key:'sortList', state:'sortList' }
+  ];
+  isUserMutationKey = (key) => this.USER_MUTATION_ACTIONS.some(x => x.action === 'set' && x.key === key);
   set = (k, v) => { this.setState(s => ({ [k]:v })); if (this.isUserMutationKey(k)) this.onUserMutation('set:' + k); };
   val = (c) => (this.state.values[c.id] !== undefined ? this.state.values[c.id] : c.value);
   toast = (t, severity = 'info') => { this.setState({ toastOpen:true, toastText:t }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toastOpen:false }), 4200); };
@@ -4021,12 +4036,12 @@ class ConsoleShell extends DCLogic {
     this.commit(c, v);
     this.setState(s => ({ values:Object.assign({}, s.values, { [c.id]:v }) }));
     const shown = Array.isArray(v) ? (v.length ? v.join(', ') : 'nothing') : String(v);
-    this.toast(c.label + ' set to ' + shown);
+    this.notifyInfo(c.label + ' set to ' + shown);
     const id = c.id || '';
-    if (v === true && /encrypt|tls|guard|lock|hostkey|attest|verify|strict|backup|stir/i.test(id + c.label)) this.fire('Safer already', c.label + ' is on. Somewhere an auditor smiled.');
-    else if (v === false && /encrypt|tls|guard|lock|hostkey|attest|verify|strict|stir/i.test(id + c.label)) this.toast('⚠ ' + c.label + ' is off — that is a real reduction in security');
-    else if (c.kind === 'order') this.toast(c.label + ' reordered — ' + (v[0] || 'nothing') + ' is now offered first');
-    else if (v === true) this.fire('Nice', c.label + ' switched on.');
+    if (v === true && /encrypt|tls|guard|lock|hostkey|attest|verify|strict|backup|stir/i.test(id + c.label)) this.notifyInfoEvent('Safer already', c.label + ' is on. Somewhere an auditor smiled.');
+    else if (v === false && /encrypt|tls|guard|lock|hostkey|attest|verify|strict|stir/i.test(id + c.label)) this.notifyWarning('⚠ ' + c.label + ' is off — that is a real reduction in security');
+    else if (c.kind === 'order') this.notifyInfo(c.label + ' reordered — ' + (v[0] || 'nothing') + ' is now offered first');
+    else if (v === true) this.notifyInfoEvent('Nice', c.label + ' switched on.');
     this.onUserMutation('control:' + (c.id || 'unknown'));
   };
 
@@ -4125,12 +4140,12 @@ class ConsoleShell extends DCLogic {
     if (ans === 'YES' && r.risk === 'High risk') {
       return this.areYouSure('Sending YES to ' + r.partner, 'You are about to tell ' + r.partner + ' that ' + r.title.toLowerCase() + ' is approved. This widens who may deliver calls onto your PBX and it takes effect on their side within minutes.', 4, () => {
         this.setState({ authAnswers:Object.assign({}, this.state.authAnswers, { [r.id]:'YES' }) });
-        this.fire('YES sent', r.partner + ' has been told. Signed and logged.');
+        this.notifyInfoEvent('YES sent', r.partner + ' has been told. Signed and logged.');
       });
     }
     this.setState({ authAnswers:Object.assign({}, this.state.authAnswers, { [r.id]:ans }) });
-    if (ans === 'YES') this.fire('YES sent', r.partner + ' has been told. Signed and logged.');
-    else this.toast('NO sent to ' + r.partner + ' — nothing on the link changed');
+    if (ans === 'YES') this.notifyInfoEvent('YES sent', r.partner + ' has been told. Signed and logged.');
+    else this.notifyInfo('NO sent to ' + r.partner + ' — nothing on the link changed');
   };
 
   openScreen = (k) => this.setState(st => ({ rndNonce:st.rndNonce + 1, screen:k, railId:SCREENS[k] ? SCREENS[k].rail : st.railId }));
@@ -4338,7 +4353,7 @@ class ConsoleShell extends DCLogic {
     };
     this.setState(st => ({ values:Object.assign({}, st.values, next) }));
     this.onUserMutation('appearance:random');
-    this.fire(all ? 'Everything reshuffled' : 'Reshuffled', all ? 'Every element got its own random look.' : 'One element, one new look. Undo is in the history.');
+    this.notifyInfoEvent(all ? 'Everything reshuffled' : 'Reshuffled', all ? 'Every element got its own random look.' : 'One element, one new look. Undo is in the history.');
   };
 
   applyColour = (val) => {
@@ -4351,7 +4366,7 @@ class ConsoleShell extends DCLogic {
       this.setState(st => ({ tabColours:Object.assign({}, st.tabColours, { [key]:colour }), tabColourOpen:false }));
     }
     this.onUserMutation('appearance:colour');
-    this.fire('Colour applied', val === 'rainbow' ? 'It cycles the whole spectrum now.' : 'Set to ' + val + '.');
+    this.notifyInfoEvent('Colour applied', val === 'rainbow' ? 'It cycles the whole spectrum now.' : 'Set to ' + val + '.');
   };
 
   tryUnlock = () => {
@@ -4359,15 +4374,15 @@ class ConsoleShell extends DCLogic {
     const L = s.locks[s.unlockKey];
     if (!L) return this.setState({ unlockOpen:false });
     const m = L.method || 'PIN';
-    if (m.indexOf('PIN') >= 0 && s.unlockPin !== L.pin) { this.setState({ unlockPin:'' }); return this.toast('Wrong PIN — the surface stays locked'); }
-    if (m.indexOf('Password') >= 0 && (s.unlockPw || '') !== L.password) { this.setState({ unlockPw:'' }); return this.toast('Wrong passphrase — the surface stays locked'); }
+    if (m.indexOf('PIN') >= 0 && s.unlockPin !== L.pin) { this.setState({ unlockPin:'' }); return this.notifyWarning('Wrong PIN — the surface stays locked'); }
+    if (m.indexOf('Password') >= 0 && (s.unlockPw || '') !== L.password) { this.setState({ unlockPw:'' }); return this.notifyWarning('Wrong passphrase — the surface stays locked'); }
     const n = Object.assign({}, s.locks); delete n[s.unlockKey];
     this.setState({ locks:n, unlockOpen:false, unlockPin:'', unlockPw:'' });
     this.onUserMutation('lock:unlock');
-    this.fire('Unlocked', 'Welcome back.');
+    this.notifyInfoEvent('Unlocked', 'Welcome back.');
   };
 
-  addEdgeFrom = () => { this.setState(st => ({ edgeList:st.edgeList.concat([[st.nodeId, 'n4']]) })); this.onUserMutation('canvas:edge'); this.toast('Connection added — pick its target in the inspector'); };
+  addEdgeFrom = () => { this.setState(st => ({ edgeList:st.edgeList.concat([[st.nodeId, 'n4']]) })); this.onUserMutation('canvas:edge'); this.notifyInfo('Connection added — pick its target in the inspector'); };
 
   moveNode = (id, dx, dy) => {
     const base = NODES.find(n => n.id === id);
@@ -4379,7 +4394,7 @@ class ConsoleShell extends DCLogic {
     this.onUserMutation('canvas:move');
   };
 
-  bulk = (verb, sel) => { this.setState({ selected:[] }); this.fire(verb, sel.length + ' objects in one action.'); };
+  bulk = (verb, sel) => { this.setState({ selected:[] }); this.notifyInfoEvent(verb, sel.length + ' objects in one action.'); };
 
   stopGameNow = () => { clearInterval(this._g); this.setState({ gamePlaying:false, gameCell:-1, gameTime:0 }); };
 
@@ -4528,7 +4543,7 @@ class ConsoleShell extends DCLogic {
     const chipOK = { 'Reachable':1, 'Registered':1, 'Running':1, 'Up':1, 'Active':1, 'Connected':1, 'Signed':1, 'Enabled':1, 'Published':1, 'Sealed':1, 'Locked':1 };
 
     return {
-      menus:['File','Edit','View','PBX','Agent','Window','Help'].map(l => ({ label:l, open:() => this.toast(l + ' menu') })),
+      menus:['File','Edit','View','PBX','Agent','Window','Help'].map(l => ({ label:l, open:() => this.notifyInfo(l + ' menu') })),
       connLabel:'pbx-hq · AMI 5038', connUptime:'up 14d 06:22',
       openConnection:() => this.showInfo('Connection', 'The console is attached to pbx-hq over the manager interface on port 5038, secured with TLS. Losing this connection makes every live number on the dashboard grey out — configuration screens keep working from the last read.', 'The app is talking to your phone system over the network. If the little dot stops being green, the two are no longer talking.', '38%', '70px'),
       modeOpts:['Beginner','Expert'].map(m => ({ label:m, on:s.mode === m, off:s.mode !== m, pick:() => this.setState({ mode:m }) })),
@@ -4598,7 +4613,7 @@ class ConsoleShell extends DCLogic {
         { icon:'pan_tool', label:'Pan', id:'pan' }, { icon:'crop_free', label:'Marquee', id:'marquee' },
         { icon:'content_cut', label:'Split', id:'split' }, { icon:'comment', label:'Comment', id:'comment' },
         { icon:'straighten', label:'Measure', id:'measure' }
-      ].map(t => ({ icon:t.icon, label:t.label, on:s.canvasTool === t.id, off:s.canvasTool !== t.id, pick:() => { this.set('canvasTool', t.id); this.toast(t.label + ' tool active'); } })),
+      ].map(t => ({ icon:t.icon, label:t.label, on:s.canvasTool === t.id, off:s.canvasTool !== t.id, pick:() => { this.set('canvasTool', t.id); this.notifyInfo(t.label + ' tool active'); } })),
       canvasToggles:[
         { icon:'grid_on', label:'Grid', k:'grid' }, { icon:'grid_goldenratio', label:'Snap', k:'snap' },
         { icon:'straighten', label:'Guides', k:'guides' }, { icon:'map', label:'Minimap', k:'minimap' }
@@ -4639,8 +4654,8 @@ class ConsoleShell extends DCLogic {
           up:() => this.moveNode(n.id, 0, -20), down:() => this.moveNode(n.id, 0, 20),
           connect:() => this.addEdgeFrom(),
           ctx:(e) => { e.preventDefault(); this.setState({ nodeId:n.id, ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:n.title, ctxKind:'node' }); },
-          dup:() => this.toast(n.title + ' duplicated on the canvas'),
-          del:() => this.areYouSure('Delete ' + n.title, 'The step and every connection into or out of it are removed from the dialplan.', 3, () => this.fire('Step deleted', n.title + ' is gone.')) };
+          dup:() => this.notifyInfo(n.title + ' duplicated on the canvas'),
+          del:() => this.areYouSure('Delete ' + n.title, 'The step and every connection into or out of it are removed from the dialplan.', 3, () => this.notifyInfoEvent('Step deleted', n.title + ' is gone.')) };
       }),
       canvasDrop:(e) => {
         e.preventDefault();
@@ -4653,11 +4668,11 @@ class ConsoleShell extends DCLogic {
       },
       canvasDragOver:(e) => e.preventDefault(),
       canvasOps:[
-        { icon:'auto_awesome_mosaic', label:'Auto-arrange', run:() => { this.setState({ nodePos:{} }); this.onUserMutation('canvas:auto-arrange'); this.toast('Steps arranged left to right by call order'); } },
+        { icon:'auto_awesome_mosaic', label:'Auto-arrange', run:() => { this.setState({ nodePos:{} }); this.onUserMutation('canvas:auto-arrange'); this.notifyInfo('Steps arranged left to right by call order'); } },
         { icon:'align_horizontal_left', label:'Align left', run:() => { const p = {}; NODES.forEach(n => { p[n.id] = { x:40, y:(s.nodePos[n.id] || n).y }; }); this.setState({ nodePos:p }); this.onUserMutation('canvas:align'); } },
         { icon:'vertical_distribute', label:'Distribute', run:() => { const p = {}; NODES.forEach((n, i) => { p[n.id] = { x:(s.nodePos[n.id] || n).x, y:20 + i * 66 }; }); this.setState({ nodePos:p }); this.onUserMutation('canvas:distribute'); } },
-        { icon:'fit_screen', label:'Fit to view', run:() => { this.set('zoom', 100); this.toast('Zoom reset and canvas centred'); } },
-        { icon:'undo', label:'Undo layout', run:() => { this.setState({ nodePos:{} }); this.onUserMutation('canvas:undo-layout'); this.toast('Layout reverted'); } }
+        { icon:'fit_screen', label:'Fit to view', run:() => { this.set('zoom', 100); this.notifyInfo('Zoom reset and canvas centred'); } },
+        { icon:'undo', label:'Undo layout', run:() => { this.setState({ nodePos:{} }); this.onUserMutation('canvas:undo-layout'); this.notifyInfo('Layout reverted'); } }
       ],
       edgeRows:s.edgeList.map((e, i) => ({
         from:NODES.find(n => n.id === e[0]).title, to:NODES.find(n => n.id === e[1]).title,
@@ -4670,11 +4685,11 @@ class ConsoleShell extends DCLogic {
       canvasPosition:s.fullscreen ? 'fixed' : 'static',
       canvasInset:s.fullscreen ? '0' : 'auto',
       canvasZ:s.fullscreen ? 94 : 'auto',
-      toggleFullscreen:() => { this.set('fullscreen', !s.fullscreen); this.toast(s.fullscreen ? 'Editor restored' : 'Full-screen editor — press the button again or Esc to exit'); },
+      toggleFullscreen:() => { this.set('fullscreen', !s.fullscreen); this.notifyInfo(s.fullscreen ? 'Editor restored' : 'Full-screen editor — press the button again or Esc to exit'); },
       fsIcon:s.fullscreen ? 'fullscreen_exit' : 'fullscreen',
       paletteNodes:[
         { icon:'add_call', label:'Dial' }, { icon:'dialpad', label:'Menu' }, { icon:'groups', label:'Queue' }, { icon:'call_split', label:'Condition' }, { icon:'voicemail', label:'Voicemail' }
-      ].map(p => ({ icon:p.icon, label:p.label, add:() => this.toast(p.label + ' step added to the canvas') })),
+      ].map(p => ({ icon:p.icon, label:p.label, add:() => this.notifyInfo(p.label + ' step added to the canvas') })),
       nodeTitle:node.title, nodeApp:node.detail.split('\n')[0],
       nodeCtls:(NODE_CTLS[node.id] || []).map(c => Object.assign(this.buildCtl(c), { narrow:true })),
 
@@ -4702,7 +4717,7 @@ class ConsoleShell extends DCLogic {
         // that can really load a row supplies its own handler; the rest say plainly that
         // they cannot rather than claiming they did.
         pick:() => { if (this.onPickRow) { this.onPickRow(r[0]); return; }
-          this.toast(r[0] + ' cannot be loaded into the editor on this screen yet'); },
+          this.notifyWarning(r[0] + ' cannot be loaded into the editor on this screen yet'); },
         rnd:this.rnd(80 + tbl.rows.indexOf(r)),
         bg:sel.indexOf(r[0]) >= 0 ? '#1D2A22' : 'transparent',
         border:sel.indexOf(r[0]) >= 0 ? '#82D9A5' : '#8B938C',
@@ -4752,7 +4767,7 @@ class ConsoleShell extends DCLogic {
       memPanels:[
         { icon:'sync', title:'Sync', action:'Run sync now', rows:[{ k:'Last run', v:'08:14' }, { k:'Records', v:'2,412' }, { k:'Drift', v:'none' }], act:() => this.ceremony('Run a memory sync', 'sync-agent-memory --attest') },
         { icon:'verified_user', title:'Attestation', action:'Re-attest', rows:[{ k:'State', v:'Signed' }, { k:'Backup', v:'verified' }, { k:'Chain', v:'unbroken' }], act:() => this.ceremony('Re-attest the memory ledger', 'attest --rebuild') },
-        { icon:'policy', title:'Emission guard', action:'Scan surfaces', rows:[{ k:'Mode', v:'Block' }, { k:'Violations', v:'0' }, { k:'Lock', v:'engaged' }], act:() => this.toast('Guard scan queued across UI text, logs and exports') }
+        { icon:'policy', title:'Emission guard', action:'Scan surfaces', rows:[{ k:'Mode', v:'Block' }, { k:'Violations', v:'0' }, { k:'Lock', v:'engaged' }], act:() => this.notifyInfo('Guard scan queued across UI text, logs and exports') }
       ],
 
       docsQuery:'',
@@ -4854,11 +4869,11 @@ class ConsoleShell extends DCLogic {
           const id = key.slice(6);
           this.setState(st => ({ groups:st.groups.map(g => g.id === id ? Object.assign({}, g, { name:st.renameValue }) : g), renameOpen:false }));
           this.onUserMutation('group:rename');
-          return this.toast('Group renamed');
+          return this.notifyInfo('Group renamed');
         }
         this.setState(st => ({ tabNames:Object.assign({}, st.tabNames, { [key]:st.renameValue }), renameOpen:false }));
         this.onUserMutation('tab:rename');
-        this.toast('Tab renamed');
+        this.notifyInfo('Tab renamed');
       },
       cancelRename:() => this.set('renameOpen', false),
       tabColourOpen:s.tabColourOpen,
@@ -4877,7 +4892,7 @@ class ConsoleShell extends DCLogic {
         ctl('cp_dir', 'Direction', 'segmented', 'Forward', { options:['Forward', 'Reverse', 'Ping-pong'] })
       ].map(this.buildCtl),
       cpickFormats:(() => { const h = this.v('cp_hue', 148), sa = this.v('cp_sat', 60), l = this.v('cp_light', 62);
-        return [['hsl', 'hsl(' + h + ' ' + sa + '% ' + l + '%)'], ['oklch', 'oklch(' + (l / 100).toFixed(2) + ' 0.13 ' + h + ')'], ['hsl deg', h + 'deg'], ['css var', '--tab-accent']].map(([k, v2]) => ({ label:k + ' · ' + v2, copy:() => this.toast(v2 + ' copied') })); })(),
+        return [['hsl', 'hsl(' + h + ' ' + sa + '% ' + l + '%)'], ['oklch', 'oklch(' + (l / 100).toFixed(2) + ' 0.13 ' + h + ')'], ['hsl deg', h + 'deg'], ['css var', '--tab-accent']].map(([k, v2]) => ({ label:k + ' · ' + v2, copy:() => this.notifyInfo(v2 + ' copied') })); })(),
       cpickIsGroup:(s.renameKey || '').indexOf('group:') === 0,
       cpickLabel:(s.renameKey || '').indexOf('group:') === 0 ? 'Group colour' : 'Tab colour',
       cpickApply:() => this.applyColour(this.v('cp_rainbow', false) ? 'rainbow' : 'hsl(' + this.v('cp_hue', 148) + ' ' + this.v('cp_sat', 60) + '% ' + this.v('cp_light', 62) + '%)'),
@@ -4927,11 +4942,11 @@ class ConsoleShell extends DCLogic {
       })(),
       applyTabFilter:() => {
         if (s.tabFilterMode === 'colour') {
-          if (!s.tabFilterColour) return this.toast('Pick a colour first');
+          if (!s.tabFilterColour) return this.notifyInfo('Pick a colour first');
           const keep = s.tabs.filter(k => (s.tabColours[k] || 'none') !== s.tabFilterColour);
           this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false });
           this.onUserMutation('tabs:close-colour');
-          return this.toast('Closed every tab of that colour');
+          return this.notifyInfo('Closed every tab of that colour');
         }
         const q = (s.tabFilterText || (s.patterns.nav || []).join('')).toLowerCase();
         const keep = s.tabs.filter(k => {
@@ -4942,7 +4957,7 @@ class ConsoleShell extends DCLogic {
         });
         this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false });
         this.onUserMutation('tabs:close-filter');
-        this.toast((s.tabs.length - (keep.length || 1)) + ' tabs closed');
+        this.notifyInfo((s.tabs.length - (keep.length || 1)) + ' tabs closed');
       },
       closeTabFilter:() => this.set('tabFilterOpen', false),
       closeTabColour:() => this.set('tabColourOpen', false),
@@ -4976,7 +4991,7 @@ class ConsoleShell extends DCLogic {
           else groups = s.groups.concat([{ id:'g' + Date.now(), name:'New group', colour:s.tabColours[target] || '#8AB4F8', collapsed:false, tabs:[target, dragged] }]);
           this.setState({ groups, tabDrag:-1, tabOver:-1 });
           this.onUserMutation('tabs:group');
-          this.fire('Grouped', dragged + ' and ' + target + ' are now one tab group.');
+          this.notifyInfoEvent('Grouped', dragged + ' and ' + target + ' are now one tab group.');
         },
         on:k === s.screen, off:k !== s.screen, pinned:s.pinned.indexOf(k) >= 0,
         go:() => this.setState({ screen:k, railId:SCREENS[k] ? SCREENS[k].rail : s.railId }),
@@ -4990,7 +5005,7 @@ class ConsoleShell extends DCLogic {
         { label:'Rail on the right', icon:'dock_to_left', v:'right' },
         { label:'Rail on top', icon:'dock_to_bottom', v:'top' },
         { label:'Compact rail', icon:'width_normal', v:'compact' }
-      ].map(d => ({ label:d.label, icon:d.icon, on:s.dock === d.v, off:s.dock !== d.v, pick:() => { this.set('dock', d.v); this.toast('Docked ' + d.label.toLowerCase()); } })),
+      ].map(d => ({ label:d.label, icon:d.icon, on:s.dock === d.v, off:s.dock !== d.v, pick:() => { this.set('dock', d.v); this.notifyInfo('Docked ' + d.label.toLowerCase()); } })),
       dockDirection:s.dock === 'right' ? 'row-reverse' : (s.dock === 'top' ? 'column' : 'row'),
       isCustomise:s.screen === 'customise',
       funLevel:(() => { const l = this.v('fun_level', 2); return String(l); })(),
@@ -5014,28 +5029,28 @@ class ConsoleShell extends DCLogic {
       funKnobFg:this.v('fun_level', 2) > 0 ? '#9FF7C4' : '#8FA394',
       funKnobAnim:this.v('fun_level', 2) > 2 ? 'm3Wiggle 1.6s ease-in-out infinite' : 'none',
       funLabelFg:this.v('fun_level', 2) > 0 ? '#00391F' : '#9FF7C4',
-      toggleFun:() => { const on = this.v('fun_level', 2) > 0; this.setVal({ id:'fun_level', label:'Fun level' }, on ? 0 : 3); if (!on) this.fire('Fun restored', 'Level 3. Brace yourself.'); },
-      maxFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:4, fun_random:true, fun_confetti:300, fun_copy:'Comedian', th_rainbow:true, fun_random_scope:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'], fun_random_strength:100, fun_random_reroll:true }) })); this.onUserMutation('preset:max-fun'); this.fire('MAXIMUM FUN', 'Every element now has its own random look, rerolling as you go.'); },
-      zeroFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:0, fun_random:false, th_rainbow:false, fun_confetti:0, fun_copy:'Terse' }) })); this.onUserMutation('preset:zero-fun'); this.toast('Fun disabled. The console is now a spreadsheet with opinions.'); },
-      toggleRandom:() => { const on = this.v('fun_random', false); this.setVal({ id:'fun_random', label:'Random appearance for every element', kind:'switch' }, !on); if (!on) this.fire('Randomised', 'Every element just got its own look.'); },
+      toggleFun:() => { const on = this.v('fun_level', 2) > 0; this.setVal({ id:'fun_level', label:'Fun level' }, on ? 0 : 3); if (!on) this.notifyInfoEvent('Fun restored', 'Level 3. Brace yourself.'); },
+      maxFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:4, fun_random:true, fun_confetti:300, fun_copy:'Comedian', th_rainbow:true, fun_random_scope:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'], fun_random_strength:100, fun_random_reroll:true }) })); this.onUserMutation('preset:max-fun'); this.notifyInfoEvent('MAXIMUM FUN', 'Every element now has its own random look, rerolling as you go.'); },
+      zeroFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:0, fun_random:false, th_rainbow:false, fun_confetti:0, fun_copy:'Terse' }) })); this.onUserMutation('preset:zero-fun'); this.notifyInfo('Fun disabled. The console is now a spreadsheet with opinions.'); },
+      toggleRandom:() => { const on = this.v('fun_random', false); this.setVal({ id:'fun_random', label:'Random appearance for every element', kind:'switch' }, !on); if (!on) this.notifyInfoEvent('Randomised', 'Every element just got its own look.'); },
       rndBtnBg:this.v('fun_random', false) ? '#1B4D33' : 'rgba(0,0,0,.24)',
       rndBtnBorder:this.v('fun_random', false) ? '#9FF7C4' : 'rgba(159,247,196,.3)',
       rndTrack:this.v('fun_random', false) ? '#9FF7C4' : '#414942',
       rndJustify:this.v('fun_random', false) ? 'flex-end' : 'flex-start',
       rndKnob:this.v('fun_random', false) ? '#00391F' : '#8B938C',
       rndFg:this.v('fun_random', false) ? '#9FF7C4' : '#DFF3E5',
-      rerollNow:() => { this.setState(st => ({ rndNonce:st.rndNonce + 1 })); this.onUserMutation('appearance:reroll'); this.toast('Rerolled — every element has a new look'); },
+      rerollNow:() => { this.setState(st => ({ rndNonce:st.rndNonce + 1 })); this.onUserMutation('appearance:reroll'); this.notifyInfo('Rerolled — every element has a new look'); },
       isServers:sc.kind === 'servers', isArcade:sc.kind === 'arcade', isTrunkAuth:sc.kind === 'trunkauth', isHistory:sc.kind === 'history',
       branchName:s.branch, commitCount:s.commits.length + ' commits',
-      branches:['main', 'hardening', 'lab'].map(b => ({ label:b, on:s.branch === b, off:s.branch !== b, pick:() => { this.set('branch', b); this.toast('Checked out ' + b); } })),
+      branches:['main', 'hardening', 'lab'].map(b => ({ label:b, on:s.branch === b, off:s.branch !== b, pick:() => { this.set('branch', b); this.notifyInfo('Checked out ' + b); } })),
       histFilters:['All', 'pjsip.conf', 'queues.conf', 'This screen'].map(f => ({ label:f, on:s.histFilter === f, off:s.histFilter !== f, pick:() => this.set('histFilter', f) })),
       histActions:[
-        { icon:'add_circle', label:'Commit now', run:() => this.fire('Committed', 'Working tree is clean.') },
-        { icon:'call_split', label:'New branch', run:() => this.toast('Branch created from the current commit') },
-        { icon:'sell', label:'Tag this state', run:() => this.fire('Tagged', 'You can restore to this exact point later.') },
-        { icon:'cloud_upload', label:'Push to mirror', run:() => this.toast('Mirror push queued') },
+        { icon:'add_circle', label:'Commit now', run:() => this.notifyInfoEvent('Committed', 'Working tree is clean.') },
+        { icon:'call_split', label:'New branch', run:() => this.notifyInfo('Branch created from the current commit') },
+        { icon:'sell', label:'Tag this state', run:() => this.notifyInfoEvent('Tagged', 'You can restore to this exact point later.') },
+        { icon:'cloud_upload', label:'Push to mirror', run:() => this.notifyInfo('Mirror push queued') },
         { icon:'search', label:'Search history', run:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'40%', regexY:'160px' }) },
-        { icon:'download', label:'Export bundle', run:() => this.toast('git bundle written to disk') }
+        { icon:'download', label:'Export bundle', run:() => this.notifyInfo('git bundle written to disk') }
       ],
       commitRows:s.commits.filter(c => s.histFilter === 'All' || (s.histFilter === 'This screen' ? c.screen === s.screen : c.file === s.histFilter)).map(c => ({
         sha:c.sha, tag:c.tag, hasTag:!!c.tag,
@@ -5061,9 +5076,9 @@ class ConsoleShell extends DCLogic {
       })(),
       diffActions:[
         { icon:'restore', label:'Restore this', bg:'#82D9A5', fg:'#00391F', run:() => this.areYouSure('Restore this commit', 'The configuration returns to this exact state. A new commit records the restore, so nothing is lost either way.', 3, () => this.ceremony('Restore configuration', 'git revert --no-commit ' + (s.histSel || 'HEAD'))) },
-        { icon:'undo', label:'Revert just this option', bg:'#262B26', fg:'#9FF7C4', run:() => this.toast('Only this one option is reverted; everything else stays') },
-        { icon:'content_copy', label:'Copy diff', bg:'#262B26', fg:'#9FF7C4', run:() => this.toast('Diff copied') },
-        { icon:'call_split', label:'Branch from here', bg:'#262B26', fg:'#9FF7C4', run:() => this.fire('Branched', 'Experiment freely — main is untouched.') }
+        { icon:'undo', label:'Revert just this option', bg:'#262B26', fg:'#9FF7C4', run:() => this.notifyInfo('Only this one option is reverted; everything else stays') },
+        { icon:'content_copy', label:'Copy diff', bg:'#262B26', fg:'#9FF7C4', run:() => this.notifyInfo('Diff copied') },
+        { icon:'call_split', label:'Branch from here', bg:'#262B26', fg:'#9FF7C4', run:() => this.notifyInfoEvent('Branched', 'Experiment freely — main is untouched.') }
       ],
       blameRows:s.commits.slice(0, 5).map(c => ({ sha:c.sha, what:c.file + ' · ' + c.label, who:c.author })),
       compareLabel:s.histCompare.length === 2 ? ('Comparing ' + s.histCompare[0] + ' with ' + s.histCompare[1] + ' — 1 file, 1 option differs.') : 'Pick two commits with the compare buttons to see everything that differs between them.',
@@ -5077,7 +5092,7 @@ class ConsoleShell extends DCLogic {
         stateFg:s.authAnswers[r.id] === 'Deferred' ? '#FFD68A' : '#8FA394',
         yes:() => this.answerAuth(r, 'YES'),
         no:() => this.answerAuth(r, 'NO'),
-        ask:() => this.toast('Detail request sent to ' + r.partner + ' — the request stays pending'),
+        ask:() => this.notifyInfo('Detail request sent to ' + r.partner + ' — the request stays pending'),
         defer:() => this.setState({ authAnswers:Object.assign({}, s.authAnswers, { [r.id]:'Deferred' }) })
       })),
       authHistory:AUTH_REQS.filter(r => s.authAnswers[r.id] === 'YES' || s.authAnswers[r.id] === 'NO').map(r => ({
@@ -5088,7 +5103,7 @@ class ConsoleShell extends DCLogic {
         { partner:'branch-iax', what:'Add 203.0.113.44 as a source address', answer:'NO', when:'6d', color:'#FFB4AB' },
         { partner:'carrier-backup', what:'Enable opus on the shared link', answer:'YES', when:'11d', color:'#82D9A5' }
       ]),
-      newAuthRequest:() => this.toast('Composing a request — pick the partner and what you want to change'),
+      newAuthRequest:() => this.notifyInfo('Composing a request — pick the partner and what you want to change'),
       credits:s.credits,
       games:GAMES.map(g => ({ icon:g.icon, name:g.name, blurb:g.blurb, reward:'+' + g.reward + ' credits', on:s.game === g.id, off:s.game !== g.id, pick:() => { this.stopGameNow(); this.setState({ game:g.id, gameScore:0 }); } })),
       gameTitle:(GAMES.find(g => g.id === s.game) || GAMES[0]).name,
@@ -5109,8 +5124,8 @@ class ConsoleShell extends DCLogic {
         if (s.dtmfShow) return;
         const inp = s.dtmfIn.concat([k]);
         const ok = s.dtmfSeq[inp.length - 1] === k;
-        if (!ok) { this.setState({ dtmfIn:[], gameScore:Math.max(0, s.gameScore - 5) }); return this.toast('Wrong tone — sequence restarts'); }
-        if (inp.length === s.dtmfSeq.length) { const nxt = s.dtmfSeq.concat([String(Math.floor(Math.random() * 9) + 1)]); this.setState({ gameScore:s.gameScore + 15, dtmfSeq:nxt, dtmfIn:[], dtmfShow:true }); this.fire('Correct', 'Longer sequence incoming.'); setTimeout(() => this.setState({ dtmfShow:false }), 1400); }
+        if (!ok) { this.setState({ dtmfIn:[], gameScore:Math.max(0, s.gameScore - 5) }); return this.notifyInfo('Wrong tone — sequence restarts'); }
+        if (inp.length === s.dtmfSeq.length) { const nxt = s.dtmfSeq.concat([String(Math.floor(Math.random() * 9) + 1)]); this.setState({ gameScore:s.gameScore + 15, dtmfSeq:nxt, dtmfIn:[], dtmfShow:true }); this.notifyInfoEvent('Correct', 'Longer sequence incoming.'); setTimeout(() => this.setState({ dtmfShow:false }), 1400); }
         else this.setState({ dtmfIn:inp });
       } })),
       sortHint:'Lowest bandwidth at the top, then check your answer.',
@@ -5119,8 +5134,8 @@ class ConsoleShell extends DCLogic {
         down:() => { if (i === s.sortList.length - 1) return; const a = s.sortList.slice(); a[i] = a[i + 1]; a[i + 1] = x; this.set('sortList', a); } })),
       sortCheck:() => {
         const right = s.sortList.every((x, i) => x === CODEC_ORDER[i]);
-        if (right) { this.setState({ gameScore:s.gameScore + 40, sortList:CODEC_ORDER.slice().sort(() => Math.random() - 0.5) }); this.fire('Perfect order', '+40 points. Have another.'); }
-        else this.toast('Not quite — g729 is the smallest, opus the largest');
+        if (right) { this.setState({ gameScore:s.gameScore + 40, sortList:CODEC_ORDER.slice().sort(() => Math.random() - 0.5) }); this.notifyInfoEvent('Perfect order', '+40 points. Have another.'); }
+        else this.notifyInfo('Not quite — g729 is the smallest, opus the largest');
       },
       matchTiles:(() => {
         const tiles = [];
@@ -5141,13 +5156,13 @@ class ConsoleShell extends DCLogic {
               if (prevPair === t.pair && prev[0] !== t.id[0]) {
                 const d = s.matchDone.concat([t.pair]);
                 this.setState({ matchDone:d, matchSel:'', gameScore:s.gameScore + 20 });
-                if (d.length === MATCH_PAIRS.length) this.fire('All six matched', 'You actually know what these do.');
-              } else { this.setState({ matchSel:'', gameScore:Math.max(0, s.gameScore - 3) }); this.toast('Not a pair'); }
+                if (d.length === MATCH_PAIRS.length) this.notifyInfoEvent('All six matched', 'You actually know what these do.');
+              } else { this.setState({ matchSel:'', gameScore:Math.max(0, s.gameScore - 3) }); this.notifyInfo('Not a pair'); }
             } };
         });
       })(),
       spotLines:SPOT_LINES.map((l, i) => ({ text:l.t, bg:s.spotFound === i ? (l.bad ? '#005230' : '#4A1F1B') : 'transparent', fg:s.spotFound === i ? (l.bad ? '#9FF7C4' : '#FFB4AB') : '#C4CBC2',
-        pick:() => { if (l.bad) { this.setState({ spotFound:i, gameScore:s.gameScore + 30 }); this.fire('Found it', 'A desk phone should not sit in from-external.'); } else { this.setState({ spotFound:i, gameScore:Math.max(0, s.gameScore - 5) }); this.toast('That line is fine'); } } })),
+        pick:() => { if (l.bad) { this.setState({ spotFound:i, gameScore:s.gameScore + 30 }); this.notifyInfoEvent('Found it', 'A desk phone should not sit in from-external.'); } else { this.setState({ spotFound:i, gameScore:Math.max(0, s.gameScore - 5) }); this.notifyInfo('That line is fine'); } } })),
       reflexTarget:s.reflexNum,
       reflexHint:'Tap the last digit of the number above.',
       reflexKeys:['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].map(k => ({ label:k, press:() => {
@@ -5165,12 +5180,12 @@ class ConsoleShell extends DCLogic {
             const g = GAMES.find(x => x.id === this.state.game) || GAMES[0];
             const won = this.state.gameScore >= 60 ? g.reward : Math.max(1, Math.round(g.reward / 2));
             this.setState({ gamePlaying:false, gameTime:0, gameCell:-1, credits:this.state.credits + won });
-            this.fire('+' + won + ' credits', 'Scored ' + this.state.gameScore + '. Spend them on skipping ceremonies.');
+            this.notifyInfoEvent('+' + won + ' credits', 'Scored ' + this.state.gameScore + '. Spend them on skipping ceremonies.');
           } else this.setState({ gameTime:t, gameCell:Math.floor(Math.random() * 15) });
         }, 900);
       },
       stopGame:() => this.stopGameNow(),
-      spendCredit:() => { if (s.credits < 1) return this.toast('No credits — win some in the arcade'); this.setState({ credits:s.credits - 1 }); this.fire('Ceremony skipped', 'One credit spent. ' + (s.credits - 1) + ' left.'); },
+      spendCredit:() => { if (s.credits < 1) return this.notifyInfo('No credits — win some in the arcade'); this.setState({ credits:s.credits - 1 }); this.notifyInfoEvent('Ceremony skipped', 'One credit spent. ' + (s.credits - 1) + ' left.'); },
       oneClickPitch:s.oneClickMode === 'Funny'
         ? 'Press it. Walk away. Come back to a phone system that works, plus roughly forty jokes you did not ask for. It sets up the server, the phones, the queue, the certificates and the hardening, and it explains each step like you are five and slightly suspicious.'
         : 'Provisions the server, installs Asterisk, creates four extensions, one queue, TLS transports and a hardened access policy. Roughly seven seconds of work, then a production-shaped PBX.',
@@ -5195,7 +5210,7 @@ class ConsoleShell extends DCLogic {
           if (n >= ONE_CLICK_LOG.length) {
             clearInterval(this._oc);
             this.setState({ oneClickStep:n, oneClickRunning:false });
-            this.fire('It is alive', 'Four extensions, one queue, TLS everywhere. Try dialling 1001.');
+            this.notifyInfoEvent('It is alive', 'Four extensions, one queue, TLS everywhere. Try dialling 1001.');
           } else this.setState({ oneClickStep:n });
         }, 780);
       },
@@ -5253,7 +5268,7 @@ class ConsoleShell extends DCLogic {
         { icon:'auto_fix_high', label:'Escape literals', title:'Treat what you typed as plain text', run:() => { const v = (s.rxText || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); const p = Object.assign({}, s.patterns); p[s.regexTarget] = [v]; this.setState({ rxText:v, patterns:p }); } },
         { icon:'data_array', label:'Wrap in group', title:'Wrap the whole pattern in a capture group', run:() => { const v = '(' + (s.rxText || '') + ')'; const p = Object.assign({}, s.patterns); p[s.regexTarget] = [v]; this.setState({ rxText:v, patterns:p }); } },
         { icon:'swap_horiz', label:'Anchor both ends', title:'Require a full match', run:() => { let v = s.rxText || ''; if (v.indexOf('^') !== 0) v = '^' + v; if (v.slice(-1) !== '$') v = v + '$'; const p = Object.assign({}, s.patterns); p[s.regexTarget] = [v]; this.setState({ rxText:v, patterns:p }); } },
-        { icon:'bookmark_add', label:'Save pattern', title:'Save to the palette', run:() => this.fire('Pattern saved', 'It is in the command palette now.') },
+        { icon:'bookmark_add', label:'Save pattern', title:'Save to the palette', run:() => this.notifyInfoEvent('Pattern saved', 'It is in the command palette now.') },
         { icon:'library_books', label:'Cheatsheet', title:'Explain every token', run:() => this.showInfo('Regex cheatsheet', 'Anchors pin the match to the start (^) or end ($). Character classes stand in for kinds of character: \\d a digit, \\w a letter or digit, \\s a space, and a dot for anything at all. Quantifiers say how many: + is one or more, * is any number including none, ? makes the piece optional, and {2,4} means between two and four. Brackets are a set of allowed characters, parentheses group things together, and a bar between two options means either will do.', 'Think of it as a sentence describing what the text should look like, written in shorthand. You never have to write it by hand here — the buttons build it.') }
       ],
       regexValue:(s.patterns[s.regexTarget] || []).join('') || '(everything)',
@@ -5282,22 +5297,22 @@ class ConsoleShell extends DCLogic {
           { icon:'unfold_less', label:g.collapsed ? 'Expand' : 'Collapse', run:() => upd({ collapsed:!g.collapsed }) },
           { icon:'compress', label:'Auto-collapse when inactive', run:() => upd({ auto:true }) },
           { icon:'push_pin', label:'Pin whole group', run:() => { close(); this.set('pinned', s.pinned.concat(g.tabs)); } },
-          { icon:'lock', label:'Lock every tab in group', run:() => { close(); this.toast('Each tab gets its own credential in the next step'); } },
+          { icon:'lock', label:'Lock every tab in group', run:() => { close(); this.notifyInfo('Each tab gets its own credential in the next step'); } },
           { icon:'sync', label:'Reload every tab in group', run:() => { close(); this.ceremony('Reload group ' + g.name, 'reload ' + g.tabs.join(' ')); } },
           { icon:'visibility_off', label:'Hide from the strip', run:() => upd({ hidden:true }) }
         ];
         if (s.ctxSub === 'gtabs') return g.tabs.map(t => ({ icon:SCREENS[t] ? SCREENS[t].icon : 'tab', label:s.tabNames[t] || (SCREENS[t] ? SCREENS[t].title : t), run:() => { close(); this.openScreen(t); } }));
         if (s.ctxSub === 'gsave') return [
-          { icon:'download', label:'Export group as JSON', run:() => { close(); this.fire('Group exported', g.name + ' with ' + g.tabs.length + ' tabs.'); } },
-          { icon:'upload', label:'Import a group…', run:() => { close(); this.toast('Pick a group file to import'); } },
-          { icon:'bookmark_add', label:'Save as a workspace', run:() => { close(); this.fire('Workspace saved', 'Reopen it from the palette.'); } },
-          { icon:'restore', label:'Restore last session', run:() => { close(); this.toast('Previous tabs and groups restored'); } }
+          { icon:'download', label:'Export group as JSON', run:() => { close(); this.notifyInfoEvent('Group exported', g.name + ' with ' + g.tabs.length + ' tabs.'); } },
+          { icon:'upload', label:'Import a group…', run:() => { close(); this.notifyInfo('Pick a group file to import'); } },
+          { icon:'bookmark_add', label:'Save as a workspace', run:() => { close(); this.notifyInfoEvent('Workspace saved', 'Reopen it from the palette.'); } },
+          { icon:'restore', label:'Restore last session', run:() => { close(); this.notifyInfo('Previous tabs and groups restored'); } }
         ];
         if (s.ctxSub === 'tabexport') return [
-          { icon:'download', label:'Export this tab', run:() => { close(); this.toast('Tab exported as JSON'); } },
-          { icon:'download_for_offline', label:'Export all tabs', run:() => { close(); this.fire('Exported', s.tabs.length + ' tabs and ' + s.groups.length + ' groups.'); } },
-          { icon:'upload', label:'Import tabs…', run:() => { close(); this.toast('Pick a tab set to import'); } },
-          { icon:'content_copy', label:'Copy tab list to clipboard', run:() => { close(); this.toast('Tab list copied'); } }
+          { icon:'download', label:'Export this tab', run:() => { close(); this.notifyInfo('Tab exported as JSON'); } },
+          { icon:'download_for_offline', label:'Export all tabs', run:() => { close(); this.notifyInfoEvent('Exported', s.tabs.length + ' tabs and ' + s.groups.length + ' groups.'); } },
+          { icon:'upload', label:'Import tabs…', run:() => { close(); this.notifyInfo('Pick a tab set to import'); } },
+          { icon:'content_copy', label:'Copy tab list to clipboard', run:() => { close(); this.notifyInfo('Tab list copied'); } }
         ];
         if (s.ctxSub !== 'closetabs') return [];
         const k = s.ctxTabKey || s.screen, i = s.tabs.indexOf(k);
@@ -5340,7 +5355,7 @@ class ConsoleShell extends DCLogic {
             { icon:'tab', label:'Tabs in group', hint:'▸', sub:'gtabs' },
             { icon:'save', label:'Save & restore', hint:'▸', sub:'gsave' },
             { icon:'unfold_less', label:g.collapsed ? 'Expand group' : 'Collapse group', hint:'', run:() => upd({ collapsed:!g.collapsed }) },
-            { icon:'link_off', label:'Ungroup', hint:'', run:() => { close(); this.setState({ groups:s.groups.filter(x => x.id !== g.id) }); this.onUserMutation('group:ungroup'); this.toast('Group dissolved — tabs kept'); } },
+            { icon:'link_off', label:'Ungroup', hint:'', run:() => { close(); this.setState({ groups:s.groups.filter(x => x.id !== g.id) }); this.onUserMutation('group:ungroup'); this.notifyInfo('Group dissolved — tabs kept'); } },
             { icon:'close', label:'Close group and its tabs', hint:'', run:() => { close(); this.areYouSure('Close ' + g.name, 'Every tab in this group closes. Unsaved staged changes in them are discarded.', 3, () => { const keep = s.tabs.filter(t => g.tabs.indexOf(t) < 0); this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep[0] || 'dash', groups:s.groups.filter(x => x.id !== g.id) }); this.onUserMutation('group:close'); }); } },
             { icon:'brush', label:'Edit group appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:'group · ' + g.name }) },
             { icon:'lock', label:'Lock this group…', hint:'⌃L', run:common[0].run }
@@ -5358,8 +5373,8 @@ class ConsoleShell extends DCLogic {
             { icon:'content_copy', label:'Duplicate tab', hint:'⌃D', run:() => { close(); this.setState({ tabs:s.tabs.concat([k]) }); this.onUserMutation('tabs:duplicate'); } },
             { icon:'close', label:'Close tab', hint:'⌃W', run:() => { close(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:t[0] || 'dash' }); this.onUserMutation('tabs:close'); } },
             { icon:'save', label:'Export & import', hint:'▸', sub:'tabexport' },
-            { icon:'folder', label:'Group tabs by area', hint:'', run:() => { close(); const byRail = {}; s.tabs.forEach(t => { const rail = (SCREENS[t] || {}).rail || 'app'; (byRail[rail] || (byRail[rail] = [])).push(t); }); const groups = Object.entries(byRail).map(([rail, tabs], i) => ({ id:'area-' + rail, name:(RAIL.find(r => r.id === rail) || {}).label || rail, colour:['#82D9A5', '#FFD68A', '#8AB4F8', '#D8A9F0'][i % 4], collapsed:false, tabs })); this.setState({ groups }); this.onUserMutation('tabs:group-by-area'); this.fire('Tabs grouped', 'Open tabs are grouped by their console area.'); } },
-            { icon:'open_in_new', label:'Move to new window (unavailable)', hint:'', run:() => { close(); this.toast('Moving a tab to a new window is unavailable in this build.', 'warning'); } },
+            { icon:'folder', label:'Group tabs by area', hint:'', run:() => { close(); const byRail = {}; s.tabs.forEach(t => { const rail = (SCREENS[t] || {}).rail || 'app'; (byRail[rail] || (byRail[rail] = [])).push(t); }); const groups = Object.entries(byRail).map(([rail, tabs], i) => ({ id:'area-' + rail, name:(RAIL.find(r => r.id === rail) || {}).label || rail, colour:['#82D9A5', '#FFD68A', '#8AB4F8', '#D8A9F0'][i % 4], collapsed:false, tabs })); this.setState({ groups }); this.onUserMutation('tabs:group-by-area'); this.notifyInfoEvent('Tabs grouped', 'Open tabs are grouped by their console area.'); } },
+            { icon:'open_in_new', label:'Move to new window (unavailable)', hint:'', run:() => { close(); this.notifyWarning('Moving a tab to a new window is unavailable in this build.'); } },
             { icon:'dock_to_right', label:'Dock this tab right', hint:'', run:() => { close(); this.set('dock', 'right'); } },
             { icon:'lock', label:'Lock this tab…', hint:'⌃L', run:common[0].run }
           ]);
@@ -5371,7 +5386,7 @@ class ConsoleShell extends DCLogic {
             { icon:'check_box', label:'Select this row', hint:'', run:() => { close(); this.set('selected', sel.indexOf(name) >= 0 ? sel : sel.concat([name])); } },
             { icon:'content_copy', label:'Duplicate', hint:'⌃D', run:() => { close(); this.bulk('Duplicated', [name]); } },
             { icon:'refresh', label:'Reload just this', hint:'', run:() => { close(); this.ceremony('Reload ' + name, 'reload ' + name); } },
-            { icon:'download', label:'Export as configuration', hint:'', run:() => { close(); this.toast(name + ' exported'); } },
+            { icon:'download', label:'Export as configuration', hint:'', run:() => { close(); this.notifyInfo(name + ' exported'); } },
             { icon:'history', label:'Version history for this', hint:'', run:() => { close(); this.openScreen('history'); } },
             { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.', 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : this.ceremony('Delete ' + name, 'delete ' + name))); } },
             common[0], common[1]
@@ -5381,8 +5396,8 @@ class ConsoleShell extends DCLogic {
           return decorate([
             { icon:'data_object', label:'Open regex builder…', hint:'⌃R', run:() => this.setState({ ctxOpen:false, regexOpen:true, regexTarget:'table', regexX:s.ctxX, regexY:s.ctxY }) },
             { icon:'match_case', label:'Match case', hint:'', run:() => { close(); this.set('regexFlags', s.regexFlags.filter(f => f !== 'i')); } },
-            { icon:'select_all', label:'Whole word only', hint:'', run:() => { close(); this.toast('Whole-word matching on'); } },
-            { icon:'bookmark_add', label:'Save this search', hint:'', run:() => { close(); this.fire('Search saved', 'It is in the palette now.'); } },
+            { icon:'select_all', label:'Whole word only', hint:'', run:() => { close(); this.notifyInfo('Whole-word matching on'); } },
+            { icon:'bookmark_add', label:'Save this search', hint:'', run:() => { close(); this.notifyInfoEvent('Search saved', 'It is in the palette now.'); } },
             { icon:'clear', label:'Clear search', hint:'⎋', run:() => { close(); const p = Object.assign({}, s.patterns); p.table = []; p.nav = []; this.setState({ patterns:p }); } },
             common[0], common[1]
           ]);
@@ -5391,9 +5406,9 @@ class ConsoleShell extends DCLogic {
           return decorate([
             { icon:'edit', label:'Edit this step…', hint:'↵', run:() => close() },
             { icon:'timeline', label:'Connect to…', hint:'C', run:() => { close(); this.addEdgeFrom(); } },
-            { icon:'content_copy', label:'Duplicate step', hint:'⌃D', run:() => { close(); this.toast('Step duplicated'); } },
-            { icon:'call_split', label:'Insert condition before', hint:'', run:() => { close(); this.toast('Condition inserted'); } },
-            { icon:'delete', label:'Delete step', hint:'⌦', run:() => { close(); this.areYouSure('Delete this step', 'The step and its connections are removed from the dialplan.', 3, () => this.fire('Step deleted', 'Canvas updated.')); } },
+            { icon:'content_copy', label:'Duplicate step', hint:'⌃D', run:() => { close(); this.notifyInfo('Step duplicated'); } },
+            { icon:'call_split', label:'Insert condition before', hint:'', run:() => { close(); this.notifyInfo('Condition inserted'); } },
+            { icon:'delete', label:'Delete step', hint:'⌦', run:() => { close(); this.areYouSure('Delete this step', 'The step and its connections are removed from the dialplan.', 3, () => this.notifyInfoEvent('Step deleted', 'Canvas updated.')); } },
             common[0], common[1]
           ]);
         }
@@ -5404,7 +5419,7 @@ class ConsoleShell extends DCLogic {
           { icon:'add', label:'New tab here', hint:'⌃T', run:() => { close(); this.setState({ tabs:s.tabs.concat([s.screen]) }); this.onUserMutation('tabs:new-here'); } },
           { icon:'history', label:'Version history', hint:'', run:() => { close(); this.openScreen('history'); } },
           { icon:'notifications', label:'Notification centre', hint:'', run:() => { close(); this.openScreen('notifications'); } },
-          { icon:'content_copy', label:'Copy as configuration', hint:'⌃C', run:() => { close(); this.toast('Configuration block copied'); } }
+          { icon:'content_copy', label:'Copy as configuration', hint:'⌃C', run:() => { close(); this.notifyInfo('Configuration block copied'); } }
         ].concat(common));
       })(),
 
@@ -5469,15 +5484,15 @@ class ConsoleShell extends DCLogic {
         if (s.lockStep < 3) return this.set('lockStep', s.lockStep + 1);
         const needsPin = s.lockMethod.indexOf('PIN') >= 0;
         const needsPw = s.lockMethod.indexOf('Password') >= 0;
-        if (needsPin && s.pin.length < 4) return this.toast('Set at least a four-digit PIN first');
-        if (needsPw && (s.password || '').length < 4) return this.toast('Set a passphrase first');
+        if (needsPin && s.pin.length < 4) return this.notifyInfo('Set at least a four-digit PIN first');
+        if (needsPw && (s.password || '').length < 4) return this.notifyInfo('Set a passphrase first');
         const L = Object.assign({}, s.locks);
         L[s.lockKey] = { method:s.lockMethod, pin:s.pin, password:s.password, target:s.lockTarget };
         this.setState({ locks:L, lockOpen:false });
-        this.toast(s.lockTarget + ' is locked with ' + s.lockMethod + ' — the surface is now disabled');
+        this.notifyInfo(s.lockTarget + ' is locked with ' + s.lockMethod + ' — the surface is now disabled');
       },
       closeLock:() => this.set('lockOpen', false),
-      pairAuth:() => this.toast('Built-in authenticator paired for this element only'),
+      pairAuth:() => this.notifyInfo('Built-in authenticator paired for this element only'),
 
       appearOpen:s.appearOpen, appearTarget:s.appearTarget,
       appearChrome:this.dockChrome('appear', '38%', '90px', 468).style,
@@ -5490,21 +5505,21 @@ class ConsoleShell extends DCLogic {
       hueStops:Array.from({ length:24 }, (_, i) => { const h = Math.round(i * 360 / 24); return { color:'hsl(' + h + ' 70% 55%)', label:h + '°', pick:() => this.setVal({ id:'ap_hue', label:'Hue' }, h) }; }),
       shadeStops:Array.from({ length:14 }, (_, i) => { const l = 6 + i * 6.8; return { color:'hsl(' + this.v('ap_hue', 148) + ' ' + this.v('ap_sat', 54) + '% ' + Math.round(l) + '%)', pick:() => this.setVal({ id:'ap_light', label:'Lightness' }, Math.round(l)) }; }),
       colorActions:[
-        { icon:'casino', label:'Surprise me', run:() => { this.setVal({ id:'ap_hue', label:'Hue' }, Math.floor(Math.random() * 360)); this.fire('Bold choice', 'Nobody will ever say it is boring.'); } },
+        { icon:'casino', label:'Surprise me', run:() => { this.setVal({ id:'ap_hue', label:'Hue' }, Math.floor(Math.random() * 360)); this.notifyInfoEvent('Bold choice', 'Nobody will ever say it is boring.'); } },
         { icon:'gradient', label:'Rainbow it', run:() => this.setVal({ id:'ap_rainbow', label:'Rainbow fill', kind:'switch' }, true) },
-        { icon:'contrast', label:'Fix contrast', run:() => { this.setVal({ id:'ap_light', label:'Lightness' }, 72); this.toast('Lightness raised to meet contrast against the surface'); } },
-        { icon:'colorize', label:'Pick from screen', run:() => this.toast('Eyedropper armed — click any pixel in the console') }
+        { icon:'contrast', label:'Fix contrast', run:() => { this.setVal({ id:'ap_light', label:'Lightness' }, 72); this.notifyInfo('Lightness raised to meet contrast against the surface'); } },
+        { icon:'colorize', label:'Pick from screen', run:() => this.notifyInfo('Eyedropper armed — click any pixel in the console') }
       ],
       colorFormats:(() => { const h = this.v('ap_hue', 148), sa = this.v('ap_sat', 54), l = this.v('ap_light', 68);
         return [['hsl', 'hsl(' + h + ' ' + sa + '% ' + l + '%)'], ['oklch', 'oklch(' + (l / 100).toFixed(2) + ' 0.12 ' + h + ')'], ['hex', '#' + Math.floor(h * 0.7).toString(16).padStart(2, '0') + Math.floor(sa * 2.4).toString(16).padStart(2, '0') + Math.floor(l * 2.4).toString(16).padStart(2, '0')], ['css var', '--accent']]
-          .map(([k, val]) => ({ label:k + ' · ' + val, copy:() => this.toast(val + ' copied') })); })(),
+          .map(([k, val]) => ({ label:k + ' · ' + val, copy:() => this.notifyInfo(val + ' copied') })); })(),
       appearActions:[
         { icon:'casino', label:'Randomise this element', run:() => this.randomAppearance(false) },
         { icon:'shuffle', label:'Randomise every element', run:() => this.randomAppearance(true) },
-        { icon:'restart_alt', label:'Reset', run:() => { this.setState({ values:{} }); this.onUserMutation('appearance:reset'); this.toast('Appearance reset to the design system'); } },
-        { icon:'bookmark_add', label:'Save preset', run:() => this.fire('Preset saved', 'It is yours now.') },
-        { icon:'download', label:'Export', run:() => this.toast('Appearance exported as JSON') },
-        { icon:'upload', label:'Import', run:() => this.toast('Pick an appearance file to import') }
+        { icon:'restart_alt', label:'Reset', run:() => { this.setState({ values:{} }); this.onUserMutation('appearance:reset'); this.notifyInfo('Appearance reset to the design system'); } },
+        { icon:'bookmark_add', label:'Save preset', run:() => this.notifyInfoEvent('Preset saved', 'It is yours now.') },
+        { icon:'download', label:'Export', run:() => this.notifyInfo('Appearance exported as JSON') },
+        { icon:'upload', label:'Import', run:() => this.notifyInfo('Pick an appearance file to import') }
       ],
       closeAppear:() => this.set('appearOpen', false),
 
@@ -5584,14 +5599,14 @@ class ConsoleShell extends DCLogic {
       sureProgress:s.sureHits + ' / ' + s.sureNeed,
       sureReady:s.sureHits >= s.sureNeed, sureLocked:s.sureHits < s.sureNeed,
       sureCells:Array.from({ length:8 }, (_, i) => ({ up:i === s.sureCell, down:i !== s.sureCell,
-        hit:() => { const h = this.state.sureHits + 1; this.setState({ sureHits:h, sureCell:h >= this.state.sureNeed ? -1 : Math.floor(Math.random() * 8) }); if (h >= this.state.sureNeed) this.toast('Yes unlocked — you are demonstrably awake'); } })),
+        hit:() => { const h = this.state.sureHits + 1; this.setState({ sureHits:h, sureCell:h >= this.state.sureNeed ? -1 : Math.floor(Math.random() * 8) }); if (h >= this.state.sureNeed) this.notifyInfo('Yes unlocked — you are demonstrably awake'); } })),
       closeSure:() => this.setState({ sureOpen:false, sureHits:0, sureCell:-1 }),
       sureYes:() => { const act = this.state.sureAction; this.setState({ sureOpen:false, sureHits:0, sureCell:-1 }); if (act) act(); },
       canSkip:s.credits > 0 && s.cStep < 4 && this.v('cr_enable', true),
-      skipCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.setState({ credits:s.credits - 1, ceremonyOpen:false }); this.fire('Skipped', s.ceremonyCmd + ' ran on a credit. ' + (s.credits - 1) + ' left.'); },
+      skipCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.setState({ credits:s.credits - 1, ceremonyOpen:false }); this.notifyInfoEvent('Skipped', s.ceremonyCmd + ' ran on a credit. ' + (s.credits - 1) + ' left.'); },
       goArcade:() => this.setState({ railId:'app', screen:'arcade' }),
       cancelCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.set('ceremonyOpen', false); },
-      executeCeremony:() => { clearInterval(this._mole); this.setState({ ceremonyOpen:false }); this.toast(s.ceremonyCmd + ' executed and attested'); },
+      executeCeremony:() => { clearInterval(this._mole); this.setState({ ceremonyOpen:false }); this.notifyInfo(s.ceremonyCmd + ' executed and attested'); },
 
       onboardFirst:s.onboardStep === 0,
       onboardOpen:s.onboardOpen, onboardIcon:ob.icon, onboardTitle:ob.t, onboardBody:ob.b,
@@ -5599,7 +5614,7 @@ class ConsoleShell extends DCLogic {
       onboardCtls:ob.ctls.map(this.buildCtl),
       onboardNextLabel:s.onboardStep === ONBOARD.length - 1 ? 'Deploy it all now' : 'Next',
       easyMode:this.v('ob_ease', 'Super easy') === 'Super easy',
-      superEasy:() => { this.setState(st => ({ values:Object.assign({}, st.values, { ob_intent:'Deploy a new server', ob_ease:'Super easy', ob_phones:8, ob_menu:true, ob_hours:true, ob_tls:true }), onboardOpen:false, screen:'servers', railId:'app', oneClickMode:'Funny' })); this.onUserMutation('preset:super-easy'); this.fire('Super easy mode', 'Three defaults taken. Press the big button and walk away.'); },
+      superEasy:() => { this.setState(st => ({ values:Object.assign({}, st.values, { ob_intent:'Deploy a new server', ob_ease:'Super easy', ob_phones:8, ob_menu:true, ob_hours:true, ob_tls:true }), onboardOpen:false, screen:'servers', railId:'app', oneClickMode:'Funny' })); this.onUserMutation('preset:super-easy'); this.notifyInfoEvent('Super easy mode', 'Three defaults taken. Press the big button and walk away.'); },
       onboardNext:() => this.setState(st => (st.onboardStep >= ONBOARD.length - 1
         ? { onboardOpen:false, tourOpen:st.values.ob_tour !== false, tourStep:0, screen:'servers', railId:'app' }
         : { onboardStep:st.onboardStep + 1 })),
@@ -5613,7 +5628,7 @@ class ConsoleShell extends DCLogic {
       endTour:() => this.set('tourOpen', false),
 
       toastOpen:s.toastOpen, toastText:s.toastText,
-      undoToast:() => { this.setState({ toastOpen:false }); this.toast('Change reverted'); }
+      undoToast:() => { this.setState({ toastOpen:false }); this.notifyInfo('Change reverted'); }
     };
   }
 }

@@ -240,7 +240,7 @@
     },
     "attention-modes": {
       "state": "partial",
-      "note": "Implemented-unverified 2026-08-23. app/renderer/src/attention-modes.ts defines five independent off-by-default switches, and App.tsx now restores att_focus, att_low, att_time, att_one, att_momentum, and the persisted att_next action from durable storage after mount. The application-lifetime runtime uses stable semantic design markers to dim inactive chrome without hiding work, applies quiet color and motion consumers, composes with prefers-reduced-motion, shows session and since-last-change values in the current work region, and gives Momentum a factual 20-minute prompt with a persisted 30-minute snooze bounded to the declared interval. Attention writes use per-key serialized durable-storage calls and newest-generation handling, visibly reporting pending, session-only, or retry state. The notification API carries explicit info, warning, or error severity at its boundary, with only information suppressible under Low stimulation, while warnings and errors remain visible in a reviewable history. One generated onUserMutation callback covers controls, steppers, appearance, canvas, layout, tabs, groups, presets, and direct App-owned endpoint, server, settings, file, ticket, lock, and authenticator mutations, excluding passive reads and navigation. The checked-in design adds the att_next text control, stable semantic markers, and generated output was refreshed. No UI, accessibility, browser, or built-artifact verification was run in this lane, so this remains partial until the owning integration lane supplies that evidence. Nothing is medical, scored, or judgemental.",
+      "note": "Implemented-unverified 2026-08-23. app/renderer/src/attention-modes.ts defines five independent off-by-default switches, exact ATTENTION_WIRING rows, ATTENTION_MUTATION_ACTIONS, redacted versioned notice history, and verifyAttentionWiring. App.tsx restores att_focus, att_low, att_time, att_one, att_momentum, att_next, and notice history from durable storage after mount. The application-lifetime runtime uses stable semantic design markers to dim inactive chrome without hiding work, applies quiet color and motion consumers, composes with prefers-reduced-motion, shows session and since-last-change values in the current work region, and gives Momentum a factual 20-minute prompt with a persisted 30-minute snooze bounded to the declared interval. Attention writes use per-key serialized durable-storage calls and newest-generation handling, visibly reporting each affected key as pending, session-only, retry, or saved. All App and generated notification producers route through typed notifyInfo, notifyWarning, notifyError, notifyInfoEvent, notifyWarningEvent, or notifyErrorEvent helpers. Warning and error history is bounded, redacted, versioned, durably restored, searchable, clearable, and exportable. One generated onUserMutation callback covers controls, steppers, appearance, canvas, layout, tabs, groups, presets, and direct App-owned endpoint, server, settings, file, ticket, lock, and authenticator mutations, excluding passive reads and navigation. SettingsRegistry rolls back its in-memory map when atomic host persistence fails and dispatch returns the typed failure. The checked-in design adds the att_next text control, stable semantic markers, exact mutation actions, real Group tabs by area, and an honest unavailable new-window action. No UI, accessibility, browser, or built-artifact verification was run in this lane, so this remains partial until the owning integration lane supplies that evidence. Nothing is medical, scored, or judgemental.",
       "files": [
         "app/renderer/src/attention-modes.ts",
         "app/renderer/src/App.tsx",
@@ -273,6 +273,13 @@
         { "producer": "App.notifyErrorEvent", "severity": "error", "consumer": "App.fire" },
         { "producer": "ceremony.runCeremonyCommand", "severity": "explicit NoticeSeverity argument", "consumer": "App.notifyInfo/Warning/Error" }
       ],
+      "notificationHistory": {
+        "key": "console.attention.noticeHistory",
+        "schemaVersion": 1,
+        "maxEntries": 200,
+        "redaction": "redactNoticeText removes paths, URLs, and credential-shaped values before durable write",
+        "actions": ["search", "clear", "export", "restore"]
+      },
       "mutationPaths": [
         "App.languageAwareSetVal",
         "App.fileSupportTicket",
@@ -291,6 +298,20 @@
         "App.attentionSnooze",
         "App.attentionRetry",
         "generated onUserMutation"
+      ],
+      "mutationActions": [
+        { "action": "set", "key": "canvasTool", "state": "canvasTool" },
+        { "action": "set", "key": "grid", "state": "grid" },
+        { "action": "set", "key": "snap", "state": "snap" },
+        { "action": "set", "key": "guides", "state": "guides" },
+        { "action": "set", "key": "minimap", "state": "minimap" },
+        { "action": "set", "key": "layer", "state": "layer" },
+        { "action": "set", "key": "zoom", "state": "zoom" },
+        { "action": "set", "key": "pinned", "state": "pinned" },
+        { "action": "set", "key": "dock", "state": "dock" },
+        { "action": "set", "key": "fullscreen", "state": "fullscreen" },
+        { "action": "set", "key": "branch", "state": "branch" },
+        { "action": "set", "key": "sortList", "state": "sortList" }
       ]
     },
     "browser-extension-download-surfaces": {

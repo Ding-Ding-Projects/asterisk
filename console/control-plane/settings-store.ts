@@ -69,22 +69,26 @@ export class SettingsRegistry {
   }
 
   set(key: string, value: string): SettingsWriteResult {
+    const previous = new Map(this.values);
     this.values.set(key, value);
     try {
       this.store.write(this.snapshot());
       return { ok: true };
     } catch (error) {
+      this.values = previous;
       return { ok: false, code: 'SETTINGS_WRITE_FAILED', message: error instanceof Error ? error.message : 'Could not persist the setting.' };
     }
   }
 
   remove(key: string): SettingsWriteResult {
     if (!this.values.has(key)) return { ok: true };
+    const previous = new Map(this.values);
     this.values.delete(key);
     try {
       this.store.write(this.snapshot());
       return { ok: true };
     } catch (error) {
+      this.values = previous;
       return { ok: false, code: 'SETTINGS_REMOVE_FAILED', message: error instanceof Error ? error.message : 'Could not remove the setting.' };
     }
   }
