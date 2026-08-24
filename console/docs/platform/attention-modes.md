@@ -14,11 +14,11 @@ Copy in these modes would stay plain and factual, never gamified or judgmental, 
 
 **Desktop application:** Not implemented. The desktop application has none of these modes; there is no focus dimming, no stimulation reduction toggle, no elapsed-time indicator, and no momentum prompt.
 
-**Documentation website:** Partial. The site's settings page includes placeholder entries naming these modes; none of the five behaviors are actually wired to change the rendered page yet.
+**Documentation website:** Implemented for the site-owned surface. Every page exposes independently persisted focus, low stimulation, time awareness, one-thing-at-a-time, and momentum controls, all off by default. The current action and elapsed time appear on the page, and the momentum notice uses a bounded local idle interval.
 
 ## Failure modes
 
-None of these modes currently changes anything a user can see; the placeholder settings entries are labels only, so there is no interaction to fail yet.
+If no current action is entered, one-thing-at-a-time stays visually quiet rather than inventing one. Reduced-motion and low-stimulation requests stop non-essential animation; momentum never claims that work changed.
 
 ## Accessibility and localization
 

@@ -14,7 +14,7 @@ Tabs would support keyboard navigation with correct roles and states, and the st
 
 **Desktop application:** Partial. A left navigation rail separates the app's screens, which gives some of the navigational benefit of tabs, but there is no true tab strip with overflow handling, reordering, pinning, or edge-docking choice.
 
-**Documentation website:** Not implemented. Articles are presented as a navigable list with in-page section anchors rather than a browser-style tab strip.
+**Documentation website:** Partial. Every top-level page and composed article receives the same ARIA tablist with persisted left, right, top, and bottom docking. Left is the default, and side docking collapses to the compact header below 900px. Reordering, pinning, grouping, overflow management, and the four independent tab searches remain incomplete.
 
 ## Failure modes
 

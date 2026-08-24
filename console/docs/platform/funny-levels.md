@@ -14,7 +14,7 @@ Sliders would live in settings, default to level 5 for both languages, and be ch
 
 **Desktop application:** Not implemented. No slider exists and all product copy is written at a single fixed tone.
 
-**Documentation website:** Partial. A settings page draft includes slider controls, but changing them does not yet restyle any rendered page copy.
+**Documentation website:** Partial. Every page exposes two independent persisted controls from 1 to 5, both defaulting to 5. Shared copy with defined variants changes immediately, but every authored article sentence is not yet represented at all five levels.
 
 ## Failure modes
 

@@ -14,11 +14,11 @@ Results would render as rich, interactive rows — a settings row with its actua
 
 **Desktop application:** Not implemented. The desktop application has no command palette or global keyboard-activated search of any kind.
 
-**Documentation website:** Partial. The site responds to `Ctrl+Shift+F` with a basic overlay that filters the article title list by substring; it does not index individual settings or in-page destinations, and results are plain text links rather than rich interactive rows.
+**Documentation website:** Implemented for the shared shell. Every page responds to `Ctrl+Shift+F`, searches all top-level pages, direct composed article URLs, and exact shared controls, and opens a selected control with focus. Article results no longer depend on a paginated destination card being present.
 
 ## Failure modes
 
-If the underlying index were incomplete, the intended behavior is to show fewer results rather than a broken or unresponsive palette; the current site overlay degrades this way already, since it only ever indexes titles.
+An empty result says that no page, article, or control matched. The palette uses direct article paths instead of hash targets that can be absent from the current pagination page.
 
 ## Accessibility and localization
 

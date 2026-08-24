@@ -14,11 +14,11 @@ It would update one page in place rather than mint a new page per update, and ca
 
 **Desktop application:** Not implemented. No such development-status page exists for this product on the desktop application.
 
-**Documentation website:** Not implemented. No such development-status page exists on the site either.
+**Documentation website:** Partial. The site composer embeds one validated build-manifest record into every published page. The status and download surfaces derive their counts, release availability, immutable URL, byte count, and digest only from that record, and show unavailable, invalid, or stale states otherwise. Live maintenance sessions and interactive question delivery are not implemented on this public surface.
 
 ## Failure modes
 
-If the underlying build or release data were unreachable, the intended behavior is to say so on the page rather than show a stale state as current; nothing implements that today.
+If no composed record exists, the source page says the record is unavailable. If release evidence fails schema checks or describes a different package version, the download remains disabled and the exact invalid or stale reason is shown.
 
 ## Accessibility and localization
 

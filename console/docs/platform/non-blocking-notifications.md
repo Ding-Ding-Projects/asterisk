@@ -14,11 +14,11 @@ Notifications would carry an optional title, body, and action links, and remain 
 
 **Desktop application:** Partial. The desktop application shows a small number of transient status messages during build and deployment actions, but they are not consistently corner-anchored, do not stack predictably, and there is no notification history panel to review a dismissed one.
 
-**Documentation website:** Implemented. The documentation website surfaces confirmation and copy-to-clipboard toasts as non-blocking corner notifications with auto-dismiss timing.
+**Documentation website:** Implemented. Every top-level and composed article page uses the same corner notifications and persisted history, with search, an adjacent regex builder, real multi-select dismissal, and selected-record export. A filtered no-match state is distinct from a truly empty history.
 
 ## Failure modes
 
-A notification that fails to render (for example, a missing template) is meant to fall back to a plain-text toast rather than silently drop; there is still no reviewable notification history on either surface to check that against.
+A notification that cannot be shown in the corner remains in local history. History is bounded to 30 entries, and destructive bulk dismissal requires a reviewable confirmation before records are removed.
 
 ## Accessibility and localization
 
