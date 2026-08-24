@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(fileURLToPath(import.meta.url));
 const docs = resolve(root, '..', 'docs');
 const output = join(root, 'dist');
-const assets = ['index.html', 'product.html', 'documentation.html', 'downloads.html', 'status.html', 'settings.html', 'history.html', 'styles.css', 'app.js', 'history-delivery.js'];
+const assets = ['index.html', 'product.html', 'documentation.html', 'downloads.html', 'status.html', 'settings.html', 'history.html', 'styles.css', 'app.js', 'history-delivery.js', 'changelog-data.js', 'release-manifest.js'];
 const socialPreview = resolve(root, '..', '..', 'social-preview.png');
 
 if (process.argv.includes('--clean')) {
@@ -90,7 +90,8 @@ async function wireGeneratedDelivery(relative) {
   const back = '../'.repeat(depth);
   const source = await readFile(file, 'utf8');
   if (source.includes('history-delivery.js')) return;
-  await writeFile(file, source.replace('</body></html>', `<script src="${back}history-delivery.js" defer></script></body></html>`), 'utf8');
+  const mounted = source.replace('</main>', '<div id="history-delivery-mount" data-delivery-host></div></main>');
+  await writeFile(file, mounted.replace('</body></html>', `<script src="${back}history-delivery.js" defer></script></body></html>`), 'utf8');
 }
 async function wireGeneratedTree(relative = '') {
   for (const entry of await readdir(join(output, relative), { withFileTypes: true })) {

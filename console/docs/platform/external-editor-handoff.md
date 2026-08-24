@@ -14,7 +14,7 @@ Opening a folder would open it as a workspace root rather than a single unrooted
 
 **Desktop application:** Not implemented. The desktop application has no external editor detection or handoff action anywhere in its interface.
 
-**Documentation website:** Implemented as a browser-mediated equivalent at `history.html`. It can request a `vscode://` protocol for a prepared export and links to the official Visual Studio Code download when the browser blocks the protocol, while stating that local paths remain browser-owned.
+**Documentation website:** Implemented as a browser-mediated equivalent at `history.html`. It accepts local file selection and export download, but keeps external-editor opening unavailable because a normal browser does not expose a verified local path. It links to the official Visual Studio Code download and states that local paths remain browser-owned.
 
 ## Failure modes
 

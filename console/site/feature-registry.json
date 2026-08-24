@@ -97,9 +97,9 @@
       "files": []
     },
     "browser-style-tabs": {
-      "state": "absent",
-      "note": "The site is a small multi-page static site (index/product/documentation/downloads/settings/status.html navigated as separate pages); no in-page browser-style tab strip, docking, or tab groups were found in site/app.js.",
-      "files": []
+      "state": "partial",
+      "note": "history-delivery.js adds a persisted shared route tab strip with route switching and pinning on every primary and generated documentation page. Grouping and reordering are explicitly unavailable on the static host and are stated beside the tabs.",
+      "files": ["site/history-delivery.js", "site/app.js", "site/styles.css", "site/build.mjs"]
     },
     "tab-groups-and-searches": {
       "state": "absent",
@@ -108,9 +108,10 @@
     },
     "command-palette": {
       "state": "partial",
-      "note": "site/app.js implements openPalette() (line 816) opening a real <dialog id=\"command-palette\"> with a live-filtered palette-search field and renderPalette(), wired from a palette-open button and Ctrl+Shift+F was not confirmed as the activation key (only a button click and palette-search input were found) - the keyboard-shortcut activation contract is unverified.",
+      "note": "site/app.js implements openPalette() (line 816) opening a real <dialog id=\"command-palette\"> with a live-filtered palette-search field and renderPalette(), wired from a palette-open button and Ctrl+Shift+F. The palette now indexes the Delivery workspace and each exact history, changelog, export, handoff, editor, forge, and update destination.",
       "files": [
-        "site/app.js"
+        "site/app.js",
+        "site/history-delivery.js"
       ]
     },
     "destructive-action-confirmation": {
@@ -129,11 +130,11 @@
     "changelog-viewer": {
       "state": "implemented",
       "note": "history-delivery.js renders dated categorized changes with full commit URLs, date filtering, plain or regex search, copy, and filtered Markdown export. Entries are recorded changes, never an inferred release claim.",
-      "files": ["site/history-delivery.js", "site/history.html"]
+      "files": ["site/history-delivery.js", "site/history.html", "site/changelog-data.js"]
     },
     "external-editor-handoff": {
       "state": "implemented",
-      "note": "The local delivery workspace accepts a browser file selection, tracks the last locally prepared export, requests a vscode:// handoff for that export, and provides an official Visual Studio Code download route with an honest browser-boundary recovery message. No local path or credential is stored.",
+      "note": "The local delivery workspace accepts a browser file selection and downloads exports, but keeps the external-editor action unavailable because a normal browser does not expose a verified local path. It provides an official Visual Studio Code download route with an honest browser-boundary recovery message. No local path or credential is stored.",
       "files": ["site/history-delivery.js", "site/history.html", "site/styles.css"]
     },
     "complete-exports": {
@@ -201,7 +202,7 @@
     },
     "browser-extension-download-surfaces": {
       "state": "implemented",
-      "note": "The delivery workspace provides a real browser-mediated local file handoff with distinct Start, browser-owned progress, cancellation, and user-confirmed completion states. It never invents byte progress or claims a transfer completed without the user's confirmation.",
+      "note": "The delivery workspace uses the File System Access API when available to write real chunks to a user-selected destination, reports measured bytes, supports cancellation, and only reports completion after the writable stream closes. Unsupported browsers remain explicitly unavailable.",
       "files": ["site/history-delivery.js", "site/history.html", "site/styles.css"]
     },
     "offline-documentation-browser": {
@@ -265,7 +266,7 @@
     "automatic-updates": {
       "state": "implemented",
       "note": "The static delivery workspace records a local published-page check and offers a normal reload. It explicitly states that static hosting cannot install or restart the desktop application and never claims an update was applied.",
-      "files": ["site/history-delivery.js", "site/history.html", "docs/platform/site-history-and-delivery.md"]
+      "files": ["site/history-delivery.js", "site/history.html", "site/release-manifest.js", "docs/platform/site-history-and-delivery.md"]
     }
   }
 }
