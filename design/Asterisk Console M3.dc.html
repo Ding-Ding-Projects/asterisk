@@ -4498,8 +4498,8 @@ class Component extends DCLogic {
         if (s.ctxSub === 'gsave') return [
           { icon:'download', label:'Export group as JSON', run:() => { close(); this.hostAction('export-json', { name:g.name, subject:'group', data:g }); } },
           { icon:'upload', label:'Import a group…', run:() => { close(); this.hostAction('import-json', { subject:'group' }); } },
-          { icon:'bookmark_add', label:'Save as a workspace', run:() => { close(); this.hostAction('save', { bucket:'workspace', name:'Workspace' }); } },
-          { icon:'restore', label:'Restore last session', run:() => { close(); this.toast('Previous tabs and groups restored'); } }
+          { icon:'bookmark_add', label:'Save as a workspace', run:() => { close(); this.hostAction('save', { bucket:'workspace', name:'Workspace', data:{ tabs:s.tabs, groups:s.groups } }); } },
+          { icon:'restore', label:'Restore last session', run:() => { close(); this.hostAction('restore', { bucket:'workspace' }); } }
         ];
         if (s.ctxSub === 'tabexport') return [
           { icon:'download', label:'Export this tab', run:() => { close(); this.hostAction('export-json', { name:t.label, subject:'tab', data:t }); } },

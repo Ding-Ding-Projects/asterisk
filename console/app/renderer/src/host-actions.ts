@@ -15,7 +15,7 @@
  * be tested without a clipboard, a filesystem or a browser.
  */
 
-export type HostActionKind = 'copy' | 'copy-config' | 'export-config' | 'export-json' | 'import-json' | 'save' | 'pick-colour';
+export type HostActionKind = 'copy' | 'copy-config' | 'export-config' | 'export-json' | 'import-json' | 'save' | 'pick-colour' | 'restore';
 
 export interface HostActionRequest {
   kind: HostActionKind;
@@ -49,6 +49,10 @@ export interface HostActionEffects {
   pickColour?(): Promise<string | undefined>;
   /** Makes the picked colour the real accent. false when it could not be read as a colour. */
   applyAccent?(hex: string): boolean;
+  /** Reads back what save() kept, or undefined when nothing was ever saved. */
+  readSaved?(bucket: string): unknown;
+  /** Puts a saved workspace back on screen. Reports what it could not use. */
+  applySaved?(data: unknown): { restored: number; skipped: number } | undefined;
   now(): string;
 }
 
@@ -80,6 +84,8 @@ export async function runHostAction(
       return save(request, effects);
     case 'pick-colour':
       return pickColour(effects);
+    case 'restore':
+      return restore(request, effects);
     default:
       /* Named rather than swallowed: a control wired to an action nobody implemented
        * should say so, not quietly succeed. */
@@ -105,6 +111,38 @@ async function pickColour(effects: HostActionEffects): Promise<HostActionOutcome
   return effects.applyAccent(hex)
     ? { ok: true, title: 'Accent changed', detail: hex + ' is the accent now, and it is kept when you relaunch.' }
     : { ok: false, title: 'Not applied', detail: hex + ' could not be read as a colour, so the accent is unchanged.' };
+}
+
+/**
+ * Puts a saved workspace back.
+ *
+ * Four endings, and the old control had one: it said the session was restored whatever had
+ * or had not happened, including when nothing had ever been saved -- which was always, since
+ * its matching save kept only a name.
+ */
+function restore(request: HostActionRequest, effects: HostActionEffects): HostActionOutcome {
+  const bucket = request.bucket ?? 'workspace';
+  if (!effects.readSaved || !effects.applySaved) {
+    return { ok: false, title: 'Not available', detail: 'Nothing here can read a saved session back.' };
+  }
+  const saved = effects.readSaved(bucket);
+  if (saved === undefined) {
+    return { ok: false, title: 'Nothing saved', detail: 'No session has been saved yet, so there is nothing to put back.' };
+  }
+  const applied = effects.applySaved(saved);
+  if (!applied) {
+    return { ok: false, title: 'Not restored', detail: 'That saved session could not be read, so nothing on screen changed.' };
+  }
+  if (applied.restored === 0) {
+    /* A workspace saved by an older build can name screens this one does not have. Opening
+     * them would render blank tabs, which reads as the app breaking rather than as an old
+     * file, so none of it is applied and the reason is said. */
+    return { ok: false, title: 'Not restored', detail: 'None of the screens in that saved session exist any more, so nothing on screen changed.' };
+  }
+  const note = applied.skipped > 0
+    ? ` ${applied.skipped} screen(s) in it no longer exist and were left out.`
+    : '';
+  return { ok: true, title: 'Session restored', detail: `${applied.restored} tab(s) are back.${note}` };
 }
 
 async function copy(request: HostActionRequest, effects: HostActionEffects): Promise<HostActionOutcome> {
@@ -168,7 +206,11 @@ function save(request: HostActionRequest, effects: HostActionEffects): HostActio
    * has a kind, and one object with two fields called kind is a collision waiting to
    * happen -- the design passes this one, and it would have shadowed the action itself. */
   const bucket = request.bucket ?? 'item';
-  const ok = effects.store(`console.saved.${bucket}`, JSON.stringify({ name, at: effects.now() }));
+  /* The payload goes in too, when there is one. Keeping only a name is what made "Save as a
+   * workspace" and "Restore last session" a matched pair of claims with no mechanism between
+   * them: the save reported success, and the restore had nothing to read. */
+  const ok = effects.store(`console.saved.${bucket}`,
+    JSON.stringify({ name, at: effects.now(), ...(request.data === undefined ? {} : { data: request.data }) }));
   return ok
     ? { ok: true, title: 'Saved', detail: `"${name}" is kept on this computer and survives a relaunch.` }
     : { ok: false, title: 'Not saved', detail: 'Local storage refused the write, so nothing was kept.' };

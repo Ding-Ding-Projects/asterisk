@@ -214,3 +214,66 @@ test('the three ways picking can end are told apart', async () => {
   assert.equal(unreadable.ok, false);
   assert.match(unreadable.detail, /could not be read as a colour, so the accent is unchanged/);
 });
+
+
+/* --- putting a saved session back ------------------------------------------------------ */
+
+test('a saved workspace keeps what was open, and restore puts it back', async () => {
+  /* The two used to be a matched pair of claims with no mechanism between them: the save
+   * kept a name and a timestamp, so the restore had nothing to read and said it had
+   * restored a session anyway. */
+  const { seen, effects: base } = effects();
+  await runHostAction({ kind: 'save', bucket: 'workspace', name: 'Workspace', data: { tabs: ['dash', 'live'], groups: [] } }, base);
+  const kept = JSON.parse(seen.stored.get('console.saved.workspace'));
+  assert.deepEqual(kept.data, { tabs: ['dash', 'live'], groups: [] });
+
+  let applied;
+  const out = await runHostAction({ kind: 'restore', bucket: 'workspace' }, {
+    ...base,
+    readSaved: () => kept,
+    applySaved: (data) => { applied = data; return { restored: 2, skipped: 0 }; },
+  });
+  assert.equal(out.ok, true);
+  assert.deepEqual(applied, kept);
+  assert.match(out.detail, /2 tab\(s\) are back\./);
+});
+
+test('restoring with nothing saved says so rather than claiming a restore', async () => {
+  const out = await runHostAction({ kind: 'restore', bucket: 'workspace' }, {
+    ...effects().effects, readSaved: () => undefined, applySaved: () => ({ restored: 1, skipped: 0 }),
+  });
+  assert.equal(out.ok, false);
+  assert.match(out.detail, /No session has been saved yet/);
+});
+
+test('a workspace whose screens have all gone changes nothing on screen', async () => {
+  /* Opening tabs for screens that no longer exist renders blanks, which reads as the app
+   * breaking rather than as an old file. None of it is applied, and the reason is said. */
+  const out = await runHostAction({ kind: 'restore', bucket: 'workspace' }, {
+    ...effects().effects, readSaved: () => ({ data: { tabs: ['gone'] } }), applySaved: () => ({ restored: 0, skipped: 1 }),
+  });
+  assert.equal(out.ok, false);
+  assert.match(out.detail, /None of the screens in that saved session exist any more/);
+});
+
+test('a partly usable workspace restores what it can and says what it left out', async () => {
+  const out = await runHostAction({ kind: 'restore', bucket: 'workspace' }, {
+    ...effects().effects, readSaved: () => ({ data: { tabs: ['dash', 'gone'] } }), applySaved: () => ({ restored: 1, skipped: 1 }),
+  });
+  assert.equal(out.ok, true);
+  assert.match(out.detail, /1 screen\(s\) in it no longer exist and were left out\./);
+});
+
+test('an unreadable saved value is reported, not applied', async () => {
+  const out = await runHostAction({ kind: 'restore', bucket: 'workspace' }, {
+    ...effects().effects, readSaved: () => 42, applySaved: () => undefined,
+  });
+  assert.equal(out.ok, false);
+  assert.match(out.detail, /could not be read, so nothing on screen changed/);
+});
+
+test('a platform with no session store says so', async () => {
+  const out = await runHostAction({ kind: 'restore', bucket: 'workspace' }, effects().effects);
+  assert.equal(out.ok, false);
+  assert.match(out.detail, /Nothing here can read a saved session back/);
+});

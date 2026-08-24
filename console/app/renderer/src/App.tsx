@@ -913,6 +913,31 @@ What you can do: ${offered}.` : ''}`);
         if (!Picker) return undefined;
         try { return (await new Picker().open()).sRGBHex; } catch { return undefined; }
       },
+      /** What save() kept, or undefined when nothing was ever saved under that name. */
+      readSaved: (bucket: string) => {
+        const raw = this.durableStorage.storage.getItem(`console.saved.${bucket}`);
+        if (typeof raw !== 'string' || raw === '') return undefined;
+        try { return JSON.parse(raw); } catch { return undefined; }
+      },
+      /**
+       * Puts a saved workspace back on screen.
+       *
+       * Every id is checked against the destinations that actually exist. A workspace saved
+       * by an older build can name a screen this one does not have, and opening it would
+       * render a blank tab -- which reads as the app breaking rather than as an old file. So
+       * the unknown ones are counted and left out, and the count is reported.
+       */
+      applySaved: (data: unknown) => {
+        const saved = data as { data?: { tabs?: unknown; groups?: unknown } } | undefined;
+        const tabs = saved?.data?.tabs;
+        if (!Array.isArray(tabs)) return undefined;
+        const known = new Set(ORDER as unknown as string[]);
+        const usable = tabs.filter((id): id is string => typeof id === 'string' && known.has(id));
+        if (usable.length === 0) return { restored: 0, skipped: tabs.length };
+        const groups = Array.isArray(saved?.data?.groups) ? saved.data.groups : [];
+        this.setState({ tabs: usable, groups, screen: usable[0] });
+        return { restored: usable.length, skipped: tabs.length - usable.length };
+      },
       /* Applied through the same three values the appearance system already persists, so a
        * picked colour changes the console itself rather than a preview swatch. */
       applyAccent: (hex: string) => {
