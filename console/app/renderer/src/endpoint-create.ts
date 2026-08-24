@@ -25,6 +25,10 @@ export const WIZARD_CONTROLS = {
   name: 'w_name',
   extension: 'w_ext',
   transport: 'w_transport',
+  /* The global codec order from the codecs screen. It is not a question the wizard asks;
+   * it is the default a new endpoint starts from, which is the only thing a "global order"
+   * can honestly mean when pjsip keeps codec lists per endpoint. */
+  codecOrder: 'k_order',
   context: 'w_context',
   nat: 'w_nat',
   qualify: 'w_qualify',
@@ -82,6 +86,17 @@ export function buildEndpointDraft(existing: ConfigValue, answers: WizardAnswers
    * about what they probably wanted. */
   const transport = text(answers, WIZARD_CONTROLS.transport);
   if (transport) created.endpoint.transport = transport;
+
+  /* Only when it was actually set. An empty or absent order leaves the model's own default,
+   * rather than writing an empty allow list, which in pjsip means an endpoint that can
+   * negotiate nothing at all. */
+  const order = answers[WIZARD_CONTROLS.codecOrder];
+  if (Array.isArray(order) && order.length > 0 && order.every((codec) => typeof codec === 'string')) {
+    created.endpoint.allow = order as string[];
+    /* An allow list means nothing in pjsip without this, so the two are always written
+     * together -- the same pairing the endpoint editor already makes. */
+    if (!created.endpoint.disallow.includes('all')) created.endpoint.disallow = ['all'];
+  }
 
   /* "Behind a home router" is the plain-language form of the three settings that make a
    * phone behind NAT work. The answer is applied in both directions on purpose.
