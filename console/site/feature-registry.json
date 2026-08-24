@@ -87,14 +87,24 @@
       ]
     },
     "local-file-converter": {
-      "state": "absent",
-      "note": "The site's many to*() functions (toJson, toXml, toYaml, toSql, toToml, toDelimited, toMarkdown, toHtml) convert the documentation/notification export data into different text formats - this is export formatting (complete-exports), not a general-purpose local file converter with a category catalogue and bundled adapters. No such converter surface exists.",
-      "files": []
+      "state": "partial",
+      "note": "converter.html and site/app.js now provide a dedicated local file surface with byte-signature inspection, a categorized adapter catalogue, adjacent bounded regex search, a 32 MiB per-file bound, paged queue, cancellation, preview, atomic in-memory Blob download, and per-file outcomes. Browser-bundled adapters are limited to UTF-8 text, JSON, JSONL, CSV, TSV, Markdown, and Base64; PDF, image, audio, video, archive, and other unavailable families remain visible with exact missing-adapter reasons. Build and built-artifact interaction evidence is still pending, so this is not marked verified.",
+      "files": [
+        "site/converter.html",
+        "site/app.js",
+        "site/styles.css",
+        "docs/platform/local-file-converter.md"
+      ]
     },
     "ollama-suite-manager": {
-      "state": "absent",
-      "note": "No Ollama integration of any kind exists in the site.",
-      "files": []
+      "state": "partial",
+      "note": "ollama.html and site/app.js now provide an explicit approved-loopback bridge for documented /api/version, /api/tags, /api/ps, /api/show, /api/pull, and /api/chat routes. URL, mixed-content, CORS, timeout, response-size, offline, stopped, unhealthy, stale-catalogue, stream-cancel, and missing-model states remain explicit; no model is invented and catalogue completeness stays Unknown unless an exhaustive fetch is added. Build and built-artifact interaction evidence is still pending, so this is not marked verified.",
+      "files": [
+        "site/ollama.html",
+        "site/app.js",
+        "site/styles.css",
+        "docs/platform/ollama-suite-manager.md"
+      ]
     },
     "browser-style-tabs": {
       "state": "partial",
