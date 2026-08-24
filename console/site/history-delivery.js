@@ -4,6 +4,7 @@
   const STORAGE_KEY = 'ding-pbx-site-history-delivery-v1';
   const STATE_SCHEMA_VERSION = 3;
   const HISTORY_EXPORT_SCHEMA_VERSION = 2;
+  const HISTORY_IMPORT_AUDIT_KEY = `${STORAGE_KEY}-import-audit`;
   const DELIVERY_STATES = new Set(['idle', 'preparing', 'prepared', 'handoff-started', 'handoff-unverified', 'handoff-cancelled', 'handoff-failed']);
   const MAX_HISTORY = 250;
   const MAX_EVENT_COUNT = 100000;
@@ -34,8 +35,16 @@
     return new URL(name, document.baseURI).href;
   }
 
+  function normalizePersistedEventParams(action, params) {
+    if (action === 'history-import' && params && typeof params === 'object' && !Array.isArray(params)) {
+      const keys = Object.keys(params).sort().join(',');
+      if (keys === 'imported,refused,truncated') return normalizeEventParams(action, { imported: params.imported, refused: params.refused, existingTruncated: 0, importTruncated: params.truncated });
+    }
+    return normalizeEventParams(action, params);
+  }
+
   function migrateLegacyEvent(event) {
-    if (event && typeof event.params === 'object') return normalizeEventParams(event.action, event.params);
+    if (event && typeof event.params === 'object') return normalizePersistedEventParams(event.action, event.params);
     const details = event?.details && typeof event.details === 'object' ? event.details : {};
     if (event?.action === 'restored' && EVENT_ACTIONS.has(details.sourceAction) && /^[a-z0-9_-]{1,100}$/i.test(details.sourceEvent || '')) return { sourceAction: details.sourceAction, sourceEvent: details.sourceEvent };
     if (event?.action === 'pruned' && Number.isInteger(details.eventCount) && Number.isInteger(details.retention)) return { count: details.eventCount, retention: details.retention };
@@ -54,7 +63,7 @@
     const migrated = [];
     for (const event of Array.isArray(events) ? events : []) {
       if (!event || typeof event !== 'object' || typeof event.id !== 'string' || typeof event.timestamp !== 'string' || typeof event.action !== 'string') { counts.omitted += 1; continue; }
-      const params = normalizeEventParams(event.action, migrateLegacyEvent(event));
+      const params = normalizePersistedEventParams(event.action, migrateLegacyEvent(event));
       if (!params) { counts.refused += 1; continue; }
       migrated.push({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: event.action, params }); counts.imported += 1;
     }
@@ -66,7 +75,7 @@
     const normalized = [];
     for (const event of Array.isArray(events) ? events : []) {
       if (!event || typeof event !== 'object' || typeof event.id !== 'string' || typeof event.timestamp !== 'string' || typeof event.action !== 'string') { counts.omitted += 1; continue; }
-      const params = normalizeEventParams(event.action, event.params);
+      const params = normalizePersistedEventParams(event.action, event.params);
       if (!params) { counts.refused += 1; continue; }
       normalized.push({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: event.action, params });
     }
@@ -148,6 +157,24 @@
     const panel = document.createElement('details'); panel.id = 'migration-audit'; panel.className = 'delivery-migration-audit'; panel.innerHTML = '<summary>State migration refusal audit</summary><p>Future saved-state versions are refused without applying their records. This audit is stored separately from ordinary history, contains only schema status, version, and time, and is omitted from ordinary history exports.</p><ul id="migration-audit-list"></ul>';
     status.after(panel); renderMigrationAudit();
   }
+  function appendHistoryImportAudit(params, reason) {
+    try {
+      const audit = JSON.parse(localStorage.getItem(HISTORY_IMPORT_AUDIT_KEY) || '[]');
+      audit.push({ schemaVersion: 1, imported: params.imported, refused: params.refused, existingTruncated: params.existingTruncated, importTruncated: params.importTruncated, reason: scrubSummary(reason).slice(0, 160), timestamp: new Date().toISOString() });
+      localStorage.setItem(HISTORY_IMPORT_AUDIT_KEY, JSON.stringify(audit.slice(-20)));
+      renderHistoryImportAudit();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  function renderHistoryImportAudit() {
+    const host = document.querySelector('#history-import-audit-list'); if (!host) return;
+    try {
+      const audit = JSON.parse(localStorage.getItem(HISTORY_IMPORT_AUDIT_KEY) || '[]');
+      host.innerHTML = audit.length ? audit.slice().reverse().map(item => `<li>Imported ${escapeHtml(item.imported || 0)}, refused ${escapeHtml(item.refused || 0)}, existing truncated ${escapeHtml(item.existingTruncated || 0)}, import truncated ${escapeHtml(item.importTruncated || 0)} · ${escapeHtml(item.reason || 'no-op import')} · ${escapeHtml(formatDate(item.timestamp))}</li>`).join('') : '<li>No separate no-op import audits.</li>';
+    } catch { host.textContent = 'The separate no-op import audit is unavailable because local audit storage could not be read.'; }
+  }
 
   function scrubSummary(value) {
     return text(value).replace(/(?:bearer|token|password|passwd|secret|api[-_]?key)\s*[:=]\s*\S+/gi, '[redacted]').replace(/https?:\/\/\S+/gi, '[url omitted]').replace(/(?:[A-Za-z]:\\|\\\\|\/(?:Users|home|private|tmp)\/)[^\s]+/gi, '[path omitted]').replace(/\b[0-9a-f]{32,}\b/gi, '[redacted]').slice(0, 240);
@@ -188,7 +215,7 @@
   function localizedEnumLabel(kind, value) { const pair = ENUM_LABELS[kind]?.[value] || [value, value]; try { const mode = JSON.parse(localStorage.getItem('ding-pbx-pages-v2') || '{}').language; return mode === 'zh' ? pair[1] : mode === 'both' ? `${pair[0]} · ${pair[1]}` : pair[0]; } catch { return pair[0]; } }
   function normalizeEventParams(action, params = {}) {
     if (!EVENT_ACTIONS.has(action) || !params || typeof params !== 'object' || Array.isArray(params)) return null;
-    const allowed = { updated: ['field', 'status'], restored: ['sourceAction', 'sourceEvent'], pruned: ['count', 'retention'], 'download-started': ['bytes', 'status'], 'download-complete': ['bytes', 'status'], 'download-cancelled': ['bytes', 'status'], 'download-interrupted': ['status'], 'update-check': ['status'], 'update-reload': ['status'], 'recovery-opened': ['action'], 'forge-preview': ['source', 'destination', 'account', 'route', 'status'], 'forge-handoff': ['source', 'destination', 'account', 'route', 'status'], 'tab-pin': ['tab', 'pinned'], 'provider-preview': ['status'], 'state-migration': ['fromVersion', 'toVersion', 'status', 'imported', 'omitted', 'refused', 'retentionOmitted'], 'history-import': ['imported', 'refused', 'truncated'] }[action] || [];
+    const allowed = { updated: ['field', 'status'], restored: ['sourceAction', 'sourceEvent'], pruned: ['count', 'retention'], 'download-started': ['bytes', 'status'], 'download-complete': ['bytes', 'status'], 'download-cancelled': ['bytes', 'status'], 'download-interrupted': ['status'], 'update-check': ['status'], 'update-reload': ['status'], 'recovery-opened': ['action'], 'forge-preview': ['source', 'destination', 'account', 'route', 'status'], 'forge-handoff': ['source', 'destination', 'account', 'route', 'status'], 'tab-pin': ['tab', 'pinned'], 'provider-preview': ['status'], 'state-migration': ['fromVersion', 'toVersion', 'status', 'imported', 'omitted', 'refused', 'retentionOmitted'], 'history-import': ['imported', 'refused', 'existingTruncated', 'importTruncated'] }[action] || [];
     if (Object.keys(params).some(key => !allowed.includes(key) || ['__proto__', 'constructor', 'prototype'].includes(key))) return null;
     const integer = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
     const count = value => integer(value) !== null && value <= MAX_EVENT_COUNT ? integer(value) : null;
@@ -206,15 +233,15 @@
     if (action === 'tab-pin') return EVENT_ENUMS.tab.has(params.tab) && typeof params.pinned === 'boolean' ? { tab: params.tab, pinned: params.pinned } : null;
     if (action === 'provider-preview') return params.status === 'rendered' ? { status: params.status } : null;
     if (action === 'state-migration') return version(params.fromVersion) !== null && params.toVersion === STATE_SCHEMA_VERSION && ['migrated', 'migrated-with-loss', 'normalized-with-loss'].includes(params.status) && count(params.imported) !== null && count(params.omitted) !== null && count(params.refused) !== null && count(params.retentionOmitted) !== null ? { fromVersion: version(params.fromVersion), toVersion: STATE_SCHEMA_VERSION, status: params.status, imported: count(params.imported), omitted: count(params.omitted), refused: count(params.refused), retentionOmitted: count(params.retentionOmitted) } : null;
-    if (action === 'history-import') return count(params.imported) !== null && count(params.refused) !== null && count(params.truncated) !== null ? { imported: count(params.imported), refused: count(params.refused), truncated: count(params.truncated) } : null;
+    if (action === 'history-import') return count(params.imported) !== null && count(params.refused) !== null && count(params.existingTruncated) !== null && count(params.importTruncated) !== null ? { imported: count(params.imported), refused: count(params.refused), existingTruncated: count(params.existingTruncated), importTruncated: count(params.importTruncated) } : null;
     return null;
   }
   function eventSentence(event) {
     const p = event.params || {};
     const labels = { field: { settings: ['settings', '設定'], history: ['history', '歷史'], appearance: ['appearance', '外觀'], delivery: ['delivery', '交付'] }, status: { changed: ['changed', '改動'], reset: ['reset', '重設'], imported: ['imported', '匯入'], writing: ['writing', '寫入中'], 'stream-closed': ['stream closed', '串流已關閉'], cancelled: ['cancelled', '已取消'], interrupted: ['interrupted', '已中斷'], unavailable: ['unavailable', '不可用'], available: ['available', '可用'], downloading: ['downloading', '下載中'], ready: ['ready', '已準備'], failed: ['failed', '失敗'], requested: ['requested', '已要求'], 'preview-ready': ['preview ready', '預覽已準備'], 'preview-opened': ['preview opened', '預覽已開啟'], rendered: ['rendered', '已顯示'], migrated: ['migrated', '已遷移'], 'migrated-with-loss': ['migrated with recorded loss', '遷移但有記錄損失'] }, action: { retry: ['retry', '重試'], settings: ['settings', '設定'], vscode: ['editor download', '編輯器下載'] }, source: { 'current-site': ['current site', '目前頁面'], 'local-export': ['local export', '本地匯出'], 'selected-file': ['selected file', '已選檔案'] }, destination: { 'new-repository': ['new repository', '新專案庫'], 'existing-repository': ['existing repository', '現有專案庫'] }, account: { browser: ['browser account', '瀏覽器帳戶'], manual: ['provider selection', '供應商選擇'] }, route: { copy: ['copy and publish', '複製及發佈'], fork: ['fork flow', '分叉流程'] }, tab: Object.fromEntries(TAB_ROUTES.map(([idValue, label]) => [idValue, [label, label]])) };
     const label = (kind, value, language) => labels[kind]?.[value]?.[language === 'zh' ? 1 : 0] || value;
-    const en = { updated: `Updated ${label('field', p.field, 'en')} settings`, restored: `Restored a ${label('action', p.sourceAction, 'en')} event as a new event`, pruned: `Pruned ${p.count} older events, retaining ${p.retention}`, 'download-started': `Started ${label('status', p.status, 'en')} ${p.bytes} bytes`, 'download-complete': `Finished writing ${p.bytes} bytes`, 'download-cancelled': `Cancelled after writing ${p.bytes} bytes`, 'download-interrupted': `Marked the write ${label('status', p.status, 'en')}`, 'update-check': `Checked update state: ${label('status', p.status, 'en')}`, 'update-reload': 'Requested a page reload', 'recovery-opened': `Opened recovery action: ${label('action', p.action, 'en')}`, 'forge-preview': `Prepared a ${label('route', p.route, 'en')} preview from ${label('source', p.source, 'en')} to ${label('destination', p.destination, 'en')} for ${label('account', p.account, 'en')}`, 'forge-handoff': `Opened a ${label('route', p.route, 'en')} preview`, 'tab-pin': `${p.pinned ? 'Pinned' : 'Unpinned'} the ${label('tab', p.tab, 'en')} route`, 'provider-preview': 'Rendered a safe provider preview', 'state-migration': `${label('status', p.status, 'en')} saved state from version ${p.fromVersion} to ${p.toVersion}, imported ${p.imported}, omitted ${p.omitted}, refused ${p.refused}, retention omitted ${p.retentionOmitted}`, 'history-import': `Imported ${p.imported} events, refused ${p.refused}, truncated ${p.truncated}` }[event.action] || 'Recorded a local event';
-    const zh = { updated: `更新咗 ${label('field', p.field, 'zh')} 設定`, restored: `將 ${label('action', p.sourceAction, 'zh')} 記錄另存成新記錄`, pruned: `清理咗 ${p.count} 個舊記錄，保留 ${p.retention} 個`, 'download-started': `開始${label('status', p.status, 'zh')} ${p.bytes} bytes`, 'download-complete': `完成寫入 ${p.bytes} bytes`, 'download-cancelled': `寫入 ${p.bytes} bytes 後取消`, 'download-interrupted': `標記寫入為${label('status', p.status, 'zh')}`, 'update-check': `檢查更新狀態：${label('status', p.status, 'zh')}`, 'update-reload': '要求重新載入頁面', 'recovery-opened': `開啟恢復動作：${label('action', p.action, 'zh')}`, 'forge-preview': `準備由${label('source', p.source, 'zh')} 到${label('destination', p.destination, 'zh')} 嘅${label('route', p.route, 'zh')}預覽，使用${label('account', p.account, 'zh')}`, 'forge-handoff': `開啟咗${label('route', p.route, 'zh')}預覽`, 'tab-pin': `${p.pinned ? '釘選' : '取消釘選'} ${label('tab', p.tab, 'zh')} 路線`, 'provider-preview': '安全顯示 provider preview', 'state-migration': `${label('status', p.status, 'zh')} state 由版本 ${p.fromVersion} 到 ${p.toVersion}，匯入 ${p.imported}、省略 ${p.omitted}、拒絕 ${p.refused}、保留上限省略 ${p.retentionOmitted}`, 'history-import': `匯入 ${p.imported} 個記錄，拒絕 ${p.refused}，截斷 ${p.truncated}` }[event.action] || '記錄咗一項本地事件';
+    const en = { updated: `Updated ${label('field', p.field, 'en')} settings`, restored: `Restored a ${label('action', p.sourceAction, 'en')} event as a new event`, pruned: `Pruned ${p.count} older events, retaining ${p.retention}`, 'download-started': `Started ${label('status', p.status, 'en')} ${p.bytes} bytes`, 'download-complete': `Finished writing ${p.bytes} bytes`, 'download-cancelled': `Cancelled after writing ${p.bytes} bytes`, 'download-interrupted': `Marked the write ${label('status', p.status, 'en')}`, 'update-check': `Checked update state: ${label('status', p.status, 'en')}`, 'update-reload': 'Requested a page reload', 'recovery-opened': `Opened recovery action: ${label('action', p.action, 'en')}`, 'forge-preview': `Prepared a ${label('route', p.route, 'en')} preview from ${label('source', p.source, 'en')} to ${label('destination', p.destination, 'en')} for ${label('account', p.account, 'en')}`, 'forge-handoff': `Opened a ${label('route', p.route, 'en')} preview`, 'tab-pin': `${p.pinned ? 'Pinned' : 'Unpinned'} the ${label('tab', p.tab, 'en')} route`, 'provider-preview': 'Rendered a safe provider preview', 'state-migration': `${label('status', p.status, 'en')} saved state from version ${p.fromVersion} to ${p.toVersion}, imported ${p.imported}, omitted ${p.omitted}, refused ${p.refused}, retention omitted ${p.retentionOmitted}`, 'history-import': `Imported ${p.imported} events, refused ${p.refused}, existing live events truncated ${p.existingTruncated}, imported events truncated ${p.importTruncated}` }[event.action] || 'Recorded a local event';
+    const zh = { updated: `更新咗 ${label('field', p.field, 'zh')} 設定`, restored: `將 ${label('action', p.sourceAction, 'zh')} 記錄另存成新記錄`, pruned: `清理咗 ${p.count} 個舊記錄，保留 ${p.retention} 個`, 'download-started': `開始${label('status', p.status, 'zh')} ${p.bytes} bytes`, 'download-complete': `完成寫入 ${p.bytes} bytes`, 'download-cancelled': `寫入 ${p.bytes} bytes 後取消`, 'download-interrupted': `標記寫入為${label('status', p.status, 'zh')}`, 'update-check': `檢查更新狀態：${label('status', p.status, 'zh')}`, 'update-reload': '要求重新載入頁面', 'recovery-opened': `開啟恢復動作：${label('action', p.action, 'zh')}`, 'forge-preview': `準備由${label('source', p.source, 'zh')} 到${label('destination', p.destination, 'zh')} 嘅${label('route', p.route, 'zh')}預覽，使用${label('account', p.account, 'zh')}`, 'forge-handoff': `開啟咗${label('route', p.route, 'zh')}預覽`, 'tab-pin': `${p.pinned ? '釘選' : '取消釘選'} ${label('tab', p.tab, 'zh')} 路線`, 'provider-preview': '安全顯示 provider preview', 'state-migration': `${label('status', p.status, 'zh')} state 由版本 ${p.fromVersion} 到 ${p.toVersion}，匯入 ${p.imported}、省略 ${p.omitted}、拒絕 ${p.refused}、保留上限省略 ${p.retentionOmitted}`, 'history-import': `匯入 ${p.imported} 個記錄，拒絕 ${p.refused}，現有記錄截斷 ${p.existingTruncated}，匯入記錄截斷 ${p.importTruncated}` }[event.action] || '記錄咗一項本地事件';
     try { const prefs = JSON.parse(localStorage.getItem('ding-pbx-pages-v2') || '{}'); const mode = prefs.language; const enLevel = Math.max(0, Math.min(4, Number.isInteger(prefs.englishFunny) ? prefs.englishFunny : 0)); const zhLevel = Math.max(0, Math.min(4, Number.isInteger(prefs.cantoneseFunny) ? prefs.cantoneseFunny : 0)); const enVariants = [sentence => sentence, sentence => `${sentence} (local record)`, sentence => `${sentence}. The tiny ledger agrees.`, sentence => `${sentence}. The paper trail has shown up.`, sentence => `${sentence}. The evidence drawer is wearing a tie.`]; const zhVariants = [sentence => sentence, sentence => `${sentence}（本地記錄）`, sentence => `${sentence}，細細本 ledger 都認同。`, sentence => `${sentence}，紙仔路線出現喇。`, sentence => `${sentence}，證據櫃今日戴咗呔。`]; const styledEn = enVariants[enLevel](en); const styledZh = zhVariants[zhLevel](zh); return mode === 'zh' ? styledZh : mode === 'both' ? `${styledEn} · ${styledZh}` : styledEn; } catch { return en; }
   }
   function eventSearchProjection(event) {
@@ -398,18 +425,30 @@
   function ensureHistoryImportControls() {
     if (document.querySelector('#history-import-file')) return;
     const list = document.querySelector('#history-list'); if (!list) return;
-    const panel = document.createElement('div'); panel.id = 'history-import'; panel.className = 'delivery-retention'; panel.innerHTML = '<label>Import schema-2 JSON<input id="history-import-file" type="file" accept="application/json,.json"></label><button id="history-import-button" class="secondary-button" type="button">Append imported events</button><span id="history-import-status" role="status"></span>';
+    const panel = document.createElement('div'); panel.id = 'history-import'; panel.className = 'delivery-retention'; panel.innerHTML = '<label>Import schema-2 JSON<input id="history-import-file" type="file" accept="application/json,.json"></label><button id="history-import-button" class="secondary-button" type="button">Append imported events</button><span id="history-import-status" role="status"></span><details id="history-import-audit"><summary>Separate no-op import audit</summary><p>Duplicate-only, refused-only, and zero-retained imports preserve all live events and are recorded here instead of consuming a history slot.</p><ul id="history-import-audit-list"></ul></details>';
     list.before(panel);
+    renderHistoryImportAudit();
     panel.querySelector('#history-import-button').addEventListener('click', async () => {
       const input = panel.querySelector('#history-import-file'); const status = panel.querySelector('#history-import-status'); const file = input.files?.[0];
       if (!file) { status.textContent = 'Choose one local JSON export before importing.'; return; }
       try {
-        const parsed = validateImportPayload(await file.text());
+        const rawBytes = await file.arrayBuffer();
+        if (rawBytes.byteLength > 512 * 1024) throw new Error('the JSON file exceeds the 512 KiB byte limit');
+        const raw = new TextDecoder('utf-8', { fatal: true }).decode(rawBytes);
+        const parsed = validateImportPayload(raw, rawBytes.byteLength);
         const existing = new Set(state.history.map(event => event.id)); const duplicates = parsed.valid.filter(event => existing.has(event.id)).length; const candidates = parsed.valid.filter(event => !existing.has(event.id));
-        const merged = [...state.history, ...candidates]; const kept = merged.slice(-(MAX_HISTORY - 1)); const keptIds = new Set(kept.map(event => event.id)); const imported = candidates.filter(event => keptIds.has(event.id)).length; const truncated = candidates.length - imported; const refused = parsed.refused + duplicates;
-        const previous = state.history; state.history = kept; persist(); const result = record('history-import', { imported, refused, truncated });
+        const refused = parsed.refused + duplicates;
+        if (!candidates.length) {
+          const auditParams = { imported: 0, refused, existingTruncated: 0, importTruncated: 0 };
+          const auditStored = appendHistoryImportAudit(auditParams, duplicates ? 'duplicate-only' : 'refused-only');
+          status.textContent = `No events appended. Refused ${refused}; all live events were preserved. ${auditStored ? 'The no-op audit was stored separately.' : 'The separate no-op audit could not be stored.'}`;
+          return;
+        }
+        const merged = [...state.history, ...candidates]; const kept = merged.slice(-(MAX_HISTORY - 1)); const keptIds = new Set(kept.map(event => event.id)); const imported = candidates.filter(event => keptIds.has(event.id)).length; const importTruncated = candidates.length - imported; const existingTruncated = state.history.filter(event => !keptIds.has(event.id)).length;
+        const historyImportParams = { imported, refused, existingTruncated, importTruncated };
+        const previous = state.history; state.history = kept; persist(); const result = record('history-import', historyImportParams);
         if (!result?.ok) { state.history = previous; persist(); status.textContent = result?.reason || 'The import event was not appended, so success was not reported. Live state was restored.'; return; }
-        status.textContent = `Import appended ${imported} events. Refused ${refused}, truncated ${truncated}. Existing live events were preserved.`; input.value = '';
+        status.textContent = `Import appended ${imported} events. Refused ${refused}, existing events truncated ${existingTruncated}, import events truncated ${importTruncated}.`; input.value = '';
       } catch (error) { status.textContent = `Import refused: ${error.message || 'invalid JSON export'}. Live state was unchanged.`; }
     });
   }
@@ -447,8 +486,8 @@
     const object = depth => { index += 1; const keys = new Set(); whitespace(); if (raw[index] === '}') { index += 1; return; } while (index < raw.length) { whitespace(); if (raw[index] !== '"') throw new Error('object key must be a string'); const key = string(); if (keys.has(key)) throw new Error(`duplicate key: ${key}`); keys.add(key); if (['__proto__', 'constructor', 'prototype'].includes(key)) throw new Error(`unsafe key: ${key}`); whitespace(); if (raw[index++] !== ':') throw new Error('expected object colon'); value(depth); whitespace(); if (raw[index] === '}') { index += 1; return; } if (raw[index++] !== ',') throw new Error('expected object comma'); } throw new Error('unterminated object'); };
     value(0); whitespace(); if (index !== raw.length) throw new Error('trailing JSON data');
   }
-  function validateImportPayload(raw) {
-    if (raw.length > 512 * 1024) throw new Error('the JSON file exceeds the 512 KiB limit');
+  function validateImportPayload(raw, byteLength = new TextEncoder().encode(raw).byteLength) {
+    if (!Number.isSafeInteger(byteLength) || byteLength > 512 * 1024) throw new Error('the JSON file exceeds the 512 KiB byte limit');
     duplicateJsonKey(raw);
     const parsed = JSON.parse(raw);
     const topKeys = new Set(['schemaVersion', 'eventSchemaVersion', 'exportedAt', 'privateVocabulary', 'credentials', 'events']);
@@ -492,7 +531,7 @@
       actionSelect._deliveryRefresh?.();
       [...actionSelect.options].forEach(option => { if (ACTION_LABELS[option.value]) option.textContent = localizedEnumLabel('action', option.value); });
     }
-    host.innerHTML = rows.length ? rows.map(event => `<article class="delivery-history-row" data-event-id="${escapeHtml(event.id)}" data-delivery-context="history-row"><div><span class="card-kicker">${escapeHtml(event.action)}</span><h3>${escapeHtml(eventSentence(event))}</h3><p>${escapeHtml(formatDate(event.timestamp))}</p></div><div class="delivery-row-actions"><button type="button" class="text-button" data-restore-event="${escapeHtml(event.id)}">Restore as new event</button><details><summary>Structured parameters</summary><pre>${escapeHtml(JSON.stringify(event.params, null, 2))}</pre></details></div></article>`).join('') : '<p class="empty-state">No local events match this filter. Changes made on this page will appear here.</p>';
+    host.innerHTML = rows.length ? rows.map(event => `<article class="delivery-history-row" data-event-id="${escapeHtml(event.id)}" data-delivery-context="history-row"><div><span class="card-kicker">${escapeHtml(localizedEnumLabel('action', event.action))}</span><h3>${escapeHtml(eventSentence(event))}</h3><p>${escapeHtml(formatDate(event.timestamp))}</p></div><div class="delivery-row-actions"><button type="button" class="text-button" data-restore-event="${escapeHtml(event.id)}">Restore as new event</button><details><summary>Structured parameters</summary><pre>${escapeHtml(JSON.stringify(event.params, null, 2))}</pre></details></div></article>`).join('') : '<p class="empty-state">No local events match this filter. Changes made on this page will appear here.</p>';
     host.querySelectorAll('[data-restore-event]').forEach(button => button.addEventListener('click', () => {
       const source = state.history.find(event => event.id === button.dataset.restoreEvent);
       if (!source) return;
