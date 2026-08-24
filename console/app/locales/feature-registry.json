@@ -224,13 +224,24 @@
       "note": "Every listed label has a Cantonese entry."
     },
     "app-logo-customization": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [],
-      "localizedLabels": [],
+      "labels": [
+        "Console mark",
+        "Shipped mark",
+        "Your own picture",
+        "Back to the shipped mark",
+        "What is in use"
+      ],
+      "localizedLabels": [
+        "Console mark",
+        "Shipped mark",
+        "Your own picture",
+        "Back to the shipped mark",
+        "What is in use"
+      ],
       "untranslatedLabels": [],
-      "note": "Implemented as partial and contributing no design label, because it has no control: a picker before the decoder exists would accept a file and show nothing. The labels arrive with the picker.",
-      "blockedBy": "no-label-surface"
+      "note": "Every listed label has a Cantonese entry."
     },
     "local-file-converter": {
       "state": "not-localized",

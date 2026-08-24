@@ -37,6 +37,8 @@ const WIRED = [
   { id: 'src_clear', acts: 'saveSources(' },
   { id: 'nar_enabled', acts: 'applyNarrationControl(' },
   { id: 'nar_voice_en', acts: 'resolveVoiceStatus(' },
+  { id: 'logo_preset', acts: 'choosePreset(' },
+  { id: 'logo_pick', acts: 'acceptLogo(' },
 ];
 
 test('every wired control exists in the compiled design', () => {

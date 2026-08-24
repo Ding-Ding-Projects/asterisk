@@ -2565,6 +2565,12 @@ const SCREENS = {
       ctl('nar_pitch','Pitch','slider',1,{ min:0, max:2, step:0.1 }),
       ctl('nar_status','Voice status','text','Not started.',{ action:'narration-status', info:'Says what will actually speak: whether a chosen voice is installed, whether it is network-backed and will go quiet offline, or whether nothing on this machine can read the language at all. A picker showing a value implies that value will be heard, which is exactly what needs saying out loud when it will not.' })
     ]},
+    { title:'Console mark', desc:'The logo this console shows for itself. A shipped mark, or a picture of your own. It changes what you see and nothing else -- not where your settings live, not the installer, not the update feed.', ctls:[
+      ctl('logo_preset','Shipped mark','select','Ding',{ options:['Ding','Ding, single colour','Handset'], info:'Bundled locally, never fetched, so the mark is not a network request on every launch.' }),
+      ctl('logo_pick','Your own picture','file','',{ accept:'image/png,image/jpeg,image/webp,image/svg+xml', info:'The bytes decide what the file is, never its name or the type the picker reports -- both are claims made by whoever produced it. The size is read from the header before anything decodes, because a decompression bomb is small on disk and enormous in memory. The file is read here in the console, which needs no privilege to open anything else.' }),
+      ctl('logo_reset','Back to the shipped mark','switch',false,{ info:'One action, always available, whatever state the custom mark is in.' }),
+      ctl('logo_status','What is in use','text','The shipped mark.',{ action:'logo-status', info:'Names the mark actually in use, and states plainly what a rejected picture did not change: a file that fails any check leaves the previous mark exactly as it was.' })
+    ]},
     { title:'Attention', desc:'Five accommodations, each independent and each off until you switch it on. They change how the interface behaves, nothing else, and none of them says anything about you.', ctls:[
       ctl('att_focus','Focus','switch',false,{ info:'Dims everything except what you are working on. Nothing is hidden; the rest is still one click away.' }),
       ctl('att_low','Low stimulation','switch',false,{ info:'Fewer moving things, quieter colour, and only the notifications that genuinely need a person. If your system already asks for reduced motion, that is honoured whether or not this is on.' }),

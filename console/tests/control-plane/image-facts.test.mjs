@@ -157,3 +157,14 @@ test('an SVG claiming a nonsense size is refused rather than believed', () => {
     assert.equal(readHeaderFacts(svg(text)), undefined, `${text} was believed`);
   }
 });
+
+test('the wire shape and the header shape still agree', () => {
+  /* shared/control-plane.ts declares PickedImageFacts rather than importing HeaderFacts,
+   * because a wire type that reaches into a privileged module drags that module into the
+   * renderer build. Two declarations of one shape is two shapes that will eventually
+   * disagree, so the agreement is asserted rather than assumed -- and asserted on a real
+   * value, since a structural type disappears at run time and cannot be compared. */
+  const facts = readHeaderFacts(png(8, 8));
+  assert.deepEqual(Object.keys(facts).sort(), ['frames', 'height', 'width']);
+  for (const value of Object.values(facts)) assert.equal(typeof value, 'number');
+});

@@ -101,13 +101,23 @@ export interface AcceptedLogo {
 export function acceptLogo(
   bytes: Uint8Array,
   facts: ImageFacts,
-  claimed: { fileName?: string; mimeType?: string } = {},
+  claimed: { fileName?: string; mimeType?: string; fileBytes?: number } = {},
 ): AcceptedLogo | { problems: LogoProblem[] } {
   const problems: LogoProblem[] = [];
 
-  if (bytes.length === 0) return { problems: [{ message: 'That file is empty.' }] };
-  if (bytes.length > MAX_FILE_BYTES) {
-    problems.push({ message: `A mark has to be ${MAX_FILE_BYTES / 1024 / 1024} MB or smaller; that one is ${Math.ceil(bytes.length / 1024)} KB.` });
+  /* `bytes` may be only the head of the file -- enough to identify the format, and no more,
+   * because reading a whole file to discover it is too large does the expensive thing
+   * before the cheap check. So the SIZE is supplied separately by whoever opened the file.
+   *
+   * It defaults to the length of what was supplied, which is right when the caller really
+   * did hand over the whole thing. Getting this wrong in the other direction is the
+   * dangerous one: measuring a capped read makes every oversized file report exactly the
+   * size of the limit, and sail through the check that exists to catch it. */
+  const fileBytes = claimed.fileBytes ?? bytes.length;
+
+  if (fileBytes === 0) return { problems: [{ message: 'That file is empty.' }] };
+  if (fileBytes > MAX_FILE_BYTES) {
+    problems.push({ message: `A mark has to be ${MAX_FILE_BYTES / 1024 / 1024} MB or smaller; that one is ${Math.ceil(fileBytes / 1024)} KB.` });
   }
 
   const format = sniffFormat(bytes);
@@ -145,7 +155,7 @@ export function acceptLogo(
   if (format !== 'svg') {
     notices.push('A picture mark is fixed at the size supplied, so it will be resampled at other sizes. An SVG stays sharp everywhere.');
   }
-  return { format, bytes: bytes.length, facts, notices };
+  return { format, bytes: fileBytes, facts, notices };
 }
 
 function formatFromClaim(claimed: { fileName?: string; mimeType?: string }): LogoFormat | undefined {

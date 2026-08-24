@@ -876,7 +876,10 @@ export class PbxAdminApp extends App {
 
   fileControlHasFile = (control?: { id: string }): boolean => {
     if (control?.id.startsWith('pbxadm:') && control.id.endsWith(':media-upload')) return false;
-    return this.appFileControlHasFile();
+    /* Forwarded WITH the control, because the answer now differs per control -- the console
+     * mark and the vocabulary file are two different files, and a bare call would have
+     * answered about whichever one the base class happened to check. */
+    return control !== undefined && this.appFileControlHasFile(control);
   };
 
   onFileCleared = (control: { id: string }): void => {

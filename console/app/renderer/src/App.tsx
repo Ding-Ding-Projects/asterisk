@@ -46,6 +46,10 @@ import {
   defaultNarrationSettings, resolveVoiceStatus,
   type NarrationLanguage, type NarrationSettings, type SpeechVoice,
 } from './narration';
+import { HEADER_BYTES, readHeaderFacts } from '../../../control-plane/image-facts';
+import {
+  DEFAULT_PRESET_ID, LOGO_PRESETS, acceptLogo, chooseCustom, choosePreset, currentChoice, resetLogo,
+} from './logo-customization';
 import { applyResponse, isRejected, MIN_REFRESH_MS } from './external-settings-sources';
 import {
   buildSource, loadSources, saveSources, sourcesStatusLine,
@@ -232,6 +236,9 @@ export class App extends Base {
 
   private stopVoiceListener: (() => void) | undefined;
 
+  /** Read by the compiled `text`-kind control marked `action:'logo-status'`. */
+  private logoStatusLine = 'The shipped mark.';
+
   private sourceReports: SourceReport[] = [];
 
   /** Read by the compiled `text`-kind control marked `action:'source-status'`. */
@@ -350,6 +357,7 @@ export class App extends Base {
       this.startScheduler();
       this.startSourcePolling();
       this.restoreNarration();
+      this.refreshLogoStatus();
       this.refreshSchoolStatus();
       this.restoreAppearance();
       this.forceUpdate();
@@ -531,16 +539,20 @@ export class App extends Base {
   /** Read by the compiled `file` control kind for the file-picker's own label. */
   fileControlName = (ctl: { id: string }): string => {
     const named = this.pickedFileNames.get(ctl.id);
+    if (ctl.id === 'logo_pick') return named ?? 'No picture chosen';
     if (named) return named;
     const status = vocabularyStatus(this.vocabStorage);
     return status.replacementCount > 0 ? `${status.replacementCount} replacement(s) loaded` : 'No file chosen';
   };
 
-  fileControlHasFile = (): boolean => vocabularyStatus(this.vocabStorage).replacementCount > 0;
+  fileControlHasFile = (ctl: { id: string }): boolean => (ctl.id === 'logo_pick'
+    ? currentChoice(this.durableStorage.storage).kind === 'custom'
+    : vocabularyStatus(this.vocabStorage).replacementCount > 0);
 
   /** The file's bytes never leave this process: read locally, validated by the pure
    *  loader in `personal-vocabulary.ts`, and — only on success — cached locally. */
   onFilePicked = (ctl: { id: string }, file: File): void => {
+    if (ctl.id === 'logo_pick') { this.pickLogo(file); return; }
     const reader = new FileReader();
     reader.onload = () => {
       const text = typeof reader.result === 'string' ? reader.result : '';
@@ -555,6 +567,12 @@ export class App extends Base {
   };
 
   onFileCleared = (ctl: { id: string }): void => {
+    if (ctl.id === 'logo_pick') {
+      resetLogo(this.durableStorage.storage);
+      this.pickedFileNames.delete(ctl.id);
+      this.refreshLogoStatus();
+      return;
+    }
     const result = clearVocabulary(this.vocabStorage);
     this.pickedFileNames.delete(ctl.id);
     this.forceUpdate();
@@ -781,6 +799,66 @@ What you can do: ${offered}.` : ''}`);
     this.schoolStatusLine = schoolModeActive(storage)
       ? `${name} is on and ${credential}.`
       : `${name} is off and ${credential}.`;
+    this.forceUpdate();
+  }
+
+  // ---------------------------------------------------------------- the console mark
+
+  /**
+   * Decides whether a chosen picture may become the mark.
+   *
+   * Only the HEAD is read. Discovering that a file is too large by reading all of it does
+   * the expensive thing before the cheap check, and the head carries both the signature and
+   * the dimensions. The SIZE comes from the File rather than from what was read -- a capped
+   * read reports the cap, so every oversized file would measure exactly the limit and sail
+   * through the check written to catch it.
+   */
+  private pickLogo(file: File): void {
+    void file.slice(0, HEADER_BYTES).arrayBuffer().then((head) => {
+      const bytes = new Uint8Array(head);
+      const facts = readHeaderFacts(bytes);
+      if (!facts) {
+        /* Unreadable means unreadable, never "probably fine". A header that cannot be read
+         * is exactly the file that deserves the least benefit of the doubt -- and it is
+         * named by what it is not, since its name was the thing that turned out untrue. */
+        this.rejectLogo(file, 'That file is not a PNG, JPEG, WebP or SVG this console can read, whatever its name says.');
+        return;
+      }
+      /* acceptLogo owns every bound and every message, so one place holds the rules rather
+       * than two that would eventually disagree -- and the one that disagreed would be the
+       * one nobody checked. */
+      const verdict = acceptLogo(bytes, facts, { fileName: file.name, mimeType: file.type, fileBytes: file.size });
+      if ('problems' in verdict) {
+        this.rejectLogo(file, verdict.problems.map((problem) => problem.message).join(' '));
+        return;
+      }
+      this.pickedFileNames.set('logo_pick', file.name);
+      chooseCustom(this.durableStorage.storage, `logo/${file.name}`);
+      this.refreshLogoStatus(verdict.notices);
+      /* Stated before it becomes the mark rather than discovered when it looks soft in the
+       * title bar. */
+      for (const notice of verdict.notices) this.toast(notice);
+    }).catch(() => this.rejectLogo(file, 'That file could not be read from disk.'));
+  }
+
+  /** Nothing partially applied: a rejected picture leaves the previous mark exactly as it
+   *  was, and says so, because a half-applied logo is a console that looks broken with no
+   *  obvious way back. */
+  private rejectLogo(file: File, why: string): void {
+    this.pickedFileNames.set('logo_pick', `${file.name} — rejected`);
+    this.logoStatusLine = `${why} The previous mark is unchanged.`;
+    this.forceUpdate();
+    this.fire('Picture rejected', why);
+  }
+
+  /** Names the mark actually in use, plus anything stated before it became the mark. */
+  private refreshLogoStatus(notices: readonly string[] = []): void {
+    const choice = currentChoice(this.durableStorage.storage);
+    const chosenName = this.pickedFileNames.get('logo_pick');
+    const preset = LOGO_PRESETS.find((candidate) => candidate.id === (choice.presetId ?? DEFAULT_PRESET_ID));
+    this.logoStatusLine = choice.kind === 'custom'
+      ? [`Your own picture is in use${chosenName ? `: ${chosenName}` : ''}.`, ...notices].join(' ')
+      : `The shipped mark is in use: ${preset?.label ?? 'Ding'}.`;
     this.forceUpdate();
   }
 
@@ -1068,6 +1146,20 @@ What you can do: ${offered}.` : ''}`);
       const language: CopyLanguage = control.id === 'fun_level_yue' ? 'yue' : 'en';
       if (isFunnyLevel(value)) setFunnyLevel(this.durableStorage.storage, language, value);
     }
+    if (control?.id === 'logo_preset' && typeof value === 'string') {
+      /* Matched by LABEL because that is what the picker offers; the stable id is what
+       * gets stored, so a renamed label never orphans somebody's choice. */
+      const preset = LOGO_PRESETS.find((candidate) => candidate.label === value);
+      if (preset) choosePreset(this.durableStorage.storage, preset.id);
+      this.refreshLogoStatus();
+      return;
+    }
+    if (control?.id === 'logo_reset' && value === true) {
+      resetLogo(this.durableStorage.storage);
+      this.pickedFileNames.delete('logo_pick');
+      this.refreshLogoStatus();
+      return;
+    }
     if (control?.id?.startsWith('nar_')) {
       this.applyNarrationControl(control.id, value);
       return;
@@ -1141,6 +1233,7 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'deploy-progress') return this.deployProgressLine;
     if (action === 'source-status') return this.sourceStatusLine;
     if (action === 'narration-status') return this.narrationStatusLine;
+    if (action === 'logo-status') return this.logoStatusLine;
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
     return '';
   };
