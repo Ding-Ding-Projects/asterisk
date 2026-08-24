@@ -794,7 +794,7 @@
     },
     "material-appearance": {
       "status": "partial",
-      "note": "App.tsx now creates the persisted AppearanceStore after durable storage hydrates, installs APPEARANCE_RUNTIME_STYLES, marks real controls with stable data-appearance-id values, and binds AppearanceRuntime. The shared rich-control registration exposes every appearance property to the palette and uses the store for live draft/apply writes. The generated appearance panel remains a legacy global preview path, so built-artifact interaction and full typography proof are still unverified.",
+      "note": "App.tsx now creates one persisted AppearanceStore after durable storage hydrates, installs APPEARANCE_RUNTIME_STYLES, derives the generated preview from that store, checks the handwritten design-authored appearance inventory, observes later nodes, and binds AppearanceRuntime with lifecycle registration. The checked-in design consumes the appearance variables across shell and editor chrome. The shared rich-control registration exposes every appearance property to the palette and uses the store for live draft/apply writes. The exact rendered consumer and full typography proof remain unverified.",
       "implementation": {
         "paths": [
           "app/renderer/src/appearance.ts",
@@ -819,7 +819,8 @@
           "app/renderer/src/App.tsx",
           "app/renderer/src/appearance-runtime.ts",
           "app/renderer/src/appearance-store.ts",
-          "app/renderer/src/rich-control-registration.ts"
+          "app/renderer/src/rich-control-registration.ts",
+          "app/renderer/src/appearance-element-inventory.ts"
         ],
         "symbols": [
           { "path": "app/renderer/src/App.tsx", "name": "mountSharedAppearanceRuntime", "kind": "method" },
@@ -1312,7 +1313,7 @@
     },
     "command-palette": {
       "status": "partial",
-      "note": "App.tsx mounts a command registry built from the design destination and setting catalogue plus every appearance property, and the checked-in design renders its rich rows through the M3 control component with live readers, options, execute handlers, and canonical targets. The shared palette-index search and shortcut behavior remain separate integration surfaces, and target-specific defects stay explicit. No tests, build, runtime interaction, or capture was run in this lane.",
+      "note": "App.tsx mounts a command registry built from the design destination and setting catalogue plus every appearance property, and the checked-in design renders its rich rows through the M3 control component with live readers, options, execute handlers, canonical teleport, focus, highlight, stale-target reporting, and named collision rows. The shared palette-index search and shortcut behavior remain separate integration surfaces. No tests, build, runtime interaction, or capture was run in this lane.",
       "implementation": {
         "paths": [
           "app/renderer/src/catalog.ts",

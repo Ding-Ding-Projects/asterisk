@@ -53,17 +53,17 @@ function Template(v: any) {
             )
           ),
           h("div", { style: sty(`display:flex;`) },
-            h("div", { style: sty(`width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;`), onClick: fn(v.__window?.minimize), "data-window-button": ``, title: `Minimize` },
+            h("div", { "data-appearance-id": `window-minimize`, style: sty(`width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;`), onClick: fn(v.__window?.minimize), "data-window-button": ``, title: `Minimize` },
               h("span", { style: sty(`font-size:17px;`), className: "msym" },
                 "remove"
               )
             ),
-            h("div", { style: sty(`width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;`), onClick: fn(v.__window?.toggleMaximize), "data-window-button": ``, title: `Maximize` },
+            h("div", { "data-appearance-id": `window-maximize`, style: sty(`width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;`), onClick: fn(v.__window?.toggleMaximize), "data-window-button": ``, title: `Maximize` },
               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                 "crop_square"
               )
             ),
-            h("div", { style: sty(`width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;`), onClick: fn(v.__window?.close), "data-window-button": ``, title: `Close` },
+            h("div", { "data-appearance-id": `window-close`, style: sty(`width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;`), onClick: fn(v.__window?.close), "data-window-button": ``, title: `Close` },
               h("span", { style: sty(`font-size:17px;`), className: "msym" },
                 "close"
               )
@@ -1676,8 +1676,8 @@ function Template(v: any) {
           ),
           h("div", { style: sty(`max-height:420px; overflow-y:auto; padding:8px;`) },
             A(v.paletteItems).map(($p, $p$i) => R($p$i, F(
-              ($p.rich ? h("div", { style: sty(`display:flex; flex-direction:column; gap:8px; padding:9px 12px; border-radius:12px; background:#1B211C;`), className: "k-h27" },
-                  h("button", { onClick: fn($p.go), style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; padding:0; cursor:pointer;`) },
+              ($p.rich ? h("div", { "data-appearance-id": `palette-row-${S($p.id)}`, style: sty(`display:flex; flex-direction:column; gap:8px; padding:9px 12px; border-radius:12px; background:#1B211C;`), className: "k-h27" },
+                  h("button", { disabled: $p.disabled, "aria-disabled": $p.disabled, onClick: fn($p.go), style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; padding:0; cursor:pointer;`) },
                     h("span", { style: sty(`font-size:19px; color:#82D9A5;`), className: "msym" },
                       S($p.icon)
                     ),
@@ -1690,7 +1690,7 @@ function Template(v: any) {
                   ),
                   h(M3Control, { ctl: $p.ctl })
                 ) : null),
-              ($p.notRich ? h("button", { onClick: fn($p.go), style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;`), className: "k-h27" },
+              ($p.notRich ? h("button", { "data-appearance-id": `palette-row-${S($p.id)}`, disabled: $p.disabled, "aria-disabled": $p.disabled, onClick: fn($p.go), style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;`), className: "k-h27" },
                   h("span", { style: sty(`font-size:19px; color:#82D9A5;`), className: "msym" },
                     S($p.icon)
                   ),
@@ -1951,7 +1951,7 @@ function Template(v: any) {
             h("div", { style: sty(`background:#1B211C; border-radius:20px; padding:22px 24px; display:flex; flex-direction:column; gap:18px;`) },
               A(v.onboardCtls).map(($c, $c$i) => R($c$i, h(M3Control, { ctl: $c })))
             ),
-            h("button", { onClick: fn(v.superEasy), style: sty(`display:flex; align-items:center; gap:14px; width:100%; margin-top:18px; background:#9FF7C4; border:0; border-radius:20px; padding:18px 22px; cursor:pointer; text-align:left; animation:m3Glow 2.6s ease-in-out infinite;`), className: "k-h18" },
+            h("button", { disabled: v.onboardCompletionBusy, "aria-disabled": v.onboardCompletionBusy, onClick: fn(v.superEasy), style: sty(`display:flex; align-items:center; gap:14px; width:100%; margin-top:18px; background:#9FF7C4; border:0; border-radius:20px; padding:18px 22px; cursor:pointer; text-align:left; animation:m3Glow 2.6s ease-in-out infinite;`), className: "k-h18" },
               h("span", { style: sty(`font-size:34px; color:#00391F;`), className: "msym" },
                 "bolt"
               ),
@@ -1968,14 +1968,14 @@ function Template(v: any) {
               )
             ),
             h("div", { style: sty(`display:flex; align-items:center; gap:12px; margin-top:20px;`) },
-              h("button", { onClick: fn(v.skipOnboard), style: sty(`background:transparent; border:0; color:#9AA39B; font:inherit; font-size:13px; cursor:pointer; padding:12px 14px; border-radius:999px; white-space:nowrap; flex:0 0 auto;`), className: "k-h7" },
+              h("button", { disabled: v.onboardCompletionBusy, "aria-disabled": v.onboardCompletionBusy, onClick: fn(v.skipOnboard), style: sty(`background:transparent; border:0; color:#9AA39B; font:inherit; font-size:13px; cursor:pointer; padding:12px 14px; border-radius:999px; white-space:nowrap; flex:0 0 auto;`), className: "k-h7" },
                 "Skip setup"
               ),
               h("div", { style: sty(`flex:1;`) }),
               h("button", { onClick: fn(v.onboardBack), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:12px 24px; color:#C4CBC2; font:inherit; font-size:14px; cursor:pointer;`), className: "k-h7" },
                 "Back"
               ),
-              h("button", { onClick: fn(v.onboardNext), style: sty(`background:#82D9A5; border:0; border-radius:999px; padding:12px 30px; color:#00391F; font:inherit; font-size:14px; font-weight:500; cursor:pointer;`), className: "k-h10" },
+              h("button", { disabled: v.onboardCompletionBusy, "aria-disabled": v.onboardCompletionBusy, onClick: fn(v.onboardNext), style: sty(`background:#82D9A5; border:0; border-radius:999px; padding:12px 30px; color:#00391F; font:inherit; font-size:14px; font-weight:500; cursor:pointer;`), className: "k-h10" },
                 S(v.onboardNextLabel)
               )
             )

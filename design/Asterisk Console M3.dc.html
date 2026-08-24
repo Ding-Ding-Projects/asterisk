@@ -13,6 +13,37 @@
 <style>
   html, body { margin:0; padding:0; background:#0B0F0C; }
   * { box-sizing:border-box; }
+  [data-appearance-id] {
+    color:var(--colour, inherit);
+    background-color:var(--background, initial);
+    font-family:var(--font-family, inherit);
+    font-size:var(--font-size, inherit);
+    font-weight:var(--font-weight, inherit);
+    font-style:var(--font-style, inherit);
+    text-decoration-line:var(--text-strikethrough, var(--text-overline, var(--text-underline, none)));
+    text-decoration-style:var(--text-underline-style, solid);
+    text-decoration-color:var(--text-underline-colour, currentColor);
+    text-transform:var(--text-transform, none);
+    font-variant-caps:var(--font-small-caps, normal);
+    text-decoration-thickness:var(--text-double-strikethrough, auto);
+    vertical-align:var(--text-superscript, var(--text-subscript, baseline));
+    letter-spacing:var(--letter-spacing, normal);
+    word-spacing:var(--word-spacing, normal);
+    line-height:var(--line-height, normal);
+    text-align:var(--text-align, initial);
+    direction:var(--direction, inherit);
+    background-image:var(--highlight, none);
+    border-color:var(--border-colour, initial);
+    border-width:var(--border-width, initial);
+    border-radius:var(--radius, initial);
+    outline:var(--outline, initial);
+    box-shadow:var(--elevation, var(--shadow, initial));
+    text-shadow:var(--glow, var(--shadow, none));
+    padding:var(--padding, initial);
+    gap:var(--gap, initial);
+    transform:translateY(var(--baseline-shift, 0px));
+    opacity:var(--opacity, 1);
+  }
   a { color:#82D9A5; text-decoration:none; }
   a:hover { color:#9FF7C4; }
   .msym { font-family:'Material Symbols Outlined'; font-weight:400; font-style:normal; line-height:1; letter-spacing:normal; text-transform:none; display:inline-block; white-space:nowrap; direction:ltr; -webkit-font-feature-settings:'liga'; -webkit-font-smoothing:antialiased; }
@@ -110,9 +141,9 @@
       </div>
       <button data-appearance-id="command-palette-open" onClick="{{ togglePalette }}" title="Command palette (Ctrl+Shift+F)" style="width:32px; height:32px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center;" style-hover="background:#262B26; color:#82D9A5;"><span class="msym" style="font-size:19px;">search</span></button>
       <div style="display:flex;">
-        <div style="width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;"><span class="msym" style="font-size:17px;">remove</span></div>
-        <div style="width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;"><span class="msym" style="font-size:15px;">crop_square</span></div>
-        <div style="width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;"><span class="msym" style="font-size:17px;">close</span></div>
+        <div data-appearance-id="window-minimize" style="width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;"><span class="msym" style="font-size:17px;">remove</span></div>
+        <div data-appearance-id="window-maximize" style="width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;"><span class="msym" style="font-size:15px;">crop_square</span></div>
+        <div data-appearance-id="window-close" style="width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;"><span class="msym" style="font-size:17px;">close</span></div>
       </div>
     </div>
   </div>
@@ -1199,8 +1230,8 @@
       <div style="max-height:420px; overflow-y:auto; padding:8px;">
         <sc-for list="{{ paletteItems }}" as="p" hint-placeholder-count="8">
           <sc-if value="{{ p.rich }}">
-            <div style="display:flex; flex-direction:column; gap:8px; padding:9px 12px; border-radius:12px; background:#1B211C;" style-hover="background:#333B34;">
-              <button onClick="{{ p.go }}" style="width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; padding:0; cursor:pointer;">
+            <div data-appearance-id="palette-row-{{ p.id }}" style="display:flex; flex-direction:column; gap:8px; padding:9px 12px; border-radius:12px; background:#1B211C;" style-hover="background:#333B34;">
+              <button disabled="{{ p.disabled }}" aria-disabled="{{ p.disabled }}" onClick="{{ p.go }}" style="width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; padding:0; cursor:pointer;">
                 <span class="msym" style="font-size:19px; color:#82D9A5;">{{ p.icon }}</span>
                 <span style="flex:1; font-size:13.5px; color:#DFE4DC;">{{ p.label }}</span>
                 <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394;">{{ p.hint }}</span>
@@ -1209,7 +1240,7 @@
             </div>
           </sc-if>
           <sc-if value="{{ p.notRich }}">
-            <button onClick="{{ p.go }}" style="width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;" style-hover="background:#333B34;">
+            <button data-appearance-id="palette-row-{{ p.id }}" disabled="{{ p.disabled }}" aria-disabled="{{ p.disabled }}" onClick="{{ p.go }}" style="width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;" style-hover="background:#333B34;">
               <span class="msym" style="font-size:19px; color:#82D9A5;">{{ p.icon }}</span>
               <span style="flex:1; font-size:13.5px; color:#DFE4DC;">{{ p.label }}</span>
               <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394;">{{ p.hint }}</span>
@@ -1384,7 +1415,7 @@
             <dc-import name="M3 Control" ctl="{{ c }}" hint-size="100%,64px"></dc-import>
           </sc-for>
         </div>
-        <button onClick="{{ superEasy }}" style="display:flex; align-items:center; gap:14px; width:100%; margin-top:18px; background:#9FF7C4; border:0; border-radius:20px; padding:18px 22px; cursor:pointer; text-align:left; animation:m3Glow 2.6s ease-in-out infinite;" style-hover="background:#C3EFD5;">
+          <button disabled="{{ onboardCompletionBusy }}" aria-disabled="{{ onboardCompletionBusy }}" onClick="{{ superEasy }}" style="display:flex; align-items:center; gap:14px; width:100%; margin-top:18px; background:#9FF7C4; border:0; border-radius:20px; padding:18px 22px; cursor:pointer; text-align:left; animation:m3Glow 2.6s ease-in-out infinite;" style-hover="background:#C3EFD5;">
           <span class="msym" style="font-size:34px; color:#00391F;">bolt</span>
           <div style="flex:1;">
             <div style="font-size:19px; font-weight:700; color:#00391F;">Super easy mode — just build it for me</div>
@@ -1393,10 +1424,10 @@
           <span class="msym" style="font-size:26px; color:#00391F;">arrow_forward</span>
         </button>
         <div style="display:flex; align-items:center; gap:12px; margin-top:20px;">
-          <button onClick="{{ skipOnboard }}" style="background:transparent; border:0; color:#9AA39B; font:inherit; font-size:13px; cursor:pointer; padding:12px 14px; border-radius:999px; white-space:nowrap; flex:0 0 auto;" style-hover="background:#1B211C;">Skip setup</button>
+          <button disabled="{{ onboardCompletionBusy }}" aria-disabled="{{ onboardCompletionBusy }}" onClick="{{ skipOnboard }}" style="background:transparent; border:0; color:#9AA39B; font:inherit; font-size:13px; cursor:pointer; padding:12px 14px; border-radius:999px; white-space:nowrap; flex:0 0 auto;" style-hover="background:#1B211C;">Skip setup</button>
           <div style="flex:1;"></div>
           <button onClick="{{ onboardBack }}" style="background:transparent; border:1px solid #414942; border-radius:999px; padding:12px 24px; color:#C4CBC2; font:inherit; font-size:14px; cursor:pointer;" style-hover="background:#1B211C;">Back</button>
-          <button onClick="{{ onboardNext }}" style="background:#82D9A5; border:0; border-radius:999px; padding:12px 30px; color:#00391F; font:inherit; font-size:14px; font-weight:500; cursor:pointer;" style-hover="background:#9FF7C4;">{{ onboardNextLabel }}</button>
+          <button disabled="{{ onboardCompletionBusy }}" aria-disabled="{{ onboardCompletionBusy }}" onClick="{{ onboardNext }}" style="background:#82D9A5; border:0; border-radius:999px; padding:12px 30px; color:#00391F; font:inherit; font-size:14px; font-weight:500; cursor:pointer;" style-hover="background:#9FF7C4;">{{ onboardNextLabel }}</button>
         </div>
       </div>
     </div>

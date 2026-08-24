@@ -19,6 +19,23 @@ type SurfaceRoute = 'converter' | 'ollama' | 'docs' | 'changelog';
 function HostedDimSumCacheControl() {
   const [status, setStatus] = useState('No visitor-local dim-sum cache loaded.');
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const raw = window.localStorage.getItem(DIM_SUM_CACHE_STORAGE_KEY);
+        if (!raw) return;
+        const result = await validateDimSumCachePayloadAsync(raw);
+        if (!active) return;
+        setStatus(result.ok
+          ? `Loaded and revalidated ${result.cache.entries.length} visitor-local dish entries.`
+          : `Stored visitor-local cache is invalid: ${result.reason}`);
+      } catch (error) {
+        if (active) setStatus(`Stored visitor-local cache could not be read: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
   const clear = () => {
     try {
       window.localStorage.removeItem(DIM_SUM_CACHE_STORAGE_KEY);

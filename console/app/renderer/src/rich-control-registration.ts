@@ -16,6 +16,7 @@ export interface RichControlMountOptions {
 
 export interface RichControlRegistration {
   readonly registry: CommandRegistry;
+  readonly navigationState: NavigationState;
   readonly definitions: ReadonlyArray<CommandDefinition>;
   readonly settingControlIds: ReadonlyArray<string>;
   readonly appearanceControlIds: ReadonlyArray<string>;
@@ -45,7 +46,12 @@ function canonicalNavigationState(runtimeControls: Readonly<Record<string, Reado
   const destinationIds = [...new Set([...(ORDER as ReadonlyArray<string>), ...Object.keys(runtimeControls)])];
   for (const destinationId of destinationIds) {
     const screen = (SCREENS as unknown as Record<string, DesignScreen>)[destinationId] ?? {};
-    const controlIds = [...groupsFor(screen), ...(runtimeControls[destinationId] ?? [])].flatMap((control) => typeof control.id === 'string' ? [`control:${destinationId}:${control.id}`] : []);
+    const seenControlIds = new Set<string>();
+    const controlIds = [...groupsFor(screen), ...(runtimeControls[destinationId] ?? [])].flatMap((control) => {
+      if (typeof control.id !== 'string' || seenControlIds.has(control.id)) return [];
+      seenControlIds.add(control.id);
+      return [`control:${destinationId}:${control.id}`];
+    });
     if (destinationId === 'appearance') controlIds.push(...APPEARANCE_PROPERTIES.map((property) => `appearance:${property}`));
     const tabId = `tab:${idPart(destinationId)}`;
     tabs[tabId] = {
@@ -160,7 +166,16 @@ export function createRichControlRegistration(options: RichControlMountOptions):
     handlers[openHandler] = () => options.openDestination(destinationId);
     definitions.push(destination);
 
-    const controls = [...groupsFor(screen), ...(options.runtimeControls?.[destinationId] ?? [])];
+    const seenControlIds = new Set<string>();
+    const controls = [...groupsFor(screen), ...(options.runtimeControls?.[destinationId] ?? [])].filter((control) => {
+      if (typeof control.id !== 'string') return true;
+      if (seenControlIds.has(control.id)) {
+        defects.push(`Control collision at destination ${destinationId}, control ${control.id}.`);
+        return false;
+      }
+      seenControlIds.add(control.id);
+      return true;
+    });
     for (const control of controls) {
       const controlId = typeof control.id === 'string' ? control.id : '';
       if (!controlId) continue;
@@ -246,5 +261,5 @@ export function createRichControlRegistration(options: RichControlMountOptions):
     providers,
     destinationIds.map((destinationId) => ({ destinationId, capabilities: new Set<string>(['settings', 'appearance', 'palette']) })),
   );
-  return { registry, definitions, settingControlIds, appearanceControlIds, defects };
+  return { registry, navigationState, definitions, settingControlIds, appearanceControlIds, defects };
 }

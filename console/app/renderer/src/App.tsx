@@ -49,7 +49,9 @@ import { APPEARANCE_RUNTIME_STYLES, bindAppearanceRuntime, detectAppearanceCapab
 import { createAppearanceStore, type AppearanceStore } from './appearance-store';
 import { createRichControlRegistration, type RichControlInput, type RichControlRegistration } from './rich-control-registration';
 import { executeRichControl, type RegisteredCommand } from './command-registry';
+import { createTeleportInstruction } from './palette-index';
 import { publishStartupContext } from './startup-context';
+import { missingAppearanceElementIds } from './appearance-element-inventory';
 import { validateDesktopSettings } from '../../../shared/settings-schema';
 import { DESKTOP_SETTINGS_STORAGE_KEY } from './settings-store';
 import {
@@ -254,6 +256,7 @@ export class App extends Base {
    *  what makes a colour or font choice survive a relaunch. */
   private readonly APPEARANCE_STORAGE_KEY = 'asterisk-appearance-v1';
   private readonly ONBOARDING_COMPLETED_KEY = 'ding-pbx-onboarding-completed-v1';
+  private onboardingCompletionInFlight = false;
   /** Set once persisted state has been folded into `this.state.values`, so the
    *  restore only ever happens once per mount. */
   private appearanceRestored = false;
@@ -401,8 +404,15 @@ export class App extends Base {
   }
 
   private async completeOnboarding(generated: () => void): Promise<void> {
-    if (!(await this.markOnboardingCompleted())) return;
-    generated();
+    if (this.onboardingCompletionInFlight) return;
+    this.onboardingCompletionInFlight = true;
+    this.forceUpdate();
+    try {
+      if (await this.markOnboardingCompleted()) generated();
+    } finally {
+      this.onboardingCompletionInFlight = false;
+      this.forceUpdate();
+    }
   }
 
   private syncLegacyAppearanceStore(): void {
@@ -454,6 +464,11 @@ export class App extends Base {
       }
       seen.add(id);
     }
+    const missing = missingAppearanceElementIds(seen);
+    if (missing.length > 0) {
+      document.documentElement.dataset.appearanceRegistrationError = `missing:${missing.join(',')}`;
+      return false;
+    }
     delete document.documentElement.dataset.appearanceRegistrationError;
     return true;
   }
@@ -489,22 +504,18 @@ export class App extends Base {
 
   private paletteItemsForRegistry(): ReadonlyArray<Record<string, unknown>> {
     const registry = this.richControlRegistration.registry;
-    return registry.entries.map((entry: RegisteredCommand) => {
+    const entries = registry.entries.map((entry: RegisteredCommand) => {
       const current = entry.control ? registry.valueReaders[entry.control.valueReaderId]?.() : undefined;
       const execute = (value: unknown): void => { void executeRichControl(registry, entry.id, value).then(() => this.forceUpdate()); };
       const control = entry.control;
       if (!control) return {
+        id: entry.id,
         icon: entry.kind === 'destination' ? ((SCREENS as Record<string, { icon: string }>)[entry.target.destinationId]?.icon ?? 'open_in_new') : 'tune',
         label: entry.label,
         hint: entry.shortcut ?? entry.target.destinationId,
         rich: false,
         notRich: true,
-        go: () => {
-          this.setState({ paletteOpen: false });
-          const openScreen = (this as unknown as { openScreen?: (id: string) => void }).openScreen;
-          if (openScreen) openScreen(entry.target.destinationId);
-          else this.setState({ screen: entry.target.destinationId });
-        },
+        go: () => this.activatePaletteTarget(entry),
       };
       const base = { id: control.controlId, label: control.label, value: current, onInfo: () => {}, onWizard: () => {} } as Record<string, unknown>;
       if (control.kind === 'switch') {
@@ -518,18 +529,46 @@ export class App extends Base {
         const numeric = Number(current ?? control.minimum ?? 0);
         base.kind = 'stepper'; base.value = numeric; base.min = control.minimum ?? 0; base.max = control.maximum ?? 100; base.dec = () => execute(Math.max(Number(base.min), numeric - Number(control.step ?? 1))); base.inc = () => execute(Math.min(Number(base.max), numeric + Number(control.step ?? 1))); base.set = (value: unknown) => execute(Number(value));
       } else if (control.kind === 'file') {
+        const originalId = control.controlId.split(':').slice(2).join(':');
         base.kind = 'file'; base.fileName = typeof current === 'string' && current ? current : 'No file chosen'; base.hasFile = Boolean(current); base.accept = '';
+        base.onPick = (event: { target?: { files?: FileList | null } }) => { const file = event.target?.files?.[0]; if (file) this.onFilePicked({ id: originalId }, file); };
+        base.onClear = () => this.onFileCleared({ id: originalId });
       } else if (control.kind === 'order') {
         const values = Array.isArray(current) ? current : [];
-        base.kind = 'order'; base.items = values.map((value, index) => ({ label: String(value), up: () => execute(values), down: () => execute(values), drop: () => execute(values.filter((_, itemIndex) => itemIndex !== index)) }));
+        const swap = (from: number, to: number) => { if (to < 0 || to >= values.length) return; const next = values.slice(); [next[from], next[to]] = [next[to], next[from]]; execute(next); };
+        base.kind = 'order'; base.items = values.map((value, index) => ({ label: String(value), up: () => swap(index, index - 1), down: () => swap(index, index + 1), drop: () => execute(values.filter((_, itemIndex) => itemIndex !== index)) }));
+      } else if (control.kind === 'action') {
+        base.kind = 'action'; base.onAction = () => execute(undefined); base.actionLabel = entry.label;
       } else {
         base.kind = 'text'; base.display = String(current ?? ''); base.set = (value: unknown) => execute(value);
       }
       return {
-        icon: 'tune', label: entry.label, hint: entry.target.destinationId, rich: true, notRich: false,
-        go: () => { this.setState({ paletteOpen: false }); const openScreen = (this as unknown as { openScreen?: (id: string) => void }).openScreen; if (openScreen) openScreen(entry.target.destinationId); },
+        id: entry.id, icon: 'tune', label: entry.label, hint: entry.target.destinationId, rich: true, notRich: false,
+        go: () => this.activatePaletteTarget(entry),
         ctl: base,
       };
+    });
+    const defects = this.richControlRegistration.defects.map((defect, index) => ({ id: `defect-${index + 1}`, icon: 'error', label: `Unavailable: ${defect}`, hint: 'target unavailable', rich: false, notRich: true, disabled: true, go: () => this.toast(defect) }));
+    return [...entries, ...defects];
+  }
+
+  private activatePaletteTarget(entry: RegisteredCommand): void {
+    const instruction = createTeleportInstruction(this.richControlRegistration.navigationState, entry.target);
+    if (!instruction) {
+      this.toast(`Palette target is stale: ${entry.target.elementId}. Refresh the palette and try again.`);
+      return;
+    }
+    this.setState({ paletteOpen: false });
+    const openScreen = (this as unknown as { openScreen?: (id: string) => void }).openScreen;
+    if (openScreen) openScreen(entry.target.destinationId);
+    else this.setState({ screen: entry.target.destinationId });
+    globalThis.requestAnimationFrame?.(() => {
+      const target = document.querySelector<HTMLElement>(`[data-appearance-id="${CSS.escape(instruction.elementId)}"]`);
+      if (!target) { this.toast(`Palette target is stale after navigation: ${instruction.elementId}.`); return; }
+      target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      target.focus({ preventScroll: true });
+      target.dataset.paletteHighlight = 'true';
+      globalThis.setTimeout(() => { target.removeAttribute('data-palette-highlight'); }, 900);
     });
   }
 
@@ -2136,6 +2175,7 @@ It is shown once. The phone needs it to register.`);
         void this.completeOnboarding(generatedSuperEasy as () => void);
       };
     }
+    values.onboardCompletionBusy = this.onboardingCompletionInFlight;
     const bridge = this.bridge();
     const readings = this.readings[screen];
     const note = this.note(screen);

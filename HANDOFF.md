@@ -30,6 +30,16 @@ Hosted Day Teet Hui surfaces provide a visible local JSON cache picker with boun
 
 No tests, lint, broad build, package, UI, browser, captures, or dew ran. The only allowed generation step was the design compiler and its PBX M3 extension helper; the helper recognized the design's integrated editable-text path.
 
+## Third refutation repair, 2026-08-23
+
+Prepared controls are now deduplicated by exact destination and control id before canonical navigation state construction. Named collisions become unavailable palette rows. Runtime control refreshes rebuild the navigation state with the prepared controls, and missing targets remain named defects.
+
+Palette header activation now resolves the exact canonical teleport instruction, opens the destination, scrolls and focuses the element, applies a short highlight, and reports a named stale-target result. Order controls swap adjacent values and submit the changed array. File controls call the originating file selection and clear handlers so their existing validation, persistence, and history paths remain authoritative.
+
+The checked-in design source now gives palette rows and M3 controls stable appearance ids, consumes the appearance variables in its styles, and includes a handwritten required-id inventory. Later nodes are observed and remounted, duplicate or missing required ids fail the appearance mount. Hosted cache status is revalidated on mount. Onboarding completion has an in-flight latch and disabled submit controls. Worker object URLs are revoked when a worker constructor fails.
+
+The design compiler and PBX M3 extension helper were the only allowed commands beyond source inspection. No tests, lint, broad build, package, UI, browser, captures, dew, or cleanup ran.
+
 ## Scope
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.

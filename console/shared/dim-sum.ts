@@ -297,7 +297,9 @@ async function decodeImageLocally(bytes: Uint8Array, mimeType: DimSumImageManife
   if (typeof Worker === 'undefined' || typeof URL === 'undefined' || typeof Blob === 'undefined') return 'the isolated local image decoder is unavailable';
   const workerSource = `self.onmessage=async(event)=>{try{if(typeof createImageBitmap!=='function')throw new Error('decoder unavailable');const bitmap=await createImageBitmap(new Blob([event.data.bytes],{type:event.data.mimeType}));const result={width:bitmap.width,height:bitmap.height,frameCount:1};bitmap.close();self.postMessage({ok:true,result});}catch(error){self.postMessage({ok:false,reason:error instanceof Error?error.message:'decode failed'});}}`;
   const workerUrl = URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' }));
-  const worker = new Worker(workerUrl);
+  let worker: Worker;
+  try { worker = new Worker(workerUrl); }
+  catch { URL.revokeObjectURL(workerUrl); return 'the isolated local image decoder could not start'; }
   const buffer = bytes.slice().buffer;
   return await new Promise<ImageInspection | string>((resolve) => {
     let settled = false;
