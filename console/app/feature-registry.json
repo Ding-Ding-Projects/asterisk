@@ -158,7 +158,7 @@
     },
     "external-editor-handoff": {
       "state": "implemented",
-      "note": "Mounted as a pure renderer policy plus the privileged control-plane runtime, preload bridge, and App.tsx actions. Detects stable, Insiders and bounded portable Visual Studio Code routes with normalized absolute paths and environment expansion, persists verified portable paths and bounded custom records, keeps unavailable choices visible, uses native file and folder pickers, materializes selected PBX read-back content into bounded local exports, and launches through child_process.spawn with shell:false and separate executable and argument values. Each operation has an id, bounded progress, busy re-entry refusal, and distinct cancellation stage. The privileged store is the sole choice source, uses Windows-safe atomic rename retry, reports invalid persistence and offers reset, enforces file versus folder kind, records typed latest exports, and refuses unknown or stale editor ids without a fallback.",
+      "note": "Mounted as a pure renderer policy plus the privileged control-plane runtime, preload bridge, and App.tsx actions. Detects stable, Insiders and bounded portable Visual Studio Code routes with normalized absolute paths and environment expansion, verifies explicit portable selection through Windows product metadata, persists verified portable paths and bounded custom records, keeps unavailable choices visible, uses native file and folder pickers, materializes selected PBX read-back content into bounded local exports, and launches through child_process.spawn with shell:false and separate executable and argument values. Each operation has an id, bounded progress, busy re-entry refusal, end-to-end cancellation, active child and temporary-file cleanup, and distinct cancellation stage. The privileged store is the sole choice source, uses Windows-safe atomic rename retry, reports invalid persistence and offers reset, enforces file versus folder kind, records typed latest exports, and refuses unknown or stale editor ids without a fallback.",
       "files": [
         "app/renderer/src/external-editor.ts",
         "control-plane/external-editor-runtime.ts",
@@ -176,10 +176,27 @@
       ]
     },
     "complete-exports": {
-      "state": "partial",
-      "note": "app/renderer/src/export.ts (547 lines, tested by tests/ui/export.test.tsx) implements multi-format export logic, but is never imported by App.tsx or any mounted component.",
+      "state": "implemented",
+      "note": "Mounted export inventory is explicit: table bulk export, appearance JSON export, changelog Markdown export, tab JSON export, group JSON export and all-tabs JSON export produce typed latest-export records and browser files. History bundle and row configuration export controls report honest unavailable states because their real local source data is not mounted. The external-editor handoff opens the latest typed record in Visual Studio Code.",
       "files": [
-        "app/renderer/src/export.ts"
+        "app/renderer/src/export.ts",
+        "app/renderer/src/App.tsx",
+        "app/renderer/src/generated/console.tsx",
+        "design/Asterisk Console M3.dc.html"
+      ],
+      "exportInventory": [
+        { "control": "table bulk export", "state": "typed latest-export record and browser file", "source": "App.tsx" },
+        { "control": "appearance JSON export", "state": "typed latest-export record and browser file", "source": "App.tsx" },
+        { "control": "changelog Markdown export", "state": "typed latest-export record and browser file", "source": "App.tsx" },
+        { "control": "group JSON export", "state": "typed latest-export record and browser file", "source": "design/Asterisk Console M3.dc.html" },
+        { "control": "tab JSON export", "state": "typed latest-export record and browser file", "source": "design/Asterisk Console M3.dc.html" },
+        { "control": "all tabs JSON export", "state": "typed latest-export record and browser file", "source": "design/Asterisk Console M3.dc.html" },
+        { "control": "history bundle export", "state": "honest unavailable state because local history bundle data is not mounted", "source": "design/Asterisk Console M3.dc.html" },
+        { "control": "row configuration export", "state": "honest unavailable state until a completed local read-back exists", "source": "design/Asterisk Console M3.dc.html" },
+        { "control": "wizard result action Export JSON or Export Markdown", "state": "honest unavailable state because wizard result serialization is not mounted", "source": "design/Asterisk Console M3.dc.html" },
+        { "control": "Allow export setting", "state": "configuration toggle only, not an export producer", "source": "design/Asterisk Console M3.dc.html" },
+        { "control": "Include appearance overrides in exports setting", "state": "configuration toggle only, applied by future export producers", "source": "design/Asterisk Console M3.dc.html" },
+        { "control": "Scan surfaces Exports option", "state": "scan scope only, not an export producer", "source": "design/Asterisk Console M3.dc.html" }
       ]
     },
     "bulk-actions": {

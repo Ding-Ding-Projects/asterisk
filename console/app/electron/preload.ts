@@ -16,6 +16,7 @@ const api: DingDesktopApi = {
     choose: (editorId: string) => ipcRenderer.invoke('external-editor:choose', editorId),
     clearChoice: () => ipcRenderer.invoke('external-editor:clear-choice'),
     resetStorage: () => ipcRenderer.invoke('external-editor:reset-storage'),
+    cancelOperation: (operationId: string) => ipcRenderer.invoke('external-editor:cancel', operationId),
     saveCustom: (record) => ipcRenderer.invoke('external-editor:save-custom', record),
     removeCustom: (editorId: string) => ipcRenderer.invoke('external-editor:remove-custom', editorId),
     savePortable: (executable: string) => ipcRenderer.invoke('external-editor:save-portable', executable),

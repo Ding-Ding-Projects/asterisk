@@ -467,3 +467,19 @@ latest-export record. Custom folder capability is an explicit per-record choice,
 project folder is visibly session-only with picker provenance and reset. `SettingsRegistry`
 rolls its in-memory map back when a persistence write fails, so a later write cannot leak the
 failed state.
+
+## External editor operation and export closure, 2026-08-24
+
+The latest review found four remaining gaps and they are now closed. Operation ids and bounded
+progress travel through the shared type, Electron main process, preload, runtime and renderer.
+The active child process and local materialization are cancellable, cancellation kills the
+child, removes the temporary file, clears the timeout and returns a typed cancelled receipt
+with its stage.
+
+Portable Visual Studio Code selection now verifies Windows product metadata, company and
+original filename, while automatic discovery is marked separately. The latest export record
+is typed and updated by table, appearance, changelog, group, tab and all-tabs producers. The
+history bundle, wizard result and row configuration controls are inventoried as honest
+unavailable states where their source data is not mounted. Targets are normalized to safe
+absolute paths before stat, spawn and receipt. The explicit latest-export action uses the
+selected editor only, and the Visual Studio Code action is the separate explicit route.

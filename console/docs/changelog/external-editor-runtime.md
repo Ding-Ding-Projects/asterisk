@@ -13,6 +13,8 @@ never uses a shell. The privileged store is the only source of the selected edit
 the shared bounded Windows-safe atomic rename retry helper. Invalid persistence is visible and
 resettable. Every operation now carries an id and bounded progress, refuses re-entry while
 busy, and reports picker cancellation separately from launch or materialization cancellation.
+Cancellation now kills a child editor when present, removes a temporary materialization, and
+returns a typed cancelled result carrying the operation id and stage.
 
 ## Suggested articles
 

@@ -48,6 +48,7 @@ export function installHttpBridge(): void {
       async choose(_editorId: string) { return { editors: [], noEditorMessage: 'External editor handoff is available only in the installed desktop console.', persistenceState: 'missing' as const }; },
       async clearChoice() { return { editors: [], noEditorMessage: 'External editor handoff is available only in the installed desktop console.', persistenceState: 'missing' as const }; },
       async resetStorage() { return { editors: [], noEditorMessage: 'External editor handoff is available only in the installed desktop console.', persistenceState: 'missing' as const }; },
+      async cancelOperation(_operationId: string) { return { editors: [], noEditorMessage: 'External editor handoff is available only in the installed desktop console.', persistenceState: 'missing' as const }; },
       async saveCustom(_record: { name: string; executable: string; supportsFolderWorkspace?: boolean }) { return { editors: [], noEditorMessage: 'External editor handoff is available only in the installed desktop console.', persistenceState: 'missing' as const }; },
       async removeCustom(_editorId: string) { return { editors: [], noEditorMessage: 'External editor handoff is available only in the installed desktop console.', persistenceState: 'missing' as const }; },
       async savePortable(_executable: string) { return { editors: [], noEditorMessage: 'External editor handoff is available only in the installed desktop console.', persistenceState: 'missing' as const }; },

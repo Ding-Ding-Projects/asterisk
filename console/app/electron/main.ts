@@ -163,6 +163,7 @@ ipcMain.handle('external-editor:detect', () => externalEditor.status());
 ipcMain.handle('external-editor:choose', (_event, editorId: unknown) => externalEditor.choose(String(editorId ?? '')));
 ipcMain.handle('external-editor:clear-choice', () => externalEditor.clearChoice());
 ipcMain.handle('external-editor:reset-storage', () => externalEditor.resetStorage());
+ipcMain.handle('external-editor:cancel', (_event, operationId: unknown) => externalEditor.cancelOperation(String(operationId ?? '')));
 ipcMain.handle('external-editor:save-custom', (_event, record: ExternalEditorCustomRecord) => externalEditor.saveCustom(record));
 ipcMain.handle('external-editor:remove-custom', (_event, editorId: unknown) => externalEditor.removeCustom(String(editorId ?? '')));
 ipcMain.handle('external-editor:save-portable', (_event, executable: unknown) => externalEditor.savePortable(String(executable ?? '')));

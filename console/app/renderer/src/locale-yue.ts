@@ -222,6 +222,8 @@ export const CANTONESE: Catalog = {
   'Choose project folder': '揀專案資料夾',
   'Project folder state': '專案資料夾狀態',
   'Reset project folder': '重設專案資料夾',
+  'Cancel active editor operation': '取消進行中編輯器操作',
+  'Cancel active operation': '取消進行中操作',
   'Open official download link': '開啟官方下載連結',
   'Save custom editor': '儲存自訂編輯器',
   'Remove custom editor': '移除自訂編輯器',
@@ -233,6 +235,7 @@ export const CANTONESE: Catalog = {
   'Open selected file': '開啟已揀檔案',
   'Open in Visual Studio Code': '用 Visual Studio Code 開啟',
   'Open latest export in editor': '用編輯器開啟最近匯出',
+  'Open latest export in selected editor': '用已揀編輯器開啟最近匯出',
 
   /* Support Tickets. */
   'Support Tickets': '支援工單',

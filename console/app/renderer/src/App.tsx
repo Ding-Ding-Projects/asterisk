@@ -136,6 +136,8 @@ interface Shell {
   toast(message: string): void;
   areYouSure(title: string, body: string, seconds: number, onConfirm: () => void): void;
   fire(title: string, body: string): void;
+  onExportRecord?: (record: { name: string; content: string; source: string }) => void;
+  exportUnavailable?: (title: string, reason: string) => void;
 }
 
 /** The shape the compiled shell hands every control callback. */
@@ -312,13 +314,28 @@ export class App extends Base {
 
   private editorResult(result: ExternalEditorLaunchResult | undefined): void {
     if (!result) { this.fire('Editor not reached', 'The desktop bridge is unavailable, so nothing was opened.'); return; }
-    if (result.ok) { this.toast(result.source ? `${result.editorId} opened local materialization for ${result.source}` : `${result.editorId} opened ${result.target.path}`); return; }
+    if (result.ok) { this.externalEditorStatus = { ...this.externalEditorStatus, operation: result.progress }; this.toast(result.source ? `${result.editorId} opened local materialization for ${result.source}` : `${result.editorId} opened ${result.target.path}`); this.forceUpdate(); return; }
     this.fire('Editor not opened', result.message);
+    void this.bridge()?.externalEditor.detect().then((status) => { this.externalEditorStatus = status; this.forceUpdate(); });
   }
 
   private recordExport(name: string, content: string, source: string): void {
     this.latestExport = { exportId: crypto.randomUUID(), name, content, source, createdAt: new Date().toISOString() };
   }
+
+  onExportRecord = (record: { name: string; content: string; source: string }): void => {
+    this.recordExport(record.name, record.content, record.source);
+    const blob = new Blob([record.content], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = record.name;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    this.fire('Exported', `${record.name} is ready and can be opened in Visual Studio Code.`);
+  };
+
+  exportUnavailable = (title: string, reason: string): void => this.fire(title, reason);
 
   private async editorAction(action: string): Promise<void> {
     const bridge = this.bridge();
@@ -394,6 +411,13 @@ export class App extends Base {
       catch (error) { this.fire('Editor settings not reset', error instanceof Error ? error.message : String(error)); }
       return;
     }
+    if (action === 'editor-cancel-operation') {
+      const operationId = this.externalEditorStatus.operation?.operationId;
+      if (!operationId || this.externalEditorStatus.operation?.state !== 'running') { this.fire('No active editor operation', 'There is no running editor operation to cancel.'); return; }
+      try { this.externalEditorStatus = await bridge.externalEditor.cancelOperation(operationId); this.toast('Editor operation cancelled.'); this.forceUpdate(); }
+      catch (error) { this.fire('Editor operation not cancelled', error instanceof Error ? error.message : String(error)); }
+      return;
+    }
     if (action === 'editor-open-vscode') {
       if (!this.externalProjectFolder) { this.fire('Project folder not chosen', 'Choose a local project folder first.'); return; }
       this.editorResult(await bridge.externalEditor.openProjectFolder(this.externalProjectFolder, 'vscode'));
@@ -401,7 +425,7 @@ export class App extends Base {
     }
     if (action === 'editor-open-export') {
       if (!this.latestExport) { this.fire('No export to open', 'Export something first. The editor handoff does not invent a file.'); return; }
-      this.editorResult(await bridge.externalEditor.openExport({ ...this.latestExport, editorId: 'vscode' }));
+      this.editorResult(await bridge.externalEditor.openExport({ ...this.latestExport, editorId: this.externalEditorStatus.selectedId }));
       return;
     }
     if (action === 'editor-open-selected') {
@@ -2414,6 +2438,7 @@ interface DesktopBridge {
     choose: (editorId: string) => Promise<ExternalEditorStatus>;
     clearChoice: () => Promise<ExternalEditorStatus>;
     resetStorage: () => Promise<ExternalEditorStatus>;
+    cancelOperation: (operationId: string) => Promise<ExternalEditorStatus>;
     saveCustom: (record: { name: string; executable: string; supportsFolderWorkspace?: boolean }) => Promise<ExternalEditorStatus>;
     removeCustom: (editorId: string) => Promise<ExternalEditorStatus>;
     savePortable: (executable: string) => Promise<ExternalEditorStatus>;

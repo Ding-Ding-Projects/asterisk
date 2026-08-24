@@ -8,14 +8,16 @@ The desktop process detects real executables and returns normalized absolute pat
 
 Every picker, persistence write, launch, and materialization receives an operation id. Native pickers report `picked`, `user-cancelled`, or `busy` separately. Launch and materialization operations report bounded progress, refuse re-entry while another operation is active, and distinguish launch cancellation from materialization cancellation.
 
+The settings surface can cancel the active operation. Cancellation kills the child process when one exists, removes an in-flight local materialization, clears the timeout, and returns a typed cancelled result carrying the operation id and stage.
+
 The settings surface provides these actions:
 
 - Choose a local project folder through the native folder picker, then open that chosen folder as a workspace root. The installed console directory is never guessed as the user's project.
 - Open the selected configuration file by materializing the exact structured read-back content into a bounded local application-data export. A remote `/etc/asterisk/...` path is never passed to the local editor.
 - Open the current project explicitly in Visual Studio Code.
-- Open the latest export in Visual Studio Code through one action.
+- Open the latest export in the selected editor through one action. If no editor is selected, the action refuses with a clear message. Visual Studio Code has its own explicit action.
 - Browse for a custom editor executable, save it, remove it, or forget the selected editor.
-- Choose an arbitrary portable Visual Studio Code executable, which is verified and persisted separately from bounded automatic discovery routes.
+  - Choose an arbitrary portable Visual Studio Code executable, which is verified through Windows product metadata and persisted separately from bounded automatic discovery routes.
 - Choose whether a custom editor supports folders as workspaces. The setting is explicit per custom record and defaults to files only.
 - Review the chosen project folder's session-only provenance and reset it without writing it to the privileged settings store.
 - Inspect invalid or corrupt persistence and reset the privileged editor store in one action.
@@ -24,7 +26,7 @@ Folder opening is capability-aware. Visual Studio Code variants receive `--new-w
 
 ## Configuration and persistence
 
-Custom records use the versioned `console.externalEditors.v1` shape in the application data store. The privileged runtime bounds the record to 32 entries, limits names to 80 characters and executable paths to 1,024 characters, normalizes accepted paths, and rejects command-line operators, quotes, newlines, and malformed identifiers. The selected editor id is stored separately from the renderer's display state so the choice survives relaunch and unavailable choices can still be reported. Portable Visual Studio Code auto-discovery is limited to the documented user and machine routes; an arbitrary portable executable is marked explicit only after the native picker verifies it.
+Custom records use the versioned `console.externalEditors.v1` shape in the application data store. The privileged runtime bounds the record to 32 entries, limits names to 80 characters and executable paths to 1,024 characters, normalizes accepted paths, and rejects command-line operators, quotes, newlines, and malformed identifiers. The selected editor id is stored separately from the renderer's display state so the choice survives relaunch and unavailable choices can still be reported. Portable Visual Studio Code auto-discovery is limited to the documented user and machine routes; an arbitrary portable executable is marked explicit only after the native picker verifies its product name, company and original filename metadata.
 
 Exports handed to an editor are written to an application-owned `external-editor-exports` directory with a bounded UTF-8 payload and a sanitized filename. The source export remains unchanged. A selected PBX configuration receives a source path and a local materialized target path in its launch receipt.
 

@@ -153,6 +153,7 @@ export interface ExternalEditorApi {
   choose(editorId: string): Promise<ExternalEditorStatus>;
   clearChoice(): Promise<ExternalEditorStatus>;
   resetStorage(): Promise<ExternalEditorStatus>;
+  cancelOperation(operationId: string): Promise<ExternalEditorStatus>;
   saveCustom(record: ExternalEditorCustomRecord): Promise<ExternalEditorStatus>;
   removeCustom(editorId: string): Promise<ExternalEditorStatus>;
   pickExecutable(): Promise<{ operationId: string; canceled: boolean; executable?: string; reason?: 'user-cancelled' | 'busy' | 'picked' }>;

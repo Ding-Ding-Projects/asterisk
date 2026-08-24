@@ -15,6 +15,7 @@ const api = Object.freeze({
     choose: editorId => ipcRenderer.invoke('external-editor:choose', editorId),
     clearChoice: () => ipcRenderer.invoke('external-editor:clear-choice'),
     resetStorage: () => ipcRenderer.invoke('external-editor:reset-storage'),
+    cancelOperation: operationId => ipcRenderer.invoke('external-editor:cancel', operationId),
     saveCustom: record => ipcRenderer.invoke('external-editor:save-custom', record),
     removeCustom: editorId => ipcRenderer.invoke('external-editor:remove-custom', editorId),
     savePortable: executable => ipcRenderer.invoke('external-editor:save-portable', executable),

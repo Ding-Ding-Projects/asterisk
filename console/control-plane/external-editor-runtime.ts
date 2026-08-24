@@ -1,8 +1,8 @@
 /** Privileged external-editor runtime for the Electron main process. */
-import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, unlinkSync } from 'node:fs';
 import { basename, delimiter, dirname, extname, isAbsolute, join, normalize, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { atomicWriteFileSync } from './atomic-file.js';
 import type {
   ExternalEditorCandidate, ExternalEditorCustomRecord, ExternalEditorLaunchResult,
@@ -46,6 +46,20 @@ function isFile(path: string): boolean {
   try { return statSync(path).isFile(); } catch { return false; }
 }
 
+function isPortableVisualStudioCodeExecutable(path: string): boolean {
+  if (process.platform !== 'win32' || !isFile(path)) return false;
+  try {
+    const output = execFileSync('powershell.exe', [
+      '-NoProfile', '-NonInteractive', '-Command',
+      '$i=Get-Item -LiteralPath $env:EDITOR_IDENTITY_PATH; [pscustomobject]@{ProductName=$i.VersionInfo.ProductName;CompanyName=$i.VersionInfo.CompanyName;OriginalFilename=$i.VersionInfo.OriginalFilename} | ConvertTo-Json -Compress',
+    ], { env: { ...process.env, EDITOR_IDENTITY_PATH: path }, encoding: 'utf8', timeout: 1200, windowsHide: true }).trim();
+    const metadata = JSON.parse(output) as { ProductName?: string; CompanyName?: string; OriginalFilename?: string };
+    return /^Microsoft\s+Visual\s+Studio\s+Code(?:\s+Insiders)?$/iu.test(String(metadata.ProductName ?? '').trim())
+      && /^Microsoft(?:\s+Corporation)?$/iu.test(String(metadata.CompanyName ?? '').trim())
+      && /^(?:Code|Code - Insiders)\.exe$/iu.test(String(metadata.OriginalFilename ?? '').trim());
+  } catch { return false; }
+}
+
 function resolveCommand(command: string, env: NodeJS.ProcessEnv): string | undefined {
   const direct = expand(command, env);
   if (isAbsolute(direct) && isFile(direct)) return safePath(direct);
@@ -81,6 +95,9 @@ export class ExternalEditorRuntime {
   private persistenceState: 'valid' | 'missing' | 'invalid' = 'missing';
   private persistenceMessage: string | undefined;
   private activeOperation: ExternalEditorOperation | undefined;
+  private activeChild: ReturnType<typeof spawn> | undefined;
+  private activeCancel: (() => void) | undefined;
+  private activeMaterializedPath: string | undefined;
 
   constructor(options: ExternalEditorRuntimeOptions) {
     this.file = join(options.userDataPath, 'external-editors.json');
@@ -127,9 +144,11 @@ export class ExternalEditorRuntime {
   private candidates(): RuntimeDefinition[] {
     const known = KNOWN.map((definition) => {
       const portable = definition.id === 'vscode-portable' && this.config.portableExecutable ? safePath(this.config.portableExecutable) : undefined;
-      const resolved = portable && isFile(portable) ? portable : resolveCommand(definition.command, this.env)
-        ?? definition.fallbackPaths.map((candidate) => safePath(candidate)).find(isFile);
-      return { ...definition, resolved, discovery: portable && isFile(portable) ? 'explicit' : definition.discovery, available: !!resolved, selected: definition.id === this.config.choiceId };
+      const explicitPortable = !!portable && isPortableVisualStudioCodeExecutable(portable);
+      const discovered = resolveCommand(definition.command, this.env)
+        ?? definition.fallbackPaths.map((candidate) => safePath(candidate)).find((candidate) => definition.id === 'vscode-portable' ? isPortableVisualStudioCodeExecutable(candidate) : isFile(candidate));
+      const resolved = explicitPortable ? portable : (definition.id === 'vscode-portable' && discovered && !isPortableVisualStudioCodeExecutable(discovered) ? undefined : discovered);
+      return { ...definition, resolved, discovery: explicitPortable ? 'explicit' : definition.discovery, available: !!resolved, selected: definition.id === this.config.choiceId };
     });
     const custom = this.config.customEditors.map((record) => {
       const resolved = safePath(record.executable);
@@ -170,6 +189,13 @@ export class ExternalEditorRuntime {
     return finished;
   }
 
+  cancelOperation(operationId: string): ExternalEditorStatus {
+    if (!this.activeOperation || this.activeOperation.operationId !== operationId || this.activeOperation.state !== 'running') return this.status();
+    if (this.activeCancel) this.activeCancel();
+    else this.finishOperation(this.activeOperation, 'cancelled', 'Operation cancelled.');
+    return this.status();
+  }
+
   choose(editorId: string): ExternalEditorStatus {
     const candidate = this.candidates().find((entry) => entry.id === editorId && entry.available);
     if (!candidate) throw new Error('That editor is not currently available on this computer.');
@@ -194,7 +220,7 @@ export class ExternalEditorRuntime {
   }
 
   savePortable(executable: string): ExternalEditorStatus {
-    if (!executable || !isFile(safePath(executable)) || !['.exe', '.com'].includes(extname(executable).toLowerCase())) throw new Error('Choose an existing native Visual Studio Code executable for the portable route.');
+    if (!executable || !isPortableVisualStudioCodeExecutable(safePath(executable)) || extname(executable).toLowerCase() !== '.exe') throw new Error('Choose an existing Visual Studio Code executable whose Windows product metadata identifies Visual Studio Code.');
     const previous = this.config;
     this.config = { ...this.config, portableExecutable: safePath(executable), choiceId: 'vscode-portable' };
     try { this.persist(); } catch (error) { this.config = previous; throw error; }
@@ -242,6 +268,7 @@ export class ExternalEditorRuntime {
       this.finishOperation(operation, 'failed', 'The editor target was not a valid file or folder.');
       return Promise.resolve({ ok: false, code: 'INVALID_EDITOR', message: 'The editor target was not a valid file or folder.', operationId: operation.operationId, stage });
     }
+    target = { ...target, path: safePath(target.path) };
     this.updateOperation(operation, stage === 'materialization' ? 0.7 : 0.1, 'Checking the selected editor and target.');
     const id = editorId ?? this.config.choiceId;
     const candidate = this.candidates().find((entry) => entry.id === id && entry.available);
@@ -260,10 +287,16 @@ export class ExternalEditorRuntime {
       let settled = false;
       const child = spawn(executable, args, { shell: false, windowsHide: true, detached: false, stdio: 'ignore' });
       let timer: ReturnType<typeof setTimeout> | undefined;
-      const finish = (resultFactory: (progress: ExternalEditorOperation) => ExternalEditorLaunchResult, state: ExternalEditorOperation['state'], message: string) => { if (settled) return; settled = true; if (timer !== undefined) clearTimeout(timer); const progress = this.finishOperation(operation, state, message); resolveResult(resultFactory(progress)); };
+      const finish = (resultFactory: (progress: ExternalEditorOperation) => ExternalEditorLaunchResult, state: ExternalEditorOperation['state'], message: string) => { if (settled) return; settled = true; if (timer !== undefined) clearTimeout(timer); this.activeCancel = undefined; this.activeChild = undefined; const progress = this.finishOperation(operation, state, message); resolveResult(resultFactory(progress)); };
+      this.activeCancel = () => {
+        try { this.activeChild?.kill(); } catch { /* best effort */ }
+        if (stage === 'materialization' && this.activeMaterializedPath) { try { unlinkSync(this.activeMaterializedPath); } catch { /* best effort */ } this.activeMaterializedPath = undefined; }
+        finish((progress) => ({ ok: false, code: stage === 'materialization' ? 'MATERIALIZATION_CANCELLED' : 'LAUNCH_CANCELLED', message: `${stage === 'materialization' ? 'Materialization' : 'Launch'} cancelled by the user.`, operationId: operation.operationId, stage, cancelled: true }), 'cancelled', `${stage === 'materialization' ? 'Materialization' : 'Launch'} cancelled by the user.`);
+      };
+      this.activeChild = child;
       child.once('spawn', () => { child.unref(); finish((progress) => ({ ok: true, editorId: candidate.id, executable, args, target, pid: child.pid, operationId: operation.operationId, progress }), 'completed', `${candidate.name} launch acknowledged.`); });
       child.once('error', (error: Error) => finish(() => ({ ok: false, code: 'SPAWN_FAILED', message: `The editor could not be started: ${error.message}`, operationId: operation.operationId, stage }), 'failed', error.message));
-      timer = setTimeout(() => finish(() => ({ ok: false, code: 'SPAWN_FAILED', message: 'The editor did not acknowledge launch within the bounded startup window.', operationId: operation.operationId, stage }), 'failed', 'The editor did not acknowledge launch within the bounded startup window.'), 1500);
+      timer = setTimeout(() => { try { child.kill(); } catch { /* best effort */ } finish(() => ({ ok: false, code: 'SPAWN_FAILED', message: 'The editor did not acknowledge launch within the bounded startup window.', operationId: operation.operationId, stage }), 'failed', 'The editor did not acknowledge launch within the bounded startup window.'); }, 1500);
       if (typeof timer === 'object' && timer !== null && 'unref' in timer) (timer as { unref(): void }).unref();
     });
   }
@@ -288,7 +321,10 @@ export class ExternalEditorRuntime {
       this.finishOperation(operation, 'failed', message);
       return { ok: false, code: 'SPAWN_FAILED', message: `The local materialization could not be written: ${message}`, operationId: operation.operationId, stage: 'materialization' };
     }
+    this.activeMaterializedPath = path;
     const result = await this.launchWithOperation({ kind: 'file', path }, input.editorId, operation);
+    this.activeMaterializedPath = undefined;
+    if (!result.ok) { try { unlinkSync(path); } catch { /* best effort */ } }
     return result.ok ? { ...result, source: input.source, materializedPath: path } : result;
   }
 }

@@ -2543,9 +2543,10 @@ const SCREENS = {
       ctl('ed_open_project','Open chosen project folder','segmented','Open project folder',{ options:['Open project folder'], action:'editor-open-project' }),
       ctl('ed_open_selected','Open selected file','segmented','Open selected file',{ options:['Open selected file'], action:'editor-open-selected' }),
       ctl('ed_open_vscode','Open in Visual Studio Code','segmented','Open in Visual Studio Code',{ options:['Open in Visual Studio Code'], action:'editor-open-vscode' }),
-      ctl('ed_open_export','Open latest export in editor','segmented','Open latest export',{ options:['Open latest export'], action:'editor-open-export' }),
+      ctl('ed_open_export','Open latest export in selected editor','segmented','Open latest export',{ options:['Open latest export'], action:'editor-open-export' }),
       ctl('ed_clear','Forget the chosen editor','segmented','Forget chosen editor',{ options:['Forget chosen editor'], action:'editor-clear-choice' }),
-      ctl('ed_reset_storage','Reset invalid editor settings','segmented','Reset editor settings',{ options:['Reset editor settings'], action:'editor-reset-storage' })
+      ctl('ed_reset_storage','Reset invalid editor settings','segmented','Reset editor settings',{ options:['Reset editor settings'], action:'editor-reset-storage' }),
+      ctl('ed_cancel_operation','Cancel active editor operation','segmented','Cancel active operation',{ options:['Cancel active operation'], action:'editor-cancel-operation' })
     ]},
     { title:'Support Tickets', desc:'Locked out of something and cannot remember the credential? Open a ticket. Nothing here is sent anywhere: the ticket exists only on this computer, no network request is made, no data is collected, and nobody is reading it.', ctls:[
       ctl('sup_category','Category','select','Forgotten PIN or password',{ options:['Locked out of an element','Forgotten PIN or password','Lost my authenticator','Something else'] }),
@@ -4211,7 +4212,7 @@ class Component extends DCLogic {
         { icon:'sell', label:'Tag this state', run:() => this.fire('Tagged', 'You can restore to this exact point later.') },
         { icon:'cloud_upload', label:'Push to mirror', run:() => this.toast('Mirror push queued') },
         { icon:'search', label:'Search history', run:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'40%', regexY:'160px' }) },
-        { icon:'download', label:'Export bundle', run:() => this.toast('git bundle written to disk') }
+          { icon:'download', label:'Export bundle', run:() => { if (this.exportUnavailable) this.exportUnavailable('History export unavailable', 'The history export needs the local history store to provide its real commits. No placeholder bundle was created.'); else this.toast('History export unavailable'); } }
       ],
       commitRows:s.commits.filter(c => s.histFilter === 'All' || (s.histFilter === 'This screen' ? c.screen === s.screen : c.file === s.histFilter)).map(c => ({
         sha:c.sha, tag:c.tag, hasTag:!!c.tag,
@@ -4464,17 +4465,17 @@ class Component extends DCLogic {
         ];
         if (s.ctxSub === 'gtabs') return g.tabs.map(t => ({ icon:SCREENS[t] ? SCREENS[t].icon : 'tab', label:s.tabNames[t] || (SCREENS[t] ? SCREENS[t].title : t), run:() => { close(); this.openScreen(t); } }));
         if (s.ctxSub === 'gsave') return [
-          { icon:'download', label:'Export group as JSON', run:() => { close(); this.fire('Group exported', g.name + ' with ' + g.tabs.length + ' tabs.'); } },
+          { icon:'download', label:'Export group as JSON', run:() => { close(); const content = JSON.stringify({ version:1, name:g.name, colour:g.colour, collapsed:!!g.collapsed, tabs:g.tabs }, null, 2); if (this.onExportRecord) this.onExportRecord({ name:'tab-group.json', content, source:'tab-group' }); else this.fire('Group export unavailable', 'The desktop export bridge is not mounted.'); } },
           { icon:'upload', label:'Import a group…', run:() => { close(); this.toast('Pick a group file to import'); } },
           { icon:'bookmark_add', label:'Save as a workspace', run:() => { close(); this.fire('Workspace saved', 'Reopen it from the palette.'); } },
           { icon:'restore', label:'Restore last session', run:() => { close(); this.toast('Previous tabs and groups restored'); } }
         ];
-        if (s.ctxSub === 'tabexport') return [
-          { icon:'download', label:'Export this tab', run:() => { close(); this.toast('Tab exported as JSON'); } },
-          { icon:'download_for_offline', label:'Export all tabs', run:() => { close(); this.fire('Exported', s.tabs.length + ' tabs and ' + s.groups.length + ' groups.'); } },
+        if (s.ctxSub === 'tabexport') { const tabKey = s.ctxTabKey || s.screen; return [
+          { icon:'download', label:'Export this tab', run:() => { close(); const content = JSON.stringify({ version:1, tab:tabKey, label:s.tabNames[tabKey] || (SCREENS[tabKey] ? SCREENS[tabKey].title : tabKey), pinned:s.pinned.indexOf(tabKey) >= 0, colour:s.tabColours[tabKey] || null }, null, 2); if (this.onExportRecord) this.onExportRecord({ name:'tab.json', content, source:'tab' }); else this.fire('Tab export unavailable', 'The desktop export bridge is not mounted.'); } },
+          { icon:'download_for_offline', label:'Export all tabs', run:() => { close(); const content = JSON.stringify({ version:1, tabs:s.tabs, pinned:s.pinned, groups:s.groups }, null, 2); if (this.onExportRecord) this.onExportRecord({ name:'tabs.json', content, source:'tabs' }); else this.fire('Tab export unavailable', 'The desktop export bridge is not mounted.'); } },
           { icon:'upload', label:'Import tabs…', run:() => { close(); this.toast('Pick a tab set to import'); } },
           { icon:'content_copy', label:'Copy tab list to clipboard', run:() => { close(); this.toast('Tab list copied'); } }
-        ];
+        ]; }
         if (s.ctxSub !== 'closetabs') return [];
         const k = s.ctxTabKey || s.screen, i = s.tabs.indexOf(k);
         return [
@@ -4547,7 +4548,7 @@ class Component extends DCLogic {
             { icon:'check_box', label:'Select this row', hint:'', run:() => { close(); this.set('selected', sel.indexOf(name) >= 0 ? sel : sel.concat([name])); } },
             { icon:'content_copy', label:'Duplicate', hint:'⌃D', run:() => { close(); this.bulk('Duplicated', [name]); } },
             { icon:'refresh', label:'Reload just this', hint:'', run:() => { close(); this.ceremony('Reload ' + name, 'reload ' + name); } },
-            { icon:'download', label:'Export as configuration', hint:'', run:() => { close(); this.toast(name + ' exported'); } },
+            { icon:'download', label:'Export as configuration', hint:'', run:() => { close(); if (this.exportUnavailable) this.exportUnavailable('Configuration export unavailable', name + ' has no completed local read-back on this screen, so no guessed file was created.'); else this.toast('Configuration export unavailable'); } },
             { icon:'history', label:'Version history for this', hint:'', run:() => { close(); this.openScreen('history'); } },
             { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.', 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : this.ceremony('Delete ' + name, 'delete ' + name))); } },
             common[0], common[1]
@@ -4679,7 +4680,7 @@ class Component extends DCLogic {
         { icon:'shuffle', label:'Randomise every element', run:() => this.randomAppearance(true) },
         { icon:'restart_alt', label:'Reset', run:() => { this.setState({ values:{} }); this.toast('Appearance reset to the design system'); } },
         { icon:'bookmark_add', label:'Save preset', run:() => this.fire('Preset saved', 'It is yours now.') },
-        { icon:'download', label:'Export', run:() => this.toast('Appearance exported as JSON') },
+        { icon:'download', label:'Export', run:() => { if (this.exportUnavailable) this.exportUnavailable('Appearance export unavailable', 'The appearance export needs the mounted renderer serializer. No placeholder file was created.'); else this.toast('Appearance export unavailable'); } },
         { icon:'upload', label:'Import', run:() => this.toast('Pick an appearance file to import') }
       ],
       closeAppear:() => this.set('appearOpen', false),
