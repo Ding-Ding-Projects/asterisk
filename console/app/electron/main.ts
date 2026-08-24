@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { join } from 'node:path';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
@@ -168,6 +168,11 @@ function createWindow(): void {
 ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindow.unmaximize() : mainWindow?.maximize());
 ipcMain.on('window:close', () => mainWindow?.close());
+ipcMain.handle('dialog:pick-folder', async () => {
+  if (!mainWindow) return undefined;
+  const result = await dialog.showOpenDialog(mainWindow, { properties: ['openDirectory', 'createDirectory'] });
+  return result.canceled ? undefined : result.filePaths[0];
+});
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
 
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {

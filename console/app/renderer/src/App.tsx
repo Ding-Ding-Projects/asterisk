@@ -245,6 +245,18 @@ export class App extends Base {
    *  repeated failures rather than on the first typo. */
   private wrongUnlockCounts: Record<string, number> = {};
 
+  private forgeStatus = 'Forge publishing has not loaded provider data yet.';
+  private forgeSearch = '';
+  private forgeAccounts: Array<Record<string, string | boolean>> = [];
+  private forgeCapabilities: Array<Record<string, string>> = [];
+  private forgeOwners: Array<Record<string, string>> = [];
+  private forgeReceipts: Array<Record<string, string>> = [];
+  private forgeActiveAccountId = '';
+  private forgeOwnerId = '';
+  private forgeRepositoryName = '';
+  private forgeSourceRemote = '';
+  private forgeSourcePath = '';
+
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
   }
@@ -294,6 +306,84 @@ export class App extends Base {
     if (!bridge) return undefined;
     return await bridge.controlPlane.request({ requestId: crypto.randomUUID(), action, ...extra } as never);
   }
+
+  private forgeLoad = async (): Promise<void> => {
+    this.forgeStatus = 'Reading the local provider sign-in store.';
+    this.forceUpdate();
+    const capabilityResponse = await this.request('forge.capabilities');
+    if (capabilityResponse?.ok) {
+      this.forgeCapabilities = ((capabilityResponse.data as { providers?: Array<Record<string, unknown>> }).providers ?? []).map((provider) => ({
+        label: String(provider.displayName ?? provider.provider ?? ''),
+        state: provider.apiState === 'available' ? 'Fork and copy and push available' : `Unavailable: ${String(provider.reason ?? 'No adapter configured')}`,
+      }));
+    }
+    const response = await this.request('forge.accounts.list');
+    const data = response?.data as { accounts?: Array<Record<string, unknown>>; activeAccountId?: string; reauthAction?: string } | undefined;
+    this.forgeActiveAccountId = typeof data?.activeAccountId === 'string' ? data.activeAccountId : '';
+    this.forgeAccounts = (data?.accounts ?? []).map((account) => {
+      const id = String(account.id ?? '');
+      const login = String(account.login ?? '');
+      const active = id === this.forgeActiveAccountId;
+      return { id, login, state: String(account.state ?? 'unknown'), tokenRef: String(account.tokenRef ?? 'vault reference unavailable'), active, activeLabel: active ? 'Active' : 'Use this', activeBg: active ? '#005230' : '#1B211C' };
+    });
+    if (!response?.ok) {
+      this.forgeStatus = response?.message ?? 'The forge bridge did not answer.';
+      this.forceUpdate();
+      return;
+    }
+    this.forgeStatus = this.forgeAccounts.length > 0 ? `${this.forgeAccounts.length} provider account${this.forgeAccounts.length === 1 ? '' : 's'} loaded. Tokens stay in the operating-system vault.` : (data?.reauthAction ? 'No account is signed in. Re-authenticate beside this surface.' : 'No provider account was returned.');
+    if (this.forgeActiveAccountId) await this.forgeLoadOwners();
+    this.forceUpdate();
+  };
+
+  private forgeLoadOwners = async (): Promise<void> => {
+    const response = await this.request('forge.owners.list', { payload: { accountId: this.forgeActiveAccountId } });
+    if (!response?.ok) {
+      this.forgeStatus = response?.message ?? 'Owners could not be loaded. Re-authenticate beside this surface if requested.';
+      this.forceUpdate();
+      return;
+    }
+    const owners = ((response.data as { owners?: Array<Record<string, unknown>> }).owners ?? []).map((owner) => ({ id: String(owner.id ?? ''), label: `${String(owner.displayName ?? owner.login ?? '')} · ${String(owner.kind ?? '')}`, login: String(owner.login ?? ''), kind: String(owner.kind ?? '') }));
+    this.forgeOwners = owners;
+    this.forgeOwnerId = owners.some((owner) => owner.id === this.forgeOwnerId) ? this.forgeOwnerId : owners[0]?.id ?? '';
+    this.forgeStatus = `${owners.length} personal and organization owner${owners.length === 1 ? '' : 's'} loaded from provider data.`;
+    this.forceUpdate();
+  };
+
+  private forgeWithAccount = async (accountId: string): Promise<void> => {
+    const response = await this.request('forge.account.activate', { payload: { accountId } });
+    this.forgeStatus = response?.ok ? 'The selected account is active.' : (response?.message ?? 'The account could not be activated. Re-authenticate beside this surface if requested.');
+    if (response?.ok) { this.forgeActiveAccountId = accountId; await this.forgeLoadOwners(); }
+    await this.forgeLoad();
+  };
+
+  private forgeRefreshAccount = async (accountId: string): Promise<void> => {
+    const response = await this.request('forge.account.refresh', { payload: { accountId } });
+    this.forgeStatus = response?.ok ? 'The account was refreshed from the provider sign-in store.' : (response?.message ?? 'The account needs re-authentication.');
+    await this.forgeLoad();
+  };
+
+  private forgeSignOut = async (accountId: string): Promise<void> => {
+    const response = await this.request('forge.account.sign-out', { payload: { accountId } });
+    this.forgeStatus = response?.ok ? 'The account was signed out.' : (response?.message ?? 'The account was not signed out.');
+    await this.forgeLoad();
+  };
+
+  private forgeAdd = async (): Promise<void> => {
+    const login = window.prompt('Provider account name, with no token:')?.trim() ?? '';
+    if (!login) return;
+    const response = await this.request('forge.account.add', { payload: { provider: 'github', hostname: 'github.com', login } });
+    this.forgeStatus = response?.ok ? `Account ${login} is available.` : (response?.message ?? 'Add account needs provider re-authentication.');
+    await this.forgeLoad();
+  };
+
+  private forgePublish = async (route: 'fork' | 'copy-and-push'): Promise<void> => {
+    const response = await this.request('forge.publish', { payload: { provider: 'github', route, accountId: this.forgeActiveAccountId, ownerId: this.forgeOwnerId, repositoryName: this.forgeRepositoryName, sourceRemote: this.forgeSourceRemote, sourcePath: this.forgeSourcePath, visibility: 'private', defaultBranch: 'main' } });
+    const data = response?.ok ? response.data as { receipt?: { message?: string; status?: string } } : undefined;
+    this.forgeStatus = data?.receipt?.message ?? response?.message ?? 'The provider did not confirm publication.';
+    if (data?.receipt) this.forgeReceipts = [{ status: String(data.receipt.status ?? 'unknown'), message: String(data.receipt.message ?? ''), when: new Date().toISOString() }, ...this.forgeReceipts].slice(0, 12);
+    this.forceUpdate();
+  };
 
   /** Bounded, allowlisted discovery through the preload bridge. Never a shell command. */
   private discover = async () => {
@@ -613,6 +703,7 @@ ${resolution.disclosure}`);
     if (action === 'daemon-start') { void this.daemonAction('start'); return; }
     if (action === 'daemon-stop') { void this.daemonAction('stop'); return; }
     if (action === 'daemon-restart') { void this.daemonAction('restart'); return; }
+    if (action === 'forge-load') { void this.forgeLoad(); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -1878,6 +1969,32 @@ It is shown once. The phone needs it to register.`);
         commits: [], commitRows: [], diffLines: [], diffFile: 'no commit selected', blameRows: [],
         branches: [], branchName: '', commitCount: '0 commits',
         compareLabel: NO_HISTORY,
+        forgeStatus: this.forgeStatus,
+        forgeSearch: this.forgeSearch,
+        forgeAccounts: this.forgeAccounts.filter((account) => {
+          const query = this.forgeSearch.trim().toLocaleLowerCase();
+          return !query || `${String(account.login)} ${String(account.state)}`.toLocaleLowerCase().includes(query);
+        }).map((account) => ({ ...account, activate: () => void this.forgeWithAccount(String(account.id)), refresh: () => void this.forgeRefreshAccount(String(account.id)), signOut: () => void this.forgeSignOut(String(account.id)) })),
+        forgeCapabilities: this.forgeCapabilities,
+        forgeOwners: this.forgeOwners,
+        forgeOwnerId: this.forgeOwnerId,
+        forgeRepositoryName: this.forgeRepositoryName,
+        forgeSourceRemote: this.forgeSourceRemote,
+        forgeSourcePath: this.forgeSourcePath,
+        forgeReceipts: this.forgeReceipts,
+        forgeLoad: () => void this.forgeLoad(),
+        forgeAdd: () => void this.forgeAdd(),
+        forgeReauth: () => void this.forgeAdd(),
+        forgeOwnersLoad: () => void this.forgeLoadOwners(),
+        forgeFork: () => void this.forgePublish('fork'),
+        forgeCopyPush: () => void this.forgePublish('copy-and-push'),
+        onForgeSearch: (event: { target: { value: string } }) => { this.forgeSearch = event.target.value.slice(0, 256); this.forceUpdate(); },
+        onForgeOwner: (event: { target: { value: string } }) => { this.forgeOwnerId = event.target.value; this.forceUpdate(); },
+        onForgeRepositoryName: (event: { target: { value: string } }) => { this.forgeRepositoryName = event.target.value.slice(0, 100); this.forceUpdate(); },
+        onForgeSourceRemote: (event: { target: { value: string } }) => { this.forgeSourceRemote = event.target.value.slice(0, 4096); this.forceUpdate(); },
+        onForgeSourcePath: (event: { target: { value: string } }) => { this.forgeSourcePath = event.target.value.slice(0, 4096); this.forceUpdate(); },
+        forgePickSource: async () => { const path = await bridge?.dialog?.pickFolder?.(); if (path) { this.forgeSourcePath = path; this.forceUpdate(); } },
+        openForgeRegex: () => this.setState({ regexOpen: true, regexTarget: 'forge', regexX: '42%', regexY: '180px' }),
       } : {}),
 
       // The agent rail has no local memory store wired in, so its rows and metrics stay empty.
@@ -2256,5 +2373,6 @@ It is shown once. The phone needs it to register.`);
 interface DesktopBridge {
   platform: string;
   window: { minimize: () => void; toggleMaximize: () => void; close: () => void };
+  dialog: { pickFolder: () => Promise<string | undefined> };
   controlPlane: { request: (request: Record<string, unknown>) => Promise<ControlPlaneResponse | undefined> };
 }

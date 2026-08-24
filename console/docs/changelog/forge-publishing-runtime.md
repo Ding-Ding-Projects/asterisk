@@ -1,0 +1,3 @@
+# Forge publishing runtime
+
+The desktop History screen now has a real provider-publishing runtime rather than a queued toast. It discovers local GitHub CLI accounts, keeps only account ids and operating-system vault references, loads personal and organization owners from provider data, and makes the fork and copy-and-push routes visibly distinct. Typed `gh` and `git` calls run with `shell: false`, bounded deadlines, no provider token in renderer state or arguments, atomic receipts, local history, and explicit re-authentication outcomes. GitLab remains an honest unavailable capability until its adapter exists.

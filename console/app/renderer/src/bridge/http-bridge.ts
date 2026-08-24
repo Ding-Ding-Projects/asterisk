@@ -29,6 +29,7 @@ export function installHttpBridge(): void {
       toggleMaximize: () => {},
       close: () => {},
     },
+    dialog: { pickFolder: async () => undefined },
     controlPlane: {
       async request(request: ControlPlaneRequest): Promise<ControlPlaneResponse | undefined> {
         const res = await postJson('/api/control-plane', request);

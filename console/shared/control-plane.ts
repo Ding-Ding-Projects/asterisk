@@ -26,7 +26,11 @@ export type ControlPlaneAction =
   /* Durable renderer settings (appearance, personal vocabulary) -- see
    * `control-plane/settings-store.ts`. The renderer's own `localStorage` is in-memory
    * only for a `file://` origin and never survives a relaunch. */
-  | 'settings.snapshot' | 'settings.write' | 'settings.remove';
+  | 'settings.snapshot' | 'settings.write' | 'settings.remove'
+  /* Desktop forge publishing uses gh/git through the typed privileged bridge. */
+  | 'forge.capabilities' | 'forge.accounts.list' | 'forge.account.add'
+  | 'forge.account.refresh' | 'forge.account.activate' | 'forge.account.sign-out'
+  | 'forge.owners.list' | 'forge.publish' | 'forge.receipts.list';
 
 /** The screens a `pbx.read` can answer, each backed by read-only Asterisk CLI output. */
 export type PbxReadView =
@@ -77,6 +81,7 @@ export interface UpdaterRestartResult {
 export interface DingDesktopApi {
   platform: string;
   window: { minimize(): void; toggleMaximize(): void; close(): void };
+  dialog: { pickFolder(): Promise<string | undefined> };
   controlPlane: { request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> };
   updater: {
     /** Current state, read once (e.g. on mount) without waiting for the next push. */

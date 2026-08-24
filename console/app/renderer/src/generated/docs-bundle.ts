@@ -24,7 +24,7 @@ export interface DocsBundle {
 
 export const DOCS_BUNDLE: DocsBundle = {
   "generatedAt": "1970-01-01T00:00:00.000Z",
-  "articleCount": 85,
+  "articleCount": 86,
   "articles": [
     {
       "id": "agent/hub",
@@ -527,6 +527,14 @@ export const DOCS_BUNDLE: DocsBundle = {
       "headings": [],
       "links": [],
       "body": "# Automatic updater reliability\n\n- Draft-count updates now advance the main-process updater revision before publication, so a stale status read cannot overwrite a newer restart block.\n- PBX draft publication now counts every loaded resource against its last live read, including the currently edited resource, so apply, discard, restore, and field edits converge on one accurate restart block.\n- Installer launch acknowledgement clears its timeout on success and failure, preventing an old timer from changing a later state.\n- Successful installer acknowledgement now returns to the renderer before quit is scheduled, while the installing latch stays held through shutdown and clears only for a failed launch.\n- Release identity validation rejects duplicate artifact records, requires every resolved full and delta package exactly once, and checks version-bearing Squirrel filenames.\n- Published tags retain the legacy-compatible `ding-pbx-console-v0.0.<run>-r<attempt>` shape while the package identity remains monotonic `0.1.<run>`, so existing `0.1.0` installations can see repaired releases.\n- Published packaging now rejects a tag and package-version pair unless the run number maps exactly to `0.1.<run>` within a bounded positive range; local unpublished `tag: null` builds remain valid.\n- Added two byte-preserved built-artifact update captures with source and release SHAs, dimensions, digests, hidden-desktop CDP method, direct installer launch, restart, Later, and draft-block evidence.\n- A newer ready revision now clears a stale local spawn-error message after recovery, while current failure state remains visible.\n"
+    },
+    {
+      "id": "changelog/forge-publishing-runtime",
+      "category": "changelog",
+      "title": "Forge publishing runtime",
+      "headings": [],
+      "links": [],
+      "body": "# Forge publishing runtime\n\nThe desktop History screen now has a real provider-publishing runtime rather than a queued toast. It discovers local GitHub CLI accounts, keeps only account ids and operating-system vault references, loads personal and organization owners from provider data, and makes the fork and copy-and-push routes visibly distinct. Typed `gh` and `git` calls run with `shell: false`, bounded deadlines, no provider token in renderer state or arguments, atomic receipts, local history, and explicit re-authentication outcomes. GitLab remains an honest unavailable capability until its adapter exists.\n"
     },
     {
       "id": "data/ami",
@@ -1951,16 +1959,12 @@ export const DOCS_BUNDLE: DocsBundle = {
           "id": "configuration"
         },
         {
-          "title": "Current status",
-          "id": "current-status"
-        },
-        {
           "title": "Failure modes",
           "id": "failure-modes"
         },
         {
-          "title": "Accessibility and localization",
-          "id": "accessibility-and-localization"
+          "title": "Security and privacy",
+          "id": "security-and-privacy"
         },
         {
           "title": "Verification",
@@ -1973,10 +1977,12 @@ export const DOCS_BUNDLE: DocsBundle = {
       ],
       "links": [
         "external-editor-handoff.md",
-        "../agent/ops.md",
+        "local-version-history.md",
+        "complete-exports.md",
+        "../system/security.md",
         "README.md"
       ],
-      "body": "# Forge publishing\n\nLets a user publish a repository to a chosen account or organization, with a non-forking fallback for providers that cannot fork.\n\n## Behavior\n\nA publish flow is meant to let the user choose the target account or organization from a real signed-in account list, and to offer copy-and-push as an alternative when the target provider cannot fork.\n\n## Configuration\n\nThe account list would be searchable and support adding further signed-in accounts through the same sign-in flow used for the first one.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application administers a telephony exchange and has no source-repository publishing feature.\n\n**Documentation website:** Not implemented. The documentation website has no repository-publishing feature of its own.\n\n## Failure modes\n\nN/A — with no publishing flow implemented, there is no failure path to describe.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[External editor handoff](external-editor-handoff.md), [Operations](../agent/ops.md), [Platform feature index](README.md).\n"
+      "body": "# Forge publishing\n\nThe History screen contains a desktop forge-publishing surface. It publishes a local source through a chosen provider account and owner, with a fork route where the provider supports it and a copy-and-push route that does not depend on forking.\n\n## Behavior\n\nThe surface is backed by the control plane, not by renderer-only state. Refresh discovers signed-in GitHub accounts from the local `gh` sign-in store. Each row shows the provider login, an account id, a stable `gh://` vault reference, active state, refresh, sign-out, and re-authentication status. The renderer never receives a token value.\n\nSelecting an account activates it through `gh auth switch`, then owner discovery reads the personal owner and paginated organization owners through `gh api`. The owner picker contains only values returned by the provider. It never guesses a personal namespace or accepts an arbitrary organization name.\n\nThe two publication routes are intentionally distinct:\n\n- **Fork** invokes `gh repo fork` against the selected HTTPS source remote. Organization forks carry the selected organization explicitly. A personal fork uses the provider account that is active in the local sign-in store.\n- **Copy and push** creates the selected destination with `gh repo create`, checks the local `forge-publish` remote, refuses to overwrite an unrelated remote, then pushes the selected local `HEAD` to the chosen default branch with `git`.\n\nEvery process call uses typed executable and argument arrays, `shell: false`, bounded output, and a deadline. A publication receipt records the provider, account id, owner id, route, destination URL, source commit when available, exact outcome, and timestamp. Partial creation or push outcomes remain receipts and are not reported as success.\n\n## Configuration\n\nThe durable file is `forge-publishing.json` under the application's private data folder. It contains schema version 1, account metadata, the active account id, and redacted publication receipts. It contains no token, password, cookie, or private key. Account mutation and publication receipts are also recorded through the app's local append-only history.\n\nThe source-folder field has a native folder picker. The account search is plain text by default and has an adjacent anchored regex builder. The provider capability list distinguishes GitHub, which currently supports both routes, from GitLab, which remains visible but unavailable until a local CLI and OS-vault adapter are configured.\n\n## Failure modes\n\nNo signed-in provider account returns a re-authentication state beside the account surface. An expired or missing account returns the same state without clearing the retained account metadata. A failed `gh auth switch`, owner read, repository create, remote add, or push carries its exact bounded process reason in the receipt.\n\nIf `forge-publish` already points at a different destination, copy and push stops before changing the remote. If the source commit cannot be read, or the source path is not absolute, publication stops before creating a destination. If fork succeeds but a later provider confirmation is absent, the receipt stays failed or partial and never claims that a complete copy exists.\n\nGitLab is not silently routed through a GitHub command. It remains an explicit unavailable capability until its provider adapter exists.\n\n## Security and privacy\n\nThe renderer accepts account names and owner ids, never provider tokens. Durable state stores only stable vault references. `gh` uses its own operating-system credential store, while `git` uses the configured credential helper. No token is placed in arguments, output, logs, renderer state, receipts, local history, exports, or documentation. The executor allowlist contains only the typed `git` and `gh` executables needed by this surface, and all calls use `shell: false`.\n\n## Verification\n\nThis lane did not call provider APIs, run tests, lint, build the product, package an installer, launch the desktop surface, or capture a screenshot. Static evidence is the typed action union, the dispatcher branches, the allowlisted executor calls, the generated History-screen route, the atomic state store, and the updated feature registry. Runtime provider verification remains unrun and must be performed by the parent lane through the approved desktop evidence path.\n\n## Suggested articles\n\n[External editor handoff](external-editor-handoff.md), [Local version history](local-version-history.md), [Complete exports](complete-exports.md), [Security](../system/security.md), [Platform feature index](README.md).\n"
     },
     {
       "id": "platform/funny-levels",

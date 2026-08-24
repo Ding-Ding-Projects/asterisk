@@ -310,9 +310,22 @@
       ]
     },
     "forge-publishing": {
-      "state": "absent",
-      "note": "No GitHub/forge publishing flow (account picker, fork-vs-copy-and-push) exists; this is a PBX admin console, not a repository-publishing tool.",
-      "files": []
+      "state": "partial",
+      "note": "The History screen now mounts a real GitHub forge-publishing flow through the typed privileged bridge. It discovers gh-managed accounts, keeps only account ids and OS-vault token references in durable state, supports active-account selection, refresh, sign-out, provider-backed personal and organization owners, fork and copy-and-push routes, capability reporting, bounded shell:false gh/git execution, atomic receipts, local history, and beside-control re-auth states. GitLab remains visible as an unavailable provider because no local CLI or OS-vault adapter is configured, and no provider token is accepted from the renderer.",
+      "files": [
+        "control-plane/forge-publishing.ts",
+        "control-plane/dispatch.ts",
+        "shared/control-plane.ts",
+        "app/electron/main.ts",
+        "app/electron/preload.ts",
+        "app/electron/preload.cjs",
+        "app/renderer/src/bridge/http-bridge.ts",
+        "app/renderer/src/App.tsx",
+        "design/Asterisk Console M3.dc.html",
+        "app/renderer/src/generated/console.tsx",
+        "docs/platform/forge-publishing.md",
+        "docs/changelog/forge-publishing-runtime.md"
+      ]
     },
     "collapsible-filters": {
       "state": "absent",

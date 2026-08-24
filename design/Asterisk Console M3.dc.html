@@ -488,6 +488,61 @@
               </div>
             </sc-for>
           </div>
+          <div style="background:#1B211C; border-radius:18px; padding:16px 20px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+              <span class="msym" style="font-size:19px; color:#82D9A5;">cloud_upload</span>
+              <span style="font-size:15px; font-weight:500;">Forge publishing</span>
+              <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394;">{{ forgeStatus }}</span>
+              <sc-for list="{{ forgeCapabilities }}" as="p"><span style="font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394;">{{ p.label }}: {{ p.state }}</span></sc-for>
+              <div style="flex:1;"></div>
+              <button onClick="{{ forgeLoad }}" style="background:#1B4D33; border:0; border-radius:999px; padding:8px 14px; color:#9FF7C4; font:inherit; cursor:pointer;">Refresh forge data</button>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
+              <input type="search" aria-label="Search forge accounts" value="{{ forgeSearch }}" onInput="{{ onForgeSearch }}" placeholder="Search accounts" style="flex:1; min-width:220px; background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#DFE4DC; font:inherit;" />
+              <button onClick="{{ openForgeRegex }}" aria-label="Open forge account regex builder" style="background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; cursor:pointer;">.*</button>
+              <button onClick="{{ forgeAdd }}" style="background:transparent; border:1px solid #414942; border-radius:999px; padding:8px 14px; color:#C4CBC2; font:inherit; cursor:pointer;">Add account</button>
+              <button onClick="{{ forgeReauth }}" style="background:transparent; border:1px solid #6B5A36; border-radius:999px; padding:8px 14px; color:#FFD68A; font:inherit; cursor:pointer;">Re-authenticate</button>
+            </div>
+            <div role="listbox" aria-label="Signed-in forge accounts" style="display:grid; gap:8px;">
+              <sc-for list="{{ forgeAccounts }}" as="a" hint-placeholder-count="2">
+                <div role="option" aria-selected="{{ a.active }}" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#141A15; border:1px solid #333B34; border-radius:12px; padding:10px 12px;">
+                  <span class="msym" style="font-size:18px; color:#82D9A5;">account_circle</span>
+                  <span style="font-family:'Roboto Mono',monospace; color:#DFE4DC;">{{ a.login }}</span>
+                  <span style="font-size:11px; color:#8FA394;">{{ a.state }}</span>
+                  <span style="font-size:11px; color:#8FA394;">{{ a.tokenRef }}</span>
+                  <div style="flex:1;"></div>
+                  <button onClick="{{ a.activate }}" style="background:{{ a.activeBg }}; border:0; border-radius:999px; padding:7px 11px; color:#9FF7C4; cursor:pointer;">{{ a.activeLabel }}</button>
+                  <button onClick="{{ a.refresh }}" style="background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 11px; color:#C4CBC2; cursor:pointer;">Refresh</button>
+                  <button onClick="{{ a.signOut }}" style="background:transparent; border:1px solid #6B3A36; border-radius:999px; padding:7px 11px; color:#FFB4AB; cursor:pointer;">Sign out</button>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;">
+              <label style="display:grid; gap:6px; color:#C4CBC2; font-size:12px;">Owner from provider data
+                <select aria-label="Forge owner" value="{{ forgeOwnerId }}" onChange="{{ onForgeOwner }}" style="background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px; color:#DFE4DC; font:inherit;">
+                  <sc-for list="{{ forgeOwners }}" as="o"><option value="{{ o.id }}">{{ o.label }}</option></sc-for>
+                </select>
+              </label>
+              <label style="display:grid; gap:6px; color:#C4CBC2; font-size:12px;">Destination name
+                <input aria-label="Forge destination name" value="{{ forgeRepositoryName }}" onInput="{{ onForgeRepositoryName }}" placeholder="repository-name" style="background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px; color:#DFE4DC; font:inherit;" />
+              </label>
+              <label style="display:grid; gap:6px; color:#C4CBC2; font-size:12px;">Source remote for fork
+                <input aria-label="Forge source remote" value="{{ forgeSourceRemote }}" onInput="{{ onForgeSourceRemote }}" placeholder="https://github.com/owner/source" style="background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px; color:#DFE4DC; font:inherit;" />
+              </label>
+              <label style="display:grid; gap:6px; color:#C4CBC2; font-size:12px;">Local source folder for copy and push
+                <div style="display:flex; gap:6px;"><input aria-label="Forge local source folder" value="{{ forgeSourcePath }}" onInput="{{ onForgeSourcePath }}" placeholder="Choose a local source folder" style="flex:1; background:#0C110D; border:1px solid #414942; border-radius:10px; padding:10px; color:#DFE4DC; font:inherit;" /><button type="button" onClick="{{ forgePickSource }}" aria-label="Browse for forge source folder" style="background:#1B4D33; border:0; border-radius:10px; padding:10px; color:#9FF7C4; cursor:pointer;">Browse</button></div>
+              </label>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+              <button onClick="{{ forgeOwnersLoad }}" style="background:transparent; border:1px solid #414942; border-radius:999px; padding:8px 14px; color:#C4CBC2; cursor:pointer;">Load personal and organization owners</button>
+              <button onClick="{{ forgeFork }}" style="background:#005230; border:0; border-radius:999px; padding:9px 15px; color:#9FF7C4; cursor:pointer;">Fork to selected owner</button>
+              <button onClick="{{ forgeCopyPush }}" style="background:#1B4D33; border:0; border-radius:999px; padding:9px 15px; color:#9FF7C4; cursor:pointer;">Copy and push to selected owner</button>
+            </div>
+            <div style="margin-top:12px; color:#8FA394; font-size:11.5px; line-height:1.5;">Tokens remain in the operating-system vault and are referenced only by the label shown above. Provider capability gaps stay visible, and a failed account request keeps its re-auth action beside this surface.</div>
+            <sc-for list="{{ forgeReceipts }}" as="r">
+              <div style="border-top:1px solid #262B26; margin-top:12px; padding-top:10px; font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394;">{{ r.status }} · {{ r.message }} · {{ r.when }}</div>
+            </sc-for>
+          </div>
         </sc-if>
 
         <sc-if value="{{ isArcade }}">
@@ -4193,7 +4248,7 @@ class Component extends DCLogic {
         { icon:'add_circle', label:'Commit now', run:() => this.fire('Committed', 'Working tree is clean.') },
         { icon:'call_split', label:'New branch', run:() => this.toast('Branch created from the current commit') },
         { icon:'sell', label:'Tag this state', run:() => this.fire('Tagged', 'You can restore to this exact point later.') },
-        { icon:'cloud_upload', label:'Push to mirror', run:() => this.toast('Mirror push queued') },
+        { icon:'cloud_upload', label:'Push to mirror', run:() => { if (this.onControlAction) this.onControlAction('forge-load'); } },
         { icon:'search', label:'Search history', run:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'40%', regexY:'160px' }) },
         { icon:'download', label:'Export bundle', run:() => this.toast('git bundle written to disk') }
       ],
