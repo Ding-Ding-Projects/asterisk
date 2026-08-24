@@ -16,8 +16,9 @@ import {
   applyControlValues, controlValuesFor, editDocument, findEndpoint, removeEndpoint,
 } from './endpoint-edit';
 import {
-  clearVocabulary, createMemoryStorage, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
+  clearVocabulary, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
 } from './personal-vocabulary';
+import { createDurableStorage, type DurableStorageHandle } from './durable-storage';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
 import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
@@ -145,11 +146,14 @@ export class App extends Base {
   private oneClickLog: Array<{ text: string; color: string; icon: string; ms: string }> = [];
   private refreshTimer: ReturnType<typeof setInterval> | undefined;
   private readStartedAt = new Map<string, number>();
-  /** Local storage for the personal-vocabulary loader. `window.localStorage` on a real
-   *  desktop build; falls back to an in-memory stub so the control still works (for the
-   *  session) on a host with no persistent store rather than throwing. */
-  private vocabStorage: VocabularyStorage =
-    typeof window !== 'undefined' && window.localStorage ? window.localStorage : createMemoryStorage();
+  /** Durable storage for everything that must survive a relaunch (the
+   *  personal-vocabulary cache below, and the appearance editor further down). A
+   *  `file://`-origin renderer's own `window.localStorage` is in-memory only and never
+   *  survives a relaunch -- see `durable-storage.ts`. Bootstrapped from the main
+   *  process in `componentDidMount`; until that resolves, reads answer as "nothing
+   *  stored yet", exactly like a missing settings file. */
+  private durableStorage: DurableStorageHandle = createDurableStorage(this.bridge());
+  private vocabStorage: VocabularyStorage = this.durableStorage.storage;
   /** The chosen file's own name, kept only for display — never its contents. */
   private pickedFileNames = new Map<string, string>();
   /** The daemon lifecycle group on Deploy & servers has no reading of its own until a
@@ -173,7 +177,14 @@ export class App extends Base {
 
   componentDidMount() {
     super.componentDidMount?.();
-    this.restoreAppearance();
+    /* The durable-storage snapshot has to load before anything reads or restores
+     * persisted state from it (the appearance editor's restore below), so the whole
+     * bootstrap-then-restore sequence is awaited before touching either. Everything
+     * else on mount does not depend on it and proceeds immediately. */
+    void this.durableStorage.bootstrap().then(() => {
+      this.restoreAppearance();
+      this.forceUpdate();
+    });
     /* The configured server list is not a reading from any PBX — it exists before
      * anything is reachable and must be on screen whether or not discovery finds a
      * target, so it is loaded independently of it. */
@@ -1128,8 +1139,7 @@ It is shown once. The phone needs it to register.`);
   private restoreAppearance(): void {
     if (this.appearanceRestored) return;
     this.appearanceRestored = true;
-    if (typeof window === 'undefined' || !window.localStorage) return;
-    const raw = window.localStorage.getItem(this.APPEARANCE_STORAGE_KEY);
+    const raw = this.durableStorage.storage.getItem(this.APPEARANCE_STORAGE_KEY);
     if (!raw) return;
     let parsed: Record<string, unknown>;
     try {
@@ -1153,14 +1163,25 @@ It is shown once. The phone needs it to register.`);
     const vals = this.currentAppearanceValues();
     const theme = this.buildAppearanceTheme(vals);
     this.applyAppearanceToDom(theme);
-    if (typeof window === 'undefined' || !window.localStorage) return;
     const serialised = JSON.stringify({
       ap_hue: vals.hue, ap_sat: vals.sat, ap_light: vals.light,
       ap_family: vals.family, ap_weight: vals.weight, ap_size: vals.size,
     });
     if (serialised === this.appearanceLastSerialised) return;
     this.appearanceLastSerialised = serialised;
-    window.localStorage.setItem(this.APPEARANCE_STORAGE_KEY, serialised);
+    /* React renders (and therefore this method) run before componentDidMount, i.e.
+     * before restoreAppearance has had any chance to load what was persisted last
+     * time -- this.state.values still holds the design's own defaults at that point.
+     * Persisting here unconditionally would overwrite the real saved theme with those
+     * defaults on every single launch, before restore ever gets to read it back: a
+     * write-before-read race that loses the setting every time, deterministically,
+     * because the first render always precedes componentDidMount. Skip the write
+     * (the DOM is still updated above, so the paint is correct) until restore has run
+     * at least once -- restoreAppearance sets appearanceRestored synchronously, whether
+     * or not it found anything to restore, so this simply waits for that one settled
+     * point rather than for any particular value. */
+    if (!this.appearanceRestored) return;
+    this.durableStorage.storage.setItem(this.APPEARANCE_STORAGE_KEY, serialised);
   }
 
   /** Real overrides for the appearance panel's colour translator and its actions --
@@ -1207,9 +1228,7 @@ It is shown once. The phone needs it to register.`);
    *  reset, not the design's original values:{} (which cleared every control on
    *  every screen, not only these four). */
   private resetAppearance(): void {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.removeItem(this.APPEARANCE_STORAGE_KEY);
-    }
+    this.durableStorage.storage.removeItem(this.APPEARANCE_STORAGE_KEY);
     this.appearanceLastSerialised = '';
     this.setState((st: { values: Record<string, unknown> }) => {
       const next = { ...st.values };
