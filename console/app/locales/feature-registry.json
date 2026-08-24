@@ -657,7 +657,8 @@
         "Selected family operations",
         "Target-backed family fields",
         "Family form schema",
-        "Export format"
+        "Export format",
+        "FreePBX search unavailable"
       ],
       "localizedLabels": [
         "FreePBX 模組目錄",
@@ -691,7 +692,8 @@
         "已選家庭操作",
         "目標支援家庭欄位",
         "家庭表單綱要",
-        "匯出格式"
+        "匯出格式",
+        "FreePBX 搜尋不可用"
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry. Runtime state and entitlement results remain factual and are not translated as a success claim."

@@ -18,7 +18,7 @@ import { FREEPBX_MODULE_CATALOG, type FreePbxModuleCatalogEntry } from './freepb
 import { buildFreePbxModuleForm } from './freepbx-module-form';
 import { moduleAdapterFor } from './freepbx-module-adapters';
 import type { FreePbxBackupJob, FreePbxBackupReceipt, FreePbxHandshake, FreePbxRuntimeModule } from '../../../control-plane/freepbx-runtime';
-import { evaluateBoundedRegexInWorker } from './bounded-regex-worker';
+import { boundedRegexWorkerAvailable, evaluateBoundedRegexInWorker } from './bounded-regex-worker';
 import { exportFreePbxCatalog as buildFreePbxCatalogExport, type FreePbxExportFormat } from './freepbx-catalog-export';
 import { SCREENS } from './generated/console';
 import { transformText } from './text-boundary';
@@ -158,6 +158,7 @@ export class PbxAdminApp extends App {
   private freePbxWorkerMatchIds = new Set<string>();
   private freePbxWorkerMatchRecordIds = new Set<string>();
   private freePbxWorkerPending = false;
+  private freePbxWorkerUnavailable = false;
 
   private adminRequest = async (action: string, extra: Record<string, unknown> = {}): Promise<ControlPlaneResponse | undefined> => {
     const bridge = window.dingDesktop;
@@ -464,7 +465,7 @@ export class PbxAdminApp extends App {
     const commercialOnly = values[this.freePbxCatalogCommercialId] === true;
     const includeExclusions = values[this.freePbxCatalogExclusionsId] === true;
     const workerKey = `${query}\u0000${regex ? 'regex' : 'text'}`;
-    const searchModules = this.freePbxWorkerSearchKey === workerKey ? FREEPBX_MODULE_CATALOG.modules.filter((module) => this.freePbxWorkerMatchIds.has(module.moduleId)) : [];
+    const searchModules = !query ? [...FREEPBX_MODULE_CATALOG.modules] : this.freePbxWorkerUnavailable ? [] : this.freePbxWorkerSearchKey === workerKey ? FREEPBX_MODULE_CATALOG.modules.filter((module) => this.freePbxWorkerMatchIds.has(module.moduleId)) : [];
     const modules = searchModules.filter((module) => {
       if (installedOnly && !this.freePbxRuntimeModules.get(module.moduleId)?.installed) return false;
       if (commercialOnly && module.entitlementClass !== 'commercial') return false;
@@ -483,6 +484,14 @@ export class PbxAdminApp extends App {
     const regex = values[this.freePbxCatalogRegexId] === true;
     const key = `${query}\u0000${regex ? 'regex' : 'text'}`;
     if (this.freePbxWorkerPending || this.freePbxWorkerSearchKey === key) return;
+    if (!boundedRegexWorkerAvailable()) {
+      this.freePbxWorkerUnavailable = true;
+      this.freePbxWorkerSearchKey = '';
+      this.freePbxCatalogStatus = `${transformText('FreePBX search unavailable')}: the bounded worker is not available, so no query was evaluated.`;
+      this.forceUpdate();
+      return;
+    }
+    this.freePbxWorkerUnavailable = false;
     this.freePbxWorkerPending = true;
     const moduleTexts = FREEPBX_MODULE_CATALOG.modules.map((module) => `${module.moduleId} ${module.name} ${module.category} ${module.description}`);
     const exclusionTexts = FREEPBX_MODULE_CATALOG.exclusions.map((entry) => `${entry.moduleId} ${entry.reason}`);
@@ -616,6 +625,16 @@ export class PbxAdminApp extends App {
     }
     this.freePbxCatalogStateLoaded = true;
     this.freePbxCatalogPersisted = this.freePbxCatalogSelectionSnapshot();
+    const historyResponse = await this.adminRequest('local-history.list', { payload: { action: 'updated', limit: 200 } });
+    if (historyResponse?.ok) {
+      const entries = (historyResponse.data as { entries?: Array<{ timestamp?: string; action?: string; subject?: string }> }).entries ?? [];
+      this.freePbxCatalogHistory = entries
+        .filter((entry) => typeof entry.subject === 'string' && entry.subject.startsWith('FreePBX module '))
+        .map((entry) => {
+          const parts = entry.subject!.slice('FreePBX module '.length).split(' ');
+          return { observedAt: entry.timestamp ?? '', moduleId: parts.shift() ?? '', action: parts.join(' '), status: 'recorded', message: entry.subject! };
+        });
+    }
   };
 
   private exportFreePbxCatalog = (): void => {
@@ -703,7 +722,7 @@ export class PbxAdminApp extends App {
       const selected = selectedRecord ? `${selectedRecord.id} · ${selectedRecord.label}` : records[0] ? `${records[0].id} · ${records[0].label}` : 'No catalog record matches the current filters.';
       groups.push({
         title: 'FreePBX module catalog',
-        desc: `${records.length} catalog record${records.length === 1 ? '' : 's'} match. ${this.freePbxCatalogStatus}`,
+        desc: `${records.length} catalog record${records.length === 1 ? '' : 's'} match. ${transformText('FreePBX detail')}: ${this.freePbxCatalogStatus}`,
         ctls: [
           textControl(this.freePbxCatalogQueryId, 'Search module catalog', String(this.stateValues().values[this.freePbxCatalogQueryId] ?? ''), 'Plain text is the default. Enable Regex mode to use the shared bounded regex evaluator.'),
           switchControl(this.freePbxCatalogRegexId, 'Regex mode', this.stateValues().values[this.freePbxCatalogRegexId] === true),

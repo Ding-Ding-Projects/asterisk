@@ -287,4 +287,5 @@ export const CANTONESE: Catalog = {
   'Target-backed family fields': '目標支援家庭欄位',
   'Family form schema': '家庭表單綱要',
   'Export format': '匯出格式',
+  'FreePBX search unavailable': 'FreePBX 搜尋不可用',
 };

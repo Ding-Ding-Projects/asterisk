@@ -9,7 +9,7 @@ typed target route exists. Remote Docker and remote Linux are explicitly unavail
 approved remote transport is implemented.
 
 Runtime state, database and web-service health, module actions, rollback, built-artifact interaction,
-and HuiShot evidence remain unverified until a target-backed verification pass is authorized.
+and capture evidence remain unverified until a target-backed verification pass is authorized.
 
 ## Suggested articles
 
