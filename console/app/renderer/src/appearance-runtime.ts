@@ -11,10 +11,21 @@ import type {
 export const APPEARANCE_ELEMENT_ATTRIBUTE = 'data-appearance-id';
 export const APPEARANCE_STATE_ATTRIBUTE = 'data-appearance-state';
 const MOUNTED_PROPERTIES_ATTRIBUTE = 'data-appearance-mounted-properties';
+const MOUNTED_DIRECT_PROPERTIES_ATTRIBUTE = 'data-appearance-mounted-direct-properties';
 const RAINBOW_ATTRIBUTE = 'data-appearance-rainbow';
 const RAINBOW_DURATION_VARIABLE = '--appearance-rainbow-duration';
 const GLOBAL_ATTRIBUTES = ['data-appearance-theme', 'data-appearance-density', 'data-appearance-motion', RAINBOW_ATTRIBUTE] as const;
 const GLOBAL_VARIABLES = ['--accent', '--appearance-font-scale', '--font-family', RAINBOW_DURATION_VARIABLE] as const;
+const DIRECT_STYLE_PROPERTIES: Partial<Record<AppearanceProperty, string>> = {
+  fontFamily: 'font-family', fontSize: 'font-size', fontWeight: 'font-weight', fontStyle: 'font-style',
+  underline: 'text-decoration-line', underlineStyle: 'text-decoration-style', underlineColour: 'text-decoration-color',
+  strikethrough: 'text-decoration-line', doubleStrikethrough: 'text-decoration-line', overline: 'text-decoration-line',
+  capitalisation: 'text-transform', smallCaps: 'font-variant-caps', superscript: 'vertical-align', subscript: 'vertical-align',
+  letterSpacing: 'letter-spacing', wordSpacing: 'word-spacing', lineHeight: 'line-height', baselineShift: 'transform',
+  textAlign: 'text-align', direction: 'direction', colour: 'color', background: 'background', highlight: 'background-image',
+  borderColour: 'border-color', outline: 'outline', shadow: 'box-shadow', glow: 'text-shadow', radius: 'border-radius',
+  borderWidth: 'border-width', padding: 'padding', gap: 'gap', elevation: 'box-shadow', opacity: 'opacity',
+};
 
 export const APPEARANCE_RUNTIME_STYLES = `
 @property --appearance-rainbow-hue {
@@ -101,6 +112,9 @@ function clearPreviouslyMounted(element: HTMLElement): void {
     for (const cssVariable of mounted.split(',').filter(Boolean)) element.style.removeProperty(cssVariable);
   }
   element.removeAttribute(MOUNTED_PROPERTIES_ATTRIBUTE);
+  const direct = element.getAttribute(MOUNTED_DIRECT_PROPERTIES_ATTRIBUTE);
+  if (direct) direct.split(',').filter(Boolean).forEach((property) => element.style.removeProperty(property));
+  element.removeAttribute(MOUNTED_DIRECT_PROPERTIES_ATTRIBUTE);
   element.removeAttribute(RAINBOW_ATTRIBUTE);
 }
 
@@ -139,6 +153,7 @@ export function mountAppearanceModel(
     mountedElementIds.push(elementId);
     const state = currentState(element, options);
     const mountedVariables: string[] = [];
+    const mountedDirectProperties: string[] = [];
     let hasAnimatedRainbow = false;
 
     for (const property of APPEARANCE_PROPERTIES) {
@@ -152,6 +167,12 @@ export function mountAppearanceModel(
       const cssVariable = cssVarFor(property);
       element.style.setProperty(cssVariable, serialised.cssValue);
       mountedVariables.push(cssVariable);
+      const directProperty = DIRECT_STYLE_PROPERTIES[property];
+      if (directProperty) {
+        const directValue = property === 'baselineShift' ? `translateY(${serialised.cssValue})` : serialised.cssValue;
+        element.style.setProperty(directProperty, directValue);
+        mountedDirectProperties.push(directProperty);
+      }
       hasAnimatedRainbow ||= serialised.animated;
     }
 
@@ -163,6 +184,7 @@ export function mountAppearanceModel(
     if (mountedVariables.length > 0) {
       element.setAttribute(MOUNTED_PROPERTIES_ATTRIBUTE, mountedVariables.join(','));
     }
+    if (mountedDirectProperties.length > 0) element.setAttribute(MOUNTED_DIRECT_PROPERTIES_ATTRIBUTE, [...new Set(mountedDirectProperties)].join(','));
   }
 
   const targeted = new Set(

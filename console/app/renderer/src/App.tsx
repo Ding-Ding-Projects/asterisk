@@ -47,11 +47,11 @@ import { COLOUR_FORMATS, formatColour, parseColour, translate as translateColour
 import { resolveAppearanceValue } from './appearance';
 import { APPEARANCE_RUNTIME_STYLES, bindAppearanceRuntime, detectAppearanceCapabilities, mountAppearanceModel, type BoundAppearanceRuntime } from './appearance-runtime';
 import { createAppearanceStore, type AppearanceStore } from './appearance-store';
-import { createRichControlRegistration, type RichControlInput, type RichControlRegistration } from './rich-control-registration';
+import { controlAppearanceId, createRichControlRegistration, type RichControlInput, type RichControlRegistration } from './rich-control-registration';
 import { executeRichControl, type RegisteredCommand } from './command-registry';
 import { createTeleportInstruction } from './palette-index';
 import { publishStartupContext } from './startup-context';
-import { missingAppearanceElementIds } from './appearance-element-inventory';
+import { appearanceFamilyDefects, missingAppearanceElementIds } from './appearance-element-inventory';
 import { validateDesktopSettings } from '../../../shared/settings-schema';
 import { DESKTOP_SETTINGS_STORAGE_KEY } from './settings-store';
 import {
@@ -242,7 +242,7 @@ export class App extends Base {
       },
       readAppearanceValue: (property) => this.readMountedAppearanceValue(property),
       writeAppearanceValue: (property, value) => this.writeMountedAppearanceValue(property, value),
-      executeControlAction: (_controlId, action) => this.onControlAction(action),
+      executeControlAction: (controlId, action) => this.onControlAction(action, controlId),
     });
   }
   /** The chosen file's own name, kept only for display — never its contents. */
@@ -293,7 +293,7 @@ export class App extends Base {
       },
       readAppearanceValue: (property) => this.readMountedAppearanceValue(property),
       writeAppearanceValue: (property, value) => this.writeMountedAppearanceValue(property, value),
-      executeControlAction: (_controlId, action) => this.onControlAction(action),
+      executeControlAction: (controlId, action) => this.onControlAction(action, controlId),
     });
   }
 
@@ -469,6 +469,11 @@ export class App extends Base {
       document.documentElement.dataset.appearanceRegistrationError = `missing:${missing.join(',')}`;
       return false;
     }
+    const familyDefects = appearanceFamilyDefects(document);
+    if (familyDefects.length > 0) {
+      document.documentElement.dataset.appearanceRegistrationError = `family:${familyDefects.join(' | ')}`;
+      return false;
+    }
     delete document.documentElement.dataset.appearanceRegistrationError;
     return true;
   }
@@ -506,7 +511,13 @@ export class App extends Base {
     const registry = this.richControlRegistration.registry;
     const entries = registry.entries.map((entry: RegisteredCommand) => {
       const current = entry.control ? registry.valueReaders[entry.control.valueReaderId]?.() : undefined;
-      const execute = (value: unknown): void => { void executeRichControl(registry, entry.id, value).then(() => this.forceUpdate()); };
+      const execute = (value: unknown): void => {
+        if (!createTeleportInstruction(this.richControlRegistration.navigationState, entry.target)) {
+          this.toast(`Control target is stale: ${entry.target.elementId}. Refresh the screen before retrying.`);
+          return;
+        }
+        void executeRichControl(registry, entry.id, value).then(() => this.forceUpdate());
+      };
       const control = entry.control;
       if (!control) return {
         id: entry.id,
@@ -530,7 +541,7 @@ export class App extends Base {
         base.kind = 'stepper'; base.value = numeric; base.min = control.minimum ?? 0; base.max = control.maximum ?? 100; base.dec = () => execute(Math.max(Number(base.min), numeric - Number(control.step ?? 1))); base.inc = () => execute(Math.min(Number(base.max), numeric + Number(control.step ?? 1))); base.set = (value: unknown) => execute(Number(value));
       } else if (control.kind === 'file') {
         const originalId = control.controlId.split(':').slice(2).join(':');
-        base.kind = 'file'; base.fileName = typeof current === 'string' && current ? current : 'No file chosen'; base.hasFile = Boolean(current); base.accept = '';
+        base.kind = 'file'; base.fileName = typeof current === 'string' && current ? current : 'No file chosen'; base.hasFile = Boolean(current); base.accept = control.accept ?? '';
         base.onPick = (event: { target?: { files?: FileList | null } }) => { const file = event.target?.files?.[0]; if (file) this.onFilePicked({ id: originalId }, file); };
         base.onClear = () => this.onFileCleared({ id: originalId });
       } else if (control.kind === 'order') {
@@ -851,7 +862,13 @@ export class App extends Base {
   };
 
   /** Read by every control the design marks with `c.action`, whatever its kind. */
-  onControlAction = (action: string): void => {
+  onControlAction = (action: string, controlId?: string): void => {
+    const canonicalControlId = controlId ? (controlId.startsWith('control-') ? controlId : controlAppearanceId(controlId)) : undefined;
+    if (canonicalControlId && !this.richControlRegistration.registry.entries.some((entry) => entry.control?.controlId === canonicalControlId)) {
+      this.fire('Action not run', `The control identity ${canonicalControlId} is stale. Refresh the screen before retrying.`);
+      return;
+    }
+    if (canonicalControlId) this.fire('Action requested', `${action} from ${canonicalControlId}.`);
     if (action === 'vocab-clear') { this.onFileCleared({ id: 'va_file' }); return; }
     if (action === 'daemon-start') { void this.daemonAction('start'); return; }
     if (action === 'daemon-stop') { void this.daemonAction('stop'); return; }

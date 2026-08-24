@@ -26,6 +26,7 @@ export interface RichControlDescriptor {
   readonly minimum?: number;
   readonly maximum?: number;
   readonly step?: number;
+  readonly accept?: string;
 }
 
 export interface CommandDefinition {

@@ -33,12 +33,21 @@ export type RichControlInput = {
   max?: unknown;
   step?: unknown;
   action?: unknown;
+  accept?: unknown;
 };
 
 type DesignScreen = { title?: unknown; groups?: unknown };
 
 function idPart(value: string): string {
   return value.replace(/[^A-Za-z0-9._:-]/gu, '-').slice(0, 150);
+}
+
+export function controlAppearanceId(controlId: string): string {
+  return `control-${controlId}`;
+}
+
+export function tabAppearanceId(destinationId: string): string {
+  return `tab-${idPart(destinationId)}`;
 }
 
 function canonicalNavigationState(runtimeControls: Readonly<Record<string, ReadonlyArray<RichControlInput>>> = {}): NavigationState {
@@ -50,17 +59,17 @@ function canonicalNavigationState(runtimeControls: Readonly<Record<string, Reado
     const controlIds = [...groupsFor(screen), ...(runtimeControls[destinationId] ?? [])].flatMap((control) => {
       if (typeof control.id !== 'string' || seenControlIds.has(control.id)) return [];
       seenControlIds.add(control.id);
-      return [`control:${destinationId}:${control.id}`];
+      return [controlAppearanceId(control.id)];
     });
-    if (destinationId === 'appearance') controlIds.push(...APPEARANCE_PROPERTIES.map((property) => `appearance:${property}`));
+    if (destinationId === 'appearance') controlIds.push(...APPEARANCE_PROPERTIES.map((property) => controlAppearanceId(`appearance:${property}`)));
     const tabId = `tab:${idPart(destinationId)}`;
     tabs[tabId] = {
       id: tabId,
       label: typeof screen.title === 'string' ? screen.title : destinationId,
       destinationId,
       pageId: `page:${idPart(destinationId)}`,
-      elementId: `destination:${idPart(destinationId)}`,
-      teleportElementIds: [`destination:${idPart(destinationId)}`, ...controlIds],
+      elementId: tabAppearanceId(destinationId),
+      teleportElementIds: [tabAppearanceId(destinationId), ...controlIds],
       pinned: false,
       dirty: false,
       locked: false,
@@ -144,7 +153,7 @@ function definitionForDestination(destinationId: string, screen: DesignScreen, h
     description: `Open ${typeof screen.title === 'string' ? screen.title : destinationId}.`,
     keywords: [destinationId],
     handlerId,
-    target: target(destinationId, `destination:${destinationId}`, navigationState),
+    target: target(destinationId, tabAppearanceId(destinationId), navigationState),
   };
 }
 
@@ -188,11 +197,11 @@ export function createRichControlRegistration(options: RichControlMountOptions):
       const readerId = `read.${idPart(destinationId)}.${idPart(controlId)}`;
       const providerId = controlOptions.length > 0 ? `options.${idPart(destinationId)}.${idPart(controlId)}` : undefined;
       let controlTarget: ReturnType<typeof target>;
-      try { controlTarget = target(destinationId, `control:${destinationId}:${controlId}`, navigationState); }
+      try { controlTarget = target(destinationId, controlAppearanceId(controlId), navigationState); }
       catch { defects.push(`Prepared control ${destinationId}:${controlId} has no canonical navigation target.`); continue; }
       handlers[handlerId] = ({ value }) => {
         if (kind === 'action' && typeof control.action === 'string') {
-          options.executeControlAction?.(controlId, control.action);
+          options.executeControlAction?.(controlAppearanceId(controlId), control.action);
           return;
         }
         options.writeControlValue(controlId, value);
@@ -210,7 +219,7 @@ export function createRichControlRegistration(options: RichControlMountOptions):
         target: controlTarget,
         control: {
           kind,
-          controlId: `control:${destinationId}:${controlId}`,
+          controlId: controlAppearanceId(controlId),
           label: typeof control.label === 'string' ? control.label : controlId,
           handlerId,
           valueReaderId: readerId,
@@ -218,6 +227,7 @@ export function createRichControlRegistration(options: RichControlMountOptions):
           ...(typeof control.min === 'number' ? { minimum: control.min } : {}),
           ...(typeof control.max === 'number' ? { maximum: control.max } : {}),
           ...(typeof control.step === 'number' ? { step: control.step } : {}),
+          ...(typeof control.accept === 'string' ? { accept: control.accept } : {}),
         },
       });
     }
@@ -243,10 +253,10 @@ export function createRichControlRegistration(options: RichControlMountOptions):
       description: `Edit ${property} in the mounted appearance editor.`,
       keywords: ['appearance', property],
       handlerId,
-        target: target('appearance', `appearance:${property}`, navigationState),
+        target: target('appearance', controlAppearanceId(`appearance:${property}`), navigationState),
       control: {
         kind,
-        controlId: `appearance:${property}`,
+        controlId: controlAppearanceId(`appearance:${property}`),
         label: `Appearance ${property}`,
         handlerId,
         valueReaderId: readerId,

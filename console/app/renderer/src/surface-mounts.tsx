@@ -19,6 +19,7 @@ type SurfaceRoute = 'converter' | 'ollama' | 'docs' | 'changelog';
 function HostedDimSumCacheControl() {
   const [status, setStatus] = useState('No visitor-local dim-sum cache loaded.');
   const [busy, setBusy] = useState(false);
+  const [pendingReplace, setPendingReplace] = useState<{ raw: string; count: number } | undefined>();
   useEffect(() => {
     let active = true;
     void (async () => {
@@ -37,6 +38,7 @@ function HostedDimSumCacheControl() {
     return () => { active = false; };
   }, []);
   const clear = () => {
+    setPendingReplace(undefined);
     try {
       window.localStorage.removeItem(DIM_SUM_CACHE_STORAGE_KEY);
       setStatus('Visitor-local cache cleared. The surprise remains unavailable until a valid file is selected.');
@@ -57,6 +59,12 @@ function HostedDimSumCacheControl() {
       const raw = await file.text();
       const result = await validateDimSumCachePayloadAsync(raw);
       if (!result.ok) { setStatus(`Rejected: ${result.reason}`); return; }
+      const existing = window.localStorage.getItem(DIM_SUM_CACHE_STORAGE_KEY);
+      if (existing && existing !== raw) {
+        setPendingReplace({ raw, count: result.cache.entries.length });
+        setStatus(`Validated replacement with ${result.cache.entries.length} entries. Confirm replacement of the existing visitor-local cache.`);
+        return;
+      }
       window.localStorage.setItem(DIM_SUM_CACHE_STORAGE_KEY, raw);
       setStatus(`Validated and stored ${result.cache.entries.length} visitor-local dish entries. No network request was made.`);
     } catch (error) {
@@ -65,10 +73,21 @@ function HostedDimSumCacheControl() {
       setBusy(false);
     }
   };
+  const confirmReplace = () => {
+    if (!pendingReplace) return;
+    try {
+      window.localStorage.setItem(DIM_SUM_CACHE_STORAGE_KEY, pendingReplace.raw);
+      setStatus(`Replacement stored with ${pendingReplace.count} visitor-local dish entries.`);
+      setPendingReplace(undefined);
+    } catch (error) {
+      setStatus(`Replacement was not stored: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
   return <section aria-label="Visitor-local dim-sum cache" className="surface-mount-card">
     <h3>Visitor-local dim-sum cache</h3>
     <p>Select a validated cache JSON file from this device. It stays in this browser profile and is never uploaded.</p>
     <input type="file" accept="application/json,.json" aria-label="Select local dim-sum cache JSON" onChange={(event) => void select(event)} disabled={busy} />
+    {pendingReplace ? <div role="alert"><button type="button" onClick={confirmReplace} disabled={busy}>Confirm replacement</button><button type="button" onClick={() => { setPendingReplace(undefined); setStatus('Replacement cancelled. The previous visitor-local cache remains active.'); }} disabled={busy}>Cancel replacement</button></div> : null}
     <button type="button" onClick={clear} disabled={busy}>Clear visitor-local cache</button>
     <p role="status" aria-live="polite">{busy ? 'Validating locally…' : status}</p>
   </section>;
