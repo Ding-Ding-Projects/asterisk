@@ -869,7 +869,7 @@
     },
     "material-appearance": {
       "status": "partial",
-      "note": "site/app.js implements a genuine infinite-colour-picker/translator (rgbToHsl/hsvToRgb/rgbToLab/rgbToOklab/hwbToRgb/cmykToRgb and translateColour, wired via initColourTranslator), theme/density/accent/font-scale controls, and local per-tab or per-element appearance dialogs through the context menu. Word-depth typography and named-preset export/import remain outside this lane.",
+      "note": "site/app.js implements a genuine infinite-colour-picker/translator (rgbToHsl/hsvToRgb/rgbToLab/rgbToOklab/hwbToRgb/cmykToRgb and translateColour, wired via initColourTranslator), theme/density/accent/font-scale controls, group color metadata, and local per-tab or per-element appearance dialogs through the context menu. The explicit remaining controls are font family and CJK fallback, weight/style, underline and strikethrough variants, overline, capitalization/small caps, superscript/subscript, highlight, outline/shadow/glow, spacing, line height, baseline offset, text direction/alignment, per-element reset for every property, named presets, import/export of complete appearance values, and deterministic history records for each appearance mutation.",
       "implementation": {
         "paths": [
           "site/app.js",
