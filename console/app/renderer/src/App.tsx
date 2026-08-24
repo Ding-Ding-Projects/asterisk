@@ -20,7 +20,7 @@ import {
 import {
   clearVocabulary, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
 } from './personal-vocabulary';
-import { createDurableStorage, type DurableStorageHandle } from './durable-storage';
+import { createDurableStorage, type DurableBootstrapResult, type DurableStorageHandle } from './durable-storage';
 import {
   isLanguageMode, languageMode, setCatalog, setLanguageMode, setVocabularyStorage,
   type LanguageMode,
@@ -30,7 +30,14 @@ import {
   IDENTITY, displayName, resetDisplayName, setDisplayName,
 } from './display-name';
 import { setEmojisEnabled } from './dialog-emojis';
-import { isAttentionMode, setModeEnabled } from './attention-modes';
+import {
+  ATTENTION_WIRING, LAST_CHANGED_SETTING_KEY, NEXT_ACTION_MAX_LENGTH, NEXT_ACTION_SETTING_KEY,
+  MODE_SETTING_PREFIX, NOTICE_HISTORY_MAX_ENTRIES, NOTICE_HISTORY_SCHEMA_VERSION, NOTICE_HISTORY_SETTING_KEY,
+  SNOOZED_UNTIL_SETTING_KEY, SNOOZE_MIGRATION_TOLERANCE_MS, SNOOZE_MS, elapsedPhrase,
+  isAttentionMode, modeEnabled, momentumPrompt, nextAction, presentationFor, redactNoticeText, sensitiveSpansForValue, setModeEnabled,
+  type NoticeSensitiveSpan,
+  setNextAction,
+} from './attention-modes';
 import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
 import { KNOWN_EDITORS, chooseEditor, clearEditorChoice } from './external-editor';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
@@ -66,6 +73,7 @@ import {
 type Target = { id: string; label: string; detail: string; connected: boolean; connectionKind?: string };
 
 type ConnectionObservation = { state?: string; reason?: string };
+type AttentionNoticeSeverity = 'info' | 'warning' | 'error';
 
 /** `server.connect` can accept the discovered distribution while reporting an
  * unavailable operating-system or Asterisk observation in its data payload. The
@@ -141,9 +149,9 @@ interface Shell {
   setState(update: Record<string, unknown>): void;
   moveNode(id: string, dx: number, dy: number): void;
   addEdgeFrom(): void;
-  toast(message: string): void;
+  toast(message: string, severity?: AttentionNoticeSeverity): void;
   areYouSure(title: string, body: string, seconds: number, onConfirm: () => void): void;
-  fire(title: string, body: string): void;
+  fire(title: string, body: string, severity?: AttentionNoticeSeverity): void;
 }
 
 /** The shape the compiled shell hands every control callback. */
@@ -209,6 +217,7 @@ export class App extends Base {
     'att_time': 'timeAwareness',
     'att_one': 'oneThing',
     'att_momentum': 'momentum',
+    'att_next': 'nextAction',
   };
 
   /** The shell's own `setVal`, captured so the override below can delegate to it.
@@ -218,11 +227,66 @@ export class App extends Base {
    *  body, so by then an override declared as a field would already have replaced the
    *  shell's and the copy would point at itself -- a recursion with no base case. */
   private readonly baseSetVal: (control: ControlRef, value: unknown) => void;
+  private readonly baseToast: (message: string, severity?: AttentionNoticeSeverity) => void;
+  private readonly baseFire: (title: string, body: string, severity?: AttentionNoticeSeverity) => void;
+  private attentionTimer: ReturnType<typeof setInterval> | undefined;
+  private attentionSessionStartedAt = Date.now();
+  private attentionLastChangedAt = this.attentionSessionStartedAt;
+  private attentionSnoozedUntil = 0;
+  private attentionStyle: HTMLStyleElement | undefined;
+  private attentionStatus: HTMLElement | undefined;
+  private attentionMotionQuery: MediaQueryList | undefined;
+  private attentionSyncing = false;
+  private attentionModePersistenceState: 'saved' | 'pending' | 'session-only' | 'retry' = 'saved';
+  private attentionHistoryPersistenceState: 'saved' | 'pending' | 'session-only' | 'retry' = 'saved';
+  private attentionPendingWrites = new Map<string, { value: string | null; generation: number }>();
+  private attentionWriteGenerations = new Map<string, number>();
+  private attentionFailedKeys = new Set<string>();
+  private attentionSessionOnlyKeys = new Set<string>();
+  private attentionNoticeHistory: Array<{ severity: 'warning' | 'error'; title: string; body: string }> = [];
+  private attentionHistoryQuery = '';
+  private attentionHistoryCorrupt = false;
+  private durableBootstrapState: DurableBootstrapResult | undefined;
+
+  /** Single generated-renderer mutation callback. Direct App-owned mutation paths
+   * call this too, so the last-change clock has one source rather than a scattered
+   * collection of timestamp writes. */
+  onUserMutation = (_source = 'unknown'): void => this.attentionSetLastChanged();
+
+  notifyInfo = (message: string): void => this.toast(message, 'info');
+  notifyWarning = (message: string): void => this.toast(message, 'warning');
+  notifyError = (message: string): void => this.toast(message, 'error');
+  notifyInfoEvent = (title: string, body: string): void => this.fire(title, body, 'info');
+  notifyWarningEvent = (title: string, body: string): void => this.fire(title, body, 'warning');
+  notifyErrorEvent = (title: string, body: string): void => this.fire(title, body, 'error');
+  notifyMessage = (message: string, severity: AttentionNoticeSeverity = 'info'): void => {
+    if (severity === 'error') this.notifyError(message);
+    else if (severity === 'warning') this.notifyWarning(message);
+    else this.notifyInfo(message);
+  };
+  notifyEvent = (title: string, body: string, severity: AttentionNoticeSeverity = 'info', spans: readonly NoticeSensitiveSpan[] = []): void => {
+    const fire = this.fire as unknown as (nextTitle: string, nextBody: string, nextSeverity: AttentionNoticeSeverity, nextSpans?: readonly NoticeSensitiveSpan[]) => void;
+    fire(title, body, severity, spans);
+  };
 
   constructor(props: Record<string, never>) {
     super(props);
     this.baseSetVal = this.setVal as (control: ControlRef, value: unknown) => void;
     this.setVal = this.languageAwareSetVal;
+    this.baseToast = this.toast as (message: string, severity?: AttentionNoticeSeverity) => void;
+    this.baseFire = this.fire as (title: string, body: string, severity?: AttentionNoticeSeverity) => void;
+    this.toast = (message: string, severity: AttentionNoticeSeverity = 'info', spans: readonly NoticeSensitiveSpan[] = []): void => {
+      if (severity !== 'info') this.attentionRecordNotice(severity, 'Notification', message, spans);
+      /* Low stimulation suppresses informational messages only. Warnings and errors
+       * stay visible and are retained by the reviewable history below. */
+      if (severity === 'info' && modeEnabled(this.durableStorage.storage, 'lowStimulation')) return;
+      this.baseToast(message, severity);
+    };
+    this.fire = (title: string, body: string, severity: AttentionNoticeSeverity = 'info', spans: readonly NoticeSensitiveSpan[] = []): void => {
+      if (severity !== 'info') this.attentionRecordNotice(severity, title, body, spans);
+      if (severity === 'info' && modeEnabled(this.durableStorage.storage, 'lowStimulation')) return;
+      this.baseFire(title, body, severity);
+    };
   }
   /** The chosen file's own name, kept only for display — never its contents. */
   private pickedFileNames = new Map<string, string>();
@@ -257,6 +321,373 @@ export class App extends Base {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
   }
 
+  private attentionStateValues(): Record<string, unknown> {
+    const restored: Record<string, unknown> = {};
+    for (const wiring of ATTENTION_WIRING) {
+      const mode = App.ATTENTION_CONTROLS[wiring.control];
+      if (isAttentionMode(mode)) restored[wiring.control] = modeEnabled(this.durableStorage.storage, mode);
+    }
+    restored.att_next = nextAction(this.durableStorage.storage);
+    return restored;
+  }
+
+  private attentionRecordNotice(severity: 'warning' | 'error', title: string, body: string, spans: readonly NoticeSensitiveSpan[] = []): void {
+    const titleSpans = spans.filter((span) => span.field === 'title');
+    const bodySpans = spans.filter((span) => span.field === 'body');
+    if (titleSpans.length + bodySpans.length !== spans.length) throw new Error('Notice span field discriminator is invalid.');
+    this.attentionNoticeHistory = [{ severity, title: redactNoticeText(title, titleSpans, 'title'), body: redactNoticeText(body, bodySpans, 'body') }, ...this.attentionNoticeHistory].slice(0, NOTICE_HISTORY_MAX_ENTRIES);
+    this.attentionPersistHistory();
+    this.attentionRender();
+  }
+
+  private attentionPersistHistory(): void {
+    this.attentionWrite(NOTICE_HISTORY_SETTING_KEY, JSON.stringify({
+      schemaVersion: NOTICE_HISTORY_SCHEMA_VERSION,
+      entries: this.attentionNoticeHistory,
+    }));
+  }
+
+  private restoreAttentionHistory(): void {
+    const raw = this.durableStorage.storage.getItem(NOTICE_HISTORY_SETTING_KEY);
+    if (raw === null) return;
+    if (raw === '') {
+      this.attentionHistoryCorrupt = true;
+      return;
+    }
+    try {
+      const parsed = JSON.parse(raw) as { schemaVersion?: number; entries?: unknown };
+      if (parsed.schemaVersion !== NOTICE_HISTORY_SCHEMA_VERSION || !Array.isArray(parsed.entries)) {
+        this.attentionHistoryCorrupt = true;
+        return;
+      }
+      this.attentionNoticeHistory = parsed.entries.filter((entry): entry is { severity: 'warning' | 'error'; title: string; body: string } => {
+        if (!entry || typeof entry !== 'object') return false;
+        const value = entry as Record<string, unknown>;
+        return (value.severity === 'warning' || value.severity === 'error')
+          && typeof value.title === 'string' && typeof value.body === 'string';
+      }).slice(0, NOTICE_HISTORY_MAX_ENTRIES).map((entry) => ({
+        severity: entry.severity,
+        title: redactNoticeText(entry.title),
+        body: redactNoticeText(entry.body),
+      }));
+    } catch {
+      this.attentionHistoryCorrupt = true;
+    }
+  }
+
+  private attentionClearHistory(): void {
+    this.attentionNoticeHistory = [];
+    this.attentionHistoryQuery = '';
+    this.attentionHistoryCorrupt = false;
+    this.attentionPersistHistory();
+    this.onUserMutation('attention-history-clear');
+    this.attentionRender();
+  }
+
+  private attentionExportHistory(): void {
+    const rows = this.attentionNoticeHistory.map((entry) => ({ severity: entry.severity, title: entry.title, body: entry.body }));
+    const blob = new Blob([JSON.stringify({ schemaVersion: 1, personalVocabulary: 'omitted', notifications: rows }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'attention-notification-history.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private attentionPersistenceNotice(): string {
+    const pending = [...this.attentionPendingWrites.keys()].join(', ');
+    const failed = [...this.attentionFailedKeys.keys()].join(', ');
+    const sessionOnly = [...this.attentionSessionOnlyKeys.keys()].join(', ');
+    const notices: string[] = [];
+    if (this.durableBootstrapState && this.durableBootstrapState.status !== 'loaded') {
+      const state = this.durableBootstrapState;
+      notices.push(`Attention settings were not restored: durable snapshot is ${state.status}. Current controls remain safe defaults until restore succeeds.`);
+    }
+    if (this.attentionModePersistenceState === 'pending') notices.push(`Saving attention keys: ${pending || 'mode settings'}.`);
+    if (this.attentionModePersistenceState === 'session-only') notices.push(`Session-only attention keys: ${sessionOnly || pending || 'mode settings'}. The desktop bridge is unavailable.`);
+    if (this.attentionModePersistenceState === 'retry') notices.push(`Attention keys needing retry: ${failed || pending || 'mode settings'}. Current values remain active.`);
+    if (this.attentionHistoryPersistenceState === 'pending') notices.push('Saving warning and error history.');
+    if (this.attentionHistoryPersistenceState === 'session-only') notices.push('Warning and error history is session-only because the desktop bridge is unavailable.');
+    if (this.attentionHistoryPersistenceState === 'retry') notices.push('Warning and error history needs retry. Current history remains visible.');
+    return notices.join(' ');
+  }
+
+  private attentionWrite(key: string, value: string | null): void {
+    const generation = (this.attentionWriteGenerations.get(key) ?? 0) + 1;
+    this.attentionWriteGenerations.set(key, generation);
+    this.attentionPendingWrites.set(key, { value, generation });
+    this.attentionFailedKeys.delete(key);
+    this.attentionSessionOnlyKeys.delete(key);
+    const isHistory = key === NOTICE_HISTORY_SETTING_KEY;
+    const setPersistenceState = (state: 'saved' | 'pending' | 'session-only' | 'retry') => {
+      if (isHistory) this.attentionHistoryPersistenceState = state;
+      else this.attentionModePersistenceState = state;
+    };
+    setPersistenceState(this.bridge() ? 'pending' : 'session-only');
+    this.attentionRender();
+    const result = value === null
+      ? this.durableStorage.removeItem(key)
+      : this.durableStorage.writeItem(key, value);
+    void result.then((outcome) => {
+      if (!outcome.durable) {
+        if (this.attentionPendingWrites.get(key)?.generation !== generation) return;
+        this.attentionSessionOnlyKeys.add(key);
+        setPersistenceState('session-only');
+        this.attentionRender();
+        return;
+      }
+      if (!outcome.ok) {
+        if (this.attentionPendingWrites.get(key)?.generation !== generation) return;
+        this.attentionFailedKeys.add(key);
+        setPersistenceState('retry');
+        this.attentionRender();
+        return;
+      }
+      if (this.attentionPendingWrites.get(key)?.generation !== generation) return;
+      this.attentionPendingWrites.delete(key);
+      this.attentionFailedKeys.delete(key);
+      this.attentionSessionOnlyKeys.delete(key);
+      if (isHistory) this.attentionHistoryPersistenceState = 'saved';
+      else if (this.attentionPendingWrites.size === 0) this.attentionModePersistenceState = 'saved';
+      this.attentionRender();
+    });
+  }
+
+  private attentionRetry(): void {
+    const pending = [...this.attentionPendingWrites.entries()];
+    if (pending.length === 0) return;
+    for (const [key, entry] of pending) this.attentionWrite(key, entry.value);
+  }
+
+  private attentionRetryBootstrap = (): void => {
+    void this.durableStorage.retryBootstrap().then((state) => {
+      this.durableBootstrapState = state;
+      if (state.status === 'loaded') {
+        this.restoreLanguageMode();
+        this.restoreDisplayName();
+        this.restoreAppearance();
+        this.restoreAttention();
+        this.restoreAttentionHistory();
+      }
+      this.forceUpdate();
+      this.attentionRender();
+    });
+  };
+
+  /** Restores all five independent switches and the chosen next action from the one
+   * durable storage handle before the compiled controls are refreshed. */
+  private restoreAttention(): void {
+    const rawChanged = this.durableStorage.storage.getItem(LAST_CHANGED_SETTING_KEY);
+    const changed = rawChanged ? Number(rawChanged) : NaN;
+    if (Number.isFinite(changed) && changed >= 0 && changed <= Date.now()) this.attentionLastChangedAt = changed;
+    const rawSnooze = this.durableStorage.storage.getItem(SNOOZED_UNTIL_SETTING_KEY);
+    const snoozed = rawSnooze ? Number(rawSnooze) : NaN;
+    const now = Date.now();
+    if (Number.isFinite(snoozed) && snoozed > now && snoozed <= now + SNOOZE_MS + SNOOZE_MIGRATION_TOLERANCE_MS) {
+      this.attentionSnoozedUntil = snoozed;
+    }
+    const restored = this.attentionStateValues();
+    this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, ...restored } }));
+  }
+
+  private attentionRoot(): HTMLElement | null {
+    const titlebar = typeof document === 'undefined'
+      ? null : document.querySelector<HTMLElement>('[data-attention-titlebar="true"]');
+    return titlebar?.parentElement ?? null;
+  }
+
+  private ensureAttentionStyle(): void {
+    if (this.attentionStyle || typeof document === 'undefined') return;
+    const style = document.createElement('style');
+    style.dataset.attentionRuntime = 'true';
+    style.textContent = `
+      [data-attention-inactive="true"] { opacity: .46; filter: saturate(.72); transition: opacity 180ms ease, filter 180ms ease; }
+      [data-attention-current="true"] { opacity: 1; filter: none; }
+      body.attention-low-stimulation [data-attention-root="true"] { filter: saturate(.72); }
+      body.attention-low-stimulation [data-attention-root="true"] * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+      body.attention-reduced-motion [data-attention-root="true"] * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+      [data-attention-status="true"] { display:flex; flex-direction:column; gap:6px; background:#1B211C; border:1px solid #333B34; border-radius:14px; padding:10px 14px; margin:0 0 12px; color:#DFF3E5; font-size:12px; line-height:1.45; }
+      [data-attention-status="true"] [data-attention-meta] { color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; }
+      [data-attention-status="true"] [data-attention-next] { color:#9FF7C4; font-weight:500; }
+      [data-attention-status="true"] button { align-self:flex-start; border:1px solid #617066; border-radius:999px; background:#262B26; color:#DFF3E5; padding:7px 12px; min-height:32px; cursor:pointer; font:inherit; }
+      [data-attention-status="true"] button:focus-visible { outline:2px solid #9FF7C4; outline-offset:2px; }
+      @media (prefers-reduced-motion: reduce) { [data-attention-inactive="true"] { transition:none; } }
+    `;
+    document.head.append(style);
+    this.attentionStyle = style;
+  }
+
+  private attentionSetLastChanged(now = Date.now()): void {
+    this.attentionLastChangedAt = now;
+    this.attentionWrite(LAST_CHANGED_SETTING_KEY, String(now));
+  }
+
+  private attentionSnooze(): void {
+    this.attentionSnoozedUntil = Date.now() + SNOOZE_MS;
+    this.attentionWrite(SNOOZED_UNTIL_SETTING_KEY, String(this.attentionSnoozedUntil));
+    this.attentionRender();
+  }
+
+  private attentionSyncControls(): void {
+    if (this.attentionSyncing) return;
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const restored = this.attentionStateValues();
+    const changed = Object.entries(restored).some(([key, value]) => values[key] !== value);
+    if (!changed) return;
+    this.attentionSyncing = true;
+    this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, ...restored } }), () => {
+      this.attentionSyncing = false;
+    });
+  }
+
+  /** Applies the live accommodation consumers for the lifetime of this application.
+   * Focus marks the rail, group list and chrome as inactive while leaving the current
+   * work region present. Time, next action and momentum share one visible status card. */
+  private attentionRender = (): void => {
+    if (typeof document === 'undefined') return;
+    this.ensureAttentionStyle();
+    this.attentionSyncControls();
+    const root = this.attentionRoot();
+    if (!root) return;
+    root.dataset.attentionRoot = 'true';
+    const presentation = presentationFor(this.durableStorage.storage, {
+      prefersReducedMotion: this.attentionMotionQuery?.matches ?? false,
+    });
+    document.body.classList.toggle('attention-focus', presentation.dimInactive);
+    document.body.classList.toggle('attention-low-stimulation', presentation.quietNotifications);
+    document.body.classList.toggle('attention-reduced-motion', presentation.reduceMotion);
+    const selectors = [
+      '[data-attention-titlebar="true"]',
+      '[data-attention-tabstrip="true"]',
+      '[data-attention-rail="true"]',
+      '[data-attention-section-list="true"]',
+    ];
+    for (const selector of selectors) {
+      const element = root.querySelector<HTMLElement>(selector);
+      if (element) element.dataset.attentionInactive = presentation.dimInactive ? 'true' : 'false';
+    }
+    const content = root.querySelector<HTMLElement>('[data-attention-work-region="true"]');
+    if (!content) return;
+    content.dataset.attentionCurrent = 'true';
+    const mount = content.querySelector<HTMLElement>('[data-attention-card-mount="true"]');
+    if (!mount) return;
+    let status = this.attentionStatus;
+    if (!status || !status.isConnected) {
+      status = document.createElement('div');
+      status.dataset.attentionStatus = 'true';
+      status.setAttribute('role', 'status');
+      status.setAttribute('aria-live', 'polite');
+      this.attentionStatus = status;
+      mount.prepend(status);
+    }
+    const now = Date.now();
+    const prompt = momentumPrompt(
+      this.durableStorage.storage,
+      Math.max(0, now - this.attentionLastChangedAt),
+      this.attentionSnoozedUntil > 0 ? Math.max(0, now - (this.attentionSnoozedUntil - SNOOZE_MS)) : undefined,
+    );
+    const shouldShow = presentation.showElapsedTime || presentation.showNextAction || prompt.show
+      || this.attentionModePersistenceState !== 'saved' || this.attentionHistoryPersistenceState !== 'saved'
+      || this.attentionNoticeHistory.length > 0 || this.attentionHistoryCorrupt
+      || (this.durableBootstrapState !== undefined && this.durableBootstrapState.status !== 'loaded');
+    status.hidden = !shouldShow;
+    status.replaceChildren();
+    if (!shouldShow) return;
+    if (presentation.showElapsedTime) {
+      const meta = document.createElement('div');
+      meta.dataset.attentionMeta = 'true';
+      meta.textContent = `Session elapsed: ${elapsedPhrase(now - this.attentionSessionStartedAt)} · Since last change: ${elapsedPhrase(now - this.attentionLastChangedAt)}`;
+      status.append(meta);
+    }
+    if (presentation.showNextAction) {
+      const action = document.createElement('div');
+      action.dataset.attentionNext = 'true';
+      const chosen = nextAction(this.durableStorage.storage);
+      action.textContent = chosen ? `Next action: ${chosen}` : 'Next action: none chosen yet.';
+      status.append(action);
+    }
+    if (prompt.show) {
+      const message = document.createElement('div');
+      message.textContent = prompt.message;
+      status.append(message);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = `Not now for ${elapsedPhrase(SNOOZE_MS)}`;
+      button.addEventListener('click', () => this.attentionSnooze(), { once: true });
+      status.append(button);
+    }
+    const persistence = this.attentionPersistenceNotice();
+    if (persistence) {
+      const notice = document.createElement('div');
+      notice.textContent = persistence;
+      status.append(notice);
+      if (this.durableBootstrapState && this.durableBootstrapState.status !== 'loaded') {
+        const retryRestore = document.createElement('button');
+        retryRestore.type = 'button';
+        const exhausted = this.durableBootstrapState.attempt >= 3;
+        retryRestore.textContent = exhausted ? 'Restore retry limit reached' : 'Retry restoring attention settings';
+        retryRestore.disabled = exhausted;
+        retryRestore.addEventListener('click', () => this.attentionRetryBootstrap(), { once: true });
+        status.append(retryRestore);
+      } else if (this.attentionModePersistenceState === 'retry' || this.attentionHistoryPersistenceState === 'retry') {
+        const retry = document.createElement('button');
+        retry.type = 'button';
+        retry.textContent = 'Retry saving attention settings';
+        retry.addEventListener('click', () => this.attentionRetry(), { once: true });
+        status.append(retry);
+      }
+    }
+    if (this.attentionNoticeHistory.length > 0 || this.attentionHistoryCorrupt) {
+      if (this.attentionHistoryCorrupt) {
+        const corrupt = document.createElement('div');
+        corrupt.textContent = 'Saved warning and error history could not be read. It remains untouched until you reset it.';
+        status.append(corrupt);
+        const reset = document.createElement('button');
+        reset.type = 'button';
+        reset.textContent = 'Reset unreadable history';
+        reset.addEventListener('click', () => this.attentionClearHistory(), { once: true });
+        status.append(reset);
+      }
+      const search = document.createElement('input');
+      search.type = 'search';
+      search.placeholder = 'Search warnings and errors';
+      search.setAttribute('aria-label', 'Search warnings and errors');
+      search.value = this.attentionHistoryQuery;
+      search.addEventListener('input', () => {
+        this.attentionHistoryQuery = search.value;
+        this.attentionRender();
+      });
+      status.append(search);
+      const actions = document.createElement('div');
+      actions.style.display = 'flex';
+      actions.style.gap = '6px';
+      const clear = document.createElement('button');
+      clear.type = 'button';
+      clear.textContent = 'Clear history';
+      clear.addEventListener('click', () => this.attentionClearHistory(), { once: true });
+      const exportButton = document.createElement('button');
+      exportButton.type = 'button';
+      exportButton.textContent = 'Export history';
+      exportButton.addEventListener('click', () => this.attentionExportHistory(), { once: true });
+      actions.append(clear, exportButton);
+      status.append(actions);
+      const history = document.createElement('div');
+      history.dataset.attentionMeta = 'true';
+      const query = this.attentionHistoryQuery.trim().toLowerCase();
+      const entries = query
+        ? this.attentionNoticeHistory.filter((item) => `${item.severity} ${item.title} ${item.body}`.toLowerCase().includes(query))
+        : this.attentionNoticeHistory;
+      history.textContent = `${entries.length} of ${this.attentionNoticeHistory.length} warnings and errors shown.`;
+      status.append(history);
+      for (const item of entries) {
+        const entry = document.createElement('div');
+        entry.textContent = `${item.severity}: ${item.title} ${item.body}`;
+        status.append(entry);
+      }
+    }
+  };
+
   componentDidMount() {
     super.componentDidMount?.();
     /* The durable-storage snapshot has to load before anything reads or restores
@@ -268,11 +699,19 @@ export class App extends Base {
      * at construction keeps the uploaded file and the rendered text reading from one
      * storage handle instead of two that can disagree. */
     setVocabularyStorage(this.vocabStorage);
-    void this.durableStorage.bootstrap().then(() => {
+    void this.durableStorage.bootstrap().then((state) => {
+      this.durableBootstrapState = state;
+      if (state.status !== 'loaded') {
+        this.attentionRender();
+        return;
+      }
       this.restoreLanguageMode();
       this.restoreDisplayName();
       this.restoreAppearance();
+      this.restoreAttention();
+      this.restoreAttentionHistory();
       this.forceUpdate();
+      this.attentionRender();
     });
     /* The configured server list is not a reading from any PBX — it exists before
      * anything is reachable and must be on screen whether or not discovery finds a
@@ -307,10 +746,18 @@ export class App extends Base {
     super.componentWillUnmount?.();
     if (this.refreshTimer) clearInterval(this.refreshTimer);
     this.refreshTimer = undefined;
+    if (this.attentionTimer) clearInterval(this.attentionTimer);
+    this.attentionTimer = undefined;
+    this.attentionMotionQuery?.removeEventListener?.('change', this.attentionRender);
+    this.attentionStyle?.remove();
+    this.attentionStyle = undefined;
+    this.attentionStatus?.remove();
+    this.attentionStatus = undefined;
   }
 
   componentDidUpdate() {
     void this.refresh();
+    this.attentionRender();
   }
 
   private async request(action: string, extra: Record<string, unknown> = {}): Promise<ControlPlaneResponse | undefined> {
@@ -455,7 +902,7 @@ export class App extends Base {
     this.toast('Starting the phone system…');
     const started = await this.request('daemon.start', { serverId });
     if (!started?.ok) {
-      this.fire('The phone system did not start', started?.message ?? 'Asterisk did not answer after it was started.');
+      this.notifyEvent('The phone system did not start', started?.message ?? 'Asterisk did not answer after it was started.', 'error');
       return;
     }
     /* Anything read before this point was read against a daemon that was not up, so it
@@ -487,10 +934,13 @@ export class App extends Base {
       const result = loadVocabularyFile(this.vocabStorage, text);
       this.pickedFileNames.set(ctl.id, result.ok ? file.name : `${file.name} — rejected`);
       this.forceUpdate();
-      if (result.ok) this.toast(result.status);
-      else this.fire('Vocabulary file rejected', result.status);
+      if (result.ok) {
+        this.onUserMutation('vocabulary-load');
+        this.notifyMessage(result.status);
+      }
+      else this.notifyEvent('Vocabulary file rejected', result.status, 'error');
     };
-    reader.onerror = () => this.fire('Vocabulary file not read', 'The file could not be read from disk.');
+    reader.onerror = () => this.notifyEvent('Vocabulary file not read', 'The file could not be read from disk.', 'error');
     reader.readAsText(file);
   };
 
@@ -498,21 +948,22 @@ export class App extends Base {
     const result = clearVocabulary(this.vocabStorage);
     this.pickedFileNames.delete(ctl.id);
     this.forceUpdate();
-    this.toast(result.status);
+    this.onUserMutation('vocabulary-clear');
+    this.notifyMessage(result.status);
   };
 
   // ---------------------------------------------------------------- daemon lifecycle
 
   private daemonAction = async (verb: 'start' | 'stop' | 'restart'): Promise<void> => {
     if (!this.target.connected) {
-      this.fire('No target connected', 'Connect to a server first — there is nothing to start, stop, or restart yet.');
+      this.notifyEvent('No target connected', 'Connect to a server first — there is nothing to start, stop, or restart yet.', 'warning');
       return;
     }
     this.toast(`${verb === 'start' ? 'Starting' : verb === 'stop' ? 'Stopping' : 'Restarting'} the phone system…`);
     const serverId = this.target.id;
     const response = await this.request(`daemon.${verb}`, { serverId });
     if (!response?.ok) {
-      this.fire('Not done', response?.message ?? `The phone system did not ${verb}.`);
+      this.notifyEvent('Not done', response?.message ?? `The phone system did not ${verb}.`, 'error');
       await this.refreshDaemonStatus();
       return;
     }
@@ -574,11 +1025,12 @@ export class App extends Base {
       draw: Math.random(),
     });
     if ('problems' in result) {
-      this.fire('That ticket will not file', result.problems[0].message);
+      this.notifyEvent('That ticket will not file', result.problems[0].message, 'error');
       return;
     }
     const resolution = resolutionFor(IDENTITY.dataDirectory);
-    this.fire(`Ticket ${result.id} — ${result.status}`,
+    this.onUserMutation('support-ticket');
+    this.notifyEvent(`Ticket ${result.id} — ${result.status}`,
       `${result.firstResponse}
 
 ${resolution.instructions}
@@ -623,13 +1075,13 @@ ${resolution.disclosure}`);
       if (problems.length > 0) {
         /* Report it rather than storing a name the module refused, which would leave
          * the control showing something the app would not accept back. */
-        this.fire('That name will not work', problems[0].message);
+        this.notifyEvent('That name will not work', problems[0].message, 'error');
         return;
       }
     }
     if (control?.id === 'id_name_reset' && value === true) {
       resetDisplayName(this.durableStorage.storage);
-      this.toast(`Name restored to ${IDENTITY.productName}`);
+      this.notifyMessage(`Name restored to ${IDENTITY.productName}`);
     }
     /* The five attention modes share one prefix and one handler, so adding a sixth is
      * a registry entry rather than another branch here. */
@@ -639,7 +1091,7 @@ ${resolution.disclosure}`);
     }
     if (control?.id === 'ed_clear' && value === true) {
       clearEditorChoice(this.durableStorage.storage);
-      this.toast('Editor choice forgotten');
+      this.notifyMessage('Editor choice forgotten');
     }
     if (control?.id === 'sup_open' && value === true) {
       this.fileSupportTicket();
@@ -647,7 +1099,14 @@ ${resolution.disclosure}`);
     }
     if (control?.id?.startsWith('att_') && typeof value === 'boolean') {
       const mode = App.ATTENTION_CONTROLS[control.id];
-      if (isAttentionMode(mode)) setModeEnabled(this.durableStorage.storage, mode, value);
+      if (isAttentionMode(mode)) {
+        setModeEnabled(this.durableStorage.storage, mode, value);
+        this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');
+      }
+    }
+    if (control?.id === 'att_next' && typeof value === 'string') {
+      setNextAction(this.durableStorage.storage, value);
+      this.attentionWrite(NEXT_ACTION_SETTING_KEY, value.trim().slice(0, NEXT_ACTION_MAX_LENGTH) || null);
     }
     if (control?.id === 'dlg_emoji' && typeof value === 'boolean') {
       setEmojisEnabled(this.durableStorage.storage, value);
@@ -660,6 +1119,7 @@ ${resolution.disclosure}`);
       }
     }
     this.baseSetVal(control, value);
+    this.attentionRender();
   };
 
   /** Read by the compiled `text`-kind control marked `action:'daemon-status'`/`'vocab-status'`. */
@@ -749,18 +1209,24 @@ ${resolution.disclosure}`);
     };
     const created = await this.servers.add(input);
     this.forceUpdate();
-    if (created) this.fire('Connection added', `${created.name} is now in the server list below.`);
-    else this.fire('Not added', 'The control plane did not accept that connection.');
+    if (created) {
+      this.onUserMutation('server-add');
+      this.notifyEvent('Connection added', `${created.name} is now in the server list below.`);
+    }
+    else this.notifyEvent('Not added', 'The control plane did not accept that connection.', 'error');
   };
 
   /** The design has already run this past `areYouSure` before calling it. */
   onRemoveServerRow = async (name: string): Promise<void> => {
     const server = this.servers.servers.find((s) => s.name === name);
-    if (!server) { this.fire('Not found', `${name} is no longer in the server list.`); return; }
+    if (!server) { this.notifyEvent('Not found', `${name} is no longer in the server list.`, 'error'); return; }
     const removed = await this.servers.remove(server.id);
     this.forceUpdate();
-    if (removed) this.fire('Connection removed', `${name} was removed from the server list.`);
-    else this.fire('Not removed', 'The control plane did not accept that removal.');
+    if (removed) {
+      this.onUserMutation('server-remove');
+      this.notifyEvent('Connection removed', `${name} was removed from the server list.`);
+    }
+    else this.notifyEvent('Not removed', 'The control plane did not accept that removal.', 'error');
   };
 
   // ---------------------------------------------------------------- onboarding wizard
@@ -833,11 +1299,12 @@ ${resolution.disclosure}`);
         return;
       }
       this.fire('Connected', `${created.name} was saved, selected, and answered both required connection probes.`);
+      this.onUserMutation('onboarding-connect');
       this.set('onboardOpen', false);
       this.set('screen', 'servers');
       this.set('railId', 'app');
     } else {
-      this.fire('Not connected', 'The control plane did not accept that connection. Nothing was written.');
+      this.notifyEvent('Not connected', 'The control plane did not accept that connection. Nothing was written.', 'error');
     }
   }
 
@@ -849,18 +1316,18 @@ ${resolution.disclosure}`);
   private async onboardDeploy(): Promise<void> {
     if (!this.target.connected) {
       if (!canProvision(this.runtime)) {
-        this.fire('No target', `Nothing is connected and a runtime cannot be created here: ${runtimeLabel(this.runtime)}`);
+        this.notifyEvent('No target', `Nothing is connected and a runtime cannot be created here: ${runtimeLabel(this.runtime)}`, 'warning');
         return;
       }
-      this.toast('Creating the Asterisk runtime for the wizard — this takes a while.');
+      this.notifyMessage('Creating the Asterisk runtime for the wizard — this takes a while.');
       const provisioned = await this.request('runtime.provision');
       if (!provisioned?.ok) {
-        this.fire('Not created', provisioned?.message ?? 'Creating the runtime did not succeed, so there is nothing to deploy to.');
+        this.notifyEvent('Not created', provisioned?.message ?? 'Creating the runtime did not succeed, so there is nothing to deploy to.', 'error');
         return;
       }
       await this.discover();
       if (!this.target.connected) {
-        this.fire('No target', 'The runtime was created but nothing is connected yet — open Deploy & servers to finish connecting, then try the wizard again.');
+        this.notifyEvent('No target', 'The runtime was created but nothing is connected yet — open Deploy & servers to finish connecting, then try the wizard again.', 'warning');
         return;
       }
     }
@@ -886,7 +1353,7 @@ ${resolution.disclosure}`);
     ].filter((line, i, arr) => line !== '' || arr[i - 1] !== '');
 
     if (plan.summary.length === 0) {
-      this.fire('Nothing to change', 'The target already matches what the wizard would have written, so nothing was touched.');
+      this.notifyEvent('Nothing to change', 'The target already matches what the wizard would have written, so nothing was touched.', 'warning');
       this.set('onboardOpen', false);
       this.set('screen', 'servers');
       this.set('railId', 'app');
@@ -905,19 +1372,19 @@ ${resolution.disclosure}`);
           const response = await this.request('pbx.apply', { serverId, payload: { documents: plan.documents } });
           const result = (response as { data?: { result?: { status: string; message?: string } }; message?: string } | undefined);
           if (!response?.ok) {
-            this.fire('Deploy not applied', `${response?.message ?? result?.data?.result?.message ?? 'The target refused the change.'}`);
+            this.notifyEvent('Deploy not applied', `${response?.message ?? result?.data?.result?.message ?? 'The target refused the change.'}`, 'error');
             return;
           }
           const secretLines = plan.newExtensions.map((e) => `${e.id}: ${e.secret}`).join('\n');
-          this.fire(
-            'Deployed',
-            [
-              `Applied: ${plan.summary.join('; ')}.`,
-              plan.newExtensions.length > 0 ? `New extension secrets (shown once — write these down):\n${secretLines}` : '',
-              plan.skipped.length > 0 ? `Not applied: ${plan.skipped.join(' ')}` : '',
-              'Every changed file was backed up on the selected target before it was touched. This flow did not create a local-history entry.',
-            ].filter(Boolean).join('\n\n'),
-          );
+          const deployedBody = [
+            `Applied: ${plan.summary.join('; ')}.`,
+            plan.newExtensions.length > 0 ? `New extension secrets (shown once — write these down):\n${secretLines}` : '',
+            plan.skipped.length > 0 ? `Not applied: ${plan.skipped.join(' ')}` : '',
+            'Every changed file was backed up on the selected target before it was touched. This flow did not create a local-history entry.',
+          ].filter(Boolean).join('\n\n');
+          const deploymentSpans = plan.newExtensions.flatMap((entry) => sensitiveSpansForValue(deployedBody, entry.secret, 'credential', 'body'));
+          this.notifyEvent('Deployed', deployedBody, 'info', deploymentSpans);
+          this.onUserMutation('onboarding-deploy');
           this.set('onboardOpen', false);
           this.set('screen', 'servers');
           this.set('railId', 'app');
@@ -959,9 +1426,9 @@ ${resolution.disclosure}`);
       return;
     }
     const value = this.pjsipValue();
-    if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
+    if (!value) { this.notifyEvent('Not loaded', 'The pjsip.conf on this target has not been read yet.', 'warning'); return; }
     const endpoint = findEndpoint(value, name);
-    if (!endpoint) { this.fire('Not loaded', `${name} is not in this target's pjsip.conf.`); return; }
+    if (!endpoint) { this.notifyEvent('Not loaded', `${name} is not in this target's pjsip.conf.`, 'warning'); return; }
     this.editingEndpoint = name;
     const state = this.state as { values: Record<string, unknown> };
     const cleared = Object.fromEntries(Object.values(ENDPOINT_CONTROLS).map((id) => [id, undefined]));
@@ -1001,7 +1468,7 @@ ${resolution.disclosure}`);
 
     if (verb === 'Exported') {
       if (plan.affected.length === 0) {
-        this.fire('Nothing to export', message);
+        this.notifyEvent('Nothing to export', message, 'warning');
         return;
       }
       const byId = new Map(rows.map((r) => [r[0], r] as const));
@@ -1023,14 +1490,16 @@ ${resolution.disclosure}`);
       URL.revokeObjectURL(url);
       this.set('selected', []);
       const lossNote = loss.length > 0 ? ` ${loss.join(' ')}` : '';
-      this.fire('Exported', `${message} Saved as ${filename} — ${format.toUpperCase()}, UTF-8, LF line endings.${lossNote}`);
+      const noticeBody = `${message} Saved as ${filename} — ${format.toUpperCase()}, UTF-8, LF line endings.${lossNote}`;
+      const filenameSpans = sensitiveSpansForValue(noticeBody, filename, 'path', 'body');
+      this.notifyEvent('Exported', noticeBody, 'info', filenameSpans);
       return;
     }
 
     // Every other bulk verb (Enable/Disable/Duplicate/...) has no write path in this
     // console yet -- the plan and its honest count are real, but nothing is applied.
     this.set('selected', []);
-    this.fire(verb, message);
+    this.notifyEvent(verb, message);
   };
 
   /**
@@ -1104,6 +1573,7 @@ ${resolution.disclosure}`);
     const account = s.lockTarget || s.lockKey || 'this element';
     const uri = pairingUri({ issuer: 'Ding PBX Console', account, parameters: { secret } });
     this.setState({ totpPendingSecret: secret, totpPendingUri: uri } as never);
+    this.onUserMutation('authenticator-pair');
     this.showInfo(
       'Authenticator secret',
       `Generated on this computer just now and never sent anywhere. Base32 secret: ${secret} - `
@@ -1114,7 +1584,7 @@ ${resolution.disclosure}`);
       s.lockX || '40%',
       s.lockY || '22%',
     );
-    this.fire('Authenticator paired', 'A real TOTP secret was generated locally for this element.');
+    this.notifyEvent('Authenticator paired', 'A real TOTP secret was generated locally for this element.');
   };
 
   /**
@@ -1133,16 +1603,17 @@ ${resolution.disclosure}`);
     const needsPin = s.lockMethod.indexOf('PIN') >= 0;
     const needsPw = s.lockMethod.indexOf('Password') >= 0;
     const needsTotp = s.lockMethod.indexOf('TOTP') >= 0;
-    if (needsPin && s.pin.length < 4) { this.toast('Set at least a four-digit PIN first'); return; }
-    if (needsPw && (s.password || '').length < 4) { this.toast('Set a passphrase first'); return; }
-    if (needsTotp && !s.totpPendingSecret) { this.toast('Pair the built-in authenticator first'); return; }
+    if (needsPin && s.pin.length < 4) { this.notifyWarning('Set at least a four-digit PIN first'); return; }
+    if (needsPw && (s.password || '').length < 4) { this.notifyWarning('Set a passphrase first'); return; }
+    if (needsTotp && !s.totpPendingSecret) { this.notifyWarning('Pair the built-in authenticator first'); return; }
     const L = { ...s.locks };
     L[s.lockKey] = {
       method: s.lockMethod, pin: s.pin, password: s.password, target: s.lockTarget,
       ...(needsTotp ? { totpSecret: s.totpPendingSecret } : {}),
     };
     this.setState({ locks: L, lockOpen: false, totpPendingSecret: undefined, totpPendingUri: undefined } as never);
-    this.toast(`${s.lockTarget} is locked with ${s.lockMethod} -- the surface is now disabled`);
+    this.onUserMutation('lock-create');
+    this.notifyMessage(`${s.lockTarget} is locked with ${s.lockMethod} -- the surface is now disabled`);
   };
 
   /**
@@ -1170,18 +1641,18 @@ ${resolution.disclosure}`);
       if (count >= 3) {
         const result = this.ladder.issue(s.unlockKey);
         if (result.rung === 'clock') {
-          this.toast(`${message} -- ${result.reason}`);
+          this.notifyWarning(`${message} -- ${result.reason}`);
           return;
         }
         if (result.rung === 'moles') {
-          this.toast(`${message} -- the next challenge needs a visual board this build cannot show yet. Wait it out.`);
+          this.notifyWarning(`${message} -- the next challenge needs a visual board this build cannot show yet. Wait it out.`);
           return;
         }
         this.setState({ ladderActive: true, ladderChallenge: result, ladderDigits: '', ladderSumsAnswers: [] } as never);
-        this.toast(`${message} -- or clear a quick challenge instead of waiting. It only clears the wait, not this credential.`);
+        this.notifyWarning(`${message} -- or clear a quick challenge instead of waiting. It only clears the wait, not this credential.`);
         return;
       }
-      this.toast(message);
+      this.notifyWarning(message);
     };
 
     if (m.indexOf('PIN') >= 0 && s.unlockPin !== L.pin) { wrong('Wrong PIN -- the surface stays locked'); return; }
@@ -1200,7 +1671,8 @@ ${resolution.disclosure}`);
       locks: n, unlockOpen: false, unlockPin: '', unlockPw: '', unlockTotpDigits: '', unlockPhase: undefined,
       ladderActive: false, ladderChallenge: null,
     } as never);
-    this.fire('Unlocked', 'Welcome back.');
+    this.onUserMutation('lock-remove');
+    this.notifyEvent('Unlocked', 'Welcome back.');
   };
 
   /**
@@ -1214,38 +1686,38 @@ ${resolution.disclosure}`);
   private finishLadderGrade(result: GradeResult, lockKey: string): void {
     if (result.cleared) {
       this.setState({ ladderActive: false, ladderChallenge: null, ladderDigits: '', ladderSumsAnswers: [] } as never);
-      this.toast('Challenge cleared -- the wait is over. You still need the real PIN, passphrase or code.');
+      this.notifyInfo('Challenge cleared -- the wait is over. You still need the real PIN, passphrase or code.');
       return;
     }
     const next = this.ladder.issue(lockKey);
     if (next.rung === 'clock' || next.rung === 'moles') {
       this.setState({ ladderActive: false, ladderChallenge: null } as never);
-      this.toast(next.rung === 'clock'
+      this.notifyWarning(next.rung === 'clock'
         ? `Wrong. ${next.reason}`
         : 'Wrong. The next challenge needs a visual board this build cannot show yet.');
       return;
     }
     this.setState({ ladderChallenge: next, ladderDigits: '', ladderSumsAnswers: [] } as never);
-    this.toast('Wrong -- try again.');
+    this.notifyWarning('Wrong -- try again.');
   }
 
   /** Writes the controls back onto the endpoint they were loaded from. */
   onSaveEndpoint = async (): Promise<void> => {
     const value = this.pjsipValue();
-    if (!value || !this.editingEndpoint) { this.fire('Nothing to save', 'Select an endpoint first.'); return; }
+    if (!value || !this.editingEndpoint) { this.notifyEvent('Nothing to save', 'Select an endpoint first.', 'warning'); return; }
     const edit = applyControlValues(value, this.editingEndpoint, (this.state as { values: Record<string, unknown> }).values);
-    if ('error' in edit) { this.fire('Not saved', edit.error); return; }
-    if (edit.summary.length === 0) { this.toast('Nothing changed, so nothing was written.'); return; }
+    if ('error' in edit) { this.notifyEvent('Not saved', edit.error, 'error'); return; }
+    if (edit.summary.length === 0) { this.notifyMessage('Nothing changed, so nothing was written.'); return; }
     await this.writePjsip(editDocument(edit, PJSIP_RESOURCE), edit.summary, `${this.editingEndpoint} updated`);
   };
 
   /** Removes the loaded endpoint, meaning all three of its sections. */
   onDeleteEndpoint = (): void => {
     const value = this.pjsipValue();
-    if (!value || !this.editingEndpoint) { this.fire('Nothing to remove', 'Select an endpoint first.'); return; }
+    if (!value || !this.editingEndpoint) { this.notifyEvent('Nothing to remove', 'Select an endpoint first.', 'warning'); return; }
     const name = this.editingEndpoint;
     const removal = removeEndpoint(value, name);
-    if ('error' in removal) { this.fire('Not removed', removal.error); return; }
+    if ('error' in removal) { this.notifyEvent('Not removed', removal.error, 'error'); return; }
     this.areYouSure('Remove ' + name, removal.summary.join('\n'), 3, () => {
       void this.writePjsip(editDocument(removal, PJSIP_RESOURCE), removal.summary, `${name} removed`).then((applied) => {
         if (applied) this.editingEndpoint = '';
@@ -1261,14 +1733,16 @@ ${resolution.disclosure}`);
       return;
     }
     const draft = buildEndpointDraft(value, (this.state as { values: Record<string, unknown> }).values);
-    if ('error' in draft) { this.fire('Not created', draft.error); return; }
+    if ('error' in draft) { this.notifyEvent('Not created', draft.error, 'error'); return; }
     const applied = await this.writePjsip(endpointDocument(draft), draft.summary, `${draft.view.endpoints.slice(-1)[0].name} created`);
     /* Shown once, and deliberately never in the plan above: a plan gets read aloud and
      * screenshotted, and a password has no business in one. */
     if (applied) {
       this.fire('Write this password down', `${draft.created.name}: ${draft.secret}
 
-It is shown once. The phone needs it to register.`);
+It is shown once. The phone needs it to register.`;
+      const secretSpans = sensitiveSpansForValue(noticeBody, draft.secret, 'credential', 'body');
+      this.notifyEvent('Write this password down', noticeBody, 'info', secretSpans);
     }
   };
 
@@ -1302,7 +1776,8 @@ It is shown once. The phone needs it to register.`);
       observedAt: new Date().toISOString(),
     };
     this.seeded.delete('endpoints');
-    this.fire(done, summary.join('\n'));
+    this.notifyEvent(done, summary.join('\n'));
+    this.onUserMutation('endpoint-write');
     this.forceUpdate();
     return true;
   }
@@ -1479,7 +1954,7 @@ It is shown once. The phone needs it to register.`);
   /** Real dialplan nodes/edges in the design's canvas shapes, with a bezier path per edge
    *  computed the same way the design computes it for its own sample graph. */
   private canvasVals(designVals: Record<string, unknown>): Record<string, unknown> {
-    const readOnlyCanvas = () => this.fire(
+    const readOnlyCanvas = () => this.notifyWarningEvent(
       'Dialplan canvas is read-only',
       'This graph is read from the live target. Adding, deleting, duplicating, or rewiring a step needs a configuration-write path that this console does not provide.',
     );
@@ -1878,7 +2353,7 @@ It is shown once. The phone needs it to register.`);
             copy: () => {
               const clipboard = (navigator as { clipboard?: { writeText?: (text: string) => Promise<void> } }).clipboard;
               if (clipboard?.writeText) void clipboard.writeText(text);
-              this.toast(`${text} copied`);
+              this.notifyMessage(`${text} copied`);
             },
           };
         })
@@ -1898,7 +2373,8 @@ It is shown once. The phone needs it to register.`);
     this.setState((st: { values: Record<string, unknown> }) => ({
       values: { ...st.values, ap_hue: Math.floor(Math.random() * 360) },
     }));
-    this.fire('Bold choice', 'Nobody will ever say it is boring.');
+    this.onUserMutation('appearance-random');
+    this.notifyEvent('Bold choice', 'Nobody will ever say it is boring.');
   }
 
   /** Clears the persisted theme, drops the four values back to the design's own
@@ -1914,12 +2390,14 @@ It is shown once. The phone needs it to register.`);
       return { values: next };
     });
     this.applyAppearanceToDom(resetAll(this.buildAppearanceTheme(this.currentAppearanceValues())));
-    this.toast('Appearance reset to the design system');
+    this.onUserMutation('appearance-reset');
+    this.notifyMessage('Appearance reset to the design system');
   }
 
   private saveAppearance(): void {
     this.syncAppearance();
-    this.fire('Appearance saved', 'It will still be set the next time this opens.');
+    this.onUserMutation('appearance-save');
+    this.notifyEvent('Appearance saved', 'It will still be set the next time this opens.');
   }
 
   /** Downloads the real appearance.ts JSON export (schema-versioned, re-importable)
@@ -1927,7 +2405,7 @@ It is shown once. The phone needs it to register.`);
    *  happened. */
   private exportAppearance(): void {
     if (typeof document === 'undefined') {
-      this.toast('Export is not available in this environment.');
+      this.notifyWarning('Export is not available in this environment.');
       return;
     }
     const json = exportTheme(this.buildAppearanceTheme(this.currentAppearanceValues()));
@@ -1938,7 +2416,7 @@ It is shown once. The phone needs it to register.`);
     a.download = 'asterisk-console-appearance.json';
     a.click();
     URL.revokeObjectURL(url);
-    this.toast('Appearance exported as JSON');
+    this.notifyMessage('Appearance exported as JSON');
   }
 
   renderVals() {
@@ -1980,8 +2458,10 @@ It is shown once. The phone needs it to register.`);
           connected: this.target.connected,
           serverId: this.target.id,
           request: (action, extra) => this.request(action, extra) as Promise<CeremonyResponse | undefined>,
-          toast: (message) => this.toast(message),
-          fire: (title, body) => this.fire(title, body),
+          toast: (message, severity = 'info') => severity === 'error'
+            ? this.notifyError(message) : severity === 'warning' ? this.notifyWarning(message) : this.notifyInfo(message),
+          fire: (title, body, severity = 'info') => severity === 'error'
+            ? this.notifyErrorEvent(title, body) : severity === 'warning' ? this.notifyWarningEvent(title, body) : this.notifyInfoEvent(title, body),
         });
       },
       /* The real file, for the screens that edit one. A screen showing the target's own
@@ -2011,13 +2491,13 @@ It is shown once. The phone needs it to register.`);
       canProvisionRuntime: canProvision(this.runtime),
       provisionRuntime: () => {
         if (!canProvision(this.runtime)) {
-          this.fire('Not available', runtimeLabel(this.runtime));
+          this.notifyEvent('Not available', runtimeLabel(this.runtime), 'warning');
           return;
         }
-        this.toast('Creating the Asterisk runtime — this imports a root filesystem and takes a while.');
+        this.notifyMessage('Creating the Asterisk runtime — this imports a root filesystem and takes a while.');
         void this.request('runtime.provision').then((response) => {
           if (!response) {
-            this.fire('Not run', 'The desktop bridge is unavailable, so nothing was created.');
+            this.notifyEvent('Not run', 'The desktop bridge is unavailable, so nothing was created.', 'error');
             return;
           }
           /* `data` lives only on the success branch of the response union, so the steps
@@ -2029,10 +2509,10 @@ It is shown once. The phone needs it to register.`);
             .map((step) => `${step.ok ? 'ok' : 'failed'}: ${step.name} — ${step.detail}`)
             .join('\n');
           if (!response.ok) {
-            this.fire('Not created', `${response.message ?? 'Creating the runtime did not succeed.'}\n\n${steps}`.trim());
+            this.notifyEvent('Not created', `${response.message ?? 'Creating the runtime did not succeed.'}\n\n${steps}`.trim(), 'error');
             return;
           }
-          this.fire('Runtime ready', steps || 'The runtime was created and answered.');
+          this.notifyEvent('Runtime ready', steps || 'The runtime was created and answered.');
           void this.discover();
         });
       },
@@ -2384,8 +2864,8 @@ It is shown once. The phone needs it to register.`);
     const { entries } = this.changelogFilterResult();
     const text = toPlainText(entries);
     void navigator.clipboard.writeText(text).then(
-      () => this.toast('Changelog copied to the clipboard'),
-      () => this.toast('Could not reach the clipboard'),
+      () => this.notifyMessage('Changelog copied to the clipboard'),
+      () => this.notifyError('Could not reach the clipboard'),
     );
   }
 

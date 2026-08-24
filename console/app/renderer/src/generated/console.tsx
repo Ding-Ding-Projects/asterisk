@@ -7,23 +7,21 @@ import M3Control from './m3-control';
 function Template(v: any) {
   return F(
     h("div", { style: sty(`height:100vh; display:flex; flex-direction:column; background:#0B0F0C; color:#DFE4DC; font-family:Roboto,system-ui,sans-serif; font-size:14px; overflow:hidden; position:relative;`) },
-      h("div", { style: sty(`height:40px; flex:0 0 40px; display:flex; align-items:stretch; background:#141A15; user-select:none; overflow:hidden; min-width:0;`), "data-window-drag": `` },
+      h("div", { "data-attention-titlebar": `true`, style: sty(`height:40px; flex:0 0 40px; display:flex; align-items:stretch; background:#141A15; user-select:none; overflow:hidden; min-width:0;`), "data-window-drag": `` },
         h("div", { style: sty(`display:flex; align-items:center; gap:10px; padding:0 12px; flex:0 0 auto; white-space:nowrap;`) },
           h("span", { style: sty(`font-size:20px; color:#82D9A5; flex:0 0 auto;`), className: "msym" },
             "deployed_code"
           ),
-          h("span", { style: sty(`font-size:13px; font-weight:500; letter-spacing:.1px; white-space:nowrap; flex:0 0 auto;`) },
+          h("span", { "data-shell-title": ``, style: sty(`font-size:13px; font-weight:500; letter-spacing:.1px; white-space:nowrap; flex:0 0 auto;`) },
             "Ding PBX Console"
           )
         ),
-        h("div", { style: sty(`display:flex; align-items:stretch; min-width:0; overflow-x:auto; flex:0 1 auto;`) },
-          A(v.menus).map(($m, $m$i) => R($m$i, h("button", { onClick: fn($m.open), style: sty(`background:transparent; border:0; color:#C4CBC2; font:inherit; font-size:13px; padding:0 12px; cursor:pointer; border-radius:8px; margin:5px 1px;`), className: "k-h0" },
-              S($m.label)
-            )))
+        h("div", { style: sty(`display:flex; align-items:center; min-width:0; flex:0 1 auto; padding:0 10px; color:#8FA394; font-size:12px;`) },
+          S(v.shellCapabilitySummary)
         ),
         h("div", { style: sty(`flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; overflow:hidden;`) },
-          h("button", { onClick: fn(v.openConnection), style: sty(`display:flex; align-items:center; gap:8px; background:#1B211C; border:1px solid #414942; border-radius:999px; padding:5px 14px 5px 10px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer; white-space:nowrap; flex:0 1 auto; min-width:0; overflow:hidden; height:28px;`), className: "k-h1" },
-            h("span", { style: sty(`width:8px; height:8px; border-radius:50%; background:#82D9A5; animation:m3Pulse 2.4s ease-in-out infinite; flex:0 0 auto;`) }),
+          h("button", { onClick: fn(v.openConnection), "aria-disabled": v.connectionDisabled, title: v.connectionReason, style: sty(`display:flex; align-items:center; gap:8px; background:#1B211C; border:1px solid #414942; border-radius:999px; padding:5px 14px 5px 10px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer; white-space:nowrap; flex:0 1 auto; min-width:0; overflow:hidden; height:28px;`), className: "k-h0" },
+            h("span", { style: sty(`width:8px; height:8px; border-radius:50%; background:${S(v.connectionColour)}; flex:0 0 auto;`) }),
             h("span", { style: sty(`font-family:'Roboto Mono',monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;`) },
               S(v.connLabel)
             ),
@@ -44,43 +42,37 @@ function Template(v: any) {
                   ),
                   S($o.label)
                 ) : null),
-              ($o.off ? h("button", { onClick: fn($o.pick), style: sty(`background:transparent; color:#9AA39B; border:0; padding:0 13px; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h2" },
+              ($o.off ? h("button", { onClick: fn($o.pick), style: sty(`background:transparent; color:#9AA39B; border:0; padding:0 13px; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h1" },
                   S($o.label)
                 ) : null)
             )))
           ),
-          h("button", { onClick: fn(v.goArcade), title: `Confirmation credits — win more in the arcade`, style: sty(`display:flex; align-items:center; gap:6px; background:#1B4D33; border:0; border-radius:999px; padding:5px 12px 5px 9px; color:#9FF7C4; font:inherit; font-size:12px; font-weight:500; cursor:pointer; height:28px; white-space:nowrap;`), className: "k-h3" },
-            h("span", { style: sty(`font-size:16px;`), className: "msym" },
-              "confirmation_number"
-            ),
-            S(v.credits)
-          ),
-          h("button", { onClick: fn(v.togglePalette), title: `Command palette (Ctrl+Shift+F)`, style: sty(`width:32px; height:32px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center;`), className: "k-h4" },
+          h("button", { onClick: fn(v.togglePalette), title: `Command palette (Ctrl+Shift+F)`, style: sty(`width:32px; height:32px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center;`), className: "k-h2" },
             h("span", { style: sty(`font-size:19px;`), className: "msym" },
               "search"
             )
           ),
-          h("div", { style: sty(`display:flex;`) },
-            h("div", { style: sty(`width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;`), onClick: fn(v.__window?.minimize), "data-window-button": ``, title: `Minimize`, className: "k-h1" },
-              h("span", { style: sty(`font-size:17px;`), className: "msym" },
+          h("div", { style: sty(`display:flex; align-items:center; gap:4px; padding-left:4px;`) },
+            h("div", { title: `Minimize`, style: sty(`width:28px; height:28px; display:flex; align-items:center; justify-content:center;`), onClick: fn(v.__window?.minimize), "data-window-button": `` },
+              h("span", { className: "msym" },
                 "remove"
               )
             ),
-            h("div", { style: sty(`width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;`), onClick: fn(v.__window?.toggleMaximize), "data-window-button": ``, title: `Maximize`, className: "k-h1" },
-              h("span", { style: sty(`font-size:15px;`), className: "msym" },
+            h("div", { title: `Maximize`, style: sty(`width:28px; height:28px; display:flex; align-items:center; justify-content:center;`), onClick: fn(v.__window?.toggleMaximize), "data-window-button": `` },
+              h("span", { className: "msym" },
                 "crop_square"
               )
             ),
-            h("div", { style: sty(`width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;`), onClick: fn(v.__window?.close), "data-window-button": ``, title: `Close`, className: "k-h5" },
-              h("span", { style: sty(`font-size:17px;`), className: "msym" },
+            h("div", { title: `Close`, style: sty(`width:28px; height:28px; display:flex; align-items:center; justify-content:center;`), onClick: fn(v.__window?.close), "data-window-button": `` },
+              h("span", { className: "msym" },
                 "close"
               )
             )
           )
         )
       ),
-      h("div", { style: sty(`height:38px; flex:0 0 38px; display:flex; align-items:flex-end; gap:2px; background:#0B0F0C; padding:0 6px; overflow-x:auto;`) },
-        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { onClick: fn($g.toggle), onContextMenu: fn($g.ctx), style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
+      h("div", { "data-tab-strip": ``, role: `tablist`, "aria-label": `Open console tabs`, "aria-orientation": v.tabOrientation, onKeyDown: v.onTabListKeyDown, style: sty(`${S(v.tabStripStyle)}`) },
+        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { role: `group`, "aria-label": $g.name, "aria-expanded": $g.expanded, onClick: fn($g.toggle), onContextMenu: fn($g.ctx), style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
             h("span", { style: sty(`width:9px; height:9px; border-radius:50%; background:${S($g.colour)};`) }),
             h("span", { style: sty(`font-size:12px; font-weight:500; color:#DFE4DC; white-space:nowrap;`) },
               S($g.name)
@@ -93,7 +85,7 @@ function Template(v: any) {
             )
           ))),
         A(v.tabs).map(($t, $t$i) => R($t$i, F(
-          ($t.on ? h("div", { draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`) },
+          ($t.on ? h("div", { role: `tab`, "aria-selected": `true`, "aria-controls": `console-panel`, tabIndex: `0`, draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`) },
               ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
               h("span", { style: sty(`width:7px; height:7px; border-radius:50%; background:${S($t.colour)}; flex:0 0 auto;`) }),
               h("span", { style: sty(`font-size:16px; color:#82D9A5; flex:0 0 auto;`), className: "msym" },
@@ -105,13 +97,13 @@ function Template(v: any) {
               ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#8FA394;`), className: "msym" },
                   "push_pin"
                 ) : null),
-              h("button", { onClick: fn($t.close), style: sty(`width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
-                h("span", { style: sty(`font-size:14px;`), className: "msym" },
-                  "close"
-                )
-              )
+              ($t.closable ? h("button", { onClick: fn($t.close), "aria-label": `Close ${S($t.label)}`, style: sty(`width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h3" },
+                  h("span", { style: sty(`font-size:14px;`), className: "msym" },
+                    "close"
+                  )
+                ) : null)
             ) : null),
-          ($t.off ? h("div", { draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), className: "k-h7" },
+          ($t.off ? h("div", { role: `tab`, "aria-selected": `false`, "aria-controls": `console-panel`, tabIndex: `-1`, draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), className: "k-h4" },
               ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
               h("span", { style: sty(`font-size:16px; color:#8FA394; flex:0 0 auto;`), className: "msym" },
                 S($t.icon)
@@ -122,14 +114,14 @@ function Template(v: any) {
               ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#778078;`), className: "msym" },
                   "push_pin"
                 ) : null),
-              h("button", { onClick: fn($t.close), style: sty(`width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
-                h("span", { style: sty(`font-size:14px;`), className: "msym" },
-                  "close"
-                )
-              )
+              ($t.closable ? h("button", { onClick: fn($t.close), "aria-label": `Close ${S($t.label)}`, style: sty(`width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h3" },
+                  h("span", { style: sty(`font-size:14px;`), className: "msym" },
+                    "close"
+                  )
+                ) : null)
             ) : null)
         ))),
-        h("button", { onClick: fn(v.newTab), title: `New tab`, style: sty(`width:30px; height:30px; margin-bottom:3px; border-radius:8px; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h8" },
+        h("button", { onClick: fn(v.newTab), title: `New tab`, style: sty(`width:30px; height:30px; margin-bottom:3px; border-radius:8px; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h5" },
           h("span", { style: sty(`font-size:18px;`), className: "msym" },
             "add"
           )
@@ -137,7 +129,7 @@ function Template(v: any) {
         h("div", { style: sty(`flex:1;`) }),
         h("div", { style: sty(`display:flex; align-items:center; gap:4px; padding-bottom:4px;`) },
           h("span", { style: sty(`font-size:11px; color:#778078;`) },
-            "Dock"
+            "Tab strip"
           ),
           A(v.dockOpts).map(($d, $d$i) => R($d$i, F(
             ($d.on ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer; display:flex; align-items:center; justify-content:center;`) },
@@ -145,23 +137,31 @@ function Template(v: any) {
                   S($d.icon)
                 )
               ) : null),
-            ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center;`), className: "k-h9" },
+            ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center;`), className: "k-h6" },
                 h("span", { style: sty(`font-size:16px;`), className: "msym" },
                   S($d.icon)
                 )
               ) : null)
-          )))
+          ))),
+          A(v.tabSearchSlots).map(($q, $q$i) => R($q$i, h("div", { role: `search`, "aria-label": $q.label, style: sty(`display:flex; align-items:center; gap:4px; background:#141A15; border:1px solid #333B34; border-radius:10px; padding:2px 5px;`) },
+              h("input", { type: `search`, value: $q.value, onInput: fn($q.input), placeholder: $q.label, "aria-label": $q.label, style: sty(`width:112px; background:transparent; border:0; color:#DFE4DC; font:inherit; font-size:11px;`) }),
+              h("button", { onClick: fn($q.regex), "aria-label": `Open regex builder for ${S($q.label)}`, style: sty(`background:transparent; border:0; color:#82D9A5; cursor:pointer;`) },
+                h("span", { className: "msym" },
+                  "data_object"
+                )
+              )
+            )))
         )
       ),
-      h("div", { style: sty(`flex:1; display:flex; min-height:0; gap:0; flex-direction:${S(v.dockDirection)};`) },
-        h("div", { style: sty(`width:88px; flex:0 0 88px; background:#0B0F0C; display:flex; flex-direction:column; align-items:center; padding:8px 0 12px; gap:4px; overflow-y:auto;`) },
+      h("div", { "data-shell-content": ``, id: `console-panel`, role: `tabpanel`, style: sty(`${S(v.workspaceInsetStyle)}`) },
+        h("div", { "data-attention-rail": `true`, style: sty(`width:88px; flex:0 0 88px; background:#0B0F0C; display:flex; flex-direction:column; align-items:center; padding:8px 0 12px; gap:4px; overflow-y:auto;`) },
           A(v.rail).map(($r, $r$i) => R($r$i, h("button", { onClick: fn($r.pick), style: sty(`width:100%; background:transparent; border:0; cursor:pointer; padding:4px 0 2px; display:flex; flex-direction:column; align-items:center; gap:4px;`) },
               ($r.on ? h("span", { style: sty(`width:56px; height:32px; border-radius:16px; background:#005230; display:flex; align-items:center; justify-content:center; animation:m3Ripple .5s ease-out;`) },
                   h("span", { style: sty(`font-size:22px; color:#9FF7C4;`), className: "msym" },
                     S($r.icon)
                   )
                 ) : null),
-              ($r.off ? h("span", { style: sty(`width:56px; height:32px; border-radius:16px; background:transparent; display:flex; align-items:center; justify-content:center;`), className: "k-h10" },
+              ($r.off ? h("span", { style: sty(`width:56px; height:32px; border-radius:16px; background:transparent; display:flex; align-items:center; justify-content:center;`), className: "k-h7" },
                   h("span", { style: sty(`font-size:22px; color:#B6BEB5;`), className: "msym" },
                     S($r.icon)
                   )
@@ -171,13 +171,13 @@ function Template(v: any) {
               )
             ))),
           h("div", { style: sty(`flex:1;`) }),
-          h("button", { onClick: fn(v.startOnboarding), title: `Re-run setup`, style: sty(`width:56px; height:56px; border-radius:18px; background:#1B4D33; border:0; color:#9FF7C4; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,.4);`), className: "k-h3" },
+          h("button", { onClick: fn(v.startOnboarding), title: `Re-run setup`, style: sty(`width:56px; height:56px; border-radius:18px; background:#1B4D33; border:0; color:#9FF7C4; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,.4);`), className: "k-h8" },
             h("span", { style: sty(`font-size:24px;`), className: "msym" },
               "rocket_launch"
             )
           )
         ),
-        h("div", { style: sty(`width:268px; flex:0 0 268px; background:#141A15; border-radius:16px 0 0 0; display:flex; flex-direction:column; min-height:0;`) },
+        h("div", { "data-attention-section-list": `true`, style: sty(`width:268px; flex:0 0 268px; background:#141A15; border-radius:16px 0 0 0; display:flex; flex-direction:column; min-height:0;`) },
           h("div", { style: sty(`padding:16px 18px 12px;`) },
             h("div", { style: sty(`font-size:11px; letter-spacing:1.1px; text-transform:uppercase; color:#8FA394; font-weight:500;`) },
               S(v.groupLabel)
@@ -194,7 +194,7 @@ function Template(v: any) {
               h("span", { style: sty(`flex:1; font-family:'Roboto Mono',monospace; font-size:11.5px; color:#C4CBC2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
                 S(v.navSearchLabel)
               ),
-              h("button", { onClick: fn(v.openNavRegex), title: `Regex builder`, style: sty(`width:26px; height:26px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h11" },
+              h("button", { onClick: fn(v.openNavRegex), title: `Regex builder`, style: sty(`width:26px; height:26px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h9" },
                 h("span", { style: sty(`font-size:15px;`), className: "msym" },
                   "data_object"
                 )
@@ -214,7 +214,7 @@ function Template(v: any) {
                     S($s.badge)
                   )
                 ) : null),
-              ($s.off ? h("button", { onClick: fn($s.pick), style: sty(`width:100%; text-align:left; background:transparent; border:0; border-radius:999px; padding:9px 14px; margin-bottom:3px; cursor:pointer; display:flex; align-items:center; gap:11px;`), className: "k-h10" },
+              ($s.off ? h("button", { onClick: fn($s.pick), style: sty(`width:100%; text-align:left; background:transparent; border:0; border-radius:999px; padding:9px 14px; margin-bottom:3px; cursor:pointer; display:flex; align-items:center; gap:11px;`), className: "k-h7" },
                   h("span", { style: sty(`font-size:19px; color:#9AA39B;`), className: "msym" },
                     S($s.icon)
                   ),
@@ -236,7 +236,8 @@ function Template(v: any) {
             )
           )
         ),
-        h("div", { style: sty(`flex:1; min-width:0; display:flex; flex-direction:column; background:#0F1510;`) },
+        h("div", { "data-attention-work-region": `true`, style: sty(`flex:1; min-width:0; display:flex; flex-direction:column; background:#0F1510;`) },
+          h("div", { "data-attention-card-mount": `true` }),
           h("div", { style: sty(`padding:20px 26px 16px; display:flex; align-items:flex-start; gap:16px;`) },
             h("div", { style: sty(`flex:1; min-width:0;`) },
               h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
@@ -252,13 +253,13 @@ function Template(v: any) {
               )
             ),
             h("div", { style: sty(`display:flex; gap:8px; flex:0 0 auto;`) },
-              h("button", { onClick: fn(v.openInfoScreen), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; color:#C4CBC2; font:inherit; font-size:13px; font-weight:500; padding:9px 16px 9px 12px; cursor:pointer; display:flex; align-items:center; gap:7px;`), className: "k-h10" },
+              h("button", { onClick: fn(v.openInfoScreen), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; color:#C4CBC2; font:inherit; font-size:13px; font-weight:500; padding:9px 16px 9px 12px; cursor:pointer; display:flex; align-items:center; gap:7px;`), className: "k-h7" },
                 h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                   "help"
                 ),
                 "Explain"
               ),
-              h("button", { onClick: fn(v.openWizard), style: sty(`background:#82D9A5; border:0; border-radius:999px; color:#00391F; font:inherit; font-size:13px; font-weight:500; padding:10px 20px 10px 15px; cursor:pointer; display:flex; align-items:center; gap:7px;`), className: "k-h12" },
+              h("button", { onClick: fn(v.openWizard), style: sty(`background:#82D9A5; border:0; border-radius:999px; color:#00391F; font:inherit; font-size:13px; font-weight:500; padding:10px 20px 10px 15px; cursor:pointer; display:flex; align-items:center; gap:7px;`), className: "k-h10" },
                 h("span", { style: sty(`font-size:18px;`), className: "msym" },
                   "auto_fix_high"
                 ),
@@ -339,7 +340,7 @@ function Template(v: any) {
                       "Live channels"
                     ),
                     h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#9AA39B;`) },
-                      "refreshing 1s"
+                      S(v.dashboardRefresh)
                     )
                   ),
                   h("div", { style: sty(`display:flex; flex-direction:column; gap:6px;`) },
@@ -354,17 +355,17 @@ function Template(v: any) {
                           S($c.dur)
                         ),
                         h("div", { style: sty(`display:flex; gap:4px; justify-content:flex-end; padding-right:2px;`) },
-                          h("button", { onClick: fn($c.spy), title: `Listen (ChanSpy)`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h13" },
+                          h("button", { onClick: fn($c.spy), title: `Listen (ChanSpy)`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                             h("span", { style: sty(`font-size:16px;`), className: "msym" },
                               "hearing"
                             )
                           ),
-                          h("button", { onClick: fn($c.rec), title: `MixMonitor`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h13" },
+                          h("button", { onClick: fn($c.rec), title: `MixMonitor`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                             h("span", { style: sty(`font-size:16px;`), className: "msym" },
                               "fiber_manual_record"
                             )
                           ),
-                          h("button", { onClick: fn($c.kill), title: `Hangup`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#FFB4AB; cursor:pointer;`), className: "k-h5" },
+                          h("button", { onClick: fn($c.kill), title: `Hangup`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#FFB4AB; cursor:pointer;`), className: "k-h12" },
                             h("span", { style: sty(`font-size:16px;`), className: "msym" },
                               "call_end"
                             )
@@ -399,7 +400,7 @@ function Template(v: any) {
                       "Quick actions"
                     ),
                     h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:8px;`) },
-                      A(v.quickActions).map(($q, $q$i) => R($q$i, h("button", { onClick: fn($q.run), style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h13" },
+                      A(v.quickActions).map(($q, $q$i) => R($q$i, h("button", { onClick: fn($q.run), style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h11" },
                           h("span", { style: sty(`font-size:17px;`), className: "msym" },
                             S($q.icon)
                           ),
@@ -444,7 +445,7 @@ function Template(v: any) {
                           S($l.desc)
                         )
                       ) : null),
-                    ($l.off ? h("button", { onClick: fn($l.pick), style: sty(`flex:1; min-width:150px; text-align:left; background:rgba(0,0,0,.24); border:1px solid rgba(159,247,196,.3); border-radius:16px; padding:13px 15px; cursor:pointer;`), className: "k-h14" },
+                    ($l.off ? h("button", { onClick: fn($l.pick), style: sty(`flex:1; min-width:150px; text-align:left; background:rgba(0,0,0,.24); border:1px solid rgba(159,247,196,.3); border-radius:16px; padding:13px 15px; cursor:pointer;`), className: "k-h13" },
                         h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:24px; font-weight:700; color:#9FF7C4;`) },
                           S($l.num)
                         ),
@@ -466,7 +467,7 @@ function Template(v: any) {
                       "Random appearance for every element"
                     )
                   ),
-                  h("button", { onClick: fn(v.rerollNow), style: sty(`display:flex; align-items:center; gap:7px; background:rgba(0,0,0,.24); border:1px solid rgba(159,247,196,.3); border-radius:999px; padding:11px 20px 11px 15px; color:#9FF7C4; font:inherit; font-size:13px; font-weight:500; cursor:pointer;`), className: "k-h14" },
+                  h("button", { onClick: fn(v.rerollNow), style: sty(`display:flex; align-items:center; gap:7px; background:rgba(0,0,0,.24); border:1px solid rgba(159,247,196,.3); border-radius:999px; padding:11px 20px 11px 15px; color:#9FF7C4; font:inherit; font-size:13px; font-weight:500; cursor:pointer;`), className: "k-h13" },
                     h("span", { style: sty(`font-size:18px;`), className: "msym" },
                       "casino"
                     ),
@@ -497,12 +498,12 @@ function Template(v: any) {
                   ($b.on ? h("button", { onClick: fn($b.pick), style: sty(`background:#005230; border:0; border-radius:999px; padding:7px 14px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer;`) },
                       S($b.label)
                     ) : null),
-                  ($b.off ? h("button", { onClick: fn($b.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 14px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`), className: "k-h1" },
+                  ($b.off ? h("button", { onClick: fn($b.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 14px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`), className: "k-h0" },
                       S($b.label)
                     ) : null)
                 ))),
                 h("div", { style: sty(`flex:1;`) }),
-                A(v.histActions).map(($a, $a$i) => R($a$i, h("button", { onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:#1B211C; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h13" },
+                A(v.histActions).map(($a, $a$i) => R($a$i, h("button", { onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:#1B211C; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h11" },
                     h("span", { style: sty(`font-size:16px;`), className: "msym" },
                       S($a.icon)
                     ),
@@ -523,13 +524,13 @@ function Template(v: any) {
                       ($f.on ? h("button", { onClick: fn($f.pick), style: sty(`background:#005230; border:0; border-radius:8px; padding:5px 11px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;`) },
                           S($f.label)
                         ) : null),
-                      ($f.off ? h("button", { onClick: fn($f.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:5px 11px; color:#9AA39B; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h15" },
+                      ($f.off ? h("button", { onClick: fn($f.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:5px 11px; color:#9AA39B; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h14" },
                           S($f.label)
                         ) : null)
                     )))
                   ),
                   h("div", { style: sty(`max-height:460px; overflow-y:auto;`) },
-                    A(v.commitRows).map(($c, $c$i) => R($c$i, h("div", { onClick: fn($c.pick), onContextMenu: fn($c.ctx), style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), className: "k-h16" },
+                    A(v.commitRows).map(($c, $c$i) => R($c$i, h("div", { onClick: fn($c.pick), onContextMenu: fn($c.ctx), style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), className: "k-h15" },
                         h("div", { style: sty(`display:flex; flex-direction:column; align-items:center; padding-top:3px; flex:0 0 auto;`) },
                           h("span", { style: sty(`width:11px; height:11px; border-radius:50%; background:${S($c.dot)}; border:2px solid #0F1510;`) }),
                           h("span", { style: sty(`width:2px; flex:1; min-height:22px; background:#333B34;`) })
@@ -550,7 +551,7 @@ function Template(v: any) {
                             S($c.meta)
                           )
                         ),
-                        h("button", { onClick: fn($c.compare), title: `Add to comparison`, style: sty(`width:26px; height:26px; border-radius:50%; background:transparent; border:1px solid #414942; color:${S($c.cmpFg)}; cursor:pointer; flex:0 0 auto;`), className: "k-h17" },
+                        h("button", { onClick: fn($c.compare), title: `Add to comparison`, style: sty(`width:26px; height:26px; border-radius:50%; background:transparent; border:1px solid #414942; color:${S($c.cmpFg)}; cursor:pointer; flex:0 0 auto;`), className: "k-h16" },
                           h("span", { style: sty(`font-size:15px;`), className: "msym" },
                             "compare_arrows"
                           )
@@ -640,19 +641,19 @@ function Template(v: any) {
                             )))
                         ),
                         h("div", { style: sty(`display:flex; align-items:center; gap:8px; margin-top:14px; flex-wrap:wrap;`) },
-                          h("button", { onClick: fn($a.yes), style: sty(`display:flex; align-items:center; gap:7px; background:#82D9A5; border:0; border-radius:999px; padding:10px 22px 10px 16px; color:#00391F; font:inherit; font-size:13px; font-weight:600; cursor:pointer;`), className: "k-h12" },
+                          h("button", { onClick: fn($a.yes), style: sty(`display:flex; align-items:center; gap:7px; background:#82D9A5; border:0; border-radius:999px; padding:10px 22px 10px 16px; color:#00391F; font:inherit; font-size:13px; font-weight:600; cursor:pointer;`), className: "k-h10" },
                             h("span", { style: sty(`font-size:18px;`), className: "msym" },
                               "thumb_up"
                             ),
                             "Send YES"
                           ),
-                          h("button", { onClick: fn($a.no), style: sty(`display:flex; align-items:center; gap:7px; background:#93000A; border:0; border-radius:999px; padding:10px 22px 10px 16px; color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer;`), className: "k-h18" },
+                          h("button", { onClick: fn($a.no), style: sty(`display:flex; align-items:center; gap:7px; background:#93000A; border:0; border-radius:999px; padding:10px 22px 10px 16px; color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer;`), className: "k-h17" },
                             h("span", { style: sty(`font-size:18px;`), className: "msym" },
                               "thumb_down"
                             ),
                             "Send NO"
                           ),
-                          h("button", { onClick: fn($a.ask), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`), className: "k-h1" },
+                          h("button", { onClick: fn($a.ask), "aria-disabled": $a.askDisabled, title: $a.askReason, style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`), className: "k-h0" },
                             "Ask for detail"
                           ),
                           h("button", { onClick: fn($a.defer), style: sty(`background:transparent; border:0; color:#9AA39B; font:inherit; font-size:12.5px; cursor:pointer; padding:10px 12px;`) },
@@ -673,7 +674,7 @@ function Template(v: any) {
                     "Answer history"
                   ),
                   h("div", { style: sty(`flex:1;`) }),
-                  h("button", { onClick: fn(v.newAuthRequest), style: sty(`display:flex; align-items:center; gap:6px; background:#1B4D33; border:0; border-radius:999px; padding:9px 16px 9px 12px; color:#9FF7C4; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`), className: "k-h3" },
+                  h("button", { onClick: fn(v.newAuthRequest), style: sty(`display:flex; align-items:center; gap:6px; background:#1B4D33; border:0; border-radius:999px; padding:9px 16px 9px 12px; color:#9FF7C4; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`), className: "k-h8" },
                     h("span", { style: sty(`font-size:17px;`), className: "msym" },
                       "send"
                     ),
@@ -696,160 +697,6 @@ function Template(v: any) {
                   )))
               )
             ) : null),
-            (v.isArcade ? F(
-              h("div", { style: sty(`display:grid; grid-template-columns:290px 1fr; gap:12px; margin-bottom:12px;`) },
-                h("div", { style: sty(`background:linear-gradient(150deg,#0F3D28,#1B4D33); border-radius:20px; padding:22px; display:flex; flex-direction:column; align-items:center; text-align:center;`) },
-                  h("span", { style: sty(`font-size:30px; color:#9FF7C4;`), className: "msym" },
-                    "confirmation_number"
-                  ),
-                  h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:54px; font-weight:500; color:#DFF3E5; line-height:1.05; margin-top:6px;`) },
-                    S(v.credits)
-                  ),
-                  h("div", { style: sty(`font-size:12.5px; color:#9FF7C4;`) },
-                    "confirmation credits"
-                  ),
-                  h("div", { style: sty(`font-size:12px; color:#C3EFD5; margin-top:14px; line-height:1.6;`) },
-                    "One credit skips one ceremony. Actions above the danger line still cost all four gates, because some mistakes deserve friction."
-                  ),
-                  h("button", { onClick: fn(v.spendCredit), style: sty(`margin-top:16px; width:100%; background:#9FF7C4; border:0; border-radius:999px; padding:11px 0; color:#00391F; font:inherit; font-size:13px; font-weight:600; cursor:pointer;`), className: "k-h19" },
-                    "Spend one now"
-                  )
-                ),
-                h("div", { style: sty(`background:#1B211C; border-radius:20px; padding:18px 20px;`) },
-                  h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
-                    h("span", { style: sty(`font-size:15px; font-weight:500;`) },
-                      S(v.gameTitle)
-                    ),
-                    h("div", { style: sty(`flex:1;`) }),
-                    h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:20px; color:#82D9A5;`) },
-                      S(v.gameScore)
-                    ),
-                    h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:13px; color:#FFB4AB;`) },
-                      S(v.gameClock)
-                    )
-                  ),
-                  h("div", { style: sty(`font-size:12.5px; color:#9AA39B; line-height:1.55; margin:6px 0 14px;`) },
-                    S(v.gameBlurb)
-                  ),
-                  (v.gWhack ? h("div", { style: sty(`display:grid; grid-template-columns:repeat(5,1fr); gap:8px;`) },
-                      A(v.gameCells).map(($g, $g$i) => R($g$i, F(
-                        ($g.up ? h("button", { onClick: fn($g.hit), style: sty(`height:58px; border-radius:14px; background:#005230; border:2px solid #82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; animation:m3Pop .12s ease-out;`) },
-                            h("span", { style: sty(`font-size:25px; color:#9FF7C4;`), className: "msym" },
-                              S($g.icon)
-                            )
-                          ) : null),
-                        ($g.down ? h("button", { onClick: fn($g.miss), style: sty(`height:58px; border-radius:14px; background:#141A15; border:2px solid #262B26; cursor:pointer;`), className: "k-h20" }) : null)
-                      )))
-                    ) : null),
-                  (v.gDtmf ? F(
-                    h("div", { style: sty(`background:#0C110D; border-radius:14px; padding:14px; margin-bottom:10px; text-align:center;`) },
-                      h("div", { style: sty(`font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#8FA394;`) },
-                        S(v.dtmfPhase)
-                      ),
-                      h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:32px; letter-spacing:10px; color:#9FF7C4; margin-top:8px; min-height:40px;`) },
-                        S(v.dtmfShown)
-                      )
-                    ),
-                    h("div", { style: sty(`display:grid; grid-template-columns:repeat(3,1fr); gap:7px;`) },
-                      A(v.dtmfKeys).map(($k, $k$i) => R($k$i, h("button", { onClick: fn($k.press), style: sty(`height:50px; border-radius:12px; background:linear-gradient(#20281F,#171D18); border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:20px; cursor:pointer; box-shadow:0 2px 0 #0C110D;`), className: "k-h21" },
-                          S($k.label)
-                        )))
-                    )
-                  ) : null),
-                  (v.gSort ? F(
-                    h("div", { style: sty(`font-size:12px; color:#8FA394; margin-bottom:8px;`) },
-                      S(v.sortHint)
-                    ),
-                    h("div", { style: sty(`display:flex; flex-direction:column; gap:6px;`) },
-                      A(v.sortItems).map(($i, $i$i) => R($i$i, h("div", { style: sty(`display:flex; align-items:center; gap:10px; background:${S($i.bg)}; border-radius:12px; padding:10px 12px;`) },
-                          h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:12px; color:#778078;`) },
-                            S($i.pos)
-                          ),
-                          h("span", { style: sty(`flex:1; font-family:'Roboto Mono',monospace; font-size:13px; color:#DFE4DC;`) },
-                            S($i.label)
-                          ),
-                          h("button", { onClick: fn($i.up), style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h13" },
-                            h("span", { style: sty(`font-size:16px;`), className: "msym" },
-                              "arrow_upward"
-                            )
-                          ),
-                          h("button", { onClick: fn($i.down), style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h13" },
-                            h("span", { style: sty(`font-size:16px;`), className: "msym" },
-                              "arrow_downward"
-                            )
-                          )
-                        )))
-                    ),
-                    h("button", { onClick: fn(v.sortCheck), style: sty(`margin-top:10px; background:#262B26; border:0; border-radius:999px; padding:9px 18px; color:#9FF7C4; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`) },
-                      "Check my order"
-                    )
-                  ) : null),
-                  (v.gMatch ? h("div", { style: sty(`display:grid; grid-template-columns:repeat(3,1fr); gap:8px;`) },
-                      A(v.matchTiles).map(($t, $t$i) => R($t$i, h("button", { onClick: fn($t.pick), style: sty(`min-height:62px; border-radius:12px; background:${S($t.bg)}; border:2px solid ${S($t.border)}; color:${S($t.fg)}; font:inherit; font-size:11.5px; line-height:1.4; padding:9px; cursor:pointer; text-align:left;`) },
-                          S($t.label)
-                        )))
-                    ) : null),
-                  (v.gSpot ? h("div", { style: sty(`background:#0C110D; border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:4px;`) },
-                      A(v.spotLines).map(($l, $l$i) => R($l$i, h("button", { onClick: fn($l.pick), style: sty(`text-align:left; background:${S($l.bg)}; border:0; border-radius:8px; padding:7px 10px; color:${S($l.fg)}; font-family:'Roboto Mono',monospace; font-size:12.5px; cursor:pointer;`), className: "k-h22" },
-                          S($l.text)
-                        )))
-                    ) : null),
-                  (v.gReflex ? h("div", { style: sty(`text-align:center; padding:10px 0;`) },
-                      h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:44px; color:#9FF7C4; letter-spacing:6px;`) },
-                        S(v.reflexTarget)
-                      ),
-                      h("div", { style: sty(`font-size:12px; color:#8FA394; margin:8px 0 14px;`) },
-                        S(v.reflexHint)
-                      ),
-                      h("div", { style: sty(`display:grid; grid-template-columns:repeat(5,1fr); gap:7px;`) },
-                        A(v.reflexKeys).map(($k, $k$i) => R($k$i, h("button", { onClick: fn($k.press), style: sty(`height:50px; border-radius:12px; background:#1B211C; border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:15px; cursor:pointer;`), className: "k-h13" },
-                            S($k.label)
-                          )))
-                      )
-                    ) : null),
-                  h("div", { style: sty(`display:flex; gap:8px; margin-top:14px;`) },
-                    h("button", { onClick: fn(v.startGame), style: sty(`background:#82D9A5; border:0; border-radius:999px; padding:10px 22px; color:#00391F; font:inherit; font-size:13px; font-weight:500; cursor:pointer;`) },
-                      S(v.gameButton)
-                    ),
-                    h("button", { onClick: fn(v.stopGame), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`) },
-                      "Stop"
-                    )
-                  )
-                )
-              ),
-              h("div", { style: sty(`display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px;`) },
-                A(v.games).map(($g, $g$i) => R($g$i, F(
-                  ($g.on ? h("button", { onClick: fn($g.pick), style: sty(`text-align:left; background:#005230; border:2px solid #82D9A5; border-radius:16px; padding:14px 16px; cursor:pointer; display:flex; flex-direction:column; gap:6px;`) },
-                      h("span", { style: sty(`font-size:22px; color:#9FF7C4; animation:m3Bounce .4s cubic-bezier(.2,1.4,.4,1);`), className: "msym" },
-                        S($g.icon)
-                      ),
-                      h("span", { style: sty(`font-size:13.5px; font-weight:500; color:#DFF3E5;`) },
-                        S($g.name)
-                      ),
-                      h("span", { style: sty(`font-size:11.5px; color:#C3EFD5; line-height:1.5;`) },
-                        S($g.blurb)
-                      ),
-                      h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#9FF7C4;`) },
-                        S($g.reward)
-                      )
-                    ) : null),
-                  ($g.off ? h("button", { onClick: fn($g.pick), style: sty(`text-align:left; background:#1B211C; border:2px solid transparent; border-radius:16px; padding:14px 16px; cursor:pointer; display:flex; flex-direction:column; gap:6px;`), className: "k-h23" },
-                      h("span", { style: sty(`font-size:22px; color:#82D9A5;`), className: "msym" },
-                        S($g.icon)
-                      ),
-                      h("span", { style: sty(`font-size:13.5px; font-weight:500; color:#DFE4DC;`) },
-                        S($g.name)
-                      ),
-                      h("span", { style: sty(`font-size:11.5px; color:#9AA39B; line-height:1.5;`) },
-                        S($g.blurb)
-                      ),
-                      h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#82D9A5;`) },
-                        S($g.reward)
-                      )
-                    ) : null)
-                )))
-              )
-            ) : null),
             (v.isServers ? F(
               h("div", { style: sty(`border-radius:24px; padding:26px 28px; margin-bottom:14px; background:linear-gradient(110deg,#0F3D28,#1B4D33,#0F3D28); background-size:200% 100%; animation:m3Sweep 9s linear infinite;`) },
                 h("div", { style: sty(`display:flex; align-items:center; gap:14px;`) },
@@ -864,7 +711,7 @@ function Template(v: any) {
                       S(v.oneClickPitch)
                     )
                   ),
-                  h("button", { onClick: fn(v.runOneClick), style: sty(`background:#9FF7C4; border:0; border-radius:999px; padding:16px 32px 16px 26px; color:#00391F; font:inherit; font-size:15px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:9px; animation:m3Glow 2.2s ease-in-out infinite; flex:0 0 auto;`), className: "k-h19" },
+                  h("button", { onClick: fn(v.runOneClick), style: sty(`background:#9FF7C4; border:0; border-radius:999px; padding:16px 32px 16px 26px; color:#00391F; font:inherit; font-size:15px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:9px; animation:m3Glow 2.2s ease-in-out infinite; flex:0 0 auto;`), className: "k-h18" },
                     h("span", { style: sty(`font-size:22px;`), className: "msym" },
                       "rocket_launch"
                     ),
@@ -882,7 +729,7 @@ function Template(v: any) {
                         ),
                         S($m.label)
                       ) : null),
-                    ($m.off ? h("button", { onClick: fn($m.pick), style: sty(`background:rgba(0,0,0,.22); border:1px solid rgba(159,247,196,.4); border-radius:999px; padding:7px 15px; color:#9FF7C4; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h24" },
+                    ($m.off ? h("button", { onClick: fn($m.pick), style: sty(`background:rgba(0,0,0,.22); border:1px solid rgba(159,247,196,.4); border-radius:999px; padding:7px 15px; color:#9FF7C4; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h19" },
                         S($m.label)
                       ) : null)
                   )))
@@ -928,7 +775,7 @@ function Template(v: any) {
                         ),
                         S($t.label)
                       ) : null),
-                    ($t.off ? h("button", { onClick: fn($t.pick), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h10" },
+                    ($t.off ? h("button", { onClick: fn($t.pick), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h7" },
                         h("span", { style: sty(`font-size:17px;`), className: "msym" },
                           S($t.icon)
                         ),
@@ -942,7 +789,7 @@ function Template(v: any) {
                           S($t.icon)
                         )
                       ) : null),
-                    ($t.off ? h("button", { onClick: fn($t.pick), title: $t.label, style: sty(`width:32px; height:32px; border-radius:9px; background:transparent; border:1px solid #414942; color:#9AA39B; cursor:pointer;`), className: "k-h15" },
+                    ($t.off ? h("button", { onClick: fn($t.pick), title: $t.label, style: sty(`width:32px; height:32px; border-radius:9px; background:transparent; border:1px solid #414942; color:#9AA39B; cursor:pointer;`), className: "k-h14" },
                         h("span", { style: sty(`font-size:17px;`), className: "msym" },
                           S($t.icon)
                         )
@@ -954,7 +801,7 @@ function Template(v: any) {
                     )
                   ),
                   h("div", { style: sty(`display:flex; align-items:center; gap:6px; background:#1B211C; border-radius:999px; padding:4px 6px;`) },
-                    h("button", { onClick: fn(v.zoomOut), style: sty(`width:28px; height:28px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h1" },
+                    h("button", { onClick: fn(v.zoomOut), style: sty(`width:28px; height:28px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h0" },
                       h("span", { style: sty(`font-size:17px;`), className: "msym" },
                         "remove"
                       )
@@ -962,7 +809,7 @@ function Template(v: any) {
                     h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:12px; color:#9AA39B; min-width:46px; text-align:center;`) },
                       S(v.zoomLabel)
                     ),
-                    h("button", { onClick: fn(v.zoomIn), style: sty(`width:28px; height:28px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h1" },
+                    h("button", { onClick: fn(v.zoomIn), style: sty(`width:28px; height:28px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h0" },
                       h("span", { style: sty(`font-size:17px;`), className: "msym" },
                         "add"
                       )
@@ -976,13 +823,13 @@ function Template(v: any) {
                         ($l.on ? h("button", { onClick: fn($l.pick), style: sty(`background:#005230; border:0; border-radius:999px; padding:5px 12px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;`) },
                             S($l.label)
                           ) : null),
-                        ($l.off ? h("button", { onClick: fn($l.pick), style: sty(`background:transparent; border:0; border-radius:999px; padding:5px 12px; color:#9AA39B; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h25" },
+                        ($l.off ? h("button", { onClick: fn($l.pick), style: sty(`background:transparent; border:0; border-radius:999px; padding:5px 12px; color:#9AA39B; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h20" },
                             S($l.label)
                           ) : null)
                       )))
                     ),
                     h("div", { style: sty(`position:absolute; right:10px; bottom:10px; z-index:3; display:flex; gap:5px; background:rgba(20,26,21,.9); border-radius:12px; padding:5px;`) },
-                      A(v.canvasOps).map(($o, $o$i) => R($o$i, h("button", { onClick: fn($o.run), title: $o.label, style: sty(`width:30px; height:30px; border-radius:8px; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h13" },
+                      A(v.canvasOps).map(($o, $o$i) => R($o$i, h("button", { onClick: fn($o.run), title: $o.label, style: sty(`width:30px; height:30px; border-radius:8px; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h11" },
                           h("span", { style: sty(`font-size:17px;`), className: "msym" },
                             S($o.icon)
                           )
@@ -1007,38 +854,38 @@ function Template(v: any) {
                           S($n.detail)
                         ),
                         ($n.selected ? h("div", { style: sty(`display:flex; gap:3px; margin-top:9px; padding-top:8px; border-top:1px solid #262B26;`) },
-                            h("button", { onClick: fn($n.left), title: `Nudge left`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h13" },
+                            h("button", { onClick: fn($n.left), title: `Nudge left`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                                 "chevron_left"
                               )
                             ),
-                            h("button", { onClick: fn($n.up), title: `Nudge up`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h13" },
+                            h("button", { onClick: fn($n.up), title: `Nudge up`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                                 "expand_less"
                               )
                             ),
-                            h("button", { onClick: fn($n.down), title: `Nudge down`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h13" },
+                            h("button", { onClick: fn($n.down), title: `Nudge down`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                                 "expand_more"
                               )
                             ),
-                            h("button", { onClick: fn($n.right), title: `Nudge right`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h13" },
+                            h("button", { onClick: fn($n.right), title: `Nudge right`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                                 "chevron_right"
                               )
                             ),
                             h("div", { style: sty(`flex:1;`) }),
-                            h("button", { onClick: fn($n.connect), title: `Connect to…`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h13" },
+                            h("button", { onClick: fn($n.connect), title: `Connect to…`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                                 "timeline"
                               )
                             ),
-                            h("button", { onClick: fn($n.dup), title: `Duplicate`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h13" },
+                            h("button", { onClick: fn($n.dup), "aria-disabled": $n.dupDisabled, title: $n.dupReason, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                                 "content_copy"
                               )
                             ),
-                            h("button", { onClick: fn($n.del), title: `Delete`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#FFB4AB; cursor:pointer;`), className: "k-h5" },
+                            h("button", { onClick: fn($n.del), "aria-disabled": $n.delDisabled, title: $n.delReason, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#FFB4AB; cursor:pointer;`), className: "k-h12" },
                               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                                 "delete"
                               )
@@ -1046,7 +893,7 @@ function Template(v: any) {
                           ) : null)
                       ))),
                     h("div", { style: sty(`position:absolute; left:16px; bottom:14px; display:flex; gap:8px;`) },
-                      A(v.paletteNodes).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.add), style: sty(`display:flex; align-items:center; gap:6px; background:#1B211C; border:1px solid #414942; border-radius:999px; padding:7px 13px 7px 10px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h26" },
+                      A(v.paletteNodes).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.add), style: sty(`display:flex; align-items:center; gap:6px; background:#1B211C; border:1px solid #414942; border-radius:999px; padding:7px 13px 7px 10px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h21" },
                           h("span", { style: sty(`font-size:16px;`), className: "msym" },
                             S($p.icon)
                           ),
@@ -1073,7 +920,7 @@ function Template(v: any) {
                           "Connections"
                         ),
                         h("div", { style: sty(`flex:1;`) }),
-                        h("button", { onClick: fn(v.addEdge), title: `Add a connection`, style: sty(`width:26px; height:26px; border-radius:50%; background:#262B26; border:0; color:#9FF7C4; cursor:pointer;`), className: "k-h11" },
+                        h("button", { onClick: fn(v.addEdge), title: `Add a connection`, style: sty(`width:26px; height:26px; border-radius:50%; background:#262B26; border:0; color:#9FF7C4; cursor:pointer;`), className: "k-h9" },
                           h("span", { style: sty(`font-size:16px;`), className: "msym" },
                             "add"
                           )
@@ -1091,7 +938,7 @@ function Template(v: any) {
                               h("span", { style: sty(`flex:1; font-size:11.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
                                 S($e.to)
                               ),
-                              h("button", { onClick: fn($e.del), title: `Remove`, style: sty(`width:22px; height:22px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h5" },
+                              h("button", { onClick: fn($e.del), title: `Remove`, style: sty(`width:22px; height:22px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h12" },
                                 h("span", { style: sty(`font-size:14px;`), className: "msym" },
                                   "close"
                                 )
@@ -1105,7 +952,7 @@ function Template(v: any) {
                                 ($o.on ? h("button", { onClick: fn($o.pick), style: sty(`background:#005230; border:0; border-radius:6px; padding:4px 9px; color:#9FF7C4; font:inherit; font-size:10.5px; font-weight:500; cursor:pointer;`) },
                                     S($o.label)
                                   ) : null),
-                                ($o.off ? h("button", { onClick: fn($o.pick), style: sty(`background:transparent; border:1px solid #333B34; border-radius:6px; padding:4px 9px; color:#9AA39B; font:inherit; font-size:10.5px; cursor:pointer;`), className: "k-h27" },
+                                ($o.off ? h("button", { onClick: fn($o.pick), style: sty(`background:transparent; border:1px solid #333B34; border-radius:6px; padding:4px 9px; color:#9AA39B; font:inherit; font-size:10.5px; cursor:pointer;`), className: "k-h22" },
                                     S($o.label)
                                   ) : null)
                               )))
@@ -1125,7 +972,7 @@ function Template(v: any) {
                     h("span", { style: sty(`flex:1; font-family:'Roboto Mono',monospace; font-size:12px; color:#C4CBC2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
                       S(v.tableSearchLabel)
                     ),
-                    h("button", { onClick: fn(v.openTableRegex), title: `Regex builder`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h11" },
+                    h("button", { onClick: fn(v.openTableRegex), title: `Regex builder`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h9" },
                       h("span", { style: sty(`font-size:16px;`), className: "msym" },
                         "data_object"
                       )
@@ -1141,12 +988,12 @@ function Template(v: any) {
                           ),
                           S($f.label)
                         ) : null),
-                      ($f.off ? h("button", { onClick: fn($f.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:5px 12px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h1" },
+                      ($f.off ? h("button", { onClick: fn($f.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:5px 12px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h0" },
                           S($f.label)
                         ) : null)
                     )))
                   ),
-                  h("button", { onClick: fn(v.openWizard), style: sty(`display:flex; align-items:center; gap:7px; background:#1B4D33; border:0; border-radius:999px; padding:10px 18px 10px 14px; color:#9FF7C4; font:inherit; font-size:13px; font-weight:500; cursor:pointer;`), className: "k-h3" },
+                  h("button", { onClick: fn(v.openWizard), style: sty(`display:flex; align-items:center; gap:7px; background:#1B4D33; border:0; border-radius:999px; padding:10px 18px 10px 14px; color:#9FF7C4; font:inherit; font-size:13px; font-weight:500; cursor:pointer;`), className: "k-h8" },
                     h("span", { style: sty(`font-size:18px;`), className: "msym" },
                       "add"
                     ),
@@ -1161,7 +1008,7 @@ function Template(v: any) {
                       S(v.selectionLabel)
                     ),
                     h("div", { style: sty(`flex:1;`) }),
-                    A(v.bulkActions).map(($b, $b$i) => R($b$i, h("button", { onClick: fn($b.run), style: sty(`display:flex; align-items:center; gap:6px; background:rgba(0,0,0,.24); border:0; border-radius:999px; padding:7px 14px 7px 11px; color:#9FF7C4; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h28" },
+                    A(v.bulkActions).map(($b, $b$i) => R($b$i, h("button", { onClick: fn($b.run), style: sty(`display:flex; align-items:center; gap:6px; background:rgba(0,0,0,.24); border:0; border-radius:999px; padding:7px 14px 7px 11px; color:#9FF7C4; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h23" },
                         h("span", { style: sty(`font-size:16px;`), className: "msym" },
                           S($b.icon)
                         ),
@@ -1181,7 +1028,20 @@ function Template(v: any) {
                       S($h)
                     )))
                 ),
-                A(v.tableRows).map(($r, $r$i) => R($r$i, h("div", { onContextMenu: fn($r.ctx), style: sty(`display:grid; grid-template-columns:44px ${S(v.tableGrid)}; gap:10px; padding:12px 16px; border-top:1px solid #262B26; cursor:pointer; align-items:center; background:${S($r.bg)}; animation:m3Slide .26s cubic-bezier(.2,0,0,1) both; ${S($r.rnd)}`), className: "k-h16" },
+                (v.tableHasState ? h("div", { role: `status`, "aria-live": `polite`, style: sty(`display:flex; align-items:flex-start; gap:10px; padding:18px 16px; border-top:1px solid #262B26; background:${S(v.tableStateBg)};`) },
+                    h("span", { style: sty(`font-size:20px; color:${S(v.tableStateFg)};`), className: "msym" },
+                      S(v.tableStateIcon)
+                    ),
+                    h("div", { style: sty(`min-width:0;`) },
+                      h("div", { style: sty(`font-size:13px; font-weight:600; color:${S(v.tableStateFg)};`) },
+                        S(v.tableStateTitle)
+                      ),
+                      h("div", { style: sty(`font-size:12px; color:#9AA39B; margin-top:4px; line-height:1.5;`) },
+                        S(v.tableStateBody)
+                      )
+                    )
+                  ) : null),
+                A(v.tableRows).map(($r, $r$i) => R($r$i, h("div", { onContextMenu: fn($r.ctx), style: sty(`display:grid; grid-template-columns:44px ${S(v.tableGrid)}; gap:10px; padding:12px 16px; border-top:1px solid #262B26; cursor:pointer; align-items:center; background:${S($r.bg)}; animation:m3Slide .26s cubic-bezier(.2,0,0,1) both; ${S($r.rnd)}`), className: "k-h15" },
                     h("button", { onClick: fn($r.toggle), style: sty(`width:20px; height:20px; border-radius:5px; border:2px solid ${S($r.border)}; background:${S($r.checkBg)}; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;`) },
                       h("span", { style: sty(`font-size:15px; color:#00391F;`), className: "msym" },
                         S($r.checkIcon)
@@ -1194,10 +1054,10 @@ function Template(v: any) {
                             S($c.text)
                           )
                         ) : null),
-                      ($c.isMono ? h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:12.5px; color:#C4CBC2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
+                      ($c.isMono ? h("div", { "data-read-state": $c.readState, style: sty(`font-family:'Roboto Mono',monospace; font-size:12.5px; color:#C4CBC2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
                           S($c.text)
                         ) : null),
-                      ($c.isText ? h("div", { style: sty(`font-size:13px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
+                      ($c.isText ? h("div", { "data-read-state": $c.readState, style: sty(`font-size:13px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
                           S($c.text)
                         ) : null)
                     )))
@@ -1217,7 +1077,7 @@ function Template(v: any) {
                           h("span", { style: sty(`font-size:12px; font-weight:500; color:#C4CBC2;`) },
                             S($s.label)
                           ),
-                          h("button", { onClick: fn($s.info), style: sty(`width:20px; height:20px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center;`), className: "k-h11" },
+                          h("button", { onClick: fn($s.info), style: sty(`width:20px; height:20px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center;`), className: "k-h9" },
                             h("span", { style: sty(`font-size:14px;`), className: "msym" },
                               "info"
                             )
@@ -1228,7 +1088,7 @@ function Template(v: any) {
                             ($o.on ? h("button", { onClick: fn($o.pick), style: sty(`background:#005230; border:0; border-radius:8px; padding:7px 14px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12.5px; font-weight:500; cursor:pointer;`) },
                                 S($o.label)
                               ) : null),
-                            ($o.off ? h("button", { onClick: fn($o.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 14px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12.5px; cursor:pointer;`), className: "k-h1" },
+                            ($o.off ? h("button", { onClick: fn($o.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 14px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12.5px; cursor:pointer;`), className: "k-h0" },
                                 S($o.label)
                               ) : null)
                           )))
@@ -1245,7 +1105,7 @@ function Template(v: any) {
                     h("div", { style: sty(`font-size:12.5px; color:#9AA39B; margin-top:10px; line-height:1.5;`) },
                       S(v.cliExplain)
                     ),
-                    h("button", { onClick: fn(v.runCli), style: sty(`margin-top:14px; display:flex; align-items:center; gap:7px; background:#82D9A5; border:0; border-radius:999px; padding:10px 20px 10px 15px; color:#00391F; font:inherit; font-size:13px; font-weight:500; cursor:pointer;`), className: "k-h12" },
+                    h("button", { onClick: fn(v.runCli), style: sty(`margin-top:14px; display:flex; align-items:center; gap:7px; background:#82D9A5; border:0; border-radius:999px; padding:10px 20px 10px 15px; color:#00391F; font:inherit; font-size:13px; font-weight:500; cursor:pointer;`), className: "k-h10" },
                       h("span", { style: sty(`font-size:18px;`), className: "msym" },
                         "play_arrow"
                       ),
@@ -1287,7 +1147,7 @@ function Template(v: any) {
                             "close"
                           )
                         ))),
-                      A(v.regexPalette).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:6px 12px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`), className: "k-h26" },
+                      A(v.regexPalette).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:6px 12px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`), className: "k-h21" },
                           S($p.label)
                         )))
                     ),
@@ -1299,7 +1159,7 @@ function Template(v: any) {
                     h("div", { style: sty(`padding:14px 18px; font-size:15px; font-weight:500;`) },
                       "Memory records"
                     ),
-                    A(v.memRows).map(($m, $m$i) => R($m$i, h("div", { style: sty(`padding:12px 18px; border-top:1px solid #262B26; display:grid; grid-template-columns:150px 1fr 92px; gap:12px; align-items:center; animation:m3Slide .26s cubic-bezier(.2,0,0,1) both;`), className: "k-h16" },
+                    A(v.memRows).map(($m, $m$i) => R($m$i, h("div", { style: sty(`padding:12px 18px; border-top:1px solid #262B26; display:grid; grid-template-columns:150px 1fr 92px; gap:12px; align-items:center; animation:m3Slide .26s cubic-bezier(.2,0,0,1) both;`), className: "k-h15" },
                         h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:12px; color:#82D9A5;`) },
                           S($m.scope)
                         ),
@@ -1330,7 +1190,7 @@ function Template(v: any) {
                             S($r.v)
                           )
                         ))),
-                      h("button", { onClick: fn($p.act), style: sty(`margin-top:10px; width:100%; background:#262B26; border:0; border-radius:999px; padding:9px 0; color:#9FF7C4; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`), className: "k-h11" },
+                      h("button", { onClick: fn($p.act), style: sty(`margin-top:10px; width:100%; background:#262B26; border:0; border-radius:999px; padding:9px 0; color:#9FF7C4; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`), className: "k-h9" },
                         S($p.action)
                       )
                     )))
@@ -1351,7 +1211,7 @@ function Template(v: any) {
                       )
                     ),
                     (v.docsRegexOn ? h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px; margin-bottom:2px;`) },
-                        A(v.docsRegexPalette).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h26" },
+                        A(v.docsRegexPalette).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
                             S($p.label)
                           )))
                       ) : null),
@@ -1364,7 +1224,7 @@ function Template(v: any) {
                       S(v.docsResultsLabel)
                     ),
                     h("div", { style: sty(`overflow-y:auto; flex:1;`) },
-                      A(v.docsResults).map(($r, $r$i) => R($r$i, h("div", { onClick: fn($r.select), style: sty(`padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($r.bg)};`), className: "k-h16" },
+                      A(v.docsResults).map(($r, $r$i) => R($r$i, h("div", { onClick: fn($r.select), style: sty(`padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($r.bg)};`), className: "k-h15" },
                           h("div", { style: sty(`display:flex; align-items:center; gap:8px;`) },
                             h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#82D9A5; text-transform:uppercase;`) },
                               S($r.category)
@@ -1434,7 +1294,7 @@ function Template(v: any) {
                       h("div", { style: sty(`font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:8px;`) },
                         "Suggested articles"
                       ),
-                      A(v.docsSuggested).map(($sg, $sg$i) => R($sg$i, h("div", { onClick: fn($sg.select), style: sty(`display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;`), className: "k-h29" },
+                      A(v.docsSuggested).map(($sg, $sg$i) => R($sg$i, h("div", { onClick: fn($sg.select), style: sty(`display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;`), className: "k-h24" },
                           h("span", { style: sty(`font-size:15px;`), className: "msym" },
                             S($sg.icon)
                           ),
@@ -1458,7 +1318,7 @@ function Template(v: any) {
                     h("input", { value: v.changelogTo, onChange: fn(v.setChangelogTo), placeholder: `YYYY-MM-DD`, style: sty(`width:130px; background:#0C110D; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-family:'Roboto Mono',monospace; font-size:12px;`) })
                   ),
                   h("div", { style: sty(`display:flex; gap:6px; flex-wrap:wrap;`) },
-                    A(v.changelogPresets).map(($pr, $pr$i) => R($pr$i, h("button", { onClick: fn($pr.apply), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:6px 12px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h1" },
+                    A(v.changelogPresets).map(($pr, $pr$i) => R($pr$i, h("button", { onClick: fn($pr.apply), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:6px 12px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h0" },
                         S($pr.label)
                       )))
                   ),
@@ -1474,13 +1334,13 @@ function Template(v: any) {
                     )
                   ),
                   h("div", { style: sty(`display:flex; gap:8px;`) },
-                    h("button", { onClick: fn(v.changelogCopy), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 14px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h1" },
+                    h("button", { onClick: fn(v.changelogCopy), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 14px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h0" },
                       h("span", { style: sty(`font-size:15px; color:#82D9A5;`), className: "msym" },
                         "content_copy"
                       ),
                       "Copy"
                     ),
-                    h("button", { onClick: fn(v.changelogExport), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 14px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h1" },
+                    h("button", { onClick: fn(v.changelogExport), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 14px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h0" },
                       h("span", { style: sty(`font-size:15px; color:#82D9A5;`), className: "msym" },
                         "download"
                       ),
@@ -1489,7 +1349,7 @@ function Template(v: any) {
                   )
                 ),
                 (v.changelogRegexOn ? h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px;`) },
-                    A(v.changelogRegexPalette).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h26" },
+                    A(v.changelogRegexPalette).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
                         S($p.label)
                       )))
                   ) : null),
@@ -1596,7 +1456,7 @@ function Template(v: any) {
                       S($g.desc)
                     )
                   ),
-                  h("button", { onClick: fn($g.wizard), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 14px 7px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer; white-space:nowrap;`), className: "k-h1" },
+                  h("button", { onClick: fn($g.wizard), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 14px 7px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer; white-space:nowrap;`), className: "k-h0" },
                     h("span", { style: sty(`font-size:16px; color:#82D9A5;`), className: "msym" },
                       "auto_fix_high"
                     ),
@@ -1612,7 +1472,7 @@ function Template(v: any) {
       ),
       (v.infoOpen ? F(
         h("div", { onClick: fn(v.closeInfo), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.32); z-index:60;`) }),
-        h("div", { style: sty(`position:absolute; ${S(v.infoChrome)} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;`) },
+        h("div", { role: `dialog`, "aria-modal": `false`, "aria-label": v.infoTitle, style: sty(`position:absolute; ${S(v.infoChrome)} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;`) },
           h("div", { onMouseDown: fn(v.dragInfo), style: sty(`display:flex; align-items:center; gap:8px; margin:-18px -20px 10px; padding:14px 16px 8px; cursor:grab; min-width:0;`) },
             h("span", { style: sty(`font-size:16px; color:#778078; flex:0 0 auto;`), className: "msym" },
               "drag_indicator"
@@ -1630,7 +1490,7 @@ function Template(v: any) {
                     S($d.icon)
                   )
                 ) : null),
-              ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:24px; height:24px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h30" },
+              ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:24px; height:24px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h25" },
                   h("span", { style: sty(`font-size:14px;`), className: "msym" },
                     S($d.icon)
                   )
@@ -1679,80 +1539,17 @@ function Template(v: any) {
               )
             )
           ) : null),
-          h("div", { style: sty(`margin-top:14px; background:#141A15; border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:8px;`) },
-            h("div", { style: sty(`font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394;`) },
-              "Pretend you arrived yesterday"
-            ),
-            h("div", { style: sty(`font-size:12.5px; color:#9AA39B; line-height:1.6;`) },
-              S(v.infoPlain)
-            )
-          ),
-          (v.hasDoc ? h("div", { style: sty(`margin-top:12px; background:#0C110D; border:1px solid #333B34; border-radius:14px; padding:14px;`) },
-              h("div", { style: sty(`display:flex; align-items:center; gap:9px; margin-bottom:10px;`) },
-                h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
-                  "science"
-                ),
-                h("span", { style: sty(`font-size:12.5px; font-weight:500; color:#DFE4DC;`) },
-                  "Playground"
-                ),
-                h("div", { style: sty(`flex:1;`) }),
-                h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394;`) },
-                  "nothing here touches the PBX"
-                )
-              ),
-              h("div", { style: sty(`background:#141A15; border-radius:10px; padding:12px;`) },
-                A(v.playCtl).map(($c, $c$i) => R($c$i, h(M3Control, { ctl: $c })))
-              ),
-              h("div", { style: sty(`display:flex; align-items:center; gap:8px; margin-top:12px;`) },
-                h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394;`) },
-                  "Simulated call"
-                ),
-                h("div", { style: sty(`flex:1;`) }),
-                h("button", { onClick: fn(v.simRun), style: sty(`display:flex; align-items:center; gap:6px; background:#1B4D33; border:0; border-radius:999px; padding:6px 13px 6px 10px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;`), className: "k-h3" },
-                  h("span", { style: sty(`font-size:15px;`), className: "msym" },
-                    "play_arrow"
-                  ),
-                  "Run it"
-                )
-              ),
-              h("div", { style: sty(`margin-top:10px; display:flex; flex-direction:column; gap:5px;`) },
-                A(v.simSteps).map(($p, $p$i) => R($p$i, h("div", { style: sty(`display:flex; align-items:flex-start; gap:9px; animation:m3Slide .3s cubic-bezier(.2,0,0,1) both;`) },
-                    h("span", { style: sty(`font-size:15px; color:${S($p.colour)}; flex:0 0 auto; margin-top:1px;`), className: "msym" },
-                      S($p.icon)
-                    ),
-                    h("span", { style: sty(`flex:1; font-family:'Roboto Mono',monospace; font-size:11.5px; color:${S($p.colour)}; line-height:1.55;`) },
-                      S($p.text)
-                    )
-                  )))
-              ),
-              h("div", { style: sty(`margin-top:11px; padding-top:10px; border-top:1px solid #1B211C; display:flex; align-items:center; gap:9px;`) },
-                h("span", { style: sty(`font-size:16px; color:${S(v.simVerdictColour)};`), className: "msym" },
-                  S(v.simVerdictIcon)
-                ),
-                h("span", { style: sty(`flex:1; font-size:12px; color:${S(v.simVerdictColour)}; line-height:1.5;`) },
-                  S(v.simVerdict)
-                )
-              ),
-              h("div", { style: sty(`margin-top:11px; background:#141A15; border-radius:10px; padding:10px 12px;`) },
-                h("div", { style: sty(`font-size:10.5px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:5px;`) },
-                  "Wire result"
-                ),
-                h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#9FF7C4; line-height:1.6; white-space:pre-wrap;`) },
-                  S(v.simWire)
-                )
-              )
-            ) : null),
           h("div", { style: sty(`display:flex; gap:8px; margin-top:14px;`) },
             h("button", { onClick: fn(v.closeInfo), style: sty(`flex:1; background:#82D9A5; border:0; border-radius:999px; padding:10px 0; color:#00391F; font:inherit; font-size:13px; font-weight:500; cursor:pointer;`) },
               "Got it"
             ),
-            h("button", { onClick: fn(v.openWizard), style: sty(`flex:1; background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 0; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`), className: "k-h10" },
+            h("button", { onClick: fn(v.openWizard), style: sty(`flex:1; background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 0; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`), className: "k-h7" },
               "Walk me through it"
             )
           )
         )
       ) : null),
-      (v.wizardOpen ? h("div", { style: sty(`position:absolute; ${S(v.wizardChrome)} max-height:100vh; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:55; display:flex; flex-direction:column;`) },
+      (v.wizardOpen ? h("div", { role: `dialog`, "aria-modal": `false`, "aria-label": v.wizardTitle, style: sty(`position:absolute; ${S(v.wizardChrome)} max-height:100vh; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:55; display:flex; flex-direction:column;`) },
           h("div", { onMouseDown: fn(v.dragWizard), style: sty(`padding:16px 20px 12px; display:flex; align-items:flex-start; gap:10px; cursor:grab;`) },
             h("span", { style: sty(`font-size:18px; color:#778078; margin-top:4px;`), className: "msym" },
               "drag_indicator"
@@ -1772,14 +1569,14 @@ function Template(v: any) {
                       S($d.icon)
                     )
                   ) : null),
-                ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h31" },
+                ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h26" },
                     h("span", { style: sty(`font-size:15px;`), className: "msym" },
                       S($d.icon)
                     )
                   ) : null)
               )))
             ),
-            h("button", { onClick: fn(v.closeWizard), style: sty(`width:32px; height:32px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer; flex:0 0 auto;`), className: "k-h1" },
+            h("button", { onClick: fn(v.closeWizard), style: sty(`width:32px; height:32px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer; flex:0 0 auto;`), className: "k-h0" },
               h("span", { style: sty(`font-size:19px;`), className: "msym" },
                 "close"
               )
@@ -1796,13 +1593,13 @@ function Template(v: any) {
                   ),
                   S($w.label)
                 ) : null),
-              ($w.done ? h("button", { onClick: fn($w.go), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:0; border-radius:999px; padding:6px 12px; color:#82D9A5; font:inherit; font-size:11.5px; cursor:pointer; white-space:nowrap;`), className: "k-h10" },
+              ($w.done ? h("button", { onClick: fn($w.go), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:0; border-radius:999px; padding:6px 12px; color:#82D9A5; font:inherit; font-size:11.5px; cursor:pointer; white-space:nowrap;`), className: "k-h7" },
                   h("span", { style: sty(`font-size:15px;`), className: "msym" },
                     "check_circle"
                   ),
                   S($w.label)
                 ) : null),
-              ($w.todo ? h("button", { onClick: fn($w.go), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:0; border-radius:999px; padding:6px 12px; color:#778078; font:inherit; font-size:11.5px; cursor:pointer; white-space:nowrap;`), className: "k-h10" },
+              ($w.todo ? h("button", { onClick: fn($w.go), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:0; border-radius:999px; padding:6px 12px; color:#778078; font:inherit; font-size:11.5px; cursor:pointer; white-space:nowrap;`), className: "k-h7" },
                   h("span", { style: sty(`width:16px; height:16px; border-radius:50%; border:1px solid #414942; font-size:10px; display:flex; align-items:center; justify-content:center;`) },
                     S($w.num)
                   ),
@@ -1854,18 +1651,18 @@ function Template(v: any) {
             )
           ),
           h("div", { style: sty(`padding:14px 20px; display:flex; gap:10px; border-top:1px solid #262B26;`) },
-            h("button", { onClick: fn(v.wizardBack), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 20px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`), className: "k-h10" },
+            h("button", { onClick: fn(v.wizardBack), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 20px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`), className: "k-h7" },
               "Back"
             ),
             h("div", { style: sty(`flex:1;`) }),
-            h("button", { onClick: fn(v.wizardNext), style: sty(`background:#82D9A5; border:0; border-radius:999px; padding:10px 24px; color:#00391F; font:inherit; font-size:13px; font-weight:500; cursor:pointer;`), className: "k-h12" },
+            h("button", { onClick: fn(v.wizardNext), style: sty(`background:#82D9A5; border:0; border-radius:999px; padding:10px 24px; color:#00391F; font:inherit; font-size:13px; font-weight:500; cursor:pointer;`), className: "k-h10" },
               S(v.wizardNextLabel)
             )
           )
         ) : null),
       (v.paletteOpen ? F(
         h("div", { onClick: fn(v.togglePalette), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.5); z-index:70;`) }),
-        h("div", { style: sty(`position:absolute; left:50%; top:88px; transform:translateX(-50%); width:620px; background:#252B25; border-radius:20px; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:71; overflow:hidden; animation:dlgPalette .22s cubic-bezier(.2,0,0,1);`) },
+        h("div", { role: `dialog`, "aria-modal": `true`, "aria-label": `Command palette`, style: sty(`position:absolute; left:50%; top:88px; transform:translateX(-50%); width:620px; max-width:calc(100vw - 24px); background:#252B25; border-radius:20px; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:71; overflow:hidden; animation:dlgPalette .22s cubic-bezier(.2,0,0,1);`) },
           h("div", { style: sty(`display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid #333B34;`) },
             h("span", { style: sty(`font-size:22px; color:#82D9A5;`), className: "msym" },
               "search"
@@ -1879,7 +1676,7 @@ function Template(v: any) {
             )
           ),
           h("div", { style: sty(`max-height:420px; overflow-y:auto; padding:8px;`) },
-            A(v.paletteItems).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.go), style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;`), className: "k-h32" },
+            A(v.paletteItems).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.go), style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;`), className: "k-h27" },
                 h("span", { style: sty(`font-size:19px; color:#82D9A5;`), className: "msym" },
                   S($p.icon)
                 ),
@@ -1893,7 +1690,80 @@ function Template(v: any) {
           )
         )
       ) : null),
-      (v.ceremonyOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:80; display:flex; align-items:center; justify-content:center;`) },
+      (v.confirmationShell ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:80; display:flex; align-items:center; justify-content:center; padding:20px;`) },
+          h("div", { role: `dialog`, "aria-modal": `true`, "aria-labelledby": `confirm-title`, "aria-describedby": `confirm-body`, onKeyDown: v.onConfirmationKeyDown, style: sty(`width:620px; max-width:100%; max-height:88vh; overflow-y:auto; background:#252B25; border:1px solid #414942; border-radius:28px; padding:26px 28px; box-shadow:0 16px 48px rgba(0,0,0,.7); animation:dlgCeremony .3s cubic-bezier(.2,0,0,1);`) },
+            h("div", { style: sty(`display:flex; align-items:flex-start; gap:12px;`) },
+              h("span", { style: sty(`font-size:26px; color:#FFB4AB;`), className: "msym" },
+                "gpp_maybe"
+              ),
+              h("div", { style: sty(`flex:1; min-width:0;`) },
+                h("div", { id: `confirm-title`, style: sty(`font-size:19px; font-weight:500;`) },
+                  S(v.ceremonyTitle)
+                ),
+                h("div", { id: `confirm-body`, style: sty(`font-size:12.5px; color:#9AA39B; line-height:1.55; margin-top:5px;`) },
+                  S(v.ceremonyBody)
+                ),
+                h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394; margin-top:6px; word-break:break-word;`) },
+                  S(v.ceremonyCmd)
+                )
+              ),
+              h("button", { onClick: fn(v.cancelCeremony), "aria-label": `Emergency exit`, style: sty(`background:transparent; border:0; color:#C4CBC2; cursor:pointer;`) },
+                h("span", { className: "msym" },
+                  "close"
+                )
+              )
+            ),
+            h("div", { style: sty(`margin-top:18px; display:grid; grid-template-columns:1fr 1fr; gap:12px;`) },
+              h("button", { onClick: fn(v.confirmKeyOne), "aria-pressed": v.keyOnePressed, style: sty(`border:2px solid ${S(v.keyOneBorder)}; border-radius:18px; background:#141A15; color:#DFE4DC; padding:16px; cursor:pointer; font:inherit; text-align:left;`) },
+                h("strong", null,
+                  "Key 1"
+                ),
+                h("br", null),
+                h("span", { style: sty(`font-size:12px; color:#9AA39B;`) },
+                  S(v.keyOneStatus)
+                )
+              ),
+              h("button", { onClick: fn(v.confirmKeyTwo), "aria-pressed": v.keyTwoPressed, style: sty(`border:2px solid ${S(v.keyTwoBorder)}; border-radius:18px; background:#141A15; color:#DFE4DC; padding:16px; cursor:pointer; font:inherit; text-align:left;`) },
+                h("strong", null,
+                  "Key 2"
+                ),
+                h("br", null),
+                h("span", { style: sty(`font-size:12px; color:#9AA39B;`) },
+                  S(v.keyTwoStatus)
+                )
+              )
+            ),
+            h("div", { style: sty(`margin-top:18px;`) },
+              h("label", { htmlFor: `operation-slider`, style: sty(`display:block; font-size:13px; font-weight:500;`) },
+                "Full-range confirmation"
+              ),
+              h("div", { style: sty(`font-size:12px; color:#9AA39B; margin:4px 0 10px;`) },
+                "Both independent keys must be active before the slider can authorize submission."
+              ),
+              h("input", { id: `operation-slider`, type: `range`, min: `0`, max: `100`, value: v.slideVal, onChange: fn(v.onSemanticSlide), onInput: fn(v.onSemanticSlide), "aria-disabled": v.sliderDisabled, "aria-valuetext": v.slideStatus, style: sty(`width:100%;`) })
+            ),
+            h("div", { role: `status`, "aria-live": `polite`, style: sty(`margin-top:16px; border-radius:14px; background:#141A15; padding:12px 14px;`) },
+              h("div", { style: sty(`font-size:12.5px; font-weight:600; color:${S(v.receiptColour)};`) },
+                S(v.receiptTitle)
+              ),
+              h("div", { style: sty(`font-size:11.5px; color:#9AA39B; margin-top:4px; line-height:1.5;`) },
+                S(v.receiptBody)
+              ),
+              h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#778078; margin-top:5px;`) },
+                S(v.receiptId)
+              )
+            ),
+            h("div", { style: sty(`display:flex; gap:10px; justify-content:flex-end; margin-top:18px;`) },
+              h("button", { onClick: fn(v.cancelCeremony), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; color:#C4CBC2; padding:10px 18px; font:inherit; cursor:pointer;`) },
+                "Emergency exit"
+              ),
+              h("button", { onClick: fn(v.submitConfirmedOperation), "aria-disabled": v.submitDisabled, style: sty(`background:#93000A; border:0; border-radius:999px; color:#fff; padding:10px 20px; font:inherit; font-weight:600; cursor:pointer;`) },
+                "Submit to host"
+              )
+            )
+          )
+        ) : null),
+      (v.legacyConfirmation ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:80; display:flex; align-items:center; justify-content:center;`) },
           h("div", { style: sty(`width:660px; max-height:88vh; overflow-y:auto; background:#252B25; border-radius:28px; padding:26px 28px; box-shadow:0 16px 48px rgba(0,0,0,.7); animation:dlgCeremony .3s cubic-bezier(.2,0,0,1);`) },
             h("div", { style: sty(`display:flex; align-items:center; gap:12px;`) },
               h("span", { style: sty(`font-size:26px; color:#FFB4AB;`), className: "msym" },
@@ -1907,23 +1777,12 @@ function Template(v: any) {
                   S(v.ceremonyCmd)
                 )
               ),
-              h("button", { onClick: fn(v.cancelCeremony), style: sty(`width:36px; height:36px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h32" },
+              h("button", { onClick: fn(v.cancelCeremony), style: sty(`width:36px; height:36px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h27" },
                 h("span", { style: sty(`font-size:20px;`), className: "msym" },
                   "close"
                 )
               )
             ),
-            (v.canSkip ? h("button", { onClick: fn(v.skipCeremony), style: sty(`width:100%; margin-top:16px; display:flex; align-items:center; gap:10px; background:#1B4D33; border:0; border-radius:14px; padding:13px 16px; color:#9FF7C4; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h3" },
-                h("span", { style: sty(`font-size:20px;`), className: "msym" },
-                  "confirmation_number"
-                ),
-                h("span", { style: sty(`flex:1;`) },
-                  "Spend 1 confirmation credit and skip all four gates"
-                ),
-                h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:12px;`) },
-                  `${S(v.credits)} left`
-                )
-              ) : null),
             h("div", { style: sty(`display:flex; gap:8px; margin:18px 0 20px;`) },
               A(v.ceremonySteps).map(($s, $s$i) => R($s$i, h("div", { style: sty(`flex:1; display:flex; flex-direction:column; gap:6px;`) },
                   h("div", { style: sty(`height:4px; border-radius:2px; background:${S($s.bg)};`) }),
@@ -1939,7 +1798,7 @@ function Template(v: any) {
                 h("div", { style: sty(`font-size:13px; color:#9AA39B; line-height:1.6; max-width:52ch; margin:0 auto 20px;`) },
                   "Click and hold the key to rotate it a quarter turn. This proves a human, not a script, is asking for a production change."
                 ),
-                h("button", { onClick: fn(v.turnKey), style: sty(`margin:0 auto; width:150px; height:150px; border-radius:50%; background:#1B211C; border:3px solid #414942; cursor:pointer; display:flex; align-items:center; justify-content:center; transform:rotate(${S(v.keyAngle)});`), className: "k-h17" },
+                h("button", { onClick: fn(v.turnKey), style: sty(`margin:0 auto; width:150px; height:150px; border-radius:50%; background:#1B211C; border:3px solid #414942; cursor:pointer; display:flex; align-items:center; justify-content:center; transform:rotate(${S(v.keyAngle)});`), className: "k-h16" },
                   h("span", { style: sty(`font-size:60px; color:#82D9A5;`), className: "msym" },
                     "key_vertical"
                   )
@@ -2022,7 +1881,7 @@ function Template(v: any) {
                 h("div", { style: sty(`font-size:13px; color:#9AA39B; margin-top:6px;`) },
                   "The change is signed, attested to the memory ledger, and ready to execute."
                 ),
-                h("button", { onClick: fn(v.executeCeremony), style: sty(`margin-top:20px; background:#93000A; border:0; border-radius:999px; padding:13px 30px; color:#fff; font:inherit; font-size:14px; font-weight:500; cursor:pointer;`), className: "k-h18" },
+                h("button", { onClick: fn(v.executeCeremony), style: sty(`margin-top:20px; background:#93000A; border:0; border-radius:999px; padding:13px 30px; color:#fff; font:inherit; font-size:14px; font-weight:500; cursor:pointer;`), className: "k-h17" },
                   "Execute now"
                 )
               ) : null)
@@ -2077,7 +1936,7 @@ function Template(v: any) {
             h("div", { style: sty(`background:#1B211C; border-radius:20px; padding:22px 24px; display:flex; flex-direction:column; gap:18px;`) },
               A(v.onboardCtls).map(($c, $c$i) => R($c$i, h(M3Control, { ctl: $c })))
             ),
-            h("button", { onClick: fn(v.superEasy), style: sty(`display:flex; align-items:center; gap:14px; width:100%; margin-top:18px; background:#9FF7C4; border:0; border-radius:20px; padding:18px 22px; cursor:pointer; text-align:left; animation:m3Glow 2.6s ease-in-out infinite;`), className: "k-h19" },
+            h("button", { onClick: fn(v.superEasy), style: sty(`display:flex; align-items:center; gap:14px; width:100%; margin-top:18px; background:#9FF7C4; border:0; border-radius:20px; padding:18px 22px; cursor:pointer; text-align:left; animation:m3Glow 2.6s ease-in-out infinite;`), className: "k-h18" },
               h("span", { style: sty(`font-size:34px; color:#00391F;`), className: "msym" },
                 "bolt"
               ),
@@ -2094,14 +1953,14 @@ function Template(v: any) {
               )
             ),
             h("div", { style: sty(`display:flex; align-items:center; gap:12px; margin-top:20px;`) },
-              h("button", { onClick: fn(v.skipOnboard), style: sty(`background:transparent; border:0; color:#9AA39B; font:inherit; font-size:13px; cursor:pointer; padding:12px 14px; border-radius:999px; white-space:nowrap; flex:0 0 auto;`), className: "k-h10" },
+              h("button", { onClick: fn(v.skipOnboard), style: sty(`background:transparent; border:0; color:#9AA39B; font:inherit; font-size:13px; cursor:pointer; padding:12px 14px; border-radius:999px; white-space:nowrap; flex:0 0 auto;`), className: "k-h7" },
                 "Skip setup"
               ),
               h("div", { style: sty(`flex:1;`) }),
-              h("button", { onClick: fn(v.onboardBack), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:12px 24px; color:#C4CBC2; font:inherit; font-size:14px; cursor:pointer;`), className: "k-h10" },
+              h("button", { onClick: fn(v.onboardBack), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:12px 24px; color:#C4CBC2; font:inherit; font-size:14px; cursor:pointer;`), className: "k-h7" },
                 "Back"
               ),
-              h("button", { onClick: fn(v.onboardNext), style: sty(`background:#82D9A5; border:0; border-radius:999px; padding:12px 30px; color:#00391F; font:inherit; font-size:14px; font-weight:500; cursor:pointer;`), className: "k-h12" },
+              h("button", { onClick: fn(v.onboardNext), style: sty(`background:#82D9A5; border:0; border-radius:999px; padding:12px 30px; color:#00391F; font:inherit; font-size:14px; font-weight:500; cursor:pointer;`), className: "k-h10" },
                 S(v.onboardNextLabel)
               )
             )
@@ -2129,7 +1988,7 @@ function Template(v: any) {
         ) : null),
       (v.regexOpen ? F(
         h("div", { onClick: fn(v.closeRegex), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.3); z-index:96;`) }),
-        h("div", { style: sty(`position:absolute; ${S(v.regexChrome)} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;`) },
+        h("div", { role: `dialog`, "aria-modal": `false`, "aria-label": `Regex builder`, style: sty(`position:absolute; ${S(v.regexChrome)} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;`) },
           h("div", { onMouseDown: fn(v.dragRegex), style: sty(`display:flex; align-items:center; gap:9px; margin:-18px -20px 4px; padding:16px 20px 10px; cursor:grab;`) },
             h("span", { style: sty(`font-size:18px; color:#778078;`), className: "msym" },
               "drag_indicator"
@@ -2147,7 +2006,7 @@ function Template(v: any) {
                     S($d.icon)
                   )
                 ) : null),
-              ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h30" },
+              ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h25" },
                   h("span", { style: sty(`font-size:15px;`), className: "msym" },
                     S($d.icon)
                   )
@@ -2173,7 +2032,7 @@ function Template(v: any) {
             )
           ),
           h("div", { style: sty(`display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;`) },
-            A(v.rxTools).map(($t, $t$i) => R($t$i, h("button", { onClick: fn($t.run), title: $t.title, style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:5px 10px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h26" },
+            A(v.rxTools).map(($t, $t$i) => R($t$i, h("button", { onClick: fn($t.run), title: $t.title, style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:5px 10px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
                 h("span", { style: sty(`font-size:14px;`), className: "msym" },
                   S($t.icon)
                 ),
@@ -2201,7 +2060,7 @@ function Template(v: any) {
                 S($g.title)
               ),
               h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px;`) },
-                A($g.items).map(($i, $i$i) => R($i$i, h("button", { onClick: fn($i.add), style: sty(`display:flex; flex-direction:column; align-items:flex-start; gap:2px; background:#1B211C; border:1px solid #414942; border-radius:10px; padding:7px 11px; cursor:pointer;`), className: "k-h17" },
+                A($g.items).map(($i, $i$i) => R($i$i, h("button", { onClick: fn($i.add), style: sty(`display:flex; flex-direction:column; align-items:flex-start; gap:2px; background:#1B211C; border:1px solid #414942; border-radius:10px; padding:7px 11px; cursor:pointer;`), className: "k-h16" },
                     h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:12px; color:#9FF7C4;`) },
                       S($i.token)
                     ),
@@ -2219,7 +2078,7 @@ function Template(v: any) {
                   ),
                   S($f.label)
                 ) : null),
-              ($f.off ? h("button", { onClick: fn($f.toggle), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:6px 12px; color:#9AA39B; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h15" },
+              ($f.off ? h("button", { onClick: fn($f.toggle), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:6px 12px; color:#9AA39B; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h14" },
                   S($f.label)
                 ) : null)
             )))
@@ -2255,11 +2114,19 @@ function Template(v: any) {
       ) : null),
       (v.ctxOpen ? F(
         h("div", { onClick: fn(v.closeCtx), onContextMenu: fn(v.closeCtx), style: sty(`position:absolute; inset:0; z-index:78;`) }),
-        h("div", { style: sty(`position:absolute; left:${S(v.ctxX)}; top:${S(v.ctxY)}; width:274px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);`) },
+        h("div", { role: `menu`, "aria-label": `Actions for ${S(v.ctxTarget)}`, onKeyDown: v.onContextKeyDown, style: sty(`position:absolute; left:${S(v.ctxX)}; top:${S(v.ctxY)}; width:274px; max-height:calc(100vh - 24px); overflow:auto; background:#252B25; border:1px solid #414942; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);`) },
           h("div", { style: sty(`padding:8px 12px 6px; font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; border-bottom:1px solid #333B34; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
             S(v.ctxTarget)
           ),
-          A(v.ctxItems).map(($i, $i$i) => R($i$i, h("button", { onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
+          h("div", { role: `search`, style: sty(`display:flex; align-items:center; gap:6px; margin:4px; padding:3px 6px; background:#141A15; border-radius:9px;`) },
+            h("input", { type: `search`, value: v.contextQuery, onInput: fn(v.onContextQuery), placeholder: `Filter actions`, "aria-label": `Filter this menu`, style: sty(`flex:1; min-width:0; background:transparent; border:0; color:#DFE4DC; font:inherit; font-size:12px;`) }),
+            h("button", { onClick: fn(v.openContextRegex), "aria-label": `Open regex builder for this menu`, style: sty(`background:transparent; border:0; color:#82D9A5; cursor:pointer;`) },
+              h("span", { className: "msym" },
+                "data_object"
+              )
+            )
+          ),
+          A(v.ctxItems).map(($i, $i$i) => R($i$i, h("button", { role: `menuitem`, "aria-disabled": $i.disabled, title: $i.reason, onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h27" },
               h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                 S($i.icon)
               ),
@@ -2271,8 +2138,8 @@ function Template(v: any) {
               )
             )))
         ),
-        (v.subOpen ? h("div", { style: sty(`position:absolute; left:${S(v.subX)}; top:${S(v.subY)}; width:230px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);`) },
-            A(v.subItems).map(($i, $i$i) => R($i$i, h("button", { onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
+        (v.subOpen ? h("div", { role: `menu`, "aria-label": `Nested actions`, style: sty(`position:absolute; left:${S(v.subX)}; top:${S(v.subY)}; width:230px; max-height:calc(100vh - 24px); overflow:auto; background:#252B25; border:1px solid #414942; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);`) },
+            A(v.subItems).map(($i, $i$i) => R($i$i, h("button", { role: `menuitem`, "aria-disabled": $i.disabled, title: $i.reason, onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h27" },
                 h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                   S($i.icon)
                 ),
@@ -2282,7 +2149,7 @@ function Template(v: any) {
               )))
           ) : null)
       ) : null),
-      (v.lockOpen ? h("div", { style: sty(`position:absolute; ${S(v.lockChrome)} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;`) },
+      (v.lockOpen ? h("div", { role: `dialog`, "aria-modal": `false`, "aria-label": `Lock this element`, style: sty(`position:absolute; ${S(v.lockChrome)} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;`) },
           h("div", { onMouseDown: fn(v.dragLock), style: sty(`display:flex; align-items:center; gap:9px; cursor:grab; margin:-18px -20px 0; padding:16px 20px 8px;`) },
             h("span", { style: sty(`font-size:18px; color:#778078;`), className: "msym" },
               "drag_indicator"
@@ -2300,14 +2167,14 @@ function Template(v: any) {
                     S($d.icon)
                   )
                 ) : null),
-              ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h30" },
+              ($d.off ? h("button", { onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h25" },
                   h("span", { style: sty(`font-size:15px;`), className: "msym" },
                     S($d.icon)
                   )
                 ) : null)
             ))),
             h("div", { style: sty(`flex:1;`) }),
-            h("button", { onClick: fn(v.closeLock), style: sty(`width:30px; height:30px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h32" },
+            h("button", { onClick: fn(v.closeLock), style: sty(`width:30px; height:30px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h27" },
               h("span", { style: sty(`font-size:18px;`), className: "msym" },
                 "close"
               )
@@ -2338,7 +2205,7 @@ function Template(v: any) {
                       "radio_button_checked"
                     )
                   ) : null),
-                ($m.off ? h("button", { onClick: fn($m.pick), style: sty(`display:flex; align-items:center; gap:10px; background:transparent; border:1px solid #414942; border-radius:12px; padding:12px 14px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h10" },
+                ($m.off ? h("button", { onClick: fn($m.pick), style: sty(`display:flex; align-items:center; gap:10px; background:transparent; border:1px solid #414942; border-radius:12px; padding:12px 14px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h7" },
                     h("span", { style: sty(`font-size:19px; color:#9AA39B;`), className: "msym" },
                       S($m.icon)
                     ),
@@ -2362,7 +2229,7 @@ function Template(v: any) {
                 A(v.pinDots).map(($d, $d$i) => R($d$i, h("span", { style: sty(`width:15px; height:15px; border-radius:50%; background:${S($d.bg)}; border:2px solid #414942; transition:background .12s;`) })))
               ),
               h("div", { style: sty(`display:grid; grid-template-columns:repeat(3,1fr); gap:7px;`) },
-                A(v.pinKeys).map(($k, $k$i) => R($k$i, h("button", { onClick: fn($k.press), style: sty(`height:50px; border-radius:10px; background:linear-gradient(#20281F,#171D18); border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .07s, background .12s; box-shadow:0 2px 0 #0C110D;`), className: "k-h21" },
+                A(v.pinKeys).map(($k, $k$i) => R($k$i, h("button", { onClick: fn($k.press), style: sty(`height:50px; border-radius:10px; background:linear-gradient(#20281F,#171D18); border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .07s, background .12s; box-shadow:0 2px 0 #0C110D;`), className: "k-h28" },
                     S($k.label)
                   )))
               ),
@@ -2375,7 +2242,7 @@ function Template(v: any) {
                     "keyboard"
                   ),
                   h("input", { type: v.pwInputType, value: v.pinValue, onChange: fn(v.onPinInput), onInput: fn(v.onPinInput), inputMode: `numeric`, maxLength: `6`, placeholder: `000000`, style: sty(`flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px; letter-spacing:4px;`) }),
-                  h("button", { onClick: fn(v.pinReveal), style: sty(`width:28px; height:28px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h4" },
+                  h("button", { onClick: fn(v.pinReveal), style: sty(`width:28px; height:28px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h2" },
                     h("span", { style: sty(`font-size:17px;`), className: "msym" },
                       S(v.pinEyeIcon)
                     )
@@ -2395,14 +2262,14 @@ function Template(v: any) {
                   "password"
                 ),
                 h("input", { type: v.pwInputType, value: v.pwValue, onChange: fn(v.onPwInput), onInput: fn(v.onPwInput), placeholder: `Type a passphrase`, style: sty(`flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;`) }),
-                h("button", { onClick: fn(v.pinReveal), style: sty(`width:28px; height:28px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h4" },
+                h("button", { onClick: fn(v.pinReveal), style: sty(`width:28px; height:28px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h2" },
                   h("span", { style: sty(`font-size:17px;`), className: "msym" },
                     S(v.pinEyeIcon)
                   )
                 )
               ),
               h("div", { style: sty(`display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;`) },
-                A(v.pwBuilders).map(($b, $b$i) => R($b$i, h("button", { onClick: fn($b.run), style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:6px 11px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h26" },
+                A(v.pwBuilders).map(($b, $b$i) => R($b$i, h("button", { onClick: fn($b.run), style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:6px 11px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
                     h("span", { style: sty(`font-size:14px;`), className: "msym" },
                       S($b.icon)
                     ),
@@ -2425,7 +2292,7 @@ function Template(v: any) {
                 "Scan with the built-in authenticator or any TOTP app. The secret is generated on this machine and never leaves it."
               )
             ),
-            h("button", { onClick: fn(v.pairAuth), style: sty(`margin-top:12px; width:100%; background:#262B26; border:0; border-radius:999px; padding:10px 0; color:#9FF7C4; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`), className: "k-h11" },
+            h("button", { onClick: fn(v.pairAuth), "aria-disabled": v.pairAuthDisabled, title: v.pairAuthReason, style: sty(`margin-top:12px; width:100%; background:#262B26; border:0; border-radius:999px; padding:10px 0; color:#9FF7C4; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`), className: "k-h9" },
               "Pair the built-in authenticator"
             )
           ) : null),
@@ -2488,7 +2355,7 @@ function Template(v: any) {
                 A(v.unlockDots).map(($d, $d$i) => R($d$i, h("span", { style: sty(`width:14px; height:14px; border-radius:50%; background:${S($d.bg)}; border:2px solid #414942;`) })))
               ) : null),
             h("div", { style: sty(`display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;`) },
-              A(v.unlockKeys).map(($k, $k$i) => R($k$i, h("button", { onClick: fn($k.press), style: sty(`height:50px; border-radius:14px; background:#1B211C; border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .08s;`), className: "k-h33" },
+              A(v.unlockKeys).map(($k, $k$i) => R($k$i, h("button", { onClick: fn($k.press), style: sty(`height:50px; border-radius:14px; background:#1B211C; border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .08s;`), className: "k-h29" },
                   S($k.label)
                 )))
             ),
@@ -2503,7 +2370,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.appearOpen ? h("div", { style: sty(`position:absolute; right:0; top:40px; bottom:0; width:468px; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:84; display:flex; flex-direction:column; animation:dlgAppear .28s cubic-bezier(.2,0,0,1);`) },
+      (v.appearOpen ? h("div", { role: `dialog`, "aria-modal": `false`, "aria-label": `Edit appearance for ${S(v.appearTarget)}`, style: sty(`position:absolute; right:0; top:40px; bottom:0; width:468px; max-width:100vw; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:84; display:flex; flex-direction:column; animation:dlgAppear .28s cubic-bezier(.2,0,0,1);`) },
           h("div", { style: sty(`padding:16px 20px 10px; display:flex; align-items:flex-start; gap:12px;`) },
             h("div", { style: sty(`flex:1;`) },
               h("div", { style: sty(`font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#8FA394;`) },
@@ -2513,7 +2380,7 @@ function Template(v: any) {
                 S(v.appearTarget)
               )
             ),
-            h("button", { onClick: fn(v.closeAppear), style: sty(`width:34px; height:34px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h1" },
+            h("button", { onClick: fn(v.closeAppear), style: sty(`width:34px; height:34px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h0" },
               h("span", { style: sty(`font-size:19px;`), className: "msym" },
                 "close"
               )
@@ -2524,7 +2391,7 @@ function Template(v: any) {
               ($t.on ? h("button", { onClick: fn($t.pick), style: sty(`background:#005230; border:0; border-radius:999px; padding:6px 13px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;`) },
                   S($t.label)
                 ) : null),
-              ($t.off ? h("button", { onClick: fn($t.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:6px 13px; color:#9AA39B; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h15" },
+              ($t.off ? h("button", { onClick: fn($t.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:6px 13px; color:#9AA39B; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h14" },
                   S($t.label)
                 ) : null)
             )))
@@ -2560,7 +2427,7 @@ function Template(v: any) {
                     A(v.shadeStops).map(($h, $h$i) => R($h$i, h("button", { onClick: fn($h.pick), style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.color)};`) })))
                   ),
                   h("div", { style: sty(`display:flex; gap:6px; flex-wrap:wrap;`) },
-                    A(v.colorActions).map(($a, $a$i) => R($a$i, h("button", { onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:5px 10px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h26" },
+                    A(v.colorActions).map(($a, $a$i) => R($a$i, h("button", { onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:5px 10px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
                         h("span", { style: sty(`font-size:14px;`), className: "msym" },
                           S($a.icon)
                         ),
@@ -2570,7 +2437,7 @@ function Template(v: any) {
                 )
               ),
               h("div", { style: sty(`display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;`) },
-                A(v.colorFormats).map(($f, $f$i) => R($f$i, h("button", { onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h34" },
+                A(v.colorFormats).map(($f, $f$i) => R($f$i, h("button", { onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h30" },
                     S($f.label)
                   )))
               )
@@ -2591,7 +2458,7 @@ function Template(v: any) {
               )))
           ),
           h("div", { style: sty(`padding:12px 20px; border-top:1px solid #262B26; display:flex; gap:8px; flex-wrap:wrap;`) },
-            A(v.appearActions).map(($a, $a$i) => R($a$i, h("button", { onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:999px; padding:9px 15px 9px 12px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h13" },
+            A(v.appearActions).map(($a, $a$i) => R($a$i, h("button", { onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:999px; padding:9px 15px 9px 12px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h11" },
                 h("span", { style: sty(`font-size:16px;`), className: "msym" },
                   S($a.icon)
                 ),
@@ -2613,7 +2480,7 @@ function Template(v: any) {
                   S(v.sureTitle)
                 )
               ),
-              h("button", { onClick: fn(v.closeSure), style: sty(`width:34px; height:34px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h32" },
+              h("button", { onClick: fn(v.closeSure), style: sty(`width:34px; height:34px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h27" },
                 h("span", { style: sty(`font-size:19px;`), className: "msym" },
                   "close"
                 )
@@ -2665,7 +2532,7 @@ function Template(v: any) {
         ) : null),
       (v.tabFilterOpen ? F(
         h("div", { onClick: fn(v.closeTabFilter), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`) }),
-        h("div", { style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);`) },
+        h("div", { role: `dialog`, "aria-modal": `true`, "aria-label": v.tabFilterTitle, style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; max-width:calc(100vw - 24px); max-height:calc(100vh - 116px); overflow:auto; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);`) },
           h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
             h("span", { style: sty(`font-size:21px; color:#82D9A5;`), className: "msym" },
               "filter_alt"
@@ -2678,14 +2545,14 @@ function Template(v: any) {
                 "Type it, or build a pattern. The preview shows exactly which tabs close."
               )
             ),
-            h("button", { onClick: fn(v.closeTabFilter), style: sty(`width:32px; height:32px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h32" },
+            h("button", { onClick: fn(v.closeTabFilter), style: sty(`width:32px; height:32px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h27" },
               h("span", { style: sty(`font-size:18px;`), className: "msym" },
                 "close"
               )
             )
           ),
           (v.tabFilterIsColour ? h("div", { style: sty(`display:flex; flex-direction:column; gap:6px; margin-top:14px;`) },
-              A(v.tabFilterColours).map(($c, $c$i) => R($c$i, h("button", { onClick: fn($c.pick), style: sty(`display:flex; align-items:center; gap:11px; background:#141A15; border:2px solid ${S($c.border)}; border-radius:12px; padding:10px 13px; cursor:pointer; text-align:left;`), className: "k-h32" },
+              A(v.tabFilterColours).map(($c, $c$i) => R($c$i, h("button", { onClick: fn($c.pick), style: sty(`display:flex; align-items:center; gap:11px; background:#141A15; border:2px solid ${S($c.border)}; border-radius:12px; padding:10px 13px; cursor:pointer; text-align:left;`), className: "k-h27" },
                   h("span", { style: sty(`width:18px; height:18px; border-radius:50%; background:${S($c.colour)}; flex:0 0 auto;`) }),
                   h("div", { style: sty(`flex:1; min-width:0;`) },
                     h("div", { style: sty(`font-size:12.5px; color:#DFE4DC;`) },
@@ -2705,7 +2572,7 @@ function Template(v: any) {
                 "keyboard"
               ),
               h("input", { type: `text`, value: v.tabFilterText, onChange: fn(v.onTabFilterText), onInput: fn(v.onTabFilterText), placeholder: `Text to match, e.g. queue`, style: sty(`flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;`) }),
-              h("button", { onClick: fn(v.openTabRegex), title: `Build a pattern instead`, style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:8px; padding:6px 11px; color:#9FF7C4; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h11" },
+              h("button", { onClick: fn(v.openTabRegex), title: `Build a pattern instead`, style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:8px; padding:6px 11px; color:#9FF7C4; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h9" },
                 h("span", { style: sty(`font-size:15px;`), className: "msym" },
                   "data_object"
                 ),
@@ -2715,6 +2582,9 @@ function Template(v: any) {
           h("div", { style: sty(`margin-top:12px; background:#141A15; border-radius:12px; padding:12px 14px;`) },
             h("div", { style: sty(`font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:8px;`) },
               "These tabs will close"
+            ),
+            h("div", { role: `status`, "aria-live": `polite`, style: sty(`font-size:12px; color:#9AA39B; margin-bottom:8px;`) },
+              S(v.tabFilterSummary)
             ),
             h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px;`) },
               A(v.tabFilterPreview).map(($p, $p$i) => R($p$i, h("span", { style: sty(`display:flex; align-items:center; gap:6px; background:${S($p.bg)}; border-radius:8px; padding:5px 11px; font-size:12px; color:${S($p.fg)};`) },
@@ -2730,7 +2600,7 @@ function Template(v: any) {
               "Cancel"
             ),
             h("div", { style: sty(`flex:1;`) }),
-            h("button", { onClick: fn(v.applyTabFilter), style: sty(`background:#93000A; border:0; border-radius:999px; padding:11px 24px; color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer;`) },
+            h("button", { onClick: fn(v.applyTabFilter), "aria-disabled": v.tabFilterInvalid, style: sty(`background:#93000A; border:0; border-radius:999px; padding:11px 24px; color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer;`) },
               S(v.tabFilterApply)
             )
           )
@@ -2763,7 +2633,7 @@ function Template(v: any) {
             A(v.cpickCtls).map(($c, $c$i) => R($c$i, h(M3Control, { ctl: $c })))
           ),
           h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;`) },
-            A(v.cpickFormats).map(($f, $f$i) => R($f$i, h("button", { onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h34" },
+            A(v.cpickFormats).map(($f, $f$i) => R($f$i, h("button", { onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h30" },
                 S($f.label)
               )))
           ),
@@ -2778,7 +2648,7 @@ function Template(v: any) {
                 "Already used by other tabs"
               ),
               h("div", { style: sty(`display:flex; flex-direction:column; gap:6px;`) },
-                A(v.usedColours).map(($u, $u$i) => R($u$i, h("button", { onClick: fn($u.pick), style: sty(`display:flex; align-items:center; gap:10px; background:#141A15; border:0; border-radius:10px; padding:9px 12px; cursor:pointer; text-align:left;`), className: "k-h32" },
+                A(v.usedColours).map(($u, $u$i) => R($u$i, h("button", { onClick: fn($u.pick), style: sty(`display:flex; align-items:center; gap:10px; background:#141A15; border:0; border-radius:10px; padding:9px 12px; cursor:pointer; text-align:left;`), className: "k-h27" },
                     h("span", { style: sty(`width:14px; height:14px; border-radius:50%; background:${S($u.colour)};`) }),
                     h("span", { style: sty(`flex:1; font-size:12.5px; color:#DFE4DC;`) },
                       S($u.tabs)
@@ -2832,12 +2702,12 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.toastOpen ? h("div", { style: sty(`position:absolute; left:50%; bottom:24px; transform:translateX(-50%); display:flex; align-items:center; gap:16px; background:#E4E9E0; color:#1A1C19; border-radius:12px; padding:12px 16px 12px 20px; box-shadow:0 6px 20px rgba(0,0,0,.5); z-index:85; animation:m3Slide .26s cubic-bezier(.2,1.3,.4,1);`) },
+      (v.toastOpen ? h("div", { role: `status`, "aria-live": `polite`, "data-severity": v.toastSeverity, style: sty(`position:absolute; left:50%; bottom:24px; transform:translateX(-50%); display:flex; align-items:center; gap:16px; background:#E4E9E0; color:#1A1C19; border:2px solid ${S(v.toastBorder)}; border-radius:12px; padding:12px 16px 12px 20px; box-shadow:0 6px 20px rgba(0,0,0,.5); z-index:85; animation:m3Slide .26s cubic-bezier(.2,1.3,.4,1);`) },
           h("span", { style: sty(`font-size:13.5px;`) },
             S(v.toastText)
           ),
-          h("button", { onClick: fn(v.undoToast), style: sty(`background:transparent; border:0; color:#146B41; font:inherit; font-size:13.5px; font-weight:500; cursor:pointer; padding:4px 8px; border-radius:8px;`) },
-            "Undo"
+          h("button", { onClick: fn(v.dismissToast), "aria-label": `Dismiss notification`, style: sty(`background:transparent; border:0; color:#146B41; font:inherit; font-size:13.5px; font-weight:500; cursor:pointer; padding:4px 8px; border-radius:8px;`) },
+            "Dismiss"
           )
         ) : null)
     )
@@ -2912,39 +2782,39 @@ function pjsipCtls() {
 }
 
 const SCREENS = {
-  dash:{ rail:'pbx', icon:'space_dashboard', label:'Dashboard', badge:'live', title:'Dashboard', file:'live', kind:'dashboard',
-    sub:'Everything the PBX is doing right now. Numbers come from AMI, not from a config file, so nothing here is editable — it is the truth of the running system.', groups:[] },
-  live:{ rail:'pbx', icon:'graphic_eq', label:'Live channels', badge:'4', title:'Live channels', file:'core show channels', kind:'table',
+  dash:{ rail:'pbx', icon:'space_dashboard', label:'Dashboard', badge:'', title:'Dashboard', file:'live', kind:'dashboard',
+    sub:'Host-supplied readings appear with provenance and receipt state. Missing, partial, stale, and unavailable data remain visibly distinct from verified current data.', groups:[] },
+  live:{ rail:'pbx', icon:'graphic_eq', label:'Live channels', badge:'', title:'Live channels', file:'core show channels', kind:'table',
     sub:'Every channel currently up. Spy, record or hang up any of them; each action runs the full four-gate confirmation.',
     table:{ add:'Originate call', grid:'1.5fr 1fr 1fr 90px 110px', cols:['Channel','Peer','Application','Duration','State'],
-      rows:[['PJSIP/1001-0000a1','Ada Deng','Dial','00:04:12','Up'],['PJSIP/1004-0000a2','support queue','Queue','00:01:47','Up'],['PJSIP/trunk-0000a3','+1 415 555 0148','Dial','00:12:03','Up'],['IAX2/branch-0000a4','branch-office','Bridge','01:22:58','Up']] },
+      rows:[] },
     groups:[{ title:'Monitor defaults', desc:'Applied to any spy or recording started from this screen.', ctls:[
       ctl('m_spy','Spy mode','segmented','Whisper',{ options:['Listen','Whisper','Barge'] }),
       ctl('m_format','Recording format','segmented','wav',{ options:['wav','gsm','g722','ogg'] }),
       ctl('m_beep','Beep on record start','switch',true),
       ctl('m_retain','Keep recordings for','slider',90,{ min:1, max:365, unit:' days' })
     ]}] },
-  endpoints:{ rail:'pbx', icon:'smartphone', label:'Endpoints', badge:'12', title:'PJSIP endpoints', file:'pjsip.conf', kind:'table',
+  endpoints:{ rail:'pbx', icon:'smartphone', label:'Endpoints', badge:'', title:'PJSIP endpoints', file:'pjsip.conf', kind:'table',
     sub:'Phones, softphones and applications that register with this PBX. Selecting a row loads its full option set below — every one of them a control, never a text field.',
     table:{ add:'New endpoint', grid:'1fr 1.2fr 1fr 1fr 120px', cols:['Endpoint','Contact','Transport','Codecs','Status'],
-      rows:[['1001','10.20.4.31:5060','transport-tls','opus, g722','Reachable'],['1002','10.20.4.32:5060','transport-tls','opus, ulaw','Reachable'],['1003','10.20.4.44:5060','transport-udp','ulaw','Unreachable'],['1004','10.20.4.51:5060','transport-tls','opus, g722','Reachable'],['softphone-ada','198.51.100.9:39412','transport-wss','opus','Reachable'],['reception','10.20.4.12:5060','transport-udp','g722, ulaw','Reachable']] },
+      rows:[] },
     groups:pjsipCtls() },
-  trunks:{ rail:'pbx', icon:'swap_horiz', label:'Trunks', badge:'3', title:'Trunks & registrations', file:'pjsip.conf', kind:'table',
+  trunks:{ rail:'pbx', icon:'swap_horiz', label:'Trunks', badge:'', title:'Trunks & registrations', file:'pjsip.conf', kind:'table',
     sub:'Outbound carriers and inbound identifies. Registration state is polled live; credentials live in the secret intake, never on this screen.',
     table:{ add:'New trunk', grid:'1fr 1.4fr 1fr 1fr 120px', cols:['Trunk','Registrar','Auth','Outbound','State'],
-      rows:[['carrier-primary','sip.carrier.example','userpass','yes','Registered'],['carrier-backup','sip2.carrier.example','userpass','yes','Registered'],['branch-iax','branch.internal','md5','no','Unregistered']] },
+      rows:[] },
     groups:[{ title:'Failover', desc:'What happens when the primary carrier stops answering.', ctls:[
       ctl('t_retry','Retry interval','slider',60,{ min:10, max:600, step:10, unit:'s' }),
       ctl('t_forbidden','Forbidden retry','slider',300,{ min:30, max:1800, step:30, unit:'s' }),
       ctl('t_fatal','Fatal retry attempts','stepper',5,{ min:0, max:50 }),
-      ctl('t_order','Failover order','order',['carrier-primary','carrier-backup','branch-iax'],{ pool:[] })
+      ctl('t_order','Failover order','order',[],{ pool:[], info:'No trunks are listed until the host provides verified trunk identities.' })
     ]},{ title:'Outbound identity', desc:'How your calls appear to the carrier.', ctls:[
       ctl('t_from','From domain source','segmented','Trunk',{ options:['Trunk','Endpoint','Global'] }),
       ctl('t_pai','Send P-Asserted-Identity','switch',true),
       ctl('t_privacy','Privacy header','segmented','none',{ options:['none','id','header','critical'] }),
       ctl('t_100rel','100rel','segmented','yes',{ options:['no','required','yes'] })
     ]}] },
-  trunkauth:{ rail:'pbx', icon:'handshake', label:'Trunk authentication', badge:'2', title:'Trunk authentication', file:'pjsip.conf · partner requests', kind:'trunkauth',
+  trunkauth:{ rail:'pbx', icon:'handshake', label:'Trunk authentication', badge:'', title:'Trunk authentication', file:'pjsip.conf · partner requests', kind:'trunkauth',
     sub:'When a trunk partner asks to change something on the shared link — a new source address, a codec, a higher call cap — the request lands here and you answer yes or no. Nothing takes effect until you do.',
     groups:[{ title:'Answering policy', desc:'How requests arrive and what may be answered without you.', ctls:[
       ctl('ta_auto','Auto-approve low-risk requests','switch',false,{ info:'Low risk means a codec addition or a health-check interval. Address changes and call caps are never auto-approved.' }),
@@ -2954,12 +2824,12 @@ const SCREENS = {
       ctl('ta_sign','Sign my answers','switch',true),
       ctl('ta_log','Keep the answer history forever','switch',true)
     ]}] },
-  canvas:{ rail:'pbx', icon:'account_tree', label:'Dialplan canvas', badge:'∞', title:'Dialplan canvas', file:'extensions.conf', kind:'canvas',
+  canvas:{ rail:'pbx', icon:'account_tree', label:'Dialplan canvas', badge:'', title:'Dialplan canvas', file:'extensions.conf', kind:'canvas',
     sub:'One infinite canvas for dialplan, IVR and queue routing. Drop a step, wire it to the next, and the console writes the priorities for you. The inspector on the right edits whichever step is selected.', groups:[] },
-  ivr:{ rail:'pbx', icon:'dialpad', label:'IVR menus', badge:'5', title:'IVR menus', file:'extensions.conf', kind:'table',
+  ivr:{ rail:'pbx', icon:'dialpad', label:'IVR menus', badge:'', title:'IVR menus', file:'extensions.conf', kind:'table',
     sub:'Each menu is a canvas subgraph with a prompt and a key map. Editing a key here moves the matching node on the canvas.',
     table:{ add:'New menu', grid:'1fr 1.4fr 90px 110px 120px', cols:['Menu','Prompt','Keys','Timeout','Invalid'],
-      rows:[['main','welcome-greeting','5','7s','repeat'],['support','support-options','4','7s','operator'],['sales','sales-options','3','5s','voicemail'],['afterhours','closed-message','2','10s','hangup'],['directory','dial-by-name','1','12s','operator']] },
+      rows:[] },
     groups:[{ title:'Menu behaviour', desc:'Applies to the selected menu.', ctls:[
       ctl('i_timeout','Digit timeout','slider',7,{ min:1, max:30, unit:'s' }),
       ctl('i_retries','Retries before fallback','stepper',3,{ min:1, max:9 }),
@@ -2968,10 +2838,10 @@ const SCREENS = {
       ctl('i_lang','Prompt language','select','en',{ options:['en','es','fr','de','zh'] }),
       ctl('i_barge','Allow barge-in over prompt','switch',true)
     ]}] },
-  queues:{ rail:'pbx', icon:'groups', label:'Queues & agents', badge:'4', title:'Queues & agents', file:'queues.conf', kind:'table',
+  queues:{ rail:'pbx', icon:'groups', label:'Queues & agents', badge:'', title:'Queues & agents', file:'queues.conf', kind:'table',
     sub:'Ring strategy, penalties and service level, all lifted from queues.conf. Agents are dragged between queues on the canvas.',
     table:{ add:'New queue', grid:'1fr 1fr 90px 90px 120px', cols:['Queue','Strategy','Members','Waiting','Service level'],
-      rows:[['support','ringall','6','2','92%'],['sales','leastrecent','4','0','97%'],['billing','fewestcalls','3','1','88%'],['afterhours','random','1','0','100%']] },
+      rows:[] },
     groups:[{ title:'Ring strategy', desc:'How a waiting call is offered to the members of this queue.', ctls:[
       ctl('q_strategy','strategy','select','ringall',{ options:['ringall','leastrecent','fewestcalls','random','rrmemory','linear','wrandom'], info:'ringall rings every free agent at once. leastrecent picks whoever has gone longest without a call. Pick ringall if you are not sure.' }),
       ctl('q_timeout','Ring each agent for','slider',15,{ min:5, max:120, unit:'s' }),
@@ -2987,10 +2857,10 @@ const SCREENS = {
       ctl('q_periodic','Periodic announcement every','slider',60,{ min:0, max:600, step:15, unit:'s' }),
       ctl('q_position','Announce position in queue','switch',true)
     ]}] },
-  voicemail:{ rail:'media', icon:'voicemail', label:'Voicemail', badge:'18', title:'Voicemail boxes', file:'voicemail.conf', kind:'table',
+  voicemail:{ rail:'media', icon:'voicemail', label:'Voicemail', badge:'', title:'Voicemail boxes', file:'voicemail.conf', kind:'table',
     sub:'Mailboxes, greetings and delivery. Attachment and storage options are switches; nothing about a mailbox needs typing except the owner name.',
     table:{ add:'New mailbox', grid:'90px 1fr 1fr 90px 110px', cols:['Box','Owner','Email','New','Storage'],
-      rows:[['1001','Ada Deng','ada@example.com','3','file'],['1002','Ben Ortiz','ben@example.com','0','file'],['1004','Support desk','support@example.com','12','odbc'],['1010','Reception','front@example.com','3','file']] },
+      rows:[] },
     groups:[{ title:'Delivery', desc:'What happens the moment a message lands.', ctls:[
       ctl('v_attach','Attach recording to email','switch',true),
       ctl('v_delete','Delete after emailing','switch',false,{ info:'Careful. On means the only copy of the message is the one in the mailbox of the email server.' }),
@@ -3004,10 +2874,10 @@ const SCREENS = {
       ctl('v_envelope','Play date envelope','switch',true),
       ctl('v_saycid','Announce caller ID','switch',false)
     ]}] },
-  confbridge:{ rail:'media', icon:'groups_3', label:'Conferences', badge:'6', title:'ConfBridge rooms', file:'confbridge.conf', kind:'table',
+  confbridge:{ rail:'media', icon:'groups_3', label:'Conferences', badge:'', title:'ConfBridge rooms', file:'confbridge.conf', kind:'table',
     sub:'Bridge profiles, user profiles and menus. Every mixing option is a control; the DTMF menu is edited on the canvas.',
     table:{ add:'New room', grid:'1fr 1fr 90px 100px 110px', cols:['Room','Bridge profile','Users','Recording','State'],
-      rows:[['9000','default_bridge','7','on','Active'],['9001','hd_bridge','2','off','Active'],['9002','townhall','48','on','Active'],['9003','default_bridge','0','off','Idle']] },
+      rows:[] },
     groups:[{ title:'Mixing', desc:'Audio quality and how the bridge combines participants.', ctls:[
       ctl('c_rate','Internal sample rate','segmented','48000',{ options:['8000','16000','48000','auto'] }),
       ctl('c_mixing','Mixing interval','segmented','20',{ options:['10','20','40','80'] }),
@@ -3022,10 +2892,10 @@ const SCREENS = {
       ctl('c_music','Music while alone','switch',true),
       ctl('c_dtmf','DTMF menu','select','default_menu',{ options:['default_menu','admin_menu','listen_only'] })
     ]}] },
-  moh:{ rail:'media', icon:'library_music', label:'Music on hold', badge:'4', title:'Music on hold', file:'musiconhold.conf', kind:'table',
+  moh:{ rail:'media', icon:'library_music', label:'Music on hold', badge:'', title:'Music on hold', file:'musiconhold.conf', kind:'table',
     sub:'Hold classes and their sources. Files are chosen from a picker; the playlist is reordered by dragging.',
     table:{ add:'New class', grid:'1fr 1fr 1.2fr 100px', cols:['Class','Mode','Source','Tracks'],
-      rows:[['default','files','/var/lib/asterisk/moh','14'],['jazz','files','/srv/moh/jazz','22'],['ringing','ringing','—','—'],['stream','custom','mpg123 stream','—']] },
+      rows:[] },
     groups:[{ title:'Playback', desc:'How each class behaves while somebody waits.', ctls:[
       ctl('h_mode','Mode','segmented','files',{ options:['files','quietmp3','ringing','custom'] }),
       // Choosing a mode used to be the end of it: `files` never asked which directory and
@@ -3154,10 +3024,10 @@ const SCREENS = {
       ctl('l_apps','Tracked applications','chips',['Dial','Queue'],{ options:['Dial','Queue','VoiceMail','ConfBridge','Playback','Park'] }),
       ctl('l_date','Timestamp format','segmented','ISO8601',{ options:['ISO8601','epoch','local'] })
     ]}] },
-  ami:{ rail:'data', icon:'api', label:'AMI & ARI', badge:'2', title:'Manager & REST interfaces', file:'manager.conf · ari.conf · http.conf', kind:'table',
+  ami:{ rail:'data', icon:'api', label:'AMI & ARI', badge:'', title:'Manager & REST interfaces', file:'manager.conf · ari.conf · http.conf', kind:'table',
     sub:'Machine access to the PBX. Permissions are checkbox matrices, never a comma string you have to remember.',
     table:{ add:'New API user', grid:'1fr 1fr 1.6fr 110px', cols:['User','Interface','Permissions','State'],
-      rows:[['monitor','AMI','system, call, log','Connected'],['dialer','AMI','originate, call','Connected'],['stasis-app','ARI','applications, channels','Connected']] },
+      rows:[] },
     groups:[{ title:'HTTP server', desc:'ARI and the built-in web sockets ride on this.', ctls:[
       ctl('a_http','HTTP enabled','switch',true),
       ctl('a_port','Bind port','stepper',8088,{ min:1, max:65535 }),
@@ -3170,10 +3040,10 @@ const SCREENS = {
       ctl('a_deny','Deny by default','switch',true),
       ctl('a_timeout','Idle timeout','slider',300,{ min:30, max:3600, step:30, unit:'s' })
     ]}] },
-  modules:{ rail:'sys', icon:'extension', label:'Modules', badge:'214', title:'Modules', file:'modules.conf', kind:'table',
+  modules:{ rail:'sys', icon:'extension', label:'Modules', badge:'', title:'Modules', file:'modules.conf', kind:'table',
     sub:'Every loadable module with its live state. Loading and unloading are real actions and run the full confirmation ceremony.',
     table:{ add:'Load module', grid:'1.3fr 1fr 1fr 120px', cols:['Module','Type','Use count','State'],
-      rows:[['res_pjsip.so','Resource','48','Running'],['app_queue.so','Application','6','Running'],['chan_iax2.so','Channel','1','Running'],['cdr_odbc.so','CDR backend','1','Running'],['res_stir_shaken.so','Resource','0','Not loaded'],['app_confbridge.so','Application','3','Running']] },
+      rows:[] },
     groups:[{ title:'Load policy', desc:'What Asterisk does with modules it was not explicitly told about.', ctls:[
       ctl('mo_auto','autoload','switch',true),
       ctl('mo_preload','Preload','chips',['res_odbc.so','res_config_odbc.so'],{ options:['res_odbc.so','res_config_odbc.so','res_curl.so','res_crypto.so'] }),
@@ -3193,11 +3063,11 @@ const SCREENS = {
       ctl('g_size','Rotate at','slider',50,{ min:1, max:500, unit:' MB' }),
       ctl('g_queue','Queue log','switch',true)
     ]}] },
-  security:{ rail:'sys', icon:'shield', label:'Security', badge:'!', title:'Security', file:'acl.conf · stir_shaken.conf', kind:'generic',
+  security:{ rail:'sys', icon:'shield', label:'Security', badge:'', title:'Security', file:'acl.conf · stir_shaken.conf', kind:'generic',
     sub:'Access control, transport certificates and caller-ID attestation. Certificates are chosen from the machine store — no path is ever typed.',
     groups:[{ title:'Access control', desc:'Named ACLs applied to transports and endpoints.', ctls:[
       ctl('s_acl','Active ACL','select','trusted-nets',{ options:['trusted-nets','branch-offices','carrier-only','deny-all'] }),
-      ctl('s_permit','Permitted networks','chips',['10.20.0.0/16','198.51.100.0/24'],{ options:['10.20.0.0/16','198.51.100.0/24','192.0.2.0/24','0.0.0.0/0'] }),
+      ctl('s_permit','Permitted networks','chips',[],{ options:[], info:'The host supplies verified network ranges. The design does not preload operational addresses.' }),
       ctl('s_failban','Auto-ban after failures','stepper',5,{ min:0, max:100 }),
       ctl('s_bantime','Ban duration','slider',600,{ min:60, max:86400, step:60, unit:'s' }),
       ctl('s_guest','Allow guest calls','switch',false,{ info:'Off. Always off, unless you run a public conference bridge and know exactly why you turned it on.' })
@@ -3214,12 +3084,12 @@ const SCREENS = {
     ]}] },
   cli:{ rail:'sys', icon:'terminal', label:'CLI builder', badge:'', title:'CLI builder', file:'asterisk -rx', kind:'cli',
     sub:'Build a real Asterisk CLI command by choosing its parts. The raw console beside it is read-only output, shown only in expert mode.', groups:[] },
-  memory:{ rail:'agent', icon:'database', label:'Memory console', badge:'2.4k', title:'Memory console', file:'agent global memory', kind:'memory',
+  memory:{ rail:'agent', icon:'database', label:'Memory console', badge:'', title:'Memory console', file:'agent global memory', kind:'memory',
     sub:'Search the memory corpus with a visual regex builder, and watch the sync, attestation and emission guard state alongside it.', groups:[] },
-  sync:{ rail:'agent', icon:'sync', label:'Sync & attestation', badge:'ok', title:'Sync & attestation', file:'agent-memory-sync', kind:'table',
+  sync:{ rail:'agent', icon:'sync', label:'Sync & attestation', badge:'', title:'Sync & attestation', file:'agent-memory-sync', kind:'table',
     sub:'Every sync run, its attestation and its backup. A failed attestation blocks the next write until it is acknowledged here.',
     table:{ add:'Run sync now', grid:'1fr 1fr 1fr 1fr 120px', cols:['Run','Started','Records','Backup','Attestation'],
-      rows:[['r-4821','08:14:02','2,412','verified','Signed'],['r-4820','07:14:01','2,410','verified','Signed'],['r-4819','06:14:03','2,410','verified','Signed'],['r-4818','05:14:02','2,407','verified','Signed']] },
+      rows:[] },
     groups:[{ title:'Schedule', desc:'When the console pushes memory upstream.', ctls:[
       ctl('y_auto','Automatic sync','switch',true),
       ctl('y_every','Interval','slider',60,{ min:5, max:1440, step:5, unit:' min' }),
@@ -3227,10 +3097,10 @@ const SCREENS = {
       ctl('y_attest','Require attestation','switch',true),
       ctl('y_retain','Keep backups','stepper',30,{ min:1, max:365 })
     ]}] },
-  skills:{ rail:'agent', icon:'auto_awesome', label:'Skills registry', badge:'26', title:'Skills registry', file:'skills/', kind:'table',
+  skills:{ rail:'agent', icon:'auto_awesome', label:'Skills registry', badge:'', title:'Skills registry', file:'skills/', kind:'table',
     sub:'Installed agent skills with their trigger scope. Enabling a skill is a switch; nothing about a skill is typed here.',
     table:{ add:'Install skill', grid:'1.2fr 1.6fr 100px 110px', cols:['Skill','Description','Scope','State'],
-      rows:[['multi-agent-orchestration','Multi-lane orchestration','global','Enabled'],['status-protocol','Hub session protocol','global','Enabled'],['status-client','Client wiring recipes','project','Enabled'],['headless-verification','Headless verification','global','Enabled'],['cleanup-presentation','Presentation contract','project','Disabled']] },
+      rows:[] },
     groups:[{ title:'Orchestration', desc:'Multi-agent lane defaults.', ctls:[
       ctl('u_lanes','Maximum parallel lanes','stepper',4,{ min:1, max:12 }),
       ctl('u_isolate','Isolated worktree per lane','switch',true),
@@ -3238,17 +3108,17 @@ const SCREENS = {
       ctl('u_verify','Verification panel for high-risk lanes','switch',true),
       ctl('u_destruct','Keep destructive actions with orchestrator','switch',true)
     ]}] },
-  hub:{ rail:'agent', icon:'hub', label:'Status hub', badge:'3', title:'Status hub sessions', file:'status-hub', kind:'table',
+  hub:{ rail:'agent', icon:'hub', label:'Status hub', badge:'', title:'Status hub sessions', file:'status-hub', kind:'table',
     sub:'Open sessions, their questions and reply state. The ingest token lives in the trusted process and is never shown in this window.',
     table:{ add:'Open session', grid:'1fr 1.4fr 90px 110px', cols:['Session','Subject','❓s','State'],
-      rows:[['s-2201','Asterisk console build','2','Awaiting reply'],['s-2200','Memory sync drift','0','Active'],['s-2199','Release packaging','1','Awaiting reply']] },
+      rows:[] },
     groups:[{ title:'Session policy', desc:'How the console behaves as a hub client.', ctls:[
       ctl('b_poll','Reply poll interval','slider',15,{ min:5, max:300, unit:'s' }),
       ctl('b_notify','Desktop notification on reply','switch',true),
       ctl('b_close','Auto-close idle sessions','switch',false),
       ctl('b_report','Report worktree state each run','switch',true)
     ]}] },
-  vocab:{ rail:'agent', icon:'policy', label:'Vocabulary & guard', badge:'lock', title:'Vocabulary & emission guard', file:'vocabulary-dictionary.json', kind:'table',
+  vocab:{ rail:'agent', icon:'policy', label:'Vocabulary & guard', badge:'', title:'Vocabulary & emission guard', file:'vocabulary-dictionary.json', kind:'table',
     sub:'Terms are read from a dictionary JSON you upload from this machine. Nothing is bundled, nothing is sent anywhere, and the table stays empty until you load a file.',
     table:{ add:'Add term', grid:'1fr 1fr 1fr 110px', cols:['Term','Alias','Plural','Lock'],
       rows:[], empty:'No terms loaded. Upload a local dictionary JSON to populate this table.' },
@@ -3259,10 +3129,10 @@ const SCREENS = {
       ctl('n_lock','Vocabulary lock','switch',true),
       ctl('n_drift','Report drift daily','switch',true)
     ]}] },
-  ops:{ rail:'agent', icon:'rocket_launch', label:'Operations', badge:'v3.2', title:'Operations & releases', file:'release', kind:'table',
+  ops:{ rail:'agent', icon:'rocket_launch', label:'Operations', badge:'', title:'Operations & releases', file:'release', kind:'table',
     sub:'Release history and the update feed. Packages are unsigned by policy; the console says so plainly rather than implying verification.',
     table:{ add:'Cut release', grid:'1fr 1fr 1fr 1fr 110px', cols:['Version','Published','Artifacts','Duration','State'],
-      rows:[['3.2.0','today 08:41','Setup, RELEASES, nupkg','06:12','Published'],['3.1.4','2 days ago','Setup, RELEASES, nupkg, delta','05:48','Published'],['3.1.3','5 days ago','Setup, RELEASES, nupkg','06:31','Published']] },
+      rows:[] },
     groups:[{ title:'Updates', desc:'Unsigned artifacts. The operating system may warn about an unknown publisher — that is expected.', ctls:[
       ctl('o_check','Check for updates','segmented','On start + hourly',{ options:['On start','On start + hourly','Manual'] }),
       ctl('o_stage','Stage in background','switch',true),
@@ -3270,25 +3140,25 @@ const SCREENS = {
       ctl('o_channel','Channel','segmented','Stable',{ options:['Stable','Beta'] }),
       ctl('o_hash','Verify package hashes','switch',true)
     ]}] },
-  secrets:{ rail:'agent', icon:'key', label:'Secret intake', badge:'6', title:'Secret intake', file:'templates/secret-intake', kind:'table',
+  secrets:{ rail:'agent', icon:'key', label:'Secret intake', badge:'', title:'Secret intake', file:'templates/secret-intake', kind:'table',
     sub:'Credentials are captured once through the intake flow and referenced by name everywhere else. No secret value is ever rendered.',
     table:{ add:'Intake a secret', grid:'1fr 1fr 1fr 110px', cols:['Name','Used by','Rotated','State'],
-      rows:[['carrier-primary-auth','pjsip trunk','12 days ago','Sealed'],['odbc-cdr','cdr_odbc','30 days ago','Sealed'],['ari-stasis','ari','4 days ago','Sealed'],['hub-ingest','status hub','1 day ago','Sealed']] },
+      rows:[] },
     groups:[{ title:'Handling', desc:'Storage and rotation rules for everything in the intake.', ctls:[
       ctl('x_store','Storage','segmented','OS keychain',{ options:['OS keychain','Encrypted file'] }),
       ctl('x_rotate','Rotation reminder','slider',90,{ min:7, max:365, unit:' days' }),
       ctl('x_mask','Mask in all surfaces','switch',true),
       ctl('x_export','Allow export','switch',false)
     ]}] },
-  servers:{ rail:'app', icon:'dns', label:'Deploy & servers', badge:'3', title:'Deploy a server', file:'provisioning', kind:'servers',
+  servers:{ rail:'app', icon:'dns', label:'Deploy & servers', badge:'', title:'Deploy a server', file:'provisioning', kind:'servers',
     sub:'This is the main road: press the big button and a working PBX exists in about seven seconds. Connecting to a PBX somebody else built is underneath, and it is the side road.',
     table:{ add:'New connection', grid:'1fr 1fr 1.2fr 1fr 120px', cols:['Profile','Route','Target','Interface','State'],
-      rows:[['pbx-hq','SSH','asterisk-ops@pbx-hq.internal','AMI 5038 TLS','Connected'],['pbx-lab','Local Docker','asterisk-lab','AMI 5038','Connected'],['pbx-edge','SSH Docker','asterisk-edge @ 10.20.4.10','ARI 8089 TLS','Unregistered']] },
+      rows:[] },
     groups:[{ title:'Route', desc:'How this console reaches Asterisk. Everything below reshapes itself around this answer.', ctls:[
       ctl('sv_kind','Connection type','segmented','Local',{ options:['Local','Local Docker','SSH','SSH Docker'], info:'Local is the same machine. Local Docker is a container here. SSH is another machine. SSH Docker is a container on another machine, reached over SSH and then into the container.' }),
-      ctl('sv_host','Host','select','pbx-hq.internal',{ options:['localhost','pbx-hq.internal','pbx-branch.internal','10.20.4.10'] }),
-      ctl('sv_container','Container','select','asterisk-prod',{ options:['asterisk-prod','asterisk-lab','asterisk-edge'] }),
-      ctl('sv_user','SSH user','select','asterisk-ops',{ options:['asterisk-ops','root','deploy'] }),
+      ctl('sv_host','Host','select','',{ options:[], info:'No target identities are invented. The host must provide the reachable target list.' }),
+      ctl('sv_container','Container','select','',{ options:[], info:'The host supplies running container identities.' }),
+      ctl('sv_user','SSH user','select','',{ options:[], info:'The host supplies permitted connection identities.' }),
       ctl('sv_sshport','SSH port','stepper',22,{ min:1, max:65535 }),
       ctl('sv_hostkey','Strict host key checking','switch',true,{ info:'On means a changed host key aborts the connection instead of asking you to accept it. That prompt is how people get compromised.' })
     ]},{ title:'Manager interface', desc:'AMI for live events and CLI, ARI for Stasis applications.', ctls:[
@@ -3304,10 +3174,10 @@ const SCREENS = {
       ctl('da_stop','Stop','segmented','Stop',{ options:['Stop'], action:'daemon-stop', info:'Stops Asterisk on the connected target. Every call in progress ends.' }),
       ctl('da_restart','Restart','segmented','Restart',{ options:['Restart'], action:'daemon-restart', info:'Stops and starts Asterisk on the connected target. Every call in progress ends.' })
     ]}] },
-  notifications:{ rail:'app', icon:'notifications', label:'Notifications', badge:'4', title:'Notification centre', file:'console', kind:'table',
+  notifications:{ rail:'app', icon:'notifications', label:'Notifications', badge:'', title:'Notification centre', file:'console', kind:'table',
     sub:'Every non-blocking notification the console has raised, reviewable after the fact so nothing important disappears with a toast.',
     table:{ add:'Mark all read', grid:'1fr 2fr 1fr 110px', cols:['Source','Message','When','State'],
-      rows:[['pjsip','Endpoint 1003 became unreachable','08:41','Unread'],['sync','Memory sync r-4821 attested','08:14','Read'],['ops','Release 3.2.0 published (unsigned)','08:41','Read'],['queue','support breached service level for 90s','07:58','Unread']] },
+      rows:[] },
     groups:[{ title:'Delivery', desc:'What interrupts you and what merely gets recorded.', ctls:[
       ctl('nt_toast','Show toasts','switch',true),
       ctl('nt_sound','Play a sound','switch',false),
@@ -3316,7 +3186,7 @@ const SCREENS = {
       ctl('nt_keep','Keep history for','slider',30,{ min:1, max:365, unit:' days' })
     ]}] },
   history:{ rail:'app', icon:'history', label:'History & git', badge:'', title:'History', file:'/etc/asterisk/.git', kind:'history',
-    sub:'Every control you touch commits to a local git repository the moment you touch it. This screen is the full history: the commit graph, the exact diff, blame per option, branches for trying things out, and a restore that runs the four gates.',
+    sub:'Only host-supplied history receipts appear here. Commit, diff, branch, restore, and export actions remain unavailable until their handlers are registered.',
     groups:[{ title:'Commit behaviour', desc:'What happens on every single change.', ctls:[
       ctl('hi_commit','Commit on every change','switch',true,{ info:'On means each toggle, slider and picker writes a real git commit against the configuration directory. Off batches changes until you commit by hand — which is how people lose track of what they changed.' }),
       ctl('hi_msg','Commit message style','segmented','Descriptive',{ options:['Terse','Descriptive','Conventional'] }),
@@ -3331,16 +3201,7 @@ const SCREENS = {
       ctl('hi_branch','Restore onto a new branch instead of main','switch',true),
       ctl('hi_reload','Reload Asterisk after a restore','switch',true)
     ]}] },
-  arcade:{ rail:'app', icon:'stadia_controller', label:'Arcade', badge:'', title:'Confirmation credits', file:'arcade', kind:'arcade',
-    sub:'The four-gate ceremony is thorough and, twelve times a day, exhausting. Win credits here and spend one to skip a ceremony. Credits are earned, never bought with money, and destructive actions above the danger line always cost two.',
-    groups:[{ title:'Spending rules', desc:'How credits are allowed to replace a ceremony.', ctls:[
-      ctl('cr_enable','Allow credits to skip ceremonies','switch',true),
-      ctl('cr_cost','Cost per skip','stepper',1,{ min:1, max:5 }),
-      ctl('cr_danger','High-danger actions still need the full ceremony','switch',true,{ info:'Restarting Asterisk, unloading a module and deleting an endpoint are above the danger line. Leave this on unless you enjoy explaining outages.' }),
-      ctl('cr_cap','Maximum credits held','stepper',20,{ min:1, max:99 }),
-      ctl('cr_expire','Credits expire after','slider',7,{ min:1, max:90, unit:' days' })
-    ]}] },
-  customise:{ rail:'app', icon:'auto_awesome', label:'Customise everything', badge:'∞', title:'Customise everything', file:'console profile', kind:'generic',
+  customise:{ rail:'app', icon:'auto_awesome', label:'Customise everything', badge:'', title:'Customise everything', file:'console profile', kind:'generic',
     sub:'The global layer. Every one of these reaches across the whole console, and every individual element can still override it from its own right-click menu.',
     groups:[{ title:'Identity', desc:'What this console calls itself on screen. The name is a label like every other label here, so it is yours to change.', ctls:[
       ctl('id_name','Display name','text','',{ placeholder:'Ding PBX Console', info:'Changes the title bar, the About screen and notifications. It does not move your data, your saved servers or your credentials, and diagnostics and bug reports still say Ding PBX Console so anyone reading one knows what software it came from.' }),
@@ -3363,6 +3224,7 @@ const SCREENS = {
       ctl('att_low','Low stimulation','switch',false,{ info:'Fewer moving things, quieter colour, and only the notifications that genuinely need a person. If your system already asks for reduced motion, that is honoured whether or not this is on.' }),
       ctl('att_time','Time awareness','switch',false,{ info:'Shows how long this session has been open and how long since anything changed, where the work is.' }),
       ctl('att_one','One thing at a time','switch',false,{ info:'Keeps one next action visible, chosen by you. It survives a context switch.' }),
+      ctl('att_next','Current next action','text','',{ placeholder:'What are you doing right now?', info:'The text is your chosen next action. It is stored with the mode and remains visible wherever work is shown.' }),
       ctl('att_momentum','Momentum','switch',false,{ info:'A dismissible prompt when something has been untouched for a while. Saying not now is respected for half an hour, not for thirty seconds.' })
     ]},
     { title:'Dialogs', desc:'Decoration in dialogs and message boxes.', ctls:[
@@ -3373,7 +3235,7 @@ const SCREENS = {
     ]},{ title:'Fun', desc:'How playful the console is allowed to be. This is a real setting, not a joke — it scales celebrations, copy and randomness together.', ctls:[
       ctl('fun_level','Fun level','slider',2,{ min:0, max:4, info:'0 is a bank. 1 is polite. 2 is the default — celebrations on meaningful wins. 3 adds jokes and bolder motion. 4 is confetti for changing a slider, rainbow fills and an app that will not stop congratulating you.' }),
       ctl('fun_copy','Copy tone','segmented','Warm',{ options:['Terse','Neutral','Warm','Comedian'] }),
-      ctl('fun_celebrate','Celebrate on','chips',['Big wins','Security improvements'],{ options:['Every change','Big wins','Security improvements','Minigame wins','Nothing'] }),
+      ctl('fun_celebrate','Celebrate on','chips',['Big wins','Security improvements'],{ options:['Every change','Big wins','Security improvements','Nothing'] }),
       ctl('fun_confetti','Confetti density','slider',90,{ min:0, max:300, unit:' pieces' }),
       ctl('fun_sound','Sound effects','switch',false),
       ctl('fun_mascot','Show the mascot','switch',false),
@@ -3408,14 +3270,14 @@ const SCREENS = {
       ctl('th_tint','Tint surfaces with the accent','slider',6,{ min:0, max:40, unit:'%' })
     ]},{ title:'Behaviour', desc:'What the console does without being asked.', ctls:[
       ctl('bh_start','Open on launch','select','Dashboard',{ options:['Dashboard','Endpoints','Last screen','Customise everything'] }),
-      ctl('bh_confirm','Confirmation','segmented','Four gates',{ options:['Four gates','Credits allowed','Single confirm'] }),
+      ctl('bh_confirm','Confirmation','segmented','Four gates',{ options:['Four gates','Single confirm'] }),
       ctl('bh_commit','Commit every change to git','switch',true),
       ctl('bh_lockdefault','Default lock method','select','PIN',{ options:['PIN','Password','Password + PIN','Password + PIN + TOTP'] }),
       ctl('bh_wizard','Offer the wizard first on every screen','switch',false),
       ctl('bh_explain','Show explain buttons','switch',true),
       ctl('bh_tour','Offer the tour on launch','switch',false)
     ]},{ title:'Profiles', desc:'Save the entire look and behaviour, then move it between machines.', ctls:[
-      ctl('pr_active','Active profile','select','Default',{ options:['Default','Night operations','Training room','Demo'] }),
+      ctl('pr_active','Active profile','select','',{ options:[], info:'The host supplies verified saved profiles. No sample profile is inserted.' }),
       ctl('pr_sync','Sync profile with agent memory','switch',true),
       ctl('pr_perscreen','Allow per-screen overrides','switch',true),
       ctl('pr_export','Include appearance overrides in exports','switch',true)
@@ -3491,48 +3353,7 @@ const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_str
 
 const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','httpd','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
 
-const GAMES = [
-  { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },
-  { id:'dtmf', kind:'dtmf', icon:'dialpad', name:'Tone memory', reward:3, blurb:'A sequence flashes on the display. Tap it back on the keypad. One digit longer each round.' },
-  { id:'sort', kind:'sort', icon:'swap_vert', name:'Codec sort', reward:2, blurb:'Put five codecs in bandwidth order, lowest first, then check your answer.' },
-  { id:'match', kind:'match', icon:'extension', name:'Match the option', reward:3, blurb:'Tap an option, then tap what it does. Six pairs, no penalty for thinking.' },
-  { id:'spot', kind:'spot', icon:'travel_explore', name:'Spot the misconfiguration', reward:4, blurb:'One line in this config block is wrong. Find it. Genuinely useful practice.' },
-  { id:'dial', kind:'reflex', icon:'timer', name:'Speed dial', reward:1, blurb:'An extension appears. Tap its last digit before it changes. Pure reflex.' },
-  { id:'ring', kind:'reflex', icon:'notifications_active', name:'Ring rhythm', reward:1, blurb:'Same reflex, faster cadence. Australia is harder than it sounds.' },
-  { id:'trunk', kind:'whack', icon:'cable', name:'Patch the trunk', reward:2, blurb:'Lines light up across the switchboard. Patch each one before it drops. Genuinely 1962.' }
-];
-
-const AUTH_REQS = [
-  { id:'a1', partner:'carrier-primary', icon:'lan', risk:'High risk', when:'14 minutes ago',
-    title:'carrier-primary wants to add a new source address',
-    body:'They are asking permission to send calls to you from 203.0.113.19 in addition to their existing address. Saying yes widens who may deliver calls onto your PBX; saying no changes nothing and their existing address keeps working.',
-    facts:[{ k:'New address', v:'203.0.113.19' }, { k:'Existing', v:'198.51.100.7' }, { k:'Affects', v:'inbound only' }] },
-  { id:'a2', partner:'branch-iax', icon:'graphic_eq', risk:'Low risk', when:'2 hours ago',
-    title:'branch-iax wants to add opus to the shared link',
-    body:'A codec addition. Better audio, slightly more CPU on both sides, no change to who can reach you. Reversible at any time from either end.',
-    facts:[{ k:'Codec', v:'opus' }, { k:'Current', v:'g722, ulaw' }, { k:'Reversible', v:'yes' }] },
-  { id:'a3', partner:'carrier-backup', icon:'speed', risk:'Medium risk', when:'yesterday',
-    title:'carrier-backup wants to raise the concurrent call cap to 120',
-    body:'Doubling the ceiling means a busy day is handled, and also that a fault or a compromised account can cost twice as much before anything trips. Consider a spend alert alongside a yes.',
-    facts:[{ k:'Requested cap', v:'120 calls' }, { k:'Current cap', v:'60 calls' }, { k:'Billing impact', v:'possible' }] }
-];
-
-const CODEC_ORDER = ['g729 · 8 kbps', 'gsm · 13 kbps', 'ulaw · 64 kbps', 'g722 · 64 kbps', 'opus · 128 kbps'];
-
-const MATCH_PAIRS = [
-  ['direct_media', 'audio skips Asterisk'],
-  ['rewrite_contact', 'fixes phones behind NAT'],
-  ['wrapuptime', 'agent rest between calls'],
-  ['qualify_frequency', 'how often we ping the phone'],
-  ['joinempty', 'may a caller enter an empty queue'],
-  ['max_contacts', 'devices sharing one identity']
-];
-
-const SPOT_LINES = [
-  { t:'[1005]', bad:false }, { t:'type = endpoint', bad:false },
-  { t:'transport = transport-tls', bad:false }, { t:'context = from-external', bad:true },
-  { t:'allow = opus,g722,ulaw', bad:false }, { t:'media_encryption = sdes', bad:false }
-];
+const AUTH_REQS = [];
 
 const REGEX_GROUPS = [
   { title:'Anchors', items:[['^','starts with'],['$','ends with'],['\\b','word edge']] },
@@ -3620,39 +3441,17 @@ const APPEAR_GROUPS = [
   ]}
 ];
 
-const ONE_CLICK_LOG = [
-  { text:'Waking the server up. It was asleep. Very rude of us.', ms:'0.4s' },
-  { text:'Teaching the server what a telephone is. It is taking this well.', ms:'1.1s' },
-  { text:'Installing Asterisk. Removing the seventy options nobody has ever used.', ms:'2.6s' },
-  { text:'Inventing four extensions. They are 1001 to 1004, because imagination is expensive.', ms:'3.4s' },
-  { text:'Building a queue called support. Nobody is in it yet. Enjoy the silence.', ms:'4.0s' },
-  { text:'Generating certificates. Politely refusing to sign anything, as is tradition.', ms:'4.9s' },
-  { text:'Recording a hold music opinion. It is fine. It is always just fine.', ms:'5.5s' },
-  { text:'Hardening the thing so a stranger cannot dial Antarctica on your money.', ms:'6.3s' },
-  { text:'Telling the memory ledger what we did, so future you cannot deny it.', ms:'6.9s' },
-  { text:'Done. Your phone system is enterprise grade and slightly smug.', ms:'7.2s' }
-];
-
 const NODES = [
-  { id:'n1', x:24, y:28, icon:'call_received', title:'Inbound · DID 5550100', detail:'context from-external\nexten _X. => 1' },
-  { id:'n2', x:252, y:28, icon:'schedule', title:'Business hours', detail:'GotoIfTime 09:00-17:00\nmon-fri' },
-  { id:'n3', x:252, y:164, icon:'dialpad', title:'IVR · main', detail:'Background(welcome)\nWaitExten(7)' },
-  { id:'n4', x:478, y:112, icon:'groups', title:'Queue · support', detail:'Queue(support,tT,,,180)' },
-  { id:'n5', x:478, y:248, icon:'voicemail', title:'Voicemail · 1004', detail:'VoiceMail(1004@default,u)' },
-  { id:'n6', x:24, y:300, icon:'nightlight', title:'After hours', detail:'Playback(closed-message)\nHangup()' }
+  { id:'unavailable', x:24, y:28, icon:'cloud_off', title:'No verified dialplan data', detail:'Host read unavailable' }
 ];
 
-const EDGES = [['n1','n2'],['n2','n3'],['n3','n4'],['n3','n5'],['n2','n6']];
+const EDGES = [];
 const NW = 196, NH = 68;
 
 const NODE_CTLS = {
-  n1:[ctl('dp_ctx','Context','select','from-external',{ options:['from-external','from-internal','from-trunk'] }), ctl('dp_pat','Match pattern','segmented','Any number',{ options:['Exact','Prefix','Any number'] }), ctl('dp_cid','Screen caller ID','switch',true)],
-  n2:[ctl('dp_days','Days','chips',['mon','tue','wed','thu','fri'],{ options:['mon','tue','wed','thu','fri','sat','sun'] }), ctl('dp_from','Opens','slider',9,{ min:0, max:23, unit:':00' }), ctl('dp_to','Closes','slider',17,{ min:0, max:23, unit:':00' }), ctl('dp_hol','Respect holiday list','switch',true)],
-  n3:[ctl('dp_prompt','Prompt','select','welcome-greeting',{ options:['welcome-greeting','support-options','closed-message'] }), ctl('dp_wait','Wait for digits','slider',7,{ min:1, max:30, unit:'s' }), ctl('dp_barge','Allow barge-in','switch',true)],
-  n4:[ctl('dp_q','Queue','select','support',{ options:['support','sales','billing'] }), ctl('dp_qt','Maximum wait','slider',180,{ min:30, max:900, step:30, unit:'s' }), ctl('dp_moh','Hold class','select','default',{ options:['default','jazz','ringing'] }), ctl('dp_opts','Queue options','chips',['t','T'],{ options:['t','T','r','c','n','i'] })],
-  n5:[ctl('dp_box','Mailbox','select','1004',{ options:['1001','1002','1004','1010'] }), ctl('dp_greet','Greeting','segmented','unavailable',{ options:['unavailable','busy','none'] }), ctl('dp_skip','Skip instructions','switch',false)],
-  n6:[ctl('dp_msg','Message','select','closed-message',{ options:['closed-message','holiday-message'] }), ctl('dp_after','Then','segmented','Hangup',{ options:['Hangup','Voicemail','Forward'] })]
+  unavailable:[]
 };
+
 
 const step = (label, t, b, why, ctls, warn) => ({ label, t, b, why, ctls:ctls || [], warn:warn || '' });
 
@@ -3665,7 +3464,7 @@ const WIZARDS = {
        ctl('w_users','How many people share it?','stepper',1,{ min:1, max:10 })]),
     step('Identity','Give it a name','The name is the only thing typed in this whole wizard, because a name cannot be guessed for you. Extension numbers are conventional but any label works.',
       'Asterisk uses this string as the section header in pjsip.conf and as the username the phone registers with. Change it later and the phone stops registering until it is reconfigured too.',
-      [ctl('w_name','Name','text','1005'),
+       [ctl('w_name','Name','text',''),
        ctl('w_display','Caller ID name source','segmented','Directory',{ options:['Directory','Custom','Inherit trunk'] }),
        ctl('w_ext','Reachable on extension','switch',true),
        ctl('w_dir','List in the dial-by-name directory','switch',true)]),
@@ -3679,7 +3478,7 @@ const WIZARDS = {
     step('Security','Who is allowed to be it?','Authentication and how many devices may claim this identity at once.',
       'max_contacts above one lets the same extension ring on a desk phone and a mobile app together. It also means a stolen credential can quietly add a second device, so keep the number as low as it needs to be.',
       [ctl('w_auth','Authentication','segmented','Password',{ options:['Password','Certificate','IP address'] }),
-       ctl('w_secret','Credential','select','generate new',{ options:['generate new','carrier-primary-auth','reuse existing'], info:'Generated credentials go straight into the secret intake. The value is never displayed, not even once.' }),
+       ctl('w_secret','Credential','select','',{ options:[], info:'Credential choices remain empty until the host supplies vault-backed references.' }),
        ctl('w_maxcontacts','Devices allowed','stepper',1,{ min:1, max:10 }),
        ctl('w_acl','Restrict to network','select','trusted-nets',{ options:['trusted-nets','branch-offices','anywhere'] })]),
     step('Media','How should audio behave?','Sensible defaults are chosen already. If none of these words mean anything yet, press Next — this is what a working office phone uses.',
@@ -3706,7 +3505,7 @@ const WIZARDS = {
        ctl('wq_hours','Only during business hours','switch',true)]),
     step('Members','Who answers it?','Agents are picked from the endpoint list, and their penalty decides who is tried first.',
       'Penalty is a tier number, not a punishment. Penalty 0 rings first; penalty 1 only rings if nobody at 0 picked up.',
-      [ctl('wq_members','Members','order',['1001','1002','1004'],{ pool:['1003','reception','softphone-ada'] }),
+       [ctl('wq_members','Members','order',[],{ pool:[], info:'The host supplies verified endpoint identities. No sample members are inserted.' }),
        ctl('wq_penalty','Use penalty tiers','switch',false),
        ctl('wq_auto','Pause an agent after a missed call','segmented','no',{ options:['no','yes','all'] })]),
     step('Strategy','How are calls offered?','Choose how a waiting call is handed to your members.',
@@ -3730,17 +3529,17 @@ const WIZARDS = {
     step('Reach','How do we reach Asterisk?','Four routes are supported. Pick the one that matches where the PBX actually runs.',
       'Local means the same machine as this console. A container needs a name, not an address. SSH tunnels the manager port so it never crosses the network in the open.',
       [ctl('sv_kind','Connection type','segmented','Local',{ options:['Local','Local Docker','SSH','SSH Docker'], info:'Local Docker is a container running on this machine. SSH Docker is a container on another machine, reached over SSH first and then into the container.' }),
-       ctl('sv_profile','Save as','select','New profile',{ options:['New profile','pbx-hq','pbx-branch','lab'] })]),
+       ctl('sv_profile','Save as','select','New profile',{ options:['New profile'] })]),
     step('Target','Where exactly?','Hosts, containers and sockets are discovered and offered as a list — nothing here is typed.',
       'The console enumerates running containers and your SSH config, so a typo in a hostname is not a failure mode that exists.',
-      [ctl('sv_host','Host','select','pbx-hq.internal',{ options:['localhost','pbx-hq.internal','pbx-branch.internal','10.20.4.10'] }),
-       ctl('sv_container','Container','select','asterisk-prod',{ options:['asterisk-prod','asterisk-lab','asterisk-edge'] }),
+      [ctl('sv_host','Host','select','',{ options:[], info:'The host supplies verified destinations. No sample identity is used.' }),
+       ctl('sv_container','Container','select','',{ options:[], info:'The host supplies verified running container identities.' }),
        ctl('sv_sshport','SSH port','stepper',22,{ min:1, max:65535 }),
-       ctl('sv_user','SSH user','select','asterisk-ops',{ options:['asterisk-ops','root','deploy'] })]),
+       ctl('sv_user','SSH user','select','',{ options:[], info:'The host supplies permitted connection identities.' })]),
     step('Credentials','How do we authenticate?','Keys come from the agent, the machine keychain or the secret intake. No private key is ever displayed.',
       'Host key checking is on by default. If the host key changes, the console refuses to connect rather than asking you to accept it — that prompt is how people get compromised.',
       [ctl('sv_auth','SSH authentication','segmented','Agent key',{ options:['Agent key','Keychain key','Secret intake'] }),
-       ctl('sv_key','Key','select','id_ed25519 (agent)',{ options:['id_ed25519 (agent)','ops-deploy (keychain)','pbx-hq (intake)'] }),
+       ctl('sv_key','Key','select','',{ options:[], info:'The host supplies credential-vault references without exposing secret material.' }),
        ctl('sv_hostkey','Strict host key checking','switch',true),
        ctl('sv_sudo','Escalate with sudo','switch',false)]),
     step('Manager','Manager interface','AMI or ARI, its port, and whether it is wrapped in TLS. Over SSH the port is forwarded, so it never leaves the far machine.',
@@ -3795,7 +3594,7 @@ const WIZARDS = {
     step('Owner','Whose mailbox?','A mailbox belongs to a person or a team, and that choice changes the greeting and the notifications.',
       'Team mailboxes need several notification addresses and a longer message limit. Personal ones almost never do.',
       [ctl('wv_kind','Mailbox type','segmented','Person',{ options:['Person','Team','Department','Fax'] }),
-       ctl('wv_box','Number','select','1005',{ options:['1005','1006','1011','2000'] }),
+       ctl('wv_box','Number','select','',{ options:[], info:'The host supplies verified mailbox identities. No sample mailbox is inserted.' }),
        ctl('wv_ext','Link to extension','switch',true)]),
     step('Greeting','What callers hear','Unavailable, busy and name greetings, or the default system prompt.',
       'A named greeting reassures the caller they reached the right person. Without one they leave a vaguer, longer, less useful message.',
@@ -3827,7 +3626,7 @@ const WIZARDS = {
     step('Networks','Who may talk to us','Named access lists applied to transports and endpoints.',
       'An allow-list of your own networks plus your carrier stops almost every automated attack before authentication is even attempted.',
       [ctl('ws_acl','Access list','select','trusted-nets',{ options:['trusted-nets','branch-offices','carrier-only','deny-all'] }),
-       ctl('ws_nets','Permit','chips',['10.20.0.0/16'],{ options:['10.20.0.0/16','198.51.100.0/24','192.0.2.0/24','0.0.0.0/0'] }),
+       ctl('ws_nets','Permit','chips',[],{ options:[], info:'The host supplies verified network ranges.' }),
        ctl('ws_ban','Ban after failed attempts','stepper',5,{ min:0, max:50 }),
        ctl('ws_bantime','Ban for','slider',600,{ min:60, max:86400, step:60, unit:'s' })]),
     step('Transport','Certificates and ciphers','TLS for signalling, SRTP or DTLS for media.',
@@ -3864,7 +3663,7 @@ const WIZARDS = {
     step('Safety','How risky is this?','The console classifies the command and tells you what it will touch.',
       'A reload is not free: it re-reads configuration and can drop calls that are mid-negotiation, which is why even read-mostly commands are classified.',
       [ctl('wc_dry','Dry run first','switch',true),
-       ctl('wc_confirm','Confirmation','segmented','Full ceremony',{ options:['Full ceremony','Spend a credit','None'] }),
+       ctl('wc_confirm','Confirmation','segmented','Full ceremony',{ options:['Full ceremony','None'] }),
        ctl('wc_log','Record the output to history','switch',true)]),
     step('Review','Run it','The assembled command, what it does, and what it will not do.',
       'Output is captured to local history so you can compare today with last week without running it twice.',
@@ -3931,19 +3730,19 @@ const ONBOARD = [
     ctl('ob_hours','Do you close at night?','switch',true,{ info:'Recorded as a preference only — a real schedule needs actual open/close times, which this wizard does not ask for. Set it up afterward in Configure > Dialplan.' })] },
   { icon:'dns', t:'Where should it run?', b:'The console can provision onto this machine, a container, or a server over SSH. It checks the target is reachable and has room before it starts.', ctls:[
     ctl('ob_where','Target','segmented','This machine',{ options:['This machine','Local Docker','SSH','SSH Docker'] }),
-    ctl('ob_host','Host','select','pbx-hq.internal',{ options:['localhost','pbx-hq.internal','pbx-branch.internal','10.20.4.10'] }),
+    ctl('ob_host','Host','select','',{ options:[], info:'No target is selected until the host provides a verified destination.' }),
     ctl('ob_tls','Encrypt everything','switch',true)] },
-  { icon:'shield_lock', t:'Change control', b:'Destructive actions run a four-gate ceremony: an operator key, a held arming switch, a slide-to-commit and a five-target attention check. Every change also commits to a local git repository.', ctls:[
-    ctl('ob_gates','Confirmation','segmented','All four gates',{ options:['All four gates','Key and switch only','Credits allowed'] }),
+  { icon:'shield_lock', t:'Change control', b:'Destructive host actions require two independent keys, a full-range slider, and a verified operation receipt. Local intent never reports completion.', ctls:[
+    ctl('ob_gates','Confirmation','segmented','All four gates',{ options:['All four gates','Key and switch only'] }),
     ctl('ob_log','Attest every change to memory','switch',true)] },
-  { icon:'bolt', t:'Ready to deploy', b:'One press and the console provisions the server, creates your extensions, builds the menu, sets the hours, issues certificates and hardens the lot. Roughly seven seconds, narrated.', ctls:[
+  { icon:'bolt', t:'Ready to review', b:'The host must provide an exact deployment plan, target, prerequisites, and rollback route before submission becomes available.', ctls:[
     ctl('ob_tour','Take the tour afterwards','switch',true)] }
 ];
 
 const TOUR = [
   { t:'The rail', b:'Six areas. Telephony, media, records, system, the agent memory layer, and this app.', x:'110px', y:'120px' },
   { t:'Section list', b:'Each area holds its screens. The badge shows how many objects live there right now.', x:'380px', y:'160px' },
-  { t:'Every control is a control', b:'Switches, sliders, steppers, chips and pickers. The only free text anywhere is a name.', x:'620px', y:'320px' },
+  { t:'Controls expose their capability', b:'Each interactive control names its source and stays disabled with a reason until a real handler is available.', x:'620px', y:'320px' },
   { t:'Explain button', b:'Every screen and every setting has one. It explains the idea as if you learned what a telephone was yesterday.', x:'720px', y:'90px' },
   { t:'Guided wizard', b:'Opens beside the live configuration so you can watch it change as you answer.', x:'880px', y:'90px' }
 ];
@@ -3954,13 +3753,21 @@ const CLI_STEPS = [
   { id:'target', label:'Target', options:['endpoints','channels','contacts','registrations'] }
 ];
 
+const HOST_CONTRACT = Object.freeze({
+  states:['loading','verified','empty','unavailable','partial','stale'],
+  cell:{ value:'host value or null', state:'verified or unread' },
+  capability:{ enabled:false, reason:'required when disabled', destructive:false },
+  receipt:{ ok:true, id:'required stable receipt identifier', summary:'host-confirmed result', completedAt:'ISO-8601 timestamp' },
+  callbacks:'hostCallbacks[actionId](payload) returns a receipt or a promise for one'
+});
+
 class ConsoleShell extends DCLogic {
   state = {
     railId:'pbx', screen:'dash', mode:'Beginner', values:{},
     infoOpen:false, infoTitle:'', infoBody:'', infoPlain:'', infoX:'50%', infoY:'160px', infoDoc:null, infoKey:'',
     wizardOpen:false, wizardStep:0, wizardCtl:null, paletteOpen:false,
-    ceremonyOpen:false, cStep:0, keyTurned:false, holdMs:0, slideVal:0, moleHits:0, moleTime:15, moleIdx:-1, ceremonyTitle:'', ceremonyCmd:'',
-    onboardOpen:true, onboardStep:0, tourOpen:false, tourStep:0,
+    ceremonyOpen:false, ceremonyTitle:'', ceremonyBody:'', ceremonyCmd:'', operationPayload:{}, cStep:0, keyTurned:false, holdMs:0, slideVal:0, moleHits:0, moleTime:15, moleIdx:-1,
+    onboardOpen:false, onboardStep:0, tourOpen:false, tourStep:0,
     toastOpen:false, toastText:'', nodeId:'n1', zoom:100, tableFilter:'All',
     cli:{ verb:'pjsip', obj:'show', target:'endpoints' },
     regex:['^memory/', 'projects', '\\.md$'],
@@ -3968,10 +3775,7 @@ class ConsoleShell extends DCLogic {
     regexOpen:false, regexTarget:'nav', regexX:'300px', regexY:'120px', regexFlags:['i'],
     ctxOpen:false, ctxX:'0px', ctxY:'0px', ctxTarget:'', ctxKind:'screen',
     locks:{}, lockOpen:false, lockTarget:'', lockKey:'', lockStep:0, lockMethod:'PIN', pin:'', password:'', pinReveal:false, lockX:'40%', lockY:'22%',
-    credits:3, game:'whack', gameScore:0, gameTime:0, gameCell:-1, gamePlaying:false,
-    dtmfSeq:['4','7','2','9'], dtmfIn:[], dtmfShow:true,
-    sortList:['ulaw · 64 kbps','opus · 128 kbps','g729 · 8 kbps','g722 · 64 kbps','gsm · 13 kbps'],
-    matchSel:'', matchDone:[], spotFound:-1, reflexNum:'1004', selected:[], authAnswers:{},
+    selected:[], authAnswers:{},
     sureOpen:false, sureTitle:'', sureBody:'', sureHits:0, sureNeed:3, sureCell:-1, sureAction:null,
     tabs:['dash', 'endpoints', 'canvas'], pinned:['dash'], dock:'left',
     nodePos:{}, edgeList:EDGES.map(e => e.slice()), nodeDrag:null, fullscreen:false,
@@ -3980,125 +3784,99 @@ class ConsoleShell extends DCLogic {
     tabFilterOpen:false, tabFilterMode:'has', tabFilterText:'', ctxSub:'',
     rxText:'', rxManual:false, tabFilterColour:'', rndNonce:1,
     tabDrag:-1, tabOver:-1, groups:[], ctxGroupId:'', groupRenameOpen:false,
-    branch:'main', commits:[
-      { sha:'8f2a1c4', file:'queues.conf', screen:'queues', key:'q_strategy', label:'strategy', from:'ringall', to:'leastrecent', when:'12 min ago', author:'you', branch:'main', tag:'' },
-      { sha:'2d90b17', file:'pjsip.conf', screen:'endpoints', key:'e_encryption', label:'media_encryption', from:'no', to:'sdes', when:'1 h ago', author:'you', branch:'main', tag:'v3.2.0' },
-      { sha:'a41e88d', file:'logger.conf', screen:'logger', key:'g_size', label:'Rotate at', from:'20', to:'50', when:'3 h ago', author:'wizard', branch:'main', tag:'' },
-      { sha:'c07bb52', file:'pjsip.conf', screen:'endpoints', key:'e_maxcontacts', label:'max_contacts', from:'1', to:'2', when:'yesterday', author:'you', branch:'hardening', tag:'' },
-      { sha:'5be3390', file:'acl.conf', screen:'security', key:'s_guest', label:'Allow guest calls', from:'yes', to:'no', when:'2 d ago', author:'you', branch:'main', tag:'' }
-    ], histSel:'', histFilter:'All', histCompare:[],
+    branch:'', commits:[], histSel:'', histFilter:'All', histCompare:[],
     drag:null, dlgPos:{}, dlgDock:{ appear:'right', wizard:'right' }, dlgSize:{}, resize:null,
     unlockOpen:false, unlockKey:'', unlockPin:'', unlockPw:'',
     appearOpen:false, appearTarget:'', appearState:'Default',
     oneClickMode:'Funny', oneClickRunning:false, oneClickStep:0,
-    celebrate:false, celebrateTitle:'', celebrateSub:''
+    celebrate:false, celebrateTitle:'', celebrateSub:'',
+    toastSeverity:'info', notificationEvents:[], contextQuery:'',
+    tabSearchQueries:{ strip:'', group:'', groups:'', master:'' },
+    confirmKeyOne:false, confirmKeyTwo:false,
+    operationState:'idle', operationAction:'', operationReceipt:null
   };
 
-  fire = (title, sub) => {
+  fire = (title, sub, receipt) => {
+    if (!receipt || receipt.ok !== true || !receipt.id) {
+      this.notify('info', 'Awaiting host receipt', title + ' was not announced as complete because the host has not returned a verified operation receipt.');
+      return;
+    }
     this.setState({ celebrate:true, celebrateTitle:title, celebrateSub:sub });
     clearTimeout(this._cf);
     this._cf = setTimeout(() => this.setState({ celebrate:false }), 2600);
   };
 
-  set = (k, v) => this.setState(s => ({ [k]:v }));
+  USER_MUTATION_ACTIONS = [
+    { action:'set', key:'canvasTool', state:'canvasTool' }, { action:'set', key:'grid', state:'grid' },
+    { action:'set', key:'snap', state:'snap' }, { action:'set', key:'guides', state:'guides' },
+    { action:'set', key:'minimap', state:'minimap' }, { action:'set', key:'layer', state:'layer' },
+    { action:'set', key:'zoom', state:'zoom' }, { action:'set', key:'pinned', state:'pinned' },
+    { action:'set', key:'dock', state:'dock' }, { action:'set', key:'fullscreen', state:'fullscreen' },
+    { action:'set', key:'branch', state:'branch' }, { action:'set', key:'sortList', state:'sortList' }
+  ];
+  attentionTabsNewHereMarker = () => this.onUserMutation('tabs:new-here');
+  set = (k, v) => { this.setState(() => ({ [k]:v })); this.onUserMutation('set:' + k); };
   val = (c) => (this.state.values[c.id] !== undefined ? this.state.values[c.id] : c.value);
-  toast = (t) => { this.setState({ toastOpen:true, toastText:t }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toastOpen:false }), 4200); };
-
-  commit = (c, v) => {
-    const file = (SCREENS[this.state.screen] || {}).file || 'console';
-    const sha = Math.random().toString(16).slice(2, 9);
-    const entry = { sha, file, screen:this.state.screen, key:c.id, label:c.label,
-      from:(this.state.values[c.id] !== undefined ? this.state.values[c.id] : c.value), to:v,
-      when:'just now', author:'you', branch:this.state.branch, tag:'' };
-    this.setState(st => ({ commits:[entry].concat(st.commits).slice(0, 400) }));
+  hostSnapshot = () => ((this.props && this.props.hostState) || { status:'unavailable', capabilities:{}, screens:{}, connection:null });
+  capability = (id) => {
+    const host = this.hostSnapshot();
+    const raw = (host.capabilities && host.capabilities[id]) || {};
+    return { id, enabled:raw.enabled === true, reason:raw.reason || 'The host has not registered a handler for this action.', destructive:raw.destructive === true };
   };
-
-  setVal = (c, v) => {
-    this.commit(c, v);
-    this.setState(s => ({ values:Object.assign({}, s.values, { [c.id]:v }) }));
-    const shown = Array.isArray(v) ? (v.length ? v.join(', ') : 'nothing') : String(v);
-    this.toast(c.label + ' set to ' + shown);
-    const id = c.id || '';
-    if (v === true && /encrypt|tls|guard|lock|hostkey|attest|verify|strict|backup|stir/i.test(id + c.label)) this.fire('Safer already', c.label + ' is on. Somewhere an auditor smiled.');
-    else if (v === false && /encrypt|tls|guard|lock|hostkey|attest|verify|strict|stir/i.test(id + c.label)) this.toast('⚠ ' + c.label + ' is off — that is a real reduction in security');
-    else if (c.kind === 'order') this.toast(c.label + ' reordered — ' + (v[0] || 'nothing') + ' is now offered first');
-    else if (v === true) this.fire('Nice', c.label + ' switched on.');
+  notify = (severity, title, body, receipt) => {
+    const allowed = ['info','success','warning','error','progress'];
+    const level = allowed.indexOf(severity) >= 0 ? severity : 'info';
+    const event = { severity:level, title:title || '', body:body || '', receipt:receipt || null, at:new Date().toISOString() };
+    this.setState(st => ({ toastOpen:true, toastSeverity:level, toastText:(title ? title + ': ' : '') + (body || ''), notificationEvents:[event].concat(st.notificationEvents || []).slice(0, 200) }));
+    clearTimeout(this._tt);
+    if (level !== 'warning' && level !== 'error' && level !== 'progress') this._tt = setTimeout(() => this.setState({ toastOpen:false }), 4200);
   };
-
-  simulate() {
-    const c = this._lastCtl;
-    if (!c) return [];
-    const v = this.state.values['play_' + c.id] !== undefined ? this.state.values['play_' + c.id] : this.val(c);
-    const on = v === true || v === 'yes' || v === 'sdes' || v === 'dtls';
-    const id = c.id;
-    const g = '#82D9A5', w = '#FFD68A', r = '#FFB4AB', d = '#8FA394';
-    const L = (text, colour, icon) => ({ text, colour, icon:icon || 'chevron_right' });
-    if (/encryption|tls|encrypt/.test(id)) return [
-      L('INVITE sip:1001@pbx  →  ' + (on ? 'over TLS' : 'over UDP'), on ? g : w),
-      L('SDP offers ' + (on ? 'RTP/SAVP with a crypto line' : 'RTP/AVP, no crypto'), on ? g : w),
-      L(on ? 'Media keys exchanged; audio is encrypted' : 'Media keys absent; audio is readable on the wire', on ? g : r, on ? 'lock' : 'lock_open'),
-      L('200 OK  ·  call up in 240 ms', d)
-    ];
-    if (/direct/.test(id)) return [
-      L('Call answers between 1001 and 1002', d),
-      L(on ? 'Asterisk sends re-INVITE, steps out of the media path' : 'Asterisk stays in the media path', on ? w : g),
-      L(on ? 'Audio flows phone → phone directly' : 'Audio flows phone → Asterisk → phone', on ? w : g, 'graphic_eq'),
-      L(on ? 'MixMonitor would capture silence' : 'MixMonitor captures both legs', on ? r : g, on ? 'error' : 'check_circle')
-    ];
-    if (/dtmf/.test(id)) return [
-      L('Caller reaches the IVR and presses 4', d),
-      L('Tone travels as ' + (String(v) === 'inband' ? 'audio inside the RTP stream' : String(v)), String(v) === 'inband' ? w : g),
-      L(String(v) === 'inband' ? 'g729 compression distorts the tone' : 'Event arrives intact as digit 4', String(v) === 'inband' ? r : g, String(v) === 'inband' ? 'error' : 'check_circle'),
-      L(String(v) === 'inband' ? 'IVR hears nothing; caller presses 4 again' : 'IVR branches to the support queue', String(v) === 'inband' ? r : g)
-    ];
-    if (/strategy/.test(id)) return [
-      L('Call arrives; 6 members, 4 free', d),
-      L('Strategy ' + v + ' selects ' + ({ ringall:'all 4 free members at once', leastrecent:'the member idle longest', fewestcalls:'the member with the fewest calls today', random:'one at random', rrmemory:'the next member in rotation', linear:'the first member in the list', wrandom:'a weighted random member' }[v] || v), g),
-      L('Rings for ' + this.val({ id:'q_timeout', value:15 }) + ' s', d),
-      L(v === 'ringall' ? 'Answered in 4 s — fastest, but 4 phones rang' : 'Answered in 9 s — one phone rang, load spread evenly', g, 'check_circle')
-    ];
-    if (/qualify/.test(id)) return [
-      L('OPTIONS ping every ' + v + ' s', d),
-      L(Number(v) === 0 ? 'Pings disabled — reachability unknown' : 'Round trip 22 ms, endpoint marked Reachable', Number(v) === 0 ? w : g),
-      L(Number(v) === 0 ? 'A dead phone stays listed as available' : 'A dead phone is detected within ' + v + ' s', Number(v) === 0 ? r : g, Number(v) === 0 ? 'error' : 'check_circle'),
-      L('12 endpoints × ' + (Number(v) ? Math.round(3600 / Number(v)) : 0) + ' pings/hour', d)
-    ];
-    if (/maxcontacts/.test(id)) return [
-      L('Desk phone registers  →  contact 1 of ' + v, g),
-      L(Number(v) > 1 ? 'Mobile app registers → contact 2 of ' + v : 'Mobile app registers → rejected, limit reached', Number(v) > 1 ? g : w),
-      L('Inbound call rings ' + Math.min(Number(v) || 1, 2) + ' device(s)', d, 'call'),
-      L(Number(v) > 3 ? 'A stolen credential could add ' + (Number(v) - 1) + ' more devices unnoticed' : 'Attack surface is small', Number(v) > 3 ? r : g, Number(v) > 3 ? 'warning' : 'check_circle')
-    ];
-    if (/guest/.test(id)) return [
-      L('Unauthenticated INVITE from 203.0.113.9', d),
-      L(on ? 'Accepted as a guest call' : 'Rejected with 403 Forbidden', on ? r : g, on ? 'error' : 'shield'),
-      L(on ? 'Enters the default context and may dial out' : 'No context entered; nothing reachable', on ? r : g),
-      L(on ? 'This is the toll-fraud path' : 'Attempt logged and rate-limited', on ? r : g)
-    ];
-    return [
-      L('Configuration written: ' + id + ' = ' + (Array.isArray(v) ? v.join(',') : v), g),
-      L('Module reload requested', d),
-      L('Validation passed', g, 'check_circle'),
-      L('Next call uses the new value', d)
-    ];
-  }
-
-  simVerdict() {
-    const steps = this.simulate();
-    const bad = steps.some(s => s.colour === '#FFB4AB');
-    const warn = steps.some(s => s.colour === '#FFD68A');
-    if (bad) return { text:'This combination has a real failure mode. Read the gotcha above before choosing it.', colour:'#FFB4AB', icon:'error' };
-    if (warn) return { text:'Workable, but it gives something up. Fine if that is deliberate.', colour:'#FFD68A', icon:'warning' };
-    return { text:'This is a healthy configuration. Nothing surprising happens.', colour:'#82D9A5', icon:'check_circle' };
-  }
-
-  simWire() {
-    const c = this._lastCtl;
-    if (!c) return '';
-    const v = this.state.values['play_' + c.id] !== undefined ? this.state.values['play_' + c.id] : this.val(c);
-    const file = this.ownerFile(c);
-    return '; ' + file + ' (playground only — not written)\n' + c.id + ' = ' + (Array.isArray(v) ? v.join(',') : v);
-  }
+  toast = (text) => this.notify('info', '', text);
+  invokeHost = (actionId, payload) => {
+    const cap = this.capability(actionId);
+    const callbacks = (this.props && this.props.hostCallbacks) || {};
+    const fn = callbacks[actionId];
+    if (!cap.enabled || typeof fn !== 'function') {
+      this.notify('warning', 'Action unavailable', cap.reason);
+      return Promise.resolve({ ok:false, unavailable:true, reason:cap.reason });
+    }
+    this.setState({ operationState:'loading', operationAction:actionId, operationReceipt:null });
+    this.notify('progress', 'Operation submitted', 'Waiting for a host receipt before reporting an outcome.');
+    return Promise.resolve(fn(payload || {})).then(receipt => {
+      if (!receipt || receipt.ok !== true || !receipt.id) {
+        const reason = receipt && receipt.reason ? receipt.reason : 'The host returned no verified success receipt.';
+        this.setState({ operationState:'unavailable', operationReceipt:null });
+        this.notify('error', 'Operation not verified', reason);
+        return { ok:false, reason };
+      }
+      this.setState({ operationState:'verified', operationReceipt:receipt });
+      this.notify('success', 'Operation verified', receipt.summary || 'The host confirmed completion.', receipt);
+      return receipt;
+    }).catch(error => {
+      const reason = error && error.message ? error.message : 'The host operation failed without a readable reason.';
+      this.setState({ operationState:'unavailable', operationReceipt:null });
+      this.notify('error', 'Operation failed', reason);
+      return { ok:false, reason };
+    });
+  };
+  hostMenuAction = (icon, label, actionId, payload, close) => {
+    const cap = this.capability(actionId);
+    return {
+      icon, label, disabled:!cap.enabled, reason:cap.reason,
+      run:() => {
+        if (close) close();
+        if (!cap.enabled) return this.notify('warning', 'Action unavailable', cap.reason);
+        return this.invokeHost(actionId, payload || {});
+      }
+    };
+  };
+  commit = () => this.notify('warning', 'History unavailable', 'Local intent is not a history entry. The host must return a durable history receipt.');
+  setVal = (c, value) => this.invokeHost('settings.update', { screen:this.state.screen, settingId:c.id, value, expectedSource:(SCREENS[this.state.screen] || {}).file || 'console' }).then(receipt => {
+    if (!receipt.ok) return receipt;
+    this.setState(st => ({ values:Object.assign({}, st.values, { [c.id]:value }), commits:receipt.historyEntry ? [receipt.historyEntry].concat(st.commits || []).slice(0, 400) : (st.commits || []) }));
+    this.onUserMutation('control:' + (c.id || 'unknown'));
+    return receipt;
+  });
 
   showDoc = (c) => {
     this._lastCtl = c;
@@ -4108,24 +3886,29 @@ class ConsoleShell extends DCLogic {
     return true;
   };
 
-  showInfo = (title, body, plain, x, y) => this.setState({ infoOpen:true, infoTitle:title, infoBody:body, infoPlain:plain || 'Nothing here can break a live call on its own. Changing it only takes effect after you clear the confirmation gates.', infoX:x || '46%', infoY:y || '170px' });
+  rememberFocus = () => { this._focusOrigin = document.activeElement; };
+  restoreFocus = () => { const target=this._focusOrigin; this._focusOrigin=null; setTimeout(() => { if (target && typeof target.focus === 'function') target.focus(); }, 0); };
 
-  ceremony = (title, cmd) => this.setState({ ceremonyOpen:true, ceremonyTitle:title, ceremonyCmd:cmd, cStep:0, keyTurned:false, holdMs:0, slideVal:0, moleHits:0, moleTime:15, moleIdx:-1 });
+  showInfo = (title, body, plain, x, y) => { this.rememberFocus(); this.setState({ infoOpen:true, infoTitle:title, infoBody:body, infoPlain:plain || 'Nothing here can break a live call on its own. Changing it only takes effect after you clear the confirmation gates.', infoX:x || '46%', infoY:y || '170px' }); };
 
-  componentWillUnmount() { clearInterval(this._reroll); window.removeEventListener('mousemove', this._mm); window.removeEventListener('mouseup', this._mu); clearInterval(this._hold); clearInterval(this._mole); clearTimeout(this._tt); clearInterval(this._g); clearInterval(this._oc); clearTimeout(this._cf); }
+  ceremony = (title, actionId, payload) => { this.rememberFocus(); this.setState({ ceremonyOpen:true, ceremonyTitle:title, ceremonyCmd:actionId, ceremonyBody:'Review the exact operation. Two independent keys and the full slider authorize submission, but only a host receipt establishes the result.', operationPayload:payload || {}, operationState:'idle', operationReceipt:null, confirmKeyOne:false, confirmKeyTwo:false, slideVal:0 }); };
+
+  componentWillUnmount() { clearInterval(this._reroll); window.removeEventListener('mousemove', this._mm); window.removeEventListener('mouseup', this._mu); window.removeEventListener('keydown', this._key); clearInterval(this._hold); clearInterval(this._mole); clearTimeout(this._tt); clearInterval(this._g); clearInterval(this._oc); clearTimeout(this._cf); }
 
   areYouSure = (title, body, need, action) => this.setState({ sureOpen:true, sureTitle:title, sureBody:body, sureNeed:need || 3, sureHits:0, sureCell:Math.floor(Math.random() * 8), sureAction:action });
 
   answerAuth = (r, ans) => {
+    const submit = () => this.invokeHost('auth.answer', { requestId:r.id, answer:ans }).then(receipt => {
+      if (!receipt.ok) return receipt;
+      this.setState({ authAnswers:Object.assign({}, this.state.authAnswers, { [r.id]:ans }) });
+      return receipt;
+    });
     if (ans === 'YES' && r.risk === 'High risk') {
       return this.areYouSure('Sending YES to ' + r.partner, 'You are about to tell ' + r.partner + ' that ' + r.title.toLowerCase() + ' is approved. This widens who may deliver calls onto your PBX and it takes effect on their side within minutes.', 4, () => {
-        this.setState({ authAnswers:Object.assign({}, this.state.authAnswers, { [r.id]:'YES' }) });
-        this.fire('YES sent', r.partner + ' has been told. Signed and logged.');
+        submit();
       });
     }
-    this.setState({ authAnswers:Object.assign({}, this.state.authAnswers, { [r.id]:ans }) });
-    if (ans === 'YES') this.fire('YES sent', r.partner + ' has been told. Signed and logged.');
-    else this.toast('NO sent to ' + r.partner + ' — nothing on the link changed');
+    return submit();
   };
 
   openScreen = (k) => this.setState(st => ({ rndNonce:st.rndNonce + 1, screen:k, railId:SCREENS[k] ? SCREENS[k].rail : st.railId }));
@@ -4137,17 +3920,25 @@ class ConsoleShell extends DCLogic {
       if (rz) {
         const sizes = Object.assign({}, this.state.dlgSize);
         sizes[rz.key] = { w:Math.max(300, Math.round(rz.w + (e.clientX - rz.x))), h:Math.max(220, Math.round(rz.h + (e.clientY - rz.y))) };
+        this.onUserMutation('layout:resize');
         return this.setState({ dlgSize:sizes });
       }
       const d = this.state.drag;
       if (!d) return;
       const pos = Object.assign({}, this.state.dlgPos);
       pos[d.key] = { x:(e.clientX - d.dx) + 'px', y:(e.clientY - d.dy) + 'px' };
+      this.onUserMutation('layout:move');
       this.setState({ dlgPos:pos });
     };
     this._mu = () => { if (this.state.drag || this.state.resize) this.setState({ drag:null, resize:null }); };
     window.addEventListener('mousemove', this._mm);
     window.addEventListener('mouseup', this._mu);
+    this._key = (e) => {
+      if (e.key !== 'Escape') return;
+      this.setState({ ceremonyOpen:false, ctxOpen:false, regexOpen:false, infoOpen:false, wizardOpen:false, lockOpen:false, appearOpen:false, tabFilterOpen:false, renameOpen:false, tabColourOpen:false, paletteOpen:false });
+      this.restoreFocus();
+    };
+    window.addEventListener('keydown', this._key);
   }
 
   startResize = (key) => (e) => {
@@ -4197,7 +3988,7 @@ class ConsoleShell extends DCLogic {
         { icon:'filter_center_focus', label:'Centre', v:'centre' }
       ].map(o => Object.assign({}, o, {
         on:mode === o.v, off:mode !== o.v,
-        pick:() => this.setState(st => ({ dlgDock:Object.assign({}, st.dlgDock, { [key]:o.v }) }))
+        pick:() => { this.setState(st => ({ dlgDock:Object.assign({}, st.dlgDock, { [key]:o.v }) })); this.onUserMutation('layout:dock'); }
       })),
       floating:mode === 'float'
     };
@@ -4205,7 +3996,7 @@ class ConsoleShell extends DCLogic {
 
   ownerFile(c) {
     const id = c.id || '';
-    const map = { e_:'pjsip.conf', t_:'pjsip.conf', w_:'pjsip.conf', q_:'queues.conf', wq_:'queues.conf', v_:'voicemail.conf', wv_:'voicemail.conf', i_:'extensions.conf', wi_:'extensions.conf', dp_:'extensions.conf', c_:'confbridge.conf', h_:'musiconhold.conf', k_:'codecs.conf', r_:'rtp.conf', d_:'cdr.conf', l_:'cel.conf', a_:'manager.conf', mo_:'modules.conf', g_:'logger.conf', s_:'acl.conf · stir_shaken.conf', ws_:'acl.conf · stir_shaken.conf', sv_:'connection profile', ob_:'connection profile', bs_:'provisioning', ta_:'pjsip.conf', hi_:'.git config', y_:'agent memory', u_:'skills', b_:'status hub', n_:'vocabulary', o_:'release', x_:'secret intake', cr_:'arcade', nt_:'console', p_:'console settings', z_:'console', fun_:'console profile', mo2_:'console profile', ly_:'console profile', th_:'console profile', bh_:'console profile', pr_:'console profile', ap_:'appearance overrides', cp_:'appearance overrides', lk_:'lock store' };
+    const map = { e_:'pjsip.conf', t_:'pjsip.conf', w_:'pjsip.conf', q_:'queues.conf', wq_:'queues.conf', v_:'voicemail.conf', wv_:'voicemail.conf', i_:'extensions.conf', wi_:'extensions.conf', dp_:'extensions.conf', c_:'confbridge.conf', h_:'musiconhold.conf', k_:'codecs.conf', r_:'rtp.conf', d_:'cdr.conf', l_:'cel.conf', a_:'manager.conf', mo_:'modules.conf', g_:'logger.conf', s_:'acl.conf · stir_shaken.conf', ws_:'acl.conf · stir_shaken.conf', sv_:'connection profile', ob_:'connection profile', bs_:'provisioning', ta_:'pjsip.conf', hi_:'.git config', y_:'agent memory', u_:'skills', b_:'status hub', n_:'vocabulary', o_:'release', x_:'secret intake', nt_:'console', p_:'console settings', z_:'console', fun_:'console profile', mo2_:'console profile', ly_:'console profile', th_:'console profile', bh_:'console profile', pr_:'console profile', ap_:'appearance overrides', cp_:'appearance overrides', lk_:'lock store' };
     const k = Object.keys(map).find(p => id.indexOf(p) === 0);
     return k ? map[k] : ((SCREENS[this.state.screen] || {}).file || 'the console profile');
   }
@@ -4330,47 +4121,8 @@ class ConsoleShell extends DCLogic {
       ap_rainbow:wild && Math.random() > 0.55
     };
     this.setState(st => ({ values:Object.assign({}, st.values, next) }));
-    this.fire(all ? 'Everything reshuffled' : 'Reshuffled', all ? 'Every element got its own random look.' : 'One element, one new look. Undo is in the history.');
+    this.onUserMutation('appearance:random');
   };
-
-  applyColour = (val) => {
-    const key = this.state.renameKey || '';
-    const colour = val === 'rainbow' ? 'hsl(148 60% 62%)' : val;
-    if (key.indexOf('group:') === 0) {
-      const id = key.slice(6);
-      this.setState(st => ({ groups:st.groups.map(g => g.id === id ? Object.assign({}, g, { colour }) : g), tabColourOpen:false }));
-    } else {
-      this.setState(st => ({ tabColours:Object.assign({}, st.tabColours, { [key]:colour }), tabColourOpen:false }));
-    }
-    this.fire('Colour applied', val === 'rainbow' ? 'It cycles the whole spectrum now.' : 'Set to ' + val + '.');
-  };
-
-  tryUnlock = () => {
-    const s = this.state;
-    const L = s.locks[s.unlockKey];
-    if (!L) return this.setState({ unlockOpen:false });
-    const m = L.method || 'PIN';
-    if (m.indexOf('PIN') >= 0 && s.unlockPin !== L.pin) { this.setState({ unlockPin:'' }); return this.toast('Wrong PIN — the surface stays locked'); }
-    if (m.indexOf('Password') >= 0 && (s.unlockPw || '') !== L.password) { this.setState({ unlockPw:'' }); return this.toast('Wrong passphrase — the surface stays locked'); }
-    const n = Object.assign({}, s.locks); delete n[s.unlockKey];
-    this.setState({ locks:n, unlockOpen:false, unlockPin:'', unlockPw:'' });
-    this.fire('Unlocked', 'Welcome back.');
-  };
-
-  addEdgeFrom = () => { this.setState(st => ({ edgeList:st.edgeList.concat([[st.nodeId, 'n4']]) })); this.toast('Connection added — pick its target in the inspector'); };
-
-  moveNode = (id, dx, dy) => {
-    const base = NODES.find(n => n.id === id);
-    const cur = this.state.nodePos[id] || { x:base.x, y:base.y };
-    const snap = this.state.snap ? 20 : 1;
-    const pos = Object.assign({}, this.state.nodePos);
-    pos[id] = { x:Math.max(0, Math.round((cur.x + dx) / snap) * snap), y:Math.max(0, Math.round((cur.y + dy) / snap) * snap) };
-    this.setState({ nodePos:pos });
-  };
-
-  bulk = (verb, sel) => { this.setState({ selected:[] }); this.fire(verb, sel.length + ' objects in one action.'); };
-
-  stopGameNow = () => { clearInterval(this._g); this.setState({ gamePlaying:false, gameCell:-1, gameTime:0 }); };
 
   startMoles = () => {
     clearInterval(this._mole);
@@ -4382,6 +4134,46 @@ class ConsoleShell extends DCLogic {
       this.setState({ moleTime:t, moleIdx:Math.floor(Math.random() * 12) });
     }, 1000);
   };
+
+  applyColour = (val) => {
+    const key = this.state.renameKey || '';
+    const colour = val === 'rainbow' ? 'hsl(148 60% 62%)' : val;
+    if (key.indexOf('group:') === 0) {
+      const id = key.slice(6);
+      this.setState(st => ({ groups:st.groups.map(g => g.id === id ? Object.assign({}, g, { colour }) : g), tabColourOpen:false }));
+    } else {
+      this.setState(st => ({ tabColours:Object.assign({}, st.tabColours, { [key]:colour }), tabColourOpen:false }));
+    }
+    this.onUserMutation('appearance:colour');
+
+  };
+
+  tryUnlock = () => {
+    const s = this.state;
+    const L = s.locks[s.unlockKey];
+    if (!L) return this.setState({ unlockOpen:false });
+    const m = L.method || 'PIN';
+    if (m.indexOf('PIN') >= 0 && s.unlockPin !== L.pin) { this.setState({ unlockPin:'' }); return this.notifyWarning('Wrong PIN — the surface stays locked'); }
+    if (m.indexOf('Password') >= 0 && (s.unlockPw || '') !== L.password) { this.setState({ unlockPw:'' }); return this.notifyWarning('Wrong passphrase — the surface stays locked'); }
+    const n = Object.assign({}, s.locks); delete n[s.unlockKey];
+    this.setState({ locks:n, unlockOpen:false, unlockPin:'', unlockPw:'' });
+    this.onUserMutation('lock:unlock');
+
+  };
+
+  addEdgeFrom = () => { this.setState(st => ({ edgeList:st.edgeList.concat([[st.nodeId, 'n4']]) })); this.onUserMutation('canvas:edge'); this.notifyInfo('Connection added — pick its target in the inspector'); };
+
+  moveNode = (id, dx, dy) => {
+    const base = NODES.find(n => n.id === id);
+    const cur = this.state.nodePos[id] || { x:base.x, y:base.y };
+    const snap = this.state.snap ? 20 : 1;
+    const pos = Object.assign({}, this.state.nodePos);
+    pos[id] = { x:Math.max(0, Math.round((cur.x + dx) / snap) * snap), y:Math.max(0, Math.round((cur.y + dy) / snap) * snap) };
+    this.setState({ nodePos:pos });
+    this.onUserMutation('canvas:move');
+  };
+
+  bulk = (verb, sel) => { this.setState({ selected:[] }); };
 
   buildCtl = (c) => {
     const v = this.val(c);
@@ -4402,8 +4194,8 @@ class ConsoleShell extends DCLogic {
     }
     if (c.kind === 'switch') { o.on = !!v; o.off = !v; o.toggle = () => this.setVal(c, !v); }
     if (c.kind === 'stepper') {
-      o.dec = () => this.setState(st => { const cur = st.values[c.id] !== undefined ? st.values[c.id] : c.value; return { values:Object.assign({}, st.values, { [c.id]:Math.max(c.min, cur - 1) }) }; });
-      o.inc = () => this.setState(st => { const cur = st.values[c.id] !== undefined ? st.values[c.id] : c.value; return { values:Object.assign({}, st.values, { [c.id]:Math.min(c.max, cur + 1) }) }; });
+      o.dec = () => { const cur = this.val(c); this.setVal(c, Math.max(c.min, cur - 1)); };
+      o.inc = () => { const cur = this.val(c); this.setVal(c, Math.min(c.max, cur + 1)); };
     }
     if (c.kind === 'stepper' || c.kind === 'slider') o.set = (nv) => this.setVal(c, Number(nv));
     if (c.kind === 'slider') { o.onSlide = (e) => this.setVal(c, Number(e.target.value)); o.display = v + (c.unit || ''); o.pct = ((v - c.min) / (c.max - c.min) * 100) + '%'; }
@@ -4482,20 +4274,31 @@ class ConsoleShell extends DCLogic {
     if (sc === 'servers') {
       const kind = this.v('sv_kind', 'Local');
       const L = ['[profile]', 'type = ' + kind.toLowerCase().replace(/ /g, '-')];
-      if (kind !== 'Local') L.push('host = ' + this.v('sv_host', 'pbx-hq.internal'));
-      if (kind.indexOf('Docker') >= 0) L.push('container = ' + this.v('sv_container', 'asterisk-prod'));
-      if (kind.indexOf('SSH') >= 0) L.push('ssh_user = ' + this.v('sv_user', 'asterisk-ops'), 'ssh_port = ' + this.v('sv_sshport', 22), 'ssh_key = ' + this.v('sv_key', 'id_ed25519 (agent)'), 'strict_host_key = ' + (this.v('sv_hostkey', true) ? 'yes' : 'no'));
+      if (kind !== 'Local') L.push('host = ' + (this.v('sv_host', '') || '—'));
+      if (kind.indexOf('Docker') >= 0) L.push('container = ' + (this.v('sv_container', '') || '—'));
+      if (kind.indexOf('SSH') >= 0) L.push('ssh_user = ' + (this.v('sv_user', '') || '—'), 'ssh_port = ' + this.v('sv_sshport', 22), 'ssh_key = ' + (this.v('sv_key', '') || '—'), 'strict_host_key = ' + (this.v('sv_hostkey', true) ? 'yes' : 'no'));
       L.push('interface = ' + this.v('sv_iface', 'AMI'), 'manager_port = ' + this.v('sv_amiport', 5038), 'tls = ' + (this.v('sv_tls', true) ? 'yes' : 'no'), 'config_dir = ' + this.v('sv_conf', '/etc/asterisk'));
       return L.join('\n');
     }
     if (sc === 'queues') {
-      return '[' + this.v('wq_kind', 'Support').toLowerCase() + ']\nstrategy = ' + this.v('wq_strategy', 'ringall') + '\ntimeout = ' + this.v('wq_timeout', 15) + '\nwrapuptime = ' + this.v('wq_wrapup', 15) + '\nringinuse = ' + (this.v('wq_ringinuse', false) ? 'yes' : 'no') + '\nmusicclass = ' + this.v('wq_moh', 'default') + '\n' + (this.v('wq_members', ['1001', '1002', '1004'])).map(m => 'member => PJSIP/' + m).join('\n');
+      return '[' + this.v('wq_kind', 'Support').toLowerCase() + ']\nstrategy = ' + this.v('wq_strategy', 'ringall') + '\ntimeout = ' + this.v('wq_timeout', 15) + '\nwrapuptime = ' + this.v('wq_wrapup', 15) + '\nringinuse = ' + (this.v('wq_ringinuse', false) ? 'yes' : 'no') + '\nmusicclass = ' + this.v('wq_moh', 'default') + '\n' + (this.v('wq_members', [])).map(m => 'member => PJSIP/' + m).join('\n');
     }
     if (WIZARDS[sc] === WIZARDS.endpoints || sc === 'endpoints') {
-      return '[' + this.v('w_name', '1005') + ']\ntype = endpoint\ntransport = ' + this.v('w_transport', 'transport-tls') + '\ncontext = ' + this.v('w_context', 'from-internal') + '\nallow = ' + this.v('w_codecs', ['opus', 'g722', 'ulaw']).join(',') + '\nmedia_encryption = ' + (this.v('w_encrypt', true) ? 'sdes' : 'no') + '\ndirect_media = ' + (this.v('w_direct', false) ? 'yes' : 'no') + '\ndtmf_mode = ' + this.v('w_dtmf', 'rfc4733') + '\n\n[' + this.v('w_name', '1005') + ']\ntype = aor\nmax_contacts = ' + this.v('w_maxcontacts', 1) + '\nqualify_frequency = ' + this.v('w_qualify', 60);
+      const endpointName = this.v('w_name', '');
+      if (!endpointName) return '; endpoint preview unavailable until a verified host identity is selected';
+      return '[' + endpointName + ']\ntype = endpoint\ntransport = ' + this.v('w_transport', 'transport-tls') + '\ncontext = ' + this.v('w_context', 'from-internal') + '\nallow = ' + this.v('w_codecs', ['opus', 'g722', 'ulaw']).join(',') + '\nmedia_encryption = ' + (this.v('w_encrypt', true) ? 'sdes' : 'no') + '\ndirect_media = ' + (this.v('w_direct', false) ? 'yes' : 'no') + '\ndtmf_mode = ' + this.v('w_dtmf', 'rfc4733') + '\n\n[' + endpointName + ']\ntype = aor\nmax_contacts = ' + this.v('w_maxcontacts', 1) + '\nqualify_frequency = ' + this.v('w_qualify', 60);
     }
     return '; goal = ' + this.v('wd_goal', 'Recommended defaults') + '\n; scope = ' + this.v('wd_scope', 'This object') + '\n; strictness = ' + this.v('wd_level', 3) + '/5';
   }
+
+  applyChangelogPreset = (days) => {
+    const end = new Date();
+    const start = new Date(end.getTime() - Math.max(0, Number(days) || 0) * 86400000);
+    this.setState({ changelogFrom:start.toISOString().slice(0, 10), changelogTo:end.toISOString().slice(0, 10) });
+  };
+  applyChangelogYear = () => this.setState({ changelogFrom:new Date().getFullYear() + '-01-01', changelogTo:new Date().toISOString().slice(0, 10) });
+  copyChangelog = () => this.invokeHost('changelog.copy', { from:this.state.changelogFrom || '', to:this.state.changelogTo || '', query:this.state.changelogQuery || '' });
+  exportChangelog = () => this.invokeHost('changelog.export', { from:this.state.changelogFrom || '', to:this.state.changelogTo || '', query:this.state.changelogQuery || '' });
 
   renderVals() {
     const s = this.state;
@@ -4510,24 +4313,40 @@ class ConsoleShell extends DCLogic {
     const cur = flow[wStep];
     const last = wStep === flow.length - 1;
     const wizStep = wStep;
-    const gk = (GAMES.find(g => g.id === s.game) || GAMES[0]).kind;
     const sel = s.selected || [];
-
-    const tbl = sc.table || { cols:[], rows:[], grid:'1fr', add:'Add' };
+    const host = this.hostSnapshot();
+    const hostScreen = (host.screens && host.screens[s.screen]) || {};
+    const tableSnapshot = hostScreen.table || { state:'unavailable', rows:[], reason:'The host has not supplied this screen data.' };
+    const tbl = Object.assign({}, sc.table || { cols:[], rows:[], grid:'1fr', add:'Add' }, { rows:Array.isArray(tableSnapshot.rows) ? tableSnapshot.rows : [] });
+    const tableState = tableSnapshot.state || (tbl.rows.length ? 'verified' : 'unavailable');
+    const tableStateMap = {
+      loading:{ icon:'progress_activity', title:'Loading verified host data', body:'Rows stay blank until the host read completes.', bg:'#1B211C', fg:'#C4CBC2' },
+      empty:{ icon:'inbox', title:'Verified empty', body:'The host completed the read and returned no records.', bg:'#141A15', fg:'#C4CBC2' },
+      unavailable:{ icon:'cloud_off', title:'Data unavailable', body:tableSnapshot.reason || 'The host did not provide a readable source.', bg:'#2B2020', fg:'#FFB4AB' },
+      partial:{ icon:'warning', title:'Partial data', body:tableSnapshot.reason || 'Some records or fields could not be read. Unread cells use an em dash.', bg:'#3A2A12', fg:'#FFD68A' },
+      stale:{ icon:'history', title:'Stale cached data', body:tableSnapshot.reason || ('Last verified read: ' + (tableSnapshot.lastVerifiedAt || 'unknown') + '.'), bg:'#3A2A12', fg:'#FFD68A' },
+      verified:{ icon:'verified', title:'Verified host data', body:'The host supplied these rows with a verified read receipt.', bg:'#1B4D33', fg:'#9FF7C4' }
+    };
+    const tableNotice = tableStateMap[tableState] || tableStateMap.unavailable;
+    const connection = host.connection || { state:'unavailable', label:'No verified connection', uptime:'—', reason:'The host has not supplied a connection record.' };
+    const historyEntries = host.history && Array.isArray(host.history.entries) ? host.history.entries : [];
     const chipOK = { 'Reachable':1, 'Registered':1, 'Running':1, 'Up':1, 'Active':1, 'Connected':1, 'Signed':1, 'Enabled':1, 'Published':1, 'Sealed':1, 'Locked':1 };
 
     return {
-      menus:['File','Edit','View','PBX','Agent','Window','Help'].map(l => ({ label:l, open:() => this.toast(l + ' menu') })),
-      connLabel:'pbx-hq · AMI 5038', connUptime:'up 14d 06:22',
-      openConnection:() => this.showInfo('Connection', 'The console is attached to pbx-hq over the manager interface on port 5038, secured with TLS. Losing this connection makes every live number on the dashboard grey out — configuration screens keep working from the last read.', 'The app is talking to your phone system over the network. If the little dot stops being green, the two are no longer talking.', '38%', '70px'),
+      shellCapabilitySummary:host.status === 'verified' ? 'Host state verified' : 'Host actions fail closed until wired',
+      connLabel:connection.label || 'No verified connection', connUptime:connection.uptime || '—',
+      connectionColour:connection.state === 'verified' ? '#82D9A5' : (connection.state === 'loading' ? '#FFD68A' : '#FFB4AB'),
+      connectionDisabled:connection.state !== 'verified',
+      connectionReason:connection.reason || '',
+      openConnection:() => this.showInfo('Connection', connection.summary || connection.reason || 'No verified connection data is available.', 'Connection facts come from the host. This shell never invents a target, protocol, port, security state, or uptime.', '38%', '70px'),
       modeOpts:['Beginner','Expert'].map(m => ({ label:m, on:s.mode === m, off:s.mode !== m, pick:() => this.setState({ mode:m }) })),
       togglePalette:() => this.set('paletteOpen', !s.paletteOpen),
       startOnboarding:() => this.setState({ onboardOpen:true, onboardStep:0 }),
 
       rail:RAIL.map(r => ({ icon:r.icon, label:r.label, on:r.id === s.railId, off:r.id !== s.railId, pick:() => this.setState({ railId:r.id, screen:ORDER.find(k => SCREENS[k].rail === r.id) }) })),
       groupLabel:railDef.groupLabel, groupDesc:railDef.groupDesc,
-      sections:secIds.map(k => ({ label:SCREENS[k].label, icon:SCREENS[k].icon, badge:SCREENS[k].badge, on:k === s.screen, off:k !== s.screen, pick:() => this.openScreen(k) })),
-      dirtyLabel:'all changes applied',
+      sections:secIds.map(k => { const hs = (host.screens && host.screens[k]) || {}; return { label:SCREENS[k].label, icon:SCREENS[k].icon, badge:hs.count === undefined ? '—' : String(hs.count), on:k === s.screen, off:k !== s.screen, pick:() => this.openScreen(k) }; }),
+      dirtyLabel:(host.changeState && host.changeState.label) || 'Change state unavailable',
 
       screenKey:s.screen + ':' + s.railId + ':' + s.mode,
       beginner:s.mode === 'Beginner', expertMode:s.mode === 'Expert',
@@ -4536,10 +4355,10 @@ class ConsoleShell extends DCLogic {
       hiddenCount:(() => { let n = 0; (sc.groups || []).forEach(g => g.ctls.forEach(x => { if (ADVANCED.indexOf(x.id) >= 0) n++; })); return n + ' advanced options are hidden'; })(),
       beginnerNote:(() => {
         const notes = { servers:'You do not need to understand any of this. Press the big green button and answer nothing.', endpoints:'An endpoint is one phone. Adding one is a five-question wizard.', queues:'A queue is a waiting line for callers. The only choice that matters is who gets rung first.', canvas:'Each box is one thing that happens to a call, in order, top to bottom.', security:'The defaults here are already safe. Only change something if you know why.' };
-        return notes[s.screen] || 'Everything on this screen has an explain button and its own step-by-step wizard. Nothing is written until you confirm.';
+        return notes[s.screen] || 'Available controls describe their source and handler. Unwired controls stay disabled with a reason.';
       })(),
       screenTitle:sc.title, screenFile:sc.file, screenSub:sc.sub,
-      openInfoScreen:() => this.showInfo(sc.title, sc.sub, 'This screen edits ' + (sc.file || 'the console itself') + '. Every row you see is a real object in the running system, and every control writes one option.', '46%', '150px'),
+      openInfoScreen:() => this.showInfo(sc.title, sc.sub, 'This screen is designed for ' + (sc.file || 'the console itself') + '. Row provenance and writable actions come from the host capability descriptors.', '46%', '150px'),
       openWizard:() => (sc.kind === 'servers' && this.onAddServer ? this.onAddServer() : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null })),
 
       isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory', isDocs:sc.kind === 'docs', isChangelog:sc.kind === 'changelog',
@@ -4551,43 +4370,22 @@ class ConsoleShell extends DCLogic {
        * markup — search, filters, the add button, and every row's own context menu. */
       isTableLike:sc.kind === 'table' || sc.kind === 'servers',
 
-      stats:[
-        { icon:'call', label:'Active calls', value:'4', delta:'peak today 19' },
-        { icon:'smartphone', label:'Endpoints up', value:'11/12', delta:'1003 unreachable' },
-        { icon:'groups', label:'Queue waiting', value:'3', delta:'longest 01:12' },
-        { icon:'speed', label:'Answer rate', value:'92%', delta:'service level 60s' }
-      ].map((k, i) => Object.assign({}, k, { rnd:this.rnd(40 + i) })),
-      liveCalls:[
-        { chan:'PJSIP/1001-0000a1', peer:'Ada Deng', dur:'00:04:12', codec:'opus' },
-        { chan:'PJSIP/1004-0000a2', peer:'support queue', dur:'00:01:47', codec:'g722' },
-        { chan:'PJSIP/trunk-0000a3', peer:'+1 415 555 0148', dur:'00:12:03', codec:'ulaw' },
-        { chan:'IAX2/branch-0000a4', peer:'branch-office', dur:'01:22:58', codec:'g722' }
-      ].map(c => Object.assign({}, c, {
-        spy:() => this.ceremony('Listen to a live call', 'channel spy ' + c.chan),
-        rec:() => this.ceremony('Start recording a live call', 'mixmonitor start ' + c.chan),
-        kill:() => this.ceremony('Hang up a live call', 'channel request hangup ' + c.chan)
+      stats:(host.dashboard && Array.isArray(host.dashboard.stats) ? host.dashboard.stats : []).map((k, i) => Object.assign({}, k, { value:k.value === undefined ? '—' : k.value, delta:k.delta || 'No comparison supplied', rnd:this.rnd(40 + i) })),
+      dashboardRefresh:(host.dashboard && host.dashboard.refreshLabel) || 'No verified refresh interval',
+      liveCalls:(host.dashboard && Array.isArray(host.dashboard.liveCalls) ? host.dashboard.liveCalls : []).map(c => Object.assign({}, c, {
+        spy:() => this.ceremony('Listen to a live call', 'calls.spy', { callId:c.id }),
+        rec:() => this.ceremony('Start recording a live call', 'calls.record', { callId:c.id }),
+        kill:() => this.ceremony('Hang up a live call', 'calls.hangup', { callId:c.id })
       })),
-      health:[
-        { label:'CPU', value:'18%', pct:'18%' },
-        { label:'Memory', value:'1.4 / 8 GB', pct:'17%' },
-        { label:'SIP registrations', value:'11 of 12', pct:'92%' },
-        { label:'Trunk capacity', value:'4 of 60', pct:'7%' }
-      ],
-      quickActions:[
-        { icon:'refresh', label:'Reload dialplan', cmd:'dialplan reload' },
-        { icon:'refresh', label:'Reload PJSIP', cmd:'pjsip reload' },
-        { icon:'restart_alt', label:'Graceful restart', cmd:'core restart gracefully' },
-        { icon:'phone_forwarded', label:'Originate test call', cmd:'channel originate PJSIP/1001 extension 1000@from-internal' },
-        { icon:'cleaning_services', label:'Clear queue stats', cmd:'queue reset stats' },
-        { icon:'bug_report', label:'Capture debug bundle', cmd:'core show settings' }
-      ].map(q => Object.assign({}, q, { run:() => this.ceremony(q.label, q.cmd) })),
+      health:(host.dashboard && Array.isArray(host.dashboard.health) ? host.dashboard.health : []).map(h => Object.assign({}, h, { value:h.value === undefined ? '—' : h.value, pct:h.pct || '0%' })),
+      quickActions:(host.dashboard && Array.isArray(host.dashboard.actions) ? host.dashboard.actions : []).map(q => Object.assign({}, q, { run:() => this.ceremony(q.label, q.actionId, q.payload || {}) })),
 
       canvasTools:[
         { icon:'near_me', label:'Select', id:'select' }, { icon:'timeline', label:'Wire', id:'wire' },
         { icon:'pan_tool', label:'Pan', id:'pan' }, { icon:'crop_free', label:'Marquee', id:'marquee' },
         { icon:'content_cut', label:'Split', id:'split' }, { icon:'comment', label:'Comment', id:'comment' },
         { icon:'straighten', label:'Measure', id:'measure' }
-      ].map(t => ({ icon:t.icon, label:t.label, on:s.canvasTool === t.id, off:s.canvasTool !== t.id, pick:() => { this.set('canvasTool', t.id); this.toast(t.label + ' tool active'); } })),
+      ].map(t => ({ icon:t.icon, label:t.label, on:s.canvasTool === t.id, off:s.canvasTool !== t.id, pick:() => { this.set('canvasTool', t.id); this.notifyInfo(t.label + ' tool active'); } })),
       canvasToggles:[
         { icon:'grid_on', label:'Grid', k:'grid' }, { icon:'grid_goldenratio', label:'Snap', k:'snap' },
         { icon:'straighten', label:'Guides', k:'guides' }, { icon:'map', label:'Minimap', k:'minimap' }
@@ -4627,9 +4425,13 @@ class ConsoleShell extends DCLogic {
           left:() => this.moveNode(n.id, -20, 0), right:() => this.moveNode(n.id, 20, 0),
           up:() => this.moveNode(n.id, 0, -20), down:() => this.moveNode(n.id, 0, 20),
           connect:() => this.addEdgeFrom(),
-          ctx:(e) => { e.preventDefault(); this.setState({ nodeId:n.id, ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:n.title, ctxKind:'node' }); },
-          dup:() => this.toast(n.title + ' duplicated on the canvas'),
-          del:() => this.areYouSure('Delete ' + n.title, 'The step and every connection into or out of it are removed from the dialplan.', 3, () => this.fire('Step deleted', n.title + ' is gone.')) };
+          ctx:(e) => { e.preventDefault(); this.rememberFocus(); this.setState({ nodeId:n.id, ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:n.title, ctxKind:'node' }); },
+          dup:() => { const cap=this.capability('canvas.duplicate-step'); if (!cap.enabled) return this.notify('warning', 'Action unavailable', cap.reason); return this.invokeHost('canvas.duplicate-step', { nodeId:n.id }); },
+          dupDisabled:!this.capability('canvas.duplicate-step').enabled,
+          dupReason:this.capability('canvas.duplicate-step').reason,
+          del:() => { const cap=this.capability('canvas.delete-step'); if (!cap.enabled) return this.notify('warning', 'Action unavailable', cap.reason); return this.areYouSure('Delete ' + n.title, 'The step and every connection into or out of it are removed from the dialplan.', 3, () => this.invokeHost('canvas.delete-step', { nodeId:n.id })); },
+          delDisabled:!this.capability('canvas.delete-step').enabled,
+          delReason:this.capability('canvas.delete-step').reason };
       }),
       canvasDrop:(e) => {
         e.preventDefault();
@@ -4638,35 +4440,39 @@ class ConsoleShell extends DCLogic {
         const pos = Object.assign({}, s.nodePos);
         pos[d.id] = { x:Math.max(0, Math.round(e.clientX - r.left - d.dx)), y:Math.max(0, Math.round(e.clientY - r.top - d.dy)) };
         this.setState({ nodePos:pos, nodeDrag:null });
+        this.onUserMutation('canvas:drop');
       },
       canvasDragOver:(e) => e.preventDefault(),
       canvasOps:[
-        { icon:'auto_awesome_mosaic', label:'Auto-arrange', run:() => { this.setState({ nodePos:{} }); this.toast('Steps arranged left to right by call order'); } },
-        { icon:'align_horizontal_left', label:'Align left', run:() => { const p = {}; NODES.forEach(n => { p[n.id] = { x:40, y:(s.nodePos[n.id] || n).y }; }); this.setState({ nodePos:p }); } },
-        { icon:'vertical_distribute', label:'Distribute', run:() => { const p = {}; NODES.forEach((n, i) => { p[n.id] = { x:(s.nodePos[n.id] || n).x, y:20 + i * 66 }; }); this.setState({ nodePos:p }); } },
-        { icon:'fit_screen', label:'Fit to view', run:() => { this.set('zoom', 100); this.toast('Zoom reset and canvas centred'); } },
-        { icon:'undo', label:'Undo layout', run:() => { this.setState({ nodePos:{} }); this.toast('Layout reverted'); } }
+        { icon:'auto_awesome_mosaic', label:'Auto-arrange', run:() => { this.setState({ nodePos:{} }); this.onUserMutation('canvas:auto-arrange'); this.notifyInfo('Steps arranged left to right by call order'); } },
+        { icon:'align_horizontal_left', label:'Align left', run:() => { const p = {}; NODES.forEach(n => { p[n.id] = { x:40, y:(s.nodePos[n.id] || n).y }; }); this.setState({ nodePos:p }); this.onUserMutation('canvas:align'); } },
+        { icon:'vertical_distribute', label:'Distribute', run:() => { const p = {}; NODES.forEach((n, i) => { p[n.id] = { x:(s.nodePos[n.id] || n).x, y:20 + i * 66 }; }); this.setState({ nodePos:p }); this.onUserMutation('canvas:distribute'); } },
+        { icon:'fit_screen', label:'Fit to view', run:() => { this.set('zoom', 100); this.onUserMutation('appearance:reset'); this.notifyInfo('Zoom reset and canvas centred'); } },
+        { icon:'undo', label:'Undo layout', run:() => { this.setState({ nodePos:{} }); this.onUserMutation('canvas:undo-layout'); this.notifyInfo('Layout reverted'); } }
       ],
       edgeRows:s.edgeList.map((e, i) => ({
         from:NODES.find(n => n.id === e[0]).title, to:NODES.find(n => n.id === e[1]).title,
-        fromOpts:NODES.map(n => ({ label:n.title, on:n.id === e[0], off:n.id !== e[0], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][0] = n.id; this.setState({ edgeList:L }); } })),
-        toOpts:NODES.map(n => ({ label:n.title, on:n.id === e[1], off:n.id !== e[1], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][1] = n.id; this.setState({ edgeList:L }); } })),
-        del:() => this.setState({ edgeList:s.edgeList.filter((_, j) => j !== i) })
+        fromOpts:NODES.map(n => ({ label:n.title, on:n.id === e[0], off:n.id !== e[0], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][0] = n.id; this.setState({ edgeList:L }); this.onUserMutation('canvas:edge-from'); } })),
+        toOpts:NODES.map(n => ({ label:n.title, on:n.id === e[1], off:n.id !== e[1], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][1] = n.id; this.setState({ edgeList:L }); this.onUserMutation('canvas:edge-to'); } })),
+        del:() => { this.setState({ edgeList:s.edgeList.filter((_, j) => j !== i) }); this.onUserMutation('canvas:edge-delete'); }
       })),
-      addEdge:() => this.setState({ edgeList:s.edgeList.concat([['n1', 'n2']]) }),
+      addEdge:() => { this.setState({ edgeList:s.edgeList.concat([['n1', 'n2']]) }); this.onUserMutation('canvas:edge-add'); },
       fullscreen:s.fullscreen,
       canvasPosition:s.fullscreen ? 'fixed' : 'static',
       canvasInset:s.fullscreen ? '0' : 'auto',
       canvasZ:s.fullscreen ? 94 : 'auto',
-      toggleFullscreen:() => { this.set('fullscreen', !s.fullscreen); this.toast(s.fullscreen ? 'Editor restored' : 'Full-screen editor — press the button again or Esc to exit'); },
+      toggleFullscreen:() => { this.set('fullscreen', !s.fullscreen); },
       fsIcon:s.fullscreen ? 'fullscreen_exit' : 'fullscreen',
       paletteNodes:[
         { icon:'add_call', label:'Dial' }, { icon:'dialpad', label:'Menu' }, { icon:'groups', label:'Queue' }, { icon:'call_split', label:'Condition' }, { icon:'voicemail', label:'Voicemail' }
-      ].map(p => ({ icon:p.icon, label:p.label, add:() => this.toast(p.label + ' step added to the canvas') })),
+      ].map(p => ({ icon:p.icon, label:p.label, add:() => this.invokeHost('canvas.add-node', { nodeType:p.label }) })),
       nodeTitle:node.title, nodeApp:node.detail.split('\n')[0],
       nodeCtls:(NODE_CTLS[node.id] || []).map(c => Object.assign(this.buildCtl(c), { narrow:true })),
 
       tableCols:tbl.cols, tableGrid:tbl.grid, tableAddLabel:tbl.add,
+      tableHasState:tableState !== 'verified' || tbl.rows.length === 0,
+      tableStateBg:tableNotice.bg, tableStateFg:tableNotice.fg, tableStateIcon:tableNotice.icon,
+      tableStateTitle:tableNotice.title, tableStateBody:tableNotice.body,
       tableFilters:['All','Healthy','Attention'].map(f => ({ label:f, on:s.tableFilter === f, off:s.tableFilter !== f, pick:() => this.set('tableFilter', f) })),
       hasSelection:sel.length > 0,
       selectionLabel:sel.length + ' of ' + tbl.rows.length + ' selected',
@@ -4674,34 +4480,32 @@ class ConsoleShell extends DCLogic {
       allIcon:sel.length === tbl.rows.length && tbl.rows.length ? 'check' : (sel.length ? 'remove' : ''),
       toggleAll:() => this.set('selected', sel.length === tbl.rows.length ? [] : tbl.rows.map(r => r[0])),
       clearSelection:() => this.set('selected', []),
-      bulkActions:[
-        { icon:'play_arrow', label:'Enable', run:() => this.bulk('Enabled', sel) },
-        { icon:'pause', label:'Disable', run:() => this.bulk('Disabled', sel) },
-        { icon:'refresh', label:'Reload', run:() => this.ceremony('Reload ' + sel.length + ' objects', 'reload ' + sel.join(' ')) },
-        { icon:'edit', label:'Edit together', run:() => this.setState({ wizardOpen:true, wizardStep:0 }) },
-        { icon:'content_copy', label:'Duplicate', run:() => this.bulk('Duplicated', sel) },
-        { icon:'lock', label:'Lock each', run:() => { this.setState({ lockOpen:true, lockTarget:sel.length + ' selected objects', lockKey:this.state.screen, lockStep:0, lockX:'38%', lockY:'18%' }); } },
-        { icon:'download', label:'Export', run:() => this.bulk('Exported', sel) },
-        { icon:'delete', label:'Delete', run:() => this.ceremony('Delete ' + sel.length + ' objects', 'delete ' + sel.join(' ')) }
-      ],
+      bulkActions:(Array.isArray(tableSnapshot.bulkActions) ? tableSnapshot.bulkActions : []).map(action => {
+        const cap = this.capability(action.actionId);
+        return { icon:action.icon || 'bolt', label:action.label, disabled:!cap.enabled, reason:cap.reason, run:() => cap.enabled ? this.ceremony(action.label, action.actionId, { screen:s.screen, rowIds:sel.slice() }) : this.notify('warning', 'Action unavailable', cap.reason) };
+      }),
       tableRows:tbl.rows.map(r => ({
         // This announced that the row had been loaded into the editor below and loaded
         // nothing at all — a toast asserting something that had not happened. A screen
         // that can really load a row supplies its own handler; the rest say plainly that
         // they cannot rather than claiming they did.
         pick:() => { if (this.onPickRow) { this.onPickRow(r[0]); return; }
-          this.toast(r[0] + ' cannot be loaded into the editor on this screen yet'); },
+          this.notifyWarning(r[0] + ' cannot be loaded into the editor on this screen yet'); },
         rnd:this.rnd(80 + tbl.rows.indexOf(r)),
         bg:sel.indexOf(r[0]) >= 0 ? '#1D2A22' : 'transparent',
         border:sel.indexOf(r[0]) >= 0 ? '#82D9A5' : '#8B938C',
         checkBg:sel.indexOf(r[0]) >= 0 ? '#82D9A5' : 'transparent',
         checkIcon:sel.indexOf(r[0]) >= 0 ? 'check' : '',
         toggle:() => this.set('selected', sel.indexOf(r[0]) >= 0 ? sel.filter(x => x !== r[0]) : sel.concat([r[0]])),
-        ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:r[0], ctxKind:'row' }); },
+        ctx:(e) => { e.preventDefault(); this.rememberFocus(); this.setState({ ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:r[0], ctxKind:'row' }); },
         cells:r.map((cell, i) => {
           const last = i === r.length - 1 && tbl.cols.length > 3;
-          const ok = chipOK[cell];
-          return { text:cell, isChip:last, isMono:!last && i === 0, isText:!last && i !== 0, bg:ok ? '#1B4D33' : '#5C1B18', fg:ok ? '#9FF7C4' : '#FFB4AB' };
+          const raw = cell && typeof cell === 'object' && cell.value !== undefined ? cell.value : cell;
+          const readState = cell && typeof cell === 'object' && cell.state ? cell.state : (raw === undefined || raw === null || raw === '' ? 'unread' : 'verified');
+          const unread = readState !== 'verified' && (raw === undefined || raw === null || raw === '');
+          const text = unread ? '—' : String(raw);
+          const ok = chipOK[text];
+          return { text, readState, isChip:last && !unread, isMono:!last && i === 0, isText:!last && i !== 0, bg:ok ? '#1B4D33' : '#5C1B18', fg:ok ? '#9FF7C4' : '#FFB4AB' };
         })
       })),
 
@@ -4713,35 +4517,14 @@ class ConsoleShell extends DCLogic {
       cliCommand:'asterisk -rx "' + cliCmd + '"',
       cliExplain:'Asks the running PBX to list every ' + s.cli.target + ' it currently knows about. Read-only, but it still passes through confirmation because it touches production.',
       runCli:() => this.ceremony('Run a CLI command', cliCmd),
-      cliLog:[
-        { text:'pbx-hq*CLI> pjsip show endpoints', color:'#9FF7C4' },
-        { text:' Endpoint:  1001/1001                    Not in use    0 of inf', color:'#C4CBC2' },
-        { text:'    InAuth:  1001/1001', color:'#778078' },
-        { text:'       Aor:  1001                                        2', color:'#778078' },
-        { text:'  Contact:  1001/sip:1001@10.20.4.31:5060  Avail  22.418', color:'#82D9A5' },
-        { text:' Endpoint:  1003/1003                    Unavailable   0 of inf', color:'#FFB4AB' },
-        { text:'  Contact:  1003/sip:1003@10.20.4.44:5060  Unavail  0.000', color:'#FFB4AB' },
-        { text:' Endpoint:  1004/1004                    In use        1 of inf', color:'#C4CBC2' },
-        { text:'', color:'#778078' },
-        { text:'Objects found: 12', color:'#9AA39B' }
-      ],
+      cliLog:Array.isArray(hostScreen.cliLog) ? hostScreen.cliLog : [{ text:'No verified command result. Run a host-backed read action to populate this surface.', color:'#8FA394' }],
 
       regexValue:s.regex.join(''),
-      regexMatches:'184 matches',
+      regexMatches:(host.regex && host.regex.matchCount !== undefined ? host.regex.matchCount : 0) + ' verified matches',
       regexTokens:s.regex.map((t, i) => ({ label:t, remove:() => this.set('regex', s.regex.filter((_, j) => j !== i)) })),
       regexPalette:['^', '$', '\\d+', '[a-z]+', '.*', '\\.md$', '(a|b)'].map(p => ({ label:p, add:() => this.set('regex', s.regex.concat([p])) })),
-      memRows:[
-        { scope:'projects', text:'conservation-bakery — desktop app, Windows first', when:'2d' },
-        { scope:'projects', text:'material-virtualbox — native Qt, Squirrel rule does not reach', when:'4d' },
-        { scope:'extensions', text:'status-protocol — session and reply contract', when:'6d' },
-        { scope:'shared', text:'Every countable vocabulary noun takes a final s', when:'8d' },
-        { scope:'host', text:'HOST_INVENTORY — pbx-hq, pbx-branch, builder', when:'11d' }
-      ],
-      memPanels:[
-        { icon:'sync', title:'Sync', action:'Run sync now', rows:[{ k:'Last run', v:'08:14' }, { k:'Records', v:'2,412' }, { k:'Drift', v:'none' }], act:() => this.ceremony('Run a memory sync', 'sync-agent-memory --attest') },
-        { icon:'verified_user', title:'Attestation', action:'Re-attest', rows:[{ k:'State', v:'Signed' }, { k:'Backup', v:'verified' }, { k:'Chain', v:'unbroken' }], act:() => this.ceremony('Re-attest the memory ledger', 'attest --rebuild') },
-        { icon:'policy', title:'Emission guard', action:'Scan surfaces', rows:[{ k:'Mode', v:'Block' }, { k:'Violations', v:'0' }, { k:'Lock', v:'engaged' }], act:() => this.toast('Guard scan queued across UI text, logs and exports') }
-      ],
+      memRows:host.memory && Array.isArray(host.memory.rows) ? host.memory.rows : [],
+      memPanels:(host.memory && Array.isArray(host.memory.panels) ? host.memory.panels : []).map(panel => Object.assign({}, panel, { rows:Array.isArray(panel.rows) ? panel.rows : [], act:() => panel.actionId ? this.ceremony(panel.action || panel.title, panel.actionId, panel.payload || {}) : this.notify('warning', 'Action unavailable', 'The host did not supply an action handler descriptor.') })),
 
       docsQuery:'',
       setDocsQuery:(e) => this.set('docsQuery', e.target.value),
@@ -4751,14 +4534,12 @@ class ConsoleShell extends DCLogic {
       docsRegexColor:s.docsRegexOn ? '#9FF7C4' : '#778078',
       docsRegexPalette:['^', '$', '\d+', '[a-z]+', '.*', '\.md$'].map(p => ({ label:p, add:() => this.set('docsQuery', (s.docsQuery || '') + p) })),
       docsQueryError:'',
-      docsResultsLabel:'12 articles',
-      docsCategories:[{ name:'platform', count:12 }, { name:'security', count:6 }],
-      docsResults:[
-        { id:'platform/overview', category:'platform', title:'Overview', excerpt:'What this console is and how it reads a PBX.', bg:'transparent', select:() => this.set('docsSelectedId', 'platform/overview') }
-      ],
-      docsSelectedTitle:'Overview',
-      docsSelectedCategory:'platform',
-      docsBlocks:[{ isParagraph:true, spans:[{ isPlain:true, text:'Select an article to read it here.' }] }],
+      docsResultsLabel:'No verified documentation index',
+      docsCategories:[],
+      docsResults:[],
+      docsSelectedTitle:'No verified article',
+      docsSelectedCategory:'',
+      docsBlocks:[{ isParagraph:true, spans:[{ isPlain:true, text:'The host did not supply a documentation index.' }] }],
       docsOutline:[],
       docsHasSuggested:false,
       docsSuggested:[],
@@ -4830,9 +4611,10 @@ class ConsoleShell extends DCLogic {
 
       tabGroups:s.groups.map(g => ({
         name:g.name, colour:g.colour, count:g.tabs.length + '', bg:'#141A15',
+        expanded:!g.collapsed,
         chevron:g.collapsed ? 'chevron_right' : 'expand_more',
-        toggle:() => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, { collapsed:!x.collapsed }) : x) }),
-        ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxSub:'', ctxGroupId:g.id, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'group · ' + g.name, ctxKind:'group' }); }
+        toggle:() => { this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, { collapsed:!x.collapsed }) : x) }); this.onUserMutation('group:toggle'); },
+        ctx:(e) => { e.preventDefault(); this.rememberFocus(); this.setState({ ctxOpen:true, ctxSub:'', ctxGroupId:g.id, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'group · ' + g.name, ctxKind:'group' }); }
       })),
       renameOpen:s.renameOpen, renameValue:s.renameValue,
       onRename:(e) => this.set('renameValue', e.target.value),
@@ -4840,11 +4622,11 @@ class ConsoleShell extends DCLogic {
         const key = s.renameKey || '';
         if (key.indexOf('group:') === 0) {
           const id = key.slice(6);
-          this.setState(st => ({ groups:st.groups.map(g => g.id === id ? Object.assign({}, g, { name:st.renameValue }) : g), renameOpen:false }));
-          return this.toast('Group renamed');
+          this.setState(st => ({ groups:st.groups.map(g => g.id === id ? Object.assign({}, g, { name:st.renameValue }) : g), renameOpen:false })); this.onUserMutation('group:rename');
+          return true;
         }
-        this.setState(st => ({ tabNames:Object.assign({}, st.tabNames, { [key]:st.renameValue }), renameOpen:false }));
-        this.toast('Tab renamed');
+        this.setState(st => ({ tabNames:Object.assign({}, st.tabNames, { [key]:st.renameValue }), renameOpen:false })); this.onUserMutation('tab:rename');
+        return true;
       },
       cancelRename:() => this.set('renameOpen', false),
       tabColourOpen:s.tabColourOpen,
@@ -4863,7 +4645,7 @@ class ConsoleShell extends DCLogic {
         ctl('cp_dir', 'Direction', 'segmented', 'Forward', { options:['Forward', 'Reverse', 'Ping-pong'] })
       ].map(this.buildCtl),
       cpickFormats:(() => { const h = this.v('cp_hue', 148), sa = this.v('cp_sat', 60), l = this.v('cp_light', 62);
-        return [['hsl', 'hsl(' + h + ' ' + sa + '% ' + l + '%)'], ['oklch', 'oklch(' + (l / 100).toFixed(2) + ' 0.13 ' + h + ')'], ['hsl deg', h + 'deg'], ['css var', '--tab-accent']].map(([k, v2]) => ({ label:k + ' · ' + v2, copy:() => this.toast(v2 + ' copied') })); })(),
+        return [['hsl', 'hsl(' + h + ' ' + sa + '% ' + l + '%)'], ['oklch', 'oklch(' + (l / 100).toFixed(2) + ' 0.13 ' + h + ')'], ['hsl deg', h + 'deg'], ['css var', '--tab-accent']].map(([k, v2]) => ({ label:k + ' · ' + v2, copy:() => this.invokeHost('clipboard.copy', { text:v2, source:'tab-colour-picker' }) })); })(),
       cpickIsGroup:(s.renameKey || '').indexOf('group:') === 0,
       cpickLabel:(s.renameKey || '').indexOf('group:') === 0 ? 'Group colour' : 'Tab colour',
       cpickApply:() => this.applyColour(this.v('cp_rainbow', false) ? 'rainbow' : 'hsl(' + this.v('cp_hue', 148) + ' ' + this.v('cp_sat', 60) + '% ' + this.v('cp_light', 62) + '%)'),
@@ -4891,6 +4673,8 @@ class ConsoleShell extends DCLogic {
       })(),
       tabFilterText:s.tabFilterText,
       tabFilterApply:s.tabFilterMode === 'not' ? 'Close non-matching' : (s.tabFilterMode === 'colour' ? 'Close this colour' : 'Close matching'),
+      tabFilterInvalid:(() => { const q=s.tabFilterText || (s.patterns.nav || []).join(''); if (s.tabFilterMode === 'colour') return !s.tabFilterColour; if (!q) return true; if ((s.patterns.nav || []).length) { try { new RegExp(q, s.regexFlags.join('')); } catch (e) { return true; } } return false; })(),
+      tabFilterSummary:(() => { const q=s.tabFilterText || (s.patterns.nav || []).join(''); if (s.tabFilterMode !== 'colour' && !q) return 'Enter a non-empty query. No tabs can close yet.'; const protectedCount=s.tabs.filter(k => s.pinned.indexOf(k) >= 0).length; return protectedCount + ' pinned tab' + (protectedCount === 1 ? '' : 's') + ' protected and excluded from this operation.'; })(),
       onTabFilterText:(e) => this.set('tabFilterText', e.target.value),
       openTabRegex:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'34%', regexY:'150px' }),
       tabFilterPreview:(() => {
@@ -4898,35 +4682,41 @@ class ConsoleShell extends DCLogic {
           return s.tabs.map(k => {
             const label = s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k);
             const c = s.tabColours[k] || 'none';
-            const closes = s.tabFilterColour ? c === s.tabFilterColour : false;
-            return { label, icon:closes ? 'close' : 'check', bg:closes ? '#5C1B18' : '#1B4D33', fg:closes ? '#FFB4AB' : '#9FF7C4' };
+            const pinned = s.pinned.indexOf(k) >= 0;
+            const closes = !pinned && s.tabFilterColour ? c === s.tabFilterColour : false;
+            return { label, icon:pinned ? 'push_pin' : (closes ? 'close' : 'check'), bg:closes ? '#5C1B18' : '#1B4D33', fg:closes ? '#FFB4AB' : '#9FF7C4' };
           });
         }
         const q = (s.tabFilterText || (s.patterns.nav || []).join('')).toLowerCase();
         return s.tabs.map(k => {
           const label = s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k);
           let hit = q ? label.toLowerCase().indexOf(q) >= 0 : false;
-          try { if (q) hit = new RegExp(q, 'i').test(label); } catch (e) {}
-          const closes = s.tabFilterMode === 'not' ? !hit : hit;
-          return { label, icon:closes ? 'close' : 'check', bg:closes ? '#5C1B18' : '#1B4D33', fg:closes ? '#FFB4AB' : '#9FF7C4' };
+          if ((s.patterns.nav || []).length && q) { try { hit = new RegExp(q, s.regexFlags.join('')).test(label); } catch (e) { hit=false; } }
+          const pinned = s.pinned.indexOf(k) >= 0;
+          const closes = !pinned && (s.tabFilterMode === 'not' ? !hit : hit);
+          return { label, icon:pinned ? 'push_pin' : (closes ? 'close' : 'check'), bg:closes ? '#5C1B18' : '#1B4D33', fg:closes ? '#FFB4AB' : '#9FF7C4' };
         });
       })(),
       applyTabFilter:() => {
         if (s.tabFilterMode === 'colour') {
           if (!s.tabFilterColour) return this.toast('Pick a colour first');
-          const keep = s.tabs.filter(k => (s.tabColours[k] || 'none') !== s.tabFilterColour);
-          this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false });
-          return this.toast('Closed every tab of that colour');
+          const keep = s.tabs.filter(k => s.pinned.indexOf(k) >= 0 || (s.tabColours[k] || 'none') !== s.tabFilterColour);
+          this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false }); this.onUserMutation('tabs:close-colour');
+          return this.notify('info', 'Tabs updated', 'Matching unpinned tabs closed. Pinned tabs were retained.');
         }
-        const q = (s.tabFilterText || (s.patterns.nav || []).join('')).toLowerCase();
+        const raw = s.tabFilterText || (s.patterns.nav || []).join('');
+        if (!raw) return this.notify('warning', 'Close blocked', 'Enter a non-empty query before closing tabs.');
+        let regex=null;
+        if ((s.patterns.nav || []).length) { try { regex=new RegExp(raw, s.regexFlags.join('')); } catch (e) { return this.notify('warning', 'Close blocked', 'The regex pattern is invalid. Fix it before closing tabs.'); } }
+        const q = raw.toLowerCase();
         const keep = s.tabs.filter(k => {
+          if (s.pinned.indexOf(k) >= 0) return true;
           const label = (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)).toLowerCase();
-          let hit = q ? label.indexOf(q) >= 0 : false;
-          try { if (q) hit = new RegExp(q, 'i').test(label); } catch (e) {}
+          const hit = regex ? regex.test(label) : label.indexOf(q) >= 0;
           return s.tabFilterMode === 'not' ? hit : !hit;
         });
-        this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false });
-        this.toast((s.tabs.length - (keep.length || 1)) + ' tabs closed');
+        this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false }); this.onUserMutation('tabs:close-filter');
+        this.notify('info', 'Tabs updated', (s.tabs.length - keep.length) + ' unpinned tabs closed. Pinned tabs were retained.');
       },
       closeTabFilter:() => this.set('tabFilterOpen', false),
       closeTabColour:() => this.set('tabColourOpen', false),
@@ -4949,30 +4739,49 @@ class ConsoleShell extends DCLogic {
           if (from < 0 || from === i) return this.setState({ tabDrag:-1, tabOver:-1 });
           if (e.shiftKey) {
             const a = s.tabs.slice(); const [m] = a.splice(from, 1); a.splice(i, 0, m);
-            return this.setState({ tabs:a, tabDrag:-1, tabOver:-1 });
+            this.setState({ tabs:a, tabDrag:-1, tabOver:-1 });
+            this.onUserMutation('tabs:reorder');
+            return;
           }
           const dragged = s.tabs[from], target = k;
           const existing = s.groups.find(g => g.tabs.indexOf(target) >= 0);
           let groups;
           if (existing) groups = s.groups.map(g => g === existing ? Object.assign({}, g, { tabs:g.tabs.concat([dragged]) }) : g);
           else groups = s.groups.concat([{ id:'g' + Date.now(), name:'New group', colour:s.tabColours[target] || '#8AB4F8', collapsed:false, tabs:[target, dragged] }]);
-          this.setState({ groups, tabDrag:-1, tabOver:-1 });
-          this.fire('Grouped', dragged + ' and ' + target + ' are now one tab group.');
+          this.setState({ groups, tabDrag:-1, tabOver:-1 }); this.onUserMutation('tabs:group');
+
         },
-        on:k === s.screen, off:k !== s.screen, pinned:s.pinned.indexOf(k) >= 0,
+        on:k === s.screen, off:k !== s.screen, pinned:s.pinned.indexOf(k) >= 0, closable:s.pinned.indexOf(k) < 0,
         go:() => this.setState({ screen:k, railId:SCREENS[k] ? SCREENS[k].rail : s.railId }),
-        close:(e) => { if (e && e.stopPropagation) e.stopPropagation(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:k === s.screen ? (t[0] || 'dash') : s.screen }); },
-        ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxTabKey:k, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'tab · ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)), ctxKind:'tab' }); }
+        close:(e) => { if (e && e.stopPropagation) e.stopPropagation(); if (s.pinned.indexOf(k) >= 0) return this.notify('warning', 'Pinned tab kept', 'Unpin this tab before closing it.'); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:k === s.screen ? (t[0] || 'dash') : s.screen }); this.onUserMutation('tabs:close'); },
+        ctx:(e) => { e.preventDefault(); this.rememberFocus(); this.setState({ ctxOpen:true, ctxTabKey:k, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'tab · ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)), ctxKind:'tab' }); }
         };
       }),
-      newTab:() => { const next = ORDER.find(k => s.tabs.indexOf(k) < 0) || 'dash'; this.setState({ tabs:s.tabs.concat([next]), screen:next, railId:SCREENS[next].rail }); },
+      newTab:() => { const next = ORDER.find(k => s.tabs.indexOf(k) < 0) || 'dash'; this.setState({ tabs:s.tabs.concat([next]), screen:next, railId:SCREENS[next].rail }); this.onUserMutation('tabs:new'); },
       dockOpts:[
-        { label:'Rail on the left', icon:'dock_to_right', v:'left' },
-        { label:'Rail on the right', icon:'dock_to_left', v:'right' },
-        { label:'Rail on top', icon:'dock_to_bottom', v:'top' },
-        { label:'Compact rail', icon:'width_normal', v:'compact' }
+        { label:'Tabs on the left', icon:'dock_to_right', v:'left' },
+        { label:'Tabs on the right', icon:'dock_to_left', v:'right' },
+        { label:'Tabs on top', icon:'dock_to_bottom', v:'top' },
+        { label:'Tabs on bottom', icon:'dock_to_top', v:'bottom' }
       ].map(d => ({ label:d.label, icon:d.icon, on:s.dock === d.v, off:s.dock !== d.v, pick:() => { this.set('dock', d.v); this.toast('Docked ' + d.label.toLowerCase()); } })),
-      dockDirection:s.dock === 'right' ? 'row-reverse' : (s.dock === 'top' ? 'column' : 'row'),
+      tabOrientation:s.dock === 'left' || s.dock === 'right' ? 'vertical' : 'horizontal',
+      tabStripStyle:(s.dock === 'left' ? 'position:absolute; left:0; top:40px; bottom:0; width:230px; flex-direction:column; align-items:stretch; overflow-y:auto;' : (s.dock === 'right' ? 'position:absolute; right:0; top:40px; bottom:0; width:230px; flex-direction:column; align-items:stretch; overflow-y:auto;' : (s.dock === 'bottom' ? 'position:absolute; left:0; right:0; bottom:0; height:48px; align-items:center; overflow-x:auto;' : 'position:absolute; left:0; right:0; top:40px; height:48px; align-items:center; overflow-x:auto;'))) + ' display:flex; gap:4px; background:#0B0F0C; padding:4px 6px; z-index:50;',
+      workspaceInsetStyle:'flex:1; display:flex; min-height:0; gap:0; flex-direction:row; ' + (s.dock === 'left' ? 'margin-left:230px;' : (s.dock === 'right' ? 'margin-right:230px;' : (s.dock === 'bottom' ? 'margin-bottom:48px;' : 'margin-top:48px;'))),
+      tabSearchSlots:[
+        { id:'strip', label:'Current strip tabs' },
+        { id:'group', label:'Current group tabs' },
+        { id:'groups', label:'Tab groups' },
+        { id:'master', label:'All windows and groups' }
+      ].map(slot => ({ label:slot.label, value:s.tabSearchQueries[slot.id] || '', input:(e) => this.setState(st => ({ tabSearchQueries:Object.assign({}, st.tabSearchQueries, { [slot.id]:e.target.value }) })), regex:() => this.setState({ regexOpen:true, regexTarget:'tabs:' + slot.id, regexX:'50%', regexY:'88px' }) })),
+      onTabListKeyDown:(e) => {
+        const vertical = s.dock === 'left' || s.dock === 'right';
+        const step = vertical ? (e.key === 'ArrowDown' ? 1 : (e.key === 'ArrowUp' ? -1 : 0)) : (e.key === 'ArrowRight' ? 1 : (e.key === 'ArrowLeft' ? -1 : 0));
+        if (!step) return;
+        if (e.preventDefault) e.preventDefault();
+        const index = s.tabs.indexOf(s.screen);
+        const next = s.tabs[(index + step + s.tabs.length) % s.tabs.length];
+        if (next) this.openScreen(next);
+      },
       isCustomise:s.screen === 'customise',
       funLevel:(() => { const l = this.v('fun_level', 2); return String(l); })(),
       funName:['Bank','Polite','Balanced','Playful','Unhinged'][this.v('fun_level', 2)],
@@ -4995,30 +4804,23 @@ class ConsoleShell extends DCLogic {
       funKnobFg:this.v('fun_level', 2) > 0 ? '#9FF7C4' : '#8FA394',
       funKnobAnim:this.v('fun_level', 2) > 2 ? 'm3Wiggle 1.6s ease-in-out infinite' : 'none',
       funLabelFg:this.v('fun_level', 2) > 0 ? '#00391F' : '#9FF7C4',
-      toggleFun:() => { const on = this.v('fun_level', 2) > 0; this.setVal({ id:'fun_level', label:'Fun level' }, on ? 0 : 3); if (!on) this.fire('Fun restored', 'Level 3. Brace yourself.'); },
-      maxFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:4, fun_random:true, fun_confetti:300, fun_copy:'Comedian', th_rainbow:true, fun_random_scope:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'], fun_random_strength:100, fun_random_reroll:true }) })); this.fire('MAXIMUM FUN', 'Every element now has its own random look, rerolling as you go.'); },
-      zeroFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:0, fun_random:false, th_rainbow:false, fun_confetti:0, fun_copy:'Terse' }) })); this.toast('Fun disabled. The console is now a spreadsheet with opinions.'); },
-      toggleRandom:() => { const on = this.v('fun_random', false); this.setVal({ id:'fun_random', label:'Random appearance for every element', kind:'switch' }, !on); if (!on) this.fire('Randomised', 'Every element just got its own look.'); },
+      toggleFun:() => { const on = this.v('fun_level', 2) > 0; this.setVal({ id:'fun_level', label:'Fun level' }, on ? 0 : 3); },
+      maxFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:4, fun_random:true, fun_confetti:300, fun_copy:'Comedian', th_rainbow:true, fun_random_scope:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'], fun_random_strength:100, fun_random_reroll:true }) })); this.onUserMutation('preset:max-fun'); },
+      zeroFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:0, fun_random:false, th_rainbow:false, fun_confetti:0, fun_copy:'Terse' }) })); this.onUserMutation('preset:zero-fun'); this.toast('Fun disabled. The console is now a spreadsheet with opinions.'); },
+      toggleRandom:() => { const on = this.v('fun_random', false); this.setVal({ id:'fun_random', label:'Random appearance for every element', kind:'switch' }, !on); },
       rndBtnBg:this.v('fun_random', false) ? '#1B4D33' : 'rgba(0,0,0,.24)',
       rndBtnBorder:this.v('fun_random', false) ? '#9FF7C4' : 'rgba(159,247,196,.3)',
       rndTrack:this.v('fun_random', false) ? '#9FF7C4' : '#414942',
       rndJustify:this.v('fun_random', false) ? 'flex-end' : 'flex-start',
       rndKnob:this.v('fun_random', false) ? '#00391F' : '#8B938C',
       rndFg:this.v('fun_random', false) ? '#9FF7C4' : '#DFF3E5',
-      rerollNow:() => { this.setState(st => ({ rndNonce:st.rndNonce + 1 })); this.toast('Rerolled — every element has a new look'); },
-      isServers:sc.kind === 'servers', isArcade:sc.kind === 'arcade', isTrunkAuth:sc.kind === 'trunkauth', isHistory:sc.kind === 'history',
-      branchName:s.branch, commitCount:s.commits.length + ' commits',
-      branches:['main', 'hardening', 'lab'].map(b => ({ label:b, on:s.branch === b, off:s.branch !== b, pick:() => { this.set('branch', b); this.toast('Checked out ' + b); } })),
+      rerollNow:() => { this.setState(st => ({ rndNonce:st.rndNonce + 1 })); this.onUserMutation('appearance:reroll'); this.toast('Rerolled — every element has a new look'); },
+      isServers:sc.kind === 'servers', isTrunkAuth:sc.kind === 'trunkauth', isHistory:sc.kind === 'history',
+      branchName:s.branch || 'No verified branch', commitCount:historyEntries.length + ' verified commits',
+      branches:(host.history && Array.isArray(host.history.branches) ? host.history.branches : []).map(b => ({ label:b.name, on:s.branch === b.name, off:s.branch !== b.name, pick:() => this.set('branch', b.name) })),
       histFilters:['All', 'pjsip.conf', 'queues.conf', 'This screen'].map(f => ({ label:f, on:s.histFilter === f, off:s.histFilter !== f, pick:() => this.set('histFilter', f) })),
-      histActions:[
-        { icon:'add_circle', label:'Commit now', run:() => this.fire('Committed', 'Working tree is clean.') },
-        { icon:'call_split', label:'New branch', run:() => this.toast('Branch created from the current commit') },
-        { icon:'sell', label:'Tag this state', run:() => this.fire('Tagged', 'You can restore to this exact point later.') },
-        { icon:'cloud_upload', label:'Push to mirror', run:() => this.toast('Mirror push queued') },
-        { icon:'search', label:'Search history', run:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'40%', regexY:'160px' }) },
-        { icon:'download', label:'Export bundle', run:() => this.toast('git bundle written to disk') }
-      ],
-      commitRows:s.commits.filter(c => s.histFilter === 'All' || (s.histFilter === 'This screen' ? c.screen === s.screen : c.file === s.histFilter)).map(c => ({
+      histActions:(host.history && Array.isArray(host.history.actions) ? host.history.actions : []).map(action => { const cap=this.capability(action.actionId); return { icon:action.icon || 'history', label:action.label, disabled:!cap.enabled, reason:cap.reason, run:() => cap.enabled ? this.ceremony(action.label, action.actionId, action.payload || {}) : this.notify('warning', 'Action unavailable', cap.reason) }; }),
+      commitRows:historyEntries.filter(c => s.histFilter === 'All' || (s.histFilter === 'This screen' ? c.screen === s.screen : c.file === s.histFilter)).map(c => ({
         sha:c.sha, tag:c.tag, hasTag:!!c.tag,
         msg:c.file + ': ' + c.label + ' ' + c.from + ' → ' + c.to,
         meta:c.author + ' · ' + c.when + ' · ' + c.branch,
@@ -5027,12 +4829,12 @@ class ConsoleShell extends DCLogic {
         cmpFg:s.histCompare.indexOf(c.sha) >= 0 ? '#82D9A5' : '#778078',
         pick:() => this.set('histSel', c.sha),
         compare:(e) => { if (e && e.stopPropagation) e.stopPropagation(); const cur = s.histCompare.indexOf(c.sha) >= 0 ? s.histCompare.filter(x => x !== c.sha) : s.histCompare.concat([c.sha]).slice(-2); this.set('histCompare', cur); },
-        ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxSub:'', ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'commit ' + c.sha, ctxKind:'row' }); }
+        ctx:(e) => { e.preventDefault(); this.rememberFocus(); this.setState({ ctxOpen:true, ctxSub:'', ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'commit ' + c.sha, ctxKind:'row' }); }
       })),
-      diffFile:(() => { const c = s.commits.find(x => x.sha === s.histSel) || s.commits[0]; return c ? c.file + ' @ ' + c.sha : 'no commit selected'; })(),
+      diffFile:(() => { const c = historyEntries.find(x => x.sha === s.histSel) || historyEntries[0]; return c ? c.file + ' @ ' + c.sha : 'no verified commit selected'; })(),
       diffLines:(() => {
-        const c = s.commits.find(x => x.sha === s.histSel) || s.commits[0];
-        if (!c) return [{ text:'nothing selected', color:'#8FA394', bg:'transparent' }];
+        const c = historyEntries.find(x => x.sha === s.histSel) || historyEntries[0];
+        if (!c) return [{ text:'No verified history receipt is available.', color:'#8FA394', bg:'transparent' }];
         return [
           { text:'@@ ' + c.file + ' @@', color:'#8AB4F8', bg:'transparent' },
           { text:'- ' + c.key + ' = ' + c.from, color:'#FFB4AB', bg:'rgba(147,0,10,.18)' },
@@ -5040,15 +4842,10 @@ class ConsoleShell extends DCLogic {
           { text:'  ; changed by ' + c.author + ' ' + c.when, color:'#8FA394', bg:'transparent' }
         ];
       })(),
-      diffActions:[
-        { icon:'restore', label:'Restore this', bg:'#82D9A5', fg:'#00391F', run:() => this.areYouSure('Restore this commit', 'The configuration returns to this exact state. A new commit records the restore, so nothing is lost either way.', 3, () => this.ceremony('Restore configuration', 'git revert --no-commit ' + (s.histSel || 'HEAD'))) },
-        { icon:'undo', label:'Revert just this option', bg:'#262B26', fg:'#9FF7C4', run:() => this.toast('Only this one option is reverted; everything else stays') },
-        { icon:'content_copy', label:'Copy diff', bg:'#262B26', fg:'#9FF7C4', run:() => this.toast('Diff copied') },
-        { icon:'call_split', label:'Branch from here', bg:'#262B26', fg:'#9FF7C4', run:() => this.fire('Branched', 'Experiment freely — main is untouched.') }
-      ],
-      blameRows:s.commits.slice(0, 5).map(c => ({ sha:c.sha, what:c.file + ' · ' + c.label, who:c.author })),
+      diffActions:(host.history && Array.isArray(host.history.diffActions) ? host.history.diffActions : []).map(action => { const cap=this.capability(action.actionId); return { icon:action.icon || 'history', label:action.label, bg:'#262B26', fg:'#9FF7C4', disabled:!cap.enabled, reason:cap.reason, run:() => cap.enabled ? this.ceremony(action.label, action.actionId, { commit:s.histSel }) : this.notify('warning', 'Action unavailable', cap.reason) }; }),
+      blameRows:historyEntries.slice(0, 5).map(c => ({ sha:c.sha, what:c.file + ' · ' + c.label, who:c.author })),
       compareLabel:s.histCompare.length === 2 ? ('Comparing ' + s.histCompare[0] + ' with ' + s.histCompare[1] + ' — 1 file, 1 option differs.') : 'Pick two commits with the compare buttons to see everything that differs between them.',
-      authRequests:AUTH_REQS.filter(r => (s.authAnswers[r.id] || 'Pending') === 'Pending' || s.authAnswers[r.id] === 'Deferred').map(r => ({
+      authRequests:(host.authRequests && Array.isArray(host.authRequests.pending) ? host.authRequests.pending : []).map(r => ({
         title:r.title, body:r.body, when:r.when, icon:r.icon,
         iconColor:r.risk === 'High risk' ? '#FFB4AB' : (r.risk === 'Medium risk' ? '#FFD68A' : '#82D9A5'),
         risk:r.risk, riskBg:r.risk === 'High risk' ? '#5C1B18' : (r.risk === 'Medium risk' ? '#4A3B18' : '#1B4D33'),
@@ -5058,104 +4855,18 @@ class ConsoleShell extends DCLogic {
         stateFg:s.authAnswers[r.id] === 'Deferred' ? '#FFD68A' : '#8FA394',
         yes:() => this.answerAuth(r, 'YES'),
         no:() => this.answerAuth(r, 'NO'),
-        ask:() => this.toast('Detail request sent to ' + r.partner + ' — the request stays pending'),
+        ask:() => { const cap=this.capability('auth.request-detail'); if (!cap.enabled) return this.notify('warning', 'Action unavailable', cap.reason); return this.invokeHost('auth.request-detail', { requestId:r.id, partner:r.partner }); },
+        askDisabled:!this.capability('auth.request-detail').enabled,
+        askReason:this.capability('auth.request-detail').reason,
         defer:() => this.setState({ authAnswers:Object.assign({}, s.authAnswers, { [r.id]:'Deferred' }) })
       })),
-      authHistory:AUTH_REQS.filter(r => s.authAnswers[r.id] === 'YES' || s.authAnswers[r.id] === 'NO').map(r => ({
+      authHistory:(host.authRequests && Array.isArray(host.authRequests.history) ? host.authRequests.history : []).map(r => ({
         partner:r.partner, what:r.title, answer:s.authAnswers[r.id], when:'just now',
         color:s.authAnswers[r.id] === 'YES' ? '#82D9A5' : '#FFB4AB'
-      })).concat([
-        { partner:'carrier-primary', what:'Raise concurrent call cap to 60', answer:'YES', when:'3d', color:'#82D9A5' },
-        { partner:'branch-iax', what:'Add 203.0.113.44 as a source address', answer:'NO', when:'6d', color:'#FFB4AB' },
-        { partner:'carrier-backup', what:'Enable opus on the shared link', answer:'YES', when:'11d', color:'#82D9A5' }
-      ]),
-      newAuthRequest:() => this.toast('Composing a request — pick the partner and what you want to change'),
-      credits:s.credits,
-      games:GAMES.map(g => ({ icon:g.icon, name:g.name, blurb:g.blurb, reward:'+' + g.reward + ' credits', on:s.game === g.id, off:s.game !== g.id, pick:() => { this.stopGameNow(); this.setState({ game:g.id, gameScore:0 }); } })),
-      gameTitle:(GAMES.find(g => g.id === s.game) || GAMES[0]).name,
-      gameBlurb:(GAMES.find(g => g.id === s.game) || GAMES[0]).blurb,
-      gameScore:s.gameScore + ' pts',
-      gameClock:s.gamePlaying ? s.gameTime + 's left' : 'ready',
-      gameButton:s.gamePlaying ? 'Playing…' : 'Start · 20s',
-      gameCells:Array.from({ length:15 }, (_, i) => ({
-        up:s.gamePlaying && i === s.gameCell, down:!(s.gamePlaying && i === s.gameCell),
-        icon:['sports_martial_arts', 'call', 'dialpad', 'cable', 'notifications_active'][i % 5],
-        hit:() => { const sc2 = this.state.gameScore + 10; this.setState({ gameScore:sc2, gameCell:Math.floor(Math.random() * 15) }); },
-        miss:() => { if (this.state.gamePlaying) this.setState({ gameScore:Math.max(0, this.state.gameScore - 2) }); }
       })),
-      gWhack:gk === 'whack', gDtmf:gk === 'dtmf', gSort:gk === 'sort', gMatch:gk === 'match', gSpot:gk === 'spot', gReflex:gk === 'reflex',
-      dtmfPhase:s.dtmfShow ? 'watch the sequence' : 'now tap it back',
-      dtmfShown:s.dtmfShow ? s.dtmfSeq.join('') : (s.dtmfIn.join('') || '····'),
-      dtmfKeys:['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map(k => ({ label:k, press:() => {
-        if (s.dtmfShow) return;
-        const inp = s.dtmfIn.concat([k]);
-        const ok = s.dtmfSeq[inp.length - 1] === k;
-        if (!ok) { this.setState({ dtmfIn:[], gameScore:Math.max(0, s.gameScore - 5) }); return this.toast('Wrong tone — sequence restarts'); }
-        if (inp.length === s.dtmfSeq.length) { const nxt = s.dtmfSeq.concat([String(Math.floor(Math.random() * 9) + 1)]); this.setState({ gameScore:s.gameScore + 15, dtmfSeq:nxt, dtmfIn:[], dtmfShow:true }); this.fire('Correct', 'Longer sequence incoming.'); setTimeout(() => this.setState({ dtmfShow:false }), 1400); }
-        else this.setState({ dtmfIn:inp });
-      } })),
-      sortHint:'Lowest bandwidth at the top, then check your answer.',
-      sortItems:s.sortList.map((x, i) => ({ label:x, pos:String(i + 1), bg:'#141A15',
-        up:() => { if (i === 0) return; const a = s.sortList.slice(); a[i] = a[i - 1]; a[i - 1] = x; this.set('sortList', a); },
-        down:() => { if (i === s.sortList.length - 1) return; const a = s.sortList.slice(); a[i] = a[i + 1]; a[i + 1] = x; this.set('sortList', a); } })),
-      sortCheck:() => {
-        const right = s.sortList.every((x, i) => x === CODEC_ORDER[i]);
-        if (right) { this.setState({ gameScore:s.gameScore + 40, sortList:CODEC_ORDER.slice().sort(() => Math.random() - 0.5) }); this.fire('Perfect order', '+40 points. Have another.'); }
-        else this.toast('Not quite — g729 is the smallest, opus the largest');
-      },
-      matchTiles:(() => {
-        const tiles = [];
-        MATCH_PAIRS.forEach(([a, b], i) => { tiles.push({ id:'a' + i, pair:i, label:a, mono:true }); tiles.push({ id:'b' + i, pair:i, label:b, mono:false }); });
-        return tiles.sort((x, y) => (x.id.charCodeAt(1) * 7 + x.id.charCodeAt(0)) - (y.id.charCodeAt(1) * 7 + y.id.charCodeAt(0))).map(t => {
-          const done = s.matchDone.indexOf(t.pair) >= 0;
-          const sel = s.matchSel === t.id;
-          return { label:t.label,
-            bg:done ? '#005230' : (sel ? '#1B4D33' : '#141A15'),
-            border:sel ? '#82D9A5' : 'transparent',
-            fg:done ? '#9FF7C4' : '#DFE4DC',
-            pick:() => {
-              if (done) return;
-              if (!s.matchSel) return this.set('matchSel', t.id);
-              const prev = s.matchSel;
-              if (prev === t.id) return this.set('matchSel', '');
-              const prevPair = Number(prev.slice(1));
-              if (prevPair === t.pair && prev[0] !== t.id[0]) {
-                const d = s.matchDone.concat([t.pair]);
-                this.setState({ matchDone:d, matchSel:'', gameScore:s.gameScore + 20 });
-                if (d.length === MATCH_PAIRS.length) this.fire('All six matched', 'You actually know what these do.');
-              } else { this.setState({ matchSel:'', gameScore:Math.max(0, s.gameScore - 3) }); this.toast('Not a pair'); }
-            } };
-        });
-      })(),
-      spotLines:SPOT_LINES.map((l, i) => ({ text:l.t, bg:s.spotFound === i ? (l.bad ? '#005230' : '#4A1F1B') : 'transparent', fg:s.spotFound === i ? (l.bad ? '#9FF7C4' : '#FFB4AB') : '#C4CBC2',
-        pick:() => { if (l.bad) { this.setState({ spotFound:i, gameScore:s.gameScore + 30 }); this.fire('Found it', 'A desk phone should not sit in from-external.'); } else { this.setState({ spotFound:i, gameScore:Math.max(0, s.gameScore - 5) }); this.toast('That line is fine'); } } })),
-      reflexTarget:s.reflexNum,
-      reflexHint:'Tap the last digit of the number above.',
-      reflexKeys:['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].map(k => ({ label:k, press:() => {
-        if (k === s.reflexNum.slice(-1)) { this.setState({ gameScore:s.gameScore + 8, reflexNum:String(1000 + Math.floor(Math.random() * 9000)) }); }
-        else this.setState({ gameScore:Math.max(0, s.gameScore - 4) });
-      } })),
-      startGame:() => {
-        if (this.state.gamePlaying) return;
-        this.setState({ gamePlaying:true, gameScore:0, gameTime:20, gameCell:Math.floor(Math.random() * 15) });
-        clearInterval(this._g);
-        this._g = setInterval(() => {
-          const t = this.state.gameTime - 1;
-          if (t <= 0) {
-            clearInterval(this._g);
-            const g = GAMES.find(x => x.id === this.state.game) || GAMES[0];
-            const won = this.state.gameScore >= 60 ? g.reward : Math.max(1, Math.round(g.reward / 2));
-            this.setState({ gamePlaying:false, gameTime:0, gameCell:-1, credits:this.state.credits + won });
-            this.fire('+' + won + ' credits', 'Scored ' + this.state.gameScore + '. Spend them on skipping ceremonies.');
-          } else this.setState({ gameTime:t, gameCell:Math.floor(Math.random() * 15) });
-        }, 900);
-      },
-      stopGame:() => this.stopGameNow(),
-      spendCredit:() => { if (s.credits < 1) return this.toast('No credits — win some in the arcade'); this.setState({ credits:s.credits - 1 }); this.fire('Ceremony skipped', 'One credit spent. ' + (s.credits - 1) + ' left.'); },
-      oneClickPitch:s.oneClickMode === 'Funny'
-        ? 'Press it. Walk away. Come back to a phone system that works, plus roughly forty jokes you did not ask for. It sets up the server, the phones, the queue, the certificates and the hardening, and it explains each step like you are five and slightly suspicious.'
-        : 'Provisions the server, installs Asterisk, creates four extensions, one queue, TLS transports and a hardened access policy. Roughly seven seconds of work, then a production-shaped PBX.',
-      oneClickButton:s.oneClickRunning ? 'Working on it…' : 'Deploy the whole thing',
+      newAuthRequest:() => this.toast('Composing a request — pick the partner and what you want to change'),
+      oneClickPitch:'The host must describe the exact deployment plan, target, prerequisites, and rollback route. This shell submits nothing until that plan and handler are available.',
+      oneClickButton:s.operationState === 'loading' && s.operationAction === 'deployment.run' ? 'Waiting for host receipt' : 'Review host deployment plan',
       basicCtls:[
         ctl('bs_phones','How many phones?','stepper',8,{ min:1, max:500 }),
         ctl('bs_menu','Menu before a human','switch',true),
@@ -5163,23 +4874,11 @@ class ConsoleShell extends DCLogic {
         ctl('bs_tls','Encrypt everything','switch',true)
       ].map(this.buildCtl),
       oneClickModes:['Funny','Very funny','Just do it quietly'].map(m => ({ label:m, on:s.oneClickMode === m, off:s.oneClickMode !== m, pick:() => this.setState({ oneClickMode:m }) })),
-      oneClickRunning:s.oneClickRunning,
-      oneClickStage:ONE_CLICK_LOG[Math.min(s.oneClickStep, ONE_CLICK_LOG.length - 1)].text,
-      oneClickPct:Math.round(s.oneClickStep / ONE_CLICK_LOG.length * 100) + '%',
-      oneClickLog:ONE_CLICK_LOG.slice(0, s.oneClickStep).reverse().map((l, i) => ({ text:l.text, ms:l.ms, icon:i === 0 ? 'pending' : 'check_circle', color:i === 0 ? '#DFE4DC' : '#82D9A5' })),
-      runOneClick:() => {
-        if (s.oneClickRunning) return;
-        this.setState({ oneClickRunning:true, oneClickStep:0 });
-        clearInterval(this._oc);
-        this._oc = setInterval(() => {
-          const n = this.state.oneClickStep + 1;
-          if (n >= ONE_CLICK_LOG.length) {
-            clearInterval(this._oc);
-            this.setState({ oneClickStep:n, oneClickRunning:false });
-            this.fire('It is alive', 'Four extensions, one queue, TLS everywhere. Try dialling 1001.');
-          } else this.setState({ oneClickStep:n });
-        }, 780);
-      },
+      oneClickRunning:s.operationState === 'loading' && s.operationAction === 'deployment.run',
+      oneClickStage:(host.deployment && host.deployment.stage) || 'No host deployment plan supplied',
+      oneClickPct:(host.deployment && host.deployment.progress !== undefined ? Math.max(0, Math.min(100, host.deployment.progress)) : 0) + '%',
+      oneClickLog:(host.deployment && Array.isArray(host.deployment.events) ? host.deployment.events : []).map(event => ({ text:event.text || '—', ms:event.duration || '', icon:event.state === 'verified' ? 'check_circle' : (event.state === 'failed' ? 'error' : 'pending'), color:event.state === 'verified' ? '#82D9A5' : (event.state === 'failed' ? '#FFB4AB' : '#DFE4DC') })),
+      runOneClick:() => this.ceremony('Run the host deployment plan', 'deployment.run', { planId:host.deployment && host.deployment.planId }),
 
       screenLocked:!!s.locks[s.screen], lockedTitle:sc.title,
       unlockOpen:s.unlockOpen,
@@ -5234,7 +4933,7 @@ class ConsoleShell extends DCLogic {
         { icon:'auto_fix_high', label:'Escape literals', title:'Treat what you typed as plain text', run:() => { const v = (s.rxText || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); const p = Object.assign({}, s.patterns); p[s.regexTarget] = [v]; this.setState({ rxText:v, patterns:p }); } },
         { icon:'data_array', label:'Wrap in group', title:'Wrap the whole pattern in a capture group', run:() => { const v = '(' + (s.rxText || '') + ')'; const p = Object.assign({}, s.patterns); p[s.regexTarget] = [v]; this.setState({ rxText:v, patterns:p }); } },
         { icon:'swap_horiz', label:'Anchor both ends', title:'Require a full match', run:() => { let v = s.rxText || ''; if (v.indexOf('^') !== 0) v = '^' + v; if (v.slice(-1) !== '$') v = v + '$'; const p = Object.assign({}, s.patterns); p[s.regexTarget] = [v]; this.setState({ rxText:v, patterns:p }); } },
-        { icon:'bookmark_add', label:'Save pattern', title:'Save to the palette', run:() => this.fire('Pattern saved', 'It is in the command palette now.') },
+        { icon:'bookmark_add', label:'Save pattern', title:'Save to the palette', capability:'search.save', run:() => this.invokeHost('search.save', { target:s.regexTarget, pattern:(s.patterns[s.regexTarget] || []).join(''), flags:s.regexFlags.slice() }) },
         { icon:'library_books', label:'Cheatsheet', title:'Explain every token', run:() => this.showInfo('Regex cheatsheet', 'Anchors pin the match to the start (^) or end ($). Character classes stand in for kinds of character: \\d a digit, \\w a letter or digit, \\s a space, and a dot for anything at all. Quantifiers say how many: + is one or more, * is any number including none, ? makes the piece optional, and {2,4} means between two and four. Brackets are a set of allowed characters, parentheses group things together, and a bar between two options means either will do.', 'Think of it as a sentence describing what the text should look like, written in shorthand. You never have to write it by hand here — the buttons build it.') }
       ],
       regexValue:(s.patterns[s.regexTarget] || []).join('') || '(everything)',
@@ -5256,55 +4955,65 @@ class ConsoleShell extends DCLogic {
       subItems:(() => {
         const close = () => this.setState({ ctxOpen:false, ctxSub:'' });
         const g = s.groups.find(x => x.id === s.ctxGroupId) || { id:'', tabs:[], name:'', colour:'#82D9A5' };
-        const upd = (patch) => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, patch) : x), ctxOpen:false, ctxSub:'' });
+        const upd = (patch) => { this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, patch) : x), ctxOpen:false, ctxSub:'' }); this.onUserMutation('group:update'); };
         if (s.ctxSub === 'gcolour') return [{ icon:'colorize', label:'Open colour picker…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabColourOpen:true, renameKey:'group:' + g.id }) }]
           .concat(['#82D9A5', '#FFD68A', '#FFB4AB', '#8AB4F8', '#D8A9F0', '#DFE4DC'].map(c => ({ icon:'circle', label:c, run:() => upd({ colour:c }) })));
         if (s.ctxSub === 'gbehave') return [
           { icon:'unfold_less', label:g.collapsed ? 'Expand' : 'Collapse', run:() => upd({ collapsed:!g.collapsed }) },
           { icon:'compress', label:'Auto-collapse when inactive', run:() => upd({ auto:true }) },
           { icon:'push_pin', label:'Pin whole group', run:() => { close(); this.set('pinned', s.pinned.concat(g.tabs)); } },
-          { icon:'lock', label:'Lock every tab in group', run:() => { close(); this.toast('Each tab gets its own credential in the next step'); } },
+          { icon:'lock', label:'Lock every tab in group', run:() => { close(); this.notifyInfo('Each tab gets its own credential in the next step'); } },
           { icon:'sync', label:'Reload every tab in group', run:() => { close(); this.ceremony('Reload group ' + g.name, 'reload ' + g.tabs.join(' ')); } },
           { icon:'visibility_off', label:'Hide from the strip', run:() => upd({ hidden:true }) }
         ];
         if (s.ctxSub === 'gtabs') return g.tabs.map(t => ({ icon:SCREENS[t] ? SCREENS[t].icon : 'tab', label:s.tabNames[t] || (SCREENS[t] ? SCREENS[t].title : t), run:() => { close(); this.openScreen(t); } }));
         if (s.ctxSub === 'gsave') return [
-          { icon:'download', label:'Export group as JSON', run:() => { close(); this.fire('Group exported', g.name + ' with ' + g.tabs.length + ' tabs.'); } },
-          { icon:'upload', label:'Import a group…', run:() => { close(); this.toast('Pick a group file to import'); } },
-          { icon:'bookmark_add', label:'Save as a workspace', run:() => { close(); this.fire('Workspace saved', 'Reopen it from the palette.'); } },
-          { icon:'restore', label:'Restore last session', run:() => { close(); this.toast('Previous tabs and groups restored'); } }
+          this.hostMenuAction('download', 'Export group as JSON', 'tabs.group.export', { groupId:g.id, groupName:g.name, tabIds:g.tabs.slice() }, close),
+          this.hostMenuAction('bookmark_add', 'Save as a workspace', 'workspace.save', { groupId:g.id, groupName:g.name, tabIds:g.tabs.slice() }, close)
         ];
         if (s.ctxSub === 'tabexport') return [
-          { icon:'download', label:'Export this tab', run:() => { close(); this.toast('Tab exported as JSON'); } },
-          { icon:'download_for_offline', label:'Export all tabs', run:() => { close(); this.fire('Exported', s.tabs.length + ' tabs and ' + s.groups.length + ' groups.'); } },
-          { icon:'upload', label:'Import tabs…', run:() => { close(); this.toast('Pick a tab set to import'); } },
-          { icon:'content_copy', label:'Copy tab list to clipboard', run:() => { close(); this.toast('Tab list copied'); } }
+          this.hostMenuAction('download', 'Export this tab', 'tabs.export', { tabId:s.ctxTabKey || s.screen }, close),
+          this.hostMenuAction('download_for_offline', 'Export all tabs', 'tabs.export-all', { tabIds:s.tabs.slice(), groupIds:s.groups.map(x => x.id) }, close),
+          this.hostMenuAction('content_copy', 'Copy tab list to clipboard', 'clipboard.copy-tabs', { tabIds:s.tabs.slice(), groupIds:s.groups.map(x => x.id) }, close)
         ];
         if (s.ctxSub !== 'closetabs') return [];
         const k = s.ctxTabKey || s.screen, i = s.tabs.indexOf(k);
         return [
-          { icon:'first_page', label:'To the left', run:() => { close(); this.setState({ tabs:s.tabs.slice(i) }); } },
-          { icon:'last_page', label:'To the right', run:() => { close(); this.setState({ tabs:s.tabs.slice(0, i + 1) }); } },
-          { icon:'tab_close_right', label:'All others', run:() => { close(); this.setState({ tabs:[k], screen:k }); } },
+          { icon:'first_page', label:'To the left', run:() => { close(); this.setState({ tabs:s.tabs.slice(i) }); this.onUserMutation('tabs:close-left'); } },
+          { icon:'last_page', label:'To the right', run:() => { close(); this.setState({ tabs:s.tabs.slice(0, i + 1) }); this.onUserMutation('tabs:close-right'); } },
+          { icon:'tab_close_right', label:'All others', run:() => { close(); this.setState({ tabs:[k], screen:k }); this.onUserMutation('tabs:close-others'); } },
           { icon:'search', label:'Containing…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabFilterOpen:true, tabFilterMode:'has', tabFilterText:'' }) },
           { icon:'search_off', label:'Not containing…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabFilterOpen:true, tabFilterMode:'not', tabFilterText:'' }) },
           { icon:'format_color_fill', label:'By colour…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabFilterOpen:true, tabFilterMode:'colour', tabFilterText:'' }) },
-          { icon:'label_off', label:'All uncoloured', run:() => { close(); this.setState({ tabs:s.tabs.filter(t => s.tabColours[t] || t === k) }); } },
-          { icon:'push_pin', label:'All unpinned', run:() => { close(); this.setState({ tabs:s.tabs.filter(t => s.pinned.indexOf(t) >= 0 || t === k) }); } }
+          { icon:'label_off', label:'All uncoloured', run:() => { close(); this.setState({ tabs:s.tabs.filter(t => s.tabColours[t] || t === k) }); this.onUserMutation('tabs:close-uncoloured'); } },
+          { icon:'push_pin', label:'All unpinned', run:() => { close(); this.setState({ tabs:s.tabs.filter(t => s.pinned.indexOf(t) >= 0 || t === k) }); this.onUserMutation('tabs:close-unpinned'); } }
         ];
       })(),
       subX:(parseInt(s.ctxX, 10) + 266) + 'px',
       subY:(parseInt(s.ctxY, 10) + 84) + 'px',
-      ctxScreen:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:sc.title + ' · ' + (sc.file || 'console'), ctxKind:'screen' }); },
-      ctxSearch:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'search field', ctxKind:'search' }); },
-      closeCtx:(e) => { if (e && e.preventDefault) e.preventDefault(); this.set('ctxOpen', false); },
+      ctxScreen:(e) => { e.preventDefault(); this.rememberFocus(); this.setState({ ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:sc.title + ' · ' + (sc.file || 'console'), ctxKind:'screen' }); },
+      ctxSearch:(e) => { e.preventDefault(); this.rememberFocus(); this.setState({ ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'search field', ctxKind:'search' }); },
+      closeCtx:(e) => { if (e && e.preventDefault) e.preventDefault(); this.set('ctxOpen', false); this.restoreFocus(); },
+      contextQuery:s.contextQuery,
+      onContextQuery:(e) => this.set('contextQuery', e.target.value),
+      openContextRegex:() => this.setState({ ctxOpen:false, regexOpen:true, regexTarget:'context-menu', regexX:s.ctxX, regexY:s.ctxY }),
+      onContextKeyDown:(e) => { if (e.key === 'Escape') { if (e.preventDefault) e.preventDefault(); this.setState({ ctxOpen:false, ctxSub:'', contextQuery:'' }); } },
       ctxItems:(() => {
         const close = () => this.setState({ ctxOpen:false, ctxSub:'' });
-        const decorate = (list) => list.map(it => Object.assign({}, it, {
-          bg:it.sub && s.ctxSub === it.sub ? '#333B34' : 'transparent',
-          hover:() => this.set('ctxSub', it.sub || ''),
-          act:it.sub ? (() => this.set('ctxSub', it.sub)) : it.run
-        }));
+        const externalLabel = /export|import|copy|workspace|authenticator|appearance|duplicate|reload|restore|branch|push|mirror|history|save pattern|save this search|move to new window|delete|pair/i;
+        const decorate = (list) => list.filter(it => !s.contextQuery || String(it.label || '').toLowerCase().indexOf(s.contextQuery.toLowerCase()) >= 0).map(it => {
+          const capabilityId = it.capability || ('context.' + String(it.label || '').toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.|\.$/g, ''));
+          const cap = this.capability(capabilityId);
+          const requiresCapability = !!it.capability || externalLabel.test(it.label || '') || (it.sub && it.sub !== 'closetabs');
+          const disabled = requiresCapability && !cap.enabled;
+          return Object.assign({}, it, {
+            disabled,
+            reason:disabled ? cap.reason : '',
+            bg:it.sub && s.ctxSub === it.sub ? '#333B34' : 'transparent',
+            hover:() => disabled ? null : this.set('ctxSub', it.sub || ''),
+            act:disabled ? (() => this.notify('warning', 'Action unavailable', cap.reason)) : (it.sub ? (() => this.set('ctxSub', it.sub)) : it.run)
+          });
+        });
         this._dec = decorate;
         const common = [
           { icon:'lock', label:'Lock this element…', hint:'⌃L', run:() => this.setState({ ctxOpen:false, lockOpen:true, lockTarget:s.ctxTarget, lockKey:s.screen, lockStep:0, pin:'', password:'', lockX:s.ctxX, lockY:s.ctxY }) },
@@ -5313,7 +5022,7 @@ class ConsoleShell extends DCLogic {
         ];
         if (s.ctxKind === 'group') {
           const g = s.groups.find(x => x.id === s.ctxGroupId) || { tabs:[], name:'' };
-          const upd = (patch) => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, patch) : x), ctxOpen:false, ctxSub:'' });
+        const upd = (patch) => { this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, patch) : x), ctxOpen:false, ctxSub:'' }); this.onUserMutation('group:update'); };
           return decorate([
             { icon:'edit', label:'Rename group…', hint:'F2', run:() => { close(); this.setState({ renameOpen:true, renameKey:'group:' + g.id, renameValue:g.name }); } },
             { icon:'palette', label:'Group colour', hint:'▸', sub:'gcolour' },
@@ -5321,8 +5030,8 @@ class ConsoleShell extends DCLogic {
             { icon:'tab', label:'Tabs in group', hint:'▸', sub:'gtabs' },
             { icon:'save', label:'Save & restore', hint:'▸', sub:'gsave' },
             { icon:'unfold_less', label:g.collapsed ? 'Expand group' : 'Collapse group', hint:'', run:() => upd({ collapsed:!g.collapsed }) },
-            { icon:'link_off', label:'Ungroup', hint:'', run:() => { close(); this.setState({ groups:s.groups.filter(x => x.id !== g.id) }); this.toast('Group dissolved — tabs kept'); } },
-            { icon:'close', label:'Close group and its tabs', hint:'', run:() => { close(); this.areYouSure('Close ' + g.name, 'Every tab in this group closes. Unsaved staged changes in them are discarded.', 3, () => { const keep = s.tabs.filter(t => g.tabs.indexOf(t) < 0); this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep[0] || 'dash', groups:s.groups.filter(x => x.id !== g.id) }); }); } },
+            { icon:'link_off', label:'Ungroup', hint:'', run:() => { close(); this.setState({ groups:s.groups.filter(x => x.id !== g.id) }); this.onUserMutation('group:ungroup'); } },
+            { icon:'close', label:'Close group and its tabs', hint:'', run:() => { close(); this.areYouSure('Close ' + g.name, 'Every tab in this group closes. Unsaved staged changes in them are discarded.', 3, () => { const keep = s.tabs.filter(t => g.tabs.indexOf(t) < 0); this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep[0] || 'dash', groups:s.groups.filter(x => x.id !== g.id) }); this.onUserMutation('group:close'); }); } },
             { icon:'brush', label:'Edit group appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:'group · ' + g.name }) },
             { icon:'lock', label:'Lock this group…', hint:'⌃L', run:common[0].run }
           ]);
@@ -5336,34 +5045,26 @@ class ConsoleShell extends DCLogic {
             { icon:'brush', label:'Edit tab appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:'tab · ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)) }) },
             { icon:'tab_close', label:'Close tabs', hint:'▸', sub:'closetabs' },
             { icon:'push_pin', label:s.pinned.indexOf(k) >= 0 ? 'Unpin tab' : 'Pin tab', hint:'', run:() => { close(); this.set('pinned', s.pinned.indexOf(k) >= 0 ? s.pinned.filter(x => x !== k) : s.pinned.concat([k])); } },
-            { icon:'content_copy', label:'Duplicate tab', hint:'⌃D', run:() => { close(); this.setState({ tabs:s.tabs.concat([k]) }); } },
-            { icon:'close', label:'Close tab', hint:'⌃W', run:() => { close(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:t[0] || 'dash' }); } },
+            { icon:'content_copy', label:'Duplicate tab', hint:'⌃D', run:() => { close(); this.setState({ tabs:s.tabs.concat([k]) }); this.onUserMutation('tabs:duplicate'); } },
+            { icon:'close', label:'Close tab', hint:'⌃W', run:() => { close(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:t[0] || 'dash' }); this.onUserMutation('tabs:close'); } },
             { icon:'save', label:'Export & import', hint:'▸', sub:'tabexport' },
-            { icon:'folder', label:'Group tabs by area', hint:'', run:() => { close(); this.toast('Tabs grouped by rail area'); } },
-            { icon:'open_in_new', label:'Move to new window', hint:'', run:() => { close(); this.toast('Tab detached to its own window'); } },
+            { icon:'folder', label:'Group tabs by area', hint:'', capability:'tabs.group-by-area', run:() => { close(); this.onUserMutation('tabs:group-by-area'); return this.invokeHost('tabs.group-by-area', { tabId:k }); } },
+            { icon:'open_in_new', label:'Move to new window', hint:'', capability:'tabs.move-window', run:() => { close(); return this.invokeHost('tabs.move-window', { tabId:k }); } },
             { icon:'dock_to_right', label:'Dock this tab right', hint:'', run:() => { close(); this.set('dock', 'right'); } },
             { icon:'lock', label:'Lock this tab…', hint:'⌃L', run:common[0].run }
           ]);
         }
         if (s.ctxKind === 'row') {
           const name = s.ctxTarget;
-          return decorate([
-            { icon:'edit', label:'Edit ' + name + '…', hint:'↵', run:() => { close(); this.setState({ wizardOpen:true, wizardStep:0 }); } },
-            { icon:'check_box', label:'Select this row', hint:'', run:() => { close(); this.set('selected', sel.indexOf(name) >= 0 ? sel : sel.concat([name])); } },
-            { icon:'content_copy', label:'Duplicate', hint:'⌃D', run:() => { close(); this.bulk('Duplicated', [name]); } },
-            { icon:'refresh', label:'Reload just this', hint:'', run:() => { close(); this.ceremony('Reload ' + name, 'reload ' + name); } },
-            { icon:'download', label:'Export as configuration', hint:'', run:() => { close(); this.toast(name + ' exported'); } },
-            { icon:'history', label:'Version history for this', hint:'', run:() => { close(); this.openScreen('history'); } },
-            { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.', 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : this.ceremony('Delete ' + name, 'delete ' + name))); } },
-            common[0], common[1]
-          ]);
+          const actions = Array.isArray(tableSnapshot.rowActions) ? tableSnapshot.rowActions : [];
+          return decorate([{ icon:'check_box', label:'Select this row', hint:'', run:() => { close(); this.set('selected', sel.indexOf(name) >= 0 ? sel : sel.concat([name])); } }].concat(actions.map(action => ({ icon:action.icon || 'bolt', label:action.label, hint:action.shortcut || '', capability:action.actionId, run:() => { close(); const cap=this.capability(action.actionId); if (!cap.enabled) return this.notify('warning', 'Action unavailable', cap.reason); this.ceremony(action.label, action.actionId, { screen:s.screen, rowId:name }); } }))));
         }
         if (s.ctxKind === 'search') {
           return decorate([
             { icon:'data_object', label:'Open regex builder…', hint:'⌃R', run:() => this.setState({ ctxOpen:false, regexOpen:true, regexTarget:'table', regexX:s.ctxX, regexY:s.ctxY }) },
             { icon:'match_case', label:'Match case', hint:'', run:() => { close(); this.set('regexFlags', s.regexFlags.filter(f => f !== 'i')); } },
             { icon:'select_all', label:'Whole word only', hint:'', run:() => { close(); this.toast('Whole-word matching on'); } },
-            { icon:'bookmark_add', label:'Save this search', hint:'', run:() => { close(); this.fire('Search saved', 'It is in the palette now.'); } },
+            { icon:'bookmark_add', label:'Save this search', hint:'', capability:'search.save', run:() => { close(); return this.invokeHost('search.save', { target:'table', pattern:(s.patterns.table || []).join(''), flags:s.regexFlags.slice() }); } },
             { icon:'clear', label:'Clear search', hint:'⎋', run:() => { close(); const p = Object.assign({}, s.patterns); p.table = []; p.nav = []; this.setState({ patterns:p }); } },
             common[0], common[1]
           ]);
@@ -5372,9 +5073,9 @@ class ConsoleShell extends DCLogic {
           return decorate([
             { icon:'edit', label:'Edit this step…', hint:'↵', run:() => close() },
             { icon:'timeline', label:'Connect to…', hint:'C', run:() => { close(); this.addEdgeFrom(); } },
-            { icon:'content_copy', label:'Duplicate step', hint:'⌃D', run:() => { close(); this.toast('Step duplicated'); } },
-            { icon:'call_split', label:'Insert condition before', hint:'', run:() => { close(); this.toast('Condition inserted'); } },
-            { icon:'delete', label:'Delete step', hint:'⌦', run:() => { close(); this.areYouSure('Delete this step', 'The step and its connections are removed from the dialplan.', 3, () => this.fire('Step deleted', 'Canvas updated.')); } },
+            { icon:'content_copy', label:'Duplicate step', hint:'⌃D', capability:'canvas.duplicate-step', run:() => { close(); return this.invokeHost('canvas.duplicate-step', { nodeId:s.nodeId }); } },
+            { icon:'call_split', label:'Insert condition before', hint:'', capability:'canvas.insert-condition', run:() => { close(); return this.invokeHost('canvas.insert-condition', { nodeId:s.nodeId }); } },
+            { icon:'delete', label:'Delete step', hint:'⌦', capability:'canvas.delete-step', run:() => { close(); this.areYouSure('Delete this step', 'The step and its connections are removed from the dialplan.', 3, () => this.invokeHost('canvas.delete-step', { nodeId:s.nodeId })); } },
             common[0], common[1]
           ]);
         }
@@ -5382,10 +5083,10 @@ class ConsoleShell extends DCLogic {
           { icon:'data_object', label:'Search this screen with regex…', hint:'⌃R', run:() => this.setState({ ctxOpen:false, regexOpen:true, regexTarget:'nav', regexX:s.ctxX, regexY:s.ctxY }) },
           { icon:'auto_fix_high', label:'Guided wizard for this screen', hint:'', run:() => this.setState({ ctxOpen:false, wizardOpen:true, wizardStep:0 }) },
           { icon:'checklist', label:'Select all rows', hint:'⌃A', run:() => { close(); this.set('selected', (sc.table ? sc.table.rows.map(r => r[0]) : [])); } },
-          { icon:'add', label:'New tab here', hint:'⌃T', run:() => { close(); this.setState({ tabs:s.tabs.concat([s.screen]) }); } },
+          { icon:'add', label:'New tab here', hint:'⌃T', run:() => { close(); this.setState({ tabs:s.tabs.concat([s.screen]) }); this.attentionTabsNewHereMarker(); } },
           { icon:'history', label:'Version history', hint:'', run:() => { close(); this.openScreen('history'); } },
           { icon:'notifications', label:'Notification centre', hint:'', run:() => { close(); this.openScreen('notifications'); } },
-          { icon:'content_copy', label:'Copy as configuration', hint:'⌃C', run:() => { close(); this.toast('Configuration block copied'); } }
+          { icon:'content_copy', label:'Copy as configuration', hint:'⌃C', capability:'clipboard.copy-config', run:() => { close(); return this.invokeHost('clipboard.copy-config', { screen:s.screen, nodeId:s.nodeId }); } }
         ].concat(common));
       })(),
 
@@ -5450,15 +5151,17 @@ class ConsoleShell extends DCLogic {
         if (s.lockStep < 3) return this.set('lockStep', s.lockStep + 1);
         const needsPin = s.lockMethod.indexOf('PIN') >= 0;
         const needsPw = s.lockMethod.indexOf('Password') >= 0;
-        if (needsPin && s.pin.length < 4) return this.toast('Set at least a four-digit PIN first');
-        if (needsPw && (s.password || '').length < 4) return this.toast('Set a passphrase first');
+        if (needsPin && s.pin.length < 4) return this.notifyWarning('Set at least a four-digit PIN first');
+        if (needsPw && (s.password || '').length < 4) return this.notifyWarning('Set a passphrase first');
         const L = Object.assign({}, s.locks);
         L[s.lockKey] = { method:s.lockMethod, pin:s.pin, password:s.password, target:s.lockTarget };
         this.setState({ locks:L, lockOpen:false });
-        this.toast(s.lockTarget + ' is locked with ' + s.lockMethod + ' — the surface is now disabled');
+        this.notifyInfo(s.lockTarget + ' is locked with ' + s.lockMethod + ' — the surface is now disabled');
       },
       closeLock:() => this.set('lockOpen', false),
-      pairAuth:() => this.toast('Built-in authenticator paired for this element only'),
+      pairAuthDisabled:!this.capability('authenticator.pair').enabled,
+      pairAuthReason:this.capability('authenticator.pair').reason,
+      pairAuth:() => this.invokeHost('authenticator.pair', { elementId:s.lockKey, method:s.lockMethod }),
 
       appearOpen:s.appearOpen, appearTarget:s.appearTarget,
       appearChrome:this.dockChrome('appear', '38%', '90px', 468).style,
@@ -5470,23 +5173,11 @@ class ConsoleShell extends DCLogic {
       colorValue:'hsl(' + this.v('ap_hue', 148) + ' ' + this.v('ap_sat', 54) + '% ' + this.v('ap_light', 68) + '%)',
       hueStops:Array.from({ length:24 }, (_, i) => { const h = Math.round(i * 360 / 24); return { color:'hsl(' + h + ' 70% 55%)', label:h + '°', pick:() => this.setVal({ id:'ap_hue', label:'Hue' }, h) }; }),
       shadeStops:Array.from({ length:14 }, (_, i) => { const l = 6 + i * 6.8; return { color:'hsl(' + this.v('ap_hue', 148) + ' ' + this.v('ap_sat', 54) + '% ' + Math.round(l) + '%)', pick:() => this.setVal({ id:'ap_light', label:'Lightness' }, Math.round(l)) }; }),
-      colorActions:[
-        { icon:'casino', label:'Surprise me', run:() => { this.setVal({ id:'ap_hue', label:'Hue' }, Math.floor(Math.random() * 360)); this.fire('Bold choice', 'Nobody will ever say it is boring.'); } },
-        { icon:'gradient', label:'Rainbow it', run:() => this.setVal({ id:'ap_rainbow', label:'Rainbow fill', kind:'switch' }, true) },
-        { icon:'contrast', label:'Fix contrast', run:() => { this.setVal({ id:'ap_light', label:'Lightness' }, 72); this.toast('Lightness raised to meet contrast against the surface'); } },
-        { icon:'colorize', label:'Pick from screen', run:() => this.toast('Eyedropper armed — click any pixel in the console') }
-      ],
+      colorActions:(host.appearance && Array.isArray(host.appearance.colorActions) ? host.appearance.colorActions : []).map(action => { const cap=this.capability(action.actionId); return { icon:action.icon || 'palette', label:action.label, disabled:!cap.enabled, reason:cap.reason, run:() => cap.enabled ? this.invokeHost(action.actionId, { target:s.appearTarget }) : this.notify('warning', 'Action unavailable', cap.reason) }; }),
       colorFormats:(() => { const h = this.v('ap_hue', 148), sa = this.v('ap_sat', 54), l = this.v('ap_light', 68);
         return [['hsl', 'hsl(' + h + ' ' + sa + '% ' + l + '%)'], ['oklch', 'oklch(' + (l / 100).toFixed(2) + ' 0.12 ' + h + ')'], ['hex', '#' + Math.floor(h * 0.7).toString(16).padStart(2, '0') + Math.floor(sa * 2.4).toString(16).padStart(2, '0') + Math.floor(l * 2.4).toString(16).padStart(2, '0')], ['css var', '--accent']]
-          .map(([k, val]) => ({ label:k + ' · ' + val, copy:() => this.toast(val + ' copied') })); })(),
-      appearActions:[
-        { icon:'casino', label:'Randomise this element', run:() => this.randomAppearance(false) },
-        { icon:'shuffle', label:'Randomise every element', run:() => this.randomAppearance(true) },
-        { icon:'restart_alt', label:'Reset', run:() => { this.setState({ values:{} }); this.toast('Appearance reset to the design system'); } },
-        { icon:'bookmark_add', label:'Save preset', run:() => this.fire('Preset saved', 'It is yours now.') },
-        { icon:'download', label:'Export', run:() => this.toast('Appearance exported as JSON') },
-        { icon:'upload', label:'Import', run:() => this.toast('Pick an appearance file to import') }
-      ],
+          .map(([k, val]) => ({ label:k + ' · ' + val, copy:() => this.invokeHost('clipboard.copy', { text:val, source:'appearance-colour-picker' }) })); })(),
+      appearActions:(host.appearance && Array.isArray(host.appearance.actions) ? host.appearance.actions : []).map(action => { const cap=this.capability(action.actionId); return { icon:action.icon || 'brush', label:action.label, disabled:!cap.enabled, reason:cap.reason, run:() => cap.enabled ? this.invokeHost(action.actionId, { target:s.appearTarget }) : this.notify('warning', 'Action unavailable', cap.reason) }; }),
       closeAppear:() => this.set('appearOpen', false),
 
       celebrate:s.celebrate, celebrateTitle:s.celebrateTitle, celebrateSub:s.celebrateSub,
@@ -5498,13 +5189,6 @@ class ConsoleShell extends DCLogic {
       })),
 
       hasDoc:!!s.infoDoc, infoKey:s.infoKey,
-      playCtl:(this._lastCtl ? [Object.assign(this.buildCtl(Object.assign({}, this._lastCtl, { id:'play_' + this._lastCtl.id })), { narrow:(this._lastCtl.options || []).length > 2 })] : []),
-      simRun:() => this.setState(st => ({ simTick:(st.simTick || 0) + 1 })),
-      simSteps:this.simulate(),
-      simVerdict:this.simVerdict().text,
-      simVerdictColour:this.simVerdict().colour,
-      simVerdictIcon:this.simVerdict().icon,
-      simWire:this.simWire(),
       docSpec:(s.infoDoc ? s.infoDoc.spec : []),
       docWhy:(s.infoDoc ? (s.infoDoc.why || s.infoDoc.whenToChange) : ''),
       docValues:(s.infoDoc ? (s.infoDoc.valuesText || 'The accepted values are listed in the reference above.') : ''),
@@ -5512,7 +5196,7 @@ class ConsoleShell extends DCLogic {
       docWizard:() => { const c = s.infoDoc; this.setState({ infoOpen:false }); if (this._lastCtl) this.openCtlWizard(this._lastCtl); },
       infoOpen:s.infoOpen, infoTitle:s.infoTitle, infoBody:s.infoBody, infoPlain:s.infoPlain,
       infoX:s.infoX, infoY:s.infoY, infoDiagram:'diagram slot — drop a real screenshot or schematic here',
-      closeInfo:() => this.set('infoOpen', false),
+      closeInfo:() => { this.set('infoOpen', false); this.restoreFocus(); },
 
       wizardOpen:s.wizardOpen,
       wizardChrome:this.dockChrome('wizard', '46%', '96px', 432).style,
@@ -5545,7 +5229,21 @@ class ConsoleShell extends DCLogic {
       paletteOpen:s.paletteOpen,
       paletteItems:ORDER.map(k => ({ icon:SCREENS[k].icon, label:SCREENS[k].title, hint:SCREENS[k].file || 'console', go:() => { this.setState({ paletteOpen:false }); this.openScreen(k); } })),
 
-      ceremonyOpen:s.ceremonyOpen, ceremonyTitle:s.ceremonyTitle, ceremonyCmd:s.ceremonyCmd,
+      confirmationShell:s.ceremonyOpen, legacyConfirmation:false,
+      ceremonyOpen:s.ceremonyOpen, ceremonyTitle:s.ceremonyTitle, ceremonyBody:s.ceremonyBody, ceremonyCmd:s.ceremonyCmd,
+      keyOnePressed:s.confirmKeyOne, keyTwoPressed:s.confirmKeyTwo,
+      keyOneBorder:s.confirmKeyOne ? '#82D9A5' : '#414942', keyTwoBorder:s.confirmKeyTwo ? '#82D9A5' : '#414942',
+      keyOneStatus:s.confirmKeyOne ? 'Key active' : 'Activate independently', keyTwoStatus:s.confirmKeyTwo ? 'Key active' : 'Activate independently',
+      confirmKeyOne:() => this.set('confirmKeyOne', !s.confirmKeyOne), confirmKeyTwo:() => this.set('confirmKeyTwo', !s.confirmKeyTwo),
+      sliderDisabled:!(s.confirmKeyOne && s.confirmKeyTwo),
+      submitDisabled:!(s.confirmKeyOne && s.confirmKeyTwo && s.slideVal >= 100) || s.operationState === 'loading',
+      onSemanticSlide:(e) => { if (!(s.confirmKeyOne && s.confirmKeyTwo)) return this.notify('warning', 'Slider unavailable', 'Activate both independent keys first.'); this.set('slideVal', Number(e.target.value)); },
+      receiptTitle:s.operationState === 'verified' ? 'Verified receipt received' : (s.operationState === 'loading' ? 'Waiting for host receipt' : (s.operationState === 'unavailable' ? 'No verified receipt' : 'Not submitted')),
+      receiptBody:s.operationReceipt ? (s.operationReceipt.summary || 'The host confirmed completion.') : (s.operationState === 'loading' ? 'Completion has not been reported yet.' : 'Local intent never counts as success.'),
+      receiptId:s.operationReceipt && s.operationReceipt.id ? ('Receipt ' + s.operationReceipt.id) : '',
+      receiptColour:s.operationState === 'verified' ? '#9FF7C4' : (s.operationState === 'unavailable' ? '#FFB4AB' : '#FFD68A'),
+      onConfirmationKeyDown:(e) => { if (e.key === 'Escape') { if (e.preventDefault) e.preventDefault(); this.setState({ ceremonyOpen:false, confirmKeyOne:false, confirmKeyTwo:false, slideVal:0 }); } },
+      submitConfirmedOperation:() => { if (!(s.confirmKeyOne && s.confirmKeyTwo && s.slideVal >= 100)) return this.notify('warning', 'Submission blocked', 'Activate both keys and complete the full-range slider.'); return this.invokeHost(s.ceremonyCmd, s.operationPayload); },
       ceremonySteps:['Operator key', 'Arming switch', 'Slide to commit', 'Attention check'].map((l, i) => ({ label:l, bg:i <= s.cStep ? '#82D9A5' : '#333B34', fg:i <= s.cStep ? '#9FF7C4' : '#778078' })),
       cKey:s.cStep === 0, cSwitch:s.cStep === 1, cSlide:s.cStep === 2, cMole:s.cStep === 3, cDone:s.cStep === 4,
       keyAngle:s.keyTurned ? '90deg' : '0deg',
@@ -5565,14 +5263,13 @@ class ConsoleShell extends DCLogic {
       sureProgress:s.sureHits + ' / ' + s.sureNeed,
       sureReady:s.sureHits >= s.sureNeed, sureLocked:s.sureHits < s.sureNeed,
       sureCells:Array.from({ length:8 }, (_, i) => ({ up:i === s.sureCell, down:i !== s.sureCell,
-        hit:() => { const h = this.state.sureHits + 1; this.setState({ sureHits:h, sureCell:h >= this.state.sureNeed ? -1 : Math.floor(Math.random() * 8) }); if (h >= this.state.sureNeed) this.toast('Yes unlocked — you are demonstrably awake'); } })),
+        hit:() => { const h = this.state.sureHits + 1; this.setState({ sureHits:h, sureCell:h >= this.state.sureNeed ? -1 : Math.floor(Math.random() * 8) }); } })),
       closeSure:() => this.setState({ sureOpen:false, sureHits:0, sureCell:-1 }),
       sureYes:() => { const act = this.state.sureAction; this.setState({ sureOpen:false, sureHits:0, sureCell:-1 }); if (act) act(); },
-      canSkip:s.credits > 0 && s.cStep < 4 && this.v('cr_enable', true),
-      skipCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.setState({ credits:s.credits - 1, ceremonyOpen:false }); this.fire('Skipped', s.ceremonyCmd + ' ran on a credit. ' + (s.credits - 1) + ' left.'); },
-      goArcade:() => this.setState({ railId:'app', screen:'arcade' }),
-      cancelCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.set('ceremonyOpen', false); },
-      executeCeremony:() => { clearInterval(this._mole); this.setState({ ceremonyOpen:false }); this.toast(s.ceremonyCmd + ' executed and attested'); },
+      canSkip:false,
+      skipCeremony:() => this.notify('warning', 'Confirmation cannot be skipped', 'The host operation requires the semantic two-key and slider contract.'),
+      cancelCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.setState({ ceremonyOpen:false, confirmKeyOne:false, confirmKeyTwo:false, slideVal:0 }); this.restoreFocus(); },
+      executeCeremony:() => this.notify('warning', 'Legacy action disabled', 'Use the host-backed semantic confirmation shell.'),
 
       onboardFirst:s.onboardStep === 0,
       onboardOpen:s.onboardOpen, onboardIcon:ob.icon, onboardTitle:ob.t, onboardBody:ob.b,
@@ -5580,7 +5277,7 @@ class ConsoleShell extends DCLogic {
       onboardCtls:ob.ctls.map(this.buildCtl),
       onboardNextLabel:s.onboardStep === ONBOARD.length - 1 ? 'Deploy it all now' : 'Next',
       easyMode:this.v('ob_ease', 'Super easy') === 'Super easy',
-      superEasy:() => { this.setState(st => ({ values:Object.assign({}, st.values, { ob_intent:'Deploy a new server', ob_ease:'Super easy', ob_phones:8, ob_menu:true, ob_hours:true, ob_tls:true }), onboardOpen:false, screen:'servers', railId:'app', oneClickMode:'Funny' })); this.fire('Super easy mode', 'Three defaults taken. Press the big button and walk away.'); },
+      superEasy:() => { this.setState(st => ({ values:Object.assign({}, st.values, { ob_intent:'Deploy a new server', ob_ease:'Super easy', ob_phones:8, ob_menu:true, ob_hours:true, ob_tls:true }), onboardOpen:false, screen:'servers', railId:'app', oneClickMode:'Funny' })); this.onUserMutation('preset:super-easy'); },
       onboardNext:() => this.setState(st => (st.onboardStep >= ONBOARD.length - 1
         ? { onboardOpen:false, tourOpen:st.values.ob_tour !== false, tourStep:0, screen:'servers', railId:'app' }
         : { onboardStep:st.onboardStep + 1 })),
@@ -5593,8 +5290,9 @@ class ConsoleShell extends DCLogic {
       tourNext:() => { if (s.tourStep === TOUR.length - 1) this.set('tourOpen', false); else this.set('tourStep', s.tourStep + 1); },
       endTour:() => this.set('tourOpen', false),
 
-      toastOpen:s.toastOpen, toastText:s.toastText,
-      undoToast:() => { this.setState({ toastOpen:false }); this.toast('Change reverted'); }
+      toastOpen:s.toastOpen, toastText:s.toastText, toastSeverity:s.toastSeverity,
+      toastBorder:{ info:'#8AB4F8', success:'#82D9A5', warning:'#FFD68A', error:'#FFB4AB', progress:'#D8A9F0' }[s.toastSeverity] || '#8AB4F8',
+      dismissToast:() => this.setState({ toastOpen:false })
     };
   }
 }

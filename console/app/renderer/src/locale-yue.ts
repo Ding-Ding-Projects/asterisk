@@ -225,6 +225,8 @@ export const CANTONESE: Catalog = {
   'Time awareness': '時間感',
   'One thing at a time': '一次做一件',
   'Momentum': '推一推',
+  'Current next action': '而家下一步',
+  'What are you doing right now?': '而家做緊咩？',
 
   /* The identity and dialog-decoration controls. */
   'Identity': '身分',

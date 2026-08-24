@@ -743,7 +743,8 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (!key) return { ok: false, requestId: request.requestId, code: 'SETTING_KEY_REQUIRED', message: 'A settings key is required.' };
         if (typeof payload?.value !== 'string') return { ok: false, requestId: request.requestId, code: 'SETTING_VALUE_REQUIRED', message: 'A settings value must be a string.' };
         try {
-          settingsRegistry().set(key, payload.value);
+          const result = settingsRegistry().set(key, payload.value);
+          if (!result.ok) return { ok: false, requestId: request.requestId, code: result.code, message: result.message };
           return { ok: true, requestId: request.requestId, data: { key } };
         } catch (error) {
           return { ok: false, requestId: request.requestId, code: 'SETTING_WRITE_FAILED', message: error instanceof Error ? error.message : 'Could not persist the setting.' };
@@ -754,7 +755,8 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const key = payload?.key?.trim();
         if (!key) return { ok: false, requestId: request.requestId, code: 'SETTING_KEY_REQUIRED', message: 'A settings key is required.' };
         try {
-          settingsRegistry().remove(key);
+          const result = settingsRegistry().remove(key);
+          if (!result.ok) return { ok: false, requestId: request.requestId, code: result.code, message: result.message };
           return { ok: true, requestId: request.requestId, data: { key } };
         } catch (error) {
           return { ok: false, requestId: request.requestId, code: 'SETTING_REMOVE_FAILED', message: error instanceof Error ? error.message : 'Could not remove the setting.' };

@@ -473,3 +473,20 @@ one-page target preflight. The run also recorded direct `Setup.exe` launch succe
 repaired restart path, Later hiding the banner while retaining the staged candidate, and
 the visible review, apply, or discard block for two drafts. The detailed public article is
 `console/docs/platform/automatic-updates-evidence.md`. No new capture was made in this lane.
+
+## Attention runtime mount on 2026-08-23
+
+The desktop attention runtime is implemented but unverified on `codex/mount-attention-runtime`.
+`App.tsx` restores all five independent switches and the persisted `att_next` action after the durable settings snapshot loads. It applies Focus dimming without removing inactive work, Low stimulation color and motion consumers, live operating-system reduced-motion composition, session and since-last-change values, and a factual Momentum prompt with a 30-minute snooze.
+
+The checked-in design adds the `att_next` text control, generated renderer output was refreshed with `npm run compile:design`, and Cantonese labels cover the new control. Directly related records are `console/app/feature-registry.json`, `console/app/locales/feature-registry.json`, `console/docs/platform/attention-modes.md`, `console/docs/changelog/attention-runtime-mount.md`, and `ROADMAP.md`.
+
+The refutation repair now uses semantic markers from the design for title bar, tab strip, rail, section list, work region, and attention-card mount instead of child indexes. It also acknowledges attention writes, bounds restored snoozes, suppresses informational notifications only, retains warning and error history, and records last-change time through the explicit mutation-path inventory while leaving passive reads and navigation alone.
+
+The second refutation repair adds the generated `onUserMutation` callback for controls, steppers, appearance, canvas, layout, tabs, groups, presets, and direct application-owned mutations. Durable writes are serialized per key and newest generations decide pending, session-only, retry, or saved state. Notification severity is passed explicitly through the notification and ceremony APIs, with no text heuristic.
+
+The fourth refutation repair routes every App and generated notification producer through typed notification helpers, persists bounded schema-versioned redacted warning and error history with restore, search, clear, and export, and adds exact mutation action and notification producer inventories. Host settings roll back their in-memory map when atomic persistence fails, while Group tabs by area is real and Move to new window is explicitly unavailable.
+
+The fifth refutation repair wires `verifyAttentionWiring` into `scripts/verify-inventories.mjs` through Node's type stripping, with one deliberate red and restored-green fixture for each of the six rows. It also separates mode and history persistence status, shows corrupt history without deleting it, adds reset recovery, expands path redaction to Windows, UNC, POSIX, relative, and PBX paths, and removes raw App and generated notification calls in favor of typed helpers.
+
+No UI, accessibility, browser, capture, Lowlevel, broad build, packaging, or release verification was run in this lane. The next owner must run focused built-artifact checks for mount restoration, each mode's visible consumer, the next-action persistence path, Momentum snooze expiry, keyboard access, reduced-motion behavior, refused durable writes, and reviewable warning or error history before marking the feature verified.

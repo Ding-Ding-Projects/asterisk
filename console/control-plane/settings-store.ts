@@ -25,6 +25,10 @@ export interface SettingsSnapshotStore {
   write(snapshot: Record<string, string>): void;
 }
 
+export type SettingsWriteResult =
+  | { ok: true }
+  | { ok: false; code: 'SETTINGS_WRITE_FAILED' | 'SETTINGS_REMOVE_FAILED'; message: string };
+
 /** A store that keeps nothing -- the default for tests and any host with no persistent
  *  backing. Never a source of real data; it starts and stays empty. */
 export class InMemorySettingsStore implements SettingsSnapshotStore {
@@ -64,14 +68,28 @@ export class SettingsRegistry {
     return this.values.get(key);
   }
 
-  set(key: string, value: string): void {
+  set(key: string, value: string): SettingsWriteResult {
+    const previous = new Map(this.values);
     this.values.set(key, value);
-    this.store.write(this.snapshot());
+    try {
+      this.store.write(this.snapshot());
+      return { ok: true };
+    } catch (error) {
+      this.values = previous;
+      return { ok: false, code: 'SETTINGS_WRITE_FAILED', message: error instanceof Error ? error.message : 'Could not persist the setting.' };
+    }
   }
 
-  remove(key: string): void {
-    if (!this.values.has(key)) return;
+  remove(key: string): SettingsWriteResult {
+    if (!this.values.has(key)) return { ok: true };
+    const previous = new Map(this.values);
     this.values.delete(key);
-    this.store.write(this.snapshot());
+    try {
+      this.store.write(this.snapshot());
+      return { ok: true };
+    } catch (error) {
+      this.values = previous;
+      return { ok: false, code: 'SETTINGS_REMOVE_FAILED', message: error instanceof Error ? error.message : 'Could not remove the setting.' };
+    }
   }
 }

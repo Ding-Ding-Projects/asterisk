@@ -974,7 +974,7 @@
           },
           {
             "path": "site/app.js",
-            "name": "loadLogo",
+            "name": "loadLogoFromInput",
             "kind": "function"
           }
         ]
@@ -1527,7 +1527,7 @@
       }
     },
     "local-version-history": {
-      "status": "implemented-unverified",
+      "status": "absent",
       "note": "The browser-local delivery workspace provides schema-versioned append-only event history, counted migration and normalization audits, date/action/text filtering, JSON import and round-trip export, presentation-only Markdown export, restore-as-new-event, retention accounting, and explicit refusal states. Built interaction remains unverified.",
       "implementation": {
         "paths": [
@@ -1601,7 +1601,7 @@
       }
     },
     "changelog-viewer": {
-      "status": "implemented-unverified",
+      "status": "absent",
       "note": "The delivery workspace renders the exact generated product release changelog with optional upstream history, real local calendar ranges, action and text filters, commit links, and filtered export. Built interaction remains unverified.",
       "implementation": {
         "paths": [
@@ -1676,7 +1676,7 @@
       }
     },
     "external-editor-handoff": {
-      "status": "partial",
+      "status": "absent",
       "note": "The static page presents the local export and editor handoff boundary, retains prepared and browser-handoff states separately, and offers the official editor recovery route. A static browser page cannot launch a native editor, so no native handoff is claimed.",
       "implementation": {
         "paths": [
@@ -2092,7 +2092,7 @@
         "symbols": [
           {
             "path": "site/app.js",
-            "name": "loadVocabulary",
+            "name": "loadVocabularyFromInput",
             "kind": "function"
           }
         ]
@@ -2538,7 +2538,7 @@
       }
     },
     "browser-extension-download-surfaces": {
-      "status": "implemented-unverified",
+      "status": "absent",
       "note": "The static delivery workspace provides a browser-local File System Access equivalent with explicit preparation, destination, active write, cancellation, completion, interruption, and failure states. It does not claim native-extension ingress or always-on-top desktop windows.",
       "implementation": {
         "paths": [
@@ -2925,7 +2925,7 @@
       }
     },
     "context-menu-shortcuts": {
-      "status": "implemented-unverified",
+      "status": "absent",
       "note": "The delivery workspace exposes target-specific keyboard-accessible context menus with local filters, shortcut labels, focus return, and actions limited to the selected panel or history row.",
       "implementation": {
         "paths": [
@@ -2999,7 +2999,7 @@
       }
     },
     "long-operation-progress": {
-      "status": "implemented-unverified",
+      "status": "absent",
       "note": "The delivery workspace separates preparation from browser handoff, reports measured byte progress, disables re-entry, exposes cancellation, and records interruption and terminal states without treating an unverified browser handoff as completion.",
       "implementation": {
         "paths": [
@@ -3073,7 +3073,7 @@
       }
     },
     "in-context-recovery": {
-      "status": "implemented-unverified",
+      "status": "absent",
       "note": "History, editor, forge preview, update, and browser-handoff panels expose target-specific adjacent recovery actions and exact local status without claiming a native or authenticated action the static page cannot perform.",
       "implementation": {
         "paths": [
@@ -3147,7 +3147,7 @@
       }
     },
     "provider-markup-rendering": {
-      "status": "implemented-unverified",
+      "status": "absent",
       "note": "The delivery workspace renders a bounded safe Markdown subset after escaping provider text. Raw HTML, scripts, images, unsafe links, and privileged rendering are refused. Built interaction remains unverified.",
       "implementation": {
         "paths": [
@@ -3221,7 +3221,7 @@
       }
     },
     "forge-publishing": {
-      "status": "partial",
+      "status": "absent",
       "note": "The browser-local workspace provides a required source, destination, account, owner, repository, and route preview before opening a generic provider entry point. It does not authenticate, fork, copy, push, or store credentials, so native publication is not claimed.",
       "implementation": {
         "paths": [
@@ -3381,7 +3381,7 @@
       }
     },
     "automatic-updates": {
-      "status": "implemented-unverified",
+      "status": "absent",
       "note": "The static delivery workspace validates the versioned release manifest and exposes unavailable, available, downloading, ready, failed, cancelled, and unverified browser-handoff states without claiming installation. Built interaction remains unverified.",
       "implementation": {
         "paths": [

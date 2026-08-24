@@ -60,6 +60,11 @@
 - [x] Add exact-boundary negative regressions for missing features and pages, renamed or commented symbols, stale commits, missing evidence, route-only claims, fake success, and sample data.
 - [ ] Run the matrix validators and capture proof on the integrated default branch. This remains unverified because the current delivery lane explicitly did not run validators or captures.
 
+## Attention runtime
+
+- [x] Mount the five independent attention modes from durable settings, add live desktop consumers, persist the user-selected next action, acknowledge serialized durable writes, persist redacted warning and error history with corrupt-state recovery, pass explicit notification severity, wire the exact six-row Chut into inventory validation, and route exact mutation actions through one generated callback without treating navigation or reads as changes. Status: implemented-unverified in `codex/mount-attention-runtime`; the design compiler ran, but no built-artifact or UI evidence was collected in that lane.
+- [ ] Run focused built-artifact verification for attention restoration, focus dimming, low stimulation, time awareness, one thing at a time, Momentum snooze, keyboard access, and reduced-motion behavior.
+
 ## Cover Asterisk's real capability surface
 
 A survey against this checkout measured the console at roughly **12%** of Asterisk's
