@@ -13,10 +13,22 @@ writes `console/catalog/freepbx-module-catalog.json`. A local FreePBX installati
 by setting `FREEPBX_LOCAL_MODULE_ROOT` to its module directory. Local metadata is recorded as local
 metadata only and never changes the published license or source claims.
 
+`module.xml` is parsed with a well-formed XML parser from Python's standard library through the
+`py -3` parser route on Windows, or `python3` on other supported hosts. Set `FREEPBX_XML_PARSER`
+when a host uses a different approved Python launcher. A malformed document fails generation rather
+than being partially cataloged by a tag-matching heuristic.
+
 The catalog records the module identifier, display name, version, source revision, license and
 entitlement class, dependencies, mapped Asterisk resources, published fwconsole command metadata,
 API capability metadata, menu items, UI family, documentation links, local installation state, and
 an exact availability reason. A module with no verified target is not presented as working.
+
+The **FreePBX Module Catalog** destination is a native PBX Admin destination. It searches all public
+catalog records with plain text by default, offers the shared bounded regex mode, filters installed
+and commercial records, includes explicit historical exclusions on request, exports the filtered
+records, and reads installed state through the target runtime adapter. The catalog destination also
+exposes structured action controls for the selected module. Every action is refused when the target,
+module metadata, entitlement, confirmation, or expected source revision is not acceptable.
 
 ## Native module families
 
@@ -124,13 +136,22 @@ service, missing license, and invalid credential state each remain distinct. A f
 leaves the current draft intact and offers the existing recovery-point route. Destructive module
 removal uses the native confirmation flow and never runs from a free-form command string.
 
+The runtime adapter invokes the official `fwconsole` executable through `wsl.exe` with separate,
+allowlisted arguments. It reads `fwconsole ma list` and `fwconsole ma show <module>` with bounded
+output, then uses `install`, `enable`, `disable`, `upgrade`, or `uninstall` only after module ID,
+entitlement, confirmation, and source-revision checks. Every action reads the module back. A mismatch
+returns a failed result and attempts the safe inverse action for install, enable, disable, and remove;
+updates report that no inverse version operation is assumed. A rollback is not reported as success
+unless the prior installed and enabled state reads back.
+
 ## Verification boundary
 
 The catalog and inventory validator are narrow static checks. The generated catalog currently
 contains the public modules discovered from the official FreePBX organization, with no local module
 directory supplied during generation. Runtime adapter behavior, module actions, the final WSL and
 container stack, the built Windows artifact, accessibility interaction, and real screen captures
-remain unverified until the parent integration lane completes its approved verification pass.
+remain unverified until the parent integration lane completes its approved verification pass. The
+runtime adapter source is present and fail-closed, but no target was contacted in this lane.
 
 ## Suggested articles
 

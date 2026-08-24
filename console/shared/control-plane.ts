@@ -18,6 +18,7 @@ export type ControlPlaneAction =
    */
   | 'daemon.status' | 'daemon.start' | 'daemon.stop' | 'daemon.restart'
   | 'pbx.read' | 'pbx.command' | 'pbx.config' | 'pbx.plan'
+  | 'freepbx.modules' | 'freepbx.module.state' | 'freepbx.module.action'
   | 'history.list' | 'history.restore'
   /* Prompts and music-on-hold media on the target, so a "custom" choice can be given a file. */
   | 'media.list' | 'media.upload' | 'media.remove'

@@ -446,3 +446,31 @@ This lane did not run tests, lint, type checks, full build, package, UI interact
 WSL, container deployment, or runtime actions. FreePBX target discovery, fwconsole execution,
 permissions, database/web service state, module actions, final built-artifact interaction and capture
 evidence remain unverified for the parent integration lane.
+
+## FreePBX runtime and catalog follow-up on 2026-08-24
+
+The catalog follow-up adds explicit historical exclusion records, a native `freepbx-catalog`
+destination, and typed runtime actions. The catalog now records 14 exclusion records in addition to
+the 83 public module entries. The native catalog destination supports filtered search, bounded regex
+mode, installed-only and commercial-entitlement filters, explicit exclusions, filtered export, and
+target module-state refresh.
+
+`console/control-plane/freepbx-runtime.ts` is the runtime boundary. It calls the official `fwconsole`
+through `wsl.exe` with separate allowlisted arguments, reads `ma list` and `ma show`, reconciles
+published metadata with installed-only modules, preserves license and entitlement state, refuses
+commercial actions without a license, requires confirmation for disable and remove, checks the
+expected catalog revision, reads state back after every action, and attempts a safe inverse action
+when install, enable, disable, or remove readback does not match. Update actions remain honest when
+no safe inverse version operation exists.
+
+`console/control-plane/dispatch.ts` now exposes `freepbx.modules`, `freepbx.module.state`, and
+`freepbx.module.action`. `console/shared/control-plane.ts` carries those typed action names. The
+public module XML parser now uses a well-formed Python standard-library XML parser through the
+approved `py -3` or `python3` route instead of regex tag matching, preserving dependency, menu,
+command, and API scopes.
+
+`console/scripts/verify-freepbx-module-inventory.mjs --probe-negative` now checks the catalog,
+inventory, runtime boundary markers, no direct process or SQL path, and deliberate red then green
+negative regressions. The static result is green. No live target was contacted, and WSL, container,
+database, web service, fwconsole, permissions, entitlement, built-artifact, UI interaction, and
+capture evidence remain unverified.

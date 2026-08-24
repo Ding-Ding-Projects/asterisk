@@ -39,6 +39,7 @@ export interface FreePbxModuleCatalogEntry {
   apiCapabilities: string[];
   uiFamilies: string[];
   nativeTaskId: string | null;
+  nativeAliasOf: string | null;
   menuItems: string[];
   documentation: { repository: string | null; moduleXml: string | null };
   availability: { state: FreePbxAvailabilityState; reason: string };
@@ -63,7 +64,9 @@ export interface FreePbxModuleCatalog {
     locallyInstalledModules: number;
     unavailableModules: number;
     total: number;
+    exclusions: number;
   };
+  exclusions: Array<{ moduleId: string; reason: string; source: string }>;
   modules: FreePbxModuleCatalogEntry[];
 }
 
@@ -93,7 +96,7 @@ function validateCatalog(value: unknown): FreePbxModuleCatalog {
     if (ids.has(module.moduleId)) throw new Error(`FreePBX module catalog repeats module id ${module.moduleId}.`);
     ids.add(module.moduleId);
   }
-  if (candidate.counts?.total !== modules.length) throw new Error('FreePBX module catalog count does not match its entries.');
+  if (candidate.counts?.total !== modules.length || candidate.counts?.exclusions !== candidate.exclusions?.length) throw new Error('FreePBX module catalog count does not match its entries.');
   return candidate as FreePbxModuleCatalog;
 }
 

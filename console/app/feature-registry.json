@@ -319,6 +319,20 @@
       "note": "No evidence of a collapsible filter/statistics row was found; the compiled console tab filter (tabFilterOpen) is a modal overlay, not a collapsible inline row.",
       "files": []
     },
+    "freepbx-module-surface": {
+      "state": "partial",
+      "note": "The generated public FreePBX module catalog, native schema-driven form model, catalog destination registration, and typed fwconsole action boundary are wired. Runtime state, entitlement behavior on a real target, built-artifact interaction, and captures remain unverified.",
+      "files": [
+        "catalog/freepbx-module-catalog.json",
+        "app/renderer/src/freepbx-module-catalog.ts",
+        "app/renderer/src/freepbx-module-form.ts",
+        "app/renderer/src/PbxAdminApp.tsx",
+        "control-plane/freepbx-runtime.ts",
+        "control-plane/dispatch.ts",
+        "inventories/freepbx-module-surface.json",
+        "scripts/verify-freepbx-module-inventory.mjs"
+      ]
+    },
     "automatic-updates": {
       "state": "implemented",
       "note": "app/renderer/src/UpdateBanner.tsx (64 lines) is mounted as its own root in main.tsx (lines 39-41) and control-plane/updater.ts implements the update-check/download/ready-to-restart backend. Genuinely wired: the banner is created and rendered on every boot alongside the main app.",

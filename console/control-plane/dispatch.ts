@@ -24,6 +24,8 @@ import { atomicWriteFileSync } from './atomic-file.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
 import type { ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
+import { FreePbxRuntimeAdapter } from './freepbx-runtime.js';
+import freePbxCatalogJson from '../catalog/freepbx-module-catalog.json' with { type: 'json' };
 
 /**
  * Actions that fundamentally depend on the Windows desktop (WSL) and cannot be answered
@@ -34,6 +36,7 @@ import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../
  */
 export const HOSTED_UNSUPPORTED_ACTIONS = new Set<string>([
   'runtime.status', 'runtime.provision', 'runtime.stop', 'runtime.remove',
+  'freepbx.modules', 'freepbx.module.state', 'freepbx.module.action',
 ]);
 
 export interface ControlPlaneDispatcherOptions {
@@ -46,6 +49,22 @@ export interface ControlPlaneDispatcherOptions {
   /** True when running under the hosted HTTP server rather than the desktop app. Gates
    *  the WSL-only actions above with an honest, named refusal instead of a stack trace. */
   hosted: boolean;
+}
+
+function freePbxCatalogEntries() {
+  return (freePbxCatalogJson.modules as Array<Record<string, unknown>>).map((module) => ({
+    moduleId: String(module.moduleId),
+    name: String(module.name),
+    version: String(module.version),
+    license: String(module.license),
+    entitlementClass: module.entitlementClass === 'commercial' || module.entitlementClass === 'open' ? module.entitlementClass : 'unknown' as const,
+    dependencies: Array.isArray(module.dependencies) ? module.dependencies.filter((dependency): dependency is { moduleId: string; version: string } => Boolean(dependency && typeof dependency === 'object' && typeof (dependency as Record<string, unknown>).moduleId === 'string' && typeof (dependency as Record<string, unknown>).version === 'string')) : [],
+    fwconsoleCommands: Array.isArray(module.fwconsoleCommands) ? module.fwconsoleCommands.filter((command): command is { name: string; class: string } => Boolean(command && typeof command === 'object' && typeof (command as Record<string, unknown>).name === 'string' && typeof (command as Record<string, unknown>).class === 'string')) : [],
+    apiCapabilities: Array.isArray(module.apiCapabilities) ? module.apiCapabilities.filter((capability): capability is string => typeof capability === 'string') : [],
+    sourceRevision: typeof (module.source as Record<string, unknown> | undefined)?.revision === 'string' ? String((module.source as Record<string, unknown>).revision) : null,
+    localInstalled: module.localInstalled === true,
+    availabilityReason: String((module.availability as Record<string, unknown> | undefined)?.reason ?? 'No availability reason was published.'),
+  }));
 }
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
@@ -434,6 +453,29 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           return { ok: false, requestId: request.requestId, code: 'COMMAND_FAILED', message: result.stderr.trim() || `The command exited with ${result.exitCode}.` };
         }
         return { ok: true, requestId: request.requestId, data: { command, output: result.stdout, durationMs: result.durationMs, observedAt: new Date().toISOString() } };
+      }
+      if (request.action === 'freepbx.modules') {
+        const target = await resolveTarget(request.serverId);
+        return { ok: true, requestId: request.requestId, data: await new FreePbxRuntimeAdapter({
+          executor: processExecutor,
+          distribution: target.wslDistribution!,
+          catalog: freePbxCatalogEntries(),
+        }).listModules() };
+      }
+      if (request.action === 'freepbx.module.state' || request.action === 'freepbx.module.action') {
+        const target = await resolveTarget(request.serverId);
+        const runtime = new FreePbxRuntimeAdapter({
+          executor: processExecutor,
+          distribution: target.wslDistribution!,
+          catalog: freePbxCatalogEntries(),
+        });
+        const moduleId = typeof request.payload?.moduleId === 'string' ? request.payload.moduleId.trim() : '';
+        if (request.action === 'freepbx.module.state') return { ok: true, requestId: request.requestId, data: await runtime.readModule(moduleId) };
+        const action = request.payload?.action;
+        const confirmed = request.payload?.confirmed === true;
+        if (typeof action !== 'string' || !['install', 'enable', 'disable', 'update', 'remove'].includes(action)) return { ok: false, requestId: request.requestId, code: 'FREEPBX_ACTION_REQUIRED', message: 'Choose one allowlisted FreePBX module action.' };
+        const result = await runtime.action({ moduleId, action: action as 'install' | 'enable' | 'disable' | 'update' | 'remove', confirmed, expectedRevision: typeof request.payload?.expectedRevision === 'string' ? request.payload.expectedRevision : null });
+        return { ok: result.status === 'applied' || result.status === 'rolledBack', requestId: request.requestId, code: result.status === 'applied' || result.status === 'rolledBack' ? undefined : `FREEPBX_${result.status.toUpperCase()}`, message: result.message, data: result } as ControlPlaneResponse;
       }
       if (request.action === 'pbx.config') {
         const resource = typeof request.payload?.resource === 'string' ? request.payload.resource : '';

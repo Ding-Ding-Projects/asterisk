@@ -45,7 +45,7 @@ test('catalogue carries the complete, hand-written Connectivity Standard Module 
 
 test('catalogue carries the complete, hand-written Administration Standard Module list (exhaustive)', () => {
   const required = [
-    'accountcode-preserve', 'admin-voicemail', 'administrators', 'adsi', 'allowlist', 'asterisk-cli', 'backup',
+    'accountcode-preserve', 'admin-voicemail', 'administrators', 'adsi', 'allowlist', 'asterisk-cli', 'backup', 'freepbx-catalog',
     'blacklist', 'bulk-config', 'callerid-lookup', 'certificates', 'cid-superfecta', 'config-file-editor',
     'contact-manager', 'custom-apps-registration', 'custom-destinations', 'custom-extensions', 'feature-codes',
     'geolocation', 'module-admin', 'monitoring', 'notifications', 'outbound-cnam', 'phonebook', 'phoneprov',
@@ -76,7 +76,7 @@ test('catalogue carries the complete, hand-written Settings Standard Module list
 });
 
 test('catalogue total feature count matches the hand-written Standard Module inventory', () => {
-  assert.equal(PBX_FEATURES.length, 107);
+  assert.equal(PBX_FEATURES.length, 108);
 });
 
 test('catalogue never embeds sample target rows or configured values', () => {

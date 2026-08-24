@@ -109,6 +109,7 @@ export const PBX_FEATURES: ReadonlyArray<PbxFeatureDefinition> = [
   { id: 'dundi', group: 'Connectivity', label: 'DUNDi', description: 'Distributed dialplan lookup and peer policy.', resources: [r('dundi.conf')] },
 
   // ---------------------------------------------------------------- Administration
+  { id: 'freepbx-catalog', group: 'Administration', label: 'FreePBX Module Catalog', description: 'Published and locally observed FreePBX modules, dependencies, entitlements and action capabilities.', resources: [] },
   { id: 'administrators', group: 'Administration', label: 'Administrators', description: 'Asterisk console-user permissions; Ding desktop itself remains local-user scoped.', resources: [r('cli_permissions.conf')] },
   { id: 'accountcode-preserve', group: 'Administration', label: 'Account Code Preserve', description: 'Dialplan account-code propagation across transfer and forward, reflected in CDR.', resources: [r('extensions.conf'), r('cdr.conf')] },
   { id: 'allowlist', group: 'Administration', label: 'Allowlist', description: 'Dialplan allow-listing and Asterisk access permission, the counterpart to Blacklist.', resources: [r('extensions.conf'), r('acl.conf')] },

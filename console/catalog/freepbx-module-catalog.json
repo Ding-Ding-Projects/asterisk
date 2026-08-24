@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "generatedBy": "console/scripts/generate-freepbx-module-catalog.mjs",
-  "generatedAt": "2026-08-24T06:07:49.065Z",
+  "generatedAt": "2026-08-24T06:32:28.184Z",
   "source": {
     "provider": "GitHub CLI gh api",
     "organization": "FreePBX",
@@ -9,14 +9,87 @@
     "repositoryDiscovery": "orgs/FreePBX/repos?per_page=100&type=all",
     "moduleMetadata": "module.xml from each public FreePBX module repository",
     "repositoryCountInspected": 94,
-    "pinnedModuleSnapshot": "sha256:68805bee886ce20952b1788b4398beededf1ebfb86e984afa6f6389e7a040d52"
+    "pinnedModuleSnapshot": "sha256:ed6a5d5b17c4768d6c476ad14eaad232ff607cfabbba976b37334f1307f4ec87"
   },
   "counts": {
     "publicModules": 83,
     "locallyInstalledModules": 0,
     "unavailableModules": 83,
-    "total": 83
+    "total": 83,
+    "exclusions": 14
   },
+  "exclusions": [
+    {
+      "moduleId": "sms-plus",
+      "reason": "Historical parity label is not a published FreePBX module repository; it is retained only as an explicit exclusion record.",
+      "source": "historical FreePBX parity disposition"
+    },
+    {
+      "moduleId": "sms-webhook",
+      "reason": "Historical parity label is not a published FreePBX module repository; it is retained only as an explicit exclusion record.",
+      "source": "historical FreePBX parity disposition"
+    },
+    {
+      "moduleId": "framework",
+      "reason": "FreePBX framework plumbing has no distinct native Asterisk configuration surface in this console.",
+      "source": "historical FreePBX parity disposition"
+    },
+    {
+      "moduleId": "pm2",
+      "reason": "FreePBX process-manager plumbing is not a user-facing Asterisk configuration module.",
+      "source": "historical FreePBX parity disposition"
+    },
+    {
+      "moduleId": "phpinfo",
+      "reason": "PHP diagnostic output is not a native Asterisk configuration surface.",
+      "source": "historical FreePBX parity disposition"
+    },
+    {
+      "moduleId": "versionupgrade",
+      "reason": "FreePBX updater plumbing is not represented as a native module action without a bounded runtime adapter.",
+      "source": "historical FreePBX parity disposition"
+    },
+    {
+      "moduleId": "fw_langpacks",
+      "reason": "Language-pack download plumbing is not an offline native configuration surface.",
+      "source": "historical FreePBX parity disposition"
+    },
+    {
+      "moduleId": "digium_phones",
+      "reason": "Vendor cloud provisioning is not claimed as a native local capability.",
+      "source": "historical FreePBX parity disposition"
+    },
+    {
+      "moduleId": "digiumaddoninstaller",
+      "reason": "Vendor add-on catalog installation is not claimed without the vendor entitlement service.",
+      "source": "historical FreePBX parity disposition"
+    },
+    {
+      "moduleId": "cxpanel",
+      "reason": "Third-party commercial call-center UI is not copied or presented as native functionality.",
+      "source": "historical FreePBX parity disposition"
+    },
+    {
+      "moduleId": "synologyabb",
+      "reason": "Vendor-specific backup integration is not claimed; generic backup remains separately cataloged.",
+      "source": "historical FreePBX parity disposition"
+    },
+    {
+      "moduleId": "irc",
+      "reason": "Online support chat is not an Asterisk administration capability.",
+      "source": "historical FreePBX parity disposition"
+    },
+    {
+      "moduleId": "ucp",
+      "reason": "The separate end-user portal is outside the administrator console boundary.",
+      "source": "historical FreePBX parity disposition"
+    },
+    {
+      "moduleId": "webrtc",
+      "reason": "The UCP-embedded browser phone is not claimed without the separate end-user portal.",
+      "source": "historical FreePBX parity disposition"
+    }
+  ],
   "modules": [
     {
       "moduleId": "amd",
@@ -49,7 +122,10 @@
         "applications"
       ],
       "nativeTaskId": "amd",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "AMD Settings"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/amd",
         "moduleXml": "https://github.com/FreePBX/amd/blob/release/17.0/module.xml"
@@ -96,7 +172,10 @@
         "announcements"
       ],
       "nativeTaskId": "announcements",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Announcements"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/announcement",
         "moduleXml": "https://github.com/FreePBX/announcement/blob/release/17.0/module.xml"
@@ -151,7 +230,10 @@
         "api"
       ],
       "nativeTaskId": "rest-api",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "API"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/api",
         "moduleXml": "https://github.com/FreePBX/api/blob/release/17.0/module.xml"
@@ -196,7 +278,10 @@
         "settings"
       ],
       "nativeTaskId": "ari",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Asterisk REST Interface Users"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/arimanager",
         "moduleXml": "https://github.com/FreePBX/arimanager/blob/release/17.0/module.xml"
@@ -236,7 +321,10 @@
         "admin"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Asterisk CLI"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/asterisk-cli",
         "moduleXml": "https://github.com/FreePBX/asterisk-cli/blob/release/17.0/module.xml"
@@ -283,7 +371,10 @@
         "reports"
       ],
       "nativeTaskId": "system-status",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Asterisk Info"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/asteriskinfo",
         "moduleXml": "https://github.com/FreePBX/asteriskinfo/blob/release/17.0/module.xml"
@@ -333,7 +424,11 @@
         "backup-restore"
       ],
       "nativeTaskId": "backup",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Backup & Restore",
+        "Backup & Restore - Restore"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/backup",
         "moduleXml": "https://github.com/FreePBX/backup/blob/release/17.0/module.xml"
@@ -385,7 +480,10 @@
         "blacklist"
       ],
       "nativeTaskId": "blacklist",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Blacklist"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/blacklist",
         "moduleXml": "https://github.com/FreePBX/blacklist/blob/release/17.0/module.xml"
@@ -430,7 +528,10 @@
         "admin"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Bulk Handler"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/bulkhandler",
         "moduleXml": "https://github.com/FreePBX/bulkhandler/blob/release/17.0/module.xml"
@@ -478,7 +579,11 @@
         "calendar-presence"
       ],
       "nativeTaskId": "calendar",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Calendar",
+        "Calendar Event Groups"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/calendar",
         "moduleXml": "https://github.com/FreePBX/calendar/blob/release/17.0/module.xml"
@@ -521,7 +626,10 @@
         "applications"
       ],
       "nativeTaskId": "callback",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Callback"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/callback",
         "moduleXml": "https://github.com/FreePBX/callback/blob/release/17.0/module.xml"
@@ -563,6 +671,7 @@
         "call-forwarding"
       ],
       "nativeTaskId": "call-forwarding",
+      "nativeAliasOf": null,
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/callforward",
@@ -612,7 +721,10 @@
         "call-recording"
       ],
       "nativeTaskId": "call-recording",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Call Recording"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/callrecording",
         "moduleXml": "https://github.com/FreePBX/callrecording/blob/release/17.0/module.xml"
@@ -655,6 +767,7 @@
         "call-waiting"
       ],
       "nativeTaskId": "call-waiting",
+      "nativeAliasOf": null,
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/callwaiting",
@@ -709,7 +822,10 @@
         "cdr-cel-reports"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "CDR Reports"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/cdr",
         "moduleXml": "https://github.com/FreePBX/cdr/blob/release/17.0/module.xml"
@@ -749,7 +865,10 @@
         "cdr-cel-reports"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Call Event Logging"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/cel",
         "moduleXml": "https://github.com/FreePBX/cel/blob/release/17.0/module.xml"
@@ -799,7 +918,10 @@
         "certificates-tls"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Certificate Management"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/certman",
         "moduleXml": "https://github.com/FreePBX/certman/blob/release/17.0/module.xml"
@@ -850,7 +972,10 @@
         "admin"
       ],
       "nativeTaskId": "callerid-lookup",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "CallerID Lookup Sources"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/cidlookup",
         "moduleXml": "https://github.com/FreePBX/cidlookup/blob/release/17.0/module.xml"
@@ -898,7 +1023,10 @@
         "conferences"
       ],
       "nativeTaskId": "conferences",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Conferences"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/conferences",
         "moduleXml": "https://github.com/FreePBX/conferences/blob/release/17.0/module.xml"
@@ -938,7 +1066,10 @@
         "admin"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Config Edit"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/configedit",
         "moduleXml": "https://github.com/FreePBX/configedit/blob/release/17.0/module.xml"
@@ -956,14 +1087,14 @@
       "name": "Contact Manager",
       "description": "The Contact Manager module lets you add contacts to groups.",
       "category": "Admin",
-      "version": "17.0.6.2",
+      "version": "17.0.7",
       "source": {
         "organization": "FreePBX",
         "repository": "contactmanager",
         "branch": "release/17.0",
-        "revision": "d904f7ada299f2a624ef84388b39e2fdbd3060c6",
+        "revision": "21f1960873c823850dc5864e78900354e50388af",
         "moduleXmlPath": "module.xml",
-        "moduleXmlSha": "623a4a2b2af521d644519a89c0a55a56db2a68c6",
+        "moduleXmlSha": "97a61cb2b65cf8e7b253847ac5e457b2fe1f4b18",
         "repositoryUrl": "https://github.com/FreePBX/contactmanager",
         "moduleXmlUrl": "https://github.com/FreePBX/contactmanager/blob/release/17.0/module.xml"
       },
@@ -988,7 +1119,10 @@
         "contacts"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Contact Manager"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/contactmanager",
         "moduleXml": "https://github.com/FreePBX/contactmanager/blob/release/17.0/module.xml"
@@ -1037,7 +1171,20 @@
         "extensions-users-devices"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Administrators",
+        "Advanced Settings",
+        "Asterisk Modules",
+        "DAHDI Channel DIDs",
+        "Devices",
+        "Extensions",
+        "FreePBX Support",
+        "Inbound Routes",
+        "Outbound Routes",
+        "Trunks",
+        "Users"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/core",
         "moduleXml": "https://github.com/FreePBX/core/blob/release/17.0/module.xml"
@@ -1079,7 +1226,11 @@
         "admin"
       ],
       "nativeTaskId": "custom-apps-registration",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Custom Destinations",
+        "Custom Extensions"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/customappsreg",
         "moduleXml": "https://github.com/FreePBX/customappsreg/blob/release/17.0/module.xml"
@@ -1132,7 +1283,11 @@
         "admin"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "iSymphonyV3",
+        "iSymphonyV3 Panel"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/cxpanel",
         "moduleXml": "https://github.com/FreePBX/cxpanel/blob/release/17.0/module.xml"
@@ -1172,7 +1327,10 @@
         "connectivity"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "DAHDi Config"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/dahdiconfig",
         "moduleXml": "https://github.com/FreePBX/dahdiconfig/blob/release/17.0/module.xml"
@@ -1212,7 +1370,10 @@
         "dashboard"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Dashboard"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/dashboard",
         "moduleXml": "https://github.com/FreePBX/dashboard/blob/release/17.0/module.xml"
@@ -1254,7 +1415,10 @@
         "call-flow-day-night"
       ],
       "nativeTaskId": "call-flow-control",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Call Flow Control"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/daynight",
         "moduleXml": "https://github.com/FreePBX/daynight/blob/release/17.0/module.xml"
@@ -1294,7 +1458,10 @@
         "settings"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Backup Databases"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/dbmanager",
         "moduleXml": "https://github.com/FreePBX/dbmanager/blob/master/module.xml"
@@ -1336,6 +1503,7 @@
         "applications"
       ],
       "nativeTaskId": "dictate",
+      "nativeAliasOf": null,
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/dictate",
@@ -1376,7 +1544,10 @@
         "connectivity"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Digium Phones"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/digium_phones",
         "moduleXml": "https://github.com/FreePBX/digium_phones/blob/release/17.0/module.xml"
@@ -1416,7 +1587,10 @@
         "admin"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Digium Addons"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/digiumaddoninstaller",
         "moduleXml": "https://github.com/FreePBX/digiumaddoninstaller/blob/master/module.xml"
@@ -1463,7 +1637,10 @@
         "directory"
       ],
       "nativeTaskId": "directory",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Directory"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/directory",
         "moduleXml": "https://github.com/FreePBX/directory/blob/release/17.0/module.xml"
@@ -1505,7 +1682,10 @@
         "applications"
       ],
       "nativeTaskId": "disa",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "DISA"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/disa",
         "moduleXml": "https://github.com/FreePBX/disa/blob/release/17.0/module.xml"
@@ -1547,6 +1727,7 @@
         "dnd"
       ],
       "nativeTaskId": "dnd",
+      "nativeAliasOf": null,
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/donotdisturb",
@@ -1563,7 +1744,7 @@
       "moduleId": "dundicheck",
       "rawname": "dundicheck",
       "name": "DUNDi Lookup Registry",
-      "description": "This module will check all configured and enabled DUNDi trunks as part of the extension registry function, and report back conflicts if other sites have the same extensions. This does not filter against the route patterns - it will take any number being created and report a conflict if that trunk could be used to call that number.",
+      "description": "This module will check all configured and enabled DUNDi trunks as part of the extension registry function, and report back conflicts if\n\t\tother sites have the same extensions. This does not filter against the route patterns - it will take any number being created and\n\t\treport a conflict if that trunk could be used to call that number.",
       "category": "Admin",
       "version": "17.0.1",
       "source": {
@@ -1587,7 +1768,10 @@
         "admin"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "DUNDi Lookup"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/dundicheck",
         "moduleXml": "https://github.com/FreePBX/dundicheck/blob/release/17.0/module.xml"
@@ -1629,7 +1813,10 @@
         "extensions-users-devices"
       ],
       "nativeTaskId": "extension-settings",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Extension Settings"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/extensionsettings",
         "moduleXml": "https://github.com/FreePBX/extensionsettings/blob/release/17.0/module.xml"
@@ -1677,7 +1864,10 @@
         "settings"
       ],
       "nativeTaskId": "fax",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Fax Configuration"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/fax",
         "moduleXml": "https://github.com/FreePBX/fax/blob/release/17.0/module.xml"
@@ -1725,7 +1915,10 @@
         "admin"
       ],
       "nativeTaskId": "feature-codes",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Feature Codes"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/featurecodeadmin",
         "moduleXml": "https://github.com/FreePBX/featurecodeadmin/blob/release/17.0/module.xml"
@@ -1765,7 +1958,10 @@
         "settings"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Filestore"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/filestore",
         "moduleXml": "https://github.com/FreePBX/filestore/blob/release/17.0/module.xml"
@@ -1825,7 +2021,10 @@
         "follow-me-find-me"
       ],
       "nativeTaskId": "follow-me",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Follow Me"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/findmefollow",
         "moduleXml": "https://github.com/FreePBX/findmefollow/blob/release/17.0/module.xml"
@@ -1881,7 +2080,10 @@
         "firewall-security"
       ],
       "nativeTaskId": "firewall",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Firewall"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/firewall",
         "moduleXml": "https://github.com/FreePBX/firewall/blob/release/17.0/module.xml"
@@ -2014,6 +2216,7 @@
         "admin"
       ],
       "nativeTaskId": null,
+      "nativeAliasOf": null,
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/framework",
@@ -2059,7 +2262,10 @@
         "development"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "FreePBX GH Test"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/freepbx-gh-test",
         "moduleXml": "https://github.com/FreePBX/freepbx-gh-test/blob/release/17.0/module.xml"
@@ -2112,7 +2318,11 @@
         "applications"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Wake Up Calls",
+        "Wake Up Calls Settings"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/hotelwakeup",
         "moduleXml": "https://github.com/FreePBX/hotelwakeup/blob/release/17.0/module.xml"
@@ -2154,7 +2364,10 @@
         "iax-settings"
       ],
       "nativeTaskId": "iax-settings",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Asterisk IAX Settings"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/iaxsettings",
         "moduleXml": "https://github.com/FreePBX/iaxsettings/blob/release/17.0/module.xml"
@@ -2196,6 +2409,7 @@
         "applications"
       ],
       "nativeTaskId": "info-services",
+      "nativeAliasOf": null,
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/infoservices",
@@ -2247,7 +2461,10 @@
         "applications"
       ],
       "nativeTaskId": "ivr",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "IVR"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/ivr",
         "moduleXml": "https://github.com/FreePBX/ivr/blob/release/17.0/module.xml"
@@ -2289,7 +2506,10 @@
         "languages"
       ],
       "nativeTaskId": "sound-languages",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Languages"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/languages",
         "moduleXml": "https://github.com/FreePBX/languages/blob/release/17.0/module.xml"
@@ -2329,7 +2549,11 @@
         "diagnostics"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Asterisk Logfile Settings",
+        "System Logfiles"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/logfiles",
         "moduleXml": "https://github.com/FreePBX/logfiles/blob/release/17.0/module.xml"
@@ -2371,7 +2595,10 @@
         "ami-api"
       ],
       "nativeTaskId": "ami-settings",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Asterisk Manager Users"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/manager",
         "moduleXml": "https://github.com/FreePBX/manager/blob/release/17.0/module.xml"
@@ -2413,7 +2640,10 @@
         "misc-apps"
       ],
       "nativeTaskId": "misc-apps",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Misc Applications"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/miscapps",
         "moduleXml": "https://github.com/FreePBX/miscapps/blob/release/17.0/module.xml"
@@ -2455,7 +2685,10 @@
         "misc-destinations"
       ],
       "nativeTaskId": "misc-destinations",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Misc Destinations"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/miscdests",
         "moduleXml": "https://github.com/FreePBX/miscdests/blob/release/17.0/module.xml"
@@ -2512,7 +2745,10 @@
         "applications"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Missed Call Notification"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/missedcall",
         "moduleXml": "https://github.com/FreePBX/missedcall/blob/release/17.0/module.xml"
@@ -2559,7 +2795,10 @@
         "music-on-hold"
       ],
       "nativeTaskId": "music-on-hold",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Music on Hold"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/music",
         "moduleXml": "https://github.com/FreePBX/music/blob/release/17.0/module.xml"
@@ -2577,16 +2816,16 @@
       "name": "Route Congestion Messages",
       "description": "Configures message or congestion tones played when all trunks are busy in a route. Allows different messages for Emergency Routes and Intra-Company Routes",
       "category": "Settings",
-      "version": "17.0.1",
+      "version": "13.0.2.2",
       "source": {
         "organization": "FreePBX",
         "repository": "outroutemsg",
-        "branch": "release/17.0",
-        "revision": "e1a51324abb028254d99757115fa81450f5b7fc1",
+        "branch": "master",
+        "revision": "92a8ffcb617de543578e5c769610bf5bf522c708",
         "moduleXmlPath": "module.xml",
-        "moduleXmlSha": "513e854415c2adea3c16bdc6321d1e153b5cee78",
+        "moduleXmlSha": "a4fd2dc649a07c2997f16bfd44d6639048b42e0f",
         "repositoryUrl": "https://github.com/FreePBX/outroutemsg",
-        "moduleXmlUrl": "https://github.com/FreePBX/outroutemsg/blob/release/17.0/module.xml"
+        "moduleXmlUrl": "https://github.com/FreePBX/outroutemsg/blob/master/module.xml"
       },
       "publisher": "Sangoma Technologies Corporation",
       "license": "GPLv3+",
@@ -2594,11 +2833,11 @@
       "dependencies": [
         {
           "moduleId": "recordings",
-          "version": ""
+          "version": "3.3.8"
         },
         {
           "moduleId": "core",
-          "version": "17.0.1"
+          "version": "13.0.122.58"
         }
       ],
       "configurationResources": [],
@@ -2608,10 +2847,13 @@
         "settings"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Route Congestion Messages"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/outroutemsg",
-        "moduleXml": "https://github.com/FreePBX/outroutemsg/blob/release/17.0/module.xml"
+        "moduleXml": "https://github.com/FreePBX/outroutemsg/blob/master/module.xml"
       },
       "availability": {
         "state": "unavailable",
@@ -2624,7 +2866,7 @@
       "moduleId": "paging",
       "rawname": "paging",
       "name": "Paging and Intercom",
-      "description": "Allows creation of paging groups to make announcements using the speaker built into most SIP phones. Also creates an Intercom feature code that can be used as a prefix to talk directly to one person, as well as optional feature codes to block/allow intercom calls to all users as well as blocking specific users or only allowing specific users.",
+      "description": "Allows creation of paging groups to make announcements using the speaker built into most SIP phones. Also creates an\n        Intercom feature code that can be used as a prefix to talk directly to one person, as well as optional feature codes\n        to block/allow intercom calls to all users as well as blocking specific users or only allowing specific users.",
       "category": "Applications",
       "version": "17.0.4",
       "source": {
@@ -2664,7 +2906,10 @@
         "paging-intercom"
       ],
       "nativeTaskId": "paging",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Paging and Intercom"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/paging",
         "moduleXml": "https://github.com/FreePBX/paging/blob/release/17.0/module.xml"
@@ -2680,7 +2925,7 @@
       "moduleId": "parking",
       "rawname": "parking",
       "name": "Parking Lot",
-      "description": "Manages parking lot extensions and other options. Parking is a way of putting calls \"on hold\", and then picking them up from any extension.",
+      "description": "Manages parking lot extensions and other options. Parking is a way of putting calls \"on hold\", and then picking them\n        up from any extension.",
       "category": "Applications",
       "version": "17.0.2.9",
       "source": {
@@ -2719,7 +2964,10 @@
         "parking"
       ],
       "nativeTaskId": "parking",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Parking"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/parking",
         "moduleXml": "https://github.com/FreePBX/parking/blob/release/17.0/module.xml"
@@ -2769,7 +3017,8 @@
       "uiFamilies": [
         "admin"
       ],
-      "nativeTaskId": "phonebook",
+      "nativeTaskId": null,
+      "nativeAliasOf": "phonebook",
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/pbdirectory",
@@ -2812,7 +3061,10 @@
         "admin"
       ],
       "nativeTaskId": "phonebook",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Asterisk Phonebook"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/phonebook",
         "moduleXml": "https://github.com/FreePBX/phonebook/blob/release/17.0/module.xml"
@@ -2859,7 +3111,10 @@
         "settings"
       ],
       "nativeTaskId": "pinsets",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "PIN Sets"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/pinsets",
         "moduleXml": "https://github.com/FreePBX/pinsets/blob/release/17.0/module.xml"
@@ -2904,6 +3159,7 @@
         "admin"
       ],
       "nativeTaskId": null,
+      "nativeAliasOf": null,
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/pm2",
@@ -2946,7 +3202,10 @@
         "calendar-presence"
       ],
       "nativeTaskId": "presence-state",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Presence State"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/presencestate",
         "moduleXml": "https://github.com/FreePBX/presencestate/blob/release/17.0/module.xml"
@@ -2991,7 +3250,10 @@
         "reports"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Print Extensions"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/printextensions",
         "moduleXml": "https://github.com/FreePBX/printextensions/blob/release/17.0/module.xml"
@@ -3031,7 +3293,10 @@
         "queues"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Queue Priorities"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/queueprio",
         "moduleXml": "https://github.com/FreePBX/queueprio/blob/release/17.0/module.xml"
@@ -3083,7 +3348,10 @@
         "queues"
       ],
       "nativeTaskId": "queues",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Queues"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/queues",
         "moduleXml": "https://github.com/FreePBX/queues/blob/release/17.0/module.xml"
@@ -3132,7 +3400,10 @@
         "recordings"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "System Recordings"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/recordings",
         "moduleXml": "https://github.com/FreePBX/recordings/blob/release/17.0/module.xml"
@@ -3172,7 +3443,10 @@
         "jobs-scheduler"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Phone Restart"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/restart",
         "moduleXml": "https://github.com/FreePBX/restart/blob/release/17.0/module.xml"
@@ -3223,7 +3497,10 @@
         "ring-groups"
       ],
       "nativeTaskId": "ring-groups",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Ring Groups"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/ringgroups",
         "moduleXml": "https://github.com/FreePBX/ringgroups/blob/release/17.0/module.xml"
@@ -3265,7 +3542,10 @@
         "applications"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Set CallerID"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/setcid",
         "moduleXml": "https://github.com/FreePBX/setcid/blob/release/17.0/module.xml"
@@ -3316,7 +3596,10 @@
         "sip-settings"
       ],
       "nativeTaskId": "sip-settings",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Asterisk SIP Settings"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/sipsettings",
         "moduleXml": "https://github.com/FreePBX/sipsettings/blob/release/17.0/module.xml"
@@ -3363,7 +3646,10 @@
         "admin"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Sound Languages"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/soundlang",
         "moduleXml": "https://github.com/FreePBX/soundlang/blob/release/17.0/module.xml"
@@ -3410,6 +3696,7 @@
         "settings"
       ],
       "nativeTaskId": "speed-dial",
+      "nativeAliasOf": null,
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/speeddial",
@@ -3459,7 +3746,10 @@
         "admin"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "CID Superfecta"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/superfecta",
         "moduleXml": "https://github.com/FreePBX/superfecta/blob/release/17.0/module.xml"
@@ -3510,7 +3800,11 @@
         "time-groups-conditions"
       ],
       "nativeTaskId": "time-conditions",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Time Conditions",
+        "Time Groups"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/timeconditions",
         "moduleXml": "https://github.com/FreePBX/timeconditions/blob/release/17.0/module.xml"
@@ -3557,7 +3851,10 @@
         "applications"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Text To Speech"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/tts",
         "moduleXml": "https://github.com/FreePBX/tts/blob/release/17.0/module.xml"
@@ -3599,7 +3896,10 @@
         "settings"
       ],
       "nativeTaskId": "tts-engines",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Text To Speech Engines"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/ttsengines",
         "moduleXml": "https://github.com/FreePBX/ttsengines/blob/release/17.0/module.xml"
@@ -3656,7 +3956,10 @@
         "ucp-webrtc"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "UCP"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/ucp",
         "moduleXml": "https://github.com/FreePBX/ucp/blob/release/17.0/module.xml"
@@ -3706,7 +4009,10 @@
         "extensions-users-devices"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "User Management"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/userman",
         "moduleXml": "https://github.com/FreePBX/userman/blob/release/17.0/module.xml"
@@ -3748,7 +4054,10 @@
         "applications"
       ],
       "nativeTaskId": "voicemail-broadcast",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Voicemail Blasting"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/vmblast",
         "moduleXml": "https://github.com/FreePBX/vmblast/blob/release/17.0/module.xml"
@@ -3800,7 +4109,10 @@
         "voicemail"
       ],
       "nativeTaskId": "voicemail-admin",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Voicemail Admin"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/voicemail",
         "moduleXml": "https://github.com/FreePBX/voicemail/blob/release/17.0/module.xml"
@@ -3840,7 +4152,10 @@
         "reports"
       ],
       "nativeTaskId": null,
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "Weak Password Detection"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/weakpasswords",
         "moduleXml": "https://github.com/FreePBX/weakpasswords/blob/release/17.0/module.xml"
@@ -3856,7 +4171,7 @@
       "moduleId": "webrtc",
       "rawname": "webrtc",
       "name": "WebRTC Phone",
-      "description": "The WebRTC Module allows an Administrator to enable a \"WebRTC phone\" that can be attached to a user's extension which they can connect to through FreePBX User Control Panel, this WebRTC phone will then receive phone calls at the same time as the users extension using user and device mode behind the scenes. If you have User and Device Mode enabled any extension you enable the WebRTC Phone a duplicate extension of 99XXXX will be created (where XXXX is the original extension number), when the user then views the web interface of the WebRTC phone they will be connected to device 99XXXX which will receive calls from the original extension",
+      "description": "The WebRTC Module allows an Administrator to enable a \"WebRTC phone\" that can be attached to a user's\n\t\textension which they can connect to through FreePBX User Control Panel, this WebRTC phone will then\n\t\treceive phone calls at the same time as the users extension using user and device mode behind the scenes.\n\t\tIf you have User and Device Mode enabled any extension you enable the WebRTC Phone a duplicate extension of 99XXXX\n\t\twill be created (where XXXX is the original extension number), when the user then views the web interface of the WebRTC\n\t\tphone they will be connected to device 99XXXX which will receive calls from the original extension",
       "category": "Connectivity",
       "version": "17.0.3.2",
       "source": {
@@ -3893,6 +4208,7 @@
         "ucp-webrtc"
       ],
       "nativeTaskId": null,
+      "nativeAliasOf": null,
       "menuItems": [],
       "documentation": {
         "repository": "https://github.com/FreePBX/webrtc",
@@ -3944,7 +4260,10 @@
         "admin"
       ],
       "nativeTaskId": "xmpp",
-      "menuItems": [],
+      "nativeAliasOf": null,
+      "menuItems": [
+        "XMPP"
+      ],
       "documentation": {
         "repository": "https://github.com/FreePBX/xmpp",
         "moduleXml": "https://github.com/FreePBX/xmpp/blob/release/17.0/module.xml"

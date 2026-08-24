@@ -84,20 +84,24 @@ export function buildFreePbxModuleForm(
   moduleId: string,
   feature: PbxFeatureDefinition | undefined,
   resources: ReadonlyArray<string>,
-  liveValue: ConfigValue | undefined,
+  liveValues: Readonly<Record<string, ConfigValue>> | ConfigValue | undefined,
 ): FreePbxModuleFormSchema | undefined {
   const module = findFreePbxModule(moduleId);
   if (!module) return undefined;
   const effectiveResources = [...new Set(resources.length > 0 ? resources : module.configurationResources)];
   const fields: FreePbxModuleField[] = [];
-  for (const [sectionIndex, section] of (liveValue ?? []).entries()) {
-    for (const [entryIndex, entry] of section.entries.entries()) {
+  const valuesByResource: Readonly<Record<string, ConfigValue>> = Array.isArray(liveValues)
+    ? { [effectiveResources[0] ?? '']: liveValues }
+    : liveValues ?? {};
+  for (const resource of effectiveResources) {
+    const liveValue = valuesByResource[resource] ?? [];
+    for (const [sectionIndex, section] of liveValue.entries()) {
+      for (const [entryIndex, entry] of section.entries.entries()) {
       const kind = fieldKind(entry.value);
-      const resource = effectiveResources[0] ?? '';
       const enumControl = lookupFieldControl(resourceBasename(resource), entry.key);
       const effectiveKind: FreePbxFieldKind = enumControl ? 'select' : kind;
       fields.push({
-        id: `freepbx:${moduleId}:${sectionIndex}:${entryIndex}`,
+        id: `freepbx:${moduleId}:${resource}:${sectionIndex}:${entryIndex}`,
         label: entry.key || `Setting ${entryIndex + 1}`,
         kind: effectiveKind,
         value: effectiveKind === 'switch' ? entry.value.trim().toLowerCase() === 'yes' : entry.value,
@@ -107,6 +111,7 @@ export function buildFreePbxModuleForm(
         key: entry.key,
         readOnlyReason: module.availability.state === 'unavailable' ? module.availability.reason : undefined,
       });
+      }
     }
   }
   return {

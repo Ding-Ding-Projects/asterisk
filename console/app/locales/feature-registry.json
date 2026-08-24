@@ -622,6 +622,32 @@
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."
     },
+    "freepbx-module-surface": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts with console/app/renderer/src/locale-yue.ts",
+      "labels": [
+        "FreePBX Module Catalog",
+        "Search module catalog",
+        "Regex mode",
+        "Installed only",
+        "Commercial entitlement only",
+        "Include explicit exclusions",
+        "Read installed module state",
+        "Export filtered catalog records"
+      ],
+      "localizedLabels": [
+        "FreePBX 模組目錄",
+        "搜尋模組目錄",
+        "正則模式",
+        "只顯示已安裝",
+        "只顯示商業授權",
+        "包括明確排除項目",
+        "讀取已安裝模組狀態",
+        "匯出篩選後目錄記錄"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry. Runtime state and entitlement results remain factual and are not translated as a success claim."
+    },
     "automatic-updates": {
       "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",

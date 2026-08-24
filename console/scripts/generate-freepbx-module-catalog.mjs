@@ -14,6 +14,22 @@ const root = resolve(import.meta.dirname, '..', '..');
 const output = resolve(root, 'console/catalog/freepbx-module-catalog.json');
 const organization = 'FreePBX';
 const preferredBranch = 'release/17.0';
+const exclusions = [
+  { moduleId: 'sms-plus', reason: 'Historical parity label is not a published FreePBX module repository; it is retained only as an explicit exclusion record.', source: 'historical FreePBX parity disposition' },
+  { moduleId: 'sms-webhook', reason: 'Historical parity label is not a published FreePBX module repository; it is retained only as an explicit exclusion record.', source: 'historical FreePBX parity disposition' },
+  { moduleId: 'framework', reason: 'FreePBX framework plumbing has no distinct native Asterisk configuration surface in this console.', source: 'historical FreePBX parity disposition' },
+  { moduleId: 'pm2', reason: 'FreePBX process-manager plumbing is not a user-facing Asterisk configuration module.', source: 'historical FreePBX parity disposition' },
+  { moduleId: 'phpinfo', reason: 'PHP diagnostic output is not a native Asterisk configuration surface.', source: 'historical FreePBX parity disposition' },
+  { moduleId: 'versionupgrade', reason: 'FreePBX updater plumbing is not represented as a native module action without a bounded runtime adapter.', source: 'historical FreePBX parity disposition' },
+  { moduleId: 'fw_langpacks', reason: 'Language-pack download plumbing is not an offline native configuration surface.', source: 'historical FreePBX parity disposition' },
+  { moduleId: 'digium_phones', reason: 'Vendor cloud provisioning is not claimed as a native local capability.', source: 'historical FreePBX parity disposition' },
+  { moduleId: 'digiumaddoninstaller', reason: 'Vendor add-on catalog installation is not claimed without the vendor entitlement service.', source: 'historical FreePBX parity disposition' },
+  { moduleId: 'cxpanel', reason: 'Third-party commercial call-center UI is not copied or presented as native functionality.', source: 'historical FreePBX parity disposition' },
+  { moduleId: 'synologyabb', reason: 'Vendor-specific backup integration is not claimed; generic backup remains separately cataloged.', source: 'historical FreePBX parity disposition' },
+  { moduleId: 'irc', reason: 'Online support chat is not an Asterisk administration capability.', source: 'historical FreePBX parity disposition' },
+  { moduleId: 'ucp', reason: 'The separate end-user portal is outside the administrator console boundary.', source: 'historical FreePBX parity disposition' },
+  { moduleId: 'webrtc', reason: 'The UCP-embedded browser phone is not claimed without the separate end-user portal.', source: 'historical FreePBX parity disposition' },
+];
 
 function gh(args) {
   return execFileSync('gh', ['api', ...args], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -27,41 +43,37 @@ function text(value) {
   return String(value ?? '').replace(/\s+/gu, ' ').trim();
 }
 
-function xmlDecode(value) {
-  return text(value)
-    .replace(/&amp;/gu, '&')
-    .replace(/&lt;/gu, '<')
-    .replace(/&gt;/gu, '>')
-    .replace(/&quot;/gu, '"')
-    .replace(/&apos;/gu, "'")
-    .replace(/&#(\d+);/gu, (_, code) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([0-9a-f]+);/giu, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)));
-}
+const PYTHON_XML_PARSER = String.raw`
+import json, re, sys
+import xml.etree.ElementTree as ET
 
-function firstTag(xml, tag) {
-  const match = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</${tag}>`, 'iu').exec(xml);
-  return match ? xmlDecode(match[1]) : '';
-}
+def text(node):
+    return ''.join(node.itertext()).strip() if node is not None else ''
 
-function allTags(xml, tag) {
-  const values = [];
-  const pattern = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</${tag}>`, 'giu');
-  let match;
-  while ((match = pattern.exec(xml))) values.push(xmlDecode(match[1]));
-  return [...new Set(values.filter(Boolean))];
-}
+root = ET.fromstring(sys.stdin.read())
+def first(path):
+    node = root.find(path)
+    return text(node)
 
-function allBlocks(xml, tag) {
-  const values = [];
-  const pattern = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</${tag}>`, 'giu');
-  let match;
-  while ((match = pattern.exec(xml))) values.push(match[1]);
-  return values;
-}
+depends = root.find('depends')
+dependency_versions = [text(node) for node in depends.findall('version')] if depends is not None else []
+dependencies = []
+for index, node in enumerate(depends.findall('module') if depends is not None else []):
+    raw = text(node)
+    match = re.match(r'^(\S+)\s+(?:ge|gt|eq|le|lt)\s+(.+)$', raw, re.I)
+    dependencies.append({'moduleId': match.group(1) if match else raw, 'version': match.group(2) if match else (dependency_versions[index] if index < len(dependency_versions) else '')})
 
-function directChildren(xml, parent, child) {
-  const parentMatch = new RegExp(`<${parent}(?:\\s[^>]*)?>([\\s\\S]*?)</${parent}>`, 'iu').exec(xml);
-  return parentMatch ? allTags(parentMatch[1], child) : [];
+menu_parent = root.find('menuitems')
+menu_items = [text(node) for node in list(menu_parent)] if menu_parent is not None else []
+commands = [{'name': first_child.text.strip() if first_child.text else '', 'class': next((text(child) for child in command if child.tag == 'class'), '')} for command in root.findall('.//command') for first_child in [next((child for child in command if child.tag == 'name'), None)] if first_child is not None]
+capabilities = [text(node) for tag in ('provides', 'api', 'endpoint') for node in root.findall('.//' + tag) if text(node)]
+print(json.dumps({'rawname': first('rawname'), 'name': first('name'), 'version': first('version'), 'license': first('license'), 'category': first('category'), 'publisher': first('publisher'), 'description': first('description'), 'dependencies': dependencies, 'menuItems': sorted(set(menu_items)), 'commands': commands, 'capabilities': sorted(set(capabilities))}))
+`;
+
+function parseModuleXml(xml) {
+  const executable = process.env.FREEPBX_XML_PARSER ?? (process.platform === 'win32' ? 'py' : 'python3');
+  const args = process.platform === 'win32' ? ['-3', '-c', PYTHON_XML_PARSER] : ['-c', PYTHON_XML_PARSER];
+  return JSON.parse(execFileSync(executable, args, { input: xml, cwd: root, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }));
 }
 
 function mapResources(rawname) {
@@ -115,11 +127,15 @@ function nativeTaskId(rawname) {
     daynight: 'call-flow-control', dictate: 'dictate', directory: 'directory', disa: 'disa', donotdisturb: 'dnd', extensionsettings: 'extension-settings',
     featurecodeadmin: 'feature-codes', fax: 'fax', findmefollow: 'follow-me', firewall: 'firewall', iaxsettings: 'iax-settings', infoservices: 'info-services',
     ivr: 'ivr', languages: 'sound-languages', manager: 'ami-settings', miscapps: 'misc-apps', miscdests: 'misc-destinations', music: 'music-on-hold',
-    paging: 'paging', parking: 'parking', pbdirectory: 'phonebook', phonebook: 'phonebook', pinsets: 'pinsets', presencestate: 'presence-state',
+    paging: 'paging', parking: 'parking', phonebook: 'phonebook', pinsets: 'pinsets', presencestate: 'presence-state',
     queues: 'queues', ringgroups: 'ring-groups', sipsettings: 'sip-settings', speeddial: 'speed-dial', timeconditions: 'time-conditions',
     trunks: 'trunks', ttsengines: 'tts-engines', voicemail: 'voicemail-admin', vmblast: 'voicemail-broadcast', xmpp: 'xmpp',
   };
   return ids[rawname] ?? null;
+}
+
+function nativeAliasOf(rawname) {
+  return rawname === 'pbdirectory' ? 'phonebook' : null;
 }
 
 function entitlement(license) {
@@ -134,27 +150,6 @@ function unavailableReason({ license, localInstalled, resources, rawname }) {
   if (!localInstalled) return 'Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed.';
   if (resources.length === 0) return `Module ${rawname} publishes no mapped Asterisk configuration resource in this catalog; runtime support remains metadata-only until a bounded adapter is reviewed.`;
   return 'Module metadata and a native resource mapping are present; final FreePBX runtime and built-artifact proof is pending.';
-}
-
-function parseModuleXml(xml) {
-  const rawname = firstTag(xml, 'rawname');
-  const name = firstTag(xml, 'name');
-  const version = firstTag(xml, 'version');
-  const license = firstTag(xml, 'license');
-  const category = firstTag(xml, 'category');
-  const publisher = firstTag(xml, 'publisher');
-  const description = firstTag(xml, 'description');
-  const dependencyVersions = directChildren(xml, 'depends', 'version');
-  const dependencies = directChildren(xml, 'depends', 'module').map((raw, index) => {
-    const match = /^(\S+)\s+(?:ge|gt|eq|le|lt)\s+(.+)$/iu.exec(raw);
-    return { moduleId: match?.[1] ?? raw, version: match?.[2] ?? dependencyVersions[index] ?? '' };
-  });
-  const menuItems = directChildren(xml, 'menuitems', 'name');
-  const commands = [...allBlocks(xml, 'command'), ...allBlocks(xml, 'fwconsole')]
-    .map((block) => ({ name: firstTag(block, 'name'), class: firstTag(block, 'class') }))
-    .filter((entry) => entry.name || entry.class);
-  const capabilities = [...allTags(xml, 'provides'), ...allTags(xml, 'api'), ...allTags(xml, 'endpoint')];
-  return { rawname, name, version, license, category, publisher, description, dependencies, menuItems, commands, capabilities };
 }
 
 function listRepositories() {
@@ -228,6 +223,7 @@ for (const repo of repositories) {
     apiCapabilities: parsed.capabilities,
     uiFamilies: uiFamilies(parsed.rawname, parsed.category),
     nativeTaskId: nativeTaskId(parsed.rawname),
+    nativeAliasOf: nativeAliasOf(parsed.rawname),
     menuItems: parsed.menuItems,
     documentation: { repository: repo.html_url, moduleXml: found.file.html_url },
     availability: { state: local && resources.length > 0 ? 'metadata-only' : 'unavailable', reason },
@@ -262,6 +258,7 @@ for (const local of localModules()) {
     apiCapabilities: local.parsed.capabilities,
     uiFamilies: uiFamilies(local.parsed.rawname, local.parsed.category),
     nativeTaskId: nativeTaskId(local.parsed.rawname),
+    nativeAliasOf: nativeAliasOf(local.parsed.rawname),
     menuItems: local.parsed.menuItems,
     documentation: { repository: null, moduleXml: null },
     availability: { state: resources.length > 0 ? 'metadata-only' : 'unavailable', reason: unavailableReason({ license: local.parsed.license, localInstalled: true, resources, rawname: local.parsed.rawname }) },
@@ -292,7 +289,9 @@ const catalog = {
     locallyInstalledModules: modules.filter((module) => module.localInstalled).length,
     unavailableModules: modules.filter((module) => module.availability.state === 'unavailable').length,
     total: modules.length,
+    exclusions: exclusions.length,
   },
+  exclusions,
   modules,
 };
 mkdirSync(resolve(root, 'console/catalog'), { recursive: true });
