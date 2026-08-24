@@ -22,6 +22,8 @@ The decoder now requires a bounded child health handshake that imports `sharp`, 
 
 Manifest and asset reads use one open handle with `fstat` and a fixed-size read, and every cache asset reopens before activation. External cadence, hydration, subscriptions, and per-rule refreshes now live in the application-lifetime runtime. Credential removal uses the shared two-key full-slider confirmation and refuses references still used by rules. No checks, builds, packaging, UI runs, captures, pushes, or cleanup were performed.
 
+The sixth repair confirms the Windows Job Object memory boundary and exact `READY` handshake, but it does not implement an AppContainer or restricted-token network capability. The registry and article keep the feature partial until that OS boundary and generated native-file manifest are verified by the supported build path.
+
 ## Surface mount integration, 2026-08-23
 
 The integration lane added `console/app/renderer/src/surface-mounts.tsx` and mounted it from `main.tsx` as an addressable hash route. `#surface=converter` renders the real converter component and reads its catalog and PDF capability evidence through the local control-plane dispatcher. Picker, queue mutation, and packaged-worker proof operations still return explicit unavailable receipts because those handlers are not registered. `#surface=ollama` renders the real Ollama component and reports a typed `bridge-not-registered` state until its privileged dispatcher is registered. `#surface=docs` and `#surface=changelog` render the bundled documentation and changelog components.
