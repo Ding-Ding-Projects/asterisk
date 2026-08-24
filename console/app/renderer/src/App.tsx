@@ -397,8 +397,15 @@ export class App extends Base {
       return;
     }
     if (action === 'editor-download') {
-      const result = await bridge.externalEditor.openDownload(this.externalEditorStatus.selectedId ?? 'vscode');
+      const selectedId = this.externalEditorStatus.selectedId;
+      if (!selectedId) { this.fire('No editor selected', 'Choose an editor first. The generic download action does not assume Visual Studio Code.'); return; }
+      const result = await bridge.externalEditor.openDownload(selectedId);
       if (result.ok) this.toast('Official editor download opened.'); else this.fire('Download link not opened', result.message);
+      return;
+    }
+    if (action === 'editor-download-vscode') {
+      const result = await bridge.externalEditor.openDownload('vscode');
+      if (result.ok) this.toast('Official Visual Studio Code download opened.'); else this.fire('Visual Studio Code download not opened', result.message);
       return;
     }
     if (action === 'editor-remove-custom') {

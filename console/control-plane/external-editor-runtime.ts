@@ -133,15 +133,19 @@ export class ExternalEditorRuntime {
   private persist(): void {
     const operation = this.beginOperation('persist');
     if (!operation) throw new Error('Another editor operation is already running.');
-    mkdirSync(dirname(this.file), { recursive: true });
-    const text = JSON.stringify(this.config, null, 2);
-    if (Buffer.byteLength(text, 'utf8') > MAX_RECORD_BYTES) { this.finishOperation(operation, 'failed', 'The external-editor settings are too large.'); throw new Error('The external-editor settings are too large.'); }
-    this.updateOperation(operation, 0.5, 'Writing editor settings atomically.');
-    try { atomicWriteFileSync(this.file, text); }
-    catch (error) { this.finishOperation(operation, 'failed', error instanceof Error ? error.message : String(error)); throw error; }
-    this.persistenceState = 'valid';
-    this.persistenceMessage = undefined;
-    this.finishOperation(operation, 'completed', 'Editor settings saved.');
+    try {
+      mkdirSync(dirname(this.file), { recursive: true });
+      const text = JSON.stringify(this.config, null, 2);
+      if (Buffer.byteLength(text, 'utf8') > MAX_RECORD_BYTES) throw new Error('The external-editor settings are too large.');
+      this.updateOperation(operation, 0.5, 'Writing editor settings atomically.');
+      atomicWriteFileSync(this.file, text);
+      this.persistenceState = 'valid';
+      this.persistenceMessage = undefined;
+      this.finishOperation(operation, 'completed', 'Editor settings saved.');
+    } catch (error) {
+      this.finishOperation(operation, 'failed', error instanceof Error ? error.message : String(error));
+      throw error;
+    }
   }
 
   private candidates(): RuntimeDefinition[] {
@@ -331,10 +335,21 @@ export class ExternalEditorRuntime {
       this.finishOperation(operation, 'cancelled', 'Launch cancelled because no target was supplied.');
       return Promise.resolve({ ok: false, code: stage === 'materialization' ? 'MATERIALIZATION_CANCELLED' : 'LAUNCH_CANCELLED', message: 'Launch cancelled because there is no file or folder to open.', operationId: operation.operationId, stage, cancelled: true });
     }
-    target = { ...target, path: safePath(target.path) };
+    try { target = { ...target, path: safePath(target.path) }; }
+    catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.finishOperation(operation, 'failed', message);
+      return Promise.resolve({ ok: false, code: 'INVALID_EDITOR', message: `The editor target could not be prepared: ${message}`, operationId: operation.operationId, stage });
+    }
     this.updateOperation(operation, stage === 'materialization' ? 0.7 : 0.1, 'Checking the selected editor and target.');
     const id = editorId ?? this.config.choiceId;
-    const candidate = this.candidates().find((entry) => entry.id === id && entry.available);
+    let candidate: RuntimeDefinition | undefined;
+    try { candidate = this.candidates().find((entry) => entry.id === id && entry.available); }
+    catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.finishOperation(operation, 'failed', message);
+      return Promise.resolve({ ok: false, code: 'INVALID_EDITOR', message: `The selected editor could not be prepared: ${message}`, operationId: operation.operationId, stage });
+    }
     if (!candidate) { this.finishOperation(operation, 'failed', 'No selected editor is available.'); return Promise.resolve({ ok: false, code: 'NO_EDITOR', message: 'No selected editor is available. Choose one in settings, or install Visual Studio Code.', downloadUrl: 'https://code.visualstudio.com/', operationId: operation.operationId, stage }); }
     if (!existsSync(target.path)) { this.finishOperation(operation, 'failed', `The selected ${target.kind} is not available at the reported path.`); return Promise.resolve({ ok: false, code: 'EMPTY_TARGET', message: `The selected ${target.kind} is not available at the reported path.`, operationId: operation.operationId, stage }); }
     let targetStat: ReturnType<typeof statSync>;
@@ -372,23 +387,30 @@ export class ExternalEditorRuntime {
   async openMaterializedFile(input: { name: string; content: string; source: string; editorId?: string }): Promise<ExternalEditorLaunchResult> {
     const operation = this.beginOperation('materialize');
     if (!operation) { const active = this.activeOperation!; return { ok: false, code: 'BUSY', message: 'Another editor operation is already running.', operationId: active.operationId, stage: 'materialization' }; }
-    if (!input || typeof input.name !== 'string' || typeof input.content !== 'string' || typeof input.source !== 'string' || input.source.trim() === '') { this.finishOperation(operation, 'cancelled', 'Materialization cancelled because the source record was incomplete.'); return { ok: false, code: 'MATERIALIZATION_CANCELLED', message: 'Materialization cancelled because the source record was incomplete.', operationId: operation.operationId, stage: 'materialization', cancelled: true }; }
-    if (Buffer.byteLength(input.content, 'utf8') > MAX_EXPORT_BYTES) { this.finishOperation(operation, 'failed', 'The materialized content exceeded the safe size limit.'); return { ok: false, code: 'SPAWN_FAILED', message: 'This export is too large to hand off safely.', operationId: operation.operationId, stage: 'materialization' }; }
-    this.updateOperation(operation, 0.35, 'Writing the bounded local materialization.');
-    const safeName = basename(input.name).replace(/[^A-Za-z0-9._-]/gu, '_') || 'export.txt';
-    const root = join(this.file.replace(/external-editors\.json$/u, ''), 'external-editor-exports');
-    mkdirSync(root, { recursive: true });
-    const path = join(root, safeName);
-    try { atomicWriteFileSync(path, input.content); }
-    catch (error) {
+    let path: string | undefined;
+    try {
+      if (!input || typeof input.name !== 'string' || typeof input.content !== 'string' || typeof input.source !== 'string' || input.source.trim() === '') {
+        this.finishOperation(operation, 'cancelled', 'Materialization cancelled because the source record was incomplete.');
+        return { ok: false, code: 'MATERIALIZATION_CANCELLED', message: 'Materialization cancelled because the source record was incomplete.', operationId: operation.operationId, stage: 'materialization', cancelled: true };
+      }
+      if (Buffer.byteLength(input.content, 'utf8') > MAX_EXPORT_BYTES) throw new Error('This export is too large to hand off safely.');
+      this.updateOperation(operation, 0.35, 'Writing the bounded local materialization.');
+      const safeName = basename(input.name).replace(/[^A-Za-z0-9._-]/gu, '_') || 'export.txt';
+      const root = join(this.file.replace(/external-editors\.json$/u, ''), 'external-editor-exports');
+      mkdirSync(root, { recursive: true });
+      path = join(root, safeName);
+      this.activeMaterializedPath = path;
+      atomicWriteFileSync(path, input.content);
+      const result = await this.launchWithOperation({ kind: 'file', path }, input.editorId, operation);
+      if (!result.ok) { try { unlinkSync(path); } catch { /* best effort */ } }
+      return result.ok ? { ...result, source: input.source, materializedPath: path } : result;
+    } catch (error) {
+      if (path) { try { unlinkSync(path); } catch { /* best effort */ } }
       const message = error instanceof Error ? error.message : String(error);
       this.finishOperation(operation, 'failed', message);
-      return { ok: false, code: 'SPAWN_FAILED', message: `The local materialization could not be written: ${message}`, operationId: operation.operationId, stage: 'materialization' };
+      return { ok: false, code: 'SPAWN_FAILED', message: `The local materialization could not be completed: ${message}`, operationId: operation.operationId, stage: 'materialization' };
+    } finally {
+      if (this.activeMaterializedPath === path) this.activeMaterializedPath = undefined;
     }
-    this.activeMaterializedPath = path;
-    const result = await this.launchWithOperation({ kind: 'file', path }, input.editorId, operation);
-    this.activeMaterializedPath = undefined;
-    if (!result.ok) { try { unlinkSync(path); } catch { /* best effort */ } }
-    return result.ok ? { ...result, source: input.source, materializedPath: path } : result;
   }
 }

@@ -17,7 +17,7 @@ The settings surface provides these actions:
 - Choose a local project folder through the native folder picker, then open that chosen folder as a workspace root. The installed console directory is never guessed as the user's project.
 - Open the selected configuration file by materializing the exact structured read-back content into a bounded local application-data export. A remote `/etc/asterisk/...` path is never passed to the local editor.
 - Open the current project explicitly in Visual Studio Code.
-- Open the latest export in the selected editor through one action. If no editor is selected, the action refuses with a clear message. Visual Studio Code has its own explicit action.
+- Open the latest export in the selected editor through one action. If no editor is selected, the action refuses with a clear message. Visual Studio Code has its own explicit project and download actions.
 - Browse for a custom editor executable, save it, remove it, or forget the selected editor.
   - Choose an arbitrary portable Visual Studio Code executable, which is verified through Windows product metadata and persisted separately from bounded automatic discovery routes.
 - Choose whether a custom editor supports folders as workspaces. The setting is explicit per custom record and defaults to files only.
@@ -36,7 +36,7 @@ Exports handed to an editor are written to an application-owned `external-editor
 
 No editor launch goes through a shell. The runtime calls `child_process.spawn` with `shell:false`, `windowsHide:true`, and separate executable and argument arrays. A path containing spaces remains one argument, and shell metacharacters are never interpreted. Launches return a typed receipt with editor id, executable, arguments, target and process id, or a typed failure with a bounded startup timeout.
 
-When no supported editor is installed, the settings surface states that the console works fully without one and offers the official Visual Studio Code download page. It does not auto-download software. A missing selected executable, invalid custom record, unsupported folder target, unavailable bridge, oversized export, and failed process start each produces a distinct failure message.
+When no supported editor is installed, the settings surface states that the console works fully without one. The generic download action requires a selected editor. The separate Visual Studio Code download action is the only explicit default route. The app does not auto-download software. A missing selected executable, invalid custom record, unsupported folder target, unavailable bridge, oversized export, and failed process start each produces a distinct failure message.
 
 The hosted browser surface exposes an honest no-editor state because native executable detection, file picking and process creation require the installed desktop runtime. No browser route pretends that a local editor was opened. The chosen project folder is session-only, with its local-picker provenance visible and an explicit reset action. The official download action requires a known current editor id and uses one exact URL allowlist. Unknown or stale ids do not fall back to Visual Studio Code.
 
@@ -46,7 +46,7 @@ All editor actions are rendered through the design reference's existing Material
 
 ## Verification
 
-The pure policy is covered by the existing focused renderer test file. Narrow control-plane regressions in `tests/control-plane/external-editor-runtime.test.ts` cover synchronous spawn failure cleanup, materialization cleanup after a typed failure, active-child cancellation with a typed cancelled receipt, unified picker status and cancellation, and empty-target rejection before child start. This lane did not run tests, lint, a broad build, packaging, UI driving or captures by design. The design compiler was run after editing the checked-in design source, and the generated console output was inspected for every external-editor control and action. The next verification lane should launch the packaged desktop artifact and prove detection, native picking, persistence, folder capability refusal, Visual Studio Code handoff, export handoff, and typed launch failure receipts.
+The pure policy is covered by the existing focused renderer test file. Narrow control-plane regressions in `tests/control-plane/external-editor-runtime.test.ts` cover synchronous spawn failure cleanup, inaccessible persistence and materialization parents, materialization cleanup after a typed failure, active-child cancellation with a typed cancelled receipt, unified picker status and cancellation, and empty-target rejection before child start. This lane did not run tests, lint, a broad build, packaging, UI driving or captures by design. The design compiler was run after editing the checked-in design source, and the generated console output was inspected for every external-editor control and action. The next verification lane should launch the packaged desktop artifact and prove detection, native picking, persistence, folder capability refusal, Visual Studio Code handoff, export handoff, and typed launch failure receipts.
 
 ## Suggested articles
 

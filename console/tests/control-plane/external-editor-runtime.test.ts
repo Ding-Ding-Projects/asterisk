@@ -103,3 +103,21 @@ test('empty file and folder targets cancel before normalization or child start',
     assert.equal(spawnCalls, 0);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test('inaccessible persistence and materialization parents end with failed, non-running operations', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'external-editor-runtime-'));
+  const blocker = join(root, 'blocked-parent');
+  writeFileSync(blocker, 'not a directory');
+  try {
+    const runtime = new ExternalEditorRuntime({ userDataPath: blocker });
+    await assert.rejects(() => runtime.saveCustom({ name: 'Blocked editor', executable: process.execPath }));
+    assert.equal(runtime.status().operation?.state, 'failed');
+    assert.equal(runtime.status().operation?.pending, false);
+    const result = await runtime.openMaterializedFile({ name: 'blocked.json', content: '{}', source: 'test', editorId: 'missing' });
+    assert.equal(result.ok, false);
+    if (result.ok) throw new Error('Expected inaccessible materialization parent failure');
+    assert.equal(result.stage, 'materialization');
+    assert.equal(runtime.status().operation?.state, 'failed');
+    assert.equal(runtime.status().operation?.pending, false);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

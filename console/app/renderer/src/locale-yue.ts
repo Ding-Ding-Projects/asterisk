@@ -225,6 +225,7 @@ export const CANTONESE: Catalog = {
   'Cancel active editor operation': '取消進行中編輯器操作',
   'Cancel active operation': '取消進行中操作',
   'Open official download link': '開啟官方下載連結',
+  'Download Visual Studio Code': '下載 Visual Studio Code',
   'Save custom editor': '儲存自訂編輯器',
   'Remove custom editor': '移除自訂編輯器',
   'Open current project folder': '開啟目前專案資料夾',
