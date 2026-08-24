@@ -206,6 +206,11 @@ export const CANTONESE: Catalog = {
 
   'Lock this group': '鎖住成組',
 
+  /* Hosting the console elsewhere. */
+  'Host the console here': '喺呢部機開埋個 console',
+  'What will happen': '跟住會做啲乜',
+  'Install the console on this machine': '喺呢部機裝呢個 console',
+
   /* Narration. */
   'Narration': '旁白',
   'Narrated language': '旁白語言',

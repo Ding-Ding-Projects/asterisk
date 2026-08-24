@@ -19,6 +19,7 @@ import {
   parseTranslations, parseAclRules, parseManagerSettings, parseManagerUsers, parseAriApps,
   parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime,
 } from './asterisk-parsers.js';
+import { planDeployment, runDeployment, type DeployTarget } from './console-deploy.js';
 import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory } from './index.js';
 import { ServerInventory, SettingsRegistry } from './index.js';
 import type { ServerInventoryStore, ServerRecord, SettingsSnapshotStore } from './index.js';
@@ -519,6 +520,48 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           code: result.status === 'applied' ? undefined : 'CONFIG_APPLY_FAILED',
           message: result.status === 'applied' ? undefined : result.message,
           data: { plan, result },
+        } as ControlPlaneResponse;
+      }
+      if (request.action === 'deploy.console') {
+        /* Refused hosted. The desktop app is where somebody sits in front of the machine
+         * holding their SSH keys; a server reaching out to install itself elsewhere is a
+         * different product with a different threat model. */
+        if (hosted) {
+          return { ok: false, requestId: request.requestId, code: 'DEPLOY_NOT_HOSTED',
+            message: 'Deploying to another machine is a desktop action; the hosted server does not do it.' };
+        }
+        const payload = request.payload ?? {};
+        const bundlePath = typeof payload.bundlePath === 'string' ? payload.bundlePath : '';
+        const stamp = typeof payload.stamp === 'string' ? payload.stamp : '';
+        const deployTarget: DeployTarget = {
+          host: typeof payload.host === 'string' ? payload.host : '',
+          port: typeof payload.port === 'number' ? payload.port : 22,
+          user: typeof payload.user === 'string' ? payload.user : '',
+          knownHostsPath: typeof payload.knownHostsPath === 'string' ? payload.knownHostsPath : '',
+        };
+        let plan;
+        try {
+          plan = planDeployment(deployTarget, bundlePath, stamp);
+        } catch (error) {
+          /* The refusal reason is the useful part: an invalid host, an ephemeral known_hosts
+           * store, a stamp that could shape a path. Reported as itself, not as a failure. */
+          return { ok: false, requestId: request.requestId, code: 'DEPLOY_REFUSED',
+            message: error instanceof Error ? error.message : 'That deployment was refused.' };
+        }
+        /* Its own executor. The shared one allows wsl.exe and docker, and widening it would
+         * hand every other action the ability to reach another machine. */
+        const outcome = await runDeployment({
+          executor: new NodeProcessExecutor({ allowedExecutables: ['ssh', 'scp'] }),
+          plan,
+          target: deployTarget,
+          onStep: (step) => onProvisionStep?.({ name: step.name, ok: step.ok, detail: step.detail }),
+        });
+        return {
+          ok: outcome.ok,
+          requestId: request.requestId,
+          code: outcome.ok ? undefined : 'DEPLOY_FAILED',
+          message: outcome.ok ? undefined : outcome.steps[outcome.steps.length - 1]?.detail,
+          data: outcome,
         } as ControlPlaneResponse;
       }
       if (request.action === 'history.list' || request.action === 'history.restore') {

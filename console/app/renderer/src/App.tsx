@@ -1101,6 +1101,81 @@ What you can do: ${offered}.` : ''}`);
     return h('div', { class: 'app-root' }, super.render(), this.paletteOverlay());
   }
 
+  // ---------------------------------------------------------------- hosting it elsewhere
+
+  /* Its own field, not the provisioning one above. Both are step progress and both arrive on
+   * the same channel, but they are different operations -- sharing one list would interleave
+   * a runtime import with an install onto another machine and report the mixture. */
+  /** Progress from the running install, newest last. Empty until one is started. */
+  private hostingSteps: { name: string; ok: boolean; detail: string }[] = [];
+
+  private hostingRunning = false;
+
+  /**
+   * Says what pressing the switch would actually do, before it is pressed.
+   *
+   * Including when the answer is that it cannot: the deployment installs onto a machine
+   * reached over SSH, so a local or container connection has nowhere to send anything, and
+   * saying so is better than offering an action that would refuse.
+   */
+  private deployStatusLine(): string {
+    if (this.hostingRunning || this.hostingSteps.length > 0) {
+      const last = this.hostingSteps[this.hostingSteps.length - 1];
+      const done = this.hostingSteps.filter((step) => step.ok).length;
+      if (this.hostingRunning) return `Step ${done + 1}: ${last?.name ?? 'starting'}. ${last?.detail ?? ''}`.trim();
+      return last?.ok
+        ? `Installed. ${this.hostingSteps.length} steps, all of them done.`
+        : `Stopped at "${last?.name}". ${last?.detail ?? ''}`.trim();
+    }
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const kind = String(values.sv_kind ?? 'Local');
+    if (!kind.startsWith('SSH')) {
+      return `This connection is ${kind}, so there is no machine to install onto. `
+        + 'Choose an SSH connection above and fill in its host and account first.';
+    }
+    const host = String(values.sv_host ?? '').trim();
+    const user = String(values.sv_user ?? '').trim();
+    const missing = [host === '' ? 'a host' : '', user === '' ? 'an account' : ''].filter(Boolean);
+    if (missing.length > 0) return `Fill in ${missing.join(' and ')} above first.`;
+    return `It will install onto ${host} as ${user}, over SSH on port ${String(values.sv_sshport ?? 22)}. `
+      + 'Nothing of Asterisk is changed; the console installs into paths it creates itself.';
+  }
+
+  /**
+   * Sends this console to the machine described on this screen.
+   *
+   * The control plane owns every decision about what runs there -- the plan is built and
+   * validated on that side, and refused there too, so a renderer cannot talk it into a
+   * different command by sending a different payload.
+   */
+  private async deployConsole(): Promise<void> {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    if (!String(values.sv_kind ?? 'Local').startsWith('SSH')) {
+      this.fire('Nothing to install onto', this.deployStatusLine());
+      return;
+    }
+    this.hostingSteps = [];
+    this.hostingRunning = true;
+    this.forceUpdate();
+    const response = await this.request('deploy.console', {
+      payload: {
+        host: String(values.sv_host ?? ''),
+        user: String(values.sv_user ?? ''),
+        port: Number(values.sv_sshport ?? 22),
+        knownHostsPath: String(values.sv_hostkey ?? ''),
+        bundlePath: String(values.dp_bundle ?? ''),
+        stamp: new Date().toISOString().replace(/[^0-9]/gu, '').slice(0, 14),
+      },
+    }) as { ok?: boolean; message?: string; data?: { steps?: { name: string; ok: boolean; detail: string }[] } } | undefined;
+    this.hostingRunning = false;
+    /* Whatever came back, the steps are kept: when it failed, which step it failed at is
+     * most of the diagnosis, and a single message throws that away. */
+    this.hostingSteps = response?.data?.steps ?? this.hostingSteps;
+    this.forceUpdate();
+    if (response?.ok) this.fire('Console installed', 'It is running on that machine and reachable from a browser.');
+    else this.fire('Not installed', response?.message ?? 'The desktop bridge did not answer, so nothing was installed.');
+  }
+
   // ---------------------------------------------------------------- the console mark
 
   /**
@@ -1450,6 +1525,10 @@ What you can do: ${offered}.` : ''}`);
       const language: CopyLanguage = control.id === 'fun_level_yue' ? 'yue' : 'en';
       if (isFunnyLevel(value)) setFunnyLevel(this.durableStorage.storage, language, value);
     }
+    if (control?.id === 'dp_go' && value === true) {
+      void this.deployConsole();
+      return;
+    }
     if (control?.id === 'logo_preset' && typeof value === 'string') {
       /* Matched by LABEL because that is what the picker offers; the stable id is what
        * gets stored, so a renamed label never orphans somebody's choice. */
@@ -1543,6 +1622,7 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'source-status') return this.sourceStatusLine;
     if (action === 'narration-status') return this.narrationStatusLine;
     if (action === 'logo-status') return this.logoStatusLine;
+    if (action === 'deploy-status') return this.deployStatusLine();
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
     return '';
   };

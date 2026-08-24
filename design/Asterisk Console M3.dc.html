@@ -2463,7 +2463,11 @@ const SCREENS = {
     sub:'This is the main road: press the big button and a working PBX exists in about seven seconds. Connecting to a PBX somebody else built is underneath, and it is the side road.',
     table:{ add:'New connection', grid:'1fr 1fr 1.2fr 1fr 120px', cols:['Profile','Route','Target','Interface','State'],
       rows:[['pbx-hq','SSH','asterisk-ops@pbx-hq.internal','AMI 5038 TLS','Connected'],['pbx-lab','Local Docker','asterisk-lab','AMI 5038','Connected'],['pbx-edge','SSH Docker','asterisk-edge @ 10.20.4.10','ARI 8089 TLS','Unregistered']] },
-    groups:[{ title:'Route', desc:'How this console reaches Asterisk. Everything below reshapes itself around this answer.', ctls:[
+    groups:[{ title:'Host the console here', desc:'Install this console onto the machine described below, so it runs beside Asterisk and is administered from a browser -- the way FreePBX is. It installs into paths it creates itself and never touches Asterisk\u2019s own configuration or service.', ctls:[
+      ctl('dp_status','What will happen','text','',{ action:'deploy-status', info:'Names the machine it would install onto, the account it would use, and what is missing if anything is. Every step is shown as it runs, because installing over a network is slow enough that silence reads as a hang.' }),
+      ctl('dp_go','Install the console on this machine','switch',false,{ info:'Checks the machine answers and that the account can install a service BEFORE sending anything, so a fifteen-minute upload is never the thing that discovers a password prompt. A host key that has changed stops it outright: the last step runs a privileged installer, and that is the wrong moment to trust a key nobody recognises.' })
+    ] },
+    { title:'Route', desc:'How this console reaches Asterisk. Everything below reshapes itself around this answer.', ctls:[
       ctl('sv_kind','Connection type','segmented','Local',{ options:['Local','Local Docker','SSH','SSH Docker'], info:'Local is the same machine. Local Docker is a container here. SSH is another machine. SSH Docker is a container on another machine, reached over SSH and then into the container.' }),
       ctl('sv_host','Host','select','pbx-hq.internal',{ options:['localhost','pbx-hq.internal','pbx-branch.internal','10.20.4.10'] }),
       ctl('sv_container','Container','select','asterisk-prod',{ options:['asterisk-prod','asterisk-lab','asterisk-edge'] }),
