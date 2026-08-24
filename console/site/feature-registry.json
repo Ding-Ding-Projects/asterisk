@@ -4,7 +4,7 @@
   "features": {
     "language-modes": {
       "state": "partial",
-      "note": "global-settings.js renders an independently reachable language-mode control on every page, synchronizes it with the existing ding-pbx-pages-v2 app state through ding-global-settings-change, persists English, playful Hong Kong-style Cantonese, or bilingual selection, and applies the selection through a hand-written page copy inventory to independently segmented panel labels, notices, surprise copy, and separate narrator tracks. School mode forces English and suppresses optional controls live.",
+      "note": "global-settings.js renders an independently reachable language-mode control on every page, persists English, playful Hong Kong-style Cantonese, or bilingual selection in the canonical state, and synchronizes the older page projection through ding-global-settings-change. The hand-written copy inventory covers the repaired panel and metadata paths, while the overall surface remains partial until every visible and accessible string is independently localized. School mode forces English and suppresses optional controls live.",
       "files": [
         "site/app.js",
         "site/global-settings.js",
@@ -14,7 +14,7 @@
     },
     "funny-levels": {
       "state": "partial",
-      "note": "global-settings.js supplies independent English and Cantonese sliders from 1 through 5, both defaulting to 5, persists them in the canonical versioned state, mirrors them bidirectionally to the existing page runtime without lossy remapping, and uses them to style every message emitted by the page-owned panel, narrator, notices, and dim-sum surprise while preserving factual values.",
+      "note": "global-settings.js supplies independent English and Cantonese sliders from 1 through 5, both defaulting to 5, persists them in the canonical versioned state, and projects them to the older page runtime without lossy numeric remapping. The feature remains partial until every visible title, body, placeholder, accessible name, status, history row, and narration source uses the independent final-boundary helper.",
       "files": [
         "site/app.js",
         "site/global-settings.js",

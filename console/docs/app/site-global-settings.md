@@ -4,7 +4,7 @@ The documentation and download surface owns a local settings panel on every publ
 
 ## Local state and privacy
 
-The panel stores one bounded, versioned canonical JSON record under `ding-pbx-site-global-settings-v1` in the visitor's browser storage. The existing `ding-pbx-pages-v2` record is only a compatibility mirror for the older page runtime, and the global record synchronizes all five funny levels without lossy remapping. It never sends settings, vocabulary data, narrator choices, display names, schedule rules, or surprise history to a server. The static page has no third-party asset dependency. Resetting the visitor state removes the canonical record, the global-owned compatibility fields, vocabulary and logo caches, and the verified dim-sum image cache before reloading the current page, while preserving unrelated compatibility fields.
+The panel stores one bounded, versioned canonical JSON record under `ding-pbx-site-global-settings-v1` in the visitor's browser storage, including language, theme, density, funny levels, schedule state, and neutral notification sources. The existing `ding-pbx-pages-v2` record is an older-runtime projection, regenerated from canonical shared fields while preserving unrelated page fields. It never sends settings, vocabulary data, narrator choices, display names, schedule rules, or surprise history to a server. The static page has no third-party asset dependency. Resetting the visitor state removes the canonical record, the global-owned compatibility fields, vocabulary and logo caches, and the verified dim-sum image cache before reloading the current page, while preserving unrelated compatibility fields.
 
 ## Language, tone, and School mode
 

@@ -39,7 +39,11 @@
     ['#global-schedule-source option[value="local"]', 'Local page state', '本地頁面狀態', 'text'], ['#global-schedule-source option[value="https"]', 'Validated HTTPS API', '已驗證 HTTPS API', 'text'], ['#global-schedule-source option[value="home-assistant"]', 'Home Assistant boolean', 'Home Assistant 布林值', 'text'],
     ['#global-regex-mode option[value="plain"]', 'Plain text', '純文字', 'text'], ['#global-regex-mode option[value="regex"]', 'Regular expression', '正則表達式', 'text'], ['#global-regex-i + span', 'Ignore case', '忽略大小寫', 'text'], ['#global-regex-u + span', 'Unicode', 'Unicode', 'text'], ['#global-confirm-key-one + span', 'I understand the exact local effect', '我明白確實本地效果', 'text'], ['#global-confirm-key-two + span', 'I understand the recovery route', '我明白恢復方法', 'text'], ['#global-schedule-timezone-picker', 'Choose IANA timezone', '選擇 IANA 時區', 'aria-label']
   ];
+  const PANEL_LITERAL_COPY = {
+    'Spoken language': ['Spoken language', '旁白語言'], 'English voice': ['English voice', '英文聲音'], 'Cantonese voice': ['Cantonese voice', '廣東話聲音'], Rate: ['Rate', '速度'], Pitch: ['Pitch', '音調'], Target: ['Target', '目標'], Value: ['Value', '數值'], 'Start date': ['Start date', '開始日期'], 'End date': ['End date', '結束日期'], 'Start time': ['Start time', '開始時間'], 'End time': ['End time', '結束時間'], 'Every day in the date window': ['Every day in the date window', '日期範圍內每日'], Weekdays: ['Weekdays', '星期'], Precedence: ['Precedence', '優先次序'], Timezone: ['Timezone', '時區'], Source: ['Source', '來源'], Endpoint: ['Endpoint', '端點'], 'Home Assistant entity': ['Home Assistant entity', 'Home Assistant 實體'], 'Show emojis in dialogs and message boxes': ['Show emojis in dialogs and message boxes', '喺對話框同訊息框顯示表情'], 'Use this local page mode': ['Use this local page mode', '使用此本地模式'], 'Unlock code': ['Unlock code', '解鎖碼'], 'Display name': ['Display name', '顯示名稱'], 'Mode name': ['Mode name', '模式名稱']
+  };
   const WEEKDAY_COPY = { mo: ['Monday', '星期一'], tu: ['Tuesday', '星期二'], we: ['Wednesday', '星期三'], th: ['Thursday', '星期四'], fr: ['Friday', '星期五'], sa: ['Saturday', '星期六'], su: ['Sunday', '星期日'] };
+  const IANA_TIMEZONES = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : ['UTC', 'America/Toronto', 'America/New_York', 'Europe/London', 'Asia/Hong_Kong', 'Asia/Tokyo', 'Australia/Sydney'];
   const IDENTITY_BOUNDARY = { shippedName: 'Ding PBX Console', packageId: 'ding-pbx-console', dataDirectory: 'ding-pbx-console', installerId: 'ding-pbx-console', updateFeed: 'verified-release-manifest' };
   const SCHEDULE_TARGETS = [
     ['language', 'Language mode'], ['theme', 'Theme'], ['density', 'Density'],
@@ -110,6 +114,8 @@
       node.append(english, document.createTextNode(' / '), cantonese);
     } else node.textContent = copy(en, zh, tone, state.language);
   }
+  function localizedInline(en, zh, tone = 'en') { if (state.language === 'zh') return copy(en, zh, 'zh', 'zh'); if (state.language === 'both') return `${copy(en, zh, 'en', 'en')} / ${copy(en, zh, 'zh', 'zh')}`; return copy(en, zh, tone, state.language); }
+  function applyLiteralCopy(root) { if (!root) return; const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode); nodes.forEach((node) => { const key = node.nodeValue.trim(); const pair = PANEL_LITERAL_COPY[key]; if (!pair) return; const leading = node.nodeValue.match(/^\s*/)[0]; const trailing = node.nodeValue.match(/\s*$/)[0]; node.nodeValue = `${leading}${localizedInline(pair[0], pair[1])}${trailing}`; }); }
   function load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY) || '{}';
@@ -117,7 +123,7 @@
       const saved = parseUniqueJson(raw);
       if (saved.schemaVersion !== undefined && ![1, SETTINGS_SCHEMA_VERSION].includes(saved.schemaVersion)) throw new Error('Unsupported settings schema version.');
       if (!saved.schemaVersion) {
-        try { const legacy = parseUniqueJson(localStorage.getItem(MIRROR_STATE_KEY) || '{}'); if (['en', 'zh', 'both'].includes(legacy.language)) saved.language = legacy.language; if (Number.isFinite(legacy.englishFunny)) saved.englishFunny = Number(legacy.englishFunny) >= 1 && Number(legacy.englishFunny) <= 5 ? Number(legacy.englishFunny) : Math.min(5, Math.max(1, Math.round(Number(legacy.englishFunny) * 4 / 3 + 1))); if (Number.isFinite(legacy.cantoneseFunny)) saved.cantoneseFunny = Number(legacy.cantoneseFunny) >= 1 && Number(legacy.cantoneseFunny) <= 5 ? Number(legacy.cantoneseFunny) : Math.min(5, Math.max(1, Math.round(Number(legacy.cantoneseFunny) * 4 / 3 + 1))); } catch { compatibilityMalformed = true; }
+        try { const legacy = parseUniqueJson(localStorage.getItem(MIRROR_STATE_KEY) || '{}'); if (['en', 'zh', 'both'].includes(legacy.language)) saved.language = legacy.language; if (['light', 'dark', 'contrast'].includes(legacy.theme)) saved.theme = legacy.theme; if (['compact', 'comfortable', 'spacious'].includes(legacy.density)) saved.density = legacy.density; if (Number.isFinite(legacy.englishFunny)) saved.englishFunny = Number(legacy.englishFunny) >= 1 && Number(legacy.englishFunny) <= 5 ? Number(legacy.englishFunny) : Math.min(5, Math.max(1, Math.round(Number(legacy.englishFunny) * 4 / 3 + 1))); if (Number.isFinite(legacy.cantoneseFunny)) saved.cantoneseFunny = Number(legacy.cantoneseFunny) >= 1 && Number(legacy.cantoneseFunny) <= 5 ? Number(legacy.cantoneseFunny) : Math.min(5, Math.max(1, Math.round(Number(legacy.cantoneseFunny) * 4 / 3 + 1))); } catch { compatibilityMalformed = true; }
       }
       const oldSchedule = saved.schedule || {};
       const rules = Array.isArray(oldSchedule.rules) ? oldSchedule.rules : (oldSchedule.enabled ? [{
@@ -142,7 +148,7 @@
     safe.narratorPitch = Math.min(2, Math.max(0, Number(raw.narratorPitch) || 1));
     safe.dimSumShown = Math.min(100000, Math.max(0, Number(raw.dimSumShown) || 0));
     safe.dimSumCacheReason = typeof raw.dimSumCacheReason === 'string' ? raw.dimSumCacheReason.slice(0, 120) : 'not-loaded';
-    safe.notifications = Array.isArray(raw.notifications) ? raw.notifications.slice(-100).filter((item) => item && typeof item.id === 'string' && item.source && typeof item.source.enTitle === 'string' && typeof item.source.zhTitle === 'string' && typeof item.source.enBody === 'string' && typeof item.source.zhBody === 'string').map((item) => ({ id: item.id.slice(0, 128), time: Number(item.time) || Date.now(), source: { enTitle: item.source.enTitle.slice(0, 256), zhTitle: item.source.zhTitle.slice(0, 256), enBody: item.source.enBody.slice(0, 1024), zhBody: item.source.zhBody.slice(0, 1024) } })) : [];
+    safe.notifications = Array.isArray(raw.notifications) ? raw.notifications.slice(-100).filter((item) => item && typeof item.id === 'string' && item.source && typeof item.source.enTitle === 'string' && typeof item.source.zhTitle === 'string' && typeof item.source.enBody === 'string' && typeof item.source.zhBody === 'string').map((item) => ({ id: item.id.slice(0, 128), time: Number(item.time) || Date.now(), legacyPresentation: item.legacyPresentation === true, source: { enTitle: item.source.enTitle.slice(0, 256), zhTitle: item.source.zhTitle.slice(0, 256), enBody: item.source.enBody.slice(0, 1024), zhBody: item.source.zhBody.slice(0, 1024) } })) : [];
     const schedule = raw.schedule || {};
     safe.schedule = { schemaVersion: 1, lastAppliedRule: typeof schedule.lastAppliedRule === 'string' ? schedule.lastAppliedRule.slice(0, 128) : '', lastAppliedSignature: typeof schedule.lastAppliedSignature === 'string' ? schedule.lastAppliedSignature.slice(0, 256) : '', effectiveTuple: schedule.effectiveTuple && typeof schedule.effectiveTuple === 'object' ? { language: ['en', 'zh', 'both'].includes(schedule.effectiveTuple.language) ? schedule.effectiveTuple.language : 'en', theme: ['light', 'dark', 'contrast'].includes(schedule.effectiveTuple.theme) ? schedule.effectiveTuple.theme : 'dark', density: ['compact', 'comfortable', 'spacious'].includes(schedule.effectiveTuple.density) ? schedule.effectiveTuple.density : 'comfortable', narratorEnabled: schedule.effectiveTuple.narratorEnabled === true, displayName: String(schedule.effectiveTuple.displayName || 'Ding PBX Console').slice(0, 80), sourceValidity: String(schedule.effectiveTuple.sourceValidity || 'validated').slice(0, 64) } : undefined, paused: schedule.paused === true, invalidTimezones: [], rules: Array.isArray(schedule.rules) ? schedule.rules.slice(0, MAX_RULES).map((rule) => ({ id: String(rule?.id || '').slice(0, 128), target: String(rule?.target || '').slice(0, 64), value: String(rule?.value || '').slice(0, 120), startDate: String(rule?.startDate || '').slice(0, 10), endDate: String(rule?.endDate || '').slice(0, 10), startTime: String(rule?.startTime || '').slice(0, 5), endTime: String(rule?.endTime || '').slice(0, 5), allDay: rule?.allDay === true, weekdays: Array.isArray(rule?.weekdays) ? rule.weekdays.filter((day) => WEEKDAYS.some(([id]) => id === day)).slice(0, 7) : [], everyDay: rule?.everyDay === true, timezone: String(rule?.timezone || '').slice(0, 80), precedence: Math.min(100, Math.max(0, Number(rule?.precedence) || 0)), source: ['local', 'https', 'home-assistant'].includes(rule?.source) ? rule.source : 'local', endpoint: String(rule?.endpoint || '').slice(0, 512), entity: String(rule?.entity || '').slice(0, 128), disabled: rule?.disabled === true })) : [] };
     safe.schedule.invalidTimezones = safe.schedule.rules.filter((rule) => !isValidTimezone(rule.timezone)).map((rule) => rule.id);
@@ -216,10 +222,7 @@
 
   function save() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    let legacy;
-    try { legacy = parseUniqueJson(localStorage.getItem(MIRROR_STATE_KEY) || '{}'); } catch { legacy = undefined; }
-    if (legacy && typeof legacy === 'object' && !Array.isArray(legacy)) { legacy.language = state.language; legacy.englishFunny = state.englishFunny; legacy.cantoneseFunny = state.cantoneseFunny; localStorage.setItem(MIRROR_STATE_KEY, JSON.stringify(legacy)); }
-    window.dispatchEvent(new CustomEvent('ding-global-settings-change', { detail: { language: state.language, englishFunny: state.englishFunny, cantoneseFunny: state.cantoneseFunny } }));
+    window.dispatchEvent(new CustomEvent('ding-global-settings-change', { detail: { language: state.language, theme: state.theme, density: state.density, englishFunny: state.englishFunny, cantoneseFunny: state.cantoneseFunny } }));
   }
   function purgeOwnedState() {
     OWNED_STATE_KEYS.forEach((key) => localStorage.removeItem(key));
@@ -259,23 +262,24 @@
       if (parsed.schemaVersion !== DIM_SUM_CACHE.schemaVersion || parsed.sourceUrl !== DIM_SUM_CACHE.sourceUrl || parsed.catalogRevision !== DIM_SUM_CACHE.releaseNamespace || !Array.isArray(parsed.dishes) || parsed.dishes.length > 32) throw new Error('Dim-sum cache schema or source revision is not accepted.');
       DISHES = parsed.dishes.filter((dish) => { if (!dish || typeof dish.id !== 'string' || typeof dish.imageUrl !== 'string' || typeof dish.sha256 !== 'string' || dish.sha256.length !== 64 || dish.releaseTag !== DIM_SUM_CACHE.releaseNamespace || typeof dish.catalogRevision !== 'string' || !dish.name || typeof dish.name.en !== 'string' || typeof dish.name.zhHant !== 'string') return false; try { const url = new URL(dish.imageUrl); const filename = url.pathname.split('/').pop() || ''; const expectedPath = `/Ding-Ding-Projects/dim-sum-photos/releases/download/catalog-v1/${filename}`; return url.protocol === 'https:' && url.hostname === 'github.com' && url.pathname === expectedPath && filename === `hk-dish-${dish.id.slice(-4)}-${filename.split('-').slice(3).join('-')}` && /^hk-dish-\d{4}-[a-z0-9-]+\.png$/.test(filename); } catch { return false; } }).map((dish) => ({ id: dish.id, en: dish.name.en, zh: dish.name.zhHant, imageUrl: dish.imageUrl, sha256: dish.sha256, releaseTag: dish.releaseTag, catalogRevision: dish.catalogRevision }));
       let cached = {};
-      try { const cacheRaw = localStorage.getItem(DIM_SUM_IMAGE_CACHE_KEY) || '{}'; if (new TextEncoder().encode(cacheRaw).byteLength > 6291456) throw new Error('image cache too large'); cached = parseUniqueJson(cacheRaw); if (cached.schemaVersion !== 1 || cached.sourceUrl !== DIM_SUM_CACHE.sourceUrl || cached.catalogRevision !== DIM_SUM_CACHE.releaseNamespace || !Array.isArray(cached.entries) || cached.entries.length > 32) throw new Error('stale image cache'); } catch { localStorage.removeItem(DIM_SUM_IMAGE_CACHE_KEY); state.dimSumCacheReason = 'cache-purged'; cached = {}; }
+      try { const cacheRaw = localStorage.getItem(DIM_SUM_IMAGE_CACHE_KEY) || '{}'; if (new TextEncoder().encode(cacheRaw).byteLength > 6291456) throw new Error('cache-oversize'); cached = parseUniqueJson(cacheRaw); if (cached.schemaVersion !== 1 || cached.sourceUrl !== DIM_SUM_CACHE.sourceUrl || cached.catalogRevision !== DIM_SUM_CACHE.releaseNamespace || !Array.isArray(cached.entries) || cached.entries.length > 32) throw new Error('cache-stale'); } catch (error) { localStorage.removeItem(DIM_SUM_IMAGE_CACHE_KEY); state.dimSumCacheReason = error.message === 'cache-oversize' ? 'cache-oversize' : 'cache-purged'; cached = {}; }
       const usable = [];
       for (const dish of DISHES) { const local = cached?.entries?.find((entry) => entry.id === dish.id && entry.sha256 === dish.sha256 && entry.releaseTag === dish.releaseTag && entry.catalogRevision === dish.catalogRevision && typeof entry.mime === 'string' && /^image\/(?:png|jpeg)$/.test(entry.mime) && typeof entry.dataUrl === 'string' && entry.dataUrl.length <= 1398104 && new RegExp(`^data:${entry.mime.replace('/', '\\/')};base64,[A-Za-z0-9+/]+={0,2}$`).test(entry.dataUrl)); if (local) { try { const encoded = local.dataUrl.split(',')[1] || ''; const bytes = Uint8Array.from(atob(encoded), (char) => char.charCodeAt(0)); if (bytes.length > 1048576 || detectImageMime(bytes, local.mime) !== local.mime) continue; if (await sha256Hex(bytes) === dish.sha256 && await decodeImage(local.dataUrl)) usable.push({ ...dish, dataUrl: local.dataUrl, mime: local.mime }); } catch { /* purge below if no usable entry */ } } }
       if (usable.length) { DISHES = usable; state.dimSumCacheReason = 'verified'; return true; }
       localStorage.removeItem(DIM_SUM_IMAGE_CACHE_KEY);
       const candidates = fisherYates(DISHES).slice(0, 5);
       const verified = [];
+      let candidateReason = 'fetch-failed';
       for (const candidate of candidates) {
         try {
-          const imageResponse = await fetchWithDeadline(candidate.imageUrl, { cache: 'force-cache', credentials: 'omit', redirect: 'error', referrerPolicy: 'no-referrer' }); if (!imageResponse.ok || !imageResponse.body) continue;
+          const imageResponse = await fetchWithDeadline(candidate.imageUrl, { cache: 'force-cache', credentials: 'omit', redirect: 'error', referrerPolicy: 'no-referrer' }); if (!imageResponse.ok || !imageResponse.body) { candidateReason = 'fetch-failed'; continue; }
           const reader = imageResponse.body.getReader(); const chunks = []; let total = 0; while (true) { const part = await withDeadline(reader.read()); if (part.done) break; total += part.value.byteLength; if (total > 1048576) { await reader.cancel(); total = 0; break; } chunks.push(part.value); }
-          if (!total) continue;
-          const bytes = new Uint8Array(total); let offset = 0; chunks.forEach((chunk) => { bytes.set(chunk, offset); offset += chunk.byteLength; }); const mime = detectImageMime(bytes, imageResponse.headers.get('content-type') || ''); if (!mime) continue; const digestValue = await sha256Hex(bytes); if (digestValue !== candidate.sha256) continue;
-          const dataUrl = `data:${mime};base64,${bytesToBase64(bytes)}`; if (!await decodeImage(dataUrl)) continue; verified.push({ ...candidate, dataUrl, mime });
-        } catch { /* try the next bounded candidate */ }
+          if (!total) { candidateReason = 'image-oversize'; continue; }
+          const bytes = new Uint8Array(total); let offset = 0; chunks.forEach((chunk) => { bytes.set(chunk, offset); offset += chunk.byteLength; }); const mime = detectImageMime(bytes, imageResponse.headers.get('content-type') || ''); if (!mime) { candidateReason = 'mime-or-magic-mismatch'; continue; } const digestValue = await sha256Hex(bytes); if (digestValue !== candidate.sha256) { candidateReason = 'digest-mismatch'; continue; }
+          const dataUrl = `data:${mime};base64,${bytesToBase64(bytes)}`; if (!await decodeImage(dataUrl)) { candidateReason = 'image-decode-failed'; continue; } verified.push({ ...candidate, dataUrl, mime });
+        } catch { candidateReason = 'fetch-failed'; /* try the next bounded candidate */ }
       }
-      if (!verified.length) { state.dimSumCacheReason = 'first-use-required'; return false; }
+      if (!verified.length) { state.dimSumCacheReason = candidateReason; return false; }
       localStorage.setItem(DIM_SUM_IMAGE_CACHE_KEY, JSON.stringify({ schemaVersion: 1, sourceUrl: DIM_SUM_CACHE.sourceUrl, catalogRevision: DIM_SUM_CACHE.releaseNamespace, entries: verified.map((candidate) => ({ id: candidate.id, sha256: candidate.sha256, releaseTag: candidate.releaseTag, catalogRevision: candidate.catalogRevision, mime: candidate.mime, dataUrl: candidate.dataUrl })) })); DISHES = verified; state.dimSumCacheReason = 'verified'; return true;
     } catch { DISHES = []; state.dimSumCacheReason = 'fetch-failed'; return false; }
   }
@@ -296,7 +300,8 @@
     });
     const status = $('global-narrator-voice-status');
     if (status && !voices.en.length && !voices.zh.length) status.textContent = copy('No compatible installed browser voice is available yet.', '暫時未搵到可以用嘅瀏覽器聲音。', 'en');
-    STATIC_COPY_INVENTORY.forEach(([selector, en, zh, type]) => { const node = document.querySelector(selector); if (!node) return; if (type === 'placeholder') node.placeholder = copy(en, zh, 'en'); else if (type === 'aria-label') node.setAttribute('aria-label', copy(en, zh, 'en')); else setLocalizedText(node, en, zh, 'en'); });
+    STATIC_COPY_INVENTORY.forEach(([selector, en, zh, type]) => { const node = document.querySelector(selector); if (!node) return; if (type === 'placeholder') node.placeholder = localizedInline(en, zh); else if (type === 'aria-label') node.setAttribute('aria-label', localizedInline(en, zh)); else setLocalizedText(node, en, zh, 'en'); });
+    applyLiteralCopy($('global-settings-panel'));
     all('[data-global-weekday]').forEach((input) => { const label = WEEKDAY_COPY[input.dataset.globalWeekday]; if (!label) return; const parent = input.closest('label'); if (parent) { [...parent.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE).forEach((node) => { node.nodeValue = ` ${state.language === 'zh' ? copy(label[0], label[1], 'zh') : state.language === 'both' ? `${copy(label[0], label[1], 'en')} / ${copy(label[0], label[1], 'zh')}` : copy(label[0], label[1], 'en')}`; }); } });
   }
   function escapeHtml(value) {
@@ -501,6 +506,13 @@
     $('global-regex-popover')?.setAttribute('data-anchor-for', input.id || 'dropdown-search');
     openRegex();
   }
+  function createDropdownRegexOverlay(input, wrapper, regex, filter) {
+    const popover = document.createElement('div'); popover.className = 'global-regex-popover dropdown-regex-popover'; popover.hidden = true; popover.setAttribute('role', 'group'); popover.innerHTML = '<h3>Regex builder for this choices list</h3><label>Pattern<input type="text" maxlength="256"></label><label>Mode<select><option value="plain">Plain text</option><option value="regex">Regular expression</option></select></label><label><input type="checkbox" data-flag="i" checked> Ignore case</label><label><input type="checkbox" data-flag="u" checked> Unicode</label><p role="status"></p><button type="button" class="primary-button" data-apply>Apply</button><button type="button" class="text-button" data-cancel>Cancel</button>';
+    wrapper.after(popover);
+    const pattern = popover.querySelector('input[type="text"]'); const mode = popover.querySelector('select'); const feedback = popover.querySelector('[role="status"]'); const apply = () => { const flags = `${popover.querySelector('[data-flag="i"]').checked ? 'i' : ''}${popover.querySelector('[data-flag="u"]').checked ? 'u' : ''}`; const enabled = mode.value === 'regex' && Boolean(pattern.value); try { if (enabled) new RegExp(pattern.value, flags); } catch (error) { feedback.textContent = `Invalid pattern: ${error.message}`; return; } dropdownRegex.set(input, { pattern: pattern.value.slice(0, 256), flags, enabled }); input.value = pattern.value.slice(0, 256); input.dispatchEvent(new Event('input')); popover.hidden = true; regex.focus(); };
+    const open = () => { const saved = dropdownRegex.get(input) || { pattern: '', flags: 'iu', enabled: false }; pattern.value = saved.pattern; mode.value = saved.enabled ? 'regex' : 'plain'; popover.querySelector('[data-flag="i"]').checked = saved.flags.includes('i'); popover.querySelector('[data-flag="u"]').checked = saved.flags.includes('u'); popover.hidden = false; popover.dataset.anchorFor = input.id || 'dropdown-search'; pattern.focus(); };
+    pattern.addEventListener('input', () => { feedback.textContent = pattern.value && mode.value === 'regex' ? 'Pattern will be checked when applied.' : 'Plain text filtering is active.'; }); mode.addEventListener('change', () => { feedback.textContent = mode.value === 'regex' ? 'Regular expression mode is active.' : 'Plain text mode is active.'; }); popover.querySelector('[data-apply]').onclick = apply; popover.querySelector('[data-cancel]').onclick = () => { popover.hidden = true; regex.focus(); }; regex.onclick = open;
+  }
   function enhanceDropdowns() {
     all('select').forEach((select) => {
       if (select.dataset.dropdownEnhanced) return;
@@ -510,7 +522,7 @@
       const regex = document.createElement('button'); regex.type = 'button'; regex.className = 'regex-trigger'; regex.textContent = '.*'; regex.setAttribute('aria-label', `Build a regular expression for ${input.getAttribute('aria-label')}`); regex.dataset.globalDropdownRegex = 'true'; regex.dataset.globalSettingsOwned = 'true';
       wrapper.append(input, regex); select.parentNode.insertBefore(wrapper, select);
       const filter = () => { const config = dropdownRegex.get(input); [...select.options].forEach((option) => { const text = option.textContent || ''; let visible = !input.value; if (input.value && config?.enabled) { try { visible = new RegExp(config.pattern, config.flags).test(text); } catch { visible = false; } } else if (input.value) visible = text.toLocaleLowerCase().includes(input.value.toLocaleLowerCase()); option.hidden = !visible; }); };
-      input.addEventListener('input', filter); regex.onclick = () => openRegexForInput(input);
+      input.addEventListener('input', filter); createDropdownRegexOverlay(input, wrapper, regex, filter);
     });
   }
   function ensureAllDayControl() {
@@ -521,7 +533,7 @@
   }
   function ensureTimezonePicker() {
     const input = $('global-schedule-timezone'); if (!input || $('global-schedule-timezone-picker')) return;
-    const picker = document.createElement('select'); picker.id = 'global-schedule-timezone-picker'; picker.setAttribute('aria-label', 'Choose IANA timezone'); ['UTC', 'America/Toronto', 'America/New_York', 'Europe/London', 'Asia/Hong_Kong', 'Asia/Tokyo', 'Australia/Sydney'].forEach((zone) => { const option = document.createElement('option'); option.value = zone; option.textContent = zone; picker.append(option); });
+    const picker = document.createElement('select'); picker.id = 'global-schedule-timezone-picker'; picker.setAttribute('aria-label', 'Choose IANA timezone'); IANA_TIMEZONES.forEach((zone) => { const option = document.createElement('option'); option.value = zone; option.textContent = zone; picker.append(option); });
     input.before(picker); picker.onchange = () => { input.value = picker.value; input.readOnly = true; };
   }
   function ensureCopyAnchors() {
@@ -742,9 +754,9 @@
     if ($('global-schedule-status') && (state.schedule.invalidTimezones.length || state.schedule.invalidRules.length)) setScheduleStatus('Some saved schedule rules were invalid and were paused until corrected or removed.', '部分已保存排程規則無效，已暫停，請修正或者移除。');
     $('global-display-name') && ($('global-display-name').value = state.displayName);
     const updateStatus = $('global-update-status');
-    if (updateStatus) updateStatus.textContent = copy('No verified installer or release manifest is published for this static page. No update action is available.', '此靜態頁未有已驗證安裝程式或者發行清單，暫時冇更新操作。', 'en');
+    if (updateStatus) updateStatus.textContent = localizedInline('No verified installer or release manifest is published for this static page. No update action is available.', '此靜態頁未有已驗證安裝程式或者發行清單，暫時冇更新操作。');
     const dishStatus = $('global-dimsum-status');
-    if (dishStatus) { const cacheReasons = { verified: ['Verified local catalog image cache is active.', '已驗證本地目錄圖片快取已啟用。'], 'cache-purged': ['An invalid dim-sum cache was purged. First use must verify a new image.', '無效點心快取已清除，首次使用必須重新驗證圖片。'], 'first-use-required': ['No verified local image is available yet. First use requires a bounded catalog fetch.', '暫時未有已驗證本地圖片，首次使用需要受限目錄要求。'], 'fetch-failed': ['The catalog image fetch failed safely. The surprise remains unavailable.', '目錄圖片要求安全失敗，小驚喜暫時不可用。'], 'not-loaded': ['The local catalog cache has not loaded yet.', '本地目錄快取尚未載入。'] }; const cacheReason = cacheReasons[state.dimSumCacheReason] || cacheReasons['not-loaded']; const countText = state.dimSumShown ? ` One catalog dish has been shown during a later visit. Total shown on this browser: ${state.dimSumShown}.` : ' No catalog dish has been shown on this browser yet.'; const countZh = state.dimSumShown ? ` 之後訪問已顯示一款目錄點心，此瀏覽器總數：${state.dimSumShown}。` : ' 此瀏覽器暫時未顯示目錄點心。'; setLocalizedText(dishStatus, `${cacheReason[0]}${countText}`, `${cacheReason[1]}${countZh}`, 'en'); }
+    if (dishStatus) { const cacheReasons = { verified: ['Verified local catalog image cache is active.', '已驗證本地目錄圖片快取已啟用。'], 'cache-purged': ['An invalid dim-sum cache was purged. First use must verify a new image.', '無效點心快取已清除，首次使用必須重新驗證圖片。'], 'cache-oversize': ['The local dim-sum cache exceeded its size bound and was purged.', '本地點心快取超過大小限制，已清除。'], 'first-use-required': ['No verified local image is available yet. First use requires a bounded catalog fetch.', '暫時未有已驗證本地圖片，首次使用需要受限目錄要求。'], 'fetch-failed': ['The catalog image fetch failed safely. The surprise remains unavailable.', '目錄圖片要求安全失敗，小驚喜暫時不可用。'], 'image-oversize': ['A catalog image exceeded its size bound and was skipped.', '目錄圖片超過大小限制，已跳過。'], 'mime-or-magic-mismatch': ['A catalog image MIME or magic-byte check did not match.', '目錄圖片 MIME 或檔案標記檢查不匹配。'], 'digest-mismatch': ['A catalog image digest did not match its recorded value.', '目錄圖片摘要不匹配記錄值。'], 'image-decode-failed': ['A catalog image could not be decoded safely.', '目錄圖片未能安全解碼。'], 'not-loaded': ['The local catalog cache has not loaded yet.', '本地目錄快取尚未載入。'] }; const cacheReason = cacheReasons[state.dimSumCacheReason] || cacheReasons['not-loaded']; const countText = state.dimSumShown ? ` One catalog dish has been shown during a later visit. Total shown on this browser: ${state.dimSumShown}.` : ' No catalog dish has been shown on this browser yet.'; const countZh = state.dimSumShown ? ` 之後訪問已顯示一款目錄點心，此瀏覽器總數：${state.dimSumShown}。` : ' 此瀏覽器暫時未顯示目錄點心。'; setLocalizedText(dishStatus, `${cacheReason[0]}${countText}`, `${cacheReason[1]}${countZh}`, 'en'); }
     applyDisplayName(); applyPanelCopy(); applySchoolMode(); filterSettings(); decorateDialogs();
   }
   function scheduleClock(now, timezone) {
@@ -770,23 +782,27 @@
     return current >= rule.startTime || current <= rule.endTime;
   }
   function applyScheduleRules() {
-    Object.assign(effectiveSettings, baseSettings);
-    if (state.schedule.paused) { state.language = effectiveSettings.language; state.narratorEnabled = effectiveSettings.narratorEnabled; state.displayName = effectiveSettings.displayName; document.documentElement.dataset.theme = effectiveSettings.theme; document.documentElement.dataset.density = effectiveSettings.density; state.schedule.effectiveTuple = { language: effectiveSettings.language, theme: effectiveSettings.theme, density: effectiveSettings.density, narratorEnabled: effectiveSettings.narratorEnabled, displayName: effectiveSettings.displayName, sourceValidity: 'paused' }; return; }
-    const active = state.schedule.rules.filter((rule) => !rule.disabled && rule.source === 'local' && scheduleRuleMatches(rule)).sort((a, b) => Number(b.precedence) - Number(a.precedence))[0];
-    if (active && SCHEDULE_TARGETS.some(([id]) => id === active.target)) effectiveSettings[active.target] = active.target === 'narratorEnabled' ? active.value === 'true' : active.value;
-    state.language = effectiveSettings.language;
-    state.narratorEnabled = effectiveSettings.narratorEnabled;
-    state.displayName = effectiveSettings.displayName;
-    if (effectiveSettings.theme === 'light' || effectiveSettings.theme === 'dark' || effectiveSettings.theme === 'contrast') document.documentElement.dataset.theme = effectiveSettings.theme;
-    if (effectiveSettings.density === 'compact' || effectiveSettings.density === 'comfortable' || effectiveSettings.density === 'spacious') document.documentElement.dataset.density = effectiveSettings.density;
-    state.schedule.lastAppliedRule = active?.id || '';
+    const result = effectiveTupleAt(new Date());
+    Object.assign(effectiveSettings, result.tuple);
+    state.language = result.tuple.language;
+    state.narratorEnabled = result.tuple.narratorEnabled;
+    state.displayName = result.tuple.displayName;
+    document.documentElement.dataset.theme = result.tuple.theme;
+    document.documentElement.dataset.density = result.tuple.density;
+    state.schedule.lastAppliedRule = result.active?.id || '';
     state.schedule.lastAppliedSignature = effectiveRuleSignature();
-    state.schedule.effectiveTuple = { language: effectiveSettings.language, theme: effectiveSettings.theme, density: effectiveSettings.density, narratorEnabled: effectiveSettings.narratorEnabled, displayName: effectiveSettings.displayName, sourceValidity: state.schedule.invalidRules.length ? 'invalid-rules-present' : 'validated' };
+    state.schedule.effectiveTuple = result.tuple;
   }
   function effectiveRuleSignature(now = new Date()) {
-    if (state.schedule.paused) return '';
+    const result = effectiveTupleAt(now);
+    return JSON.stringify({ tuple: result.tuple, active: result.active?.id || '', invalid: state.schedule.invalidRules, paused: state.schedule.paused });
+  }
+  function effectiveTupleAt(now = new Date()) {
+    const tuple = { ...baseSettings, sourceValidity: state.schedule.invalidRules.length ? 'invalid-rules-present' : 'validated' };
+    if (state.schedule.paused) { tuple.sourceValidity = 'paused'; return { tuple, active: undefined }; }
     const active = state.schedule.rules.filter((rule) => !rule.disabled && rule.source === 'local' && scheduleRuleMatches(rule, now)).sort((a, b) => Number(b.precedence) - Number(a.precedence))[0];
-    return `${state.schedule.paused ? 'paused' : 'running'}|invalid=${state.schedule.invalidRules.join(',')}|${active ? `${active.id}|${active.target}|${active.value}|${active.source}|${active.endpoint}` : 'base'}`;
+    if (active && SCHEDULE_TARGETS.some(([id]) => id === active.target)) tuple[active.target] = active.target === 'narratorEnabled' ? active.value === 'true' : active.value;
+    return { tuple, active };
   }
   function applyExternalSetting(body, active) {
     if (!active) return;
@@ -828,10 +844,12 @@
     if (rule?.source === 'home-assistant' && !/^\b(?:binary_sensor|input_boolean)\.[a-z0-9_]+$/i.test(rule.entity)) reasons.push('entity');
     return reasons;
   }
+  const RULE_REASON_COPY = { target: ['target setting', '目標設定'], value: ['target value', '目標數值'], timezone: ['timezone', '時區'], 'date-order': ['date order', '日期次序'], time: ['time window', '時間範圍'], weekdays: ['weekday selection', '星期選擇'], source: ['source endpoint', '來源端點'], entity: ['Home Assistant entity', 'Home Assistant 實體'] };
+  function ruleReasonsText(rule) { const ids = rule.validationReasons || []; const en = ids.map((id) => RULE_REASON_COPY[id]?.[0] || id).join(', '); const zh = ids.map((id) => RULE_REASON_COPY[id]?.[1] || id).join('、'); return { en, zh }; }
   function renderScheduleRules() {
     const node = $('global-schedule-rules');
     if (!node) return;
-    node.innerHTML = state.schedule.rules.length ? state.schedule.rules.map((rule) => `<div class="global-schedule-rule" data-disabled-rule="${rule.disabled ? 'true' : 'false'}"><strong>${escapeHtml(rule.target)} = ${escapeHtml(rule.value)}${rule.disabled ? ` (${escapeHtml(copy('disabled', '已停用', 'en'))})` : ''}</strong><span>${escapeHtml(rule.startDate || copy('any date', '任何日期', 'en'))} ${escapeHtml(rule.allDay ? copy('all day', '全日', 'en') : `${rule.startTime || copy('any time', '任何時間', 'en')} to ${rule.endTime || copy('any time', '任何時間', 'en')}`)} · ${escapeHtml(rule.everyDay ? copy('every day', '每日', 'en') : (rule.weekdays || []).join(', ') || copy('no weekdays', '未選星期', 'en'))} · ${escapeHtml(rule.timezone || copy('local timezone', '本地時區', 'en'))} · precedence ${escapeHtml(rule.precedence)}${rule.disabled && rule.validationReasons?.length ? ` · ${escapeHtml(copy(`Reasons: ${rule.validationReasons.join(', ')}`, `原因：${rule.validationReasons.join('、')}`, 'en'))}` : ''}</span><button type="button" class="text-button" data-edit-schedule="${escapeHtml(rule.id)}">${escapeHtml(copy('Edit', '編輯', 'en'))}</button><button type="button" class="text-button" data-remove-schedule="${escapeHtml(rule.id)}">${escapeHtml(copy('Remove', '移除', 'en'))}</button></div>`).join('') : `<p>${escapeHtml(copy('No schedule rules saved.', '未保存排程規則。', 'en'))}</p>`;
+    node.innerHTML = state.schedule.rules.length ? state.schedule.rules.map((rule) => { const reasons = ruleReasonsText(rule); const reasonText = rule.disabled && rule.validationReasons?.length ? localizedInline(`Reasons: ${reasons.en}`, `原因：${reasons.zh}`) : ''; return `<div class="global-schedule-rule" data-disabled-rule="${rule.disabled ? 'true' : 'false'}"><strong>${escapeHtml(rule.target)} = ${escapeHtml(rule.value)}${rule.disabled ? ` (${escapeHtml(localizedInline('disabled', '已停用'))})` : ''}</strong><span>${escapeHtml(rule.startDate || localizedInline('any date', '任何日期'))} ${escapeHtml(rule.allDay ? localizedInline('all day', '全日') : `${rule.startTime || localizedInline('any time', '任何時間')} to ${rule.endTime || localizedInline('any time', '任何時間')}`)} · ${escapeHtml(rule.everyDay ? localizedInline('every day', '每日') : (rule.weekdays || []).join(', ') || localizedInline('no weekdays', '未選星期'))} · ${escapeHtml(rule.timezone || localizedInline('local timezone', '本地時區'))} · precedence ${escapeHtml(rule.precedence)}${reasonText ? ` · ${escapeHtml(reasonText)}` : ''}</span><button type="button" class="text-button" data-edit-schedule="${escapeHtml(rule.id)}">${escapeHtml(localizedInline('Edit', '編輯'))}</button><button type="button" class="text-button" data-remove-schedule="${escapeHtml(rule.id)}">${escapeHtml(localizedInline('Remove', '移除'))}</button></div>` }).join('') : `<p>${escapeHtml(localizedInline('No schedule rules saved.', '未保存排程規則。'))}</p>`;
     all('[data-edit-schedule]').forEach((button) => { button.onclick = () => { const rule = state.schedule.rules.find((candidate) => candidate.id === button.dataset.editSchedule); if (!rule) return; $('global-schedule-target').value = rule.target; $('global-schedule-value').value = rule.value; $('global-schedule-start-date').value = rule.startDate; $('global-schedule-end-date').value = rule.endDate; $('global-schedule-start-time').value = rule.startTime; $('global-schedule-end-time').value = rule.endTime; $('global-schedule-all-day').checked = rule.allDay; $('global-schedule-every-day').checked = rule.everyDay; $('global-schedule-timezone').value = rule.timezone; $('global-schedule-precedence').value = rule.precedence; $('global-schedule-source').value = rule.source; $('global-schedule-endpoint').value = rule.endpoint; $('global-schedule-entity').value = rule.entity; $('global-schedule-status').textContent = 'Editing the selected rule. Save it as a new validated rule, then remove the old record if needed.'; $('global-schedule-value').focus(); }; });
     all('[data-remove-schedule]').forEach((button) => { button.onclick = () => openConfirmation('schedule-remove', button, 'Remove this schedule rule from the local rule list. The active base setting will remain available.', button.dataset.removeSchedule); });
   }
@@ -940,7 +958,7 @@
     if ($('palette-results')) paletteObserver.observe($('palette-results'), { childList: true });
     augmentPalette();
     if (speechSynthesisAvailable()) { voiceListener = () => { refreshVoices(); }; speechSynthesis.addEventListener('voiceschanged', voiceListener); refreshVoices(); }
-    pageEventListener = (event) => { const detail = event.detail; if (detail?.eventId && detail?.enTitle && detail?.zhTitle && detail?.enBody && detail?.zhBody) { const source = { enTitle: String(detail.enTitle).slice(0, 256), zhTitle: String(detail.zhTitle).slice(0, 256), enBody: String(detail.enBody).slice(0, 1024), zhBody: String(detail.zhBody).slice(0, 1024) }; state.notifications = [...state.notifications.filter((item) => item.id !== detail.eventId), { id: String(detail.eventId).slice(0, 128), time: Date.now(), source }].slice(-100); save(); window.dispatchEvent(new CustomEvent('ding-notification-history-change')); announce(`${source.enTitle}. ${source.enBody}`, `${source.zhTitle}。${source.zhBody}`, String(detail.category || 'page-event')); } };
+    pageEventListener = (event) => { const detail = event.detail; if (detail?.eventId && detail?.enTitle && detail?.zhTitle && detail?.enBody && detail?.zhBody) { const source = { enTitle: String(detail.enTitle).slice(0, 256), zhTitle: String(detail.zhTitle).slice(0, 256), enBody: String(detail.enBody).slice(0, 1024), zhBody: String(detail.zhBody).slice(0, 1024) }; state.notifications = [...state.notifications.filter((item) => item.id !== detail.eventId), { id: String(detail.eventId).slice(0, 128), time: Date.now(), source }].slice(-100); save(); window.dispatchEvent(new CustomEvent('ding-global-notification', { detail: { eventId: String(detail.eventId).slice(0, 128), source } })); window.dispatchEvent(new CustomEvent('ding-notification-history-change')); announce(`${source.enTitle}. ${source.enBody}`, `${source.zhTitle}。${source.zhBody}`, String(detail.category || 'page-event')); } };
     window.addEventListener('ding-page-event', pageEventListener);
     pageStateListener = (event) => { if (!event.detail) return; if (['en', 'zh', 'both'].includes(event.detail.language)) { state.language = event.detail.language; baseSettings.language = state.language; } if (Number.isFinite(event.detail.englishFunny)) state.englishFunny = Math.min(5, Math.max(1, Number(event.detail.englishFunny))); if (Number.isFinite(event.detail.cantoneseFunny)) state.cantoneseFunny = Math.min(5, Math.max(1, Number(event.detail.cantoneseFunny))); if (['light', 'dark', 'contrast'].includes(event.detail.theme)) { baseSettings.theme = event.detail.theme; state.theme = event.detail.theme; } if (['compact', 'comfortable', 'spacious'].includes(event.detail.density)) { baseSettings.density = event.detail.density; state.density = event.detail.density; } save(); applyState(); };
     window.addEventListener('ding-page-state-change', pageStateListener);
