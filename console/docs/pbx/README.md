@@ -10,3 +10,4 @@ Telephony: endpoints, routing and everything a call touches while it is alive.
 - [Dialplan canvas](canvas.md)
 - [IVR menus](ivr.md)
 - [Queues & agents](queues.md)
+- [FreePBX module catalog and native administration](freepbx-modules.md)

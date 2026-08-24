@@ -1,0 +1,3960 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "console/scripts/generate-freepbx-module-catalog.mjs",
+  "generatedAt": "2026-08-24T06:07:49.065Z",
+  "source": {
+    "provider": "GitHub CLI gh api",
+    "organization": "FreePBX",
+    "branch": "release/17.0",
+    "repositoryDiscovery": "orgs/FreePBX/repos?per_page=100&type=all",
+    "moduleMetadata": "module.xml from each public FreePBX module repository",
+    "repositoryCountInspected": 94,
+    "pinnedModuleSnapshot": "sha256:68805bee886ce20952b1788b4398beededf1ebfb86e984afa6f6389e7a040d52"
+  },
+  "counts": {
+    "publicModules": 83,
+    "locallyInstalledModules": 0,
+    "unavailableModules": 83,
+    "total": 83
+  },
+  "modules": [
+    {
+      "moduleId": "amd",
+      "rawname": "amd",
+      "name": "AMD",
+      "description": "This module is used to manage AMD. The AMD application attempts to detect answering machines at the beginning of outbound calls",
+      "category": "Applications",
+      "version": "17.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "amd",
+        "branch": "release/17.0",
+        "revision": "7c3b931845270662a542d8f85b76fef6e4359b03",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "ba615de915c94a66a93b6b5827c073996b65905a",
+        "repositoryUrl": "https://github.com/FreePBX/amd",
+        "moduleXmlUrl": "https://github.com/FreePBX/amd/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Inc.",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/amd.conf",
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "applications"
+      ],
+      "nativeTaskId": "amd",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/amd",
+        "moduleXml": "https://github.com/FreePBX/amd/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "announcement",
+      "rawname": "announcement",
+      "name": "Announcements",
+      "description": "Plays back one of the system recordings (optionally allowing the user to skip it) and then goes to another destination.",
+      "category": "Applications",
+      "version": "17.0.2.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "announcement",
+        "branch": "release/17.0",
+        "revision": "085ab0df7ede3d40073135b31b12f9757dde3f0a",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "3a65a34018cd02c72cdf66aa6d947e8312f91849",
+        "repositoryUrl": "https://github.com/FreePBX/announcement",
+        "moduleXmlUrl": "https://github.com/FreePBX/announcement/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "recordings",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "announcements"
+      ],
+      "nativeTaskId": "announcements",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/announcement",
+        "moduleXml": "https://github.com/FreePBX/announcement/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "api",
+      "rawname": "api",
+      "name": "PBX API",
+      "description": "The API module allows administrators to configure and manage FreePBX remotely through automated. As an administrator you can use other languages to control your PBX systems.",
+      "category": "Connectivity",
+      "version": "17.0.9",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "api",
+        "branch": "release/17.0",
+        "revision": "f0474de246ebd6eaef9962a3a6344adacd009ce1",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "ec87f26e5dd07dacfbcc545d6d2975acefeee7df",
+        "repositoryUrl": "https://github.com/FreePBX/api",
+        "moduleXmlUrl": "https://github.com/FreePBX/api/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "AGPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "pm2",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/http.conf",
+        "/etc/asterisk/ari.conf"
+      ],
+      "fwconsoleCommands": [
+        {
+          "name": "api",
+          "class": "Api"
+        }
+      ],
+      "apiCapabilities": [
+        "API"
+      ],
+      "uiFamilies": [
+        "api"
+      ],
+      "nativeTaskId": "rest-api",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/api",
+        "moduleXml": "https://github.com/FreePBX/api/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "arimanager",
+      "rawname": "arimanager",
+      "name": "Asterisk REST Interface Users",
+      "description": "Asterisk 12 introduces the Asterisk REST Interface (ARI), a set of RESTful API's for building Asterisk based applications. This module provides the ability to add and remove ARI users.",
+      "category": "Settings",
+      "version": "17.0.1.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "arimanager",
+        "branch": "release/17.0",
+        "revision": "71b727802dcd06905f9152afd85bb3289dc2cf8c",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "0ffedda3765482433d6a9342b2dd3ac164e134ce",
+        "repositoryUrl": "https://github.com/FreePBX/arimanager",
+        "moduleXmlUrl": "https://github.com/FreePBX/arimanager/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "manager",
+          "version": ""
+        }
+      ],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "settings"
+      ],
+      "nativeTaskId": "ari",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/arimanager",
+        "moduleXml": "https://github.com/FreePBX/arimanager/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "asterisk-cli",
+      "rawname": "asterisk-cli",
+      "name": "Asterisk CLI",
+      "description": "Provides an interface allowing you to run a command as if it was typed into Asterisk CLI",
+      "category": "Admin",
+      "version": "17.0.2",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "asterisk-cli",
+        "branch": "release/17.0",
+        "revision": "2a31993e21aa46f20aefa461ddf91e5dd1c525b9",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "500cf49b1ec54203aaf02ff41f3d80b48807e85c",
+        "repositoryUrl": "https://github.com/FreePBX/asterisk-cli",
+        "moduleXmlUrl": "https://github.com/FreePBX/asterisk-cli/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/asterisk-cli",
+        "moduleXml": "https://github.com/FreePBX/asterisk-cli/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "asteriskinfo",
+      "rawname": "asteriskinfo",
+      "name": "Asterisk Info",
+      "description": "Provides a snapshot of the current Asterisk configuration",
+      "category": "Reports",
+      "version": "17.0.2",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "asteriskinfo",
+        "branch": "release/17.0",
+        "revision": "623baa606db9d0a29f07eec5d3e3e1f92117e168",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "14db3c85baac2a03afee638986da9c439c1cd421",
+        "repositoryUrl": "https://github.com/FreePBX/asteriskinfo",
+        "moduleXmlUrl": "https://github.com/FreePBX/asteriskinfo/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "arimanager",
+          "version": ""
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/asterisk.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "reports"
+      ],
+      "nativeTaskId": "system-status",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/asteriskinfo",
+        "moduleXml": "https://github.com/FreePBX/asteriskinfo/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "backup",
+      "rawname": "backup",
+      "name": "Backup & Restore",
+      "description": "Backup & Restore for your FreePBX environment",
+      "category": "Admin",
+      "version": "17.0.12",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "backup",
+        "branch": "release/17.0",
+        "revision": "4c8c9e380271702a02caf34763a7620e34b43a37",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "13ceb2ca1d922377b702ff1184139a08bfb7d68d",
+        "repositoryUrl": "https://github.com/FreePBX/backup",
+        "moduleXmlUrl": "https://github.com/FreePBX/backup/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "filestore",
+          "version": "17.0.2.44"
+        }
+      ],
+      "configurationResources": [],
+      "fwconsoleCommands": [
+        {
+          "name": "backup",
+          "class": "Backup"
+        }
+      ],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "backup-restore"
+      ],
+      "nativeTaskId": "backup",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/backup",
+        "moduleXml": "https://github.com/FreePBX/backup/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "blacklist",
+      "rawname": "blacklist",
+      "name": "Blacklist",
+      "description": "This module is used to manage a system wide list of blocked callers",
+      "category": "Admin",
+      "version": "17.0.1.2",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "blacklist",
+        "branch": "release/17.0",
+        "revision": "26439d970bfa5a9da7388e6a932919ca513c4c94",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "3ab5c899f519c2418933815f3635931ae3cfb844",
+        "repositoryUrl": "https://github.com/FreePBX/blacklist",
+        "moduleXmlUrl": "https://github.com/FreePBX/blacklist/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "cdr",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/acl.conf",
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "blacklist"
+      ],
+      "nativeTaskId": "blacklist",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/blacklist",
+        "moduleXml": "https://github.com/FreePBX/blacklist/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "bulkhandler",
+      "rawname": "bulkhandler",
+      "name": "Bulk Handler",
+      "description": "Bulk Handler manages the bulk export or import of extensions, DIDs, user manager users, user manager groups, and contacts. You can export any of these as a CSV file. You can also upload a CSV file to save time versus having to enter each item individually. The module provides required/recommended headers for your CSV files.",
+      "category": "Admin",
+      "version": "17.0.7.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "bulkhandler",
+        "branch": "release/17.0",
+        "revision": "b334ba0c70eb127851d2d030b6f43b8208730161",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "7c3552040e29f3cf7e7d1f44f93b9c152716f2d0",
+        "repositoryUrl": "https://github.com/FreePBX/bulkhandler",
+        "moduleXmlUrl": "https://github.com/FreePBX/bulkhandler/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [
+        {
+          "name": "bulkimport",
+          "class": ""
+        }
+      ],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/bulkhandler",
+        "moduleXml": "https://github.com/FreePBX/bulkhandler/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "calendar",
+      "rawname": "calendar",
+      "name": "Calendar",
+      "description": "This module is used to manage calendar and time based events for FreePBX",
+      "category": "Applications",
+      "version": "17.0.4.24",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "calendar",
+        "branch": "release/17.0",
+        "revision": "4be2fdf2f2bb070d9cbb1861d2fb2c38760fc02a",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "a6270f4e44d2c7aae93d4015a0f830855d2e3762",
+        "repositoryUrl": "https://github.com/FreePBX/calendar",
+        "moduleXmlUrl": "https://github.com/FreePBX/calendar/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/calendar.conf",
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [
+        {
+          "name": "calendar",
+          "class": ""
+        }
+      ],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "calendar-presence"
+      ],
+      "nativeTaskId": "calendar",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/calendar",
+        "moduleXml": "https://github.com/FreePBX/calendar/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "callback",
+      "rawname": "callback",
+      "name": "Callback",
+      "description": "A callback will hang up on the caller and then call them back, directing them to the selected destination.",
+      "category": "Applications",
+      "version": "17.0.2.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "callback",
+        "branch": "release/17.0",
+        "revision": "57d35e6ec2825dabeffee9c64bfcf221b04a4c73",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "5e114ee735f2a3bbb6a0c6b622d30dce18d92250",
+        "repositoryUrl": "https://github.com/FreePBX/callback",
+        "moduleXmlUrl": "https://github.com/FreePBX/callback/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf",
+        "/etc/asterisk/pjsip.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "applications"
+      ],
+      "nativeTaskId": "callback",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/callback",
+        "moduleXml": "https://github.com/FreePBX/callback/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "callforward",
+      "rawname": "callforward",
+      "name": "Call Forward",
+      "description": "The Call Forwarding module provides feature codes for call forwarding. Call Forwarding is used to forward calls from one user to another based on conditions such as busy, unavailable, and no answer.",
+      "category": "Applications",
+      "version": "17.0.1.8",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "callforward",
+        "branch": "release/17.0",
+        "revision": "1ea69534d2fd3236e376e2f278f91153a01d90db",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "20bf1c289c08c34f836d3728731e08328af8761b",
+        "repositoryUrl": "https://github.com/FreePBX/callforward",
+        "moduleXmlUrl": "https://github.com/FreePBX/callforward/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "AGPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "call-forwarding"
+      ],
+      "nativeTaskId": "call-forwarding",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/callforward",
+        "moduleXml": "https://github.com/FreePBX/callforward/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "callrecording",
+      "rawname": "callrecording",
+      "name": "Call Recording",
+      "description": "Provides much of the call recording functionality.",
+      "category": "Applications",
+      "version": "17.0.3.9",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "callrecording",
+        "branch": "release/17.0",
+        "revision": "5576a07c061aa68358918c5d032cd8ef430fdfee",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "b966078460851a161251c9173b144978efe1a840",
+        "repositoryUrl": "https://github.com/FreePBX/callrecording",
+        "moduleXmlUrl": "https://github.com/FreePBX/callrecording/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "AGPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf",
+        "/etc/asterisk/features.conf",
+        "/etc/asterisk/logger.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "call-recording"
+      ],
+      "nativeTaskId": "call-recording",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/callrecording",
+        "moduleXml": "https://github.com/FreePBX/callrecording/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "callwaiting",
+      "rawname": "callwaiting",
+      "name": "Call Waiting",
+      "description": "Provides an option to turn on/off call waiting",
+      "category": "Applications",
+      "version": "17.0.3.4",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "callwaiting",
+        "branch": "release/17.0",
+        "revision": "1560d9b1ffe533c2a442f1638b75fe9d53088f57",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "7d63963c394620640923bd429a56f75826510224",
+        "repositoryUrl": "https://github.com/FreePBX/callwaiting",
+        "moduleXmlUrl": "https://github.com/FreePBX/callwaiting/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf",
+        "/etc/asterisk/features.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "call-waiting"
+      ],
+      "nativeTaskId": "call-waiting",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/callwaiting",
+        "moduleXml": "https://github.com/FreePBX/callwaiting/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "cdr",
+      "rawname": "cdr",
+      "name": "CDR Reports",
+      "description": "Call Data Record report tools for viewing reports of your calls",
+      "category": "Reports",
+      "version": "17.0.11.3",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "cdr",
+        "branch": "release/17.0",
+        "revision": "49b7517e62e01e81344fdeeead5d99cac29ad1b9",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "023177537b9c4b69da75958bfb78b4bc55224767",
+        "repositoryUrl": "https://github.com/FreePBX/cdr",
+        "moduleXmlUrl": "https://github.com/FreePBX/cdr/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "framework",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [],
+      "fwconsoleCommands": [
+        {
+          "name": "cdr",
+          "class": ""
+        }
+      ],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "cdr-cel-reports"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/cdr",
+        "moduleXml": "https://github.com/FreePBX/cdr/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "cel",
+      "rawname": "cel",
+      "name": "Call Event Logging",
+      "description": "The Call Event Logging module allows you to see all inbound and outbound calls for your user and listen to any call recordings that are associated with that call.",
+      "category": "Reports",
+      "version": "17.0.3",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "cel",
+        "branch": "release/17.0",
+        "revision": "41f2a16c764fc866b2805e8c2968e262fbfe8ef5",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "efea2a576fff5da21010e701ccd7c5616021605e",
+        "repositoryUrl": "https://github.com/FreePBX/cel",
+        "moduleXmlUrl": "https://github.com/FreePBX/cel/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "cdr-cel-reports"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/cel",
+        "moduleXml": "https://github.com/FreePBX/cel/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "certman",
+      "rawname": "certman",
+      "name": "Certificate Manager",
+      "description": "Certificate Manager for Asterisk. Used for TLS, DTLS connection (think WebRTC and secure traffic)",
+      "category": "Admin",
+      "version": "17.0.3.15",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "certman",
+        "branch": "release/17.0",
+        "revision": "95b1e485c7320238e9f2929e64cc35c8b9c89436",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "12765bea240bb085a5f52e5294dd94ebebc85fba",
+        "repositoryUrl": "https://github.com/FreePBX/certman",
+        "moduleXmlUrl": "https://github.com/FreePBX/certman/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "AGPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [],
+      "fwconsoleCommands": [
+        {
+          "name": "certificates",
+          "class": "Certman"
+        }
+      ],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "certificates-tls"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/certman",
+        "moduleXml": "https://github.com/FreePBX/certman/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "cidlookup",
+      "rawname": "cidlookup",
+      "name": "CallerID Lookup",
+      "description": "Allows CallerID Lookup of incoming calls against different sources (OpenCNAM, MySQL, HTTP, ENUM, Phonebook Module)",
+      "category": "Admin",
+      "version": "17.0.1.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "cidlookup",
+        "branch": "release/17.0",
+        "revision": "4cd8f0223ea9d5c36ccc2e2f297ed807dda75b0d",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "33df1aeff483d085af1830a2757e57adabc92270",
+        "repositoryUrl": "https://github.com/FreePBX/cidlookup",
+        "moduleXmlUrl": "https://github.com/FreePBX/cidlookup/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "framework",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": "callerid-lookup",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/cidlookup",
+        "moduleXml": "https://github.com/FreePBX/cidlookup/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "conferences",
+      "rawname": "conferences",
+      "name": "Conferences",
+      "description": "Allow creation of conference rooms where multiple people can talk together",
+      "category": "Applications",
+      "version": "17.0.3.2",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "conferences",
+        "branch": "release/17.0",
+        "revision": "01c9bab78908c72bc7432899ffb47a7d0c96f024",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "5ee8b5d93c9b4c0b498fa93121da4b503ca4c4fc",
+        "repositoryUrl": "https://github.com/FreePBX/conferences",
+        "moduleXmlUrl": "https://github.com/FreePBX/conferences/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "recordings",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/confbridge.conf",
+        "/etc/asterisk/meetme.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "conferences"
+      ],
+      "nativeTaskId": "conferences",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/conferences",
+        "moduleXml": "https://github.com/FreePBX/conferences/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "configedit",
+      "rawname": "configedit",
+      "name": "Config Edit",
+      "description": "Configuration file editor for _custom files",
+      "category": "Admin",
+      "version": "17.0.1.4",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "configedit",
+        "branch": "release/17.0",
+        "revision": "09065210a2aa0d76088eca52515ffe5b0a61203c",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "0e134bf5f6c4fb9dd348de23263cb7910aab05a9",
+        "repositoryUrl": "https://github.com/FreePBX/configedit",
+        "moduleXmlUrl": "https://github.com/FreePBX/configedit/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "AGPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/configedit",
+        "moduleXml": "https://github.com/FreePBX/configedit/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "contactmanager",
+      "rawname": "contactmanager",
+      "name": "Contact Manager",
+      "description": "The Contact Manager module lets you add contacts to groups.",
+      "category": "Admin",
+      "version": "17.0.6.2",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "contactmanager",
+        "branch": "release/17.0",
+        "revision": "d904f7ada299f2a624ef84388b39e2fdbd3060c6",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "623a4a2b2af521d644519a89c0a55a56db2a68c6",
+        "repositoryUrl": "https://github.com/FreePBX/contactmanager",
+        "moduleXmlUrl": "https://github.com/FreePBX/contactmanager/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "userman",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [],
+      "fwconsoleCommands": [
+        {
+          "name": "contactmanager",
+          "class": ""
+        }
+      ],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "contacts"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/contactmanager",
+        "moduleXml": "https://github.com/FreePBX/contactmanager/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "core",
+      "rawname": "core",
+      "name": "Core",
+      "description": "Description was not published in module.xml.",
+      "category": "Applications",
+      "version": "17.0.18.52",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "core",
+        "branch": "release/17.0",
+        "revision": "c844adb4cdea1042e0e966d1e596d3c27664443d",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "8f85ef4905bf86636552593f661228247514e641",
+        "repositoryUrl": "https://github.com/FreePBX/core",
+        "moduleXmlUrl": "https://github.com/FreePBX/core/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [
+        {
+          "name": "convert2pjsip",
+          "class": ""
+        },
+        {
+          "name": "trunks",
+          "class": ""
+        }
+      ],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "extensions-users-devices"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/core",
+        "moduleXml": "https://github.com/FreePBX/core/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "customappsreg",
+      "rawname": "customappsreg",
+      "name": "Custom Applications",
+      "description": "Registry to add custom extensions and destinations that may be created and used so that the Extensions and Destinations Registry can include these.",
+      "category": "Admin",
+      "version": "17.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "customappsreg",
+        "branch": "release/17.0",
+        "revision": "22dcad6dab338d5d94f9a53e39c85a18a6ed441b",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "f575b3b7fbc9131ea767567135a153275ca5d2b2",
+        "repositoryUrl": "https://github.com/FreePBX/customappsreg",
+        "moduleXmlUrl": "https://github.com/FreePBX/customappsreg/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": "custom-apps-registration",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/customappsreg",
+        "moduleXml": "https://github.com/FreePBX/customappsreg/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "cxpanel",
+      "rawname": "cxpanel",
+      "name": "iSymphonyV3",
+      "description": "This module automatically configures the operator panel to reflect the PBX configuration.",
+      "category": "Admin",
+      "version": "17.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "cxpanel",
+        "branch": "release/17.0",
+        "revision": "47d6a8b15bff2d764bb385e8e3840c6af1949eb7",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "780b759ab24710df0d40336f565ea7e8a6612e87",
+        "repositoryUrl": "https://github.com/FreePBX/cxpanel",
+        "moduleXmlUrl": "https://github.com/FreePBX/cxpanel/blob/release/17.0/module.xml"
+      },
+      "publisher": "i9 Technologies",
+      "license": "GPLv3",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "manager",
+          "version": "13.0.121"
+        },
+        {
+          "moduleId": "userman",
+          "version": ""
+        },
+        {
+          "moduleId": "framework",
+          "version": "14.0.2.16"
+        }
+      ],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/cxpanel",
+        "moduleXml": "https://github.com/FreePBX/cxpanel/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "dahdiconfig",
+      "rawname": "dahdiconfig",
+      "name": "DAHDi Config",
+      "description": "The DAHDI module is designed to let you manage and configure your PSTN cards.",
+      "category": "Connectivity",
+      "version": "17.0.1.16",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "dahdiconfig",
+        "branch": "release/17.0",
+        "revision": "849fd204f8545ac47436494608a7bc71ec4318d8",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "d1a89eb9ad9202d2f018c83e67bd82d49cca1772",
+        "repositoryUrl": "https://github.com/FreePBX/dahdiconfig",
+        "moduleXmlUrl": "https://github.com/FreePBX/dahdiconfig/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "connectivity"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/dahdiconfig",
+        "moduleXml": "https://github.com/FreePBX/dahdiconfig/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "dashboard",
+      "rawname": "dashboard",
+      "name": "System Dashboard",
+      "description": "Provides a system information dashboard, showing information about Calls, CPU, Memory, Disks, Network, and processes.",
+      "category": "Dashboard",
+      "version": "17.0.5",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "dashboard",
+        "branch": "release/17.0",
+        "revision": "c5f260359f0a8aaadf5d480a3ac5b47580e5a560",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "446fabded0ae9e33f0c43c85d23e6f26aee3c96d",
+        "repositoryUrl": "https://github.com/FreePBX/dashboard",
+        "moduleXmlUrl": "https://github.com/FreePBX/dashboard/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "AGPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "dashboard"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/dashboard",
+        "moduleXml": "https://github.com/FreePBX/dashboard/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "daynight",
+      "rawname": "daynight",
+      "name": "Call Flow Control",
+      "description": "Call Flow manual toggle control - allows for two destinations to be chosen and provides a feature code that toggles between the two destinations.",
+      "category": "Applications",
+      "version": "17.0.1.2",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "daynight",
+        "branch": "release/17.0",
+        "revision": "e7ee1e7b0b9c41068f2163a5e7907249ca444586",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "82edbe94f87f8c34f25fee360ddcbd4cf3c6e088",
+        "repositoryUrl": "https://github.com/FreePBX/daynight",
+        "moduleXmlUrl": "https://github.com/FreePBX/daynight/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "call-flow-day-night"
+      ],
+      "nativeTaskId": "call-flow-control",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/daynight",
+        "moduleXml": "https://github.com/FreePBX/daynight/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "dbmanager",
+      "rawname": "dbmanager",
+      "name": "Backup Database Manager",
+      "description": "This module manages database information for internal and external backups through the backup module.",
+      "category": "Settings",
+      "version": "15.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "dbmanager",
+        "branch": "master",
+        "revision": "c87b3be0ffbd265c0fb3cd8762b994a5c4691d7f",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "6793aa744465f701b8f40ed8e0ac1b1cb84d977f",
+        "repositoryUrl": "https://github.com/FreePBX/dbmanager",
+        "moduleXmlUrl": "https://github.com/FreePBX/dbmanager/blob/master/module.xml"
+      },
+      "publisher": "Generated Module",
+      "license": "AGPLv3",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "settings"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/dbmanager",
+        "moduleXml": "https://github.com/FreePBX/dbmanager/blob/master/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "dictate",
+      "rawname": "dictate",
+      "name": "Dictation",
+      "description": "This uses the app_dictate module of Asterisk to let users record dictate into their phones. When complete, the dictations can be emailed to an email address specified in the extension page.",
+      "category": "Applications",
+      "version": "17.0.1.2",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "dictate",
+        "branch": "release/17.0",
+        "revision": "b753b3757c44ff7d33eee4f59d27ed6ef7942bca",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "fd1bdcc192e61909064cdea414664056b8fe64fa",
+        "repositoryUrl": "https://github.com/FreePBX/dictate",
+        "moduleXmlUrl": "https://github.com/FreePBX/dictate/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "applications"
+      ],
+      "nativeTaskId": "dictate",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/dictate",
+        "moduleXml": "https://github.com/FreePBX/dictate/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "digium_phones",
+      "rawname": "digium_phones",
+      "name": "Digium Phones Config",
+      "description": "Description was not published in module.xml.",
+      "category": "Connectivity",
+      "version": "17.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "digium_phones",
+        "branch": "release/17.0",
+        "revision": "ffd6458a8ee00ef965d2932068dbdf486aeba1de",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "c28a4711ab5ec66379278de3335781adf6e4bda2",
+        "repositoryUrl": "https://github.com/FreePBX/digium_phones",
+        "moduleXmlUrl": "https://github.com/FreePBX/digium_phones/blob/release/17.0/module.xml"
+      },
+      "publisher": "Digium",
+      "license": "GPLv2",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "connectivity"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/digium_phones",
+        "moduleXml": "https://github.com/FreePBX/digium_phones/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "digiumaddoninstaller",
+      "rawname": "digiumaddoninstaller",
+      "name": "Digium Addons",
+      "description": "Description was not published in module.xml.",
+      "category": "Admin",
+      "version": "2.11.0.14",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "digiumaddoninstaller",
+        "branch": "master",
+        "revision": "11069696067d21caaee9ac228932adb0877faa94",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "009d900c8d89ab3e04b9eb6914ce9947db97b34c",
+        "repositoryUrl": "https://github.com/FreePBX/digiumaddoninstaller",
+        "moduleXmlUrl": "https://github.com/FreePBX/digiumaddoninstaller/blob/master/module.xml"
+      },
+      "publisher": "Digium",
+      "license": "GPLv2",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/digiumaddoninstaller",
+        "moduleXml": "https://github.com/FreePBX/digiumaddoninstaller/blob/master/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "directory",
+      "rawname": "directory",
+      "name": "Directory",
+      "description": "The directory module allows you to create directories of users that can be accessed by callers through modules like the IVR.",
+      "category": "Applications",
+      "version": "17.0.3",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "directory",
+        "branch": "release/17.0",
+        "revision": "ccb41c130ffd18570921f5010fb583578f966b20",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "1ea576ac4c58cc52e57d1224b06b4377492e7420",
+        "repositoryUrl": "https://github.com/FreePBX/directory",
+        "moduleXmlUrl": "https://github.com/FreePBX/directory/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "recordings",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "directory"
+      ],
+      "nativeTaskId": "directory",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/directory",
+        "moduleXml": "https://github.com/FreePBX/directory/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "disa",
+      "rawname": "disa",
+      "name": "DISA",
+      "description": "DISA Allows you 'Direct Inward System Access'. This gives you the ability to have an option on an IVR that gives you a dial tone, and you're able to dial out from the FreePBX machine as if you were connected to a standard extension. It appears as a Destination.",
+      "category": "Applications",
+      "version": "17.0.6",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "disa",
+        "branch": "release/17.0",
+        "revision": "f39be072252ef23077d12e14de28edc6248536ed",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "6598c3bca2b312d97c072fb488d55a590bb2478f",
+        "repositoryUrl": "https://github.com/FreePBX/disa",
+        "moduleXmlUrl": "https://github.com/FreePBX/disa/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "AGPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "applications"
+      ],
+      "nativeTaskId": "disa",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/disa",
+        "moduleXml": "https://github.com/FreePBX/disa/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "donotdisturb",
+      "rawname": "donotdisturb",
+      "name": "Do-Not-Disturb (DND)",
+      "description": "Do not disturb (DND) allows calls to be rejected at the user's request via a feature code, UCP setting, or REST App.",
+      "category": "Applications",
+      "version": "17.0.2.3",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "donotdisturb",
+        "branch": "release/17.0",
+        "revision": "aea52652171e4cd4f43412f7b4d42f64c864e973",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "5ac819a9e7e9d4c7995a54c76b045ad1d3604493",
+        "repositoryUrl": "https://github.com/FreePBX/donotdisturb",
+        "moduleXmlUrl": "https://github.com/FreePBX/donotdisturb/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "dnd"
+      ],
+      "nativeTaskId": "dnd",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/donotdisturb",
+        "moduleXml": "https://github.com/FreePBX/donotdisturb/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "dundicheck",
+      "rawname": "dundicheck",
+      "name": "DUNDi Lookup Registry",
+      "description": "This module will check all configured and enabled DUNDi trunks as part of the extension registry function, and report back conflicts if other sites have the same extensions. This does not filter against the route patterns - it will take any number being created and report a conflict if that trunk could be used to call that number.",
+      "category": "Admin",
+      "version": "17.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "dundicheck",
+        "branch": "release/17.0",
+        "revision": "6260e6364f361d33a1096ced6a536a5d8f99ec2e",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "5c105ddf6d414d1c35ae6788c8929a628d0f2c99",
+        "repositoryUrl": "https://github.com/FreePBX/dundicheck",
+        "moduleXmlUrl": "https://github.com/FreePBX/dundicheck/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/dundicheck",
+        "moduleXml": "https://github.com/FreePBX/dundicheck/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "extensionsettings",
+      "rawname": "extensionsettings",
+      "name": "Extension Settings",
+      "description": "Creates a list of all extensions and their current settings for CW, CF, CFB, CFU, VMXB and VMXU",
+      "category": "Settings",
+      "version": "17.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "extensionsettings",
+        "branch": "release/17.0",
+        "revision": "af57f415c210ede92502b3e1ab0e0e316b657733",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "1b6555601f34fd13eb37292c68cfe7e7a6a13a00",
+        "repositoryUrl": "https://github.com/FreePBX/extensionsettings",
+        "moduleXmlUrl": "https://github.com/FreePBX/extensionsettings/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/pjsip.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "extensions-users-devices"
+      ],
+      "nativeTaskId": "extension-settings",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/extensionsettings",
+        "moduleXml": "https://github.com/FreePBX/extensionsettings/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "fax",
+      "rawname": "fax",
+      "name": "Fax Configuration",
+      "description": "Adds configurations, options and GUI for inbound faxing",
+      "category": "Settings",
+      "version": "17.0.3.5",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "fax",
+        "branch": "release/17.0",
+        "revision": "d913d2562b47574ae43a3bfbbafee85ca727042d",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "1527fef477523bdec039257750d906dc90020159",
+        "repositoryUrl": "https://github.com/FreePBX/fax",
+        "moduleXmlUrl": "https://github.com/FreePBX/fax/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "userman",
+          "version": "17.0"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/res_fax.conf",
+        "/etc/asterisk/udptl.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "settings"
+      ],
+      "nativeTaskId": "fax",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/fax",
+        "moduleXml": "https://github.com/FreePBX/fax/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "featurecodeadmin",
+      "rawname": "featurecodeadmin",
+      "name": "Feature Code Admin",
+      "description": "The Feature Codes Module is used to enable and disable certain features available in your PBX and Asterisk, and to set the codes that local users will dial on their phones to use that particular feature.",
+      "category": "Admin",
+      "version": "17.0.2",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "featurecodeadmin",
+        "branch": "release/17.0",
+        "revision": "fc7f8a5ac4ed02c24852488eb615e52f9c827fcc",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "be28f5f8916c54fa8ddc20bb32e55363ca674296",
+        "repositoryUrl": "https://github.com/FreePBX/featurecodeadmin",
+        "moduleXmlUrl": "https://github.com/FreePBX/featurecodeadmin/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "core",
+          "version": "13.0.117.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/features.conf",
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": "feature-codes",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/featurecodeadmin",
+        "moduleXml": "https://github.com/FreePBX/featurecodeadmin/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "filestore",
+      "rawname": "filestore",
+      "name": "Filestore",
+      "description": "Filesystem abstraction for your PBX",
+      "category": "Settings",
+      "version": "17.0.3.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "filestore",
+        "branch": "release/17.0",
+        "revision": "786a7f3ef71df14524be8c2ff6665baf93f1824c",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "e9aacdc6f20942016ddc7b79b05e884c41afec1d",
+        "repositoryUrl": "https://github.com/FreePBX/filestore",
+        "moduleXmlUrl": "https://github.com/FreePBX/filestore/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies",
+      "license": "AGPLv3",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "settings"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/filestore",
+        "moduleXml": "https://github.com/FreePBX/filestore/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "findmefollow",
+      "rawname": "findmefollow",
+      "name": "Follow Me",
+      "description": "Much like a ring group, but works on individual extensions. When someone calls the extension, it can be setup to ring for a number of seconds before trying to ring other extensions and/or external numbers, or to ring all at once, or in other various 'hunt' configurations. Most commonly used to ring someone's cell phone if they don't answer their extension.",
+      "category": "Applications",
+      "version": "17.0.4.14",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "findmefollow",
+        "branch": "release/17.0",
+        "revision": "94203267e220b0529d17841bb00c948e33c63bef",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "3df1861b770df4abb1c7f33d56c0d8638ca9719b",
+        "repositoryUrl": "https://github.com/FreePBX/findmefollow",
+        "moduleXmlUrl": "https://github.com/FreePBX/findmefollow/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "framework",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "recordings",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "userman",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/followme.conf",
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "follow-me-find-me"
+      ],
+      "nativeTaskId": "follow-me",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/findmefollow",
+        "moduleXml": "https://github.com/FreePBX/findmefollow/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "firewall",
+      "rawname": "firewall",
+      "name": "System Firewall",
+      "description": "Integrated PBX Firewall. Currently works with RHEL 6 and RHEL 7 compatible distributions. Note: This requires the Sysadmin RPM. Please see wiki for further information.",
+      "category": "Connectivity",
+      "version": "17.0.2",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "firewall",
+        "branch": "release/17.0",
+        "revision": "087d6ce4a5955bebcc8e746e9d2bfd6b72cb86cd",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "004ab3c199fd39fb0bf498ee88542da4cf6a964e",
+        "repositoryUrl": "https://github.com/FreePBX/firewall",
+        "moduleXmlUrl": "https://github.com/FreePBX/firewall/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "AGPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "sipsettings",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "manager",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/acl.conf"
+      ],
+      "fwconsoleCommands": [
+        {
+          "name": "firewall",
+          "class": ""
+        }
+      ],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "firewall-security"
+      ],
+      "nativeTaskId": "firewall",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/firewall",
+        "moduleXml": "https://github.com/FreePBX/firewall/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "framework",
+      "rawname": "framework",
+      "name": "FreePBX Framework",
+      "description": "This module provides a facility to install bug fixes to the framework code that is not otherwise housed in a module",
+      "category": "Admin",
+      "version": "17.0.32",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "framework",
+        "branch": "release/17.0",
+        "revision": "7ac8e40097f4764b447f3c5c434f94039547cbf9",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "63ae8642c310f6914b0f93ac19a71b2c17ec2f2f",
+        "repositoryUrl": "https://github.com/FreePBX/framework",
+        "moduleXmlUrl": "https://github.com/FreePBX/framework/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv2+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [
+        {
+          "name": "chown",
+          "class": ""
+        },
+        {
+          "name": "context",
+          "class": ""
+        },
+        {
+          "name": "debug",
+          "class": ""
+        },
+        {
+          "name": "doctrine",
+          "class": ""
+        },
+        {
+          "name": "kvstore",
+          "class": ""
+        },
+        {
+          "name": "localization",
+          "class": ""
+        },
+        {
+          "name": "moduleadmin",
+          "class": ""
+        },
+        {
+          "name": "motd",
+          "class": ""
+        },
+        {
+          "name": "mysql",
+          "class": ""
+        },
+        {
+          "name": "notifications",
+          "class": ""
+        },
+        {
+          "name": "reload",
+          "class": ""
+        },
+        {
+          "name": "restart",
+          "class": ""
+        },
+        {
+          "name": "session",
+          "class": ""
+        },
+        {
+          "name": "setting",
+          "class": ""
+        },
+        {
+          "name": "start",
+          "class": ""
+        },
+        {
+          "name": "stop",
+          "class": ""
+        },
+        {
+          "name": "system",
+          "class": ""
+        },
+        {
+          "name": "unlock",
+          "class": ""
+        },
+        {
+          "name": "updatemanager",
+          "class": ""
+        },
+        {
+          "name": "util",
+          "class": ""
+        },
+        {
+          "name": "validate",
+          "class": ""
+        },
+        {
+          "name": "extip",
+          "class": ""
+        },
+        {
+          "name": "job",
+          "class": ""
+        }
+      ],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/framework",
+        "moduleXml": "https://github.com/FreePBX/framework/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "ghtest",
+      "rawname": "ghtest",
+      "name": "FreePBX GH Test",
+      "description": "FreePBX GH Test for Actions and more",
+      "category": "Development",
+      "version": "17.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "freepbx-gh-test",
+        "branch": "release/17.0",
+        "revision": "ca151254ce425d5e27f11a6f37cb810c55f828dd",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "f827b43293c18ea54db837aa63a944e3271b44a3",
+        "repositoryUrl": "https://github.com/FreePBX/freepbx-gh-test",
+        "moduleXmlUrl": "https://github.com/FreePBX/freepbx-gh-test/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma US Inc.",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [
+        {
+          "name": "ghtest",
+          "class": "Ghtest"
+        }
+      ],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "development"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/freepbx-gh-test",
+        "moduleXml": "https://github.com/FreePBX/freepbx-gh-test/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "hotelwakeup",
+      "rawname": "hotelwakeup",
+      "name": "Wake Up Calls",
+      "description": "FreePBX module for generating reminder and wakeup calls",
+      "category": "Applications",
+      "version": "17.0.1.7",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "hotelwakeup",
+        "branch": "release/17.0",
+        "revision": "9bc6eef532cc9c2a3b9c69c64023a4829ae22b75",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "0c372e21c487e91856c513c3d777cba30dcfae67",
+        "repositoryUrl": "https://github.com/FreePBX/hotelwakeup",
+        "moduleXmlUrl": "https://github.com/FreePBX/hotelwakeup/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv2",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "ivr",
+          "version": "17.0"
+        },
+        {
+          "moduleId": "soundlang",
+          "version": ""
+        },
+        {
+          "moduleId": "recordings",
+          "version": ""
+        }
+      ],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "applications"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/hotelwakeup",
+        "moduleXml": "https://github.com/FreePBX/hotelwakeup/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "iaxsettings",
+      "rawname": "iaxsettings",
+      "name": "Asterisk IAX Settings",
+      "description": "Use to configure Various Asterisk IAX Settings in the General section of iax.conf.",
+      "category": "Settings",
+      "version": "17.0.2",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "iaxsettings",
+        "branch": "release/17.0",
+        "revision": "11df2c998cb093011047562aa5207d78b33fa6f9",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "dd0978ca8bd251795505717bc8d637bd5279468a",
+        "repositoryUrl": "https://github.com/FreePBX/iaxsettings",
+        "moduleXmlUrl": "https://github.com/FreePBX/iaxsettings/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "AGPLv3",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/iax.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "iax-settings"
+      ],
+      "nativeTaskId": "iax-settings",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/iaxsettings",
+        "moduleXml": "https://github.com/FreePBX/iaxsettings/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "infoservices",
+      "rawname": "infoservices",
+      "name": "Info Services",
+      "description": "Provides a number of applications accessible by feature codes: company directory, call trace (last call information), echo test, speaking clock, and speak current extension number.",
+      "category": "Applications",
+      "version": "17.0.1.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "infoservices",
+        "branch": "release/17.0",
+        "revision": "16f5fa1f8286f78b44ac545bdd129c358c85bf71",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "7b0abd8cda1736e89ebc4c657bc4a3fcf214d831",
+        "repositoryUrl": "https://github.com/FreePBX/infoservices",
+        "moduleXmlUrl": "https://github.com/FreePBX/infoservices/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv2+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "applications"
+      ],
+      "nativeTaskId": "info-services",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/infoservices",
+        "moduleXml": "https://github.com/FreePBX/infoservices/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "ivr",
+      "rawname": "ivr",
+      "name": "IVR",
+      "description": "Creates Digital Receptionist (aka Auto-Attendant, aka Interactive Voice Response) menus. These can be used to send callers to different locations (eg, Press 1 for sales) and/or allow direct-dialing of extension numbers.",
+      "category": "Applications",
+      "version": "17.0.9",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "ivr",
+        "branch": "release/17.0",
+        "revision": "edf57a28e5872a5a24064e65830a21b5c7a113c2",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "d4c92008374b74439d975b88b3cdbbce3f42a051",
+        "repositoryUrl": "https://github.com/FreePBX/ivr",
+        "moduleXmlUrl": "https://github.com/FreePBX/ivr/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "recordings",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "applications"
+      ],
+      "nativeTaskId": "ivr",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/ivr",
+        "moduleXml": "https://github.com/FreePBX/ivr/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "languages",
+      "rawname": "languages",
+      "name": "Languages",
+      "description": "Adds the ability to changes the language within a call flow and add language attribute to users.",
+      "category": "Applications",
+      "version": "17.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "languages",
+        "branch": "release/17.0",
+        "revision": "88d81e7782d242d94ff8233307ebe07471665565",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "fbd7c441fcdd3e132c56523240f575451680834e",
+        "repositoryUrl": "https://github.com/FreePBX/languages",
+        "moduleXmlUrl": "https://github.com/FreePBX/languages/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/asterisk.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "languages"
+      ],
+      "nativeTaskId": "sound-languages",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/languages",
+        "moduleXml": "https://github.com/FreePBX/languages/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "logfiles",
+      "rawname": "logfiles",
+      "name": "Asterisk Logfiles",
+      "description": "The Asterisk Logfiles Module is an easy way to view portions of the Asterisk Log.",
+      "category": "Reports",
+      "version": "17.0.5",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "logfiles",
+        "branch": "release/17.0",
+        "revision": "b43d93f443aaf21a1da1bf7f200bda5888fe955d",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "28567200eba2694c720ca359bf5f64223925347f",
+        "repositoryUrl": "https://github.com/FreePBX/logfiles",
+        "moduleXmlUrl": "https://github.com/FreePBX/logfiles/blob/release/17.0/module.xml"
+      },
+      "publisher": "Schmooze Com. Inc.",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "diagnostics"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/logfiles",
+        "moduleXml": "https://github.com/FreePBX/logfiles/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "manager",
+      "rawname": "manager",
+      "name": "Asterisk API",
+      "description": "This module is used to add AMI Users",
+      "category": "Settings",
+      "version": "17.0.9",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "manager",
+        "branch": "release/17.0",
+        "revision": "dca526fc94dfef598d82def74e88e5e4fe528070",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "e0ae34f047ddf3c73ec86e6748b5ae73b3ea2161",
+        "repositoryUrl": "https://github.com/FreePBX/manager",
+        "moduleXmlUrl": "https://github.com/FreePBX/manager/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv2+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/manager.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "ami-api"
+      ],
+      "nativeTaskId": "ami-settings",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/manager",
+        "moduleXml": "https://github.com/FreePBX/manager/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "miscapps",
+      "rawname": "miscapps",
+      "name": "Misc Applications",
+      "description": "Adds the ability to create feature codes that can go to any FreePBX destination (such as an IVR or queue)",
+      "category": "Applications",
+      "version": "17.0.3",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "miscapps",
+        "branch": "release/17.0",
+        "revision": "9c7cc504faa57e61b70a294dd4f89ea21645c912",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "edfc998ccfc08d51403db3466895cd98da5d5ceb",
+        "repositoryUrl": "https://github.com/FreePBX/miscapps",
+        "moduleXmlUrl": "https://github.com/FreePBX/miscapps/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "misc-apps"
+      ],
+      "nativeTaskId": "misc-apps",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/miscapps",
+        "moduleXml": "https://github.com/FreePBX/miscapps/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "miscdests",
+      "rawname": "miscdests",
+      "name": "Misc Destinations",
+      "description": "Allows creating destinations that dial any local number (extensions, feature codes, outside phone numbers) that can be used by other modules (eg, IVR, time conditions) as a call destination.",
+      "category": "Applications",
+      "version": "17.0.1.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "miscdests",
+        "branch": "release/17.0",
+        "revision": "a15c4988699d381e471005b3cc54aa3bffa1d0c7",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "64a72593a64fe1e63a0c9b51ec3a79d2277ea002",
+        "repositoryUrl": "https://github.com/FreePBX/miscdests",
+        "moduleXmlUrl": "https://github.com/FreePBX/miscdests/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "misc-destinations"
+      ],
+      "nativeTaskId": "misc-destinations",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/miscdests",
+        "moduleXml": "https://github.com/FreePBX/miscdests/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "missedcall",
+      "rawname": "missedcall",
+      "name": "Missed Call Notification",
+      "description": "Send email notifications to users when a call is missed",
+      "category": "Applications",
+      "version": "17.0.6",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "missedcall",
+        "branch": "release/17.0",
+        "revision": "58012c08330ca485edf7b6371ed4a13e036ba11a",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "9e49fe82f85de617aabc97257ec8d21371aea233",
+        "repositoryUrl": "https://github.com/FreePBX/missedcall",
+        "moduleXmlUrl": "https://github.com/FreePBX/missedcall/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "framework",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "userman",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "queues",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "applications"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/missedcall",
+        "moduleXml": "https://github.com/FreePBX/missedcall/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "music",
+      "rawname": "music",
+      "name": "Music on Hold",
+      "description": "Uploading and management of sound files (wav, mp3) to be used for on-hold music.",
+      "category": "Settings",
+      "version": "17.0.7",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "music",
+        "branch": "release/17.0",
+        "revision": "7f8ff5fe04f24d1a928743f7e6a09333d7e306a9",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "706157cd30cefc497b88e37e0af97ec52824d59d",
+        "repositoryUrl": "https://github.com/FreePBX/music",
+        "moduleXmlUrl": "https://github.com/FreePBX/music/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "framework",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/musiconhold.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "music-on-hold"
+      ],
+      "nativeTaskId": "music-on-hold",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/music",
+        "moduleXml": "https://github.com/FreePBX/music/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "outroutemsg",
+      "rawname": "outroutemsg",
+      "name": "Route Congestion Messages",
+      "description": "Configures message or congestion tones played when all trunks are busy in a route. Allows different messages for Emergency Routes and Intra-Company Routes",
+      "category": "Settings",
+      "version": "17.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "outroutemsg",
+        "branch": "release/17.0",
+        "revision": "e1a51324abb028254d99757115fa81450f5b7fc1",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "513e854415c2adea3c16bdc6321d1e153b5cee78",
+        "repositoryUrl": "https://github.com/FreePBX/outroutemsg",
+        "moduleXmlUrl": "https://github.com/FreePBX/outroutemsg/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "recordings",
+          "version": ""
+        },
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "settings"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/outroutemsg",
+        "moduleXml": "https://github.com/FreePBX/outroutemsg/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "paging",
+      "rawname": "paging",
+      "name": "Paging and Intercom",
+      "description": "Allows creation of paging groups to make announcements using the speaker built into most SIP phones. Also creates an Intercom feature code that can be used as a prefix to talk directly to one person, as well as optional feature codes to block/allow intercom calls to all users as well as blocking specific users or only allowing specific users.",
+      "category": "Applications",
+      "version": "17.0.4",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "paging",
+        "branch": "release/17.0",
+        "revision": "31265fedcbee1f085355635f12f2f3362adfdbbc",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "9e5724dd29e7dc645eb74fc3af275dc62ab05692",
+        "repositoryUrl": "https://github.com/FreePBX/paging",
+        "moduleXmlUrl": "https://github.com/FreePBX/paging/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "core",
+          "version": "16.0.56.5"
+        },
+        {
+          "moduleId": "framework",
+          "version": "16.0.10.23"
+        },
+        {
+          "moduleId": "conferences",
+          "version": ""
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/meetme.conf",
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "paging-intercom"
+      ],
+      "nativeTaskId": "paging",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/paging",
+        "moduleXml": "https://github.com/FreePBX/paging/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "parking",
+      "rawname": "parking",
+      "name": "Parking Lot",
+      "description": "Manages parking lot extensions and other options. Parking is a way of putting calls \"on hold\", and then picking them up from any extension.",
+      "category": "Applications",
+      "version": "17.0.2.9",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "parking",
+        "branch": "release/17.0",
+        "revision": "342a357a993a98670bdaadbe14f343b936c4e791",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "dd4c7c1bff57efd646227e028b6d5d624172fd1f",
+        "repositoryUrl": "https://github.com/FreePBX/parking",
+        "moduleXmlUrl": "https://github.com/FreePBX/parking/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "core",
+          "version": "17.0.18.51"
+        },
+        {
+          "moduleId": "framework",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "callrecording",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/res_parking.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "parking"
+      ],
+      "nativeTaskId": "parking",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/parking",
+        "moduleXml": "https://github.com/FreePBX/parking/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "pbdirectory",
+      "rawname": "pbdirectory",
+      "name": "Phonebook Directory",
+      "description": "Provides a dial-by-name directory for phonebook entries",
+      "category": "Admin",
+      "version": "17.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "pbdirectory",
+        "branch": "release/17.0",
+        "revision": "911de24b29ce4ca9d948f3900eafd14b6e36cd26",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "562fe43e315e049aecc1fa34e74853db053800fd",
+        "repositoryUrl": "https://github.com/FreePBX/pbdirectory",
+        "moduleXmlUrl": "https://github.com/FreePBX/pbdirectory/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "phonebook",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "speeddial",
+          "version": ""
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": "phonebook",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/pbdirectory",
+        "moduleXml": "https://github.com/FreePBX/pbdirectory/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "phonebook",
+      "rawname": "phonebook",
+      "name": "Phonebook",
+      "description": "Provides a phonebook which can be used as base for Caller ID Lookup and Speed Dial",
+      "category": "Admin",
+      "version": "17.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "phonebook",
+        "branch": "release/17.0",
+        "revision": "2810f28563d1720b8863bdd0e01f433e0bdb9997",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "c156527f61def73bf8d7f526b3aaedb8d2e96443",
+        "repositoryUrl": "https://github.com/FreePBX/phonebook",
+        "moduleXmlUrl": "https://github.com/FreePBX/phonebook/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": "phonebook",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/phonebook",
+        "moduleXml": "https://github.com/FreePBX/phonebook/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "pinsets",
+      "rawname": "pinsets",
+      "name": "PIN Sets",
+      "description": "Allow creation of lists of PINs (numbers for passwords) that can be used by other modules (eg, trunks).",
+      "category": "Settings",
+      "version": "17.0.4",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "pinsets",
+        "branch": "release/17.0",
+        "revision": "4362857b11e5d1b96336218071becd271f2c2375",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "6f01feac4862504b4f6f51e972eb5805afd1ad53",
+        "repositoryUrl": "https://github.com/FreePBX/pinsets",
+        "moduleXmlUrl": "https://github.com/FreePBX/pinsets/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "core",
+          "version": ""
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "settings"
+      ],
+      "nativeTaskId": "pinsets",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/pinsets",
+        "moduleXml": "https://github.com/FreePBX/pinsets/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "pm2",
+      "rawname": "pm2",
+      "name": "Process Management",
+      "description": "This module manages background processes for your PBX",
+      "category": "Admin",
+      "version": "17.0.3.4",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "pm2",
+        "branch": "release/17.0",
+        "revision": "663d0795d6aac70cb0f11f898c7f3e10635d7009",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "dcfe1e308a33c3bfe91fbb9ed463ac35fac10491",
+        "repositoryUrl": "https://github.com/FreePBX/pm2",
+        "moduleXmlUrl": "https://github.com/FreePBX/pm2/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "AGPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [
+        {
+          "name": "pm2",
+          "class": ""
+        }
+      ],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/pm2",
+        "moduleXml": "https://github.com/FreePBX/pm2/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "presencestate",
+      "rawname": "presencestate",
+      "name": "Presence State",
+      "description": "Manage list of presence states.",
+      "category": "Admin",
+      "version": "17.0.2.4",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "presencestate",
+        "branch": "release/17.0",
+        "revision": "3834f8d4ebeb20e9723d64e048302fa331da3dd3",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "9e857eafbb54a73bf2854746275b97617c1b01a6",
+        "repositoryUrl": "https://github.com/FreePBX/presencestate",
+        "moduleXmlUrl": "https://github.com/FreePBX/presencestate/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "calendar-presence"
+      ],
+      "nativeTaskId": "presence-state",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/presencestate",
+        "moduleXml": "https://github.com/FreePBX/presencestate/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "printextensions",
+      "rawname": "printextensions",
+      "name": "Print Extensions",
+      "description": "Creates a printable list of extension numbers used throughout the system from all modules that provide an internal callable number",
+      "category": "Reports",
+      "version": "17.0.1.5",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "printextensions",
+        "branch": "release/17.0",
+        "revision": "e234307c2e280e06828d5c8b41a4486652001e86",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "8f8999427552ae2ab8cb4ef8a446ade5d7a17da9",
+        "repositoryUrl": "https://github.com/FreePBX/printextensions",
+        "moduleXmlUrl": "https://github.com/FreePBX/printextensions/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "featurecodeadmin",
+          "version": ""
+        }
+      ],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "reports"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/printextensions",
+        "moduleXml": "https://github.com/FreePBX/printextensions/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "queueprio",
+      "rawname": "queueprio",
+      "name": "Queue Priorities",
+      "description": "Adds the ability to set a callers priority higher before entering a queue",
+      "category": "Applications",
+      "version": "17.0.1.4",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "queueprio",
+        "branch": "release/17.0",
+        "revision": "11d5755255af72206f7b3cf3318e102b7b2351a5",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "0c798e8110218afa4e2d905363d2fbf6b2e6afe9",
+        "repositoryUrl": "https://github.com/FreePBX/queueprio",
+        "moduleXmlUrl": "https://github.com/FreePBX/queueprio/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "queues"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/queueprio",
+        "moduleXml": "https://github.com/FreePBX/queueprio/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "queues",
+      "rawname": "queues",
+      "name": "Queues",
+      "description": "Creates a queue where calls are placed on hold and answered on a first-in, first-out basis. Many options are available, including ring strategy for agents, caller announcements, max wait times, etc.",
+      "category": "Applications",
+      "version": "17.0.4",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "queues",
+        "branch": "release/17.0",
+        "revision": "f18a34f250cfe766f65349eb4efd562655a7ec5d",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "ef643af41f5e3b9db73d149567cf16152a98e931",
+        "repositoryUrl": "https://github.com/FreePBX/queues",
+        "moduleXmlUrl": "https://github.com/FreePBX/queues/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv2+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "recordings",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/queues.conf",
+        "/etc/asterisk/agents.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "queues"
+      ],
+      "nativeTaskId": "queues",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/queues",
+        "moduleXml": "https://github.com/FreePBX/queues/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "recordings",
+      "rawname": "recordings",
+      "name": "Recordings",
+      "description": "Creates and manages system recordings, used by many other modules (eg, IVR).",
+      "category": "Admin",
+      "version": "17.0.6",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "recordings",
+        "branch": "release/17.0",
+        "revision": "5603b05f4ceed64e6fa80eefca84d646b5651feb",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "8c1837521c5eaace75019ac5fc6146d1d8c49fa8",
+        "repositoryUrl": "https://github.com/FreePBX/recordings",
+        "moduleXmlUrl": "https://github.com/FreePBX/recordings/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "framework",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "soundlang",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "recordings"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/recordings",
+        "moduleXml": "https://github.com/FreePBX/recordings/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "restart",
+      "rawname": "restart",
+      "name": "Bulk Phone Restart",
+      "description": "This module allows users to restart one or multiple phones that support being restarted via a SIP NOTIFY command through Asterisk's sip_notify.conf",
+      "category": "Admin",
+      "version": "17.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "restart",
+        "branch": "release/17.0",
+        "revision": "19f09f9d9da4187a28ec4ff4960e9f43ddc5dadc",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "4e6d2b43c0b34133f0ad846b1b8b7d26ef73f8da",
+        "repositoryUrl": "https://github.com/FreePBX/restart",
+        "moduleXmlUrl": "https://github.com/FreePBX/restart/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "jobs-scheduler"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/restart",
+        "moduleXml": "https://github.com/FreePBX/restart/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "ringgroups",
+      "rawname": "ringgroups",
+      "name": "Ring Groups",
+      "description": "Creates a group of extensions that all ring together. Extensions can be rung all at once, or in various 'hunt' configurations. Additionally, external numbers are supported, and there is a call confirmation option where the callee has to confirm if they actually want to take the call before the caller is transferred.",
+      "category": "Applications",
+      "version": "17.0.2.8",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "ringgroups",
+        "branch": "release/17.0",
+        "revision": "3b6f9a90c3fe56d27d460fdc74a4dda24390fecc",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "1a6a81f2193441558d9bddc6fd0bc91e8e40ba84",
+        "repositoryUrl": "https://github.com/FreePBX/ringgroups",
+        "moduleXmlUrl": "https://github.com/FreePBX/ringgroups/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "callrecording",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "ring-groups"
+      ],
+      "nativeTaskId": "ring-groups",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/ringgroups",
+        "moduleXml": "https://github.com/FreePBX/ringgroups/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "setcid",
+      "rawname": "setcid",
+      "name": "Set CallerID",
+      "description": "Adds the ability to change the CallerID within a call flow.",
+      "category": "Applications",
+      "version": "17.0.1.2",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "setcid",
+        "branch": "release/17.0",
+        "revision": "114c02f9e117c6e336d4b519259a8189b636151c",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "e0dde1011f8968217f849a961bd3a5b477d6e1f7",
+        "repositoryUrl": "https://github.com/FreePBX/setcid",
+        "moduleXmlUrl": "https://github.com/FreePBX/setcid/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "applications"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/setcid",
+        "moduleXml": "https://github.com/FreePBX/setcid/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "sipsettings",
+      "rawname": "sipsettings",
+      "name": "Asterisk SIP Settings",
+      "description": "Use to configure Various Asterisk SIP and PJSIP Settings",
+      "category": "Settings",
+      "version": "17.0.6.10",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "sipsettings",
+        "branch": "release/17.0",
+        "revision": "f847dba0967ddaf164c5c3267b92f74a9574176b",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "f5de98c2ccd9a7880e440a56ada03bc13945cda9",
+        "repositoryUrl": "https://github.com/FreePBX/sipsettings",
+        "moduleXmlUrl": "https://github.com/FreePBX/sipsettings/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "AGPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "backup",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/pjsip.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "sip-settings"
+      ],
+      "nativeTaskId": "sip-settings",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/sipsettings",
+        "moduleXml": "https://github.com/FreePBX/sipsettings/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "soundlang",
+      "rawname": "soundlang",
+      "name": "Sound Languages",
+      "description": "Management of sound prompt languages.",
+      "category": "Admin",
+      "version": "17.0.5",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "soundlang",
+        "branch": "release/17.0",
+        "revision": "a255a869f38d9609c8c3eb34624e5b5d1b0c70d3",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "500cecf94db6cdfdc1f4f69af258567b9e5c9d65",
+        "repositoryUrl": "https://github.com/FreePBX/soundlang",
+        "moduleXmlUrl": "https://github.com/FreePBX/soundlang/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/asterisk.conf"
+      ],
+      "fwconsoleCommands": [
+        {
+          "name": "sounds",
+          "class": "Soundlang"
+        }
+      ],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/soundlang",
+        "moduleXml": "https://github.com/FreePBX/soundlang/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "speeddial",
+      "rawname": "speeddial",
+      "name": "Speed Dial Functions",
+      "description": "Description was not published in module.xml.",
+      "category": "Settings",
+      "version": "17.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "speeddial",
+        "branch": "release/17.0",
+        "revision": "c280f87af4605bf51c4eb81ea9892646d827a808",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "ff795f5e03bd10ec54582277af795bfb05fd6e2d",
+        "repositoryUrl": "https://github.com/FreePBX/speeddial",
+        "moduleXmlUrl": "https://github.com/FreePBX/speeddial/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "phonebook",
+          "version": ""
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "settings"
+      ],
+      "nativeTaskId": "speed-dial",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/speeddial",
+        "moduleXml": "https://github.com/FreePBX/speeddial/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "superfecta",
+      "rawname": "superfecta",
+      "name": "CID Superfecta",
+      "description": "Provides simultaneous use of, and complete control over multiple caller id data sources.",
+      "category": "Admin",
+      "version": "17.0.7",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "superfecta",
+        "branch": "release/17.0",
+        "revision": "76538ba63b7bf89c9dab244c423011da32cab951",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "1dce120b8f658d13221a4785b6d64f626de46885",
+        "repositoryUrl": "https://github.com/FreePBX/superfecta",
+        "moduleXmlUrl": "https://github.com/FreePBX/superfecta/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv2+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "framework",
+          "version": "17.0.15.26"
+        }
+      ],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/superfecta",
+        "moduleXml": "https://github.com/FreePBX/superfecta/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "timeconditions",
+      "rawname": "timeconditions",
+      "name": "Time Conditions",
+      "description": "Creates a condition where calls will go to one of two destinations (eg, an extension, IVR, ring group..) based on the time and/or date. This can be used for example to ring a receptionist during the day, or go directly to an IVR at night.",
+      "category": "Applications",
+      "version": "17.0.1.18",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "timeconditions",
+        "branch": "release/17.0",
+        "revision": "c801ce3de757fd207f597f0364ebe523fedb79b8",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "fb2ab30087b464fdf016c0c8eb8cd93ef7c6180d",
+        "repositoryUrl": "https://github.com/FreePBX/timeconditions",
+        "moduleXmlUrl": "https://github.com/FreePBX/timeconditions/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "cel",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "calendar",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/extensions.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "time-groups-conditions"
+      ],
+      "nativeTaskId": "time-conditions",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/timeconditions",
+        "moduleXml": "https://github.com/FreePBX/timeconditions/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "tts",
+      "rawname": "tts",
+      "name": "Text To Speech",
+      "description": "Allows you to configure text to speech, and is derived from texttospeech provided in contributed modules.",
+      "category": "Applications",
+      "version": "17.0.6",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "tts",
+        "branch": "release/17.0",
+        "revision": "ff77d31a741b98a412da0c3dc15bd9ba27d31c39",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "fc57f47e79624a38e71c78f6ece352d21fc6ae84",
+        "repositoryUrl": "https://github.com/FreePBX/tts",
+        "moduleXmlUrl": "https://github.com/FreePBX/tts/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "ttsengines",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/festival.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "applications"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/tts",
+        "moduleXml": "https://github.com/FreePBX/tts/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "ttsengines",
+      "rawname": "ttsengines",
+      "name": "Text To Speech Engines",
+      "description": "Allows you to configure text to speech engines",
+      "category": "Settings",
+      "version": "17.0.2",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "ttsengines",
+        "branch": "release/17.0",
+        "revision": "5dc86268774d937dc1da588fe7550b4922528e3f",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "97b28c4f4707540e0b0a8a10dc325130c4f12287",
+        "repositoryUrl": "https://github.com/FreePBX/ttsengines",
+        "moduleXmlUrl": "https://github.com/FreePBX/ttsengines/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "AGPLv3",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/festival.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "settings"
+      ],
+      "nativeTaskId": "tts-engines",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/ttsengines",
+        "moduleXml": "https://github.com/FreePBX/ttsengines/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "ucp",
+      "rawname": "ucp",
+      "name": "User Control Panel",
+      "description": "The user control panel is a way for users to control call handling and personal settings from a web browser.",
+      "category": "Admin",
+      "version": "17.0.10",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "ucp",
+        "branch": "release/17.0",
+        "revision": "562f66671455acde6f6d750792f8e0775d510c29",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "e2d66e82b54d01df4e31127d9439b3095ce62fdd",
+        "repositoryUrl": "https://github.com/FreePBX/ucp",
+        "moduleXmlUrl": "https://github.com/FreePBX/ucp/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "AGPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "userman",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "pm2",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "certman",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "ucp-webrtc"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/ucp",
+        "moduleXml": "https://github.com/FreePBX/ucp/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "userman",
+      "rawname": "userman",
+      "name": "User Management",
+      "description": "This Module manages all PBX users. It allows an Administrator to create a User Account that can be used by other applications for login or API purposes.",
+      "category": "Admin",
+      "version": "17.0.7.3",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "userman",
+        "branch": "release/17.0",
+        "revision": "40765708de614b3e49f2dcff7e00132875cfdb6f",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "6b6345a93c6eee8e5cf465d3ba7f270f7e770573",
+        "repositoryUrl": "https://github.com/FreePBX/userman",
+        "moduleXmlUrl": "https://github.com/FreePBX/userman/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "AGPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [],
+      "fwconsoleCommands": [
+        {
+          "name": "userman",
+          "class": ""
+        }
+      ],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "extensions-users-devices"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/userman",
+        "moduleXml": "https://github.com/FreePBX/userman/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "vmblast",
+      "rawname": "vmblast",
+      "name": "Voicemail Blasting",
+      "description": "Creates a group of extensions that calls a group of voicemail boxes and allows you to leave a message for them all at once.",
+      "category": "Applications",
+      "version": "17.0.2",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "vmblast",
+        "branch": "release/17.0",
+        "revision": "6bc7d56b0d38a2907dc01d3c7da29dabf0af54e8",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "355b586e57541bf1694c4f2ec8d9a45798e494bc",
+        "repositoryUrl": "https://github.com/FreePBX/vmblast",
+        "moduleXmlUrl": "https://github.com/FreePBX/vmblast/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [
+        "/etc/asterisk/voicemail.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "applications"
+      ],
+      "nativeTaskId": "voicemail-broadcast",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/vmblast",
+        "moduleXml": "https://github.com/FreePBX/vmblast/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "voicemail",
+      "rawname": "voicemail",
+      "name": "Voicemail",
+      "description": "This module allows you to configure Voicemail for a user or extension",
+      "category": "Settings",
+      "version": "17.0.5.34",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "voicemail",
+        "branch": "release/17.0",
+        "revision": "b1afb16de3dcd00774162dbfce8d58a9b9597bdc",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "b9488b9e693843f4120f883ce3b56b973774087b",
+        "repositoryUrl": "https://github.com/FreePBX/voicemail",
+        "moduleXmlUrl": "https://github.com/FreePBX/voicemail/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/voicemail.conf"
+      ],
+      "fwconsoleCommands": [
+        {
+          "name": "voicemail",
+          "class": ""
+        }
+      ],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "voicemail"
+      ],
+      "nativeTaskId": "voicemail-admin",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/voicemail",
+        "moduleXml": "https://github.com/FreePBX/voicemail/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "weakpasswords",
+      "rawname": "weakpasswords",
+      "name": "Weak Password Detection",
+      "description": "This module detects weak SIP secrets and sets security notifications accordingly",
+      "category": "Reports",
+      "version": "17.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "weakpasswords",
+        "branch": "release/17.0",
+        "revision": "d854315c8077d98480ced832ad39e7f70be3f6c8",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "c1358003a7d90fae19520f8c3d640f290a47db90",
+        "repositoryUrl": "https://github.com/FreePBX/weakpasswords",
+        "moduleXmlUrl": "https://github.com/FreePBX/weakpasswords/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "reports"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/weakpasswords",
+        "moduleXml": "https://github.com/FreePBX/weakpasswords/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "webrtc",
+      "rawname": "webrtc",
+      "name": "WebRTC Phone",
+      "description": "The WebRTC Module allows an Administrator to enable a \"WebRTC phone\" that can be attached to a user's extension which they can connect to through FreePBX User Control Panel, this WebRTC phone will then receive phone calls at the same time as the users extension using user and device mode behind the scenes. If you have User and Device Mode enabled any extension you enable the WebRTC Phone a duplicate extension of 99XXXX will be created (where XXXX is the original extension number), when the user then views the web interface of the WebRTC phone they will be connected to device 99XXXX which will receive calls from the original extension",
+      "category": "Connectivity",
+      "version": "17.0.3.2",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "webrtc",
+        "branch": "release/17.0",
+        "revision": "eb3230021918c82f08fd32f7eeccb8b391b92413",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "1db54fe6b9806e0ca473b2057b432559b9fcc5a6",
+        "repositoryUrl": "https://github.com/FreePBX/webrtc",
+        "moduleXmlUrl": "https://github.com/FreePBX/webrtc/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "GPLv3+",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "certman",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "core",
+          "version": "17.0.1"
+        },
+        {
+          "moduleId": "ucp",
+          "version": "17.0.1"
+        }
+      ],
+      "configurationResources": [],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "ucp-webrtc"
+      ],
+      "nativeTaskId": null,
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/webrtc",
+        "moduleXml": "https://github.com/FreePBX/webrtc/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    },
+    {
+      "moduleId": "xmpp",
+      "rawname": "xmpp",
+      "name": "XMPP",
+      "description": "Manage and configure a XMPP Server Prosody and requires the Prosody RPM from your PBX be installed.",
+      "category": "Admin",
+      "version": "17.0.1",
+      "source": {
+        "organization": "FreePBX",
+        "repository": "xmpp",
+        "branch": "release/17.0",
+        "revision": "8967ab03b1b3e2814944cbb6e75785025c31274a",
+        "moduleXmlPath": "module.xml",
+        "moduleXmlSha": "dcac4fb4c2ad518424d4adc5ed71702378ce71b5",
+        "repositoryUrl": "https://github.com/FreePBX/xmpp",
+        "moduleXmlUrl": "https://github.com/FreePBX/xmpp/blob/release/17.0/module.xml"
+      },
+      "publisher": "Sangoma Technologies Corporation",
+      "license": "AGPLv3",
+      "entitlementClass": "open",
+      "dependencies": [
+        {
+          "moduleId": "userman",
+          "version": "13.0.0"
+        },
+        {
+          "moduleId": "pm2",
+          "version": "13.0.3.8"
+        }
+      ],
+      "configurationResources": [
+        "/etc/asterisk/xmpp.conf"
+      ],
+      "fwconsoleCommands": [],
+      "apiCapabilities": [],
+      "uiFamilies": [
+        "admin"
+      ],
+      "nativeTaskId": "xmpp",
+      "menuItems": [],
+      "documentation": {
+        "repository": "https://github.com/FreePBX/xmpp",
+        "moduleXml": "https://github.com/FreePBX/xmpp/blob/release/17.0/module.xml"
+      },
+      "availability": {
+        "state": "unavailable",
+        "reason": "Published module metadata is available, but this module is not installed in the discovered local FreePBX runtime; no install or runtime success is claimed."
+      },
+      "localInstalled": false,
+      "localMetadataPath": null
+    }
+  ]
+}

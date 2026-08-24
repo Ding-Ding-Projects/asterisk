@@ -14,6 +14,8 @@ import {
 } from './pbx-admin-model';
 import { featureForAdvancedScreen, registerPbxAdminScreens } from './pbx-admin-screens';
 import { lookupFieldControl } from '../../../control-plane/field-control-catalog';
+import { FREEPBX_MODULE_CATALOG, type FreePbxModuleCatalogEntry } from './freepbx-module-catalog';
+import { buildFreePbxModuleForm } from './freepbx-module-form';
 import { SCREENS } from './generated/console';
 
 registerPbxAdminScreens();
@@ -164,6 +166,10 @@ export class PbxAdminApp extends App {
   private featureResources(feature: PbxFeatureDefinition): ReadonlyArray<string> {
     if (feature.id === 'backup') return EXPECTED_CONFIGURABLE_RESOURCES;
     return feature.resources;
+  }
+
+  private freePbxModuleForFeature(feature: PbxFeatureDefinition): FreePbxModuleCatalogEntry | undefined {
+    return FREEPBX_MODULE_CATALOG.modules.find((module) => module.nativeTaskId === feature.id);
   }
 
   private selectedTarget(screen: string): string {
@@ -383,6 +389,7 @@ export class PbxAdminApp extends App {
     const history = key ? this.adminHistory.get(key) ?? [] : [];
     const status = this.adminStatus.get(screen) ?? 'Nothing has been changed.';
     const groups: AdminGroup[] = [];
+    const freePbxModule = this.freePbxModuleForFeature(feature);
 
     const targetCtls: AdminControl[] = [];
     if (this.adminTargets.length > 0) {
@@ -390,6 +397,23 @@ export class PbxAdminApp extends App {
     }
     targetCtls.push(actionControl(`pbxadm:${screen}:discover`, 'Discover PBX targets', 'pbxadmin-discover'));
     groups.push({ title: 'Target', desc: status, ctls: targetCtls });
+
+    if (freePbxModule) {
+      const moduleForm = buildFreePbxModuleForm(freePbxModule.moduleId, feature, resources, draft);
+      const actionInfo = freePbxModule.availability.reason;
+      groups.push({
+        title: 'FreePBX module metadata',
+        desc: `${freePbxModule.name} ${freePbxModule.version} · ${freePbxModule.license}. ${actionInfo}`,
+        ctls: [
+          actionControl(`freepbx:${freePbxModule.moduleId}:install`, 'Install module', 'freepbx-module-install', actionInfo),
+          actionControl(`freepbx:${freePbxModule.moduleId}:enable`, 'Enable module', 'freepbx-module-enable', actionInfo),
+          actionControl(`freepbx:${freePbxModule.moduleId}:disable`, 'Disable module', 'freepbx-module-disable', actionInfo),
+          actionControl(`freepbx:${freePbxModule.moduleId}:update`, 'Update module', 'freepbx-module-update', actionInfo),
+          actionControl(`freepbx:${freePbxModule.moduleId}:remove`, 'Remove module', 'freepbx-module-remove', actionInfo),
+          actionControl(`freepbx:${freePbxModule.moduleId}:catalog`, `${moduleForm?.fields.length ?? 0} target-backed fields`, 'freepbx-module-catalog', 'The field count is derived from the selected target read; no sample values are inserted.'),
+        ],
+      });
+    }
 
     if (resources.length > 0) {
       const resourceOptions = resources.map(basename);
@@ -812,6 +836,14 @@ export class PbxAdminApp extends App {
     const context = this.currentAdminContext();
     if (!context) {
       this.appControlAction(action);
+      return;
+    }
+    if (action.startsWith('freepbx-module-')) {
+      const module = this.freePbxModuleForFeature(context.feature);
+      this.fire(
+        'FreePBX module action unavailable',
+        module?.availability.reason ?? 'The catalog has no verified module metadata for this destination.',
+      );
       return;
     }
     switch (action) {

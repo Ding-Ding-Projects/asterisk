@@ -18,6 +18,8 @@
     "bundle:asterisk": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-asterisk-wsl-bundle.ps1",
     "package:squirrel": "npm run bundle:asterisk && npm run build && node scripts/package-squirrel.mjs",
     "compile:design": "node scripts/compile-design.mjs && node scripts/extend-pbx-m3.mjs",
+    "catalog:freepbx": "node scripts/generate-freepbx-module-catalog.mjs",
+    "verify:freepbx": "node scripts/verify-freepbx-module-inventory.mjs",
     "test:renderer": "tsx --test tests/ui/*.test.tsx",
     "test:inventories": "node scripts/verify-inventories.mjs --allow-unverified && node scripts/negative-design-parity.mjs && node scripts/negative-surface-completeness.mjs && node scripts/negative-evidence-claims.mjs",
     "test:iso": "node --test tests/iso/*.test.mjs",

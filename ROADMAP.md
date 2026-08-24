@@ -30,6 +30,8 @@
 
 ## Evidence and completeness
 
+- [x] Add the pinned official FreePBX 17 public module catalog, exact unavailable reasons, hand-written module inventory, and schema-driven native form/action metadata. The catalog generation and static inventory negative regression are green; runtime, built-artifact interaction, and capture evidence remain unverified.
+
 - [x] Record the independent design audit's source hash and exact aggregate counts.
 - [x] Add fail-closed schema and completeness validators.
 - [x] Add deliberate red-then-green negative regression scripts.

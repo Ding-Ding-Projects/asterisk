@@ -21,6 +21,16 @@ The implementation handoff for pull request #3 is `PBX_ADMIN_HANDOFF.md`.
 
 ### FreePBX Standard Modules
 
+The current public FreePBX 17 module metadata snapshot is also checked in at
+`console/catalog/freepbx-module-catalog.json`. It was generated on 2026-08-24 by
+`console/scripts/generate-freepbx-module-catalog.mjs` through the official `gh api` CLI route
+against the `FreePBX` organization and each public repository's `release/17.0/module.xml`.
+The snapshot contains **83 public module entries**, zero locally installed entries because no
+local module directory was supplied during generation, and a pinned SHA-256 over the module and
+metadata revisions. This current-repository snapshot complements the historical 15/16/17 union
+accounting below; it does not replace the hand-reviewed disposition of older or deliberately
+excluded module names.
+
 The PBX Admin catalogue now contains **107 current Standard Module tasks** across:
 
 - Applications
