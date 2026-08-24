@@ -22,6 +22,8 @@ function mustReject(label, mutation, inventoryValue = inventory, filesValue = fi
 
 mustReject('removed module family', (copy) => { copy.modules = copy.modules.filter((entry) => entry.family !== 'apps'); });
 mustReject('removed module record', (copy) => { copy.modules = copy.modules.slice(1); copy.counts.modules -= 1; });
+mustReject('removed configuration resource', (copy) => { copy.resources = copy.resources.slice(1); copy.counts.resources -= 1; });
+mustReject('removed ARI resource document', (copy) => { copy.apiResources = copy.apiResources.slice(1); copy.counts.apiResources -= 1; });
 mustReject('missing unavailable reason', (copy) => { copy.modules[0].unavailableReasons = []; });
 mustReject('duplicate identifier', (copy) => { copy.resources[0].id = copy.modules[0].id; });
 mustReject('removed documentation article', (copy) => {

@@ -64,24 +64,28 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_mobile_show_devices",
+            "name": "mobile show devices",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show Bluetooth Cell / Mobile devices"
+            "description": "Show Bluetooth Cell / Mobile devices",
+            "sourceName": "handle_cli_mobile_show_devices"
           },
           {
-            "name": "handle_cli_mobile_search",
+            "name": "mobile search",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Search for Bluetooth Cell / Mobile devices"
+            "description": "Search for Bluetooth Cell / Mobile devices",
+            "sourceName": "handle_cli_mobile_search"
           },
           {
-            "name": "handle_cli_mobile_rfcomm",
+            "name": "mobile rfcomm",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Send commands to the rfcomm port for debugging"
+            "description": "Send commands to the rfcomm port for debugging",
+            "sourceName": "handle_cli_mobile_rfcomm"
           },
           {
-            "name": "handle_cli_mobile_cusd",
+            "name": "mobile cusd",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Send CUSD commands to the mobile"
+            "description": "Send CUSD commands to the mobile",
+            "sourceName": "handle_cli_mobile_cusd"
           }
         ],
         "amiActions": [],
@@ -95,12 +99,14 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_mblstatus",
-            "evidence": "ast_register_application"
+            "name": "MobileStatus",
+            "evidence": "ast_register_application",
+            "sourceName": "app_mblstatus"
           },
           {
-            "name": "app_mblsendsms",
-            "evidence": "ast_register_application"
+            "name": "MobileSendSMS",
+            "evidence": "ast_register_application",
+            "sourceName": "app_mblsendsms"
           }
         ],
         "functions": [],
@@ -109,8 +115,9 @@ export const ASTERISK_CATALOG = {
         "bridges": [],
         "channels": [
           {
-            "name": "mbl_tech",
-            "evidence": "ast_channel_register"
+            "name": "Mobile",
+            "evidence": "ast_channel_register",
+            "sourceName": "mbl_tech"
           }
         ]
       },
@@ -159,44 +166,52 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_ooh323_set_debug",
+            "name": "ooh323 set debug [off]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable OOH323 debugging"
+            "description": "Enable/Disable OOH323 debugging",
+            "sourceName": "handle_cli_ooh323_set_debug"
           },
           {
-            "name": "handle_cli_ooh323_show_config",
+            "name": "ooh323 show config",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show details on global configuration of H.323 channel driver"
+            "description": "Show details on global configuration of H.323 channel driver",
+            "sourceName": "handle_cli_ooh323_show_config"
           },
           {
-            "name": "handle_cli_ooh323_show_gk",
+            "name": "ooh323 show gk",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show OOH323 Gatekeeper connection status"
+            "description": "Show OOH323 Gatekeeper connection status",
+            "sourceName": "handle_cli_ooh323_show_gk"
           },
           {
-            "name": "handle_cli_ooh323_show_peer",
+            "name": "ooh323 show peer",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show details on specific OOH323 peer"
+            "description": "Show details on specific OOH323 peer",
+            "sourceName": "handle_cli_ooh323_show_peer"
           },
           {
-            "name": "handle_cli_ooh323_show_peers",
+            "name": "ooh323 show peers",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show defined OOH323 peers"
+            "description": "Show defined OOH323 peers",
+            "sourceName": "handle_cli_ooh323_show_peers"
           },
           {
-            "name": "handle_cli_ooh323_show_user",
+            "name": "ooh323 show user",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show details on specific OOH323 user"
+            "description": "Show details on specific OOH323 user",
+            "sourceName": "handle_cli_ooh323_show_user"
           },
           {
-            "name": "handle_cli_ooh323_show_users",
+            "name": "ooh323 show users",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show defined OOH323 users"
+            "description": "Show defined OOH323 users",
+            "sourceName": "handle_cli_ooh323_show_users"
           },
           {
-            "name": "handle_cli_ooh323_reload",
+            "name": "ooh323 reload",
             "evidence": "AST_CLI_DEFINE",
-            "description": "reload ooh323 config"
+            "description": "reload ooh323 config",
+            "sourceName": "handle_cli_ooh323_reload"
           }
         ],
         "amiActions": [],
@@ -211,7 +226,8 @@ export const ASTERISK_CATALOG = {
         "channels": [
           {
             "name": "ooh323_tech",
-            "evidence": "ast_channel_register"
+            "evidence": "ast_channel_register",
+            "sourceName": "ooh323_tech"
           }
         ]
       },
@@ -267,8 +283,9 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "mp3_f",
-            "evidence": "ast_format_def_register"
+            "name": "mp3",
+            "evidence": "ast_format_def_register",
+            "sourceName": "mp3_f"
           }
         ],
         "bridges": [],
@@ -315,14 +332,16 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_realtime_mysql_status",
+            "name": "realtime mysql status",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Shows connection information for the MySQL RealTime driver"
+            "description": "Shows connection information for the MySQL RealTime driver",
+            "sourceName": "handle_cli_realtime_mysql_status"
           },
           {
-            "name": "handle_cli_realtime_mysql_cache",
+            "name": "realtime mysql cache",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Shows cached tables within the MySQL realtime driver"
+            "description": "Shows cached tables within the MySQL realtime driver",
+            "sourceName": "handle_cli_realtime_mysql_cache"
           }
         ],
         "amiActions": [],
@@ -384,7 +403,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -438,24 +458,28 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "agent_handle_show_online",
+            "name": "agent show online",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show status of online agents"
+            "description": "Show status of online agents",
+            "sourceName": "agent_handle_show_online"
           },
           {
-            "name": "agent_handle_show_all",
+            "name": "agent show all",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show status of all agents"
+            "description": "Show status of all agents",
+            "sourceName": "agent_handle_show_all"
           },
           {
-            "name": "agent_handle_show_specific",
+            "name": "agent show",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show information about an agent"
+            "description": "Show information about an agent",
+            "sourceName": "agent_handle_show_specific"
           },
           {
-            "name": "agent_handle_logoff_cmd",
+            "name": "agent logoff",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Sets an agent offline"
+            "description": "Sets an agent offline",
+            "sourceName": "agent_handle_logoff_cmd"
           }
         ],
         "amiActions": [
@@ -474,17 +498,20 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app_agent_login",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_agent_login"
           },
           {
             "name": "app_agent_request",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_agent_request"
           }
         ],
         "functions": [
           {
-            "name": "agent_function",
-            "evidence": "ast_custom_function_register"
+            "name": "AGENT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "agent_function"
           }
         ],
         "codecs": [],
@@ -540,7 +567,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -596,7 +624,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -649,7 +678,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -702,7 +732,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -756,7 +787,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -809,7 +841,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -860,7 +893,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -912,8 +946,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "APP_NAME",
-            "evidence": "ast_register_application_xml"
+            "name": "BridgeWait",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "APP_NAME"
           }
         ],
         "functions": [],
@@ -965,7 +1000,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app_broadcast",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_broadcast"
           }
         ],
         "functions": [],
@@ -1019,7 +1055,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "resetcdr_app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "resetcdr_app"
           }
         ],
         "functions": [],
@@ -1069,8 +1106,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "CELGenUserEvent",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -1124,7 +1162,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -1177,7 +1216,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -1230,15 +1270,18 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app_chan",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_chan"
           },
           {
             "name": "app_ext",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_ext"
           },
           {
             "name": "app_dahdiscan",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_dahdiscan"
           }
         ],
         "functions": [],
@@ -1296,44 +1339,52 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_confbridge_list",
+            "name": "confbridge list",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List conference bridges and participants."
+            "description": "List conference bridges and participants.",
+            "sourceName": "handle_cli_confbridge_list"
           },
           {
-            "name": "handle_cli_confbridge_kick",
+            "name": "confbridge kick",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Kick participants out of conference bridges."
+            "description": "Kick participants out of conference bridges.",
+            "sourceName": "handle_cli_confbridge_kick"
           },
           {
-            "name": "handle_cli_confbridge_mute",
+            "name": "confbridge mute",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Mute participants."
+            "description": "Mute participants.",
+            "sourceName": "handle_cli_confbridge_mute"
           },
           {
-            "name": "handle_cli_confbridge_unmute",
+            "name": "confbridge unmute",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Unmute participants."
+            "description": "Unmute participants.",
+            "sourceName": "handle_cli_confbridge_unmute"
           },
           {
-            "name": "handle_cli_confbridge_lock",
+            "name": "confbridge lock",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Lock a conference."
+            "description": "Lock a conference.",
+            "sourceName": "handle_cli_confbridge_lock"
           },
           {
-            "name": "handle_cli_confbridge_unlock",
+            "name": "confbridge unlock",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Unlock a conference."
+            "description": "Unlock a conference.",
+            "sourceName": "handle_cli_confbridge_unlock"
           },
           {
-            "name": "handle_cli_confbridge_start_record",
+            "name": "confbridge record start",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Start recording a conference"
+            "description": "Start recording a conference",
+            "sourceName": "handle_cli_confbridge_start_record"
           },
           {
-            "name": "handle_cli_confbridge_stop_record",
+            "name": "confbridge record stop",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Stop recording a conference."
+            "description": "Stop recording a conference.",
+            "sourceName": "handle_cli_confbridge_stop_record"
           }
         ],
         "amiActions": [
@@ -1384,25 +1435,30 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           },
           {
             "name": "app2",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app2"
           }
         ],
         "functions": [
           {
-            "name": "confbridge_function",
-            "evidence": "ast_custom_function_register_escalating"
+            "name": "CONFBRIDGE",
+            "evidence": "ast_custom_function_register_escalating",
+            "sourceName": "confbridge_function"
           },
           {
-            "name": "confbridge_info_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CONFBRIDGE_INFO",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "confbridge_info_function"
           },
           {
-            "name": "confbridge_channels_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CONFBRIDGE_CHANNELS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "confbridge_channels_function"
           }
         ],
         "codecs": [],
@@ -1411,7 +1467,8 @@ export const ASTERISK_CATALOG = {
         "channels": [
           {
             "name": "tech",
-            "evidence": "ast_channel_register"
+            "evidence": "ast_channel_register",
+            "sourceName": "tech"
           }
         ]
       },
@@ -1466,7 +1523,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -1519,7 +1577,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "dt_app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "dt_app"
           }
         ],
         "functions": [],
@@ -1577,11 +1636,13 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           },
           {
             "name": "rapp",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "rapp"
           }
         ],
         "functions": [],
@@ -1634,7 +1695,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -1687,11 +1749,13 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           },
           {
             "name": "app2",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app2"
           }
         ],
         "functions": [],
@@ -1749,7 +1813,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -1804,7 +1869,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -1854,8 +1920,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "StoreDTMF",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -1909,7 +1976,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -1962,7 +2030,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -2015,15 +2084,18 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app_exec",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_exec"
           },
           {
             "name": "app_tryexec",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_tryexec"
           },
           {
             "name": "app_execif",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_execif"
           }
         ],
         "functions": [],
@@ -2076,7 +2148,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -2131,8 +2204,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "Festival",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -2184,8 +2258,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "Flash",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -2240,8 +2315,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "FollowMe",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -2293,8 +2369,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "ForkCDR",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -2348,8 +2425,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "GetCPEID",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -2399,24 +2477,29 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "if_app",
-            "evidence": "ast_register_application_xml"
+            "name": "If",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "if_app"
           },
           {
-            "name": "elseif_app",
-            "evidence": "ast_register_application_xml"
+            "name": "ElseIf",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "elseif_app"
           },
           {
-            "name": "stop_app",
-            "evidence": "ast_register_application_xml"
+            "name": "EndIf",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "stop_app"
           },
           {
-            "name": "else_app",
-            "evidence": "ast_register_application_xml"
+            "name": "Else",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "else_app"
           },
           {
-            "name": "exit_app",
-            "evidence": "ast_register_application_xml"
+            "name": "ExitIf",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "exit_app"
           }
         ],
         "functions": [],
@@ -2469,8 +2552,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "IVRDemo",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -2522,13 +2606,15 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "jack_app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "jack_app"
           }
         ],
         "functions": [
           {
-            "name": "jack_hook_function",
-            "evidence": "ast_custom_function_register"
+            "name": "JACK_HOOK",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "jack_hook_function"
           }
         ],
         "codecs": [],
@@ -2585,24 +2671,28 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "meetme_kick_cmd",
+            "name": "meetme kick",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Kick a conference or a user in a conference."
+            "description": "Kick a conference or a user in a conference.",
+            "sourceName": "meetme_kick_cmd"
           },
           {
-            "name": "meetme_show_cmd",
+            "name": "meetme list",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List all conferences or a specific conference."
+            "description": "List all conferences or a specific conference.",
+            "sourceName": "meetme_show_cmd"
           },
           {
-            "name": "meetme_lock_cmd",
+            "name": "meetme {lock|unlock}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Lock or unlock a conference to new users."
+            "description": "Lock or unlock a conference to new users.",
+            "sourceName": "meetme_lock_cmd"
           },
           {
-            "name": "meetme_mute_cmd",
+            "name": "meetme {mute|unmute}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Mute or unmute a conference or a user in a conference."
+            "description": "Mute or unmute a conference or a user in a conference.",
+            "sourceName": "meetme_mute_cmd"
           }
         ],
         "amiActions": [
@@ -2634,25 +2724,30 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app4",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app4"
           },
           {
             "name": "app3",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app3"
           },
           {
             "name": "app2",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app2"
           },
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [
           {
-            "name": "meetme_info_acf",
-            "evidence": "ast_custom_function_register"
+            "name": "MEETME_INFO",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "meetme_info_acf"
           }
         ],
         "codecs": [],
@@ -2707,12 +2802,14 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "readmf_name",
-            "evidence": "ast_register_application_xml"
+            "name": "ReceiveMF",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "readmf_name"
           },
           {
             "name": "sendmf_name",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "sendmf_name"
           }
         ],
         "functions": [],
@@ -2766,7 +2863,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -2821,34 +2919,40 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_minivm_show_users",
+            "name": "minivm list accounts [for]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List defined mini-voicemail boxes"
+            "description": "List defined mini-voicemail boxes",
+            "sourceName": "handle_minivm_show_users"
           },
           {
-            "name": "handle_minivm_show_zones",
+            "name": "minivm list zones",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List zone message formats"
+            "description": "List zone message formats",
+            "sourceName": "handle_minivm_show_zones"
           },
           {
-            "name": "handle_minivm_list_templates",
+            "name": "minivm list templates",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List message templates"
+            "description": "List message templates",
+            "sourceName": "handle_minivm_list_templates"
           },
           {
-            "name": "handle_minivm_reload",
+            "name": "minivm reload",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reload Mini-voicemail configuration"
+            "description": "Reload Mini-voicemail configuration",
+            "sourceName": "handle_minivm_reload"
           },
           {
-            "name": "handle_minivm_show_stats",
+            "name": "minivm show stats",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show some mini-voicemail statistics"
+            "description": "Show some mini-voicemail statistics",
+            "sourceName": "handle_minivm_show_stats"
           },
           {
-            "name": "handle_minivm_show_settings",
+            "name": "minivm show settings",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show mini-voicemail general settings"
+            "description": "Show mini-voicemail general settings",
+            "sourceName": "handle_minivm_show_settings"
           }
         ],
         "amiActions": [],
@@ -2857,38 +2961,46 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_minivm_record",
-            "evidence": "ast_register_application_xml"
+            "name": "MinivmRecord",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_minivm_record"
           },
           {
-            "name": "app_minivm_greet",
-            "evidence": "ast_register_application_xml"
+            "name": "MinivmGreet",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_minivm_greet"
           },
           {
-            "name": "app_minivm_notify",
-            "evidence": "ast_register_application_xml"
+            "name": "MinivmNotify",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_minivm_notify"
           },
           {
-            "name": "app_minivm_delete",
-            "evidence": "ast_register_application_xml"
+            "name": "MinivmDelete",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_minivm_delete"
           },
           {
-            "name": "app_minivm_accmess",
-            "evidence": "ast_register_application_xml"
+            "name": "MinivmAccMess",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_minivm_accmess"
           },
           {
-            "name": "app_minivm_mwi",
-            "evidence": "ast_register_application_xml"
+            "name": "MinivmMWI",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_minivm_mwi"
           }
         ],
         "functions": [
           {
-            "name": "minivm_account_function",
-            "evidence": "ast_custom_function_register"
+            "name": "MINIVMACCOUNT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "minivm_account_function"
           },
           {
-            "name": "minivm_counter_function",
-            "evidence": "ast_custom_function_register"
+            "name": "MINIVMCOUNTER",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "minivm_counter_function"
           }
         ],
         "codecs": [],
@@ -2940,9 +3052,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_mixmonitor",
+            "name": "mixmonitor {start|stop|list}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Execute a MixMonitor command"
+            "description": "Execute a MixMonitor command",
+            "sourceName": "handle_cli_mixmonitor"
           }
         ],
         "amiActions": [
@@ -2965,17 +3078,20 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           },
           {
             "name": "stop_app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "stop_app"
           }
         ],
         "functions": [
           {
-            "name": "mixmonitor_function",
-            "evidence": "ast_custom_function_register"
+            "name": "MIXMONITOR",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "mixmonitor_function"
           }
         ],
         "codecs": [],
@@ -3027,7 +3143,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app_morsecode",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_morsecode"
           }
         ],
         "functions": [],
@@ -3079,8 +3196,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "MP3Player",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -3131,7 +3249,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app_originate",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_originate"
           }
         ],
         "functions": [],
@@ -3185,7 +3304,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app_page",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_page"
           }
         ],
         "functions": [],
@@ -3236,9 +3356,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "__say_cli_init",
+            "name": "say load [new|old]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Set or show the say mode"
+            "description": "Set or show the say mode",
+            "sourceName": "__say_cli_init"
           }
         ],
         "amiActions": [],
@@ -3247,8 +3368,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "Playback",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -3301,11 +3423,13 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "playtones_app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "playtones_app"
           },
           {
             "name": "stopplaytones_app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "stopplaytones_app"
           }
         ],
         "functions": [],
@@ -3358,8 +3482,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "PrivacyManager",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -3415,54 +3540,64 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "queue_show",
+            "name": "queue show",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show status of a specified queue"
+            "description": "Show status of a specified queue",
+            "sourceName": "queue_show"
           },
           {
-            "name": "handle_queue_rule_show",
+            "name": "queue show rules",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show the rules defined in queuerules.conf"
+            "description": "Show the rules defined in queuerules.conf",
+            "sourceName": "handle_queue_rule_show"
           },
           {
-            "name": "handle_queue_add_member",
+            "name": "queue add member",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Add a channel to a specified queue"
+            "description": "Add a channel to a specified queue",
+            "sourceName": "handle_queue_add_member"
           },
           {
-            "name": "handle_queue_remove_member",
+            "name": "queue remove member",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Removes a channel from a specified queue"
+            "description": "Removes a channel from a specified queue",
+            "sourceName": "handle_queue_remove_member"
           },
           {
-            "name": "handle_queue_pause_member",
+            "name": "queue {pause|unpause} member",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Pause or unpause a queue member"
+            "description": "Pause or unpause a queue member",
+            "sourceName": "handle_queue_pause_member"
           },
           {
-            "name": "handle_queue_set_member_penalty",
+            "name": "queue set penalty",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Set penalty for a channel of a specified queue"
+            "description": "Set penalty for a channel of a specified queue",
+            "sourceName": "handle_queue_set_member_penalty"
           },
           {
-            "name": "handle_queue_set_member_ringinuse",
+            "name": "queue set ringinuse",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Set ringinuse for a channel of a specified queue"
+            "description": "Set ringinuse for a channel of a specified queue",
+            "sourceName": "handle_queue_set_member_ringinuse"
           },
           {
-            "name": "handle_queue_reload",
+            "name": "queue reload {parameters|members|rules|all}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reload queues, members, queue rules, or parameters"
+            "description": "Reload queues, members, queue rules, or parameters",
+            "sourceName": "handle_queue_reload"
           },
           {
-            "name": "handle_queue_reset",
+            "name": "queue reset stats",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reset statistics for a queue"
+            "description": "Reset statistics for a queue",
+            "sourceName": "handle_queue_reset"
           },
           {
-            "name": "handle_queue_change_priority_caller",
+            "name": "queue priority caller",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Change priority caller on queue"
+            "description": "Change priority caller on queue",
+            "sourceName": "handle_queue_change_priority_caller"
           }
         ],
         "amiActions": [
@@ -3524,62 +3659,76 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "Queue",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           },
           {
-            "name": "app_aqm",
-            "evidence": "ast_register_application_xml"
+            "name": "AddQueueMember",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_aqm"
           },
           {
-            "name": "app_rqm",
-            "evidence": "ast_register_application_xml"
+            "name": "RemoveQueueMember",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_rqm"
           },
           {
-            "name": "app_pqm",
-            "evidence": "ast_register_application_xml"
+            "name": "PauseQueueMember",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_pqm"
           },
           {
-            "name": "app_upqm",
-            "evidence": "ast_register_application_xml"
+            "name": "UnpauseQueueMember",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_upqm"
           },
           {
-            "name": "app_ql",
-            "evidence": "ast_register_application_xml"
+            "name": "QueueLog",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_ql"
           },
           {
-            "name": "app_qupd",
-            "evidence": "ast_register_application_xml"
+            "name": "QueueUpdate",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_qupd"
           }
         ],
         "functions": [
           {
-            "name": "queuevar_function",
-            "evidence": "ast_custom_function_register"
+            "name": "QUEUE_VARIABLES",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "queuevar_function"
           },
           {
-            "name": "queueexists_function",
-            "evidence": "ast_custom_function_register"
+            "name": "QUEUE_EXISTS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "queueexists_function"
           },
           {
-            "name": "queuemembercount_function",
-            "evidence": "ast_custom_function_register"
+            "name": "QUEUE_MEMBER",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "queuemembercount_function"
           },
           {
-            "name": "queuememberlist_function",
-            "evidence": "ast_custom_function_register"
+            "name": "QUEUE_MEMBER_LIST",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "queuememberlist_function"
           },
           {
-            "name": "queuegetchannel_function",
-            "evidence": "ast_custom_function_register"
+            "name": "QUEUE_GET_CHANNEL",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "queuegetchannel_function"
           },
           {
-            "name": "queuewaitingcount_function",
-            "evidence": "ast_custom_function_register"
+            "name": "QUEUE_WAITING_COUNT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "queuewaitingcount_function"
           },
           {
-            "name": "queuememberpenalty_function",
-            "evidence": "ast_custom_function_register"
+            "name": "QUEUE_MEMBER_PENALTY",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "queuememberpenalty_function"
           }
         ],
         "codecs": [],
@@ -3634,8 +3783,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "Read",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -3687,8 +3837,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "ReadExten",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -3742,14 +3893,16 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "Record",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [
           {
-            "name": "acf_recording_info",
-            "evidence": "ast_custom_function_register"
+            "name": "RECORDING_INFO",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "acf_recording_info"
           }
         ],
         "codecs": [],
@@ -3798,8 +3951,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "Reload",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -3851,11 +4005,13 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "\"SayCountedNoun\"",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "\"SayCountedNoun\""
           },
           {
             "name": "\"SayCountedAdj\"",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "\"SayCountedAdj\""
           }
         ],
         "functions": [],
@@ -3910,12 +4066,14 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_sayunixtime",
-            "evidence": "ast_register_application_xml"
+            "name": "SayUnixTime",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_sayunixtime"
           },
           {
-            "name": "app_datetime",
-            "evidence": "ast_register_application_xml"
+            "name": "DateTime",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_datetime"
           }
         ],
         "functions": [],
@@ -3978,7 +4136,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "senddtmf_name",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "senddtmf_name"
           }
         ],
         "functions": [],
@@ -4031,11 +4190,13 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           },
           {
             "name": "app2",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app2"
           }
         ],
         "functions": [],
@@ -4085,12 +4246,14 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "readsf_name",
-            "evidence": "ast_register_application_xml"
+            "name": "ReceiveSF",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "readsf_name"
           },
           {
             "name": "sendsf_name",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "sendsf_name"
           }
         ],
         "functions": [],
@@ -4142,11 +4305,13 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           },
           {
             "name": "app2",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app2"
           }
         ],
         "functions": [],
@@ -4198,19 +4363,22 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_skel_show_config",
+            "name": "skel show config",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show app_skel global config options"
+            "description": "Show app_skel global config options",
+            "sourceName": "handle_skel_show_config"
           },
           {
-            "name": "handle_skel_show_levels",
+            "name": "skel show levels",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show app_skel levels"
+            "description": "Show app_skel levels",
+            "sourceName": "handle_skel_show_levels"
           },
           {
-            "name": "handle_skel_show_games",
+            "name": "skel show games",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show app_skel active games"
+            "description": "Show app_skel active games",
+            "sourceName": "handle_skel_show_games"
           }
         ],
         "amiActions": [],
@@ -4219,8 +4387,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "SkelGuessNumber",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -4269,14 +4438,16 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "sla_show_trunks",
+            "name": "sla show trunks",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show SLA Trunks"
+            "description": "Show SLA Trunks",
+            "sourceName": "sla_show_trunks"
           },
           {
-            "name": "sla_show_stations",
+            "name": "sla show stations",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show SLA Stations"
+            "description": "Show SLA Stations",
+            "sourceName": "sla_show_stations"
           }
         ],
         "amiActions": [],
@@ -4286,11 +4457,13 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "slastation_app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "slastation_app"
           },
           {
             "name": "slatrunk_app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "slatrunk_app"
           }
         ],
         "functions": [],
@@ -4344,8 +4517,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "SMS",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -4397,8 +4571,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "SoftHangup",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -4452,65 +4627,80 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "\"SpeechCreate\"",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "\"SpeechCreate\""
           },
           {
             "name": "\"SpeechLoadGrammar\"",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "\"SpeechLoadGrammar\""
           },
           {
             "name": "\"SpeechUnloadGrammar\"",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "\"SpeechUnloadGrammar\""
           },
           {
             "name": "\"SpeechActivateGrammar\"",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "\"SpeechActivateGrammar\""
           },
           {
             "name": "\"SpeechDeactivateGrammar\"",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "\"SpeechDeactivateGrammar\""
           },
           {
             "name": "\"SpeechStart\"",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "\"SpeechStart\""
           },
           {
             "name": "\"SpeechBackground\"",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "\"SpeechBackground\""
           },
           {
             "name": "\"SpeechDestroy\"",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "\"SpeechDestroy\""
           },
           {
             "name": "\"SpeechProcessingSound\"",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "\"SpeechProcessingSound\""
           }
         ],
         "functions": [
           {
-            "name": "speech_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SPEECH",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "speech_function"
           },
           {
-            "name": "speech_score_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SPEECH_SCORE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "speech_score_function"
           },
           {
-            "name": "speech_text_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SPEECH_TEXT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "speech_text_function"
           },
           {
-            "name": "speech_grammar_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SPEECH_GRAMMAR",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "speech_grammar_function"
           },
           {
-            "name": "speech_engine_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SPEECH_ENGINE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "speech_engine_function"
           },
           {
-            "name": "speech_results_type_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SPEECH_RESULTS_TYPE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "speech_results_type_function"
           }
         ],
         "codecs": [],
@@ -4562,40 +4752,48 @@ export const ASTERISK_CATALOG = {
         "ari": [],
         "agi": [
           {
-            "name": "gosub_agi_command",
-            "evidence": "ast_agi_register"
+            "name": "gosub",
+            "evidence": "ast_agi_register",
+            "sourceName": "gosub_agi_command"
           }
         ],
         "applications": [
           {
             "name": "app_pop",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_pop"
           },
           {
             "name": "app_return",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_return"
           },
           {
             "name": "app_gosubif",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_gosubif"
           },
           {
             "name": "app_gosub",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_gosub"
           }
         ],
         "functions": [
           {
-            "name": "local_function",
-            "evidence": "ast_custom_function_register"
+            "name": "LOCAL",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "local_function"
           },
           {
-            "name": "peek_function",
-            "evidence": "ast_custom_function_register"
+            "name": "LOCAL_PEEK",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "peek_function"
           },
           {
-            "name": "stackpeek_function",
-            "evidence": "ast_custom_function_register"
+            "name": "STACK_PEEK",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "stackpeek_function"
           }
         ],
         "codecs": [],
@@ -4645,8 +4843,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "stasis",
-            "evidence": "ast_register_application_xml"
+            "name": "Stasis",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "stasis"
           }
         ],
         "functions": [],
@@ -4697,8 +4896,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "StasisBroadcast",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -4752,7 +4952,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -4804,7 +5005,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -4857,12 +5059,14 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app2",
-            "evidence": "ast_register_application_xml"
+            "name": "TrySystem",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app2"
           },
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "System",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -4914,8 +5118,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "BackgroundDetect",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -4967,12 +5172,14 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "testc_app",
-            "evidence": "ast_register_application_xml"
+            "name": "TestClient",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "testc_app"
           },
           {
-            "name": "tests_app",
-            "evidence": "ast_register_application_xml"
+            "name": "TestServer",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "tests_app"
           }
         ],
         "functions": [],
@@ -5025,7 +5232,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -5077,8 +5285,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "UserEvent",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -5130,12 +5339,14 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_log",
-            "evidence": "ast_register_application_xml"
+            "name": "Log",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_log"
           },
           {
-            "name": "app_verbose",
-            "evidence": "ast_register_application_xml"
+            "name": "Verbose",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_verbose"
           }
         ],
         "functions": [],
@@ -5158,7 +5369,7 @@ export const ASTERISK_CATALOG = {
       "family": "apps",
       "name": "app_voicemail.so",
       "source": "apps/app_voicemail.c",
-      "description": "Loadable apps module from apps/app_voicemail.c.",
+      "description": "res_adsi,res_smdi",
       "buildConditions": [
         "MENUSELECT_OPTS_",
         "MENUSELECT_OPTS_APP_VOICEMAIL",
@@ -5203,44 +5414,52 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_voicemail_show_users",
+            "name": "voicemail show users [for]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List defined voicemail boxes"
+            "description": "List defined voicemail boxes",
+            "sourceName": "handle_voicemail_show_users"
           },
           {
-            "name": "handle_voicemail_show_zones",
+            "name": "voicemail show zones",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List zone message formats"
+            "description": "List zone message formats",
+            "sourceName": "handle_voicemail_show_zones"
           },
           {
-            "name": "handle_voicemail_show_aliases",
+            "name": "voicemail show aliases",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List mailbox aliases"
+            "description": "List mailbox aliases",
+            "sourceName": "handle_voicemail_show_aliases"
           },
           {
-            "name": "handle_voicemail_reload",
+            "name": "voicemail reload",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reload voicemail configuration"
+            "description": "Reload voicemail configuration",
+            "sourceName": "handle_voicemail_reload"
           },
           {
-            "name": "handle_voicemail_show_mailbox",
+            "name": "voicemail show mailbox",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display a mailbox's content details"
+            "description": "Display a mailbox's content details",
+            "sourceName": "handle_voicemail_show_mailbox"
           },
           {
-            "name": "handle_voicemail_forward_message",
+            "name": "voicemail forward",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Forward message to another folder"
+            "description": "Forward message to another folder",
+            "sourceName": "handle_voicemail_forward_message"
           },
           {
-            "name": "handle_voicemail_move_message",
+            "name": "voicemail move",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Move message to another folder"
+            "description": "Move message to another folder",
+            "sourceName": "handle_voicemail_move_message"
           },
           {
-            "name": "handle_voicemail_remove_message",
+            "name": "voicemail remove",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Remove message"
+            "description": "Remove message",
+            "sourceName": "handle_voicemail_remove_message"
           }
         ],
         "amiActions": [
@@ -5278,30 +5497,36 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "voicemail_app",
-            "evidence": "ast_register_application_xml"
+            "name": "VoiceMail",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "voicemail_app"
           },
           {
-            "name": "voicemailmain_app",
-            "evidence": "ast_register_application_xml"
+            "name": "VoiceMailMain",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "voicemailmain_app"
           },
           {
-            "name": "vmauthenticate_app",
-            "evidence": "ast_register_application_xml"
+            "name": "VMAuthenticate",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "vmauthenticate_app"
           },
           {
-            "name": "playmsg_app",
-            "evidence": "ast_register_application_xml"
+            "name": "VoiceMailPlayMsg",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "playmsg_app"
           },
           {
-            "name": "sayname_app",
-            "evidence": "ast_register_application_xml"
+            "name": "VMSayName",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "sayname_app"
           }
         ],
         "functions": [
           {
-            "name": "vm_info_acf",
-            "evidence": "ast_custom_function_register"
+            "name": "VM_INFO",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "vm_info_acf"
           }
         ],
         "codecs": [],
@@ -5350,8 +5575,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "WaitForCondition",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -5404,8 +5630,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "WaitForRing",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -5459,12 +5686,14 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_silence",
-            "evidence": "ast_register_application_xml"
+            "name": "WaitForSilence",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_silence"
           },
           {
-            "name": "app_noise",
-            "evidence": "ast_register_application_xml"
+            "name": "WaitForNoise",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_noise"
           }
         ],
         "functions": [],
@@ -5514,8 +5743,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "WaitUntil",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -5569,20 +5799,24 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "start_app",
-            "evidence": "ast_register_application_xml"
+            "name": "While",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "start_app"
           },
           {
-            "name": "stop_app",
-            "evidence": "ast_register_application_xml"
+            "name": "EndWhile",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "stop_app"
           },
           {
-            "name": "exit_app",
-            "evidence": "ast_register_application_xml"
+            "name": "ExitWhile",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "exit_app"
           },
           {
-            "name": "continue_app",
-            "evidence": "ast_register_application_xml"
+            "name": "ContinueWhile",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "continue_app"
           }
         ],
         "functions": [],
@@ -5634,8 +5868,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "Zapateller",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -6271,9 +6506,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cdr_pgsql_status",
+            "name": "cdr show pgsql status",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show connection status of the PostgreSQL CDR driver (cdr_pgsql)"
+            "description": "Show connection status of the PostgreSQL CDR driver (cdr_pgsql)",
+            "sourceName": "handle_cdr_pgsql_status"
           }
         ],
         "amiActions": [],
@@ -6864,8 +7100,9 @@ export const ASTERISK_CATALOG = {
         "bridges": [],
         "channels": [
           {
-            "name": "audiosocket_channel_tech",
-            "evidence": "ast_channel_register"
+            "name": "AudioSocket",
+            "evidence": "ast_channel_register",
+            "sourceName": "audiosocket_channel_tech"
           }
         ]
       },
@@ -6916,12 +7153,14 @@ export const ASTERISK_CATALOG = {
         "bridges": [],
         "channels": [
           {
-            "name": "announce_tech",
-            "evidence": "ast_channel_register"
+            "name": "Announcer",
+            "evidence": "ast_channel_register",
+            "sourceName": "announce_tech"
           },
           {
-            "name": "record_tech",
-            "evidence": "ast_channel_register"
+            "name": "Recorder",
+            "evidence": "ast_channel_register",
+            "sourceName": "record_tech"
           }
         ]
       },
@@ -6967,54 +7206,64 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "cli_console_dial",
+            "name": "console dial",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Dial an extension from the console"
+            "description": "Dial an extension from the console",
+            "sourceName": "cli_console_dial"
           },
           {
-            "name": "cli_console_hangup",
+            "name": "console hangup",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Hangup a call on the console"
+            "description": "Hangup a call on the console",
+            "sourceName": "cli_console_hangup"
           },
           {
-            "name": "cli_console_mute",
+            "name": "console {mute|unmute}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Disable/Enable mic input"
+            "description": "Disable/Enable mic input",
+            "sourceName": "cli_console_mute"
           },
           {
-            "name": "cli_console_answer",
+            "name": "console answer",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Answer an incoming console call"
+            "description": "Answer an incoming console call",
+            "sourceName": "cli_console_answer"
           },
           {
-            "name": "cli_console_sendtext",
+            "name": "console send text",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Send text to a connected party"
+            "description": "Send text to a connected party",
+            "sourceName": "cli_console_sendtext"
           },
           {
-            "name": "cli_console_flash",
+            "name": "console flash",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Send a flash to the connected party"
+            "description": "Send a flash to the connected party",
+            "sourceName": "cli_console_flash"
           },
           {
-            "name": "cli_console_autoanswer",
+            "name": "console {set|show} autoanswer [on|off]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Turn autoanswer on or off"
+            "description": "Turn autoanswer on or off",
+            "sourceName": "cli_console_autoanswer"
           },
           {
-            "name": "cli_list_available",
+            "name": "console list available",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List available devices"
+            "description": "List available devices",
+            "sourceName": "cli_list_available"
           },
           {
-            "name": "cli_list_devices",
+            "name": "console list devices",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List configured devices"
+            "description": "List configured devices",
+            "sourceName": "cli_list_devices"
           },
           {
-            "name": "cli_console_active",
+            "name": "console {set|show} active",
             "evidence": "AST_CLI_DEFINE",
-            "description": "View or Set the active console device"
+            "description": "View or Set the active console device",
+            "sourceName": "cli_console_active"
           }
         ],
         "amiActions": [],
@@ -7028,8 +7277,9 @@ export const ASTERISK_CATALOG = {
         "bridges": [],
         "channels": [
           {
-            "name": "console_tech",
-            "evidence": "ast_channel_register"
+            "name": "Console",
+            "evidence": "ast_channel_register",
+            "sourceName": "console_tech"
           }
         ]
       },
@@ -7048,7 +7298,7 @@ export const ASTERISK_CATALOG = {
       "family": "channels",
       "name": "chan_dahdi.so",
       "source": "channels/chan_dahdi.c",
-      "description": "Loadable channels module from channels/chan_dahdi.c.",
+      "description": "ccss",
       "buildConditions": [
         "LOTS_OF_SPANS",
         "menuselect:chan_dahdi"
@@ -7088,224 +7338,268 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_pri_debug",
+            "name": "pri set debug {on|off|hex|intense|0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15} span",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enables PRI debugging on a span"
+            "description": "Enables PRI debugging on a span",
+            "sourceName": "handle_pri_debug"
           },
           {
-            "name": "handle_pri_service_enable_channel",
+            "name": "pri service enable channel",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Return a channel to service"
+            "description": "Return a channel to service",
+            "sourceName": "handle_pri_service_enable_channel"
           },
           {
-            "name": "handle_pri_service_disable_channel",
+            "name": "pri service disable channel",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Remove a channel from service"
+            "description": "Remove a channel from service",
+            "sourceName": "handle_pri_service_disable_channel"
           },
           {
-            "name": "handle_pri_show_channels",
+            "name": "pri show channels",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Displays PRI channel information"
+            "description": "Displays PRI channel information",
+            "sourceName": "handle_pri_show_channels"
           },
           {
-            "name": "handle_pri_show_spans",
+            "name": "pri show spans",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Displays PRI span information"
+            "description": "Displays PRI span information",
+            "sourceName": "handle_pri_show_spans"
           },
           {
-            "name": "handle_pri_show_span",
+            "name": "pri show span",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Displays PRI span information"
+            "description": "Displays PRI span information",
+            "sourceName": "handle_pri_show_span"
           },
           {
-            "name": "handle_pri_destroy_span",
+            "name": "pri destroy span",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Destroy a PRI span"
+            "description": "Destroy a PRI span",
+            "sourceName": "handle_pri_destroy_span"
           },
           {
-            "name": "handle_pri_show_debug",
+            "name": "pri show debug",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Displays current PRI debug settings"
+            "description": "Displays current PRI debug settings",
+            "sourceName": "handle_pri_show_debug"
           },
           {
-            "name": "handle_pri_set_debug_file",
+            "name": "pri set debug file",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Sends PRI debug output to the specified file"
+            "description": "Sends PRI debug output to the specified file",
+            "sourceName": "handle_pri_set_debug_file"
           },
           {
-            "name": "handle_pri_version",
+            "name": "pri show version",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Displays libpri version"
+            "description": "Displays libpri version",
+            "sourceName": "handle_pri_version"
           },
           {
-            "name": "handle_mfcr2_version",
+            "name": "mfcr2 show version",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show OpenR2 library version"
+            "description": "Show OpenR2 library version",
+            "sourceName": "handle_mfcr2_version"
           },
           {
-            "name": "handle_mfcr2_show_variants",
+            "name": "mfcr2 show variants",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show supported MFC/R2 variants"
+            "description": "Show supported MFC/R2 variants",
+            "sourceName": "handle_mfcr2_show_variants"
           },
           {
-            "name": "handle_mfcr2_show_channels",
+            "name": "mfcr2 show channels [group|context]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show MFC/R2 channels"
+            "description": "Show MFC/R2 channels",
+            "sourceName": "handle_mfcr2_show_channels"
           },
           {
-            "name": "handle_mfcr2_show_links",
+            "name": "mfcr2 show links",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show MFC/R2 links"
+            "description": "Show MFC/R2 links",
+            "sourceName": "handle_mfcr2_show_links"
           },
           {
-            "name": "handle_mfcr2_set_debug",
+            "name": "mfcr2 set debug",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Set MFC/R2 channel logging level"
+            "description": "Set MFC/R2 channel logging level",
+            "sourceName": "handle_mfcr2_set_debug"
           },
           {
-            "name": "handle_mfcr2_call_files",
+            "name": "mfcr2 call files [on|off]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable MFC/R2 call files"
+            "description": "Enable/Disable MFC/R2 call files",
+            "sourceName": "handle_mfcr2_call_files"
           },
           {
-            "name": "handle_mfcr2_set_idle",
+            "name": "mfcr2 set idle",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reset MFC/R2 channel forcing it to IDLE"
+            "description": "Reset MFC/R2 channel forcing it to IDLE",
+            "sourceName": "handle_mfcr2_set_idle"
           },
           {
-            "name": "handle_mfcr2_set_blocked",
+            "name": "mfcr2 set blocked",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reset MFC/R2 channel forcing it to BLOCKED"
+            "description": "Reset MFC/R2 channel forcing it to BLOCKED",
+            "sourceName": "handle_mfcr2_set_blocked"
           },
           {
-            "name": "handle_mfcr2_destroy_link",
+            "name": "mfcr2 destroy link",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Destroy given MFC/R2 link"
+            "description": "Destroy given MFC/R2 link",
+            "sourceName": "handle_mfcr2_destroy_link"
           },
           {
-            "name": "handle_dahdi_show_cadences",
+            "name": "dahdi show cadences",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List cadences"
+            "description": "List cadences",
+            "sourceName": "handle_dahdi_show_cadences"
           },
           {
-            "name": "dahdi_show_channels",
+            "name": "dahdi show channels [group|context]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show active DAHDI channels"
+            "description": "Show active DAHDI channels",
+            "sourceName": "dahdi_show_channels"
           },
           {
-            "name": "dahdi_show_channel",
+            "name": "dahdi show channel",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show information on a channel"
+            "description": "Show information on a channel",
+            "sourceName": "dahdi_show_channel"
           },
           {
-            "name": "dahdi_destroy_channels",
+            "name": "dahdi destroy channels",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Destroy channels"
+            "description": "Destroy channels",
+            "sourceName": "dahdi_destroy_channels"
           },
           {
-            "name": "dahdi_create_channels",
+            "name": "dahdi create channels",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Create channels"
+            "description": "Create channels",
+            "sourceName": "dahdi_create_channels"
           },
           {
-            "name": "dahdi_restart_cmd",
+            "name": "dahdi restart",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Fully restart DAHDI channels"
+            "description": "Fully restart DAHDI channels",
+            "sourceName": "dahdi_restart_cmd"
           },
           {
-            "name": "dahdi_show_status",
+            "name": "dahdi show status",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show all DAHDI cards status"
+            "description": "Show all DAHDI cards status",
+            "sourceName": "dahdi_show_status"
           },
           {
-            "name": "dahdi_show_version",
+            "name": "dahdi show version",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show the DAHDI version in use"
+            "description": "Show the DAHDI version in use",
+            "sourceName": "dahdi_show_version"
           },
           {
-            "name": "dahdi_set_hwgain",
+            "name": "dahdi set hwgain {rx|tx}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Set hardware gain on a channel"
+            "description": "Set hardware gain on a channel",
+            "sourceName": "dahdi_set_hwgain"
           },
           {
-            "name": "dahdi_set_swgain",
+            "name": "dahdi set swgain {rx|tx}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Set software gain on a channel"
+            "description": "Set software gain on a channel",
+            "sourceName": "dahdi_set_swgain"
           },
           {
-            "name": "dahdi_set_dnd",
+            "name": "dahdi set dnd",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Sets/resets DND (Do Not Disturb) mode on a channel"
+            "description": "Sets/resets DND (Do Not Disturb) mode on a channel",
+            "sourceName": "dahdi_set_dnd"
           },
           {
-            "name": "dahdi_set_mwi",
+            "name": "dahdi set mwi",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Sets/unsets MWI (Message Waiting Indicator) manually on a channel"
+            "description": "Sets/unsets MWI (Message Waiting Indicator) manually on a channel",
+            "sourceName": "dahdi_set_mwi"
           },
           {
-            "name": "handle_ss7_debug",
+            "name": "ss7 set debug {on|off} linkset",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enables SS7 debugging on a linkset"
+            "description": "Enables SS7 debugging on a linkset",
+            "sourceName": "handle_ss7_debug"
           },
           {
-            "name": "handle_ss7_cic_blocking",
+            "name": "ss7 {block|unblock} cic",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Blocks/Unblocks the given CIC"
+            "description": "Blocks/Unblocks the given CIC",
+            "sourceName": "handle_ss7_cic_blocking"
           },
           {
-            "name": "handle_ss7_linkset_mng",
+            "name": "ss7 {reset|block|unblock} linkset",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Resets/Blocks/Unblocks all CICs on a linkset"
+            "description": "Resets/Blocks/Unblocks all CICs on a linkset",
+            "sourceName": "handle_ss7_linkset_mng"
           },
           {
-            "name": "handle_ss7_group_blocking",
+            "name": "ss7 {block|unblock} group",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Blocks/Unblocks the given CIC range"
+            "description": "Blocks/Unblocks the given CIC range",
+            "sourceName": "handle_ss7_group_blocking"
           },
           {
-            "name": "handle_ss7_reset_cic",
+            "name": "ss7 reset cic",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Resets the given CIC"
+            "description": "Resets the given CIC",
+            "sourceName": "handle_ss7_reset_cic"
           },
           {
-            "name": "handle_ss7_group_reset",
+            "name": "ss7 reset group",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Resets the given CIC range"
+            "description": "Resets the given CIC range",
+            "sourceName": "handle_ss7_group_reset"
           },
           {
-            "name": "handle_ss7_mtp3_restart",
+            "name": "ss7 restart mtp3",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Restart a link"
+            "description": "Restart a link",
+            "sourceName": "handle_ss7_mtp3_restart"
           },
           {
-            "name": "handle_ss7_net_mng",
+            "name": "ss7 mtp3",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Send an NET MNG message"
+            "description": "Send an NET MNG message",
+            "sourceName": "handle_ss7_net_mng"
           },
           {
-            "name": "handle_ss7_show_linkset",
+            "name": "ss7 show linkset",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Shows the status of a linkset"
+            "description": "Shows the status of a linkset",
+            "sourceName": "handle_ss7_show_linkset"
           },
           {
-            "name": "handle_ss7_show_channels",
+            "name": "ss7 show channels",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Displays SS7 channel information"
+            "description": "Displays SS7 channel information",
+            "sourceName": "handle_ss7_show_channels"
           },
           {
-            "name": "handle_ss7_show_calls",
+            "name": "ss7 show calls",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show ss7 calls"
+            "description": "Show ss7 calls",
+            "sourceName": "handle_ss7_show_calls"
           },
           {
-            "name": "handle_ss7_show_cics",
+            "name": "ss7 show cics",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show cics on a linkset"
+            "description": "Show cics on a linkset",
+            "sourceName": "handle_ss7_show_cics"
           },
           {
-            "name": "handle_ss7_version",
+            "name": "ss7 show version",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Displays libss7 version"
+            "description": "Displays libss7 version",
+            "sourceName": "handle_ss7_version"
           }
         ],
         "amiActions": [
@@ -7363,26 +7657,31 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "dahdi_send_keypad_facility_app",
-            "evidence": "ast_register_application_xml"
+            "name": "DAHDISendKeypadFacility",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "dahdi_send_keypad_facility_app"
           },
           {
-            "name": "dahdi_send_callrerouting_facility_app",
-            "evidence": "ast_register_application_xml"
+            "name": "DAHDISendCallreroutingFacility",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "dahdi_send_callrerouting_facility_app"
           },
           {
             "name": "dahdi_accept_r2_call_app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "dahdi_accept_r2_call_app"
           }
         ],
         "functions": [
           {
-            "name": "dahdichan_function",
-            "evidence": "ast_custom_function_register"
+            "name": "DAHDI_CHANNEL",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "dahdichan_function"
           },
           {
-            "name": "polarity_function",
-            "evidence": "ast_custom_function_register"
+            "name": "POLARITY",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "polarity_function"
           }
         ],
         "codecs": [],
@@ -7390,8 +7689,9 @@ export const ASTERISK_CATALOG = {
         "bridges": [],
         "channels": [
           {
-            "name": "dahdi_tech",
-            "evidence": "ast_channel_register"
+            "name": "DAHDI",
+            "evidence": "ast_channel_register",
+            "sourceName": "dahdi_tech"
           }
         ]
       },
@@ -7441,119 +7741,142 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_iax2_provision",
+            "name": "iax2 provision",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Provision an IAX device"
+            "description": "Provision an IAX device",
+            "sourceName": "handle_cli_iax2_provision"
           },
           {
-            "name": "handle_cli_iax2_prune_realtime",
+            "name": "iax2 prune realtime",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Prune a cached realtime lookup"
+            "description": "Prune a cached realtime lookup",
+            "sourceName": "handle_cli_iax2_prune_realtime"
           },
           {
-            "name": "handle_cli_iax2_reload",
+            "name": "iax2 reload",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reload IAX configuration"
+            "description": "Reload IAX configuration",
+            "sourceName": "handle_cli_iax2_reload"
           },
           {
-            "name": "handle_cli_iax2_set_mtu",
+            "name": "iax2 set mtu",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Set the IAX systemwide trunking MTU"
+            "description": "Set the IAX systemwide trunking MTU",
+            "sourceName": "handle_cli_iax2_set_mtu"
           },
           {
-            "name": "handle_cli_iax2_set_debug",
+            "name": "iax2 set debug {on|off|peer}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable IAX debugging"
+            "description": "Enable/Disable IAX debugging",
+            "sourceName": "handle_cli_iax2_set_debug"
           },
           {
-            "name": "handle_cli_iax2_set_debug_trunk",
+            "name": "iax2 set debug trunk {on|off}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable IAX trunk debugging"
+            "description": "Enable/Disable IAX trunk debugging",
+            "sourceName": "handle_cli_iax2_set_debug_trunk"
           },
           {
-            "name": "handle_cli_iax2_set_debug_jb",
+            "name": "iax2 set debug jb {on|off}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable IAX jitterbuffer debugging"
+            "description": "Enable/Disable IAX jitterbuffer debugging",
+            "sourceName": "handle_cli_iax2_set_debug_jb"
           },
           {
-            "name": "handle_cli_iax2_show_cache",
+            "name": "iax2 show cache",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display IAX cached dialplan"
+            "description": "Display IAX cached dialplan",
+            "sourceName": "handle_cli_iax2_show_cache"
           },
           {
-            "name": "handle_cli_iax2_show_channels",
+            "name": "iax2 show channels",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List active IAX channels"
+            "description": "List active IAX channels",
+            "sourceName": "handle_cli_iax2_show_channels"
           },
           {
-            "name": "handle_cli_iax2_show_firmware",
+            "name": "iax2 show firmware",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List available IAX firmware"
+            "description": "List available IAX firmware",
+            "sourceName": "handle_cli_iax2_show_firmware"
           },
           {
-            "name": "handle_cli_iax2_show_netstats",
+            "name": "iax2 show netstats",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List active IAX channel netstats"
+            "description": "List active IAX channel netstats",
+            "sourceName": "handle_cli_iax2_show_netstats"
           },
           {
-            "name": "handle_cli_iax2_show_peer",
+            "name": "iax2 show peer",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show details on specific IAX peer"
+            "description": "Show details on specific IAX peer",
+            "sourceName": "handle_cli_iax2_show_peer"
           },
           {
-            "name": "handle_cli_iax2_show_peers",
+            "name": "iax2 show peers",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List defined IAX peers"
+            "description": "List defined IAX peers",
+            "sourceName": "handle_cli_iax2_show_peers"
           },
           {
-            "name": "handle_cli_iax2_show_registry",
+            "name": "iax2 show registry",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display IAX registration status"
+            "description": "Display IAX registration status",
+            "sourceName": "handle_cli_iax2_show_registry"
           },
           {
-            "name": "handle_cli_iax2_show_stats",
+            "name": "iax2 show stats",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display IAX statistics"
+            "description": "Display IAX statistics",
+            "sourceName": "handle_cli_iax2_show_stats"
           },
           {
-            "name": "handle_cli_iax2_show_threads",
+            "name": "iax2 show threads",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display IAX helper thread info"
+            "description": "Display IAX helper thread info",
+            "sourceName": "handle_cli_iax2_show_threads"
           },
           {
-            "name": "handle_cli_iax2_show_users",
+            "name": "iax2 show users [like]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List defined IAX users"
+            "description": "List defined IAX users",
+            "sourceName": "handle_cli_iax2_show_users"
           },
           {
-            "name": "handle_cli_iax2_test_losspct",
+            "name": "iax2 test losspct",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Set IAX2 incoming frame loss percentage"
+            "description": "Set IAX2 incoming frame loss percentage",
+            "sourceName": "handle_cli_iax2_test_losspct"
           },
           {
-            "name": "handle_cli_iax2_unregister",
+            "name": "iax2 unregister",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Unregister (force expiration) an IAX2 peer from the registry"
+            "description": "Unregister (force expiration) an IAX2 peer from the registry",
+            "sourceName": "handle_cli_iax2_unregister"
           },
           {
-            "name": "handle_cli_iax2_show_callno_limits",
+            "name": "iax2 show callnumber usage",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show current entries in IP call number limit table"
+            "description": "Show current entries in IP call number limit table",
+            "sourceName": "handle_cli_iax2_show_callno_limits"
           },
           {
-            "name": "handle_cli_iax2_test_jitter",
+            "name": "iax2 test jitter",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Simulates jitter for testing"
+            "description": "Simulates jitter for testing",
+            "sourceName": "handle_cli_iax2_test_jitter"
           },
           {
-            "name": "handle_cli_iax2_test_late",
+            "name": "iax2 test late",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Test the receipt of a late frame"
+            "description": "Test the receipt of a late frame",
+            "sourceName": "handle_cli_iax2_test_late"
           },
           {
-            "name": "handle_cli_iax2_test_resync",
+            "name": "iax2 test resync",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Test a resync in received timestamps"
+            "description": "Test a resync in received timestamps",
+            "sourceName": "handle_cli_iax2_test_resync"
           }
         ],
         "amiActions": [
@@ -7579,18 +7902,21 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "papp",
-            "evidence": "ast_register_application_xml"
+            "name": "IAX2Provision",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "papp"
           }
         ],
         "functions": [
           {
-            "name": "iaxpeer_function",
-            "evidence": "ast_custom_function_register"
+            "name": "IAXPEER",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "iaxpeer_function"
           },
           {
-            "name": "iaxvar_function",
-            "evidence": "ast_custom_function_register"
+            "name": "IAXVAR",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "iaxvar_function"
           }
         ],
         "codecs": [],
@@ -7598,8 +7924,9 @@ export const ASTERISK_CATALOG = {
         "bridges": [],
         "channels": [
           {
-            "name": "iax2_tech",
-            "evidence": "ast_channel_register"
+            "name": "IAX2",
+            "evidence": "ast_channel_register",
+            "sourceName": "iax2_tech"
           }
         ]
       },
@@ -7653,8 +7980,9 @@ export const ASTERISK_CATALOG = {
         "bridges": [],
         "channels": [
           {
-            "name": "jingle_tech",
-            "evidence": "ast_channel_register"
+            "name": "Motif",
+            "evidence": "ast_channel_register",
+            "sourceName": "jingle_tech"
           }
         ]
       },
@@ -7708,42 +8036,51 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_pjsip_hangup",
-            "evidence": "ast_register_application_xml"
+            "name": "PJSIPHangup",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_pjsip_hangup"
           }
         ],
         "functions": [
           {
-            "name": "chan_pjsip_dial_contacts_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_DIAL_CONTACTS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "chan_pjsip_dial_contacts_function"
           },
           {
-            "name": "chan_pjsip_parse_uri_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_PARSE_URI",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "chan_pjsip_parse_uri_function"
           },
           {
-            "name": "chan_pjsip_parse_uri_from_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_PARSE_URI_FROM",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "chan_pjsip_parse_uri_from_function"
           },
           {
-            "name": "media_offer_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_MEDIA_OFFER",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "media_offer_function"
           },
           {
-            "name": "dtmf_mode_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_DTMF_MODE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "dtmf_mode_function"
           },
           {
-            "name": "moh_passthrough_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_MOH_PASSTHROUGH",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "moh_passthrough_function"
           },
           {
-            "name": "session_refresh_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_SEND_SESSION_REFRESH",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "session_refresh_function"
           },
           {
-            "name": "transfer_handling_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_TRANSFER_HANDLING",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "transfer_handling_function"
           }
         ],
         "codecs": [],
@@ -7752,7 +8089,8 @@ export const ASTERISK_CATALOG = {
         "channels": [
           {
             "name": "chan_pjsip_tech",
-            "evidence": "ast_channel_register"
+            "evidence": "ast_channel_register",
+            "sourceName": "chan_pjsip_tech"
           }
         ]
       },
@@ -7804,12 +8142,14 @@ export const ASTERISK_CATALOG = {
         "bridges": [],
         "channels": [
           {
-            "name": "multicast_rtp_tech",
-            "evidence": "ast_channel_register"
+            "name": "MulticastRTP",
+            "evidence": "ast_channel_register",
+            "sourceName": "multicast_rtp_tech"
           },
           {
-            "name": "unicast_rtp_tech",
-            "evidence": "ast_channel_register"
+            "name": "UnicastRTP",
+            "evidence": "ast_channel_register",
+            "sourceName": "unicast_rtp_tech"
           }
         ]
       },
@@ -7858,29 +8198,34 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "unistim_reload",
+            "name": "unistim reload",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reload UNISTIM configuration"
+            "description": "Reload UNISTIM configuration",
+            "sourceName": "unistim_reload"
           },
           {
-            "name": "unistim_show_info",
+            "name": "unistim show info",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show UNISTIM info"
+            "description": "Show UNISTIM info",
+            "sourceName": "unistim_show_info"
           },
           {
-            "name": "unistim_show_devices",
+            "name": "unistim show devices",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show UNISTIM devices"
+            "description": "Show UNISTIM devices",
+            "sourceName": "unistim_show_devices"
           },
           {
-            "name": "unistim_sp",
+            "name": "unistim send packet",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Send packet (for reverse engineering)"
+            "description": "Send packet (for reverse engineering)",
+            "sourceName": "unistim_sp"
           },
           {
-            "name": "unistim_do_debug",
+            "name": "unistim set debug {on|off}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Toggle UNITSTIM debugging"
+            "description": "Toggle UNITSTIM debugging",
+            "sourceName": "unistim_do_debug"
           }
         ],
         "amiActions": [],
@@ -7895,7 +8240,8 @@ export const ASTERISK_CATALOG = {
         "channels": [
           {
             "name": "unistim_tech",
-            "evidence": "ast_channel_register"
+            "evidence": "ast_channel_register",
+            "sourceName": "unistim_tech"
           }
         ]
       },
@@ -7949,8 +8295,9 @@ export const ASTERISK_CATALOG = {
         "bridges": [],
         "channels": [
           {
-            "name": "websocket_tech",
-            "evidence": "ast_channel_register"
+            "name": "WebSocket",
+            "evidence": "ast_channel_register",
+            "sourceName": "websocket_tech"
           }
         ]
       },
@@ -8210,9 +8557,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_transcoder_show",
+            "name": "transcoder show",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display DAHDI transcoder utilization."
+            "description": "Display DAHDI transcoder utilization.",
+            "sourceName": "handle_cli_transcoder_show"
           }
         ],
         "amiActions": [],
@@ -8754,8 +9102,9 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "g719_f",
-            "evidence": "ast_format_def_register"
+            "name": "g719",
+            "evidence": "ast_format_def_register",
+            "sourceName": "g719_f"
           }
         ],
         "bridges": [],
@@ -8808,8 +9157,9 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "g723_1_f",
-            "evidence": "ast_format_def_register"
+            "name": "g723sf",
+            "evidence": "ast_format_def_register",
+            "sourceName": "g723_1_f"
           }
         ],
         "bridges": [],
@@ -8862,7 +9212,8 @@ export const ASTERISK_CATALOG = {
         "formats": [
           {
             "name": "f_def[i]",
-            "evidence": "ast_format_def_register"
+            "evidence": "ast_format_def_register",
+            "sourceName": "f_def[i]"
           }
         ],
         "bridges": [],
@@ -8914,8 +9265,9 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "g729_f",
-            "evidence": "ast_format_def_register"
+            "name": "g729",
+            "evidence": "ast_format_def_register",
+            "sourceName": "g729_f"
           }
         ],
         "bridges": [],
@@ -8967,8 +9319,9 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "gsm_f",
-            "evidence": "ast_format_def_register"
+            "name": "gsm",
+            "evidence": "ast_format_def_register",
+            "sourceName": "gsm_f"
           }
         ],
         "bridges": [],
@@ -9020,8 +9373,9 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "h263_f",
-            "evidence": "ast_format_def_register"
+            "name": "h263",
+            "evidence": "ast_format_def_register",
+            "sourceName": "h263_f"
           }
         ],
         "bridges": [],
@@ -9073,8 +9427,9 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "h264_f",
-            "evidence": "ast_format_def_register"
+            "name": "h264",
+            "evidence": "ast_format_def_register",
+            "sourceName": "h264_f"
           }
         ],
         "bridges": [],
@@ -9126,8 +9481,9 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "ilbc_f",
-            "evidence": "ast_format_def_register"
+            "name": "iLBC",
+            "evidence": "ast_format_def_register",
+            "sourceName": "ilbc_f"
           }
         ],
         "bridges": [],
@@ -9177,16 +9533,19 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "speex_f",
-            "evidence": "ast_format_def_register"
+            "name": "ogg_speex",
+            "evidence": "ast_format_def_register",
+            "sourceName": "speex_f"
           },
           {
-            "name": "speex16_f",
-            "evidence": "ast_format_def_register"
+            "name": "ogg_speex16",
+            "evidence": "ast_format_def_register",
+            "sourceName": "speex16_f"
           },
           {
-            "name": "speex32_f",
-            "evidence": "ast_format_def_register"
+            "name": "ogg_speex32",
+            "evidence": "ast_format_def_register",
+            "sourceName": "speex32_f"
           }
         ],
         "bridges": [],
@@ -9239,8 +9598,9 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "vorbis_f",
-            "evidence": "ast_format_def_register"
+            "name": "ogg_vorbis",
+            "evidence": "ast_format_def_register",
+            "sourceName": "vorbis_f"
           }
         ],
         "bridges": [],
@@ -9293,20 +9653,24 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "pcm_f",
-            "evidence": "ast_format_def_register"
+            "name": "pcm",
+            "evidence": "ast_format_def_register",
+            "sourceName": "pcm_f"
           },
           {
-            "name": "alaw_f",
-            "evidence": "ast_format_def_register"
+            "name": "alaw",
+            "evidence": "ast_format_def_register",
+            "sourceName": "alaw_f"
           },
           {
-            "name": "au_f",
-            "evidence": "ast_format_def_register"
+            "name": "au",
+            "evidence": "ast_format_def_register",
+            "sourceName": "au_f"
           },
           {
-            "name": "g722_f",
-            "evidence": "ast_format_def_register"
+            "name": "g722",
+            "evidence": "ast_format_def_register",
+            "sourceName": "g722_f"
           }
         ],
         "bridges": [],
@@ -9356,8 +9720,9 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "siren14_f",
-            "evidence": "ast_format_def_register"
+            "name": "siren14",
+            "evidence": "ast_format_def_register",
+            "sourceName": "siren14_f"
           }
         ],
         "bridges": [],
@@ -9408,8 +9773,9 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "siren7_f",
-            "evidence": "ast_format_def_register"
+            "name": "siren7",
+            "evidence": "ast_format_def_register",
+            "sourceName": "siren7_f"
           }
         ],
         "bridges": [],
@@ -9463,7 +9829,8 @@ export const ASTERISK_CATALOG = {
         "formats": [
           {
             "name": "slin_list[i]",
-            "evidence": "ast_format_def_register"
+            "evidence": "ast_format_def_register",
+            "sourceName": "slin_list[i]"
           }
         ],
         "bridges": [],
@@ -9515,8 +9882,9 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "vox_f",
-            "evidence": "ast_format_def_register"
+            "name": "vox",
+            "evidence": "ast_format_def_register",
+            "sourceName": "vox_f"
           }
         ],
         "bridges": [],
@@ -9570,12 +9938,14 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "wav_f",
-            "evidence": "ast_format_def_register"
+            "name": "wav",
+            "evidence": "ast_format_def_register",
+            "sourceName": "wav_f"
           },
           {
-            "name": "wav16_f",
-            "evidence": "ast_format_def_register"
+            "name": "wav16",
+            "evidence": "ast_format_def_register",
+            "sourceName": "wav16_f"
           }
         ],
         "bridges": [],
@@ -9627,8 +9997,9 @@ export const ASTERISK_CATALOG = {
         "codecs": [],
         "formats": [
           {
-            "name": "wav49_f",
-            "evidence": "ast_format_def_register"
+            "name": "wav49",
+            "evidence": "ast_format_def_register",
+            "sourceName": "wav49_f"
           }
         ],
         "bridges": [],
@@ -9676,12 +10047,14 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "aes_decrypt_function",
-            "evidence": "ast_custom_function_register"
+            "name": "AES_DECRYPT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "aes_decrypt_function"
           },
           {
-            "name": "aes_encrypt_function",
-            "evidence": "ast_custom_function_register"
+            "name": "AES_ENCRYPT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "aes_encrypt_function"
           }
         ],
         "codecs": [],
@@ -9734,12 +10107,14 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "base64_encode_function",
-            "evidence": "ast_custom_function_register"
+            "name": "BASE64_ENCODE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "base64_encode_function"
           },
           {
-            "name": "base64_decode_function",
-            "evidence": "ast_custom_function_register"
+            "name": "BASE64_DECODE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "base64_decode_function"
           }
         ],
         "codecs": [],
@@ -9789,8 +10164,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "blacklist_function",
-            "evidence": "ast_custom_function_register"
+            "name": "BLACKLIST",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "blacklist_function"
           }
         ],
         "codecs": [],
@@ -9843,8 +10219,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "cc_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CALLCOMPLETION",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "cc_function"
           }
         ],
         "codecs": [],
@@ -9897,16 +10274,19 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "callerid_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CALLERID",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "callerid_function"
           },
           {
-            "name": "connectedline_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CONNECTEDLINE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "connectedline_function"
           },
           {
-            "name": "redirecting_function",
-            "evidence": "ast_custom_function_register"
+            "name": "REDIRECTING",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "redirecting_function"
           }
         ],
         "codecs": [],
@@ -9958,12 +10338,14 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "cdr_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CDR",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "cdr_function"
           },
           {
-            "name": "cdr_prop_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CDR_PROP",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "cdr_prop_function"
           }
         ],
         "codecs": [],
@@ -10018,20 +10400,24 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "channel_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CHANNEL",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "channel_function"
           },
           {
-            "name": "channels_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CHANNELS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "channels_function"
           },
           {
-            "name": "chan_exists_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CHANNEL_EXISTS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "chan_exists_function"
           },
           {
-            "name": "mchan_function",
-            "evidence": "ast_custom_function_register"
+            "name": "MASTER_CHANNEL",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "mchan_function"
           }
         ],
         "codecs": [],
@@ -10081,8 +10467,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "config_function",
-            "evidence": "ast_custom_function_register"
+            "name": "AST_CONFIG",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "config_function"
           }
         ],
         "codecs": [],
@@ -10137,12 +10524,14 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "acf_curl",
-            "evidence": "ast_custom_function_register_escalating"
+            "name": "CURL",
+            "evidence": "ast_custom_function_register_escalating",
+            "sourceName": "acf_curl"
           },
           {
-            "name": "acf_curlopt",
-            "evidence": "ast_custom_function_register"
+            "name": "CURLOPT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "acf_curlopt"
           }
         ],
         "codecs": [],
@@ -10194,12 +10583,14 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "acf_cut",
-            "evidence": "ast_custom_function_register"
+            "name": "CUT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "acf_cut"
           },
           {
-            "name": "acf_sort",
-            "evidence": "ast_custom_function_register"
+            "name": "SORT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "acf_sort"
           }
         ],
         "codecs": [],
@@ -10253,24 +10644,29 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "db_function",
-            "evidence": "ast_custom_function_register_escalating"
+            "name": "DB",
+            "evidence": "ast_custom_function_register_escalating",
+            "sourceName": "db_function"
           },
           {
-            "name": "db_exists_function",
-            "evidence": "ast_custom_function_register"
+            "name": "DB_EXISTS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "db_exists_function"
           },
           {
-            "name": "db_delete_function",
-            "evidence": "ast_custom_function_register_escalating"
+            "name": "DB_DELETE",
+            "evidence": "ast_custom_function_register_escalating",
+            "sourceName": "db_delete_function"
           },
           {
-            "name": "db_keys_function",
-            "evidence": "ast_custom_function_register"
+            "name": "DB_KEYS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "db_keys_function"
           },
           {
-            "name": "db_keycount_function",
-            "evidence": "ast_custom_function_register"
+            "name": "DB_KEYCOUNT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "db_keycount_function"
           }
         ],
         "codecs": [],
@@ -10315,14 +10711,16 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_devstate_list",
+            "name": "devstate list",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List currently known custom device states"
+            "description": "List currently known custom device states",
+            "sourceName": "handle_cli_devstate_list"
           },
           {
-            "name": "handle_cli_devstate_change",
+            "name": "devstate change",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Change a custom device state"
+            "description": "Change a custom device state",
+            "sourceName": "handle_cli_devstate_change"
           }
         ],
         "amiActions": [],
@@ -10332,12 +10730,14 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "devstate_function",
-            "evidence": "ast_custom_function_register"
+            "name": "DEVICE_STATE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "devstate_function"
           },
           {
-            "name": "hint_function",
-            "evidence": "ast_custom_function_register"
+            "name": "HINT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "hint_function"
           }
         ],
         "codecs": [],
@@ -10388,8 +10788,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "dialgroup_function",
-            "evidence": "ast_custom_function_register"
+            "name": "DIALGROUP",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "dialgroup_function"
           }
         ],
         "codecs": [],
@@ -10440,8 +10841,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "isexten_function",
-            "evidence": "ast_custom_function_register"
+            "name": "DIALPLAN_EXISTS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "isexten_function"
           }
         ],
         "codecs": [],
@@ -10494,20 +10896,24 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "enum_result_function",
-            "evidence": "ast_custom_function_register"
+            "name": "ENUMRESULT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "enum_result_function"
           },
           {
-            "name": "enum_query_function",
-            "evidence": "ast_custom_function_register"
+            "name": "ENUMQUERY",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "enum_query_function"
           },
           {
-            "name": "enum_function",
-            "evidence": "ast_custom_function_register"
+            "name": "ENUMLOOKUP",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "enum_function"
           },
           {
-            "name": "txtcidname_function",
-            "evidence": "ast_custom_function_register"
+            "name": "TXTCIDNAME",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "txtcidname_function"
           }
         ],
         "codecs": [],
@@ -10562,32 +10968,39 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "env_function",
-            "evidence": "ast_custom_function_register"
+            "name": "ENV",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "env_function"
           },
           {
-            "name": "stat_function",
-            "evidence": "ast_custom_function_register_escalating"
+            "name": "STAT",
+            "evidence": "ast_custom_function_register_escalating",
+            "sourceName": "stat_function"
           },
           {
-            "name": "file_function",
-            "evidence": "ast_custom_function_register_escalating"
+            "name": "FILE",
+            "evidence": "ast_custom_function_register_escalating",
+            "sourceName": "file_function"
           },
           {
-            "name": "file_count_line_function",
-            "evidence": "ast_custom_function_register_escalating"
+            "name": "FILE_COUNT_LINE",
+            "evidence": "ast_custom_function_register_escalating",
+            "sourceName": "file_count_line_function"
           },
           {
-            "name": "file_format_function",
-            "evidence": "ast_custom_function_register_escalating"
+            "name": "FILE_FORMAT",
+            "evidence": "ast_custom_function_register_escalating",
+            "sourceName": "file_format_function"
           },
           {
-            "name": "file_dirname_function",
-            "evidence": "ast_custom_function_register"
+            "name": "DIRNAME",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "file_dirname_function"
           },
           {
-            "name": "file_basename_function",
-            "evidence": "ast_custom_function_register"
+            "name": "BASENAME",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "file_basename_function"
           }
         ],
         "codecs": [],
@@ -10637,12 +11050,14 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "eval_exten_function",
-            "evidence": "ast_custom_function_register"
+            "name": "EVAL_EXTEN",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "eval_exten_function"
           },
           {
-            "name": "eval_sub_function",
-            "evidence": "ast_custom_function_register"
+            "name": "EVAL_SUB",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "eval_sub_function"
           }
         ],
         "codecs": [],
@@ -10693,8 +11108,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "export_function",
-            "evidence": "ast_custom_function_register"
+            "name": "EXPORT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "export_function"
           }
         ],
         "codecs": [],
@@ -10745,8 +11161,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "extstate_function",
-            "evidence": "ast_custom_function_register"
+            "name": "EXTENSION_STATE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "extstate_function"
           }
         ],
         "codecs": [],
@@ -10797,8 +11214,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "frame_drop_function",
-            "evidence": "ast_custom_function_register"
+            "name": "FRAME_DROP",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "frame_drop_function"
           }
         ],
         "codecs": [],
@@ -10844,9 +11262,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_dump_frames",
+            "name": "channel dump frames",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display frames queued on a specific channel"
+            "description": "Display frames queued on a specific channel",
+            "sourceName": "handle_dump_frames"
           }
         ],
         "amiActions": [],
@@ -10856,8 +11275,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "frame_trace_function",
-            "evidence": "ast_custom_function_register"
+            "name": "FRAME_TRACE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "frame_trace_function"
           }
         ],
         "codecs": [],
@@ -10910,20 +11330,24 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "global_function",
-            "evidence": "ast_custom_function_register"
+            "name": "GLOBAL",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "global_function"
           },
           {
-            "name": "global_delete_function",
-            "evidence": "ast_custom_function_register"
+            "name": "GLOBAL_DELETE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "global_delete_function"
           },
           {
-            "name": "global_exists_function",
-            "evidence": "ast_custom_function_register"
+            "name": "GLOBAL_EXISTS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "global_exists_function"
           },
           {
-            "name": "shared_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SHARED",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "shared_function"
           }
         ],
         "codecs": [],
@@ -10976,20 +11400,24 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "group_count_function",
-            "evidence": "ast_custom_function_register"
+            "name": "GROUP_COUNT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "group_count_function"
           },
           {
-            "name": "group_match_count_function",
-            "evidence": "ast_custom_function_register"
+            "name": "GROUP_MATCH_COUNT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "group_match_count_function"
           },
           {
-            "name": "group_list_function",
-            "evidence": "ast_custom_function_register"
+            "name": "GROUP_LIST",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "group_list_function"
           },
           {
-            "name": "group_function",
-            "evidence": "ast_custom_function_register"
+            "name": "GROUP",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "group_function"
           }
         ],
         "codecs": [],
@@ -11040,17 +11468,20 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [
           {
-            "name": "hangupcause_function",
-            "evidence": "ast_custom_function_register"
+            "name": "HANGUPCAUSE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "hangupcause_function"
           },
           {
-            "name": "hangupcause_keys_function",
-            "evidence": "ast_custom_function_register"
+            "name": "HANGUPCAUSE_KEYS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "hangupcause_keys_function"
           }
         ],
         "codecs": [],
@@ -11101,8 +11532,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "hold_intercept_function",
-            "evidence": "ast_custom_function_register"
+            "name": "HOLD_INTERCEPT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "hold_intercept_function"
           }
         ],
         "codecs": [],
@@ -11153,8 +11585,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "iconv_function",
-            "evidence": "ast_custom_function_register"
+            "name": "ICONV",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "iconv_function"
           }
         ],
         "codecs": [],
@@ -11205,8 +11638,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "jb_function",
-            "evidence": "ast_custom_function_register"
+            "name": "JITTERBUFFER",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "jb_function"
           }
         ],
         "codecs": [],
@@ -11257,8 +11691,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "json_decode_function",
-            "evidence": "ast_custom_function_register"
+            "name": "JSON_DECODE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "json_decode_function"
           }
         ],
         "codecs": [],
@@ -11306,9 +11741,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_locks_show",
+            "name": "dialplan locks show",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List func_lock locks."
+            "description": "List func_lock locks.",
+            "sourceName": "handle_cli_locks_show"
           }
         ],
         "amiActions": [],
@@ -11318,16 +11754,19 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "lock_function",
-            "evidence": "ast_custom_function_register_escalating"
+            "name": "LOCK",
+            "evidence": "ast_custom_function_register_escalating",
+            "sourceName": "lock_function"
           },
           {
-            "name": "trylock_function",
-            "evidence": "ast_custom_function_register_escalating"
+            "name": "TRYLOCK",
+            "evidence": "ast_custom_function_register_escalating",
+            "sourceName": "trylock_function"
           },
           {
-            "name": "unlock_function",
-            "evidence": "ast_custom_function_register_escalating"
+            "name": "UNLOCK",
+            "evidence": "ast_custom_function_register_escalating",
+            "sourceName": "unlock_function"
           }
         ],
         "codecs": [],
@@ -11380,36 +11819,44 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "isnull_function",
-            "evidence": "ast_custom_function_register"
+            "name": "ISNULL",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "isnull_function"
           },
           {
-            "name": "set_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SET",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "set_function"
           },
           {
-            "name": "exists_function",
-            "evidence": "ast_custom_function_register"
+            "name": "EXISTS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "exists_function"
           },
           {
-            "name": "if_function",
-            "evidence": "ast_custom_function_register"
+            "name": "IF",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "if_function"
           },
           {
-            "name": "if_time_function",
-            "evidence": "ast_custom_function_register"
+            "name": "IFTIME",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "if_time_function"
           },
           {
-            "name": "import_function",
-            "evidence": "ast_custom_function_register"
+            "name": "IMPORT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "import_function"
           },
           {
-            "name": "delete_function",
-            "evidence": "ast_custom_function_register"
+            "name": "DELETE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "delete_function"
           },
           {
-            "name": "variable_exists_function",
-            "evidence": "ast_custom_function_register"
+            "name": "VARIABLE_EXISTS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "variable_exists_function"
           }
         ],
         "codecs": [],
@@ -11461,32 +11908,39 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "math_function",
-            "evidence": "ast_custom_function_register"
+            "name": "MATH",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "math_function"
           },
           {
-            "name": "increment_function",
-            "evidence": "ast_custom_function_register"
+            "name": "INC",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "increment_function"
           },
           {
-            "name": "decrement_function",
-            "evidence": "ast_custom_function_register"
+            "name": "DEC",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "decrement_function"
           },
           {
-            "name": "acf_min",
-            "evidence": "ast_custom_function_register"
+            "name": "MIN",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "acf_min"
           },
           {
-            "name": "acf_max",
-            "evidence": "ast_custom_function_register"
+            "name": "MAX",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "acf_max"
           },
           {
-            "name": "acf_abs",
-            "evidence": "ast_custom_function_register"
+            "name": "ABS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "acf_abs"
           },
           {
-            "name": "acf_digit_sum",
-            "evidence": "ast_custom_function_register"
+            "name": "DIGIT_SUM",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "acf_digit_sum"
           }
         ],
         "codecs": [],
@@ -11538,8 +11992,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "md5_function",
-            "evidence": "ast_custom_function_register"
+            "name": "MD5",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "md5_function"
           }
         ],
         "codecs": [],
@@ -11589,8 +12044,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "ifmodule_function",
-            "evidence": "ast_custom_function_register"
+            "name": "IFMODULE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "ifmodule_function"
           }
         ],
         "codecs": [],
@@ -11642,14 +12098,16 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "cli_odbc_write",
+            "name": "odbc write",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Test setting a func_odbc function"
+            "description": "Test setting a func_odbc function",
+            "sourceName": "cli_odbc_write"
           },
           {
-            "name": "cli_odbc_read",
+            "name": "odbc read",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Test reading a func_odbc function"
+            "description": "Test reading a func_odbc function",
+            "sourceName": "cli_odbc_read"
           }
         ],
         "amiActions": [],
@@ -11658,26 +12116,31 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_odbcfinish",
-            "evidence": "ast_register_application_xml"
+            "name": "ODBCFinish",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_odbcfinish"
           }
         ],
         "functions": [
           {
-            "name": "fetch_function",
-            "evidence": "ast_custom_function_register"
+            "name": "ODBC_FETCH",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "fetch_function"
           },
           {
             "name": "query->acf",
-            "evidence": "ast_custom_function_register"
+            "evidence": "ast_custom_function_register",
+            "sourceName": "query->acf"
           },
           {
-            "name": "escape_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SQL_ESC",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "escape_function"
           },
           {
-            "name": "escape_backslashes_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SQL_ESC_BACKSLASHES",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "escape_backslashes_function"
           }
         ],
         "codecs": [],
@@ -11727,8 +12190,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "hook_function",
-            "evidence": "ast_custom_function_register_escalating"
+            "name": "PERIODIC_HOOK",
+            "evidence": "ast_custom_function_register_escalating",
+            "sourceName": "hook_function"
           }
         ],
         "codecs": [],
@@ -11779,8 +12243,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "pitch_shift_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PITCH_SHIFT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "pitch_shift_function"
           }
         ],
         "codecs": [],
@@ -11833,8 +12298,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "pjsip_aor_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_AOR",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "pjsip_aor_function"
           }
         ],
         "codecs": [],
@@ -11887,8 +12353,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "pjsip_contact_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_CONTACT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "pjsip_contact_function"
           }
         ],
         "codecs": [],
@@ -11941,8 +12408,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "pjsip_endpoint_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_ENDPOINT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "pjsip_endpoint_function"
           }
         ],
         "codecs": [],
@@ -11988,14 +12456,16 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_presencestate_list",
+            "name": "presencestate list",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List currently know custom presence states"
+            "description": "List currently know custom presence states",
+            "sourceName": "handle_cli_presencestate_list"
           },
           {
-            "name": "handle_cli_presencestate_change",
+            "name": "presencestate change",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Change a custom presence state"
+            "description": "Change a custom presence state",
+            "sourceName": "handle_cli_presencestate_change"
           }
         ],
         "amiActions": [],
@@ -12005,8 +12475,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "presence_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PRESENCE_STATE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "presence_function"
           }
         ],
         "codecs": [],
@@ -12059,8 +12530,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "acf_rand",
-            "evidence": "ast_custom_function_register"
+            "name": "RAND",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "acf_rand"
           }
         ],
         "codecs": [],
@@ -12114,24 +12586,29 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "realtime_function",
-            "evidence": "ast_custom_function_register"
+            "name": "REALTIME",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "realtime_function"
           },
           {
-            "name": "realtime_store_function",
-            "evidence": "ast_custom_function_register"
+            "name": "REALTIME_STORE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "realtime_store_function"
           },
           {
-            "name": "realtime_destroy_function",
-            "evidence": "ast_custom_function_register_escalating"
+            "name": "REALTIME_DESTROY",
+            "evidence": "ast_custom_function_register_escalating",
+            "sourceName": "realtime_destroy_function"
           },
           {
-            "name": "realtimefield_function",
-            "evidence": "ast_custom_function_register"
+            "name": "REALTIME_FIELD",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "realtimefield_function"
           },
           {
-            "name": "realtimehash_function",
-            "evidence": "ast_custom_function_register"
+            "name": "REALTIME_HASH",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "realtimehash_function"
           }
         ],
         "codecs": [],
@@ -12181,8 +12658,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "sayfiles",
-            "evidence": "ast_custom_function_register"
+            "name": "SAYFILES",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "sayfiles"
           }
         ],
         "codecs": [],
@@ -12233,8 +12711,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "scramble_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SCRAMBLE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "scramble_function"
           }
         ],
         "codecs": [],
@@ -12287,8 +12766,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "sha1_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SHA1",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "sha1_function"
           }
         ],
         "codecs": [],
@@ -12340,8 +12820,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "shell_function",
-            "evidence": "ast_custom_function_register_escalating"
+            "name": "SHELL",
+            "evidence": "ast_custom_function_register_escalating",
+            "sourceName": "shell_function"
           }
         ],
         "codecs": [],
@@ -12392,8 +12873,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "sorcery_function",
-            "evidence": "ast_custom_function_register"
+            "name": "AST_SORCERY",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "sorcery_function"
           }
         ],
         "codecs": [],
@@ -12444,12 +12926,14 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "agc_function",
-            "evidence": "ast_custom_function_register"
+            "name": "AGC",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "agc_function"
           },
           {
-            "name": "denoise_function",
-            "evidence": "ast_custom_function_register"
+            "name": "DENOISE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "denoise_function"
           }
         ],
         "codecs": [],
@@ -12503,8 +12987,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "sprintf_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SPRINTF",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "sprintf_function"
           }
         ],
         "codecs": [],
@@ -12555,12 +13040,14 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "srv_query_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SRVQUERY",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "srv_query_function"
           },
           {
-            "name": "srv_result_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SRVRESULT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "srv_result_function"
           }
         ],
         "codecs": [],
@@ -12613,122 +13100,151 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_clearhash",
-            "evidence": "ast_register_application_xml"
+            "name": "ClearHash",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_clearhash"
           }
         ],
         "functions": [
           {
-            "name": "fieldqty_function",
-            "evidence": "ast_custom_function_register"
+            "name": "FIELDQTY",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "fieldqty_function"
           },
           {
-            "name": "fieldnum_function",
-            "evidence": "ast_custom_function_register"
+            "name": "FIELDNUM",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "fieldnum_function"
           },
           {
-            "name": "filter_function",
-            "evidence": "ast_custom_function_register"
+            "name": "FILTER",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "filter_function"
           },
           {
-            "name": "replace_function",
-            "evidence": "ast_custom_function_register"
+            "name": "REPLACE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "replace_function"
           },
           {
-            "name": "strreplace_function",
-            "evidence": "ast_custom_function_register"
+            "name": "STRREPLACE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "strreplace_function"
           },
           {
-            "name": "strbetween_function",
-            "evidence": "ast_custom_function_register"
+            "name": "STRBETWEEN",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "strbetween_function"
           },
           {
-            "name": "listfilter_function",
-            "evidence": "ast_custom_function_register"
+            "name": "LISTFILTER",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "listfilter_function"
           },
           {
-            "name": "regex_function",
-            "evidence": "ast_custom_function_register"
+            "name": "REGEX",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "regex_function"
           },
           {
-            "name": "array_function",
-            "evidence": "ast_custom_function_register"
+            "name": "ARRAY",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "array_function"
           },
           {
-            "name": "quote_function",
-            "evidence": "ast_custom_function_register"
+            "name": "QUOTE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "quote_function"
           },
           {
-            "name": "csv_quote_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CSV_QUOTE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "csv_quote_function"
           },
           {
-            "name": "len_function",
-            "evidence": "ast_custom_function_register"
+            "name": "LEN",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "len_function"
           },
           {
-            "name": "strftime_function",
-            "evidence": "ast_custom_function_register"
+            "name": "STRFTIME",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "strftime_function"
           },
           {
-            "name": "strptime_function",
-            "evidence": "ast_custom_function_register"
+            "name": "STRPTIME",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "strptime_function"
           },
           {
-            "name": "eval_function",
-            "evidence": "ast_custom_function_register"
+            "name": "EVAL",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "eval_function"
           },
           {
-            "name": "keypadhash_function",
-            "evidence": "ast_custom_function_register"
+            "name": "KEYPADHASH",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "keypadhash_function"
           },
           {
-            "name": "hashkeys_function",
-            "evidence": "ast_custom_function_register"
+            "name": "HASHKEYS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "hashkeys_function"
           },
           {
-            "name": "hash_function",
-            "evidence": "ast_custom_function_register"
+            "name": "HASH",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "hash_function"
           },
           {
-            "name": "toupper_function",
-            "evidence": "ast_custom_function_register"
+            "name": "TOUPPER",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "toupper_function"
           },
           {
-            "name": "tolower_function",
-            "evidence": "ast_custom_function_register"
+            "name": "TOLOWER",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "tolower_function"
           },
           {
-            "name": "shift_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SHIFT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "shift_function"
           },
           {
-            "name": "pop_function",
-            "evidence": "ast_custom_function_register"
+            "name": "POP",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "pop_function"
           },
           {
-            "name": "push_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PUSH",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "push_function"
           },
           {
-            "name": "unshift_function",
-            "evidence": "ast_custom_function_register"
+            "name": "UNSHIFT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "unshift_function"
           },
           {
-            "name": "passthru_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PASSTHRU",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "passthru_function"
           },
           {
-            "name": "trim_function",
-            "evidence": "ast_custom_function_register"
+            "name": "TRIM",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "trim_function"
           },
           {
-            "name": "ltrim_function",
-            "evidence": "ast_custom_function_register"
+            "name": "LTRIM",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "ltrim_function"
           },
           {
-            "name": "rtrim_function",
-            "evidence": "ast_custom_function_register"
+            "name": "RTRIM",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "rtrim_function"
           }
         ],
         "codecs": [],
@@ -12778,8 +13294,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "sysinfo_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SYSINFO",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "sysinfo_function"
           }
         ],
         "codecs": [],
@@ -12832,8 +13349,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "talk_detect_function",
-            "evidence": "ast_custom_function_register"
+            "name": "TALK_DETECT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "talk_detect_function"
           }
         ],
         "codecs": [],
@@ -12886,8 +13404,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "timeout_function",
-            "evidence": "ast_custom_function_register"
+            "name": "TIMEOUT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "timeout_function"
           }
         ],
         "codecs": [],
@@ -12939,12 +13458,14 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "urldecode_function",
-            "evidence": "ast_custom_function_register"
+            "name": "URIDECODE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "urldecode_function"
           },
           {
-            "name": "urlencode_function",
-            "evidence": "ast_custom_function_register"
+            "name": "URIENCODE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "urlencode_function"
           }
         ],
         "codecs": [],
@@ -12994,8 +13515,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "uuid_function",
-            "evidence": "ast_custom_function_register"
+            "name": "UUID",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "uuid_function"
           }
         ],
         "codecs": [],
@@ -13046,8 +13568,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "acf_version",
-            "evidence": "ast_custom_function_register"
+            "name": "VERSION",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "acf_version"
           }
         ],
         "codecs": [],
@@ -13098,8 +13621,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "acf_vmcount",
-            "evidence": "ast_custom_function_register"
+            "name": "VMCOUNT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "acf_vmcount"
           }
         ],
         "codecs": [],
@@ -13150,8 +13674,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "volume_function",
-            "evidence": "ast_custom_function_register"
+            "name": "VOLUME",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "volume_function"
           }
         ],
         "codecs": [],
@@ -13202,14 +13727,16 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cc_status",
+            "name": "cc report status",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reports CC stats"
+            "description": "Reports CC stats",
+            "sourceName": "handle_cc_status"
           },
           {
-            "name": "handle_cc_kill",
+            "name": "cc cancel [core|all]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Kill a CC transaction"
+            "description": "Kill a CC transaction",
+            "sourceName": "handle_cc_kill"
           }
         ],
         "amiActions": [],
@@ -13290,24 +13817,28 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_submit",
+            "name": "cdr submit",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Posts all pending batched CDR data"
+            "description": "Posts all pending batched CDR data",
+            "sourceName": "handle_cli_submit"
           },
           {
-            "name": "handle_cli_status",
+            "name": "cdr show status",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display the CDR status"
+            "description": "Display the CDR status",
+            "sourceName": "handle_cli_status"
           },
           {
-            "name": "handle_cli_show",
+            "name": "cdr show active",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display active CDRs for channels"
+            "description": "Display active CDRs for channels",
+            "sourceName": "handle_cli_show"
           },
           {
-            "name": "handle_cli_debug",
+            "name": "cdr set debug [on|off]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable debugging in the CDR engine"
+            "description": "Enable debugging in the CDR engine",
+            "sourceName": "handle_cli_debug"
           }
         ],
         "amiActions": [],
@@ -13362,9 +13893,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_status",
+            "name": "cel show status",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display the CEL status"
+            "description": "Display the CEL status",
+            "sourceName": "handle_cli_status"
           }
         ],
         "amiActions": [],
@@ -13429,19 +13961,22 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_core_show_config_mappings",
+            "name": "core show config mappings",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display config mappings (file names to config engines)"
+            "description": "Display config mappings (file names to config engines)",
+            "sourceName": "handle_cli_core_show_config_mappings"
           },
           {
-            "name": "handle_cli_config_reload",
+            "name": "config reload",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Force a reload on modules using a particular configuration file"
+            "description": "Force a reload on modules using a particular configuration file",
+            "sourceName": "handle_cli_config_reload"
           },
           {
-            "name": "handle_cli_config_list",
+            "name": "config list",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show all files that have loaded a configuration file"
+            "description": "Show all files that have loaded a configuration file",
+            "sourceName": "handle_cli_config_list"
           }
         ],
         "amiActions": [],
@@ -13496,19 +14031,22 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_reload",
+            "name": "dnsmgr reload",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reloads the DNS manager configuration"
+            "description": "Reloads the DNS manager configuration",
+            "sourceName": "handle_cli_reload"
           },
           {
-            "name": "handle_cli_refresh",
+            "name": "dnsmgr refresh",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Performs an immediate refresh"
+            "description": "Performs an immediate refresh",
+            "sourceName": "handle_cli_refresh"
           },
           {
-            "name": "handle_cli_status",
+            "name": "dnsmgr status",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display the DNS manager status"
+            "description": "Display the DNS manager status",
+            "sourceName": "handle_cli_status"
           }
         ],
         "amiActions": [],
@@ -13727,9 +14265,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_show_http",
+            "name": "http show status",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display HTTP server status"
+            "description": "Display HTTP server status",
+            "sourceName": "handle_show_http"
           }
         ],
         "amiActions": [],
@@ -13785,19 +14324,22 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_indication_add",
+            "name": "indication add",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Add the given indication to the country"
+            "description": "Add the given indication to the country",
+            "sourceName": "handle_cli_indication_add"
           },
           {
-            "name": "handle_cli_indication_remove",
+            "name": "indication remove",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Remove the given indication from the country"
+            "description": "Remove the given indication from the country",
+            "sourceName": "handle_cli_indication_remove"
           },
           {
-            "name": "handle_cli_indication_show",
+            "name": "indication show",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display a list of all countries/indications"
+            "description": "Display a list of all countries/indications",
+            "sourceName": "handle_cli_indication_show"
           }
         ],
         "amiActions": [],
@@ -13854,54 +14396,64 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_logger_show_channels",
+            "name": "logger show channels",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List configured log channels"
+            "description": "List configured log channels",
+            "sourceName": "handle_logger_show_channels"
           },
           {
-            "name": "handle_logger_show_levels",
+            "name": "logger show levels",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List configured log levels"
+            "description": "List configured log levels",
+            "sourceName": "handle_logger_show_levels"
           },
           {
-            "name": "handle_logger_reload",
+            "name": "logger reload",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reopens the log files"
+            "description": "Reopens the log files",
+            "sourceName": "handle_logger_reload"
           },
           {
-            "name": "handle_logger_rotate",
+            "name": "logger rotate",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Rotates and reopens the log files"
+            "description": "Rotates and reopens the log files",
+            "sourceName": "handle_logger_rotate"
           },
           {
-            "name": "handle_logger_set_level",
+            "name": "logger set level {DEBUG|TRACE|NOTICE|WARNING|ERROR|VERBOSE|DTMF} {on|off}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enables/Disables a specific logging level for this console"
+            "description": "Enables/Disables a specific logging level for this console",
+            "sourceName": "handle_logger_set_level"
           },
           {
-            "name": "handle_logger_add_channel",
+            "name": "logger add channel",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Adds a new logging channel"
+            "description": "Adds a new logging channel",
+            "sourceName": "handle_logger_add_channel"
           },
           {
-            "name": "handle_logger_remove_channel",
+            "name": "logger remove channel",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Removes a logging channel"
+            "description": "Removes a logging channel",
+            "sourceName": "handle_logger_remove_channel"
           },
           {
-            "name": "handle_logger_chanloggroup_filter",
+            "name": "logger filter changroup",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Filter PBX logs by channel log group"
+            "description": "Filter PBX logs by channel log group",
+            "sourceName": "handle_logger_chanloggroup_filter"
           },
           {
-            "name": "handle_logger_filter_show",
+            "name": "logger filter show",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show current PBX channel filtering"
+            "description": "Show current PBX channel filtering",
+            "sourceName": "handle_logger_filter_show"
           },
           {
-            "name": "handle_logger_filter_reset",
+            "name": "logger filter reset",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reset PBX channel filtering"
+            "description": "Reset PBX channel filtering",
+            "sourceName": "handle_logger_filter_reset"
           }
         ],
         "amiActions": [],
@@ -13916,8 +14468,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "log_group_function",
-            "evidence": "ast_custom_function_register"
+            "name": "LOG_GROUP",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "log_group_function"
           }
         ],
         "codecs": [],
@@ -13973,59 +14526,70 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_showmancmd",
+            "name": "manager show command",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show a manager interface command"
+            "description": "Show a manager interface command",
+            "sourceName": "handle_showmancmd"
           },
           {
-            "name": "handle_showmancmds",
+            "name": "manager show commands",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List manager interface commands"
+            "description": "List manager interface commands",
+            "sourceName": "handle_showmancmds"
           },
           {
-            "name": "handle_showmanconn",
+            "name": "manager show connected",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List connected manager interface users"
+            "description": "List connected manager interface users",
+            "sourceName": "handle_showmanconn"
           },
           {
-            "name": "handle_kickmanconn",
+            "name": "manager kick session",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Kick a connected manager interface connection"
+            "description": "Kick a connected manager interface connection",
+            "sourceName": "handle_kickmanconn"
           },
           {
-            "name": "handle_showmanagers",
+            "name": "manager show users",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List configured manager users"
+            "description": "List configured manager users",
+            "sourceName": "handle_showmanagers"
           },
           {
-            "name": "handle_showmanager",
+            "name": "manager show user",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display information on a specific manager user"
+            "description": "Display information on a specific manager user",
+            "sourceName": "handle_showmanager"
           },
           {
-            "name": "handle_mandebug",
+            "name": "manager set debug [on|off]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show, enable, disable debugging of the manager code"
+            "description": "Show, enable, disable debugging of the manager code",
+            "sourceName": "handle_mandebug"
           },
           {
-            "name": "handle_manager_reload",
+            "name": "manager reload",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reload manager configurations"
+            "description": "Reload manager configurations",
+            "sourceName": "handle_manager_reload"
           },
           {
-            "name": "handle_manager_show_settings",
+            "name": "manager show settings",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show manager global settings"
+            "description": "Show manager global settings",
+            "sourceName": "handle_manager_show_settings"
           },
           {
-            "name": "handle_manager_show_events",
+            "name": "manager show events",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List manager interface events"
+            "description": "List manager interface events",
+            "sourceName": "handle_manager_show_events"
           },
           {
-            "name": "handle_manager_show_event",
+            "name": "manager show event",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show a manager interface event"
+            "description": "Show a manager interface event",
+            "sourceName": "handle_manager_show_event"
           }
         ],
         "amiActions": [
@@ -14254,9 +14818,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_show_named_acl_cmd",
+            "name": "acl show",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show a named ACL or list all named ACLs"
+            "description": "Show a named ACL or list all named ACLs",
+            "sourceName": "handle_show_named_acl_cmd"
           }
         ],
         "amiActions": [],
@@ -14399,14 +14964,16 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_sounds_show",
+            "name": "core show sounds",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Shows available sounds"
+            "description": "Shows available sounds",
+            "sourceName": "handle_cli_sounds_show"
           },
           {
-            "name": "handle_cli_sound_show",
+            "name": "core show sound",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Shows details about a specific sound"
+            "description": "Shows details about a specific sound",
+            "sourceName": "handle_cli_sound_show"
           }
         ],
         "amiActions": [],
@@ -14461,14 +15028,16 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_udptl_set_debug",
+            "name": "udptl set debug {on|off|ip}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable UDPTL debugging"
+            "description": "Enable/Disable UDPTL debugging",
+            "sourceName": "handle_cli_udptl_set_debug"
           },
           {
-            "name": "handle_cli_show_config",
+            "name": "udptl show config",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show UDPTL config options"
+            "description": "Show UDPTL config options",
+            "sourceName": "handle_cli_show_config"
           }
         ],
         "amiActions": [],
@@ -14524,14 +15093,16 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_ael_reload",
+            "name": "ael reload",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reload AEL configuration"
+            "description": "Reload AEL configuration",
+            "sourceName": "handle_cli_ael_reload"
           },
           {
-            "name": "handle_cli_ael_set_debug",
+            "name": "ael set debug {read|tokens|contexts|off}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable AEL debugging flags"
+            "description": "Enable AEL debugging flags",
+            "sourceName": "handle_cli_ael_set_debug"
           }
         ],
         "amiActions": [],
@@ -14540,8 +15111,9 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "aelsub",
-            "evidence": "ast_register_application_xml"
+            "name": "AELSub",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "aelsub"
           }
         ],
         "functions": [],
@@ -14591,49 +15163,58 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_dialplan_add_extension",
+            "name": "dialplan add extension",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Add new extension into context"
+            "description": "Add new extension into context",
+            "sourceName": "handle_cli_dialplan_add_extension"
           },
           {
-            "name": "handle_cli_dialplan_remove_extension",
+            "name": "dialplan remove extension",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Remove a specified extension"
+            "description": "Remove a specified extension",
+            "sourceName": "handle_cli_dialplan_remove_extension"
           },
           {
-            "name": "handle_cli_dialplan_remove_context",
+            "name": "dialplan remove context",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Remove a specified context"
+            "description": "Remove a specified context",
+            "sourceName": "handle_cli_dialplan_remove_context"
           },
           {
-            "name": "handle_cli_dialplan_add_ignorepat",
+            "name": "dialplan add ignorepat",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Add new ignore pattern"
+            "description": "Add new ignore pattern",
+            "sourceName": "handle_cli_dialplan_add_ignorepat"
           },
           {
-            "name": "handle_cli_dialplan_remove_ignorepat",
+            "name": "dialplan remove ignorepat",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Remove ignore pattern from context"
+            "description": "Remove ignore pattern from context",
+            "sourceName": "handle_cli_dialplan_remove_ignorepat"
           },
           {
-            "name": "handle_cli_dialplan_add_include",
+            "name": "dialplan add include",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Include context in other context"
+            "description": "Include context in other context",
+            "sourceName": "handle_cli_dialplan_add_include"
           },
           {
-            "name": "handle_cli_dialplan_remove_include",
+            "name": "dialplan remove include",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Remove a specified include from context"
+            "description": "Remove a specified include from context",
+            "sourceName": "handle_cli_dialplan_remove_include"
           },
           {
-            "name": "handle_cli_dialplan_reload",
+            "name": "dialplan reload",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reload extensions and *only* extensions"
+            "description": "Reload extensions and *only* extensions",
+            "sourceName": "handle_cli_dialplan_reload"
           },
           {
-            "name": "handle_cli_dialplan_save",
+            "name": "dialplan save",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Save current dialplan into a file"
+            "description": "Save current dialplan into a file",
+            "sourceName": "handle_cli_dialplan_save"
           }
         ],
         "amiActions": [],
@@ -14690,79 +15271,94 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "dundi_set_debug",
+            "name": "dundi set debug {on|off}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable DUNDi debugging"
+            "description": "Enable/Disable DUNDi debugging",
+            "sourceName": "dundi_set_debug"
           },
           {
-            "name": "dundi_store_history",
+            "name": "dundi store history {on|off}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable DUNDi historic records"
+            "description": "Enable/Disable DUNDi historic records",
+            "sourceName": "dundi_store_history"
           },
           {
-            "name": "dundi_flush",
+            "name": "dundi flush [stats]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Flush DUNDi cache"
+            "description": "Flush DUNDi cache",
+            "sourceName": "dundi_flush"
           },
           {
-            "name": "dundi_show_peers",
+            "name": "dundi show peers [registered|include|exclude|begin]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show defined DUNDi peers"
+            "description": "Show defined DUNDi peers",
+            "sourceName": "dundi_show_peers"
           },
           {
-            "name": "dundi_show_trans",
+            "name": "dundi show trans",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show active DUNDi transactions"
+            "description": "Show active DUNDi transactions",
+            "sourceName": "dundi_show_trans"
           },
           {
-            "name": "dundi_show_entityid",
+            "name": "dundi show entityid",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display Global Entity ID"
+            "description": "Display Global Entity ID",
+            "sourceName": "dundi_show_entityid"
           },
           {
-            "name": "dundi_show_mappings",
+            "name": "dundi show mappings",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show DUNDi mappings"
+            "description": "Show DUNDi mappings",
+            "sourceName": "dundi_show_mappings"
           },
           {
-            "name": "dundi_show_precache",
+            "name": "dundi show precache",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show DUNDi precache"
+            "description": "Show DUNDi precache",
+            "sourceName": "dundi_show_precache"
           },
           {
-            "name": "dundi_show_requests",
+            "name": "dundi show requests",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show DUNDi requests"
+            "description": "Show DUNDi requests",
+            "sourceName": "dundi_show_requests"
           },
           {
-            "name": "dundi_show_peer",
+            "name": "dundi show peer",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show info on a specific DUNDi peer"
+            "description": "Show info on a specific DUNDi peer",
+            "sourceName": "dundi_show_peer"
           },
           {
-            "name": "dundi_show_cache",
+            "name": "dundi show cache",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show DUNDi cache"
+            "description": "Show DUNDi cache",
+            "sourceName": "dundi_show_cache"
           },
           {
-            "name": "dundi_show_hints",
+            "name": "dundi show hints",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show DUNDi hints in the cache"
+            "description": "Show DUNDi hints in the cache",
+            "sourceName": "dundi_show_hints"
           },
           {
-            "name": "dundi_do_precache",
+            "name": "dundi precache",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Precache a number in DUNDi"
+            "description": "Precache a number in DUNDi",
+            "sourceName": "dundi_do_precache"
           },
           {
-            "name": "dundi_do_lookup",
+            "name": "dundi lookup",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Lookup a number in DUNDi"
+            "description": "Lookup a number in DUNDi",
+            "sourceName": "dundi_do_lookup"
           },
           {
-            "name": "dundi_do_query",
+            "name": "dundi query",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Query a DUNDi EID"
+            "description": "Query a DUNDi EID",
+            "sourceName": "dundi_do_query"
           }
         ],
         "amiActions": [],
@@ -14772,16 +15368,19 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "dundi_function",
-            "evidence": "ast_custom_function_register"
+            "name": "DUNDILOOKUP",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "dundi_function"
           },
           {
-            "name": "dundi_query_function",
-            "evidence": "ast_custom_function_register"
+            "name": "DUNDIQUERY",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "dundi_query_function"
           },
           {
-            "name": "dundi_result_function",
-            "evidence": "ast_custom_function_register"
+            "name": "DUNDIRESULT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "dundi_result_function"
           }
         ],
         "codecs": [],
@@ -15060,14 +15659,16 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "client_config_show",
+            "name": "aeap show client",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show AEAP client configuration by id"
+            "description": "Show AEAP client configuration by id",
+            "sourceName": "client_config_show"
           },
           {
-            "name": "client_config_show_all",
+            "name": "aeap show clients",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show all AEAP client configurations"
+            "description": "Show all AEAP client configurations",
+            "sourceName": "client_config_show_all"
           }
         ],
         "amiActions": [],
@@ -15175,24 +15776,28 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_agi_add_cmd",
+            "name": "agi exec",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Add AGI command to a channel in Async AGI"
+            "description": "Add AGI command to a channel in Async AGI",
+            "sourceName": "handle_cli_agi_add_cmd"
           },
           {
-            "name": "handle_cli_agi_debug",
+            "name": "agi set debug [on|off]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable AGI debugging"
+            "description": "Enable/Disable AGI debugging",
+            "sourceName": "handle_cli_agi_debug"
           },
           {
-            "name": "handle_cli_agi_show",
+            "name": "agi show commands [topic]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List AGI commands or specific help"
+            "description": "List AGI commands or specific help",
+            "sourceName": "handle_cli_agi_show"
           },
           {
-            "name": "handle_cli_agi_dump_html",
+            "name": "agi dump html",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Dumps a list of AGI commands in HTML format"
+            "description": "Dumps a list of AGI commands in HTML format",
+            "sourceName": "handle_cli_agi_dump_html"
           }
         ],
         "amiActions": [
@@ -15205,26 +15810,251 @@ export const ASTERISK_CATALOG = {
         "ari": [],
         "agi": [
           {
-            "name": "cmd + i",
-            "evidence": "ast_agi_register"
+            "name": "testnoop",
+            "evidence": "ast_agi_register",
+            "sourceName": "noop_command"
           },
           {
-            "name": "noop_command",
-            "evidence": "ast_agi_register"
+            "name": "answer",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
           },
           {
-            "name": "commands",
-            "evidence": "ast_agi_register_multiple"
+            "name": "asyncagi break",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "channel status",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "database del",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "database deltree",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "database get",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "database put",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "exec",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "get data",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "get full variable",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "get option",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "get variable",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "hangup",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "noop",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "receive char",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "receive text",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "record file",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "say alpha",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "say digits",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "say number",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "say phonetic",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "say date",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "say time",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "say datetime",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "send image",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "send text",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "set autohangup",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "set callerid",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "set context",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "set extension",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "set music",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "set priority",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "set variable",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "stream file",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "control stream file",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "tdd mode",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "verbose",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "wait for digit",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "speech create",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "speech set",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "speech destroy",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "speech load grammar",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "speech unload grammar",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "speech activate grammar",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "speech deactivate grammar",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
+          },
+          {
+            "name": "speech recognize",
+            "evidence": "ast_agi_register_multiple",
+            "sourceName": "commands"
           }
         ],
         "applications": [
           {
-            "name": "eapp",
-            "evidence": "ast_register_application_xml"
+            "name": "EAGI",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "eapp"
           },
           {
-            "name": "app",
-            "evidence": "ast_register_application_xml"
+            "name": "AGI",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app"
           }
         ],
         "functions": [],
@@ -15938,24 +16768,28 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_show_calendar",
+            "name": "calendar show calendar",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display information about a calendar"
+            "description": "Display information about a calendar",
+            "sourceName": "handle_show_calendar"
           },
           {
-            "name": "handle_show_calendars",
+            "name": "calendar show calendars",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show registered calendars"
+            "description": "Show registered calendars",
+            "sourceName": "handle_show_calendars"
           },
           {
-            "name": "handle_dump_sched",
+            "name": "calendar dump sched",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Dump calendar sched context"
+            "description": "Dump calendar sched context",
+            "sourceName": "handle_dump_sched"
           },
           {
-            "name": "handle_show_calendars_types",
+            "name": "calendar show types",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show all calendar types loaded"
+            "description": "Show all calendar types loaded",
+            "sourceName": "handle_show_calendars_types"
           }
         ],
         "amiActions": [],
@@ -15965,24 +16799,29 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "calendar_busy_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CALENDAR_BUSY",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "calendar_busy_function"
           },
           {
-            "name": "calendar_event_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CALENDAR_EVENT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "calendar_event_function"
           },
           {
-            "name": "calendar_query_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CALENDAR_QUERY",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "calendar_query_function"
           },
           {
-            "name": "calendar_query_result_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CALENDAR_QUERY_RESULT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "calendar_query_result_function"
           },
           {
-            "name": "calendar_write_function",
-            "evidence": "ast_custom_function_register"
+            "name": "CALENDAR_WRITE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "calendar_write_function"
           }
         ],
         "codecs": [],
@@ -16306,9 +17145,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "alias_show",
+            "name": "cli show aliases",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show CLI command aliases"
+            "description": "Show CLI command aliases",
+            "sourceName": "alias_show"
           }
         ],
         "amiActions": [],
@@ -16359,9 +17199,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_exec",
+            "name": "dialplan exec application",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Execute a dialplan application"
+            "description": "Execute a dialplan application",
+            "sourceName": "handle_exec"
           }
         ],
         "amiActions": [],
@@ -16414,14 +17255,16 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_orig",
+            "name": "channel originate",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Originate a call"
+            "description": "Originate a call",
+            "sourceName": "handle_orig"
           },
           {
-            "name": "handle_redirect",
+            "name": "channel redirect",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Redirect a call"
+            "description": "Redirect a call",
+            "sourceName": "handle_redirect"
           }
         ],
         "amiActions": [],
@@ -16524,9 +17367,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "realtime_ldap_status",
+            "name": "realtime show ldap status",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Shows connection information for the LDAP RealTime driver"
+            "description": "Shows connection information for the LDAP RealTime driver",
+            "sourceName": "realtime_ldap_status"
           }
         ],
         "amiActions": [],
@@ -16631,14 +17475,16 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_realtime_pgsql_status",
+            "name": "realtime show pgsql status",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Shows connection information for the PostgreSQL RealTime driver"
+            "description": "Shows connection information for the PostgreSQL RealTime driver",
+            "sourceName": "handle_cli_realtime_pgsql_status"
           },
           {
-            "name": "handle_cli_realtime_pgsql_cache",
+            "name": "realtime show pgsql cache",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Shows cached tables within the PostgreSQL realtime driver"
+            "description": "Shows cached tables within the PostgreSQL realtime driver",
+            "sourceName": "handle_cli_realtime_pgsql_cache"
           }
         ],
         "amiActions": [],
@@ -16738,9 +17584,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_file_convert",
+            "name": "file convert",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Convert audio file"
+            "description": "Convert audio file",
+            "sourceName": "handle_cli_file_convert"
           }
         ],
         "amiActions": [],
@@ -16792,19 +17639,22 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "corosync_show_config",
+            "name": "corosync show config",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show configuration"
+            "description": "Show configuration",
+            "sourceName": "corosync_show_config"
           },
           {
-            "name": "corosync_show_members",
+            "name": "corosync show members",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show cluster members"
+            "description": "Show cluster members",
+            "sourceName": "corosync_show_members"
           },
           {
-            "name": "corosync_ping",
+            "name": "corosync ping",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Send a test ping to the cluster"
+            "description": "Send a test ping to the cluster",
+            "sourceName": "corosync_ping"
           }
         ],
         "amiActions": [],
@@ -16857,14 +17707,16 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_keys_show",
+            "name": "keys show",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Displays RSA key information"
+            "description": "Displays RSA key information",
+            "sourceName": "handle_cli_keys_show"
           },
           {
-            "name": "handle_cli_keys_init",
+            "name": "keys init",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Initialize RSA key passcodes"
+            "description": "Initialize RSA key passcodes",
+            "sourceName": "handle_cli_keys_init"
           }
         ],
         "amiActions": [],
@@ -17013,39 +17865,46 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "cli_fax_show_version",
+            "name": "fax show version",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show versions of FAX For Asterisk components"
+            "description": "Show versions of FAX For Asterisk components",
+            "sourceName": "cli_fax_show_version"
           },
           {
-            "name": "cli_fax_set_debug",
+            "name": "fax set debug {on|off}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable FAX debugging on new FAX sessions"
+            "description": "Enable/Disable FAX debugging on new FAX sessions",
+            "sourceName": "cli_fax_set_debug"
           },
           {
-            "name": "cli_fax_show_capabilities",
+            "name": "fax show capabilities",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show the capabilities of the registered FAX technology modules"
+            "description": "Show the capabilities of the registered FAX technology modules",
+            "sourceName": "cli_fax_show_capabilities"
           },
           {
-            "name": "cli_fax_show_settings",
+            "name": "fax show settings",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show the global settings and defaults of both the FAX core and technology modules"
+            "description": "Show the global settings and defaults of both the FAX core and technology modules",
+            "sourceName": "cli_fax_show_settings"
           },
           {
-            "name": "cli_fax_show_session",
+            "name": "fax show session",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show the status of the named FAX sessions"
+            "description": "Show the status of the named FAX sessions",
+            "sourceName": "cli_fax_show_session"
           },
           {
-            "name": "cli_fax_show_sessions",
+            "name": "fax show sessions",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show the current FAX sessions"
+            "description": "Show the current FAX sessions",
+            "sourceName": "cli_fax_show_sessions"
           },
           {
-            "name": "cli_fax_show_stats",
+            "name": "fax show stats",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Summarize FAX session history"
+            "description": "Summarize FAX session history",
+            "sourceName": "cli_fax_show_stats"
           }
         ],
         "amiActions": [
@@ -17068,17 +17927,20 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app_sendfax",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_sendfax"
           },
           {
             "name": "app_receivefax",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_receivefax"
           }
         ],
         "functions": [
           {
-            "name": "acf_faxopt",
-            "evidence": "ast_custom_function_register"
+            "name": "FAXOPT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "acf_faxopt"
           }
         ],
         "codecs": [],
@@ -17948,9 +18810,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_ulimit",
+            "name": "ulimit",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Set or show process resource limits"
+            "description": "Set or show process resource limits",
+            "sourceName": "handle_cli_ulimit"
           }
         ],
         "amiActions": [],
@@ -18111,24 +18974,28 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_moh_reload",
+            "name": "moh reload",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Reload MusicOnHold"
+            "description": "Reload MusicOnHold",
+            "sourceName": "handle_cli_moh_reload"
           },
           {
-            "name": "handle_cli_moh_show_classes",
+            "name": "moh show classes",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List MusicOnHold classes"
+            "description": "List MusicOnHold classes",
+            "sourceName": "handle_cli_moh_show_classes"
           },
           {
-            "name": "handle_cli_moh_show_files",
+            "name": "moh show files",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List MusicOnHold file-based classes"
+            "description": "List MusicOnHold file-based classes",
+            "sourceName": "handle_cli_moh_show_files"
           },
           {
-            "name": "handle_cli_moh_unregister_class",
+            "name": "moh unregister class",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Unregister realtime MusicOnHold class"
+            "description": "Unregister realtime MusicOnHold class",
+            "sourceName": "handle_cli_moh_unregister_class"
           }
         ],
         "amiActions": [],
@@ -18138,15 +19005,18 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "play_moh",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "play_moh"
           },
           {
             "name": "start_moh",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "start_moh"
           },
           {
             "name": "stop_moh",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "stop_moh"
           }
         ],
         "functions": [],
@@ -18203,8 +19073,9 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "mute_function",
-            "evidence": "ast_custom_function_register"
+            "name": "MUTEAUDIO",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "mute_function"
           }
         ],
         "codecs": [],
@@ -18296,39 +19167,46 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_mwi_delete_all",
+            "name": "mwi delete all",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Delete all external MWI mailboxes"
+            "description": "Delete all external MWI mailboxes",
+            "sourceName": "handle_mwi_delete_all"
           },
           {
-            "name": "handle_mwi_delete_like",
+            "name": "mwi delete like",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Delete external MWI mailboxes matching regex"
+            "description": "Delete external MWI mailboxes matching regex",
+            "sourceName": "handle_mwi_delete_like"
           },
           {
-            "name": "handle_mwi_delete_mailbox",
+            "name": "mwi delete mailbox",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Delete a specific external MWI mailbox"
+            "description": "Delete a specific external MWI mailbox",
+            "sourceName": "handle_mwi_delete_mailbox"
           },
           {
-            "name": "handle_mwi_list_all",
+            "name": "mwi list all",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List all external MWI mailboxes"
+            "description": "List all external MWI mailboxes",
+            "sourceName": "handle_mwi_list_all"
           },
           {
-            "name": "handle_mwi_list_like",
+            "name": "mwi list like",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List external MWI mailboxes matching regex"
+            "description": "List external MWI mailboxes matching regex",
+            "sourceName": "handle_mwi_list_like"
           },
           {
-            "name": "handle_mwi_show_mailbox",
+            "name": "mwi show mailbox",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show a specific external MWI mailbox"
+            "description": "Show a specific external MWI mailbox",
+            "sourceName": "handle_mwi_show_mailbox"
           },
           {
-            "name": "handle_mwi_update_mailbox",
+            "name": "mwi update mailbox",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Update a specific external MWI mailbox"
+            "description": "Update a specific external MWI mailbox",
+            "sourceName": "handle_mwi_update_mailbox"
           }
         ],
         "amiActions": [],
@@ -18444,9 +19322,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_odbc_show",
+            "name": "odbc show",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List ODBC DSN(s)"
+            "description": "List ODBC DSN(s)",
+            "sourceName": "handle_cli_odbc_show"
           }
         ],
         "amiActions": [],
@@ -18505,17 +19384,20 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "app_commit",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_commit"
           },
           {
             "name": "app_rollback",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_rollback"
           }
         ],
         "functions": [
           {
-            "name": "odbc_function",
-            "evidence": "ast_custom_function_register"
+            "name": "ODBC",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "odbc_function"
           }
         ],
         "codecs": [],
@@ -18616,9 +19498,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_show_routes",
+            "name": "phoneprov show routes",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show registered phoneprov http routes"
+            "description": "Show registered phoneprov http routes",
+            "sourceName": "handle_show_routes"
           }
         ],
         "amiActions": [],
@@ -18628,12 +19511,14 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "pp_each_user_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PP_EACH_USER",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "pp_each_user_function"
           },
           {
-            "name": "pp_each_extension_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PP_EACH_EXTENSION",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "pp_each_extension_function"
           }
         ],
         "codecs": [],
@@ -18681,24 +19566,28 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_pjproject_set_log_level",
+            "name": "pjproject set log level {default|0|1|2|3|4|5|6}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Set the maximum active pjproject logging level"
+            "description": "Set the maximum active pjproject logging level",
+            "sourceName": "handle_pjproject_set_log_level"
           },
           {
-            "name": "handle_pjproject_show_buildopts",
+            "name": "pjproject show buildopts",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show the compiled config of the pjproject in use"
+            "description": "Show the compiled config of the pjproject in use",
+            "sourceName": "handle_pjproject_show_buildopts"
           },
           {
-            "name": "handle_pjproject_show_log_mappings",
+            "name": "pjproject show log mappings",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show pjproject to Asterisk log mappings"
+            "description": "Show pjproject to Asterisk log mappings",
+            "sourceName": "handle_pjproject_show_log_mappings"
           },
           {
-            "name": "handle_pjproject_show_log_level",
+            "name": "pjproject show log level",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show the maximum active pjproject logging level"
+            "description": "Show the maximum active pjproject logging level",
+            "sourceName": "handle_pjproject_show_log_level"
           }
         ],
         "amiActions": [],
@@ -18752,19 +19641,28 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "cli_dump_endpt",
+            "name": "pjsip dump endpt [details]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Dump the res_pjsip endpt internals"
+            "description": "Dump the res_pjsip endpt internals",
+            "sourceName": "cli_dump_endpt"
           },
           {
-            "name": "cli_show_settings",
+            "name": "pjsip dump endpt",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show global and system configuration options"
+            "description": "Dump the res_pjsip endpt internals",
+            "sourceName": "cli_dump_endpt"
           },
           {
-            "name": "cli_show_endpoint_identifiers",
+            "name": "pjsip show settings",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List registered endpoint identifiers"
+            "description": "Show global and system configuration options",
+            "sourceName": "cli_show_settings"
+          },
+          {
+            "name": "pjsip show identifiers",
+            "evidence": "AST_CLI_DEFINE",
+            "description": "List registered endpoint identifiers",
+            "sourceName": "cli_show_endpoint_identifiers"
           }
         ],
         "amiActions": [],
@@ -19002,9 +19900,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_export_primitives",
+            "name": "pjsip export config_wizard primitives [to]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Export config wizard primitives"
+            "description": "Export config wizard primitives",
+            "sourceName": "handle_export_primitives"
           }
         ],
         "amiActions": [],
@@ -19329,7 +20228,8 @@ export const ASTERISK_CATALOG = {
           {
             "name": "my_cli_traverse_objects",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List PJSIP Identifies"
+            "description": "List PJSIP Identifies",
+            "sourceName": "my_cli_traverse_objects"
           }
         ],
         "amiActions": [],
@@ -19521,28 +20421,34 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "pjsip_header_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_HEADER",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "pjsip_header_function"
           },
           {
-            "name": "pjsip_header_inherit_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_INHERITABLE_HEADER",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "pjsip_header_inherit_function"
           },
           {
-            "name": "pjsip_headers_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_HEADERS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "pjsip_headers_function"
           },
           {
-            "name": "pjsip_response_header_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_RESPONSE_HEADER",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "pjsip_response_header_function"
           },
           {
-            "name": "pjsip_response_headers_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_RESPONSE_HEADERS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "pjsip_response_headers_function"
           },
           {
-            "name": "pjsip_header_param_function",
-            "evidence": "ast_custom_function_register"
+            "name": "PJSIP_HEADER_PARAM",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "pjsip_header_param_function"
           }
         ],
         "codecs": [],
@@ -19587,14 +20493,16 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "pjsip_set_history",
+            "name": "pjsip set history {on|off|clear}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable PJSIP History"
+            "description": "Enable/Disable PJSIP History",
+            "sourceName": "pjsip_set_history"
           },
           {
-            "name": "pjsip_show_history",
+            "name": "pjsip show history",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display PJSIP History"
+            "description": "Display PJSIP History",
+            "sourceName": "pjsip_show_history"
           }
         ],
         "amiActions": [],
@@ -19645,9 +20553,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "pjsip_set_logger",
+            "name": "pjsip set logger {on|off|host|add|method|methodadd|verbose|pcap}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable PJSIP Logger Output"
+            "description": "Enable/Disable PJSIP Logger Output",
+            "sourceName": "pjsip_set_logger"
           }
         ],
         "amiActions": [],
@@ -19699,14 +20608,16 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_pjsip_set_maintenance",
+            "name": "pjsip set maintenance",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Set PJSIP endpoint maintenance mode"
+            "description": "Set PJSIP endpoint maintenance mode",
+            "sourceName": "handle_cli_pjsip_set_maintenance"
           },
           {
-            "name": "handle_cli_pjsip_show_maintenance",
+            "name": "pjsip show maintenance",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show PJSIP endpoint maintenance status"
+            "description": "Show PJSIP endpoint maintenance status",
+            "sourceName": "handle_cli_pjsip_show_maintenance"
           }
         ],
         "amiActions": [
@@ -19955,9 +20866,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "cli_notify",
+            "name": "pjsip send notify",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Send a NOTIFY request to a SIP endpoint"
+            "description": "Send a NOTIFY request to a SIP endpoint",
+            "sourceName": "cli_notify"
           }
         ],
         "amiActions": [
@@ -19972,7 +20884,8 @@ export const ASTERISK_CATALOG = {
         "applications": [
           {
             "name": "\"PJSIPNotify\"",
-            "evidence": "ast_register_application_xml"
+            "evidence": "ast_register_application_xml",
+            "sourceName": "\"PJSIPNotify\""
           }
         ],
         "functions": [],
@@ -20158,19 +21071,22 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "cli_unregister",
+            "name": "pjsip send unregister",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Unregisters outbound registration target"
+            "description": "Unregisters outbound registration target",
+            "sourceName": "cli_unregister"
           },
           {
-            "name": "cli_register",
+            "name": "pjsip send register",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Registers an outbound registration target"
+            "description": "Registers an outbound registration target",
+            "sourceName": "cli_register"
           },
           {
             "name": "my_cli_traverse_objects",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List PJSIP Registrations"
+            "description": "List PJSIP Registrations",
+            "sourceName": "my_cli_traverse_objects"
           }
         ],
         "amiActions": [
@@ -20513,19 +21429,22 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "cli_list_subscriptions_inout",
+            "name": "pjsip list subscriptions {inbound|outbound} [like]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "List active inbound/outbound subscriptions"
+            "description": "List active inbound/outbound subscriptions",
+            "sourceName": "cli_list_subscriptions_inout"
           },
           {
-            "name": "cli_show_subscription_inout",
+            "name": "pjsip show subscription {inbound|outbound}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show active subscription details"
+            "description": "Show active subscription details",
+            "sourceName": "cli_show_subscription_inout"
           },
           {
-            "name": "cli_show_subscriptions_inout",
+            "name": "pjsip show subscriptions {inbound|outbound} [like]",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show active inbound/outbound subscriptions"
+            "description": "Show active inbound/outbound subscriptions",
+            "sourceName": "cli_show_subscriptions_inout"
           }
         ],
         "amiActions": [
@@ -21187,29 +22106,34 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "cli_realtime_load",
+            "name": "realtime load",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Used to print out RealTime variables."
+            "description": "Used to print out RealTime variables.",
+            "sourceName": "cli_realtime_load"
           },
           {
-            "name": "cli_realtime_update",
+            "name": "realtime update",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Used to update RealTime variables."
+            "description": "Used to update RealTime variables.",
+            "sourceName": "cli_realtime_update"
           },
           {
-            "name": "cli_realtime_update2",
+            "name": "realtime update2",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Used to test the RealTime update2 method"
+            "description": "Used to test the RealTime update2 method",
+            "sourceName": "cli_realtime_update2"
           },
           {
-            "name": "cli_realtime_store",
+            "name": "realtime store",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Store a new row into a RealTime database"
+            "description": "Store a new row into a RealTime database",
+            "sourceName": "cli_realtime_store"
           },
           {
-            "name": "cli_realtime_destroy",
+            "name": "realtime destroy",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Delete a row from a RealTime database"
+            "description": "Delete a row from a RealTime database",
+            "sourceName": "cli_realtime_destroy"
           }
         ],
         "amiActions": [],
@@ -21261,9 +22185,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_remb_set",
+            "name": "remb set {send|receive}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Set the REMB value which overwrites what is sent or received"
+            "description": "Set the REMB value which overwrites what is sent or received",
+            "sourceName": "handle_remb_set"
           }
         ],
         "amiActions": [],
@@ -21366,34 +22291,40 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_rtp_set_debug",
+            "name": "rtp set debug {on|off|ip}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable RTP debugging"
+            "description": "Enable/Disable RTP debugging",
+            "sourceName": "handle_cli_rtp_set_debug"
           },
           {
-            "name": "handle_cli_rtp_settings",
+            "name": "rtp show settings",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Display RTP settings"
+            "description": "Display RTP settings",
+            "sourceName": "handle_cli_rtp_settings"
           },
           {
-            "name": "handle_cli_rtcp_set_debug",
+            "name": "rtcp set debug {on|off|ip}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable RTCP debugging"
+            "description": "Enable/Disable RTCP debugging",
+            "sourceName": "handle_cli_rtcp_set_debug"
           },
           {
-            "name": "handle_cli_rtcp_set_stats",
+            "name": "rtcp set stats {on|off}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable RTCP stats"
+            "description": "Enable/Disable RTCP stats",
+            "sourceName": "handle_cli_rtcp_set_stats"
           },
           {
-            "name": "handle_cli_rtp_drop_incoming_packets",
+            "name": "rtp drop",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Drop RTP incoming packets"
+            "description": "Drop RTP incoming packets",
+            "sourceName": "handle_cli_rtp_drop_incoming_packets"
           },
           {
-            "name": "handle_cli_rtp_refresh_stun",
+            "name": "rtp resolve stun hostname",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Force a resolution of the STUN hostname"
+            "description": "Force a resolution of the STUN hostname",
+            "sourceName": "handle_cli_rtp_refresh_stun"
           }
         ],
         "amiActions": [],
@@ -21547,12 +22478,14 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "smdi_msg_retrieve_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SMDI_MSG_RETRIEVE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "smdi_msg_retrieve_function"
           },
           {
-            "name": "smdi_msg_function",
-            "evidence": "ast_custom_function_register"
+            "name": "SMDI_MSG",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "smdi_msg_function"
           }
         ],
         "codecs": [],
@@ -21783,29 +22716,34 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "sorcery_memory_cache_show",
+            "name": "sorcery memory cache show",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show sorcery memory cache information"
+            "description": "Show sorcery memory cache information",
+            "sourceName": "sorcery_memory_cache_show"
           },
           {
-            "name": "sorcery_memory_cache_dump",
+            "name": "sorcery memory cache dump",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Dump all objects within a sorcery memory cache"
+            "description": "Dump all objects within a sorcery memory cache",
+            "sourceName": "sorcery_memory_cache_dump"
           },
           {
-            "name": "sorcery_memory_cache_expire",
+            "name": "sorcery memory cache expire",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Expire a specific object or ALL objects within a sorcery memory cache"
+            "description": "Expire a specific object or ALL objects within a sorcery memory cache",
+            "sourceName": "sorcery_memory_cache_expire"
           },
           {
-            "name": "sorcery_memory_cache_stale",
+            "name": "sorcery memory cache stale",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Mark a specific object or ALL objects as stale within a sorcery memory cache"
+            "description": "Mark a specific object or ALL objects as stale within a sorcery memory cache",
+            "sourceName": "sorcery_memory_cache_stale"
           },
           {
-            "name": "sorcery_memory_cache_populate",
+            "name": "sorcery memory cache populate",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Clear and populate the sorcery memory cache with objects from the backend"
+            "description": "Clear and populate the sorcery memory cache with objects from the backend",
+            "sourceName": "sorcery_memory_cache_populate"
           }
         ],
         "amiActions": [
@@ -22544,12 +23482,14 @@ export const ASTERISK_CATALOG = {
         "applications": [],
         "functions": [
           {
-            "name": "stir_shaken_verification",
-            "evidence": "ast_custom_function_register"
+            "name": "STIR_SHAKEN",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "stir_shaken_verification"
           },
           {
-            "name": "stir_shaken_attestation",
-            "evidence": "ast_custom_function_register"
+            "name": "STIR_SHAKEN_ATTESTATION",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "stir_shaken_attestation"
           }
         ],
         "codecs": [],
@@ -22596,9 +23536,10 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "handle_cli_stun_show_status",
+            "name": "stun show status",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show STUN servers and statuses"
+            "description": "Show STUN servers and statuses",
+            "sourceName": "handle_cli_stun_show_status"
           }
         ],
         "amiActions": [],
@@ -22835,18 +23776,21 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "waitapp",
-            "evidence": "ast_register_application_xml"
+            "name": "WaitForTone",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "waitapp"
           },
           {
-            "name": "scanapp",
-            "evidence": "ast_register_application_xml"
+            "name": "ToneScan",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "scanapp"
           }
         ],
         "functions": [
           {
-            "name": "detect_function",
-            "evidence": "ast_custom_function_register"
+            "name": "TONE_DETECT",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "detect_function"
           }
         ],
         "codecs": [],
@@ -22948,44 +23892,52 @@ export const ASTERISK_CATALOG = {
       "registrations": {
         "cli": [
           {
-            "name": "xmpp_do_set_debug",
+            "name": "xmpp set debug {on|off}",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Enable/Disable Jabber debug"
+            "description": "Enable/Disable Jabber debug",
+            "sourceName": "xmpp_do_set_debug"
           },
           {
-            "name": "xmpp_show_clients",
+            "name": "xmpp show connections",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show state of clients and components"
+            "description": "Show state of clients and components",
+            "sourceName": "xmpp_show_clients"
           },
           {
-            "name": "xmpp_show_buddies",
+            "name": "xmpp show buddies",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Show buddy lists of our clients"
+            "description": "Show buddy lists of our clients",
+            "sourceName": "xmpp_show_buddies"
           },
           {
-            "name": "xmpp_cli_create_collection",
+            "name": "xmpp create collection",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Creates a PubSub node collection."
+            "description": "Creates a PubSub node collection.",
+            "sourceName": "xmpp_cli_create_collection"
           },
           {
-            "name": "xmpp_cli_list_pubsub_nodes",
+            "name": "xmpp list nodes",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Lists PubSub nodes"
+            "description": "Lists PubSub nodes",
+            "sourceName": "xmpp_cli_list_pubsub_nodes"
           },
           {
-            "name": "xmpp_cli_create_leafnode",
+            "name": "xmpp create leaf",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Creates a PubSub leaf node"
+            "description": "Creates a PubSub leaf node",
+            "sourceName": "xmpp_cli_create_leafnode"
           },
           {
-            "name": "xmpp_cli_delete_pubsub_node",
+            "name": "xmpp delete node",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Deletes a PubSub node"
+            "description": "Deletes a PubSub node",
+            "sourceName": "xmpp_cli_delete_pubsub_node"
           },
           {
-            "name": "xmpp_cli_purge_pubsub_nodes",
+            "name": "xmpp purge nodes",
             "evidence": "AST_CLI_DEFINE",
-            "description": "Purges PubSub nodes"
+            "description": "Purges PubSub nodes",
+            "sourceName": "xmpp_cli_purge_pubsub_nodes"
           }
         ],
         "amiActions": [
@@ -23004,30 +23956,36 @@ export const ASTERISK_CATALOG = {
         "agi": [],
         "applications": [
           {
-            "name": "app_ajisend",
-            "evidence": "ast_register_application_xml"
+            "name": "JabberSend",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_ajisend"
           },
           {
-            "name": "app_ajisendgroup",
-            "evidence": "ast_register_application_xml"
+            "name": "JabberSendGroup",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_ajisendgroup"
           },
           {
-            "name": "app_ajijoin",
-            "evidence": "ast_register_application_xml"
+            "name": "JabberJoin",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_ajijoin"
           },
           {
-            "name": "app_ajileave",
-            "evidence": "ast_register_application_xml"
+            "name": "JabberLeave",
+            "evidence": "ast_register_application_xml",
+            "sourceName": "app_ajileave"
           }
         ],
         "functions": [
           {
-            "name": "jabberstatus_function",
-            "evidence": "ast_custom_function_register"
+            "name": "JABBER_STATUS",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "jabberstatus_function"
           },
           {
-            "name": "jabberreceive_function",
-            "evidence": "ast_custom_function_register"
+            "name": "JABBER_RECEIVE",
+            "evidence": "ast_custom_function_register",
+            "sourceName": "jabberreceive_function"
           }
         ],
         "codecs": [],
@@ -28106,6 +29064,7 @@ export const ASTERISK_CATALOG = {
       },
       "apiOperations": [
         {
+          "id": "asterisk.ari.applications.operation.get.applications.list",
           "path": "/applications",
           "method": "GET",
           "nickname": "list",
@@ -28113,6 +29072,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "List[Application]"
         },
         {
+          "id": "asterisk.ari.applications.operation.get.applications.applicationname.get",
           "path": "/applications/{applicationName}",
           "method": "GET",
           "nickname": "get",
@@ -28120,6 +29080,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Application"
         },
         {
+          "id": "asterisk.ari.applications.operation.post.applications.applicationname.subscription.subscribe",
           "path": "/applications/{applicationName}/subscription",
           "method": "POST",
           "nickname": "subscribe",
@@ -28127,6 +29088,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Application"
         },
         {
+          "id": "asterisk.ari.applications.operation.delete.applications.applicationname.subscription.unsubscribe",
           "path": "/applications/{applicationName}/subscription",
           "method": "DELETE",
           "nickname": "unsubscribe",
@@ -28134,6 +29096,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Application"
         },
         {
+          "id": "asterisk.ari.applications.operation.put.applications.applicationname.eventfilter.filter",
           "path": "/applications/{applicationName}/eventFilter",
           "method": "PUT",
           "nickname": "filter",
@@ -28269,6 +29232,7 @@ export const ASTERISK_CATALOG = {
       },
       "apiOperations": [
         {
+          "id": "asterisk.ari.asterisk.operation.get.asterisk.config.dynamic.configclass.objecttype.id.getobject",
           "path": "/asterisk/config/dynamic/{configClass}/{objectType}/{id}",
           "method": "GET",
           "nickname": "getObject",
@@ -28276,6 +29240,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "List[ConfigTuple]"
         },
         {
+          "id": "asterisk.ari.asterisk.operation.put.asterisk.config.dynamic.configclass.objecttype.id.updateobject",
           "path": "/asterisk/config/dynamic/{configClass}/{objectType}/{id}",
           "method": "PUT",
           "nickname": "updateObject",
@@ -28283,6 +29248,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "List[ConfigTuple]"
         },
         {
+          "id": "asterisk.ari.asterisk.operation.delete.asterisk.config.dynamic.configclass.objecttype.id.deleteobject",
           "path": "/asterisk/config/dynamic/{configClass}/{objectType}/{id}",
           "method": "DELETE",
           "nickname": "deleteObject",
@@ -28290,6 +29256,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.asterisk.operation.get.asterisk.info.getinfo",
           "path": "/asterisk/info",
           "method": "GET",
           "nickname": "getInfo",
@@ -28297,6 +29264,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "AsteriskInfo"
         },
         {
+          "id": "asterisk.ari.asterisk.operation.get.asterisk.ping.ping",
           "path": "/asterisk/ping",
           "method": "GET",
           "nickname": "ping",
@@ -28304,6 +29272,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "AsteriskPing"
         },
         {
+          "id": "asterisk.ari.asterisk.operation.get.asterisk.modules.listmodules",
           "path": "/asterisk/modules",
           "method": "GET",
           "nickname": "listModules",
@@ -28311,6 +29280,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "List[Module]"
         },
         {
+          "id": "asterisk.ari.asterisk.operation.get.asterisk.modules.modulename.getmodule",
           "path": "/asterisk/modules/{moduleName}",
           "method": "GET",
           "nickname": "getModule",
@@ -28318,6 +29288,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Module"
         },
         {
+          "id": "asterisk.ari.asterisk.operation.post.asterisk.modules.modulename.loadmodule",
           "path": "/asterisk/modules/{moduleName}",
           "method": "POST",
           "nickname": "loadModule",
@@ -28325,6 +29296,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.asterisk.operation.delete.asterisk.modules.modulename.unloadmodule",
           "path": "/asterisk/modules/{moduleName}",
           "method": "DELETE",
           "nickname": "unloadModule",
@@ -28332,6 +29304,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.asterisk.operation.put.asterisk.modules.modulename.reloadmodule",
           "path": "/asterisk/modules/{moduleName}",
           "method": "PUT",
           "nickname": "reloadModule",
@@ -28339,6 +29312,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.asterisk.operation.get.asterisk.logging.listlogchannels",
           "path": "/asterisk/logging",
           "method": "GET",
           "nickname": "listLogChannels",
@@ -28346,6 +29320,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "List[LogChannel]"
         },
         {
+          "id": "asterisk.ari.asterisk.operation.post.asterisk.logging.logchannelname.addlog",
           "path": "/asterisk/logging/{logChannelName}",
           "method": "POST",
           "nickname": "addLog",
@@ -28353,6 +29328,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.asterisk.operation.delete.asterisk.logging.logchannelname.deletelog",
           "path": "/asterisk/logging/{logChannelName}",
           "method": "DELETE",
           "nickname": "deleteLog",
@@ -28360,6 +29336,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.asterisk.operation.put.asterisk.logging.logchannelname.rotate.rotatelog",
           "path": "/asterisk/logging/{logChannelName}/rotate",
           "method": "PUT",
           "nickname": "rotateLog",
@@ -28367,6 +29344,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.asterisk.operation.get.asterisk.variable.getglobalvar",
           "path": "/asterisk/variable",
           "method": "GET",
           "nickname": "getGlobalVar",
@@ -28374,6 +29352,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Variable"
         },
         {
+          "id": "asterisk.ari.asterisk.operation.post.asterisk.variable.setglobalvar",
           "path": "/asterisk/variable",
           "method": "POST",
           "nickname": "setGlobalVar",
@@ -28519,6 +29498,7 @@ export const ASTERISK_CATALOG = {
       },
       "apiOperations": [
         {
+          "id": "asterisk.ari.bridges.operation.get.bridges.list",
           "path": "/bridges",
           "method": "GET",
           "nickname": "list",
@@ -28526,6 +29506,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "List[Bridge]"
         },
         {
+          "id": "asterisk.ari.bridges.operation.post.bridges.create",
           "path": "/bridges",
           "method": "POST",
           "nickname": "create",
@@ -28533,6 +29514,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Bridge"
         },
         {
+          "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.createwithid",
           "path": "/bridges/{bridgeId}",
           "method": "POST",
           "nickname": "createWithId",
@@ -28540,6 +29522,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Bridge"
         },
         {
+          "id": "asterisk.ari.bridges.operation.get.bridges.bridgeid.get",
           "path": "/bridges/{bridgeId}",
           "method": "GET",
           "nickname": "get",
@@ -28547,6 +29530,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Bridge"
         },
         {
+          "id": "asterisk.ari.bridges.operation.delete.bridges.bridgeid.destroy",
           "path": "/bridges/{bridgeId}",
           "method": "DELETE",
           "nickname": "destroy",
@@ -28554,6 +29538,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.bridges.operation.get.bridges.bridgeid.variable.getbridgevar",
           "path": "/bridges/{bridgeId}/variable",
           "method": "GET",
           "nickname": "getBridgeVar",
@@ -28561,6 +29546,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Variable"
         },
         {
+          "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.variable.setbridgevar",
           "path": "/bridges/{bridgeId}/variable",
           "method": "POST",
           "nickname": "setBridgeVar",
@@ -28568,6 +29554,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.bridges.operation.get.bridges.bridgeid.variables.getbridgevars",
           "path": "/bridges/{bridgeId}/variables",
           "method": "GET",
           "nickname": "getBridgeVars",
@@ -28575,6 +29562,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Variables"
         },
         {
+          "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.variables.setbridgevars",
           "path": "/bridges/{bridgeId}/variables",
           "method": "POST",
           "nickname": "setBridgeVars",
@@ -28582,6 +29570,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.addchannel.addchannel",
           "path": "/bridges/{bridgeId}/addChannel",
           "method": "POST",
           "nickname": "addChannel",
@@ -28589,6 +29578,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.removechannel.removechannel",
           "path": "/bridges/{bridgeId}/removeChannel",
           "method": "POST",
           "nickname": "removeChannel",
@@ -28596,6 +29586,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.videosource.channelid.setvideosource",
           "path": "/bridges/{bridgeId}/videoSource/{channelId}",
           "method": "POST",
           "nickname": "setVideoSource",
@@ -28603,6 +29594,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.bridges.operation.delete.bridges.bridgeid.videosource.clearvideosource",
           "path": "/bridges/{bridgeId}/videoSource",
           "method": "DELETE",
           "nickname": "clearVideoSource",
@@ -28610,6 +29602,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.moh.startmoh",
           "path": "/bridges/{bridgeId}/moh",
           "method": "POST",
           "nickname": "startMoh",
@@ -28617,6 +29610,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.bridges.operation.delete.bridges.bridgeid.moh.stopmoh",
           "path": "/bridges/{bridgeId}/moh",
           "method": "DELETE",
           "nickname": "stopMoh",
@@ -28624,6 +29618,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.play.play",
           "path": "/bridges/{bridgeId}/play",
           "method": "POST",
           "nickname": "play",
@@ -28631,6 +29626,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Playback"
         },
         {
+          "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.play.playbackid.playwithid",
           "path": "/bridges/{bridgeId}/play/{playbackId}",
           "method": "POST",
           "nickname": "playWithId",
@@ -28638,6 +29634,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Playback"
         },
         {
+          "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.record.record",
           "path": "/bridges/{bridgeId}/record",
           "method": "POST",
           "nickname": "record",
@@ -28868,6 +29865,7 @@ export const ASTERISK_CATALOG = {
       },
       "apiOperations": [
         {
+          "id": "asterisk.ari.channels.operation.get.channels.list",
           "path": "/channels",
           "method": "GET",
           "nickname": "list",
@@ -28875,6 +29873,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "List[Channel]"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.originate",
           "path": "/channels",
           "method": "POST",
           "nickname": "originate",
@@ -28882,6 +29881,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Channel"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.create.create",
           "path": "/channels/create",
           "method": "POST",
           "nickname": "create",
@@ -28889,6 +29889,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Channel"
         },
         {
+          "id": "asterisk.ari.channels.operation.get.channels.channelid.get",
           "path": "/channels/{channelId}",
           "method": "GET",
           "nickname": "get",
@@ -28896,6 +29897,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Channel"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.originatewithid",
           "path": "/channels/{channelId}",
           "method": "POST",
           "nickname": "originateWithId",
@@ -28903,6 +29905,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Channel"
         },
         {
+          "id": "asterisk.ari.channels.operation.delete.channels.channelid.hangup",
           "path": "/channels/{channelId}",
           "method": "DELETE",
           "nickname": "hangup",
@@ -28910,6 +29913,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.continue.continueindialplan",
           "path": "/channels/{channelId}/continue",
           "method": "POST",
           "nickname": "continueInDialplan",
@@ -28917,6 +29921,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.move.move",
           "path": "/channels/{channelId}/move",
           "method": "POST",
           "nickname": "move",
@@ -28924,6 +29929,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.redirect.redirect",
           "path": "/channels/{channelId}/redirect",
           "method": "POST",
           "nickname": "redirect",
@@ -28931,6 +29937,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.answer.answer",
           "path": "/channels/{channelId}/answer",
           "method": "POST",
           "nickname": "answer",
@@ -28938,6 +29945,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.ring.ring",
           "path": "/channels/{channelId}/ring",
           "method": "POST",
           "nickname": "ring",
@@ -28945,6 +29953,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.delete.channels.channelid.ring.ringstop",
           "path": "/channels/{channelId}/ring",
           "method": "DELETE",
           "nickname": "ringStop",
@@ -28952,6 +29961,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.progress.progress",
           "path": "/channels/{channelId}/progress",
           "method": "POST",
           "nickname": "progress",
@@ -28959,6 +29969,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.dtmf.senddtmf",
           "path": "/channels/{channelId}/dtmf",
           "method": "POST",
           "nickname": "sendDTMF",
@@ -28966,6 +29977,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.mute.mute",
           "path": "/channels/{channelId}/mute",
           "method": "POST",
           "nickname": "mute",
@@ -28973,6 +29985,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.delete.channels.channelid.mute.unmute",
           "path": "/channels/{channelId}/mute",
           "method": "DELETE",
           "nickname": "unmute",
@@ -28980,6 +29993,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.hold.hold",
           "path": "/channels/{channelId}/hold",
           "method": "POST",
           "nickname": "hold",
@@ -28987,6 +30001,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.delete.channels.channelid.hold.unhold",
           "path": "/channels/{channelId}/hold",
           "method": "DELETE",
           "nickname": "unhold",
@@ -28994,6 +30009,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.moh.startmoh",
           "path": "/channels/{channelId}/moh",
           "method": "POST",
           "nickname": "startMoh",
@@ -29001,6 +30017,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.delete.channels.channelid.moh.stopmoh",
           "path": "/channels/{channelId}/moh",
           "method": "DELETE",
           "nickname": "stopMoh",
@@ -29008,6 +30025,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.silence.startsilence",
           "path": "/channels/{channelId}/silence",
           "method": "POST",
           "nickname": "startSilence",
@@ -29015,6 +30033,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.delete.channels.channelid.silence.stopsilence",
           "path": "/channels/{channelId}/silence",
           "method": "DELETE",
           "nickname": "stopSilence",
@@ -29022,6 +30041,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.play.play",
           "path": "/channels/{channelId}/play",
           "method": "POST",
           "nickname": "play",
@@ -29029,6 +30049,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Playback"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.play.playbackid.playwithid",
           "path": "/channels/{channelId}/play/{playbackId}",
           "method": "POST",
           "nickname": "playWithId",
@@ -29036,6 +30057,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Playback"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.record.record",
           "path": "/channels/{channelId}/record",
           "method": "POST",
           "nickname": "record",
@@ -29043,6 +30065,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "LiveRecording"
         },
         {
+          "id": "asterisk.ari.channels.operation.get.channels.channelid.variable.getchannelvar",
           "path": "/channels/{channelId}/variable",
           "method": "GET",
           "nickname": "getChannelVar",
@@ -29050,6 +30073,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Variable"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.variable.setchannelvar",
           "path": "/channels/{channelId}/variable",
           "method": "POST",
           "nickname": "setChannelVar",
@@ -29057,6 +30081,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.get.channels.channelid.variables.getchannelvars",
           "path": "/channels/{channelId}/variables",
           "method": "GET",
           "nickname": "getChannelVars",
@@ -29064,6 +30089,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Variables"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.variables.setchannelvars",
           "path": "/channels/{channelId}/variables",
           "method": "POST",
           "nickname": "setChannelVars",
@@ -29071,6 +30097,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.snoop.snoopchannel",
           "path": "/channels/{channelId}/snoop",
           "method": "POST",
           "nickname": "snoopChannel",
@@ -29078,6 +30105,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Channel"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.snoop.snoopid.snoopchannelwithid",
           "path": "/channels/{channelId}/snoop/{snoopId}",
           "method": "POST",
           "nickname": "snoopChannelWithId",
@@ -29085,6 +30113,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Channel"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.dial.dial",
           "path": "/channels/{channelId}/dial",
           "method": "POST",
           "nickname": "dial",
@@ -29092,6 +30121,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.channels.operation.get.channels.channelid.rtp.statistics.rtpstatistics",
           "path": "/channels/{channelId}/rtp_statistics",
           "method": "GET",
           "nickname": "rtpstatistics",
@@ -29099,6 +30129,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "RTPstat"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.externalmedia.externalmedia",
           "path": "/channels/externalMedia",
           "method": "POST",
           "nickname": "externalMedia",
@@ -29106,6 +30137,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Channel"
         },
         {
+          "id": "asterisk.ari.channels.operation.post.channels.channelid.transfer.progress.transfer.progress",
           "path": "/channels/{channelId}/transfer_progress",
           "method": "POST",
           "nickname": "transfer_progress",
@@ -29181,6 +30213,7 @@ export const ASTERISK_CATALOG = {
       },
       "apiOperations": [
         {
+          "id": "asterisk.ari.devicestates.operation.get.devicestates.list",
           "path": "/deviceStates",
           "method": "GET",
           "nickname": "list",
@@ -29188,6 +30221,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "List[DeviceState]"
         },
         {
+          "id": "asterisk.ari.devicestates.operation.get.devicestates.devicename.get",
           "path": "/deviceStates/{deviceName}",
           "method": "GET",
           "nickname": "get",
@@ -29195,6 +30229,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "DeviceState"
         },
         {
+          "id": "asterisk.ari.devicestates.operation.put.devicestates.devicename.update",
           "path": "/deviceStates/{deviceName}",
           "method": "PUT",
           "nickname": "update",
@@ -29202,6 +30237,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.devicestates.operation.delete.devicestates.devicename.delete",
           "path": "/deviceStates/{deviceName}",
           "method": "DELETE",
           "nickname": "delete",
@@ -29292,6 +30328,7 @@ export const ASTERISK_CATALOG = {
       },
       "apiOperations": [
         {
+          "id": "asterisk.ari.endpoints.operation.get.endpoints.list",
           "path": "/endpoints",
           "method": "GET",
           "nickname": "list",
@@ -29299,6 +30336,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "List[Endpoint]"
         },
         {
+          "id": "asterisk.ari.endpoints.operation.put.endpoints.sendmessage.sendmessage",
           "path": "/endpoints/sendMessage",
           "method": "PUT",
           "nickname": "sendMessage",
@@ -29306,6 +30344,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.endpoints.operation.post.endpoints.refer.refer",
           "path": "/endpoints/refer",
           "method": "POST",
           "nickname": "refer",
@@ -29313,6 +30352,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.endpoints.operation.get.endpoints.tech.listbytech",
           "path": "/endpoints/{tech}",
           "method": "GET",
           "nickname": "listByTech",
@@ -29320,6 +30360,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "List[Endpoint]"
         },
         {
+          "id": "asterisk.ari.endpoints.operation.get.endpoints.tech.resource.get",
           "path": "/endpoints/{tech}/{resource}",
           "method": "GET",
           "nickname": "get",
@@ -29327,6 +30368,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Endpoint"
         },
         {
+          "id": "asterisk.ari.endpoints.operation.put.endpoints.tech.resource.sendmessage.sendmessagetoendpoint",
           "path": "/endpoints/{tech}/{resource}/sendMessage",
           "method": "PUT",
           "nickname": "sendMessageToEndpoint",
@@ -29334,6 +30376,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.endpoints.operation.post.endpoints.tech.resource.refer.refertoendpoint",
           "path": "/endpoints/{tech}/{resource}/refer",
           "method": "POST",
           "nickname": "referToEndpoint",
@@ -29404,6 +30447,7 @@ export const ASTERISK_CATALOG = {
       },
       "apiOperations": [
         {
+          "id": "asterisk.ari.events.operation.get.events.eventwebsocket",
           "path": "/events",
           "method": "GET",
           "nickname": "eventWebsocket",
@@ -29411,6 +30455,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Message"
         },
         {
+          "id": "asterisk.ari.events.operation.post.events.user.eventname.userevent",
           "path": "/events/user/{eventName}",
           "method": "POST",
           "nickname": "userEvent",
@@ -29418,6 +30463,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.events.operation.post.events.claim.claimchannel",
           "path": "/events/claim",
           "method": "POST",
           "nickname": "claimChannel",
@@ -29493,6 +30539,7 @@ export const ASTERISK_CATALOG = {
       },
       "apiOperations": [
         {
+          "id": "asterisk.ari.mailboxes.operation.get.mailboxes.list",
           "path": "/mailboxes",
           "method": "GET",
           "nickname": "list",
@@ -29500,6 +30547,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "List[Mailbox]"
         },
         {
+          "id": "asterisk.ari.mailboxes.operation.get.mailboxes.mailboxname.get",
           "path": "/mailboxes/{mailboxName}",
           "method": "GET",
           "nickname": "get",
@@ -29507,6 +30555,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Mailbox"
         },
         {
+          "id": "asterisk.ari.mailboxes.operation.put.mailboxes.mailboxname.update",
           "path": "/mailboxes/{mailboxName}",
           "method": "PUT",
           "nickname": "update",
@@ -29514,6 +30563,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.mailboxes.operation.delete.mailboxes.mailboxname.delete",
           "path": "/mailboxes/{mailboxName}",
           "method": "DELETE",
           "nickname": "delete",
@@ -29584,6 +30634,7 @@ export const ASTERISK_CATALOG = {
       },
       "apiOperations": [
         {
+          "id": "asterisk.ari.playbacks.operation.get.playbacks.playbackid.get",
           "path": "/playbacks/{playbackId}",
           "method": "GET",
           "nickname": "get",
@@ -29591,6 +30642,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "Playback"
         },
         {
+          "id": "asterisk.ari.playbacks.operation.delete.playbacks.playbackid.stop",
           "path": "/playbacks/{playbackId}",
           "method": "DELETE",
           "nickname": "stop",
@@ -29598,6 +30650,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.playbacks.operation.post.playbacks.playbackid.control.control",
           "path": "/playbacks/{playbackId}/control",
           "method": "POST",
           "nickname": "control",
@@ -29713,6 +30766,7 @@ export const ASTERISK_CATALOG = {
       },
       "apiOperations": [
         {
+          "id": "asterisk.ari.recordings.operation.get.recordings.stored.liststored",
           "path": "/recordings/stored",
           "method": "GET",
           "nickname": "listStored",
@@ -29720,6 +30774,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "List[StoredRecording]"
         },
         {
+          "id": "asterisk.ari.recordings.operation.get.recordings.stored.recordingname.getstored",
           "path": "/recordings/stored/{recordingName}",
           "method": "GET",
           "nickname": "getStored",
@@ -29727,6 +30782,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "StoredRecording"
         },
         {
+          "id": "asterisk.ari.recordings.operation.delete.recordings.stored.recordingname.deletestored",
           "path": "/recordings/stored/{recordingName}",
           "method": "DELETE",
           "nickname": "deleteStored",
@@ -29734,6 +30790,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.recordings.operation.get.recordings.stored.recordingname.file.getstoredfile",
           "path": "/recordings/stored/{recordingName}/file",
           "method": "GET",
           "nickname": "getStoredFile",
@@ -29741,6 +30798,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "binary"
         },
         {
+          "id": "asterisk.ari.recordings.operation.post.recordings.stored.recordingname.copy.copystored",
           "path": "/recordings/stored/{recordingName}/copy",
           "method": "POST",
           "nickname": "copyStored",
@@ -29748,6 +30806,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "StoredRecording"
         },
         {
+          "id": "asterisk.ari.recordings.operation.get.recordings.live.recordingname.getlive",
           "path": "/recordings/live/{recordingName}",
           "method": "GET",
           "nickname": "getLive",
@@ -29755,6 +30814,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "LiveRecording"
         },
         {
+          "id": "asterisk.ari.recordings.operation.delete.recordings.live.recordingname.cancel",
           "path": "/recordings/live/{recordingName}",
           "method": "DELETE",
           "nickname": "cancel",
@@ -29762,6 +30822,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.recordings.operation.post.recordings.live.recordingname.stop.stop",
           "path": "/recordings/live/{recordingName}/stop",
           "method": "POST",
           "nickname": "stop",
@@ -29769,6 +30830,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.recordings.operation.post.recordings.live.recordingname.pause.pause",
           "path": "/recordings/live/{recordingName}/pause",
           "method": "POST",
           "nickname": "pause",
@@ -29776,6 +30838,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.recordings.operation.delete.recordings.live.recordingname.pause.unpause",
           "path": "/recordings/live/{recordingName}/pause",
           "method": "DELETE",
           "nickname": "unpause",
@@ -29783,6 +30846,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.recordings.operation.post.recordings.live.recordingname.mute.mute",
           "path": "/recordings/live/{recordingName}/mute",
           "method": "POST",
           "nickname": "mute",
@@ -29790,6 +30854,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "void"
         },
         {
+          "id": "asterisk.ari.recordings.operation.delete.recordings.live.recordingname.mute.unmute",
           "path": "/recordings/live/{recordingName}/mute",
           "method": "DELETE",
           "nickname": "unmute",
@@ -29855,6 +30920,7 @@ export const ASTERISK_CATALOG = {
       },
       "apiOperations": [
         {
+          "id": "asterisk.ari.sounds.operation.get.sounds.list",
           "path": "/sounds",
           "method": "GET",
           "nickname": "list",
@@ -29862,6 +30928,7 @@ export const ASTERISK_CATALOG = {
           "responseClass": "List[Sound]"
         },
         {
+          "id": "asterisk.ari.sounds.operation.get.sounds.soundid.get",
           "path": "/sounds/{soundId}",
           "method": "GET",
           "nickname": "get",
@@ -29882,5 +30949,6 @@ export const ASTERISK_CATALOG = {
         "sourceSha256": "a7aad7b995be9fa361d7b4eabe6a744cc18f5c07a98d4a4afc4d09813fa96b19"
       }
     }
-  ]
+  ],
+  "catalogRevision": "af004d93c465b1e0a25d190711813591c62f222b86a2b3dd7b0954aaa55e97e4"
 } as const;

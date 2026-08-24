@@ -71,9 +71,9 @@ function stringLiterals(value) {
 }
 
 function moduleDescription(source) {
-  const match = /AST_MODULE_INFO(?:_STANDARD(?:_EXTENDED)?)?\s*\(/u.exec(source);
-  if (!match) return undefined;
-  const values = stringLiterals(macroArguments(source, match.index));
+  const call = macroCalls(source, ['AST_MODULE_INFO', 'AST_MODULE_INFO_STANDARD', 'AST_MODULE_INFO_STANDARD_EXTENDED'])[0];
+  if (!call) return undefined;
+  const values = stringLiterals(call.args);
   return values[0];
 }
 
@@ -148,34 +148,122 @@ function macroCalls(source, names) {
 
 function namedRegistrations(source) {
   const registrations = { cli: [], amiActions: [], amiEvents: [], ari: [], agi: [], applications: [], functions: [], codecs: [], formats: [], bridges: [], channels: [] };
-  const add = (field, name, evidence, description) => {
+  const add = (field, name, evidence, description, sourceName) => {
     const clean = name?.trim();
     if (!clean || clean.length > 120 || /[\r\n]/u.test(clean)) return;
-    if (!registrations[field].some((item) => item.name === clean)) registrations[field].push({ name: clean, evidence, ...(description ? { description } : {}) });
+    if (!registrations[field].some((item) => item.name === clean)) registrations[field].push({ name: clean, evidence, ...(description ? { description } : {}), ...(sourceName ? { sourceName } : {}) });
   };
   for (const call of macroCalls(source, ['AST_CLI_DEFINE', 'AST_CLI_DEFINE_STATIC'])) {
     const strings = stringLiterals(call.args);
-    add('cli', firstArgumentToken(call.args), call.name, strings[0]);
+    const handler = firstArgumentToken(call.args);
+    const commands = cliCommandsForHandler(source, handler);
+    if (commands.length > 0) for (const command of commands) add('cli', command, call.name, strings[0], handler);
+    else add('cli', handler, call.name, strings[0], handler);
   }
-  for (const call of macroCalls(source, ['ast_agi_register', 'ast_agi_register_multiple'])) add('agi', call.args.split(',').slice(1, 2).map(firstArgumentToken)[0], call.name);
-  for (const call of macroCalls(source, ['ast_register_application_xml', 'ast_register_application'])) add('applications', firstArgumentToken(call.args), call.name);
+  for (const call of macroCalls(source, ['ast_agi_register', 'ast_agi_register_multiple'])) {
+    const token = call.args.split(',').slice(1, 2).map(firstArgumentToken)[0];
+    for (const command of resolveAgiCommands(source, token)) add('agi', command, call.name, undefined, token);
+  }
+  for (const call of macroCalls(source, ['ast_register_application_xml', 'ast_register_application'])) {
+    const token = firstArgumentToken(call.args);
+    add('applications', resolveConstant(source, token) ?? token, call.name, undefined, token);
+  }
   for (const call of macroCalls(source, ['ast_manager_register', 'ast_manager_register_xml', 'ast_manager_register_xml_core'])) add('amiActions', stringLiterals(call.args)[0], call.name);
   for (const call of macroCalls(source, ['manager_event'])) {
     const strings = stringLiterals(call.args);
     add('amiEvents', strings[0], call.name);
   }
   for (const call of macroCalls(source, ['stasis_app_register', 'ari_add_handler'])) add('ari', stringLiterals(call.args)[0], call.name);
-  for (const call of macroCalls(source, ['ast_custom_function_register', 'ast_custom_function_register_escalating'])) add('functions', firstArgumentToken(call.args), call.name);
+  for (const call of macroCalls(source, ['ast_custom_function_register', 'ast_custom_function_register_escalating'])) {
+    const token = firstArgumentToken(call.args);
+    add('functions', resolveStructField(source, token, 'name') ?? token, call.name, undefined, token);
+  }
   for (const call of macroCalls(source, ['ast_register_translator'])) add('codecs', firstArgumentToken(call.args), call.name);
-  for (const call of macroCalls(source, ['ast_format_def_register'])) add('formats', firstArgumentToken(call.args), call.name);
+  for (const call of macroCalls(source, ['ast_format_def_register'])) {
+    const token = firstArgumentToken(call.args);
+    add('formats', resolveStructField(source, token, 'name') ?? token, call.name, undefined, token);
+  }
   for (const call of macroCalls(source, ['ast_bridge_register'])) add('bridges', firstArgumentToken(call.args), call.name);
-  for (const call of macroCalls(source, ['ast_channel_register'])) add('channels', firstArgumentToken(call.args), call.name);
+  for (const call of macroCalls(source, ['ast_channel_register'])) {
+    const token = firstArgumentToken(call.args);
+    add('channels', resolveStructField(source, token, 'type') ?? token, call.name, undefined, token);
+  }
   return registrations;
+}
+
+function cliCommandsForHandler(source, handler) {
+  if (!handler || !/^[A-Za-z0-9_]+$/u.test(handler)) return [];
+  const code = stripComments(source);
+  const start = code.search(new RegExp(`\\b${handler}\\s*\\([^)]*\\)\\s*\\{`, 'u'));
+  if (start < 0) return [];
+  const open = code.indexOf('{', start);
+  let depth = 0;
+  let end = open;
+  for (; end < code.length; end += 1) {
+    if (code[end] === '{') depth += 1;
+    else if (code[end] === '}' && --depth === 0) break;
+  }
+  const body = source.slice(open, end + 1);
+  return [...body.matchAll(/\be->command\s*=\s*"((?:\\.|[^"\\])*)"/gu)].map((match) => unquote(`"${match[1]}"`));
 }
 
 function firstArgumentToken(value) {
   const token = value.split(',')[0].trim().replace(/^[(&]*/u, '').replace(/\).*$/u, '');
   return token.replace(/\s+/gu, ' ').trim();
+}
+
+function resolveConstant(source, token) {
+  if (!token || !/^[A-Za-z0-9_]+$/u.test(token)) return undefined;
+  const pattern = new RegExp(`(?:#define\\s+${token}\\s+|(?:static\\s+)?(?:const\\s+)?char\\s*\\*?\\s*${token}\\s*=\\s*)"((?:\\\\.|[^"\\\\])*)"`, 'u');
+  const match = pattern.exec(source);
+  return match ? unquote(`"${match[1]}"`) : undefined;
+}
+
+function resolveStructField(source, token, field) {
+  const name = token?.replace(/^&/u, '').trim();
+  if (!name || !/^[A-Za-z0-9_]+$/u.test(name)) return undefined;
+  const start = source.search(new RegExp(`\\b${name}\\s*=\\s*\\{`, 'u'));
+  if (start < 0) return undefined;
+  const open = source.indexOf('{', start);
+  const end = matchingBrace(source, open);
+  const body = source.slice(open, end + 1);
+  const match = new RegExp(`\\.${field}\\s*=\\s*"((?:\\\\.|[^"\\\\])*)"`, 'u').exec(body);
+  return match ? unquote(`"${match[1]}"`) : undefined;
+}
+
+function resolveAgiCommands(source, token) {
+  const name = token?.replace(/^&/u, '').trim();
+  if (!name || !/^[A-Za-z0-9_]+$/u.test(name)) return [];
+  const start = source.search(new RegExp(`\\b${name}\\s*(?:\\[\\])?\\s*=\\s*\\{`, 'u'));
+  if (start < 0) return [name];
+  const open = source.indexOf('{', start);
+  const end = matchingBrace(source, open);
+  const body = source.slice(open, end + 1);
+  const commands = [];
+  for (const match of body.matchAll(/\{\s*((?:"(?:\\.|[^"\\])*"\s*,?\s*)+)[^{}]*\}/gu)) {
+    const values = stringLiterals(match[1]);
+    if (values.length > 0) commands.push(values.join(' '));
+  }
+  return commands.length > 0 ? commands : [name];
+}
+
+function matchingBrace(source, open) {
+  let depth = 0;
+  let quote = '';
+  let escaped = false;
+  for (let index = open; index < source.length; index += 1) {
+    const char = source[index];
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === quote) quote = '';
+      continue;
+    }
+    if (char === '"' || char === "'") quote = char;
+    else if (char === '{') depth += 1;
+    else if (char === '}' && --depth === 0) return index;
+  }
+  return source.length - 1;
 }
 
 function buildSignals(family, sourcePath, source, makefile, menuselectTree) {
@@ -222,7 +310,8 @@ async function main() {
       const relativeSource = normalize(relative(root, absolute));
       const sourceBuffer = await readFile(absolute);
       const source = sourceBuffer.toString('utf8');
-      if (!/AST_MODULE_INFO(?:_STANDARD(?:_EXTENDED)?)?\s*\(/u.test(source)) continue;
+      const moduleCalls = macroCalls(source, ['AST_MODULE_INFO', 'AST_MODULE_INFO_STANDARD', 'AST_MODULE_INFO_STANDARD_EXTENDED']);
+      if (moduleCalls.length === 0) continue;
       const familyMakefile = resolve(root, family, 'Makefile');
       let makefile = '';
       try { makefile = await readFile(familyMakefile, 'utf8'); } catch { /* source-only families may have no Makefile */ }
@@ -290,7 +379,9 @@ async function main() {
   for (const absolute of allFiles.filter((file) => normalize(file).includes('rest-api/api-docs/') && file.endsWith('.json'))) {
     const relativePath = normalize(relative(root, absolute));
     const document = JSON.parse(await readFile(absolute, 'utf8'));
+    const apiId = `asterisk.ari.${relativePath.replace(/^rest-api\/api-docs\//u, '').replace(/\.json$/u, '').replace(/[^A-Za-z0-9]+/gu, '.').toLowerCase()}`;
     const operations = (document.apis ?? []).flatMap((api) => (api.operations ?? []).map((operation) => ({
+      id: `${apiId}.operation.${String(operation.httpMethod ?? 'get').toLowerCase()}.${String(api.path ?? '').replace(/[^A-Za-z0-9]+/gu, '.').replace(/^\.|\.$/gu, '').toLowerCase()}.${String(operation.nickname ?? 'unnamed').replace(/[^A-Za-z0-9]+/gu, '.').toLowerCase()}`,
       path: api.path,
       method: operation.httpMethod,
       nickname: operation.nickname,
@@ -300,7 +391,7 @@ async function main() {
     const sourceBuffer = await readFile(absolute);
     const sourceText = sourceBuffer.toString('utf8');
     apiResources.push({
-      id: `asterisk.ari.${relativePath.replace(/^rest-api\/api-docs\//u, '').replace(/\.json$/u, '').replace(/[^A-Za-z0-9]+/gu, '.').toLowerCase()}`,
+      id: apiId,
       kind: 'ari-resource',
       family: 'ari',
       name: document.resourcePath ?? relativePath,
@@ -331,6 +422,7 @@ async function main() {
     resources,
     apiResources,
   };
+  catalog.catalogRevision = sha256(JSON.stringify(catalog));
   await mkdir(dirname(outputJson), { recursive: true });
   await writeFile(outputJson, `${JSON.stringify(catalog, null, 2)}\n`, 'utf8');
   const header = `// GENERATED FILE - do not edit by hand.\n// Produced by console/scripts/generate-asterisk-catalog.mjs.\n\nexport const ASTERISK_CATALOG = `;

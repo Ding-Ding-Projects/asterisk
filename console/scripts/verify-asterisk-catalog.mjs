@@ -1,20 +1,31 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..', '..');
 
 export function validateAsteriskCatalog(catalog, inventory, files = new Set()) {
   if (catalog?.schemaVersion !== 1) throw new Error('Asterisk catalogue schemaVersion 1 required');
+  if (!/^[a-f0-9]{64}$/u.test(catalog.catalogRevision ?? '')) throw new Error('Asterisk catalogue revision is missing');
+  const { catalogRevision, ...catalogWithoutRevision } = catalog;
+  if (createHash('sha256').update(JSON.stringify(catalogWithoutRevision)).digest('hex') !== catalogRevision) throw new Error('Asterisk catalogue revision hash drift');
   if (!Array.isArray(catalog.modules) || !Array.isArray(catalog.resources) || !Array.isArray(catalog.apiResources)) throw new Error('Asterisk catalogue modules, resources and ARI resource arrays required');
   if (!Array.isArray(inventory?.sourceFamilies) || inventory.sourceFamilies.length !== 12) throw new Error('Asterisk catalogue family inventory must list all 12 source families');
   const actualFamilies = new Set(catalog.modules.map((entry) => entry.family));
   for (const family of inventory.sourceFamilies) if (!actualFamilies.has(family)) throw new Error(`Asterisk catalogue missing source family '${family}'`);
   const ids = [...catalog.modules, ...catalog.resources, ...catalog.apiResources].map((entry) => entry.id);
   if (new Set(ids).size !== ids.length) throw new Error('Asterisk catalogue identifiers must be unique');
+  const operationIds = catalog.apiResources.flatMap((entry) => entry.apiOperations ?? []).map((operation) => operation.id);
+  if (operationIds.some((id) => typeof id !== 'string' || id.length === 0) || new Set(operationIds).size !== operationIds.length) throw new Error('Asterisk ARI operation identifiers must be unique and nonempty');
   if (catalog.counts?.modules !== catalog.modules.length || catalog.counts?.resources !== catalog.resources.length || catalog.counts?.apiResources !== catalog.apiResources.length) throw new Error('Asterisk catalogue counts drift');
   if (catalog.counts.modules !== inventory.expectedCounts?.modules || catalog.counts.resources !== inventory.expectedCounts?.resources || catalog.counts.apiResources !== inventory.expectedCounts?.apiResources) throw new Error('Asterisk catalogue hand-written expected counts drift');
+  const configSources = walkFiles(resolve(root, 'configs')).map((path) => relative(root, path).replaceAll('\\', '/')).filter((path) => !path.endsWith('/README'));
+  const catalogConfigSources = catalog.resources.map((entry) => entry.source).sort();
+  if (configSources.slice().sort().join('\n') !== catalogConfigSources.join('\n')) throw new Error('Asterisk catalogue configuration resource set is incomplete or has an unexpected file');
+  const apiSources = walkFiles(resolve(root, 'rest-api', 'api-docs')).filter((path) => path.endsWith('.json')).map((path) => relative(root, path).replaceAll('\\', '/')).sort();
+  const catalogApiSources = catalog.apiResources.map((entry) => entry.source).sort();
+  if (apiSources.join('\n') !== catalogApiSources.join('\n')) throw new Error('Asterisk catalogue ARI resource set is incomplete or has an unexpected file');
   for (const entry of [...catalog.modules, ...catalog.resources, ...catalog.apiResources]) {
     if (!entry.id || !entry.source || !entry.description || !entry.kind) throw new Error(`Asterisk catalogue record is incomplete: ${entry.id ?? '<missing id>'}`);
     if (!Number.isSafeInteger(entry.sourceBytes ?? entry.bytes) || (entry.sourceBytes ?? entry.bytes) <= 0) throw new Error(`Asterisk catalogue record has no nonempty source bytes: ${entry.id}`);
@@ -53,6 +64,13 @@ export function validateAsteriskCatalog(catalog, inventory, files = new Set()) {
 }
 
 function readText(path) { return readFileSync(resolve(root, path), 'utf8'); }
+function walkFiles(directory) {
+  if (!existsSync(directory)) return [];
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = resolve(directory, entry.name);
+    return entry.isDirectory() ? walkFiles(path) : [path];
+  });
+}
 function escapeRegExp(value) { return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'); }
 
 if (process.argv[1]?.replaceAll('\\', '/').endsWith('/verify-asterisk-catalog.mjs')) {

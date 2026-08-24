@@ -18,6 +18,7 @@ export interface TargetProfile {
   dockerContext?: string;
   dockerProject?: string;
   knownHostsPath?: string;
+  credentialKey?: string;
 }
 
 export interface AsteriskIdentity {

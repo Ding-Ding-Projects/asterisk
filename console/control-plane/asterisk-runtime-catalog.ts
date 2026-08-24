@@ -32,8 +32,10 @@ export interface RuntimeCatalogRecord {
 
 export interface RuntimeCatalogResult {
   schemaVersion: 1;
+  catalogRevision: string;
   observedAt: string;
   observations: Readonly<Record<string, RuntimeObservation>>;
+  surfaceEntries: Readonly<{ cli: ReadonlyArray<string>; amiActions: ReadonlyArray<string>; ariResources: ReadonlyArray<string>; configResources: ReadonlyArray<string> }>;
   records: ReadonlyArray<RuntimeCatalogRecord>;
   counts: {
     sourceRecords: number;
@@ -96,7 +98,7 @@ export function reconcileAsteriskCatalog(input: RuntimeCatalogInput): RuntimeCat
     if (source.kind === "ari-resource") {
       const state: RuntimeCatalogState = input.ariHttpResources === undefined
         ? "unknown"
-        : input.ariHttpResources.some((name) => normalize(name) === normalize(source.name)) ? "available" : "unavailable";
+        : input.ariHttpResources.some((name) => ariResourceMatches(name, source)) ? "available" : "unavailable";
       records.push({
         id: source.id,
         kind: "api",
@@ -171,6 +173,7 @@ export function reconcileAsteriskCatalog(input: RuntimeCatalogInput): RuntimeCat
   };
   return {
     schemaVersion: 1,
+    catalogRevision: ASTERISK_CATALOG.catalogRevision,
     observedAt: input.observedAt,
     observations: {
       "module show": observation(modules),
@@ -180,6 +183,12 @@ export function reconcileAsteriskCatalog(input: RuntimeCatalogInput): RuntimeCat
       "target config inventory": input.configResources === undefined
         ? { state: "unknown", reason: input.configInventoryReason ?? "The target configuration inventory was not available." }
         : { state: input.configInventoryComplete === false ? "unknown" : "available", count: input.configResources.length, reason: input.configInventoryComplete === false ? input.configInventoryReason : undefined },
+    },
+    surfaceEntries: {
+      cli: input.cliCommands ?? [],
+      amiActions: input.amiActions ?? [],
+      ariResources: input.ariHttpResources ?? input.ariResources ?? [],
+      configResources: input.configResources ?? [],
     },
     records,
     counts,
@@ -217,4 +226,11 @@ function addSurfaceSummary(
 
 function normalize(value: string): string {
   return value.trim().toLowerCase();
+}
+
+function ariResourceMatches(name: string, source: (typeof ASTERISK_CATALOG.apiResources)[number]): boolean {
+  const normalizePath = (value: string) => normalize(value).replace(/^\/(?:ari|api-docs)\//u, "/").replace(/\.{format}$/u, "");
+  const candidate = normalizePath(name);
+  if (candidate === normalizePath(source.name)) return true;
+  return source.apiOperations.some((operation) => candidate === normalizePath(operation.path));
 }

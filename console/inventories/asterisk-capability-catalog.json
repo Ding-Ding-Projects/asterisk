@@ -33,6 +33,8 @@
     "console/control-plane/config-inventory.ts",
     "console/control-plane/ami-ari-transports.ts",
     "console/control-plane/asterisk-action-catalog.ts",
+    "console/app/electron/credential-vault.ts",
+    "console/app/electron/main.ts",
     "console/app/renderer/src/App.tsx",
     "console/app/renderer/src/readings.ts"
   ],
@@ -42,7 +44,8 @@
   "requiredActionFiles": [
     "console/shared/control-plane.ts",
     "console/control-plane/dispatch.ts",
-    "console/control-plane/asterisk-readings.ts"
+    "console/control-plane/asterisk-readings.ts",
+    "console/control-plane/ami-ari-transports.ts"
   ],
   "requiredEvidenceFiles": [
     "console/app/renderer/src/generated/docs-bundle.ts"

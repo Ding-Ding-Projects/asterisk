@@ -12,6 +12,7 @@ import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, t
 import { readControlValues, unmappedControls } from './control-keys';
 import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
+import { ASTERISK_ACTION_CATALOG } from '../../../control-plane/asterisk-action-catalog';
 import { ServerSwitcher } from './servers';
 import { buildEndpointDraft, endpointDocument, PJSIP_RESOURCE, WIZARD_CONTROLS } from './endpoint-create';
 import {
@@ -613,7 +614,27 @@ ${resolution.disclosure}`);
     if (action === 'daemon-start') { void this.daemonAction('start'); return; }
     if (action === 'daemon-stop') { void this.daemonAction('stop'); return; }
     if (action === 'daemon-restart') { void this.daemonAction('restart'); return; }
+    if (action === 'module-lifecycle') {
+      const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+      const operation = ({ Load: 'load', Unload: 'unload', Reload: 'reload' } as Record<string, string>)[String(values.wm_action ?? 'Load')];
+      const module = String(values.wm_module ?? '');
+      const catalog = valueOf(this.readings.modules?.catalog);
+      const record = catalog?.records.find((entry) => (entry.kind === 'module' || entry.kind === 'runtime-module') && entry.name === module);
+      if (!operation || !record || record.kind === 'runtime-module') { this.fire('Module action unavailable', 'Choose a source-backed module from the live catalogue before requesting a lifecycle change.'); return; }
+      this.areYouSure(`Confirm ${operation} ${module}`, `The target will receive a typed ${operation} request for ${module}. The live module inventory will be read again after the operation.`, 3, () => {
+        void this.runModuleLifecycle(operation, module, record.id, catalog.catalogRevision);
+      });
+    }
   };
+
+  private async runModuleLifecycle(operation: string, module: string, catalogId: string, catalogRevision: string): Promise<void> {
+    const response = await this.request('pbx.module', { serverId: this.target.id, payload: { operation, module, catalogId, catalogRevision, confirmed: true } });
+    if (!response?.ok) { this.fire('Module action refused', response?.message ?? 'The control plane did not answer.'); return; }
+    const data = response.data as { receipt?: { output?: string; status?: string } };
+    this.fire('Module action complete', data.receipt?.output || `The module action ended with ${data.receipt?.status ?? 'an unknown status'}.`);
+    delete this.readings.modules;
+    this.forceUpdate();
+  }
 
   // ---------------------------------------------------------------- server add / remove
 
@@ -1736,6 +1757,11 @@ It is shown once. The phone needs it to register.`);
     const bridge = this.bridge();
     const readings = this.readings[screen];
     const note = this.note(screen);
+    const moduleCatalog = valueOf(this.readings.modules?.catalog);
+    const dynamicCliCommands = moduleCatalog ? [...new Set([
+      ...moduleCatalog.surfaceEntries.cli,
+    ])].filter(Boolean).sort() : [];
+    const selectedCliCommand = String(((this.state as { values?: Record<string, unknown> }).values ?? {}).wc_command ?? dynamicCliCommands[0] ?? '');
 
     return {
       ...values,
@@ -1863,6 +1889,14 @@ It is shown once. The phone needs it to register.`);
       // there is no reading it stays empty rather than falling back to design samples.
       ...(screen === 'canvas' ? this.canvasVals(values) : {}),
       cliLog: [{ text: note || 'Run a command to see its output here.', color: '#8FA394' }],
+      ...(screen === 'cli' && dynamicCliCommands.length > 0 ? {
+        cliSteps: catalogCliSteps(values.cliSteps, dynamicCliCommands, selectedCliCommand),
+        cliCmd: selectedCliCommand,
+        runCli: () => this.ceremony('Run a catalogued CLI command', selectedCliCommand),
+      } : {}),
+      ...(screen === 'modules' && moduleCatalog ? {
+        groups: catalogModuleGroups(values.groups, moduleCatalog.records.filter((record) => record.kind === 'module' || record.kind === 'runtime-module').map((record) => record.name).sort()),
+      } : {}),
 
       // Discovery replaces the design's simulated provisioning run.
       oneClickButton: this.target.connected ? 'Re-run discovery' : 'Discover local targets',
@@ -2257,6 +2291,35 @@ It is shown once. The phone needs it to register.`);
   }
 }
 
+function catalogCliSteps(base: unknown, commands: ReadonlyArray<string>, selected: string): unknown {
+  if (!Array.isArray(base)) return base;
+  return base.map((step, index) => {
+    if (index !== 0 || !step || typeof step !== 'object') return step;
+    const value = step as { ctls?: unknown[] };
+    const ctls = Array.isArray(value.ctls) ? value.ctls : [];
+    return {
+      ...value,
+      ctls: [...ctls, { id: 'wc_command', label: 'Exact live command', kind: 'select', value: selected, options: [...commands], info: 'Read from the target core show help response. The command is still checked against the control-plane allowlist before it runs.' }],
+    };
+  });
+}
+
+function catalogModuleGroups(base: unknown, modules: ReadonlyArray<string>): unknown {
+  if (!Array.isArray(base)) return base;
+  return base.map((group, index) => {
+    if (!group || typeof group !== 'object') return group;
+    const value = group as { ctls?: unknown[] };
+    const ctls = Array.isArray(value.ctls) ? value.ctls : [];
+    return {
+      ...value,
+      ctls: [...ctls.map((control) => {
+        if (!control || typeof control !== 'object' || (control as { id?: string }).id !== 'wm_module') return control;
+        return { ...(control as Record<string, unknown>), value: modules[0] ?? '', options: [...modules] };
+      }), ...(index === 0 ? [{ id: 'wm_execute', label: 'Apply module action', kind: 'segmented', value: 'Apply', options: ['Apply'], action: 'module-lifecycle' }] : [])],
+    };
+  });
+}
+
 function catalogReadings(catalog: AsteriskCatalogResult): ViewReadings {
   const moduleObservation = catalog.observations['module show'] ?? { state: 'unknown', reason: 'The target module inventory was not read.' };
   const modules = catalog.records
@@ -2264,7 +2327,7 @@ function catalogReadings(catalog: AsteriskCatalogResult): ViewReadings {
     .map((record) => ({ name: record.name, description: record.reason ?? record.kind, useCount: 0, status: record.state }));
   return {
     modules: { command: 'module show', result: moduleObservation.state === 'available' ? { state: 'available', observedAt: catalog.observedAt, value: modules } : { state: 'unavailable', observedAt: catalog.observedAt, reason: moduleObservation.reason ?? 'The target module inventory is not available.' } },
-    catalog: { command: 'pbx.catalog', result: { state: 'available', observedAt: catalog.observedAt, value: catalog } },
+    catalog: { command: 'pbx.catalog', result: { state: 'available', observedAt: catalog.observedAt, value: { ...catalog, actions: ASTERISK_ACTION_CATALOG } } },
   };
 }
 

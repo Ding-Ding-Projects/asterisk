@@ -56,7 +56,6 @@ export class AmiTransport {
   constructor(options: AmiTransportOptions) {
     if (!Number.isInteger(options.port) || options.port < 1 || options.port > 65535) throw new Error("AMI port must be 1-65535");
     if (!options.host.trim() || /[\r\n]/u.test(options.host)) throw new Error("AMI host is invalid");
-    if (!options.credentialKey.trim()) throw new Error("AMI credential key is required");
     this.#options = { ...options, timeoutMs: options.timeoutMs ?? 10_000, now: options.now ?? (() => new Date()) };
   }
 
@@ -151,7 +150,6 @@ export class AriTransport {
   constructor(options: AriTransportOptions) {
     const url = new URL(options.baseUrl);
     if (!/^https?:$/u.test(url.protocol) || url.username || url.password || url.hash) throw new Error("ARI base URL must be an HTTP(S) URL without credentials or fragments");
-    if (!options.credentialKey.trim()) throw new Error("ARI credential key is required");
     this.#options = { ...options, timeoutMs: options.timeoutMs ?? 10_000, maxResponseBytes: options.maxResponseBytes ?? 2 * 1024 * 1024, now: options.now ?? (() => new Date()) };
   }
 
@@ -181,6 +179,17 @@ export class AriTransport {
       clearTimeout(timer);
       signal?.removeEventListener("abort", abort);
     }
+  }
+
+  async discoverResources(signal?: AbortSignal): Promise<{ state: TransportState; names: ReadonlyArray<string>; reason?: string }> {
+    const names: string[] = [];
+    for (const operation of Object.keys(ARI_OPERATIONS) as AriOperationName[]) {
+      const spec = ARI_OPERATIONS[operation];
+      const receipt = await this.execute(operation, signal);
+      if (receipt.state === "cancelled" || receipt.state === "timedOut") return { state: receipt.state, names, reason: receipt.reason };
+      if (receipt.state === "available") names.push(spec.path);
+    }
+    return { state: names.length > 0 ? "available" : "unavailable", names, reason: names.length > 0 ? undefined : "No ARI resource operation returned an available response." };
   }
 }
 

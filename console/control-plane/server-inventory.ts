@@ -250,6 +250,7 @@ export class ServerInventory {
       dockerContext: server.dockerContext,
       dockerProject: server.dockerProject,
       knownHostsPath: server.knownHostsPath,
+      credentialKey: server.credentialKey,
     };
   }
 }

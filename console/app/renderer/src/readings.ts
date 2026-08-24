@@ -31,9 +31,11 @@ export interface AsteriskCatalogRecord {
   reason?: string; source?: string;
 }
 export interface AsteriskCatalogResult {
-  schemaVersion: 1; observedAt: string;
+  schemaVersion: 1; catalogRevision: string; observedAt: string;
   observations: Record<string, { state: string; count?: number; reason?: string }>;
+  surfaceEntries: { cli: string[]; amiActions: string[]; ariResources: string[]; configResources: string[] };
   records: AsteriskCatalogRecord[];
+  actions?: ReadonlyArray<{ id: string; family: string; label: string; state: string; destructive: boolean; confirmation: string; transport: string; unavailableReason?: string }>;
   counts: { sourceRecords: number; available: number; unavailable: number; unknown: number; discoveredOutsideSource: number };
 }
 
