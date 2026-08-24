@@ -468,6 +468,7 @@ export class PbxAdminApp extends App {
         ctls: structureCtls,
       });
 
+      const changed = Boolean(key && draft && this.adminLoaded.has(key) && JSON.stringify(draft) !== JSON.stringify(this.adminLoaded.get(key)));
       this.publishDraftCount(typeof key === 'string' ? key : undefined, draft);
       const planDiffs = plan?.diffs?.length ?? 0;
       groups.push({
