@@ -252,20 +252,22 @@
       let cached = {};
       try { const cacheRaw = localStorage.getItem(DIM_SUM_IMAGE_CACHE_KEY) || '{}'; if (new TextEncoder().encode(cacheRaw).byteLength > 6291456) throw new Error('image cache too large'); cached = parseUniqueJson(cacheRaw); if (cached.schemaVersion !== 1 || cached.sourceUrl !== DIM_SUM_CACHE.sourceUrl || cached.catalogRevision !== DIM_SUM_CACHE.releaseNamespace || !Array.isArray(cached.entries) || cached.entries.length > 32) throw new Error('stale image cache'); } catch { localStorage.removeItem(DIM_SUM_IMAGE_CACHE_KEY); cached = {}; }
       const usable = [];
-      for (const dish of DISHES) { const local = cached?.entries?.find((entry) => entry.id === dish.id && entry.sha256 === dish.sha256 && entry.releaseTag === dish.releaseTag && entry.catalogRevision === dish.catalogRevision && typeof entry.dataUrl === 'string' && entry.dataUrl.length <= 1398104); if (local) { try { const encoded = local.dataUrl.split(',')[1] || ''; const bytes = Uint8Array.from(atob(encoded), (char) => char.charCodeAt(0)); if (bytes.length > 1048576) continue; if (await sha256Hex(bytes) === dish.sha256 && await decodeImage(local.dataUrl)) usable.push({ ...dish, dataUrl: local.dataUrl }); } catch { /* purge below if no usable entry */ } } }
+      for (const dish of DISHES) { const local = cached?.entries?.find((entry) => entry.id === dish.id && entry.sha256 === dish.sha256 && entry.releaseTag === dish.releaseTag && entry.catalogRevision === dish.catalogRevision && typeof entry.dataUrl === 'string' && entry.dataUrl.length <= 1398104 && /^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(entry.dataUrl)); if (local) { try { const encoded = local.dataUrl.split(',')[1] || ''; const bytes = Uint8Array.from(atob(encoded), (char) => char.charCodeAt(0)); if (bytes.length > 1048576) continue; if (await sha256Hex(bytes) === dish.sha256 && await decodeImage(local.dataUrl)) usable.push({ ...dish, dataUrl: local.dataUrl }); } catch { /* purge below if no usable entry */ } } }
       if (usable.length) { DISHES = usable; return true; }
       localStorage.removeItem(DIM_SUM_IMAGE_CACHE_KEY);
       const candidates = fisherYates(DISHES).slice(0, 3);
+      const verified = [];
       for (const candidate of candidates) {
         try {
           const imageResponse = await fetchWithDeadline(candidate.imageUrl, { cache: 'force-cache', credentials: 'omit', redirect: 'error', referrerPolicy: 'no-referrer' }); if (!imageResponse.ok || !imageResponse.body) continue;
           const reader = imageResponse.body.getReader(); const chunks = []; let total = 0; while (true) { const part = await withDeadline(reader.read()); if (part.done) break; total += part.value.byteLength; if (total > 1048576) { await reader.cancel(); total = 0; break; } chunks.push(part.value); }
           if (!total) continue;
           const bytes = new Uint8Array(total); let offset = 0; chunks.forEach((chunk) => { bytes.set(chunk, offset); offset += chunk.byteLength; }); const digestValue = await sha256Hex(bytes); if (digestValue !== candidate.sha256) continue;
-          const dataUrl = `data:image/png;base64,${bytesToBase64(bytes)}`; if (!await decodeImage(dataUrl)) continue; localStorage.setItem(DIM_SUM_IMAGE_CACHE_KEY, JSON.stringify({ schemaVersion: 1, sourceUrl: DIM_SUM_CACHE.sourceUrl, catalogRevision: DIM_SUM_CACHE.releaseNamespace, entries: [{ id: candidate.id, sha256: candidate.sha256, releaseTag: candidate.releaseTag, catalogRevision: candidate.catalogRevision, dataUrl }] })); DISHES = [{ ...candidate, dataUrl }]; return true;
+          const dataUrl = `data:image/png;base64,${bytesToBase64(bytes)}`; if (!await decodeImage(dataUrl)) continue; verified.push({ ...candidate, dataUrl });
         } catch { /* try the next bounded candidate */ }
       }
-      return false;
+      if (!verified.length) return false;
+      localStorage.setItem(DIM_SUM_IMAGE_CACHE_KEY, JSON.stringify({ schemaVersion: 1, sourceUrl: DIM_SUM_CACHE.sourceUrl, catalogRevision: DIM_SUM_CACHE.releaseNamespace, entries: verified.map((candidate) => ({ id: candidate.id, sha256: candidate.sha256, releaseTag: candidate.releaseTag, catalogRevision: candidate.catalogRevision, dataUrl: candidate.dataUrl })) })); DISHES = verified; return true;
     } catch { DISHES = []; return false; }
   }
   function applyPanelCopy() {
@@ -393,6 +395,8 @@
     const label = $('global-school-label');
     if (label) label.textContent = state.schoolName;
     const renamed = state.schoolName.trim() || DEFAULTS.schoolName;
+    document.body.dataset.schoolName = renamed;
+    $('global-settings-panel')?.setAttribute('data-school-name', renamed);
     const tabs = document.querySelector('.global-tabs'); if (tabs) tabs.setAttribute('aria-label', `${renamed} setting sections`);
     const settingsSearch = $('global-settings-search'); if (settingsSearch) settingsSearch.setAttribute('aria-label', `Search ${renamed} and page settings`);
     const paletteSearch = $('palette-search'); if (paletteSearch) paletteSearch.setAttribute('aria-label', `Search ${renamed} and destinations`);
@@ -426,7 +430,7 @@
     let count = 0;
     settingRows().forEach((row) => { const visible = !schoolSuppressed(row) && searchMatches(row.textContent); row.hidden = !visible; if (visible) count += 1; });
     const status = $('global-settings-search-status');
-    if (status) status.textContent = `${state.schoolName}: ${count} setting${count === 1 ? '' : 's'} shown.${state.compatibilityStatus === 'malformed' ? ' Compatibility mirror malformed, unrelated fields were preserved.' : ''}`;
+    if (status) setLocalizedText(status, `${state.schoolName}: ${count} setting${count === 1 ? '' : 's'} shown.${state.compatibilityStatus === 'malformed' ? ' Compatibility mirror malformed, unrelated fields were preserved.' : ''}`, `${state.schoolName}：顯示 ${count} 項設定。${state.compatibilityStatus === 'malformed' ? '相容鏡像格式錯誤，無關欄位已保留。' : ''}`, 'en');
   }
   function openRegex() {
     const popover = $('global-regex-popover');
@@ -504,6 +508,11 @@
     const label = document.createElement('label'); label.className = 'switch-row'; label.innerHTML = '<input id="global-schedule-all-day" type="checkbox"><span>All day in the selected date window</span>';
     $('global-schedule-enabled').closest('label')?.after(label);
     $('global-schedule-all-day').onchange = () => { const disabled = $('global-schedule-all-day').checked; ['global-schedule-start-time', 'global-schedule-end-time'].forEach((id) => { if ($(id)) { $(id).disabled = disabled; if (disabled) $(id).value = ''; } }); };
+  }
+  function ensureTimezonePicker() {
+    const input = $('global-schedule-timezone'); if (!input || $('global-schedule-timezone-picker')) return;
+    const picker = document.createElement('select'); picker.id = 'global-schedule-timezone-picker'; picker.setAttribute('aria-label', 'Choose IANA timezone'); ['UTC', 'America/Toronto', 'America/New_York', 'Europe/London', 'Asia/Hong_Kong', 'Asia/Tokyo', 'Australia/Sydney'].forEach((zone) => { const option = document.createElement('option'); option.value = zone; option.textContent = zone; picker.append(option); });
+    input.before(picker); picker.onchange = () => { input.value = picker.value; input.readOnly = true; };
   }
   function ensureCopyAnchors() {
     const anchors = [['narrator', 'global-narrator-title', 'global-narrator-help'], ['schedule', 'global-schedule-title', 'global-schedule-help'], ['display name', 'global-display-title', 'global-display-help'], ['dim sum', 'global-dimsum-title', 'global-dimsum-help'], ['updates', 'global-update-title', 'global-update-help']];
@@ -698,6 +707,8 @@
     $('global-schedule-source').onchange = applyState;
     enhanceDropdowns();
     ensureAllDayControl();
+    ensureTimezonePicker();
+    enhanceDropdowns();
   }
   function applyState() {
     applyScheduleRules();
