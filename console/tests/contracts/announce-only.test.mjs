@@ -38,7 +38,6 @@ const STILL_ANNOUNCING = new Map([
   ['Lock every tab in group', 'needs the per-element lock wizard to accept a whole group'],
   ['Duplicate step', 'needs the dialplan canvas to accept an inserted node'],
   ['Insert condition before', 'needs the dialplan canvas to accept an inserted node'],
-  ['Export', 'the bulk-selection Export shares a label with the appearance Export; it needs the selection model to produce rows'],
 ]);
 
 /* The same shape, hiding behind a confirmation. This was a real blind spot: "Delete step"
@@ -47,6 +46,31 @@ const STILL_ANNOUNCING = new Map([
  * decorative destructive control is worse than a decorative ordinary one -- they go looking
  * for the thing later and find it exactly where they left it. */
 const CONFIRMED_ANNOUNCE_ONLY = /label:'([^']*)'[^}]{0,200}?areYouSure\([^)]*?,\s*\(\) => this\.(?:fire|toast)\(/g;
+
+/* And the same shape one indirection further out. bulk(verb, sel) clears the selection and
+ * fires a message, so every control calling it announced work and did none -- and the guard
+ * above could not see them, because it looks for the announce straight after the arrow.
+ * Following the helper is the difference between a guard and a decoration. */
+const BULK_ANNOUNCE_ONLY = /label:'([^']*)'[^}]{0,120}?this\.bulk\(/g;
+
+const BULK_STILL_ANNOUNCING = new Map([
+  ['Enable', 'enabling an endpoint is a write to a live Asterisk configuration, and no path exists for it yet'],
+  ['Disable', 'same as Enable: it needs a configuration write that does not exist'],
+  ['Duplicate', 'duplicating a row means writing a new section into a live configuration file'],
+]);
+
+test('a bulk action does something, or is recorded as not doing it', () => {
+  const found = [...design.matchAll(BULK_ANNOUNCE_ONLY)].map((match) => match[1]);
+  const unexpected = found.filter((label) => !BULK_STILL_ANNOUNCING.has(label));
+  assert.deepEqual(unexpected, [],
+    `these bulk actions clear the selection and claim work they did not do: ${unexpected.join(', ')}`);
+});
+
+test('the bulk list stays honest too', () => {
+  const found = new Set([...design.matchAll(BULK_ANNOUNCE_ONLY)].map((match) => match[1]));
+  const fixed = [...BULK_STILL_ANNOUNCING.keys()].filter((label) => !found.has(label));
+  assert.deepEqual(fixed, [], `no longer announcing, so remove from the list: ${fixed.join(', ')}`);
+});
 
 test('a confirmation runs something, rather than only reporting', () => {
   const found = [...design.matchAll(CONFIRMED_ANNOUNCE_ONLY)].map((match) => match[1]);

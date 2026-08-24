@@ -3909,7 +3909,7 @@ class Component extends DCLogic {
         { icon:'edit', label:'Edit together', run:() => this.setState({ wizardOpen:true, wizardStep:0 }) },
         { icon:'content_copy', label:'Duplicate', run:() => this.bulk('Duplicated', sel) },
         { icon:'lock', label:'Lock each', run:() => { this.setState({ lockOpen:true, lockTarget:sel.length + ' selected objects', lockKey:this.state.screen, lockStep:0, lockX:'38%', lockY:'18%' }); } },
-        { icon:'download', label:'Export', run:() => this.bulk('Exported', sel) },
+        { icon:'download', label:'Export', run:() => { this.setState({ selected:[] }); this.hostAction('export-json', { subject:'selection', name:'selection', data:sel }); } },
         { icon:'delete', label:'Delete', run:() => this.ceremony('Delete ' + sel.length + ' objects', 'delete ' + sel.join(' ')) }
       ],
       tableRows:tbl.rows.map(r => ({
@@ -4710,7 +4710,7 @@ class Component extends DCLogic {
         { icon:'shuffle', label:'Randomise every element', run:() => this.randomAppearance(true) },
         { icon:'restart_alt', label:'Reset', run:() => { this.setState({ values:{} }); this.toast('Appearance reset to the design system'); } },
         { icon:'bookmark_add', label:'Save preset', run:() => this.hostAction('save', { bucket:'appearance-preset', name:'Appearance preset' }) },
-        { icon:'download', label:'Export', run:() => this.toast('Appearance exported as JSON') },
+        { icon:'download', label:'Export', run:() => this.hostAction('export-json', { subject:'appearance', name:'appearance', data:v.appearValues || s.values }) },
         { icon:'upload', label:'Import', run:() => this.hostAction('import-json', { subject:'appearance' }) }
       ],
       closeAppear:() => this.set('appearOpen', false),
