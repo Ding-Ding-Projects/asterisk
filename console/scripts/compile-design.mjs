@@ -175,7 +175,7 @@ const DROP_ATTRS = new Set(['list', 'as', 'name', 'ctl', 'family']);
 const HINT_PREFIX = 'hint-';
 
 const EVENTS = new Set([
-  'onClick', 'onInput', 'onChange', 'onContextMenu', 'onMouseDown', 'onMouseUp',
+  'onClick', 'onInput', 'onChange', 'onKeyDown', 'onSubmit', 'onContextMenu', 'onMouseDown', 'onMouseUp',
   'onMouseEnter', 'onMouseLeave', 'onDrop', 'onDragStart', 'onDragOver', 'onDragEnd',
 ]);
 

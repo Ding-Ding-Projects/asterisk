@@ -64,7 +64,7 @@ export function browserSpeechEngine(): SpeechEngine | undefined {
   if (typeof window === 'undefined' || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return undefined;
   const synthesis = window.speechSynthesis;
   const readVoices = (): SpeechVoice[] => synthesis.getVoices().map((voice) => ({
-    id: voice.voiceURI || `${voice.lang}:${voice.name}`,
+    id: `web-speech:${voice.voiceURI || `name:${voice.name}`}:${voice.localService ? 'local' : 'network'}`,
     name: voice.name,
     lang: voice.lang,
     engine: voice.voiceURI || undefined,
@@ -81,7 +81,7 @@ export function browserSpeechEngine(): SpeechEngine | undefined {
         const utterance = new SpeechSynthesisUtterance(request.text);
         const voice = request.voiceId && readVoices().find((candidate) => candidate.id === request.voiceId);
         if (voice) {
-          const native = synthesis.getVoices().find((candidate) => (candidate.voiceURI || `${candidate.lang}:${candidate.name}`) === voice.id);
+          const native = synthesis.getVoices().find((candidate) => `web-speech:${candidate.voiceURI || `name:${candidate.name}`}:${candidate.localService ? 'local' : 'network'}` === voice.id);
           if (native) utterance.voice = native;
         }
         utterance.rate = request.rate;
@@ -159,12 +159,13 @@ export function resolveVoiceStatus(
   availableVoices: ReadonlyArray<SpeechVoice>,
 ): VoiceStatus {
   const langVoices = availableVoices.filter((v) => voiceMatchesLanguage(v, language));
+  const deterministic = [...langVoices].sort((left, right) => left.id.localeCompare(right.id))[0];
 
   if (!chosenVoiceId) {
     if (langVoices.length === 0) {
       return { kind: 'no-voice-available', message: `No voice on this machine can read ${languageName(language)}.` };
     }
-    return { kind: 'no-selection', effectiveVoiceId: undefined, message: `No voice chosen for ${languageName(language)}; using the system default.` };
+    return { kind: 'no-selection', effectiveVoiceId: deterministic!.id, message: `No voice chosen for ${languageName(language)}; using "${deterministic!.name}".` };
   }
 
   const chosen = availableVoices.find((v) => v.id === chosenVoiceId);

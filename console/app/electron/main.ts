@@ -199,6 +199,8 @@ ipcMain.handle('school:verify-credential', async (_event, candidate: unknown) =>
     return { ok: false, reason: 'The desktop credential store could not verify the credential.' };
   }
 });
+ipcMain.handle('school:recovery-path', () => ({ ok: true, path: app.getPath('userData') }));
+ipcMain.handle('accessibility:screen-reader', () => app.isAccessibilitySupportEnabled());
 
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();

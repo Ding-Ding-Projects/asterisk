@@ -122,14 +122,15 @@ export interface LocalizedEventText {
   enText: string;
   yueText: string;
   bilingualText: string;
+  translated: boolean;
 }
 
 /** Split an event into independent language tracks before funny styling or speech. */
-export function localizeEventText(text: string): LocalizedEventText {
+export function localizeEventText(text: string, rename: (value: string) => string = (value) => value): LocalizedEventText {
   const separator = BILINGUAL_SEPARATOR;
   const source = text.includes(separator) ? text.slice(0, text.indexOf(separator)) : text;
   const yueText = catalog[source] ?? source;
-  return { enText: source, yueText, bilingualText: `${source}${separator}${yueText}` };
+  return { enText: rename(source), yueText: rename(yueText), bilingualText: `${rename(source)}${separator}${rename(yueText)}`, translated: catalog[source] !== undefined };
 }
 
 /**

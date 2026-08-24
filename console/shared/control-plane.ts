@@ -81,7 +81,9 @@ export interface DingDesktopApi {
   school: {
     setCredential(value: string): Promise<{ ok: boolean; reason?: string }>;
     verifyCredential(value: string): Promise<{ ok: boolean; reason?: string }>;
+    recoveryPath(): Promise<{ ok: boolean; path?: string; reason?: string }>;
   };
+  accessibility: { isScreenReaderActive(): Promise<boolean> };
   updater: {
     /** Current state, read once (e.g. on mount) without waiting for the next push. */
     getStatus(): Promise<UpdaterStatusForRenderer>;

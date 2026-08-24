@@ -22,7 +22,7 @@ import {
 } from './personal-vocabulary';
 import { createDurableStorage, type DurableStorageHandle } from './durable-storage';
 import {
-  isLanguageMode, languageMode, localizeEventText, setCatalog, setLanguageMode, setSchoolModeNameProvider, setVocabularyStorage,
+  isLanguageMode, languageMode, localizeEventText, localizeText, setCatalog, setLanguageMode, setSchoolModeNameProvider, setVocabularyStorage,
   type LanguageMode,
 } from './text-boundary';
 import {
@@ -212,6 +212,9 @@ export class App extends Base {
   private schoolCredentialOpen = false;
   private schoolCredentialKind: 'set' | 'verify' = 'set';
   private schoolCredentialValue = '';
+  private schoolRecoveryLine = SCHOOL_RECOVERY_LINE;
+  private schoolRecoveryPath = '%APPDATA%\\ding-pbx-console';
+  private schoolCredentialOrigin: HTMLElement | null = null;
   private readonly baseToast: (message: string) => void;
   private readonly baseFire: (title: string, body: string) => void;
 
@@ -256,7 +259,7 @@ export class App extends Base {
     setSchoolModeNameProvider((text) => {
       const name = schoolModeName(this.vocabStorage);
       if (name === DEFAULT_SCHOOL_NAME) return text;
-      return text.replaceAll(DEFAULT_SCHOOL_NAME, name).replaceAll('school mode', name);
+      return text.replaceAll(DEFAULT_SCHOOL_NAME, name).replaceAll('school mode', name).replaceAll('學校模式', name);
     });
     this.speechEngine = browserSpeechEngine();
     if (this.speechEngine) {
@@ -320,6 +323,7 @@ export class App extends Base {
       this.restoreLanguageMode();
       this.funnyLevels = readFunnyLevels(this.vocabStorage);
       this.restoreNarrationSettings();
+      void this.restorePlatformAccessibility();
       this.restoreDisplayName();
       this.restoreAppearance();
       this.setState((prior: { values?: Record<string, unknown> }) => ({
@@ -628,14 +632,31 @@ ${resolution.disclosure}`);
   }
 
   private currentFunnyEvent(text: string): { display: string; enText: string; yueText: string } {
-    const event = localizeEventText(text);
+    const event = localizeEventText(text, this.renameSchoolText);
     const enText = styleFunnyText(event.enText, 'en', this.funnyLevels.en);
-    const yueText = styleFunnyText(event.yueText, 'yue', this.funnyLevels.yue);
+    const yueText = event.translated ? styleFunnyText(event.yueText, 'yue', this.funnyLevels.yue) : event.yueText;
     return {
       display: languageMode() === 'yue' ? yueText : languageMode() === 'both' ? `${enText} · ${yueText}` : enText,
       enText,
       yueText,
     };
+  }
+
+  private renameSchoolText = (text: string): string => {
+    const name = schoolModeName(this.vocabStorage);
+    if (name === DEFAULT_SCHOOL_NAME) return text;
+    return text.replaceAll(DEFAULT_SCHOOL_NAME, name).replaceAll('school mode', name).replaceAll('學校模式', name);
+  };
+
+  private localizedSchoolRecoveryLine(path: string): string {
+    return `${this.renameSchoolText(localizeText('If you forget this credential, delete'))} ${path} ${this.renameSchoolText(localizeText('to reset School mode and its local settings.'))}`;
+  }
+
+  private localizedSchoolDisclosure(setMode: boolean): string {
+    const source = setMode
+      ? 'This credential is stored only in the desktop credential store and is shared by this app family. It never enters settings, exports, history, logs or captures.'
+      : 'The credential is checked by the desktop credential store. Winning a challenge never bypasses this credential.';
+    return this.renameSchoolText(localizeText(source));
   }
 
   /** The generated shell owns the actual toast and dialog renderers. This wrapper
@@ -678,6 +699,26 @@ ${resolution.disclosure}`);
       this.updateNarrationStatus();
     } catch {
       // Invalid local settings fail closed to narration off and platform defaults.
+    }
+  }
+
+  private async restorePlatformAccessibility(): Promise<void> {
+    const bridge = this.bridge() as DesktopBridge | undefined;
+    try {
+      const active = await bridge?.accessibility?.isScreenReaderActive();
+      if (typeof active === 'boolean' && !this.narrationScreenReaderActive) {
+        this.narrationScreenReaderActive = active;
+        this.narrator?.setScreenReaderActive(active);
+        this.persistNarration();
+      }
+      const recovery = await bridge?.school?.recoveryPath();
+      if (recovery?.ok && recovery.path) {
+        this.schoolRecoveryPath = recovery.path;
+        this.schoolRecoveryLine = `If you forget this credential, delete ${recovery.path} to reset School mode and its local settings.`;
+        this.forceUpdate();
+      }
+    } catch {
+      // The renderer keeps its exact documented fallback when a hosted bridge has no desktop route.
     }
   }
 
@@ -773,33 +814,44 @@ ${resolution.disclosure}`);
     if (!this.schoolBootstrapped || this.schoolRefreshInFlight) return;
     this.schoolRefreshInFlight = true;
     const generation = ++this.schoolRefreshGeneration;
-    let response: ControlPlaneResponse | undefined;
-    try { response = await this.request('settings.snapshot'); } catch {
+    try {
+      const response = await this.requestWithDeadline('settings.snapshot', 1500);
+      if (generation !== this.schoolRefreshGeneration) return;
+      if (!response?.ok) {
+        this.schoolStatus = 'refresh-failed';
+        this.forceUpdate();
+        return;
+      }
+      const values = response.data as { values?: Record<string, string> };
+      const snapshot = values.values ?? {};
+      const enabled = snapshot[SCHOOL_MODE_SETTING] === 'on';
+      const localEnabled = schoolModeEnabled(this.vocabStorage);
+      const name = snapshot['console.schoolModeName']?.trim() || DEFAULT_SCHOOL_NAME;
+      if (enabled !== localEnabled) this.applySchoolMode(enabled, false);
+      if (snapshot[SCHOOL_MODE_SETTING] !== this.vocabStorage.getItem(SCHOOL_MODE_SETTING)) this.vocabStorage.setItem(SCHOOL_MODE_SETTING, enabled ? 'on' : 'off');
+      if (snapshot['console.schoolModeName'] && snapshot['console.schoolModeName'] !== this.vocabStorage.getItem('console.schoolModeName')) this.vocabStorage.setItem('console.schoolModeName', name);
+      this.schoolStatus = enabled ? 'enabled' : 'disabled';
+      this.setState((prior: { values?: Record<string, unknown> }) => ({
+        values: { ...(prior.values ?? {}), school_mode: enabled, school_name: name, school_status: this.schoolStatus },
+      }) as never);
+    } catch {
       this.schoolStatus = 'refresh-failed';
-      this.schoolRefreshInFlight = false;
       this.forceUpdate();
-      return;
-    }
-    if (generation !== this.schoolRefreshGeneration) { this.schoolRefreshInFlight = false; return; }
-    if (!response?.ok) {
-      this.schoolStatus = 'refresh-failed';
-      this.forceUpdate();
+    } finally {
       this.schoolRefreshInFlight = false;
-      return;
     }
-    const values = response.data as { values?: Record<string, string> };
-    const snapshot = values.values ?? {};
-    const enabled = snapshot[SCHOOL_MODE_SETTING] === 'on';
-    const localEnabled = schoolModeEnabled(this.vocabStorage);
-    const name = snapshot['console.schoolModeName']?.trim() || DEFAULT_SCHOOL_NAME;
-    if (enabled !== localEnabled) this.applySchoolMode(enabled, false);
-    if (snapshot[SCHOOL_MODE_SETTING] !== this.vocabStorage.getItem(SCHOOL_MODE_SETTING)) this.vocabStorage.setItem(SCHOOL_MODE_SETTING, enabled ? 'on' : 'off');
-    if (snapshot['console.schoolModeName'] && snapshot['console.schoolModeName'] !== this.vocabStorage.getItem('console.schoolModeName')) this.vocabStorage.setItem('console.schoolModeName', name);
-    this.schoolStatus = enabled ? 'enabled' : 'disabled';
-    this.setState((prior: { values?: Record<string, unknown> }) => ({
-      values: { ...(prior.values ?? {}), school_mode: enabled, school_name: name, school_status: this.schoolStatus },
-    }) as never);
-    this.schoolRefreshInFlight = false;
+  }
+
+  private async requestWithDeadline(action: string, timeoutMs: number): Promise<ControlPlaneResponse | undefined> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        this.request(action),
+        new Promise<undefined>((resolve) => { timer = setTimeout(() => resolve(undefined), timeoutMs); }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   private applySchoolMode(enabled: boolean, persist: boolean): void {
@@ -856,6 +908,7 @@ ${resolution.disclosure}`);
     if (this.schoolCredentialPromptOpen) return;
     this.schoolCredentialKind = 'set';
     this.schoolCredentialValue = '';
+    this.schoolCredentialOrigin = typeof document !== 'undefined' && document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.schoolCredentialOpen = true;
     this.forceUpdate();
   };
@@ -864,6 +917,7 @@ ${resolution.disclosure}`);
     if (this.schoolCredentialPromptOpen) return;
     this.schoolCredentialKind = 'verify';
     this.schoolCredentialValue = '';
+    this.schoolCredentialOrigin = typeof document !== 'undefined' && document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.schoolCredentialOpen = true;
     this.forceUpdate();
   };
@@ -876,7 +930,23 @@ ${resolution.disclosure}`);
   private cancelSchoolCredential = (): void => {
     this.schoolCredentialOpen = false;
     this.schoolCredentialValue = '';
+    this.schoolCredentialOrigin?.focus();
+    this.schoolCredentialOrigin = null;
     this.forceUpdate();
+  };
+
+  private onSchoolCredentialKeyDown = (event: { key?: string; preventDefault?: () => void }): void => {
+    if (event.key === 'Escape') {
+      event.preventDefault?.();
+      this.cancelSchoolCredential();
+    } else if (event.key === 'Enter') {
+      event.preventDefault?.();
+      void this.submitSchoolCredential();
+    } else if (event.key === 'Tab') {
+      // Keep keyboard focus inside the app-owned credential dialog until it closes.
+      event.preventDefault?.();
+      if (typeof document !== 'undefined') document.getElementById('school-credential-input')?.focus();
+    }
   };
 
   private submitSchoolCredential = async (): Promise<void> => {
@@ -894,6 +964,8 @@ ${resolution.disclosure}`);
       }
       this.schoolCredentialOpen = false;
       this.schoolCredentialValue = '';
+      this.schoolCredentialOrigin?.focus();
+      this.schoolCredentialOrigin = null;
       if (this.schoolCredentialKind === 'verify') {
         this.applySchoolMode(false, true);
         this.toast(`${schoolModeName(this.vocabStorage)} unlocked. Earlier language and funny levels are back.`);
@@ -2172,6 +2244,8 @@ It is shown once. The phone needs it to register.`);
     values.customiseFunVisible = Boolean(values.isCustomise) && !schoolModeActive;
     values.schoolSearchVisible = !schoolModeActive;
     values.paletteVisible = Boolean(values.paletteOpen) && !schoolModeActive;
+    values.narrationEngineAvailable = Boolean(this.narrator);
+    if (!this.narrator) values.narrationStatusLine = 'No speech synthesis engine is available on this computer.';
     if (schoolModeActive) {
       const sections = values.sections as Array<{ label?: string }> | undefined;
       if (sections) values.sections = sections.filter((section) => section.label !== 'Vocabulary & guard' && section.label !== 'Arcade');
@@ -2186,12 +2260,11 @@ It is shown once. The phone needs it to register.`);
       schoolCredentialOpen: this.schoolCredentialOpen,
       schoolCredentialValue: this.schoolCredentialValue,
       schoolCredentialTitle: this.schoolCredentialKind === 'set' ? 'Set the shared School mode credential' : `Unlock ${schoolModeName(this.vocabStorage)}`,
-      schoolCredentialDisclosure: this.schoolCredentialKind === 'set'
-        ? 'This credential is stored only in the desktop credential store and is shared by this app family. It never enters settings, exports, history, logs or captures.'
-        : 'The credential is checked by the desktop credential store. Winning a challenge never bypasses this credential.',
-      schoolRecoveryLine: SCHOOL_RECOVERY_LINE,
+      schoolCredentialDisclosure: this.localizedSchoolDisclosure(this.schoolCredentialKind === 'set'),
+      schoolRecoveryLine: this.localizedSchoolRecoveryLine(this.schoolRecoveryPath),
       schoolCredentialAction: this.schoolCredentialKind === 'set' ? 'Save credential' : 'Unlock',
       onSchoolCredential: this.onSchoolCredential,
+      onSchoolCredentialKeyDown: this.onSchoolCredentialKeyDown,
       cancelSchoolCredential: this.cancelSchoolCredential,
       submitSchoolCredential: this.submitSchoolCredential,
       // The "Edit appearance..." panel's real colour translator and real actions
@@ -2719,5 +2792,7 @@ interface DesktopBridge {
   school?: {
     setCredential(value: string): Promise<{ ok: boolean; reason?: string }>;
     verifyCredential(value: string): Promise<{ ok: boolean; reason?: string }>;
+    recoveryPath(): Promise<{ ok: boolean; path?: string; reason?: string }>;
   };
+  accessibility?: { isScreenReaderActive(): Promise<boolean> };
 }

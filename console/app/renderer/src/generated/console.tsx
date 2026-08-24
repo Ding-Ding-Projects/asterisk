@@ -2521,7 +2521,7 @@ function Template(v: any) {
             h("label", { htmlFor: `school-credential-input`, style: sty(`display:block; font-size:12px; color:#C4CBC2; margin-top:18px;`) },
               "Shared credential"
             ),
-            h("input", { id: `school-credential-input`, type: `password`, value: v.schoolCredentialValue, onChange: fn(v.onSchoolCredential), onInput: fn(v.onSchoolCredential), autoComplete: `new-password`, style: sty(`width:100%; box-sizing:border-box; margin-top:7px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:11px 12px; color:#DFE4DC; font:inherit; font-family:'Roboto Mono',monospace;`) }),
+            h("input", { id: `school-credential-input`, type: `password`, value: v.schoolCredentialValue, onChange: fn(v.onSchoolCredential), onInput: fn(v.onSchoolCredential), onKeyDown: fn(v.onSchoolCredentialKeyDown), autofocus: `true`, autoComplete: `new-password`, style: sty(`width:100%; box-sizing:border-box; margin-top:7px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:11px 12px; color:#DFE4DC; font:inherit; font-family:'Roboto Mono',monospace;`) }),
             h("div", { style: sty(`font-size:11.5px; color:#8FA394; line-height:1.5; margin-top:10px;`) },
               S(v.schoolRecoveryLine)
             ),

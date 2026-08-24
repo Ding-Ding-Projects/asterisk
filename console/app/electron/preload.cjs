@@ -13,6 +13,10 @@ const api = Object.freeze({
   school: Object.freeze({
     setCredential: value => ipcRenderer.invoke('school:set-credential', value),
     verifyCredential: value => ipcRenderer.invoke('school:verify-credential', value),
+    recoveryPath: () => ipcRenderer.invoke('school:recovery-path'),
+  }),
+  accessibility: Object.freeze({
+    isScreenReaderActive: () => ipcRenderer.invoke('accessibility:screen-reader'),
   }),
   updater: Object.freeze({
     getStatus: () => ipcRenderer.invoke('updater:get-status'),

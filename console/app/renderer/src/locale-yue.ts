@@ -257,6 +257,10 @@ export const CANTONESE: Catalog = {
   'Save credential': '儲存憑證',
   'Cancel': '取消',
   'Unlock': '解鎖',
+  'If you forget this credential, delete': '如果唔記得呢個憑證，請刪除',
+  'to reset School mode and its local settings.': '去重設學校模式同本機設定。',
+  'This credential is stored only in the desktop credential store and is shared by this app family. It never enters settings, exports, history, logs or captures.': '呢個憑證只會儲喺桌面憑證庫，畀呢個應用程式家族共用，唔會寫入設定、匯出、紀錄、日誌或者畫面截圖。',
+  'The credential is checked by the desktop credential store. Winning a challenge never bypasses this credential.': '呢個憑證會由桌面憑證庫核對，答啱挑戰都唔可以繞過呢個憑證。',
 
   /* The destinations and controls added after the first pass: Feature codes, IAX
    * peers and the HTTP server, plus the tab and appearance labels the sweep found
