@@ -68,6 +68,9 @@ function Template(v: any) {
               S(v.unreadNotificationCount)
             )
           ),
+          h("span", { role: `status`, "aria-live": `polite`, title: `Durable UI state`, style: sty(`max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:10px; color:#778078;`) },
+            S(v.durableStatus)
+          ),
           h("div", { style: sty(`display:flex;`) },
             h("div", { style: sty(`width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;`), onClick: fn(v.__window?.minimize), "data-window-button": ``, title: `Minimize`, className: "k-h1" },
               h("span", { style: sty(`font-size:17px;`), className: "msym" },
@@ -1638,8 +1641,8 @@ function Template(v: any) {
         )
       ),
       (v.infoOpen ? F(
-        h("div", { onClick: fn(v.closeInfo), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.32); z-index:60;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-60` }),
-        h("div", { style: sty(`position:absolute; ${S(v.infoChrome)} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;`), "data-overlay": `panel`, "data-overlay-key": `overlay-61`, role: `dialog`, "aria-label": `Overlay panel`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+        h("div", { onClick: fn(v.closeInfo), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.32); z-index:60;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-60-0` }),
+        h("div", { style: sty(`position:absolute; ${S(v.infoChrome)} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;`), "data-overlay": `panel`, "data-overlay-key": `overlay-61-1`, role: `dialog`, "aria-label": `Overlay panel overlay-61-1`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { onMouseDown: fn(v.dragInfo), style: sty(`display:flex; align-items:center; gap:8px; margin:-18px -20px 10px; padding:14px 16px 8px; cursor:grab; min-width:0;`) },
             h("span", { style: sty(`font-size:16px; color:#778078; flex:0 0 auto;`), className: "msym" },
               "drag_indicator"
@@ -1779,7 +1782,7 @@ function Template(v: any) {
           )
         )
       ) : null),
-      (v.wizardOpen ? h("div", { style: sty(`position:absolute; ${S(v.wizardChrome)} max-height:100vh; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:55; display:flex; flex-direction:column;`), "data-overlay": `panel`, "data-overlay-key": `overlay-55`, role: `dialog`, "aria-label": `Overlay panel`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.wizardOpen ? h("div", { style: sty(`position:absolute; ${S(v.wizardChrome)} max-height:100vh; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:55; display:flex; flex-direction:column;`), "data-overlay": `panel`, "data-overlay-key": `overlay-55-2`, role: `dialog`, "aria-label": `Overlay panel overlay-55-2`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { onMouseDown: fn(v.dragWizard), style: sty(`padding:16px 20px 12px; display:flex; align-items:flex-start; gap:10px; cursor:grab;`) },
             h("span", { style: sty(`font-size:18px; color:#778078; margin-top:4px;`), className: "msym" },
               "drag_indicator"
@@ -1891,7 +1894,7 @@ function Template(v: any) {
           )
         ) : null),
       (v.paletteOpen ? F(
-        h("div", { onClick: fn(v.togglePalette), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.5); z-index:70;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-70` }),
+        h("div", { onClick: fn(v.togglePalette), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.5); z-index:70;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-70-3` }),
         h("div", { "data-overlay": `palette`, role: `dialog`, "aria-modal": `true`, "aria-labelledby": `palette-title`, tabIndex: `-1`, onKeyDown: fn(v.paletteKeyDown), style: sty(`position:absolute; left:50%; top:88px; transform:translateX(-50%); width:620px; background:#252B25; border:1px solid #414942; border-radius:20px; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:71; overflow:hidden; animation:dlgPalette .22s cubic-bezier(.2,0,0,1);`) },
           h("div", { style: sty(`display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid #333B34;`) },
             h("span", { style: sty(`font-size:22px; color:#82D9A5;`), className: "msym" },
@@ -1913,8 +1916,12 @@ function Template(v: any) {
               )
             )
           ),
+          h("div", { role: `status`, "aria-live": `polite`, style: sty(`padding:6px 14px; color:#9AA39B; font-size:11px;`) },
+            S(v.paletteResultLabel)
+          ),
           h("div", { style: sty(`max-height:420px; overflow-y:auto; padding:8px;`) },
-            A(v.paletteItems).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.go), onKeyDown: fn($p.keyDown), role: `option`, "aria-selected": $p.selected, tabIndex: $p.tabIndex, style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:${S($p.bg)}; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;`), className: "k-h32" },
+            A(v.paletteItems).map(($p, $p$i) => R($p$i, F(
+              h("button", { onClick: fn($p.go), onKeyDown: fn($p.keyDown), role: `option`, "aria-selected": $p.selected, tabIndex: $p.tabIndex, style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:${S($p.bg)}; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;`), className: "k-h32" },
                 h("span", { style: sty(`font-size:19px; color:#82D9A5;`), className: "msym" },
                   S($p.icon)
                 ),
@@ -1924,11 +1931,15 @@ function Template(v: any) {
                 h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394;`) },
                   S($p.hint)
                 )
-              )))
+              ),
+              ($p.isSetting ? h("div", { style: sty(`padding:0 14px 8px 54px;`) },
+                  h(M3Control, { ctl: $p.inline })
+                ) : null)
+            )))
           )
         )
       ) : null),
-      (v.ceremonyOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:80; display:flex; align-items:center; justify-content:center;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80` },
+      (v.ceremonyOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:80; display:flex; align-items:center; justify-content:center;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80-4` },
           h("div", { style: sty(`width:660px; max-height:88vh; overflow-y:auto; background:#252B25; border-radius:28px; padding:26px 28px; box-shadow:0 16px 48px rgba(0,0,0,.7); animation:dlgCeremony .3s cubic-bezier(.2,0,0,1);`) },
             h("div", { style: sty(`display:flex; align-items:center; gap:12px;`) },
               h("span", { style: sty(`font-size:26px; color:#FFB4AB;`), className: "msym" },
@@ -2063,7 +2074,7 @@ function Template(v: any) {
               ) : null)
           )
         ) : null),
-      (v.onboardOpen ? h("div", { style: sty(`position:absolute; inset:0; background:#0B0F0C; z-index:90; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:28px 32px 40px; overflow-y:auto; animation:dlgOnboard .4s ease-out;`), "data-overlay": `panel`, "data-overlay-key": `overlay-90`, role: `dialog`, "aria-label": `Overlay panel`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.onboardOpen ? h("div", { style: sty(`position:absolute; inset:0; background:#0B0F0C; z-index:90; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:28px 32px 40px; overflow-y:auto; animation:dlgOnboard .4s ease-out;`), "data-overlay": `panel`, "data-overlay-key": `overlay-90-5`, role: `dialog`, "aria-label": `Overlay panel overlay-90-5`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`width:760px; max-width:100%; margin:auto 0;`) },
             h("div", { style: sty(`display:flex; gap:8px; margin-bottom:26px;`) },
               A(v.onboardSteps).map(($s, $s$i) => R($s$i, h("div", { style: sty(`flex:1; display:flex; flex-direction:column; gap:7px;`) },
@@ -2142,7 +2153,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.tourOpen ? h("div", { style: sty(`position:absolute; left:${S(v.tourX)}; top:${S(v.tourY)}; width:320px; background:#005230; border-radius:16px; padding:16px 18px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:75; animation:dlgSure .3s cubic-bezier(.2,1.2,.3,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-75`, role: `dialog`, "aria-label": `Overlay panel`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.tourOpen ? h("div", { style: sty(`position:absolute; left:${S(v.tourX)}; top:${S(v.tourY)}; width:320px; background:#005230; border-radius:16px; padding:16px 18px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:75; animation:dlgSure .3s cubic-bezier(.2,1.2,.3,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-75-6`, role: `dialog`, "aria-label": `Overlay panel overlay-75-6`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#9FF7C4;`) },
             S(v.tourCount)
           ),
@@ -2163,8 +2174,8 @@ function Template(v: any) {
           )
         ) : null),
       (v.regexOpen ? F(
-        h("div", { onClick: fn(v.closeRegex), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.3); z-index:96;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-96` }),
-        h("div", { style: sty(`position:absolute; ${S(v.regexChrome)} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;`), "data-overlay": `panel`, "data-overlay-key": `overlay-97`, role: `dialog`, "aria-label": `Overlay panel`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+        h("div", { onClick: fn(v.closeRegex), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.3); z-index:96;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-96-7` }),
+        h("div", { style: sty(`position:absolute; ${S(v.regexChrome)} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;`), "data-overlay": `panel`, "data-overlay-key": `overlay-97-8`, role: `dialog`, "aria-label": `Overlay panel overlay-97-8`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { onMouseDown: fn(v.dragRegex), style: sty(`display:flex; align-items:center; gap:9px; margin:-18px -20px 4px; padding:16px 20px 10px; cursor:grab;`) },
             h("span", { style: sty(`font-size:18px; color:#778078;`), className: "msym" },
               "drag_indicator"
@@ -2205,6 +2216,15 @@ function Template(v: any) {
             ),
             h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:${S(v.regexValidColor)};`) },
               S(v.regexValid)
+            )
+          ),
+          h("div", { style: sty(`display:flex; flex-direction:column; gap:6px; margin-top:10px;`) },
+            h("label", { style: sty(`font-size:11px; color:#9AA39B;`) },
+              "Sample text",
+              h("input", { type: `text`, value: v.regexSample, onInput: fn(v.onRegexSample), onChange: fn(v.onRegexSample), "aria-label": `Sample text for ${S(v.regexTargetLabel)}`, style: sty(`width:100%; background:#141A15; border:1px solid #414942; border-radius:8px; padding:8px 10px; color:#DFE4DC; font-family:'Roboto Mono',monospace;`) })
+            ),
+            h("div", { role: `status`, "aria-live": `polite`, style: sty(`font-size:11px; color:#9AA39B;`) },
+              S(v.regexMatchesLabel)
             )
           ),
           h("div", { style: sty(`display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;`) },
@@ -2277,9 +2297,23 @@ function Template(v: any) {
                 )
               )))
           ),
+          h("div", { style: sty(`margin-top:10px; background:#141A15; border-radius:10px; padding:10px 12px;`) },
+            h("div", { style: sty(`font-size:11px; color:#8FA394; text-transform:uppercase; letter-spacing:.8px;`) },
+              "Capture groups"
+            ),
+            A(v.regexCaptures).map(($c, $c$i) => R($c$i, h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#C4CBC2; padding:3px 0;`) },
+                `${S($c.label)} · ${S($c.value)}`
+              )))
+          ),
           h("div", { style: sty(`display:flex; gap:8px; margin-top:16px;`) },
             h("button", { onClick: fn(v.clearRegex), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`) },
               "Clear"
+            ),
+            h("button", { onClick: fn(v.copyRegex), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`) },
+              "Copy pattern"
+            ),
+            h("button", { onClick: fn(v.exportRegex), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`) },
+              "Export result"
             ),
             h("div", { style: sty(`flex:1;`) }),
             h("button", { onClick: fn(v.closeRegex), style: sty(`background:#82D9A5; border:0; border-radius:999px; padding:10px 24px; color:#00391F; font:inherit; font-size:13px; font-weight:500; cursor:pointer;`) },
@@ -2289,7 +2323,7 @@ function Template(v: any) {
         )
       ) : null),
       (v.ctxOpen ? F(
-        h("div", { onClick: fn(v.closeCtx), onContextMenu: fn(v.closeCtx), style: sty(`position:absolute; inset:0; z-index:78;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-78` }),
+        h("div", { onClick: fn(v.closeCtx), onContextMenu: fn(v.closeCtx), style: sty(`position:absolute; inset:0; z-index:78;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-78-9` }),
         h("div", { "data-overlay": `menu`, role: `menu`, "aria-label": `Actions for ${S(v.ctxTarget)}`, tabIndex: `-1`, onKeyDown: fn(v.menuKeyDown), style: sty(`position:absolute; left:${S(v.ctxX)}; top:${S(v.ctxY)}; width:274px; border-radius:14px; padding:6px; z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);`) },
           h("div", { style: sty(`padding:8px 12px 6px; font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; border-bottom:1px solid #333B34; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
             S(v.ctxTarget)
@@ -2301,6 +2335,9 @@ function Template(v: any) {
                 "data_object"
               )
             )
+          ),
+          h("div", { role: `status`, "aria-live": `polite`, style: sty(`padding:0 8px 6px; color:#9AA39B; font-size:10px;`) },
+            S(v.ctxResultLabel)
           ),
           A(v.ctxItems).map(($i, $i$i) => R($i$i, h("button", { role: `menuitem`, onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
               h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
@@ -2370,7 +2407,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.lockOpen ? h("div", { style: sty(`position:absolute; ${S(v.lockChrome)} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;`), "data-overlay": `panel`, "data-overlay-key": `overlay-82`, role: `dialog`, "aria-label": `Overlay panel`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.lockOpen ? h("div", { style: sty(`position:absolute; ${S(v.lockChrome)} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;`), "data-overlay": `panel`, "data-overlay-key": `overlay-82-10`, role: `dialog`, "aria-label": `Overlay panel overlay-82-10`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { onMouseDown: fn(v.dragLock), style: sty(`display:flex; align-items:center; gap:9px; cursor:grab; margin:-18px -20px 0; padding:16px 20px 8px;`) },
             h("span", { style: sty(`font-size:18px; color:#778078;`), className: "msym" },
               "drag_indicator"
@@ -2537,7 +2574,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.unlockOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.6); z-index:83; display:flex; align-items:center; justify-content:center;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-83` },
+      (v.unlockOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.6); z-index:83; display:flex; align-items:center; justify-content:center;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-83-11` },
           h("div", { style: sty(`width:376px; background:#252B25; border-radius:24px; padding:24px; text-align:center; animation:dlgUnlock .3s cubic-bezier(.2,0,0,1);`) },
             h("span", { style: sty(`font-size:34px; color:#82D9A5;`), className: "msym" },
               "lock_open"
@@ -2591,7 +2628,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.appearOpen ? h("div", { style: sty(`position:absolute; right:0; top:40px; bottom:0; width:468px; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:84; display:flex; flex-direction:column; animation:dlgAppear .28s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-84`, role: `dialog`, "aria-label": `Overlay panel`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.appearOpen ? h("div", { style: sty(`position:absolute; right:0; top:40px; bottom:0; width:468px; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:84; display:flex; flex-direction:column; animation:dlgAppear .28s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-84-12`, role: `dialog`, "aria-label": `Overlay panel overlay-84-12`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`padding:16px 20px 10px; display:flex; align-items:flex-start; gap:12px;`) },
             h("div", { style: sty(`flex:1;`) },
               h("div", { style: sty(`font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#8FA394;`) },
@@ -2687,7 +2724,7 @@ function Template(v: any) {
               )))
           )
         ) : null),
-      (v.sureOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:86; display:flex; align-items:center; justify-content:center;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-86` },
+      (v.sureOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:86; display:flex; align-items:center; justify-content:center;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-86-13` },
           h("div", { style: sty(`width:520px; background:#252B25; border-radius:28px; padding:22px 26px; animation:dlgSure .34s cubic-bezier(.2,1.2,.3,1);`) },
             h("div", { style: sty(`display:flex; align-items:center; gap:12px;`) },
               h("span", { style: sty(`font-size:26px; color:#FFD68A;`), className: "msym" },
@@ -2752,8 +2789,8 @@ function Template(v: any) {
           )
         ) : null),
       (v.tabFilterOpen ? F(
-        h("div", { onClick: fn(v.closeTabFilter), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80` }),
-        h("div", { style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81`, role: `dialog`, "aria-label": `Overlay panel`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+        h("div", { onClick: fn(v.closeTabFilter), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80-14` }),
+        h("div", { style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81-15`, role: `dialog`, "aria-label": `Overlay panel overlay-81-15`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
             h("span", { style: sty(`font-size:21px; color:#82D9A5;`), className: "msym" },
               "filter_alt"
@@ -2828,8 +2865,8 @@ function Template(v: any) {
         )
       ) : null),
       (v.tabColourOpen ? F(
-        h("div", { onClick: fn(v.closeTabColour), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80` }),
-        h("div", { style: sty(`position:absolute; left:50%; top:110px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgColour .3s cubic-bezier(.2,1.3,.3,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81`, role: `dialog`, "aria-label": `Overlay panel`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+        h("div", { onClick: fn(v.closeTabColour), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80-16` }),
+        h("div", { style: sty(`position:absolute; left:50%; top:110px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgColour .3s cubic-bezier(.2,1.3,.3,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81-17`, role: `dialog`, "aria-label": `Overlay panel overlay-81-17`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
             h("span", { style: sty(`font-size:20px; color:#82D9A5;`), className: "msym" },
               "colorize"
@@ -2886,8 +2923,8 @@ function Template(v: any) {
         )
       ) : null),
       (v.renameOpen ? F(
-        h("div", { onClick: fn(v.cancelRename), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80` }),
-        h("div", { style: sty(`position:absolute; left:50%; top:120px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgRename .22s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81`, role: `dialog`, "aria-label": `Overlay panel`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+        h("div", { onClick: fn(v.cancelRename), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`), "data-overlay": `scrim`, "data-overlay-key": `overlay-80-18` }),
+        h("div", { style: sty(`position:absolute; left:50%; top:120px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgRename .22s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-81-19`, role: `dialog`, "aria-label": `Overlay panel overlay-81-19`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`font-size:16px; font-weight:500; margin-bottom:12px;`) },
             "Rename tab"
           ),
@@ -2907,7 +2944,7 @@ function Template(v: any) {
           )
         )
       ) : null),
-      (v.celebrate ? h("div", { style: sty(`position:absolute; inset:0; z-index:88; pointer-events:none; overflow:hidden; background:radial-gradient(ellipse at 50% 34%, rgba(27,77,51,.55), rgba(0,0,0,0) 62%);`), "data-overlay": `panel`, "data-overlay-key": `overlay-88`, role: `dialog`, "aria-label": `Overlay panel`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.celebrate ? h("div", { style: sty(`position:absolute; inset:0; z-index:88; pointer-events:none; overflow:hidden; background:radial-gradient(ellipse at 50% 34%, rgba(27,77,51,.55), rgba(0,0,0,0) 62%);`), "data-overlay": `panel`, "data-overlay-key": `overlay-88-20`, role: `dialog`, "aria-label": `Overlay panel overlay-88-20`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           A(v.confetti).map(($c, $c$i) => R($c$i, h("div", { style: sty(`position:absolute; left:${S($c.x)}; top:-40px; width:${S($c.size)}; height:${S($c.size)}; background:${S($c.color)}; border-radius:${S($c.radius)}; box-shadow:0 0 10px rgba(0,0,0,.35); animation:m3Fall ${S($c.dur)} cubic-bezier(.2,.6,.4,1) ${S($c.delay)} forwards;`) }))),
           h("div", { style: sty(`position:absolute; left:50%; top:34%; transform:translate(-50%,-50%); text-align:center;`) },
             h("div", { style: sty(`width:132px; height:132px; margin:0 auto 18px; border-radius:50%; background:rgba(159,247,196,.14); display:flex; align-items:center; justify-content:center; animation:m3Glow 1.1s ease-out infinite;`) },
@@ -2923,7 +2960,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.toastOpen ? h("div", { style: sty(`position:absolute; left:50%; bottom:24px; transform:translateX(-50%); display:flex; align-items:center; gap:16px; background:#E4E9E0; color:#1A1C19; border-radius:12px; padding:12px 16px 12px 20px; box-shadow:0 6px 20px rgba(0,0,0,.5); z-index:85; animation:m3Slide .26s cubic-bezier(.2,1.3,.4,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-85`, role: `dialog`, "aria-label": `Overlay panel`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
+      (v.toastOpen ? h("div", { role: `status`, "aria-live": `polite`, "aria-label": `Notification`, style: sty(`position:absolute; left:50%; bottom:24px; transform:translateX(-50%); display:flex; align-items:center; gap:16px; background:#E4E9E0; color:#1A1C19; border-radius:12px; padding:12px 16px 12px 20px; box-shadow:0 6px 20px rgba(0,0,0,.5); z-index:85; animation:m3Slide .26s cubic-bezier(.2,1.3,.4,1);`), "data-overlay": `panel`, "data-overlay-key": `overlay-85-21`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("span", { style: sty(`font-size:13.5px;`) },
             S(v.toastText)
           ),
@@ -3584,6 +3621,8 @@ const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes'
 /* Handwritten command-palette inventory. A palette route disappearing from ORDER
  * must fail review here instead of silently disappearing from the user's search. */
 const PALETTE_INVENTORY = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','httpd','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
+const PALETTE_CONTROL_INVENTORY = ['lang_mode','school_mode','fun_english','fun_cantonese','nar_enabled','mo_reduce','att_focus','att_low','att_time','att_one','att_momentum','nt_toast','nt_quiet','id_name','ed_choice','ap_family','ap_size','cp_hue','cp_rainbow'];
+const PALETTE_DOC_INVENTORY = ['e_transport','e_context','e_direct','e_symmetric','e_forcerport','e_rewrite','e_encryption','e_dtmf','e_maxcontacts','e_qualify','q_strategy','q_wrapup','q_ringinuse','q_joinempty','q_service','v_delete','v_maxsecs','s_guest','s_stir','s_level','k_order','r_start','d_backend','a_read','mo_auto','g_rotate','sv_kind','sv_hostkey','hi_commit','fun_random','fun_level'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },
@@ -4059,7 +4098,7 @@ class ConsoleShell extends DCLogic {
     cli:{ verb:'pjsip', obj:'show', target:'endpoints' },
     regex:['^memory/', 'projects', '\\.md$'],
     patterns:{ nav:[], table:[], memory:['^memory/', 'projects'], palette:[], ctx:[], sub:[] },
-    regexOpen:false, regexTarget:'nav', regexX:'300px', regexY:'120px', regexFlags:['i'],
+    regexOpen:false, regexTarget:'nav', regexX:'300px', regexY:'120px', regexFlags:['i'], regexSamples:{},
     ctxOpen:false, ctxX:'0px', ctxY:'0px', ctxTarget:'', ctxKind:'screen', ctxReturnFocus:null, ctxFilter:'', ctxRegexOn:false, subFilter:'', subRegexOn:false, recoveryOpen:false, recoveryAction:null, recoveryTitle:'', recoveryBody:'', recoveryStatus:'No retry or re-authentication has run yet.',
     locks:{}, lockOpen:false, lockTarget:'', lockKey:'', lockStep:0, lockMethod:'PIN', pin:'', password:'', pinReveal:false, lockX:'40%', lockY:'22%',
     credits:3, game:'whack', gameScore:0, gameTime:0, gameCell:-1, gamePlaying:false,
@@ -4127,6 +4166,10 @@ class ConsoleShell extends DCLogic {
 
   componentDidUpdate() {
     this.persistDesktopState?.();
+    const flags = { info:this.state.infoOpen, wizard:this.state.wizardOpen, palette:this.state.paletteOpen, ceremony:this.state.ceremonyOpen, regex:this.state.regexOpen, ctx:this.state.ctxOpen, lock:this.state.lockOpen, unlock:this.state.unlockOpen, appear:this.state.appearOpen, sure:this.state.sureOpen, tabFilter:this.state.tabFilterOpen, tabColour:this.state.tabColourOpen, rename:this.state.renameOpen, onboard:this.state.onboardOpen, tour:this.state.tourOpen, recovery:this.state.recoveryOpen };
+    this._overlayOrigins = this._overlayOrigins || {};
+    Object.keys(flags).forEach(key => { if (flags[key] && !this._overlayFlags?.[key]) this._overlayOrigins[key] = document.activeElement; });
+    this._overlayFlags = flags;
     if (this.state.ctxOpen && !this._ctxWasOpen) setTimeout(() => document.querySelector('[role="menu"] input')?.focus(), 0);
     if (this.state.recoveryOpen && !this._recoveryWasOpen) setTimeout(() => document.querySelector('[data-overlay="recovery"] button')?.focus(), 0);
     this._ctxWasOpen = this.state.ctxOpen;
@@ -4138,16 +4181,18 @@ class ConsoleShell extends DCLogic {
     const query = String(state.paletteQuery || '').trim();
     const all = PALETTE_INVENTORY.flatMap(k => {
       const screen = { key:k, icon:SCREENS[k].icon, label:SCREENS[k].title, hint:SCREENS[k].file || 'console', kind:'destination' };
-      const controls = (SCREENS[k].groups || []).flatMap(group => (group.ctls || []).map(control => ({ key:k, icon:'tune', label:control.label, hint:k + ' · setting', kind:'setting', controlId:control.id })));
+      const controls = (SCREENS[k].groups || []).flatMap(group => (group.ctls || []).map(control => ({ key:k, icon:'tune', label:control.label, hint:k + ' · setting', kind:'setting', isSetting:true, inline:this.buildCtl(control), controlId:control.id, inventoried:PALETTE_CONTROL_INVENTORY.indexOf(control.id) >= 0 })));
       return [screen].concat(controls);
-    });
+    }).concat(PALETTE_DOC_INVENTORY.map(id => ({ key:'docs', icon:'menu_book', label:'Article · ' + id, hint:id, kind:'article', articleId:id })))
+      .concat((state.tabs || []).map(tab => ({ key:tab, icon:'tab', label:'Tab · ' + (state.tabNames?.[tab] || tab), hint:'tab', kind:'tab' })))
+      .concat((state.groups || []).map(group => ({ key:state.screen, icon:'folder', label:'Group · ' + String(group.name || group.id), hint:'group', kind:'group' })));
     if (!query) return all;
     if (!state.paletteRegexOn) return all.filter(item => item.label.toLowerCase().includes(query.toLowerCase()) || item.hint.toLowerCase().includes(query.toLowerCase()));
     try { const re = new RegExp(query, 'i'); return all.filter(item => re.test(item.label) || re.test(item.hint)); }
     catch (error) { return []; }
   };
   openPalette = () => { this.paletteReturnFocus = document.activeElement; this.setState({ paletteOpen:true, paletteCursor:0 }); setTimeout(() => document.getElementById('palette-search')?.focus(), 0); };
-  closePalette = () => { this.setState({ paletteOpen:false }); setTimeout(() => { if (this.paletteReturnFocus && this.paletteReturnFocus.focus) this.paletteReturnFocus.focus(); }, 0); };
+  closePalette = () => { this.closeOverlay('palette'); setTimeout(() => { if (this.paletteReturnFocus && this.paletteReturnFocus.focus) this.paletteReturnFocus.focus(); }, 0); };
   activatePaletteItem = (item) => { this.setState({ paletteOpen:false }); this.openScreen(item.key); setTimeout(() => { if (item.kind !== 'setting') return; const target = Array.from(document.querySelectorAll('[aria-label]')).find(node => node.getAttribute('aria-label') === item.label); target?.focus?.(); }, 0); };
   activatePaletteCursor = () => { const item = this.filteredPalette(this.state)[this.state.paletteCursor]; if (item) this.activatePaletteItem(item); };
   persistNotifications = (items) => { this.persistDesktopState?.({ notifications:items.slice(0, 200) }); };
@@ -4158,13 +4203,15 @@ class ConsoleShell extends DCLogic {
     const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'notification-history.json'; link.click(); URL.revokeObjectURL(url);
   };
   resetOverlay = (key) => {
-    const canonical = { 'overlay-61':'info', 'overlay-82':'lock', 'overlay-97':'regex', 'overlay-84':'appear', 'overlay-55':'wizard', 'overlay-81':'filter' }[key] || key;
+    const canonical = /overlay-61-/.test(key) ? 'info' : (/overlay-82-/.test(key) ? 'lock' : (/overlay-97-/.test(key) ? 'regex' : (/overlay-84-/.test(key) ? 'appear' : (/overlay-55-/.test(key) ? 'wizard' : (/overlay-81-/.test(key) ? 'filter' : key)))));
     key = canonical;
     const dlgPos = Object.assign({}, this.state.dlgPos); const dlgSize = Object.assign({}, this.state.dlgSize); const dlgDock = Object.assign({}, this.state.dlgDock);
     delete dlgPos[key]; delete dlgSize[key]; delete dlgDock[key];
     this.setState({ dlgPos, dlgSize, dlgDock });
   };
   resetTabs = () => this.setState({ tabs:['dash', 'endpoints', 'canvas'], pinned:['dash'], groups:[], tabNames:{}, tabColours:{}, dock:'left' });
+  closeOverlay = (key, patch = {}) => { this.setState({ ...patch, [key + 'Open']:false }); const origin = this._overlayOrigins?.[key]; setTimeout(() => origin?.focus?.(), 0); };
+  closeActiveOverlay = () => { const key = Object.keys(this._overlayFlags || {}).find(candidate => this._overlayFlags[candidate]); if (key) this.closeOverlay(key); };
 
   set = (k, v) => this.setState(s => ({ [k]:v }));
   val = (c) => (this.state.values[c.id] !== undefined ? this.state.values[c.id] : c.value);
@@ -4709,6 +4756,7 @@ class ConsoleShell extends DCLogic {
       togglePalette:() => s.paletteOpen ? this.closePalette() : this.openPalette(),
       openNotifications:() => this.setState({ railId:'app', screen:'notifications' }),
       unreadNotificationCount:(s.notifications || []).filter(n => n.state === 'Unread').length,
+      durableStatus:'Durable UI state is ready.',
       startOnboarding:() => this.setState({ onboardOpen:true, onboardStep:0 }),
 
       rail:RAIL.map(r => ({ icon:r.icon, label:r.label, on:r.id === s.railId, off:r.id !== s.railId, pick:() => this.setState({ railId:r.id, screen:ORDER.find(k => SCREENS[k].rail === r.id) }) })),
@@ -5041,7 +5089,7 @@ class ConsoleShell extends DCLogic {
         this.setState(st => ({ tabNames:Object.assign({}, st.tabNames, { [key]:st.renameValue }), renameOpen:false }));
         this.toast('Tab renamed');
       },
-      cancelRename:() => this.set('renameOpen', false),
+      cancelRename:() => this.closeOverlay('rename'),
       tabColourOpen:s.tabColourOpen,
       tabColourOpts:['#82D9A5', '#FFD68A', '#FFB4AB', '#8AB4F8', '#D8A9F0', '#DFE4DC'].map(c => ({ colour:c, border:s.tabColours[s.renameKey] === c ? '#DFE4DC' : 'transparent', pick:() => this.applyColour(c) })),
       cpickValue:'hsl(' + this.v('cp_hue', 148) + ' ' + this.v('cp_sat', 60) + '% ' + this.v('cp_light', 62) + '%)',
@@ -5102,8 +5150,8 @@ class ConsoleShell extends DCLogic {
           this.toast(count + ' tab(s) closed. Protected tabs stayed open.');
         });
       },
-      closeTabFilter:() => this.set('tabFilterOpen', false),
-      closeTabColour:() => this.set('tabColourOpen', false),
+      closeTabFilter:() => this.closeOverlay('tabFilter'),
+      closeTabColour:() => this.closeOverlay('tabColour'),
       tabs:s.tabs.filter(k => { const g = s.groups.find(x => x.tabs.indexOf(k) >= 0); return !(g && (g.collapsed || g.hidden)); }).map((k) => {
         const i = s.tabs.indexOf(k);
         return {
@@ -5375,7 +5423,7 @@ class ConsoleShell extends DCLogic {
       screenLocked:!!s.locks[s.screen], lockedTitle:sc.title,
       unlockOpen:s.unlockOpen,
       openUnlock:() => this.setState({ unlockOpen:true, unlockKey:s.screen, unlockPin:'', unlockPw:'' }),
-      closeUnlock:() => this.set('unlockOpen', false),
+      closeUnlock:() => this.closeOverlay('unlock'),
       unlockMethod:(s.locks[s.unlockKey] || {}).method || 'PIN',
       unlockNeedsPin:((s.locks[s.unlockKey] || {}).method || 'PIN').indexOf('PIN') >= 0,
       unlockNeedsPw:((s.locks[s.unlockKey] || {}).method || '').indexOf('Password') >= 0,
@@ -5432,6 +5480,12 @@ class ConsoleShell extends DCLogic {
       regexChips:(s.patterns[s.regexTarget] || []).map((t, i) => ({ label:t, remove:() => { const p = Object.assign({}, s.patterns); p[s.regexTarget] = p[s.regexTarget].filter((_, j) => j !== i); this.setState({ patterns:p }); } })),
       regexGroups:REGEX_GROUPS.map(g => ({ title:g.title, items:g.items.map(([token, label]) => ({ token, label, add:() => { const p = Object.assign({}, s.patterns); p[s.regexTarget] = (p[s.regexTarget] || []).concat([token]); this.setState({ patterns:p }); } })) })),
       regexFlags:[['i', 'ignore case'], ['g', 'all matches'], ['m', 'multiline'], ['s', 'dot matches newline']].map(([f, l]) => ({ label:f + ' · ' + l, on:s.regexFlags.indexOf(f) >= 0, off:s.regexFlags.indexOf(f) < 0, toggle:() => this.set('regexFlags', s.regexFlags.indexOf(f) >= 0 ? s.regexFlags.filter(x => x !== f) : s.regexFlags.concat([f])) })),
+      regexSample:s.regexSamples[s.regexTarget] || '',
+      onRegexSample:(e) => { const samples = Object.assign({}, s.regexSamples, { [s.regexTarget]:String(e.target.value).slice(0, 2000) }); this.setState({ regexSamples:samples }); },
+      regexMatchesLabel:(() => { const sample = s.regexSamples[s.regexTarget] || ''; const pattern = (s.patterns[s.regexTarget] || []).join(''); if (!pattern) return 'No pattern. Plain text remains the default in the originating field.'; try { const re = new RegExp(pattern, s.regexFlags.filter(f => f !== 'g').join('')); const matches = sample ? Array.from(sample.matchAll(new RegExp(pattern, s.regexFlags.includes('g') ? s.regexFlags.join('') : s.regexFlags.concat(['g']).join('')))).length : 0; return `Pattern valid. ${matches} match(es) in the sample.`; } catch (e) { return 'Pattern invalid. No matches are applied.'; } })(),
+      regexCaptures:(() => { const sample = s.regexSamples[s.regexTarget] || ''; const pattern = (s.patterns[s.regexTarget] || []).join(''); if (!sample || !pattern) return []; try { const re = new RegExp(pattern, s.regexFlags.filter(f => f !== 'g').join('')); const match = re.exec(sample); return match ? match.slice(1, 9).map((value, i) => ({ label:'$' + (i + 1), value:value === undefined ? 'not captured' : value })) : []; } catch (e) { return []; } })(),
+      copyRegex:() => { void navigator.clipboard?.writeText((s.patterns[s.regexTarget] || []).join('')).then(() => this.toast('Pattern copied'), () => this.toast('Pattern could not be copied')); },
+      exportRegex:() => { const pattern = (s.patterns[s.regexTarget] || []).join(''); const sample = s.regexSamples[s.regexTarget] || ''; let captures = []; try { const match = pattern && sample ? new RegExp(pattern, s.regexFlags.filter(f => f !== 'g').join('')).exec(sample) : null; captures = match ? match.slice(1, 9) : []; } catch (e) {} const blob = new Blob([JSON.stringify({ schemaVersion:1, target:s.regexTarget, pattern, flags:s.regexFlags, sample, captures }, null, 2)], { type:'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'regex-result.json'; link.click(); URL.revokeObjectURL(url); },
       regexCount:(() => { const pat = (s.patterns[s.regexTarget] || []).join(''); if (!pat) return 'no filter'; try { new RegExp(pat); return 'valid pattern'; } catch (e) { return 'invalid pattern'; } })(),
       regexPreview:(() => {
         const pat = (s.patterns[s.regexTarget] || []).join('');
@@ -5444,7 +5498,7 @@ class ConsoleShell extends DCLogic {
         if (s.regexTarget === 'palette') this.setState({ paletteQuery:(s.patterns.palette || []).join(''), paletteRegexOn:true, regexOpen:false });
         else if (s.regexTarget === 'ctx') this.setState({ ctxFilter:(s.patterns.ctx || []).join(''), ctxRegexOn:true, regexOpen:false });
         else if (s.regexTarget === 'sub') this.setState({ subFilter:(s.patterns.sub || []).join(''), subRegexOn:true, regexOpen:false });
-        else this.set('regexOpen', false);
+        else this.closeOverlay('regex');
       },
 
       ctxOpen:s.ctxOpen, ctxX:s.ctxX, ctxY:s.ctxY, ctxTarget:s.ctxTarget,
@@ -5501,7 +5555,7 @@ class ConsoleShell extends DCLogic {
       subY:(parseInt(s.ctxY, 10) + 84) + 'px',
       ctxScreen:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxReturnFocus:e.currentTarget, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:sc.title + ' · ' + (sc.file || 'console'), ctxKind:'screen' }); },
       ctxSearch:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxReturnFocus:e.currentTarget, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'search field', ctxKind:'search' }); },
-      closeCtx:(e) => { if (e && e.preventDefault) e.preventDefault(); const target = s.ctxReturnFocus; this.setState({ ctxOpen:false, ctxSub:'', ctxReturnFocus:null }); setTimeout(() => { if (target && target.focus) target.focus(); }, 0); },
+      closeCtx:(e) => { if (e && e.preventDefault) e.preventDefault(); this.closeOverlay('ctx', { ctxSub:'', ctxReturnFocus:null }); },
       ctxItems:(() => {
         const close = () => this.setState({ ctxOpen:false, ctxSub:'' });
         const decorate = (list) => {
@@ -5522,7 +5576,7 @@ class ConsoleShell extends DCLogic {
           { icon:'lock', label:'Lock this element…', hint:'⌃L', run:() => this.setState({ ctxOpen:false, lockOpen:true, lockTarget:s.ctxTarget, lockKey:s.screen, lockStep:0, pin:'', password:'', lockX:s.ctxX, lockY:s.ctxY }) },
           { icon:'brush', label:'Edit appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:s.ctxTarget }) },
           { icon:'help', label:'Explain this…', hint:'F1', run:() => { close(); this.showInfo(s.ctxTarget, sc.sub, null, s.ctxX, s.ctxY); } },
-          { icon:'key', label:'Recover or re-authenticate…', hint:'', run:() => this.setState({ ctxOpen:false, recoveryOpen:true, recoveryAction:{ target:String(s.ctxTarget).slice(0, 128), kind:String(s.ctxKind).slice(0, 32), action:'retry-current-reading', source:String(sc.file || 'console').slice(0, 128) }, recoveryTitle:'Recovery for ' + s.ctxTarget, recoveryBody:'The failed action stays unchanged. Choose Retry to run it again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus:'No retry or re-authentication has run yet.' }) }
+          { icon:'key', label:'Recover or re-authenticate…', hint:'', run:() => this.setState({ ctxOpen:false, recoveryOpen:true, recoveryAction:{ target:String(s.ctxTarget).slice(0, 128), kind:String(s.ctxKind).slice(0, 32), action:'retry-current-reading', source:String(sc.file || 'console').slice(0, 128), screen:s.screen }, recoveryTitle:'Recovery for ' + s.ctxTarget, recoveryBody:'The failed action stays unchanged. Choose Retry to run it again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus:'No retry or re-authentication has run yet.' }) }
         ];
         if (s.ctxKind === 'group') {
           const g = s.groups.find(x => x.id === s.ctxGroupId) || { tabs:[], name:'' };
@@ -5537,7 +5591,8 @@ class ConsoleShell extends DCLogic {
             { icon:'link_off', label:'Ungroup', hint:'', run:() => { close(); this.setState({ groups:s.groups.filter(x => x.id !== g.id) }); this.toast('Group dissolved — tabs kept'); } },
             { icon:'close', label:'Close group and its tabs', hint:'', run:() => { close(); this.areYouSure('Close ' + g.name, 'Every tab in this group closes. Unsaved staged changes in them are discarded.', 3, () => { const keep = s.tabs.filter(t => g.tabs.indexOf(t) < 0); this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep[0] || 'dash', groups:s.groups.filter(x => x.id !== g.id) }); }); } },
             { icon:'brush', label:'Edit group appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:'group · ' + g.name }) },
-            { icon:'lock', label:'Lock this group…', hint:'⌃L', run:common[0].run }
+            { icon:'lock', label:'Lock this group…', hint:'⌃L', run:common[0].run },
+            common[3]
           ]);
         }
         if (s.ctxKind === 'tab') {
@@ -5555,7 +5610,8 @@ class ConsoleShell extends DCLogic {
             { icon:'folder', label:'Group tabs by area', hint:'', run:() => { close(); this.toast('Tabs grouped by rail area'); } },
             { icon:'open_in_new', label:'Move to new window', hint:'', run:() => { close(); this.toast('Tab detached to its own window'); } },
             { icon:'dock_to_right', label:'Dock this tab right', hint:'', run:() => { close(); this.set('dock', 'right'); } },
-            { icon:'lock', label:'Lock this tab…', hint:'⌃L', run:common[0].run }
+            { icon:'lock', label:'Lock this tab…', hint:'⌃L', run:common[0].run },
+            common[3]
           ]);
         }
         if (s.ctxKind === 'row') {
@@ -5602,6 +5658,7 @@ class ConsoleShell extends DCLogic {
         ].concat(common));
       })(),
       ctxFilter:s.ctxFilter,
+      ctxResultLabel:s.ctxFilter ? 'Filtered actions. Arrow keys move through the remaining results.' : 'Actions available. Arrow keys move through results.',
       subFilter:s.subFilter,
       onCtxFilter:(e) => this.setState({ ctxFilter:e.target.value, ctxRegexOn:false }),
       onSubFilter:(e) => this.setState({ subFilter:e.target.value, subRegexOn:false }),
@@ -5615,7 +5672,7 @@ class ConsoleShell extends DCLogic {
         if (next && next.focus) next.focus();
       },
       overlayKeyDown:(e) => {
-        if (e.key === 'Escape') { e.preventDefault(); this.setState({ ctxOpen:false, recoveryOpen:false, paletteOpen:false, regexOpen:false }); return; }
+        if (e.key === 'Escape') { e.preventDefault(); this.closeActiveOverlay(); return; }
         if (e.key === 'Home' && e.ctrlKey) { e.preventDefault(); this.resetOverlay(e.currentTarget.dataset.overlayKey || e.currentTarget.dataset.overlay || 'overlay'); return; }
         if (!e.ctrlKey && !e.shiftKey) return;
         const step = e.shiftKey ? 16 : 4;
@@ -5634,7 +5691,7 @@ class ConsoleShell extends DCLogic {
       recoveryBody:s.recoveryBody,
       recoveryDescriptor:s.recoveryAction ? [s.recoveryAction.kind, s.recoveryAction.target, s.recoveryAction.action].join(' · ') : 'No failed action recorded',
       recoveryStatus:s.recoveryStatus,
-      closeRecovery:() => this.setState({ recoveryOpen:false }),
+      closeRecovery:() => this.closeOverlay('recovery'),
       recoveryRetry:() => this.setState({ recoveryStatus:'Retry requested. The action remains pending until the control plane confirms it.' }),
       recoveryReauth:() => this.setState({ recoveryStatus:'Re-authentication requested. No credential is displayed or copied into the recovery record.' }),
 
@@ -5706,7 +5763,7 @@ class ConsoleShell extends DCLogic {
         this.setState({ locks:L, lockOpen:false });
         this.toast(s.lockTarget + ' is locked with ' + s.lockMethod + ' — the surface is now disabled');
       },
-      closeLock:() => this.set('lockOpen', false),
+      closeLock:() => this.closeOverlay('lock'),
       pairAuth:() => this.toast('Built-in authenticator paired for this element only'),
 
       appearOpen:s.appearOpen, appearTarget:s.appearTarget,
@@ -5736,7 +5793,7 @@ class ConsoleShell extends DCLogic {
         { icon:'download', label:'Export', run:() => this.toast('Appearance exported as JSON') },
         { icon:'upload', label:'Import', run:() => this.toast('Pick an appearance file to import') }
       ],
-      closeAppear:() => this.set('appearOpen', false),
+      closeAppear:() => this.closeOverlay('appear'),
 
       celebrate:s.celebrate, celebrateTitle:s.celebrateTitle, celebrateSub:s.celebrateSub,
       confetti:Array.from({ length:90 }, (_, i) => ({
@@ -5761,7 +5818,7 @@ class ConsoleShell extends DCLogic {
       docWizard:() => { const c = s.infoDoc; this.setState({ infoOpen:false }); if (this._lastCtl) this.openCtlWizard(this._lastCtl); },
       infoOpen:s.infoOpen, infoTitle:s.infoTitle, infoBody:s.infoBody, infoPlain:s.infoPlain,
       infoX:s.infoX, infoY:s.infoY, infoDiagram:'diagram slot — drop a real screenshot or schematic here',
-      closeInfo:() => this.set('infoOpen', false),
+      closeInfo:() => this.closeOverlay('info'),
 
       wizardOpen:s.wizardOpen,
       wizardChrome:this.dockChrome('wizard', '46%', '96px', 432).style,
@@ -5785,14 +5842,15 @@ class ConsoleShell extends DCLogic {
       // every answer and then reloaded a file it had never written to, reporting success.
       // A screen that can actually create the thing it asked about supplies its own
       // handler, the way the servers screen already does.
-      wizardNext:() => { if (last) { this.setState({ wizardOpen:false });
+      wizardNext:() => { if (last) { this.closeOverlay('wizard');
         if (this.state.screen === 'endpoints' && this.onCreateEndpoint) { this.onCreateEndpoint(); return; }
         this.ceremony('Apply guided configuration', this.state.screen === 'servers' ? 'connect ' + (this.val({ id:'sv_kind', value:'Local' })) : 'pjsip reload'); } else this.setState(st => ({ wizardStep:Math.min(flow.length - 1, st.wizardStep + 1) })); },
       wizardBack:() => this.setState(st => ({ wizardStep:Math.max(0, st.wizardStep - 1) })),
-      closeWizard:() => this.setState({ wizardOpen:false, wizardCtl:null }),
+      closeWizard:() => this.closeOverlay('wizard', { wizardCtl:null }),
 
       paletteOpen:s.paletteOpen,
       paletteQuery:s.paletteQuery || '',
+      paletteResultLabel:this.filteredPalette(s).length + ' result(s). Use Up and Down to move, Enter to teleport.',
       onPaletteQuery:(e) => this.setState({ paletteQuery:e.target.value, paletteRegexOn:false, paletteCursor:0 }),
       paletteKeyDown:(e) => {
         if (e.key === 'ArrowDown') { e.preventDefault(); this.setState(st => ({ paletteCursor:Math.min(this.paletteCount(st), st.paletteCursor + 1) })); }
@@ -5824,12 +5882,12 @@ class ConsoleShell extends DCLogic {
       sureReady:s.sureHits >= s.sureNeed, sureLocked:s.sureHits < s.sureNeed,
       sureCells:Array.from({ length:8 }, (_, i) => ({ up:i === s.sureCell, down:i !== s.sureCell,
         hit:() => { const h = this.state.sureHits + 1; this.setState({ sureHits:h, sureCell:h >= this.state.sureNeed ? -1 : Math.floor(Math.random() * 8) }); if (h >= this.state.sureNeed) this.toast('Yes unlocked — you are demonstrably awake'); } })),
-      closeSure:() => this.setState({ sureOpen:false, sureHits:0, sureCell:-1 }),
-      sureYes:() => { const act = this.state.sureAction; this.setState({ sureOpen:false, sureHits:0, sureCell:-1 }); if (act) act(); },
+      closeSure:() => this.closeOverlay('sure', { sureHits:0, sureCell:-1 }),
+      sureYes:() => { const act = this.state.sureAction; this.closeOverlay('sure', { sureHits:0, sureCell:-1 }); if (act) act(); },
       canSkip:s.credits > 0 && s.cStep < 4 && this.v('cr_enable', true),
       skipCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.setState({ credits:s.credits - 1, ceremonyOpen:false }); this.fire('Skipped', s.ceremonyCmd + ' ran on a credit. ' + (s.credits - 1) + ' left.'); },
       goArcade:() => this.setState({ railId:'app', screen:'arcade' }),
-      cancelCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.set('ceremonyOpen', false); },
+      cancelCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.closeOverlay('ceremony'); },
       executeCeremony:() => { clearInterval(this._mole); this.setState({ ceremonyOpen:false }); this.toast(s.ceremonyCmd + ' executed and attested'); },
 
       onboardFirst:s.onboardStep === 0,
@@ -5843,13 +5901,13 @@ class ConsoleShell extends DCLogic {
         ? { onboardOpen:false, tourOpen:st.values.ob_tour !== false, tourStep:0, screen:'servers', railId:'app' }
         : { onboardStep:st.onboardStep + 1 })),
       onboardBack:() => this.setState(st => ({ onboardStep:Math.max(0, st.onboardStep - 1) })),
-      skipOnboard:() => this.setState({ onboardOpen:false, tourOpen:false }),
+      skipOnboard:() => this.closeOverlay('onboard', { tourOpen:false }),
 
       tourOpen:s.tourOpen, tourTitle:TOUR[s.tourStep].t, tourBody:TOUR[s.tourStep].b,
       tourX:TOUR[s.tourStep].x, tourY:TOUR[s.tourStep].y,
       tourCount:(s.tourStep + 1) + ' of ' + TOUR.length,
-      tourNext:() => { if (s.tourStep === TOUR.length - 1) this.set('tourOpen', false); else this.set('tourStep', s.tourStep + 1); },
-      endTour:() => this.set('tourOpen', false),
+      tourNext:() => { if (s.tourStep === TOUR.length - 1) this.closeOverlay('tour'); else this.set('tourStep', s.tourStep + 1); },
+      endTour:() => this.closeOverlay('tour'),
 
       toastOpen:s.toastOpen, toastText:s.toastText,
       undoToast:() => { this.setState({ toastOpen:false }); this.toast('Change reverted'); }

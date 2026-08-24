@@ -251,6 +251,8 @@ export class App extends Base {
   private universalStateReady = false;
   private readonly UNIVERSAL_STATE_KEY = 'console.universal.ui.v2';
   private universalStateLastSerialized = '';
+  private universalStateQueuedPatch: Record<string, unknown> = {};
+  private universalPersistenceStatus = 'Durable UI state is waiting for bootstrap.';
 
   private universalSnapshot(patch: Record<string, unknown> = {}): Record<string, unknown> {
     const state = this.state as unknown as Record<string, unknown>;
@@ -258,15 +260,23 @@ export class App extends Base {
     const tabs = Array.isArray(patch.tabs ?? state.tabs) ? (patch.tabs ?? state.tabs) : [];
     const pinned = Array.isArray(patch.pinned ?? state.pinned) ? (patch.pinned ?? state.pinned) : [];
     const groups = Array.isArray(patch.groups ?? state.groups) ? (patch.groups ?? state.groups) : [];
+    const knownTabs = new Set(ORDER as readonly string[]);
+    const safeNotifications = (notifications as unknown[]).filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && ['id', 'source', 'message', 'when', 'state'].every((key) => typeof (item as Record<string, unknown>)[key] === 'string' && String((item as Record<string, unknown>)[key]).length <= 512) && ((item as Record<string, unknown>).state === 'Unread' || (item as Record<string, unknown>).state === 'Read')).slice(0, 200);
+    const safeTabs = (tabs as unknown[]).filter((item): item is string => typeof item === 'string' && knownTabs.has(item)).slice(0, 64);
+    const safePinned = (pinned as unknown[]).filter((item): item is string => typeof item === 'string' && knownTabs.has(item)).slice(0, 64);
+    const safeGroups = (groups as unknown[]).filter((item): item is Record<string, unknown> => !!item && typeof item === 'object').slice(0, 64).map((group) => ({ ...group, tabs: Array.isArray(group.tabs) ? (group.tabs as unknown[]).filter((tab): tab is string => typeof tab === 'string' && knownTabs.has(tab)).slice(0, 64) : [] }));
+    const safeMap = (candidate: unknown): Record<string, unknown> => !candidate || typeof candidate !== 'object' ? {} : Object.fromEntries(Object.entries(candidate as Record<string, unknown>).slice(0, 32).filter(([key, item]) => key.length <= 64 && (typeof item === 'number' || (typeof item === 'string' && item.length <= 128))));
     return {
       schemaVersion: 1,
-      notifications: (notifications as unknown[]).slice(0, 200),
-      dlgPos: patch.dlgPos ?? state.dlgPos ?? {},
-      dlgSize: patch.dlgSize ?? state.dlgSize ?? {},
-      dlgDock: patch.dlgDock ?? state.dlgDock ?? {},
-      tabs: (tabs as unknown[]).slice(0, 64),
-      pinned: (pinned as unknown[]).slice(0, 64),
-      groups: (groups as unknown[]).slice(0, 64),
+      notifications: safeNotifications,
+      dlgPos: safeMap(patch.dlgPos ?? state.dlgPos ?? {}),
+      dlgSize: safeMap(patch.dlgSize ?? state.dlgSize ?? {}),
+      dlgDock: safeMap(patch.dlgDock ?? state.dlgDock ?? {}),
+      tabs: safeTabs,
+      pinned: safePinned,
+      groups: safeGroups,
+      tabNames: safeMap(patch.tabNames ?? state.tabNames ?? {}),
+      tabColours: safeMap(patch.tabColours ?? state.tabColours ?? {}),
       dock: String(patch.dock ?? state.dock ?? 'left').slice(0, 16),
     };
   }
@@ -283,25 +293,30 @@ export class App extends Base {
         ? value.notifications.filter((item): item is Record<string, unknown> => {
           if (!item || typeof item !== 'object') return false;
           const row = item as Record<string, unknown>;
-          return ['id', 'source', 'message', 'when', 'state'].every((key) => typeof row[key] === 'string' && String(row[key]).length <= 512);
+          return ['id', 'source', 'message', 'when', 'state'].every((key) => typeof row[key] === 'string' && String(row[key]).length <= 512) && (row.state === 'Unread' || row.state === 'Read');
         }).slice(0, 200)
         : [];
-      const tabs = Array.isArray(value.tabs) ? value.tabs.filter((item): item is string => typeof item === 'string').slice(0, 64) : [];
-      const pinned = Array.isArray(value.pinned) ? value.pinned.filter((item): item is string => typeof item === 'string').slice(0, 64) : [];
+      const knownTabs = new Set(ORDER as readonly string[]);
+      const tabs = Array.isArray(value.tabs) ? value.tabs.filter((item): item is string => typeof item === 'string' && knownTabs.has(item)).slice(0, 64) : [];
+      const pinned = Array.isArray(value.pinned) ? value.pinned.filter((item): item is string => typeof item === 'string' && knownTabs.has(item)).slice(0, 64) : [];
       const groups = Array.isArray(value.groups) ? value.groups.filter((item): item is Record<string, unknown> => {
         if (!item || typeof item !== 'object') return false;
         const group = item as Record<string, unknown>;
         return typeof group.id === 'string' && group.id.length <= 64 && typeof group.name === 'string' && group.name.length <= 128 && Array.isArray(group.tabs) && group.tabs.length <= 64;
-      }).slice(0, 64) : [];
+      }).map((group) => ({ ...group, tabs: (group.tabs as unknown[]).filter((tab): tab is string => typeof tab === 'string' && tab.length <= 64 && knownTabs.has(tab)).slice(0, 64), colour: typeof group.colour === 'string' && /^(?:#[0-9a-f]{6,8}|(?:rgb|hsl)a?\([^)]{1,80}\))$/iu.test(group.colour) ? group.colour : '#82D9A5', collapsed: group.collapsed === true, hidden: group.hidden === true })).slice(0, 64) : [];
       const boundedObject = (candidate: unknown): Record<string, unknown> => {
         if (!candidate || typeof candidate !== 'object') return {};
         return Object.fromEntries(Object.entries(candidate as Record<string, unknown>).slice(0, 32).filter(([key, item]) => key.length <= 64 && (typeof item === 'string' ? item.length <= 64 : typeof item === 'number')));
       };
+      const tabNames = Object.fromEntries(Object.entries(boundedObject(value.tabNames)).filter(([key, item]) => knownTabs.has(key) && typeof item === 'string' && item.length <= 128));
+      const tabColours = Object.fromEntries(Object.entries(boundedObject(value.tabColours)).filter(([key, item]) => knownTabs.has(key) && typeof item === 'string' && /^(?:#[0-9a-f]{6,8}|(?:rgb|hsl)a?\([^)]{1,80}\))$/iu.test(item)));
       this.setState({
         notifications,
         dlgPos: boundedObject(value.dlgPos),
         dlgSize: boundedObject(value.dlgSize),
         dlgDock: boundedObject(value.dlgDock),
+        tabNames,
+        tabColours,
         ...(tabs.length > 0 ? { tabs, pinned, groups } : {}),
         ...(typeof value.dock === 'string' ? { dock: value.dock } : {}),
       } as never);
@@ -311,11 +326,18 @@ export class App extends Base {
   };
 
   persistDesktopState = (patch: Record<string, unknown> = {}): void => {
-    if (!this.universalStateReady) return;
+    if (!this.universalStateReady) {
+      this.universalStateQueuedPatch = { ...this.universalStateQueuedPatch, ...patch };
+      return;
+    }
     const serialized = JSON.stringify(this.universalSnapshot(patch));
     if (serialized === this.universalStateLastSerialized) return;
     this.universalStateLastSerialized = serialized;
     this.durableStorage.storage.setItem(this.UNIVERSAL_STATE_KEY, serialized);
+    void this.durableStorage.flush().then((ok) => {
+      this.universalPersistenceStatus = ok ? 'Durable UI state saved.' : (this.durableStorage.lastError() ?? 'Durable UI state was refused.');
+      this.forceUpdate();
+    });
   };
 
   persistNotifications = (items: unknown[]): void => {
@@ -341,6 +363,12 @@ export class App extends Base {
     void this.durableStorage.bootstrap().then(() => {
       this.universalStateReady = true;
       this.restoreDesktopState();
+      if (Object.keys(this.universalStateQueuedPatch).length > 0) {
+        const queued = this.universalStateQueuedPatch;
+        this.universalStateQueuedPatch = {};
+        this.persistDesktopState(queued);
+      }
+      this.universalPersistenceStatus = this.durableStorage.lastError() ?? 'Durable UI state is ready.';
       this.restoreLanguageMode();
       this.restoreDisplayName();
       this.restoreAppearance();
@@ -370,10 +398,16 @@ export class App extends Base {
     void this.refresh();
   }
 
-  private async request(action: string, extra: Record<string, unknown> = {}): Promise<ControlPlaneResponse | undefined> {
+  private async request(action: string, extra: Record<string, unknown> = {}, signal?: AbortSignal): Promise<ControlPlaneResponse | undefined> {
     const bridge = this.bridge();
     if (!bridge) return undefined;
-    return await bridge.controlPlane.request({ requestId: crypto.randomUUID(), action, ...extra } as never);
+    const pending = bridge.controlPlane.request({ requestId: crypto.randomUUID(), action, ...extra } as never);
+    if (!signal) return await pending;
+    if (signal.aborted) return undefined;
+    return await Promise.race([
+      pending,
+      new Promise<undefined>((resolve) => signal.addEventListener('abort', () => resolve(undefined), { once: true })),
+    ]);
   }
 
   /** Bounded, allowlisted discovery through the preload bridge. Never a shell command. */
@@ -400,7 +434,7 @@ export class App extends Base {
     }
     this.target = { ...NO_TARGET, label: 'discovering…', detail: 'reading local targets' };
     this.forceUpdate();
-    const response = await this.request('server.list');
+    const response = await this.request('server.list', {}, abort.signal);
     if (!current()) return;
     if (!response?.ok) {
       this.target = { ...NO_TARGET, detail: response?.message ?? 'the control plane did not answer' };
@@ -415,7 +449,7 @@ export class App extends Base {
        * create one from. Ask what the runtime can actually do and say so, so the message
        * names the way forward instead of only the problem. */
       const detail = Array.isArray(data.wsl) ? 'no WSL distribution discovered' : data.wsl?.unavailable ?? 'no local target discovered';
-      const runtime = await this.request('runtime.status');
+      const runtime = await this.request('runtime.status', {}, abort.signal);
       if (!current()) return;
       this.runtime = runtime?.ok ? (runtime.data as RuntimeStatus) : undefined;
       this.target = { ...NO_TARGET, detail: `${detail}${runtimeHint(this.runtime)}` };
@@ -439,13 +473,13 @@ export class App extends Base {
     /* Discovery only finds a name. It is not proof that the target is reachable. Ask
      * the real connection action before marking the target connected. If the daemon is
      * merely stopped, start it through the existing lifecycle path and retry once. */
-    let connected = await this.request('server.connect', { serverId: distribution });
+    let connected = await this.request('server.connect', { serverId: distribution }, abort.signal);
     if (!current()) return;
     let connectionReason = connectionFailureReason(connected);
     if (!connectionVerified(connected)) {
-      await this.ensureDaemon(current);
+      await this.ensureDaemon(current, abort.signal);
       if (!current()) return;
-      connected = await this.request('server.connect', { serverId: distribution });
+      connected = await this.request('server.connect', { serverId: distribution }, abort.signal);
       if (!current()) return;
       connectionReason = connectionFailureReason(connected);
     }
@@ -470,7 +504,7 @@ export class App extends Base {
       { icon: 'search', text: `${distributions.length} local target${distributions.length === 1 ? '' : 's'} discovered`, color: '#9FF7C4', ms: 'read' },
       { icon: 'verified', text: `${distribution} answered the connection check`, color: '#9FF7C4', ms: 'done' },
     ];
-    await this.ensureDaemon(current);
+    await this.ensureDaemon(current, abort.signal);
     if (!current()) return;
     this.readings = {};
     this.canvasReadings = undefined;
@@ -496,6 +530,24 @@ export class App extends Base {
     this.forceUpdate();
   };
 
+  private retryFailedAction = async (): Promise<void> => {
+    const action = (this.state as { recoveryAction?: { screen?: string; target?: string; action?: string } }).recoveryAction;
+    const screen = action?.screen || (this.state as { screen: string }).screen;
+    if (!this.target.id) {
+      this.setState({ recoveryStatus: 'Retry refused because the exact target is no longer connected.' } as never);
+      return;
+    }
+    this.setState({ recoveryStatus: `Retrying ${action?.action || 'the recorded reading'} for ${action?.target || screen}.` } as never);
+    const response = await this.request('pbx.read', { serverId: this.target.id, view: screen as PbxReadView });
+    if (!response?.ok) {
+      this.setState({ recoveryStatus: `Retry refused by the control plane: ${response?.message || 'no response'}.` } as never);
+      return;
+    }
+    this.readings[screen] = response.data as ViewReadings;
+    this.setState({ recoveryStatus: `Retry completed for ${action?.target || screen}. The fresh reading is now on screen.` } as never);
+    this.forceUpdate();
+  };
+
   /**
    * Starts the phone system if it is not already answering.
    *
@@ -509,8 +561,8 @@ export class App extends Base {
    * allowed to have. It is never silent: starting is announced, and a failure says
    * what actually went wrong rather than leaving the screens quietly empty.
    */
-  private ensureDaemon = async (isCurrent: () => boolean = () => true) => {
-    const answer = await this.request('daemon.status');
+  private ensureDaemon = async (isCurrent: () => boolean = () => true, signal?: AbortSignal) => {
+    const answer = await this.request('daemon.status', {}, signal);
     if (!isCurrent()) return;
     if (!answer?.ok) return;
     const state = (answer.data as { status?: { state?: string } }).status?.state;
@@ -521,7 +573,7 @@ export class App extends Base {
     if (state === 'daemonAnswering') return;
 
     this.toast('Starting the phone system…');
-    const started = await this.request('daemon.start');
+    const started = await this.request('daemon.start', {}, signal);
     if (!isCurrent()) return;
     if (!started?.ok) {
       this.fire('The phone system did not start', started?.message ?? 'Asterisk did not answer after it was started.');
@@ -1489,7 +1541,7 @@ It is shown once. The phone needs it to register.`);
           { icon: 'content_copy', label: 'Duplicate step', hint: '⌃D', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
           { icon: 'call_split', label: 'Insert condition before', hint: '', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
           { icon: 'delete', label: 'Delete step', hint: '⌦', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
-          { icon: 'key', label: 'Recover or re-authenticate…', hint: '', act: () => { const state = this.state as { ctxTarget?: string; ctxKind?: string }; this.setState({ ctxOpen: false, recoveryOpen: true, recoveryAction: { target: String(state.ctxTarget || 'observed step').slice(0, 128), kind: String(state.ctxKind || 'node').slice(0, 32), action: 'retry-current-reading', source: 'dialplan canvas' }, recoveryTitle: `Recovery for ${state.ctxTarget || 'observed step'}`, recoveryBody: 'The failed action stays unchanged. Choose Retry to run it again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus: 'No retry or re-authentication has run yet.' } as never); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'key', label: 'Recover or re-authenticate…', hint: '', act: () => { const state = this.state as { ctxTarget?: string; ctxKind?: string }; this.setState({ ctxOpen: false, recoveryOpen: true, recoveryAction: { target: String(state.ctxTarget || 'observed step').slice(0, 128), kind: String(state.ctxKind || 'node').slice(0, 32), action: 'retry-current-reading', source: 'dialplan canvas', screen: 'canvas' }, recoveryTitle: `Recovery for ${state.ctxTarget || 'observed step'}`, recoveryBody: 'The failed action stays unchanged. Choose Retry to run it again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus: 'No retry or re-authentication has run yet.' } as never); }, hover: () => {}, bg: '#1B211C' },
         ]
       : undefined;
 
@@ -2004,8 +2056,9 @@ It is shown once. The phone needs it to register.`);
       oneClickStatus: this.oneClickStatus,
       runOneClick: this.discover,
       cancelOneClick: this.cancelOneClick,
-      recoveryRetry: () => { const action = (this.state as { recoveryAction?: { target?: string } }).recoveryAction; this.setState({ recoveryStatus: `Retry requested for ${String(action?.target || 'the recorded action').slice(0, 128)}. Re-reading the current target before reporting an outcome.` } as never); void this.refresh(); },
+      recoveryRetry: () => { void this.retryFailedAction(); },
       recoveryReauth: () => { const action = (this.state as { recoveryAction?: { target?: string } }).recoveryAction; this.setState({ recoveryStatus: `Re-authentication requested for ${String(action?.target || 'the recorded action').slice(0, 128)}. Discovery will refresh the local connection path without exposing credentials.` } as never); void this.discover(); },
+      durableStatus: this.universalPersistenceStatus,
 
       // Nav-rail badges: only a count this session actually read, never the design's
       // invented per-destination numbers.

@@ -109,6 +109,7 @@
       <button onClick="{{ goArcade }}" title="Confirmation credits — win more in the arcade" style="display:flex; align-items:center; gap:6px; background:#1B4D33; border:0; border-radius:999px; padding:5px 12px 5px 9px; color:#9FF7C4; font:inherit; font-size:12px; font-weight:500; cursor:pointer; height:28px; white-space:nowrap;" style-hover="background:#22633f;"><span class="msym" style="font-size:16px;">confirmation_number</span>{{ credits }}</button>
       <button onClick="{{ togglePalette }}" title="Command palette (Ctrl+Shift+F)" style="width:32px; height:32px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center;" style-hover="background:#262B26; color:#82D9A5;"><span class="msym" style="font-size:19px;">search</span></button>
       <button onClick="{{ openNotifications }}" title="Open notification history" aria-label="Open notification history" style="width:44px; height:44px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center;" style-hover="background:#262B26; color:#82D9A5;"><span class="msym" style="font-size:19px;">notifications</span><span aria-live="polite" style="font-family:'Roboto Mono',monospace; font-size:10px; margin-left:-4px;">{{ unreadNotificationCount }}</span></button>
+      <span role="status" aria-live="polite" title="Durable UI state" style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:10px; color:#778078;">{{ durableStatus }}</span>
       <div style="display:flex;">
         <div style="width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;" style-hover="background:#262B26;"><span class="msym" style="font-size:17px;">remove</span></div>
         <div style="width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;" style-hover="background:#262B26;"><span class="msym" style="font-size:15px;">crop_square</span></div>
@@ -1337,6 +1338,7 @@
         <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#778078;">Ctrl ⇧ F</span>
       </div>
       <div style="display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid #333B34;"><input id="palette-search" type="search" value="{{ paletteQuery }}" onInput="{{ onPaletteQuery }}" onChange="{{ onPaletteQuery }}" onKeyDown="{{ paletteKeyDown }}" aria-label="Search commands and destinations" placeholder="Search commands" style="flex:1; min-width:0; background:#141A15; border:1px solid #414942; border-radius:10px; padding:9px 11px; color:#DFE4DC; font-family:'Roboto Mono',monospace;" /><button onClick="{{ openPaletteRegex }}" aria-label="Build a regex for the command palette" title="Build a regex for the command palette" style="width:40px; height:40px; border:0; border-radius:9px; background:#1B4D33; color:#9FF7C4; cursor:pointer;"><span class="msym">data_object</span></button></div>
+      <div role="status" aria-live="polite" style="padding:6px 14px; color:#9AA39B; font-size:11px;">{{ paletteResultLabel }}</div>
       <div style="max-height:420px; overflow-y:auto; padding:8px;">
         <sc-for list="{{ paletteItems }}" as="p" hint-placeholder-count="8">
           <button onClick="{{ p.go }}" onKeyDown="{{ p.keyDown }}" role="option" aria-selected="{{ p.selected }}" tabindex="{{ p.tabIndex }}" style="width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:{{ p.bg }}; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;" style-hover="background:#333B34;">
@@ -1344,6 +1346,7 @@
             <span style="flex:1; font-size:13.5px; color:#DFE4DC;">{{ p.label }}</span>
             <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394;">{{ p.hint }}</span>
           </button>
+          <sc-if value="{{ p.isSetting }}"><div style="padding:0 14px 8px 54px;"><dc-import name="M3 Control" ctl="{{ p.inline }}" hint-size="100%,56px"></dc-import></div></sc-if>
         </sc-for>
       </div>
     </div>
@@ -1542,6 +1545,7 @@
         <span style="font-family:'Roboto Mono',monospace; font-size:15px; color:#8FA394;">/{{ regexFlagStr }}</span>
         <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:{{ regexValidColor }};">{{ regexValid }}</span>
       </div>
+      <div style="display:flex; flex-direction:column; gap:6px; margin-top:10px;"><label style="font-size:11px; color:#9AA39B;">Sample text<input type="text" value="{{ regexSample }}" onInput="{{ onRegexSample }}" onChange="{{ onRegexSample }}" aria-label="Sample text for {{ regexTargetLabel }}" style="width:100%; background:#141A15; border:1px solid #414942; border-radius:8px; padding:8px 10px; color:#DFE4DC; font-family:'Roboto Mono',monospace;" /></label><div role="status" aria-live="polite" style="font-size:11px; color:#9AA39B;">{{ regexMatchesLabel }}</div></div>
       <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
         <sc-for list="{{ rxTools }}" as="t" hint-placeholder-count="5">
           <button onClick="{{ t.run }}" title="{{ t.title }}" style="display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:5px 10px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;" style-hover="border-color:#82D9A5; color:#9FF7C4;"><span class="msym" style="font-size:14px;">{{ t.icon }}</span>{{ t.label }}</button>
@@ -1588,8 +1592,11 @@
           </div>
         </sc-for>
       </div>
+      <div style="margin-top:10px; background:#141A15; border-radius:10px; padding:10px 12px;"><div style="font-size:11px; color:#8FA394; text-transform:uppercase; letter-spacing:.8px;">Capture groups</div><sc-for list="{{ regexCaptures }}" as="c" hint-placeholder-count="4"><div style="font-family:'Roboto Mono',monospace; font-size:11px; color:#C4CBC2; padding:3px 0;">{{ c.label }} · {{ c.value }}</div></sc-for></div>
       <div style="display:flex; gap:8px; margin-top:16px;">
         <button onClick="{{ clearRegex }}" style="background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;">Clear</button>
+        <button onClick="{{ copyRegex }}" style="background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;">Copy pattern</button>
+        <button onClick="{{ exportRegex }}" style="background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;">Export result</button>
         <div style="flex:1;"></div>
         <button onClick="{{ closeRegex }}" style="background:#82D9A5; border:0; border-radius:999px; padding:10px 24px; color:#00391F; font:inherit; font-size:13px; font-weight:500; cursor:pointer;">Apply filter</button>
       </div>
@@ -1604,6 +1611,7 @@
         <input type="search" value="{{ ctxFilter }}" onInput="{{ onCtxFilter }}" onChange="{{ onCtxFilter }}" aria-label="Search this context menu" placeholder="Search actions" style="flex:1; min-width:0; background:#141A15; border:1px solid #414942; border-radius:8px; padding:7px 9px; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:11px;" />
         <button onClick="{{ openCtxRegex }}" title="Build a regex for this menu" aria-label="Build a regex for this context menu" style="width:34px; height:34px; border-radius:8px; background:#262B26; border:0; color:#9FF7C4; cursor:pointer; display:flex; align-items:center; justify-content:center;"><span class="msym" style="font-size:16px;">data_object</span></button>
       </div>
+      <div role="status" aria-live="polite" style="padding:0 8px 6px; color:#9AA39B; font-size:10px;">{{ ctxResultLabel }}</div>
       <sc-for list="{{ ctxItems }}" as="i" hint-placeholder-count="6">
         <button role="menuitem" onClick="{{ i.act }}" onMouseEnter="{{ i.hover }}" style="width:100%; display:flex; align-items:center; gap:11px; background:{{ i.bg }}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;" style-hover="background:#333B34;">
           <span class="msym" style="font-size:18px; color:#82D9A5;">{{ i.icon }}</span>
@@ -2048,7 +2056,7 @@
   </sc-if>
 
   <sc-if value="{{ toastOpen }}">
-    <div style="position:absolute; left:50%; bottom:24px; transform:translateX(-50%); display:flex; align-items:center; gap:16px; background:#E4E9E0; color:#1A1C19; border-radius:12px; padding:12px 16px 12px 20px; box-shadow:0 6px 20px rgba(0,0,0,.5); z-index:85; animation:m3Slide .26s cubic-bezier(.2,1.3,.4,1);">
+    <div role="status" aria-live="polite" aria-label="Notification" style="position:absolute; left:50%; bottom:24px; transform:translateX(-50%); display:flex; align-items:center; gap:16px; background:#E4E9E0; color:#1A1C19; border-radius:12px; padding:12px 16px 12px 20px; box-shadow:0 6px 20px rgba(0,0,0,.5); z-index:85; animation:m3Slide .26s cubic-bezier(.2,1.3,.4,1);">
       <span style="font-size:13.5px;">{{ toastText }}</span>
       <button onClick="{{ undoToast }}" style="background:transparent; border:0; color:#146B41; font:inherit; font-size:13.5px; font-weight:500; cursor:pointer; padding:4px 8px; border-radius:8px;">Undo</button>
     </div>
@@ -2707,6 +2715,8 @@ const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes'
 /* Handwritten command-palette inventory. A palette route disappearing from ORDER
  * must fail review here instead of silently disappearing from the user's search. */
 const PALETTE_INVENTORY = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','httpd','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
+const PALETTE_CONTROL_INVENTORY = ['lang_mode','school_mode','fun_english','fun_cantonese','nar_enabled','mo_reduce','att_focus','att_low','att_time','att_one','att_momentum','nt_toast','nt_quiet','id_name','ed_choice','ap_family','ap_size','cp_hue','cp_rainbow'];
+const PALETTE_DOC_INVENTORY = ['e_transport','e_context','e_direct','e_symmetric','e_forcerport','e_rewrite','e_encryption','e_dtmf','e_maxcontacts','e_qualify','q_strategy','q_wrapup','q_ringinuse','q_joinempty','q_service','v_delete','v_maxsecs','s_guest','s_stir','s_level','k_order','r_start','d_backend','a_read','mo_auto','g_rotate','sv_kind','sv_hostkey','hi_commit','fun_random','fun_level'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },
@@ -3182,7 +3192,7 @@ class Component extends DCLogic {
     cli:{ verb:'pjsip', obj:'show', target:'endpoints' },
     regex:['^memory/', 'projects', '\\.md$'],
     patterns:{ nav:[], table:[], memory:['^memory/', 'projects'], palette:[], ctx:[], sub:[] },
-    regexOpen:false, regexTarget:'nav', regexX:'300px', regexY:'120px', regexFlags:['i'],
+    regexOpen:false, regexTarget:'nav', regexX:'300px', regexY:'120px', regexFlags:['i'], regexSamples:{},
     ctxOpen:false, ctxX:'0px', ctxY:'0px', ctxTarget:'', ctxKind:'screen', ctxReturnFocus:null, ctxFilter:'', ctxRegexOn:false, subFilter:'', subRegexOn:false, recoveryOpen:false, recoveryAction:null, recoveryTitle:'', recoveryBody:'', recoveryStatus:'No retry or re-authentication has run yet.',
     locks:{}, lockOpen:false, lockTarget:'', lockKey:'', lockStep:0, lockMethod:'PIN', pin:'', password:'', pinReveal:false, lockX:'40%', lockY:'22%',
     credits:3, game:'whack', gameScore:0, gameTime:0, gameCell:-1, gamePlaying:false,
@@ -3250,6 +3260,10 @@ class Component extends DCLogic {
 
   componentDidUpdate() {
     this.persistDesktopState?.();
+    const flags = { info:this.state.infoOpen, wizard:this.state.wizardOpen, palette:this.state.paletteOpen, ceremony:this.state.ceremonyOpen, regex:this.state.regexOpen, ctx:this.state.ctxOpen, lock:this.state.lockOpen, unlock:this.state.unlockOpen, appear:this.state.appearOpen, sure:this.state.sureOpen, tabFilter:this.state.tabFilterOpen, tabColour:this.state.tabColourOpen, rename:this.state.renameOpen, onboard:this.state.onboardOpen, tour:this.state.tourOpen, recovery:this.state.recoveryOpen };
+    this._overlayOrigins = this._overlayOrigins || {};
+    Object.keys(flags).forEach(key => { if (flags[key] && !this._overlayFlags?.[key]) this._overlayOrigins[key] = document.activeElement; });
+    this._overlayFlags = flags;
     if (this.state.ctxOpen && !this._ctxWasOpen) setTimeout(() => document.querySelector('[role="menu"] input')?.focus(), 0);
     if (this.state.recoveryOpen && !this._recoveryWasOpen) setTimeout(() => document.querySelector('[data-overlay="recovery"] button')?.focus(), 0);
     this._ctxWasOpen = this.state.ctxOpen;
@@ -3261,16 +3275,18 @@ class Component extends DCLogic {
     const query = String(state.paletteQuery || '').trim();
     const all = PALETTE_INVENTORY.flatMap(k => {
       const screen = { key:k, icon:SCREENS[k].icon, label:SCREENS[k].title, hint:SCREENS[k].file || 'console', kind:'destination' };
-      const controls = (SCREENS[k].groups || []).flatMap(group => (group.ctls || []).map(control => ({ key:k, icon:'tune', label:control.label, hint:k + ' · setting', kind:'setting', controlId:control.id })));
+      const controls = (SCREENS[k].groups || []).flatMap(group => (group.ctls || []).map(control => ({ key:k, icon:'tune', label:control.label, hint:k + ' · setting', kind:'setting', isSetting:true, inline:this.buildCtl(control), controlId:control.id, inventoried:PALETTE_CONTROL_INVENTORY.indexOf(control.id) >= 0 })));
       return [screen].concat(controls);
-    });
+    }).concat(PALETTE_DOC_INVENTORY.map(id => ({ key:'docs', icon:'menu_book', label:'Article · ' + id, hint:id, kind:'article', articleId:id })))
+      .concat((state.tabs || []).map(tab => ({ key:tab, icon:'tab', label:'Tab · ' + (state.tabNames?.[tab] || tab), hint:'tab', kind:'tab' })))
+      .concat((state.groups || []).map(group => ({ key:state.screen, icon:'folder', label:'Group · ' + String(group.name || group.id), hint:'group', kind:'group' })));
     if (!query) return all;
     if (!state.paletteRegexOn) return all.filter(item => item.label.toLowerCase().includes(query.toLowerCase()) || item.hint.toLowerCase().includes(query.toLowerCase()));
     try { const re = new RegExp(query, 'i'); return all.filter(item => re.test(item.label) || re.test(item.hint)); }
     catch (error) { return []; }
   };
   openPalette = () => { this.paletteReturnFocus = document.activeElement; this.setState({ paletteOpen:true, paletteCursor:0 }); setTimeout(() => document.getElementById('palette-search')?.focus(), 0); };
-  closePalette = () => { this.setState({ paletteOpen:false }); setTimeout(() => { if (this.paletteReturnFocus && this.paletteReturnFocus.focus) this.paletteReturnFocus.focus(); }, 0); };
+  closePalette = () => { this.closeOverlay('palette'); setTimeout(() => { if (this.paletteReturnFocus && this.paletteReturnFocus.focus) this.paletteReturnFocus.focus(); }, 0); };
   activatePaletteItem = (item) => { this.setState({ paletteOpen:false }); this.openScreen(item.key); setTimeout(() => { if (item.kind !== 'setting') return; const target = Array.from(document.querySelectorAll('[aria-label]')).find(node => node.getAttribute('aria-label') === item.label); target?.focus?.(); }, 0); };
   activatePaletteCursor = () => { const item = this.filteredPalette(this.state)[this.state.paletteCursor]; if (item) this.activatePaletteItem(item); };
   persistNotifications = (items) => { this.persistDesktopState?.({ notifications:items.slice(0, 200) }); };
@@ -3281,13 +3297,15 @@ class Component extends DCLogic {
     const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'notification-history.json'; link.click(); URL.revokeObjectURL(url);
   };
   resetOverlay = (key) => {
-    const canonical = { 'overlay-61':'info', 'overlay-82':'lock', 'overlay-97':'regex', 'overlay-84':'appear', 'overlay-55':'wizard', 'overlay-81':'filter' }[key] || key;
+    const canonical = /overlay-61-/.test(key) ? 'info' : (/overlay-82-/.test(key) ? 'lock' : (/overlay-97-/.test(key) ? 'regex' : (/overlay-84-/.test(key) ? 'appear' : (/overlay-55-/.test(key) ? 'wizard' : (/overlay-81-/.test(key) ? 'filter' : key)))));
     key = canonical;
     const dlgPos = Object.assign({}, this.state.dlgPos); const dlgSize = Object.assign({}, this.state.dlgSize); const dlgDock = Object.assign({}, this.state.dlgDock);
     delete dlgPos[key]; delete dlgSize[key]; delete dlgDock[key];
     this.setState({ dlgPos, dlgSize, dlgDock });
   };
   resetTabs = () => this.setState({ tabs:['dash', 'endpoints', 'canvas'], pinned:['dash'], groups:[], tabNames:{}, tabColours:{}, dock:'left' });
+  closeOverlay = (key, patch = {}) => { this.setState({ ...patch, [key + 'Open']:false }); const origin = this._overlayOrigins?.[key]; setTimeout(() => origin?.focus?.(), 0); };
+  closeActiveOverlay = () => { const key = Object.keys(this._overlayFlags || {}).find(candidate => this._overlayFlags[candidate]); if (key) this.closeOverlay(key); };
 
   set = (k, v) => this.setState(s => ({ [k]:v }));
   val = (c) => (this.state.values[c.id] !== undefined ? this.state.values[c.id] : c.value);
@@ -3832,6 +3850,7 @@ class Component extends DCLogic {
       togglePalette:() => s.paletteOpen ? this.closePalette() : this.openPalette(),
       openNotifications:() => this.setState({ railId:'app', screen:'notifications' }),
       unreadNotificationCount:(s.notifications || []).filter(n => n.state === 'Unread').length,
+      durableStatus:'Durable UI state is ready.',
       startOnboarding:() => this.setState({ onboardOpen:true, onboardStep:0 }),
 
       rail:RAIL.map(r => ({ icon:r.icon, label:r.label, on:r.id === s.railId, off:r.id !== s.railId, pick:() => this.setState({ railId:r.id, screen:ORDER.find(k => SCREENS[k].rail === r.id) }) })),
@@ -4164,7 +4183,7 @@ class Component extends DCLogic {
         this.setState(st => ({ tabNames:Object.assign({}, st.tabNames, { [key]:st.renameValue }), renameOpen:false }));
         this.toast('Tab renamed');
       },
-      cancelRename:() => this.set('renameOpen', false),
+      cancelRename:() => this.closeOverlay('rename'),
       tabColourOpen:s.tabColourOpen,
       tabColourOpts:['#82D9A5', '#FFD68A', '#FFB4AB', '#8AB4F8', '#D8A9F0', '#DFE4DC'].map(c => ({ colour:c, border:s.tabColours[s.renameKey] === c ? '#DFE4DC' : 'transparent', pick:() => this.applyColour(c) })),
       cpickValue:'hsl(' + this.v('cp_hue', 148) + ' ' + this.v('cp_sat', 60) + '% ' + this.v('cp_light', 62) + '%)',
@@ -4225,8 +4244,8 @@ class Component extends DCLogic {
           this.toast(count + ' tab(s) closed. Protected tabs stayed open.');
         });
       },
-      closeTabFilter:() => this.set('tabFilterOpen', false),
-      closeTabColour:() => this.set('tabColourOpen', false),
+      closeTabFilter:() => this.closeOverlay('tabFilter'),
+      closeTabColour:() => this.closeOverlay('tabColour'),
       tabs:s.tabs.filter(k => { const g = s.groups.find(x => x.tabs.indexOf(k) >= 0); return !(g && (g.collapsed || g.hidden)); }).map((k) => {
         const i = s.tabs.indexOf(k);
         return {
@@ -4498,7 +4517,7 @@ class Component extends DCLogic {
       screenLocked:!!s.locks[s.screen], lockedTitle:sc.title,
       unlockOpen:s.unlockOpen,
       openUnlock:() => this.setState({ unlockOpen:true, unlockKey:s.screen, unlockPin:'', unlockPw:'' }),
-      closeUnlock:() => this.set('unlockOpen', false),
+      closeUnlock:() => this.closeOverlay('unlock'),
       unlockMethod:(s.locks[s.unlockKey] || {}).method || 'PIN',
       unlockNeedsPin:((s.locks[s.unlockKey] || {}).method || 'PIN').indexOf('PIN') >= 0,
       unlockNeedsPw:((s.locks[s.unlockKey] || {}).method || '').indexOf('Password') >= 0,
@@ -4555,6 +4574,12 @@ class Component extends DCLogic {
       regexChips:(s.patterns[s.regexTarget] || []).map((t, i) => ({ label:t, remove:() => { const p = Object.assign({}, s.patterns); p[s.regexTarget] = p[s.regexTarget].filter((_, j) => j !== i); this.setState({ patterns:p }); } })),
       regexGroups:REGEX_GROUPS.map(g => ({ title:g.title, items:g.items.map(([token, label]) => ({ token, label, add:() => { const p = Object.assign({}, s.patterns); p[s.regexTarget] = (p[s.regexTarget] || []).concat([token]); this.setState({ patterns:p }); } })) })),
       regexFlags:[['i', 'ignore case'], ['g', 'all matches'], ['m', 'multiline'], ['s', 'dot matches newline']].map(([f, l]) => ({ label:f + ' · ' + l, on:s.regexFlags.indexOf(f) >= 0, off:s.regexFlags.indexOf(f) < 0, toggle:() => this.set('regexFlags', s.regexFlags.indexOf(f) >= 0 ? s.regexFlags.filter(x => x !== f) : s.regexFlags.concat([f])) })),
+      regexSample:s.regexSamples[s.regexTarget] || '',
+      onRegexSample:(e) => { const samples = Object.assign({}, s.regexSamples, { [s.regexTarget]:String(e.target.value).slice(0, 2000) }); this.setState({ regexSamples:samples }); },
+      regexMatchesLabel:(() => { const sample = s.regexSamples[s.regexTarget] || ''; const pattern = (s.patterns[s.regexTarget] || []).join(''); if (!pattern) return 'No pattern. Plain text remains the default in the originating field.'; try { const re = new RegExp(pattern, s.regexFlags.filter(f => f !== 'g').join('')); const matches = sample ? Array.from(sample.matchAll(new RegExp(pattern, s.regexFlags.includes('g') ? s.regexFlags.join('') : s.regexFlags.concat(['g']).join('')))).length : 0; return `Pattern valid. ${matches} match(es) in the sample.`; } catch (e) { return 'Pattern invalid. No matches are applied.'; } })(),
+      regexCaptures:(() => { const sample = s.regexSamples[s.regexTarget] || ''; const pattern = (s.patterns[s.regexTarget] || []).join(''); if (!sample || !pattern) return []; try { const re = new RegExp(pattern, s.regexFlags.filter(f => f !== 'g').join('')); const match = re.exec(sample); return match ? match.slice(1, 9).map((value, i) => ({ label:'$' + (i + 1), value:value === undefined ? 'not captured' : value })) : []; } catch (e) { return []; } })(),
+      copyRegex:() => { void navigator.clipboard?.writeText((s.patterns[s.regexTarget] || []).join('')).then(() => this.toast('Pattern copied'), () => this.toast('Pattern could not be copied')); },
+      exportRegex:() => { const pattern = (s.patterns[s.regexTarget] || []).join(''); const sample = s.regexSamples[s.regexTarget] || ''; let captures = []; try { const match = pattern && sample ? new RegExp(pattern, s.regexFlags.filter(f => f !== 'g').join('')).exec(sample) : null; captures = match ? match.slice(1, 9) : []; } catch (e) {} const blob = new Blob([JSON.stringify({ schemaVersion:1, target:s.regexTarget, pattern, flags:s.regexFlags, sample, captures }, null, 2)], { type:'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'regex-result.json'; link.click(); URL.revokeObjectURL(url); },
       regexCount:(() => { const pat = (s.patterns[s.regexTarget] || []).join(''); if (!pat) return 'no filter'; try { new RegExp(pat); return 'valid pattern'; } catch (e) { return 'invalid pattern'; } })(),
       regexPreview:(() => {
         const pat = (s.patterns[s.regexTarget] || []).join('');
@@ -4567,7 +4592,7 @@ class Component extends DCLogic {
         if (s.regexTarget === 'palette') this.setState({ paletteQuery:(s.patterns.palette || []).join(''), paletteRegexOn:true, regexOpen:false });
         else if (s.regexTarget === 'ctx') this.setState({ ctxFilter:(s.patterns.ctx || []).join(''), ctxRegexOn:true, regexOpen:false });
         else if (s.regexTarget === 'sub') this.setState({ subFilter:(s.patterns.sub || []).join(''), subRegexOn:true, regexOpen:false });
-        else this.set('regexOpen', false);
+        else this.closeOverlay('regex');
       },
 
       ctxOpen:s.ctxOpen, ctxX:s.ctxX, ctxY:s.ctxY, ctxTarget:s.ctxTarget,
@@ -4624,7 +4649,7 @@ class Component extends DCLogic {
       subY:(parseInt(s.ctxY, 10) + 84) + 'px',
       ctxScreen:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxReturnFocus:e.currentTarget, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:sc.title + ' · ' + (sc.file || 'console'), ctxKind:'screen' }); },
       ctxSearch:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxReturnFocus:e.currentTarget, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'search field', ctxKind:'search' }); },
-      closeCtx:(e) => { if (e && e.preventDefault) e.preventDefault(); const target = s.ctxReturnFocus; this.setState({ ctxOpen:false, ctxSub:'', ctxReturnFocus:null }); setTimeout(() => { if (target && target.focus) target.focus(); }, 0); },
+      closeCtx:(e) => { if (e && e.preventDefault) e.preventDefault(); this.closeOverlay('ctx', { ctxSub:'', ctxReturnFocus:null }); },
       ctxItems:(() => {
         const close = () => this.setState({ ctxOpen:false, ctxSub:'' });
         const decorate = (list) => {
@@ -4645,7 +4670,7 @@ class Component extends DCLogic {
           { icon:'lock', label:'Lock this element…', hint:'⌃L', run:() => this.setState({ ctxOpen:false, lockOpen:true, lockTarget:s.ctxTarget, lockKey:s.screen, lockStep:0, pin:'', password:'', lockX:s.ctxX, lockY:s.ctxY }) },
           { icon:'brush', label:'Edit appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:s.ctxTarget }) },
           { icon:'help', label:'Explain this…', hint:'F1', run:() => { close(); this.showInfo(s.ctxTarget, sc.sub, null, s.ctxX, s.ctxY); } },
-          { icon:'key', label:'Recover or re-authenticate…', hint:'', run:() => this.setState({ ctxOpen:false, recoveryOpen:true, recoveryAction:{ target:String(s.ctxTarget).slice(0, 128), kind:String(s.ctxKind).slice(0, 32), action:'retry-current-reading', source:String(sc.file || 'console').slice(0, 128) }, recoveryTitle:'Recovery for ' + s.ctxTarget, recoveryBody:'The failed action stays unchanged. Choose Retry to run it again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus:'No retry or re-authentication has run yet.' }) }
+          { icon:'key', label:'Recover or re-authenticate…', hint:'', run:() => this.setState({ ctxOpen:false, recoveryOpen:true, recoveryAction:{ target:String(s.ctxTarget).slice(0, 128), kind:String(s.ctxKind).slice(0, 32), action:'retry-current-reading', source:String(sc.file || 'console').slice(0, 128), screen:s.screen }, recoveryTitle:'Recovery for ' + s.ctxTarget, recoveryBody:'The failed action stays unchanged. Choose Retry to run it again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus:'No retry or re-authentication has run yet.' }) }
         ];
         if (s.ctxKind === 'group') {
           const g = s.groups.find(x => x.id === s.ctxGroupId) || { tabs:[], name:'' };
@@ -4660,7 +4685,8 @@ class Component extends DCLogic {
             { icon:'link_off', label:'Ungroup', hint:'', run:() => { close(); this.setState({ groups:s.groups.filter(x => x.id !== g.id) }); this.toast('Group dissolved — tabs kept'); } },
             { icon:'close', label:'Close group and its tabs', hint:'', run:() => { close(); this.areYouSure('Close ' + g.name, 'Every tab in this group closes. Unsaved staged changes in them are discarded.', 3, () => { const keep = s.tabs.filter(t => g.tabs.indexOf(t) < 0); this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep[0] || 'dash', groups:s.groups.filter(x => x.id !== g.id) }); }); } },
             { icon:'brush', label:'Edit group appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:'group · ' + g.name }) },
-            { icon:'lock', label:'Lock this group…', hint:'⌃L', run:common[0].run }
+            { icon:'lock', label:'Lock this group…', hint:'⌃L', run:common[0].run },
+            common[3]
           ]);
         }
         if (s.ctxKind === 'tab') {
@@ -4678,7 +4704,8 @@ class Component extends DCLogic {
             { icon:'folder', label:'Group tabs by area', hint:'', run:() => { close(); this.toast('Tabs grouped by rail area'); } },
             { icon:'open_in_new', label:'Move to new window', hint:'', run:() => { close(); this.toast('Tab detached to its own window'); } },
             { icon:'dock_to_right', label:'Dock this tab right', hint:'', run:() => { close(); this.set('dock', 'right'); } },
-            { icon:'lock', label:'Lock this tab…', hint:'⌃L', run:common[0].run }
+            { icon:'lock', label:'Lock this tab…', hint:'⌃L', run:common[0].run },
+            common[3]
           ]);
         }
         if (s.ctxKind === 'row') {
@@ -4725,6 +4752,7 @@ class Component extends DCLogic {
         ].concat(common));
       })(),
       ctxFilter:s.ctxFilter,
+      ctxResultLabel:s.ctxFilter ? 'Filtered actions. Arrow keys move through the remaining results.' : 'Actions available. Arrow keys move through results.',
       subFilter:s.subFilter,
       onCtxFilter:(e) => this.setState({ ctxFilter:e.target.value, ctxRegexOn:false }),
       onSubFilter:(e) => this.setState({ subFilter:e.target.value, subRegexOn:false }),
@@ -4738,7 +4766,7 @@ class Component extends DCLogic {
         if (next && next.focus) next.focus();
       },
       overlayKeyDown:(e) => {
-        if (e.key === 'Escape') { e.preventDefault(); this.setState({ ctxOpen:false, recoveryOpen:false, paletteOpen:false, regexOpen:false }); return; }
+        if (e.key === 'Escape') { e.preventDefault(); this.closeActiveOverlay(); return; }
         if (e.key === 'Home' && e.ctrlKey) { e.preventDefault(); this.resetOverlay(e.currentTarget.dataset.overlayKey || e.currentTarget.dataset.overlay || 'overlay'); return; }
         if (!e.ctrlKey && !e.shiftKey) return;
         const step = e.shiftKey ? 16 : 4;
@@ -4757,7 +4785,7 @@ class Component extends DCLogic {
       recoveryBody:s.recoveryBody,
       recoveryDescriptor:s.recoveryAction ? [s.recoveryAction.kind, s.recoveryAction.target, s.recoveryAction.action].join(' · ') : 'No failed action recorded',
       recoveryStatus:s.recoveryStatus,
-      closeRecovery:() => this.setState({ recoveryOpen:false }),
+      closeRecovery:() => this.closeOverlay('recovery'),
       recoveryRetry:() => this.setState({ recoveryStatus:'Retry requested. The action remains pending until the control plane confirms it.' }),
       recoveryReauth:() => this.setState({ recoveryStatus:'Re-authentication requested. No credential is displayed or copied into the recovery record.' }),
 
@@ -4829,7 +4857,7 @@ class Component extends DCLogic {
         this.setState({ locks:L, lockOpen:false });
         this.toast(s.lockTarget + ' is locked with ' + s.lockMethod + ' — the surface is now disabled');
       },
-      closeLock:() => this.set('lockOpen', false),
+      closeLock:() => this.closeOverlay('lock'),
       pairAuth:() => this.toast('Built-in authenticator paired for this element only'),
 
       appearOpen:s.appearOpen, appearTarget:s.appearTarget,
@@ -4859,7 +4887,7 @@ class Component extends DCLogic {
         { icon:'download', label:'Export', run:() => this.toast('Appearance exported as JSON') },
         { icon:'upload', label:'Import', run:() => this.toast('Pick an appearance file to import') }
       ],
-      closeAppear:() => this.set('appearOpen', false),
+      closeAppear:() => this.closeOverlay('appear'),
 
       celebrate:s.celebrate, celebrateTitle:s.celebrateTitle, celebrateSub:s.celebrateSub,
       confetti:Array.from({ length:90 }, (_, i) => ({
@@ -4884,7 +4912,7 @@ class Component extends DCLogic {
       docWizard:() => { const c = s.infoDoc; this.setState({ infoOpen:false }); if (this._lastCtl) this.openCtlWizard(this._lastCtl); },
       infoOpen:s.infoOpen, infoTitle:s.infoTitle, infoBody:s.infoBody, infoPlain:s.infoPlain,
       infoX:s.infoX, infoY:s.infoY, infoDiagram:'diagram slot — drop a real screenshot or schematic here',
-      closeInfo:() => this.set('infoOpen', false),
+      closeInfo:() => this.closeOverlay('info'),
 
       wizardOpen:s.wizardOpen,
       wizardChrome:this.dockChrome('wizard', '46%', '96px', 432).style,
@@ -4908,14 +4936,15 @@ class Component extends DCLogic {
       // every answer and then reloaded a file it had never written to, reporting success.
       // A screen that can actually create the thing it asked about supplies its own
       // handler, the way the servers screen already does.
-      wizardNext:() => { if (last) { this.setState({ wizardOpen:false });
+      wizardNext:() => { if (last) { this.closeOverlay('wizard');
         if (this.state.screen === 'endpoints' && this.onCreateEndpoint) { this.onCreateEndpoint(); return; }
         this.ceremony('Apply guided configuration', this.state.screen === 'servers' ? 'connect ' + (this.val({ id:'sv_kind', value:'Local' })) : 'pjsip reload'); } else this.setState(st => ({ wizardStep:Math.min(flow.length - 1, st.wizardStep + 1) })); },
       wizardBack:() => this.setState(st => ({ wizardStep:Math.max(0, st.wizardStep - 1) })),
-      closeWizard:() => this.setState({ wizardOpen:false, wizardCtl:null }),
+      closeWizard:() => this.closeOverlay('wizard', { wizardCtl:null }),
 
       paletteOpen:s.paletteOpen,
       paletteQuery:s.paletteQuery || '',
+      paletteResultLabel:this.filteredPalette(s).length + ' result(s). Use Up and Down to move, Enter to teleport.',
       onPaletteQuery:(e) => this.setState({ paletteQuery:e.target.value, paletteRegexOn:false, paletteCursor:0 }),
       paletteKeyDown:(e) => {
         if (e.key === 'ArrowDown') { e.preventDefault(); this.setState(st => ({ paletteCursor:Math.min(this.paletteCount(st), st.paletteCursor + 1) })); }
@@ -4947,12 +4976,12 @@ class Component extends DCLogic {
       sureReady:s.sureHits >= s.sureNeed, sureLocked:s.sureHits < s.sureNeed,
       sureCells:Array.from({ length:8 }, (_, i) => ({ up:i === s.sureCell, down:i !== s.sureCell,
         hit:() => { const h = this.state.sureHits + 1; this.setState({ sureHits:h, sureCell:h >= this.state.sureNeed ? -1 : Math.floor(Math.random() * 8) }); if (h >= this.state.sureNeed) this.toast('Yes unlocked — you are demonstrably awake'); } })),
-      closeSure:() => this.setState({ sureOpen:false, sureHits:0, sureCell:-1 }),
-      sureYes:() => { const act = this.state.sureAction; this.setState({ sureOpen:false, sureHits:0, sureCell:-1 }); if (act) act(); },
+      closeSure:() => this.closeOverlay('sure', { sureHits:0, sureCell:-1 }),
+      sureYes:() => { const act = this.state.sureAction; this.closeOverlay('sure', { sureHits:0, sureCell:-1 }); if (act) act(); },
       canSkip:s.credits > 0 && s.cStep < 4 && this.v('cr_enable', true),
       skipCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.setState({ credits:s.credits - 1, ceremonyOpen:false }); this.fire('Skipped', s.ceremonyCmd + ' ran on a credit. ' + (s.credits - 1) + ' left.'); },
       goArcade:() => this.setState({ railId:'app', screen:'arcade' }),
-      cancelCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.set('ceremonyOpen', false); },
+      cancelCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.closeOverlay('ceremony'); },
       executeCeremony:() => { clearInterval(this._mole); this.setState({ ceremonyOpen:false }); this.toast(s.ceremonyCmd + ' executed and attested'); },
 
       onboardFirst:s.onboardStep === 0,
@@ -4966,13 +4995,13 @@ class Component extends DCLogic {
         ? { onboardOpen:false, tourOpen:st.values.ob_tour !== false, tourStep:0, screen:'servers', railId:'app' }
         : { onboardStep:st.onboardStep + 1 })),
       onboardBack:() => this.setState(st => ({ onboardStep:Math.max(0, st.onboardStep - 1) })),
-      skipOnboard:() => this.setState({ onboardOpen:false, tourOpen:false }),
+      skipOnboard:() => this.closeOverlay('onboard', { tourOpen:false }),
 
       tourOpen:s.tourOpen, tourTitle:TOUR[s.tourStep].t, tourBody:TOUR[s.tourStep].b,
       tourX:TOUR[s.tourStep].x, tourY:TOUR[s.tourStep].y,
       tourCount:(s.tourStep + 1) + ' of ' + TOUR.length,
-      tourNext:() => { if (s.tourStep === TOUR.length - 1) this.set('tourOpen', false); else this.set('tourStep', s.tourStep + 1); },
-      endTour:() => this.set('tourOpen', false),
+      tourNext:() => { if (s.tourStep === TOUR.length - 1) this.closeOverlay('tour'); else this.set('tourStep', s.tourStep + 1); },
+      endTour:() => this.closeOverlay('tour'),
 
       toastOpen:s.toastOpen, toastText:s.toastText,
       undoToast:() => { this.setState({ toastOpen:false }); this.toast('Change reverted'); }

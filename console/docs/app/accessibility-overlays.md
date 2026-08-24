@@ -26,9 +26,11 @@ Toasts and celebration messages append to durable local notification history. Th
 
 The tab strip exposes `tablist`, `tab`, `tabpanel`, and `group` semantics, with roving tab indexes and axis-aware arrow keys. Close controls have an accessible name and a 44px target. Tab bulk-close uses one shared predicate for preview and execution, rejects empty or invalid input, defaults to plain text, and protects pinned, locked, or unsaved tabs. Select controls expose `listbox` and `option` semantics with a plain-text-first local filter and a full opt-in regex builder.
 
-The command palette inventory is hand-written and includes every destination plus every declared setting. A destination result opens its screen, while a setting result opens the screen and returns focus to the matching labelled control. The palette traps Tab focus while open and announces its result set through the live result list.
+The command palette inventory is hand-written and includes every destination, declared setting, article id, open tab, and tab group. Setting results render the same rich control used by the owning screen, while destination and setting results teleport to their screen and return focus to the matching labelled control. The palette traps Tab focus while open and announces its result set through the live result list.
 
-Low stimulation is consumed at the root: non-essential celebration and toast presentation is suppressed while the notification record is still retained in durable history. Focus and reduced-motion classes are reapplied after durable bootstrap.
+Low stimulation is consumed at the root: non-essential celebration and toast presentation is suppressed while the notification record is still retained in durable history. Focus and reduced-motion classes are reapplied after durable bootstrap. Persistence refusal is surfaced in the toolbar status, while pre-bootstrap writes queue and flush after the snapshot is ready.
+
+The regex builder keeps sample text per originating field, reports match counts, exposes capture groups, copies the pattern, and exports a bounded JSON result containing the exact pattern, flags, sample, and captures. Plain text remains the default until the user opens regex mode.
 
 ## Verification boundary
 

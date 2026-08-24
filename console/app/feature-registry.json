@@ -288,17 +288,17 @@
     },
     "context-menu-shortcuts": {
       "state": "implemented",
-      "note": "Context menus and submenus retain their declared shortcut hints in an aligned shortcut column and each owns a keyboard-focusable plain-text-first search field plus an adjacent anchored regex builder. Arrow keys move through actions, Escape closes the menu, invalid patterns produce no matches, and filtering preserves action handlers.",
+      "note": "Context menus and submenus retain their declared shortcut hints in an aligned shortcut column and each owns a keyboard-focusable plain-text-first search field plus an adjacent anchored regex builder with sample, match, capture, copy, and export behavior. Arrow keys move through menuitems, Escape closes the menu, invalid patterns produce no matches, result counts are announced, and filtering preserves action handlers.",
       "files": ["design/Asterisk Console M3.dc.html", "design/M3 Control.dc.html", "scripts/compile-design.mjs", "app/renderer/src/generated/console.tsx", "app/renderer/src/generated/m3-control.tsx"]
     },
     "long-operation-progress": {
       "state": "implemented",
-      "note": "The one-click deployment dialog reports the current stage, semantic progressbar value, completed log entries, and a settled status that remains visible after completion or cancellation. A generation plus AbortController invalidates stale replies, checks after every await, and blocks stale side effects. Re-entry is refused and cancellation preserves the completed observation count.",
+      "note": "The one-click deployment dialog reports the current stage, semantic progressbar value, completed log entries, and a settled status that remains visible after completion or cancellation. A generation plus AbortController races the actual bridge promise, invalidates stale replies, checks after every await, and blocks stale side effects. The UI states the exact pending bridge boundary when cancellation cannot terminate the underlying request. Re-entry is refused and cancellation preserves the completed observation count.",
       "files": ["design/Asterisk Console M3.dc.html", "app/renderer/src/App.tsx", "app/renderer/src/generated/console.tsx"]
     },
     "in-context-recovery": {
       "state": "implemented",
-      "note": "Every shared context-menu target, including live canvas targets, exposes Recover or re-authenticate. The anchored recovery panel names the target, keeps the failed action unchanged, and routes Retry to a fresh reading and Re-authenticate to the local discovery path, with live status that does not display credentials or claim completion.",
+      "note": "Every shared context-menu target, including live canvas, group, and tab targets, exposes Recover or re-authenticate. A bounded exact failed-action descriptor records target, kind, action, source, and screen. The anchored recovery panel names that descriptor, routes Retry to the exact recorded reading, and routes Re-authenticate to the local discovery path, with live status that does not display credentials or claim completion.",
       "files": ["design/Asterisk Console M3.dc.html", "app/renderer/src/App.tsx", "app/renderer/src/generated/console.tsx"]
     },
     "provider-markup-rendering": {

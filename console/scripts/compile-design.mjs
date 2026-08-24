@@ -173,6 +173,7 @@ const ATTR_NAMES = {
 
 const DROP_ATTRS = new Set(['list', 'as', 'name', 'ctl', 'family']);
 const HINT_PREFIX = 'hint-';
+let overlaySerial = 0;
 
 const EVENTS = new Set([
   'onClick', 'onInput', 'onChange', 'onContextMenu', 'onMouseDown', 'onMouseUp',
@@ -251,10 +252,11 @@ function emit(node, scope, hovers, indent) {
   if (node.tag === 'div' && !node.attrs?.['data-overlay'] && overlayStyle.includes('position:absolute') && overlayZ >= 55) {
     const scrim = overlayStyle.includes('background:rgba(0,0,0') || (overlayStyle.includes('inset:0') && (node.attrs.onClick || node.attrs.onContextMenu));
     node.attrs['data-overlay'] = scrim ? 'scrim' : 'panel';
-    node.attrs['data-overlay-key'] = `overlay-${overlayZ}`;
+    const overlayKey = `overlay-${overlayZ}-${overlaySerial++}`;
+    node.attrs['data-overlay-key'] = overlayKey;
     if (!scrim) {
       node.attrs.role = node.attrs.role || 'dialog';
-      node.attrs['aria-label'] = node.attrs['aria-label'] || 'Overlay panel';
+      node.attrs['aria-label'] = node.attrs['aria-label'] || `Overlay panel ${overlayKey}`;
       node.attrs.tabindex = node.attrs.tabindex || '-1';
       node.attrs.onKeyDown = node.attrs.onKeyDown || '{{ overlayKeyDown }}';
     }
@@ -388,6 +390,7 @@ function soleIconName(node) {
 }
 
 function compileComponent({ name, source, componentName, extraImports = '', exports: exportNames = [], windowChrome = false }) {
+  overlaySerial = 0;
   const hovers = new HoverStyles(`${name}-h`);
   // `<helmet>` carries the font-CDN links and the global stylesheet. Both are emitted
   // into design-styles.css instead, so the rendered tree drops the element entirely.

@@ -54,6 +54,8 @@ export interface DurableStorageHandle {
    *  immediately with an empty cache). Callers that restore persisted UI state at mount
    *  should await this before reading, then re-render. */
   bootstrap(): Promise<void>;
+  flush(): Promise<boolean>;
+  lastError(): string | undefined;
 }
 
 /**
@@ -65,6 +67,8 @@ export function createDurableStorage(bridge: DurableStorageBridge | undefined): 
   const cache = new Map<string, string>();
   let bootstrapped = false;
   let bootstrapPromise: Promise<void> | undefined;
+  let pendingWrites: Promise<void> = Promise.resolve();
+  let writeError: string | undefined;
 
   async function bootstrap(): Promise<void> {
     if (bootstrapped) return;
@@ -97,7 +101,14 @@ export function createDurableStorage(bridge: DurableStorageBridge | undefined): 
     // renderer's own next read is correct regardless of how long the IPC round trip
     // takes. A failure here means the next relaunch loses this one write; it never
     // corrupts the in-session value.
-    void bridge.controlPlane.request({ requestId: newRequestId(), action, payload }).catch(() => {});
+    pendingWrites = pendingWrites.then(async () => {
+      try {
+        const result = await bridge.controlPlane.request({ requestId: newRequestId(), action, payload });
+        if (!result?.ok) writeError = 'The durable settings store refused a write.';
+      } catch {
+        writeError = 'The durable settings store could not be reached.';
+      }
+    });
   }
 
   const storage: DurableStorage = {
@@ -115,5 +126,10 @@ export function createDurableStorage(bridge: DurableStorageBridge | undefined): 
     },
   };
 
-  return { storage, bootstrap };
+  return {
+    storage,
+    bootstrap,
+    flush: async () => { await pendingWrites; return !writeError; },
+    lastError: () => writeError,
+  };
 }
