@@ -31,6 +31,7 @@ import {
 } from './display-name';
 import { setEmojisEnabled } from './dialog-emojis';
 import { isAttentionMode, setModeEnabled } from './attention-modes';
+import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
 import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
@@ -496,6 +497,34 @@ export class App extends Base {
     this.forceUpdate();
   };
 
+  // ---------------------------------------------------------------- support tickets
+
+  /** Files the ticket locally and shows the resolution. Nothing leaves the machine, and
+   *  nothing is deleted here: the console opens the folder and the person deletes it. */
+  private fileSupportTicket(): void {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const result = openTicket({
+      category: String(values.sup_category ?? 'Something else') as TicketCategory,
+      description: String(values.sup_description ?? ''),
+      severity: String(values.sup_severity ?? 'Normal') as TicketSeverity,
+      openedAt: new Date().toISOString(),
+      draw: Math.random(),
+    });
+    if ('problems' in result) {
+      this.fire('That ticket will not file', result.problems[0].message);
+      return;
+    }
+    const resolution = resolutionFor(IDENTITY.dataDirectory);
+    this.fire(`Ticket ${result.id} — ${result.status}`,
+      `${result.firstResponse}
+
+${resolution.instructions}
+
+${resolution.consequence}
+
+${resolution.disclosure}`);
+  }
+
   // ---------------------------------------------------------------- display name
 
   /** Seeds the rename field with the stored name. An unset name leaves the control on
@@ -541,6 +570,10 @@ export class App extends Base {
     }
     /* The five attention modes share one prefix and one handler, so adding a sixth is
      * a registry entry rather than another branch here. */
+    if (control?.id === 'sup_open' && value === true) {
+      this.fileSupportTicket();
+      return;
+    }
     if (control?.id?.startsWith('att_') && typeof value === 'boolean') {
       const mode = App.ATTENTION_CONTROLS[control.id];
       if (isAttentionMode(mode)) setModeEnabled(this.durableStorage.storage, mode, value);

@@ -210,9 +210,13 @@
       ]
     },
     "support-tickets": {
-      "state": "absent",
-      "note": "No Support Tickets surface exists; the per-element lock has no forgotten-password recovery route of any kind.",
-      "files": []
+      "state": "implemented",
+      "note": "Implemented 2026-08-23 as app/renderer/src/support-tickets.ts with four controls in the design, filed through App.tsx. The joke desk is played straight -- category, severity nobody honours, a locally generated ticket number, a status that advances and stops at Resolved, a canned reply -- and the resolution opens the application-data folder so the person can delete it themselves. It never deletes anything: `action` is the literal \"open-folder\" rather than a boolean, because a field that could say delete-folder is one somebody eventually sets to it, and an in-app deletion would owe the two-key confirmation gate. One line is never styled by the funny level and states that nothing is sent anywhere, no data is collected and nobody is reading it, because a user waiting for a reply that was never coming is the only genuinely harmful outcome here. A scan refuses any copy naming a real desk or implying a response time. The consequence line restates that the reset clears every toy lock and that a toy lock was never security.",
+      "files": [
+        "app/renderer/src/support-tickets.ts",
+        "app/renderer/src/App.tsx",
+        "tests/ui/support-tickets.test.tsx"
+      ]
     },
     "unlock-ladder": {
       "state": "partial",

@@ -204,6 +204,13 @@ export const CANTONESE: Catalog = {
   'CLI builder': '指令產生器',
   'Arcade': '遊戲機',
 
+  /* Support Tickets. */
+  'Support Tickets': '支援工單',
+  'Category': '類別',
+  'Severity': '嚴重程度',
+  'What happened': '發生咗咩事',
+  'Open a ticket': '開工單',
+
   /* The attention modes. */
   'Attention': '專注',
   'Focus': '聚焦',

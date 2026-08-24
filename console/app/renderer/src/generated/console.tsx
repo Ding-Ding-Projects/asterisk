@@ -3346,6 +3346,12 @@ const SCREENS = {
       ctl('id_name','Display name','text','',{ placeholder:'Ding PBX Console', info:'Changes the title bar, the About screen and notifications. It does not move your data, your saved servers or your credentials, and diagnostics and bug reports still say Ding PBX Console so anyone reading one knows what software it came from.' }),
       ctl('id_name_reset','Restore the shipped name','switch',false,{ info:'Switch this on to go back to Ding PBX Console in one action.' })
     ]},
+    { title:'Support Tickets', desc:'Locked out of something and cannot remember the credential? Open a ticket. Nothing here is sent anywhere: the ticket exists only on this computer, no network request is made, no data is collected, and nobody is reading it.', ctls:[
+      ctl('sup_category','Category','select','Forgotten PIN or password',{ options:['Locked out of an element','Forgotten PIN or password','Lost my authenticator','Something else'] }),
+      ctl('sup_severity','Severity','segmented','Normal',{ options:['Low','Normal','High','Catastrophic'], info:'Choose freely. No severity here is honoured by anybody, because nobody is reading it.' }),
+      ctl('sup_description','What happened','text','',{ placeholder:'I cannot remember the PIN', info:'Nobody will read it, but the form insists.' }),
+      ctl('sup_open','Open a ticket','switch',false,{ info:'Files the ticket locally and shows the resolution: this console opens your application-data folder so you can delete it yourself. Deleting it clears every toy lock on this machine, not only the one you are locked out of, along with your saved settings. Toy locks were never security, and this is the reset that was always available.' })
+    ]},
     { title:'Attention', desc:'Five accommodations, each independent and each off until you switch it on. They change how the interface behaves, nothing else, and none of them says anything about you.', ctls:[
       ctl('att_focus','Focus','switch',false,{ info:'Dims everything except what you are working on. Nothing is hidden; the rest is still one click away.' }),
       ctl('att_low','Low stimulation','switch',false,{ info:'Fewer moving things, quieter colour, and only the notifications that genuinely need a person. If your system already asks for reduced motion, that is honoured whether or not this is on.' }),
