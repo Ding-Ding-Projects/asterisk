@@ -136,6 +136,7 @@ export interface LogoOutputReceipt {
   readonly target: LogoTarget;
   readonly bytes: number;
   readonly sha256: string;
+  readonly cropDigest: string;
   readonly signature: string;
   readonly width: number;
   readonly height: number;
@@ -379,6 +380,17 @@ export function validateLogoCrop(model: LogoCropModel): LogoValidationFailure | 
   if (!values.slice(6).every((value) => finiteInRange(value, 0, 0.5)) || model.safeArea.left + model.safeArea.right >= 1 || model.safeArea.top + model.safeArea.bottom >= 1) return failure('INVALID_CROP', 'The safe area must leave visible room around the mark.');
   if (model.background.kind === 'solid' && !/^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/iu.test(model.background.color)) return failure('INVALID_CROP', 'A solid background must be an opaque or alpha hexadecimal colour.');
   return { ok: true };
+}
+
+/** Stable field-order serialization used to bind every encoded asset to its crop policy. */
+export function canonicalLogoCrop(model: LogoCropModel): string {
+  return JSON.stringify({
+    fit: model.fit,
+    crop: { x: model.crop.x, y: model.crop.y, width: model.crop.width, height: model.crop.height },
+    focalPoint: { x: model.focalPoint.x, y: model.focalPoint.y },
+    safeArea: { top: model.safeArea.top, right: model.safeArea.right, bottom: model.safeArea.bottom, left: model.safeArea.left },
+    background: model.background.kind === 'solid' ? { kind: 'solid', color: model.background.color } : { kind: 'transparent' },
+  });
 }
 
 export function validateLogoTargets(targets: readonly LogoTarget[]): LogoValidationFailure | { readonly ok: true } {

@@ -69,19 +69,25 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
     const minimalEnv: NodeJS.ProcessEnv = { ELECTRON_RUN_AS_NODE: '1', PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, TEMP: process.env.TEMP, TMP: process.env.TMP };
     const launcher = process.platform === 'win32' && options.jobScriptPath;
     const child = launcher
-      ? spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', options.jobScriptPath!, '-NodePath', process.execPath, '-WorkerPath', options.workerPath, '-MemoryBytes', String(MAX_WORKER_OS_BYTES)], { windowsHide: true, shell: false, env: minimalEnv, stdio: ['pipe', 'pipe', 'ignore'] })
+      ? spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', options.jobScriptPath!, '-NodePath', process.execPath, '-WorkerPath', options.workerPath, '-MemoryBytes', String(MAX_WORKER_OS_BYTES), '-ManifestPath', options.manifestPath, '-PackageLockPath', options.packageLockPath], { windowsHide: true, shell: false, env: minimalEnv, stdio: ['pipe', 'pipe', 'ignore'] })
       : spawn(process.execPath, ['--max-old-space-size=64', options.workerPath, '--no-network'], { windowsHide: true, shell: false, env: minimalEnv, stdio: ['pipe', 'pipe', 'ignore'] });
     const limit = MAX_WORKER_RESPONSE_BYTES;
     let output = '';
     let settled = false;
     let peakWorkingSetBytes = 0;
     let baselineWorkingSetBytes: number | undefined;
+    let baselinePid: number | undefined;
     let inputSent = false;
     let workerPid: number | undefined;
     let monitorPid = child.pid;
+    let readySeen = !launcher;
+    let workerExitAcknowledged = !launcher;
+    let jobCleanupAcknowledged = !launcher;
+    let cleanupComplete = !launcher;
+    let cleanupFailure: string | undefined;
     let finish: (error?: Error, value?: Record<string, unknown>) => void;
     const sendRequestIfReady = () => {
-      if (launcher && !inputSent && workerPid && baselineWorkingSetBytes !== undefined) {
+      if (launcher && !inputSent && workerPid && baselinePid === workerPid && baselineWorkingSetBytes !== undefined) {
         inputSent = true;
         child.stdin.end(`${JSON.stringify({ id: randomUUID(), ...request })}\n`);
       }
@@ -89,7 +95,7 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
     const monitor = setInterval(() => {
       if (!monitorPid || (launcher && !workerPid)) return;
       void workingSet(monitorPid).then((value) => {
-        baselineWorkingSetBytes ??= value;
+        if (baselinePid !== monitorPid) { baselinePid = monitorPid; baselineWorkingSetBytes = value; peakWorkingSetBytes = value; }
         peakWorkingSetBytes = Math.max(peakWorkingSetBytes, value);
         sendRequestIfReady();
         if (value > baselineWorkingSetBytes + MAX_DECODE_ALLOWANCE_BYTES) finish(new Error('The isolated decoder exceeded its native working-set ceiling.'));
@@ -104,21 +110,22 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
       void (async () => {
         let cleanupError: Error | undefined;
         try {
-          let workerTerminated = await waitForTermination(workerPid, 900);
-          let childExited = await waitForChildExit(child, 900);
+          let workerTerminated = await waitForTermination(workerPid, 2_000);
+          let childExited = await waitForChildExit(child, 2_000);
           if (!childExited && child.exitCode === null) {
             child.kill();
-            childExited = await waitForChildExit(child, 900);
+            childExited = await waitForChildExit(child, 2_000);
           }
-          if (!workerTerminated) workerTerminated = await waitForTermination(workerPid, 900);
+          if (!workerTerminated) workerTerminated = await waitForTermination(workerPid, 2_000);
           if (!childExited || child.exitCode === null) throw new Error('The isolated decoder launcher did not terminate after cancellation.');
           if (!workerTerminated) throw new Error('The isolated decoder worker termination could not be proven.');
+          if (launcher && (!readySeen || !workerExitAcknowledged || !jobCleanupAcknowledged || !cleanupComplete || cleanupFailure)) throw new Error(cleanupFailure ?? 'The isolated decoder cleanup acknowledgement was incomplete.');
         } catch (cause) {
           cleanupError = cause instanceof Error ? cause : new Error('The isolated decoder cleanup failed.');
           if (child.exitCode === null) child.kill();
-          if (!(await waitForChildExit(child, 900)) && child.exitCode === null) cleanupError = new Error('The isolated decoder launcher termination could not be proven.', { cause: cleanupError });
+          if (!(await waitForChildExit(child, 2_000)) && child.exitCode === null) cleanupError = new Error('The isolated decoder launcher termination could not be proven.', { cause: cleanupError });
         }
-        if (error) reject(error); else if (cleanupError) reject(cleanupError); else resolve({ ...value!, workerPid, peakWorkingSetBytes, baselineWorkingSetBytes, workingSetIncrementBytes: baselineWorkingSetBytes === undefined ? undefined : peakWorkingSetBytes - baselineWorkingSetBytes });
+        if (error) reject(error); else if (cleanupError) reject(cleanupError); else if (launcher && (workerPid === undefined || baselinePid !== workerPid)) reject(new Error('The isolated decoder working-set baseline was not bound to the worker PID.')); else resolve({ ...value!, workerPid, baselinePid, peakWorkingSetBytes, baselineWorkingSetBytes, workingSetIncrementBytes: baselineWorkingSetBytes === undefined ? undefined : peakWorkingSetBytes - baselineWorkingSetBytes });
       })();
     };
     const timer = setTimeout(() => finish(new Error('The isolated logo decoder exceeded its bounded deadline.')), options.timeoutMs ?? 2_000);
@@ -126,31 +133,39 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
     child.once('exit', (code) => { if (!settled && (code !== 0 || !inputSent)) finish(new Error(code === 0 ? 'The isolated decoder exited before a complete response.' : 'The isolated decoder launcher exited with a nonzero status.')); });
     child.stdout.on('data', (chunk: Buffer) => {
       output += chunk.toString('utf8');
-      if (Buffer.byteLength(output, 'utf8') > limit) finish(new Error('The isolated logo decoder exceeded its output bound.'));
-      if (launcher && !inputSent) {
-        const ready = /^READY\r?\n/u.exec(output);
-        if (ready) { output = output.slice(ready[0].length); }
-        else if (!output.startsWith('READY')) return;
-      }
-      if (launcher && !workerPid) {
-        const pidLine = /^WORKER_PID:(\d+)\r?\n/u.exec(output);
-        if (!pidLine) return;
-        workerPid = Number(pidLine[1]);
-        monitorPid = workerPid;
-        output = output.slice(pidLine[0].length);
+      if (Buffer.byteLength(output, 'utf8') > limit) { finish(new Error('The isolated logo decoder exceeded its output bound.')); return; }
+      let newline = output.indexOf('\n');
+      while (newline >= 0) {
+        const line = output.slice(0, newline).replace(/\r$/u, '');
+        output = output.slice(newline + 1);
+        if (launcher && !readySeen) {
+          if (line === 'READY') readySeen = true;
+          else if (line.startsWith('ERROR:')) cleanupFailure = line;
+          else if (line.length > 0) { finish(new Error('The isolated decoder launcher did not emit exact READY framing.')); return; }
+          newline = output.indexOf('\n');
+          continue;
+        }
+        if (launcher && !workerPid) {
+          const pidMatch = /^WORKER_PID:(\d+)$/u.exec(line);
+          if (!pidMatch || !Number.isSafeInteger(Number(pidMatch[1])) || Number(pidMatch[1]) < 1) { finish(new Error('The isolated decoder launcher did not emit an exact worker PID frame.')); return; }
+          workerPid = Number(pidMatch[1]);
+          monitorPid = workerPid;
+          newline = output.indexOf('\n');
+          continue;
+        }
+        if (launcher && /^WORKER_EXIT:-?\d+$/u.test(line)) { workerExitAcknowledged = true; newline = output.indexOf('\n'); continue; }
+        if (launcher && line === 'JOB_CLEANUP_COMPLETE') { jobCleanupAcknowledged = true; newline = output.indexOf('\n'); continue; }
+        if (launcher && line === 'CLEANUP_COMPLETE') { cleanupComplete = true; newline = output.indexOf('\n'); continue; }
+        if (launcher && line.startsWith('ERROR:CLEANUP:')) { cleanupFailure = line; newline = output.indexOf('\n'); continue; }
+        if (launcher && line.startsWith('ERROR:')) { cleanupFailure = line; newline = output.indexOf('\n'); continue; }
+        try {
+          const value = JSON.parse(line) as Record<string, unknown>;
+          if (value.ok === false) finish(new Error(typeof value.reason === 'string' ? value.reason : 'The isolated logo decoder refused the operation.'));
+          else finish(undefined, value);
+        } catch { finish(new Error('The isolated logo decoder returned malformed JSON.')); }
+        newline = output.indexOf('\n');
       }
       sendRequestIfReady();
-      if (launcher && !inputSent) return;
-      const newline = output.indexOf('\n');
-      if (newline < 0) return;
-      const line = output.slice(0, newline);
-      const pidMatch = /^WORKER_PID:(\d+)\r?$/u.exec(line.trim());
-      if (pidMatch) { workerPid = Number(pidMatch[1]); monitorPid = workerPid; output = output.slice(newline + 1); return; }
-      try {
-        const value = JSON.parse(line) as Record<string, unknown>;
-        if (value.ok === false) finish(new Error(typeof value.reason === 'string' ? value.reason : 'The isolated logo decoder refused the operation.'));
-        else finish(undefined, value);
-      } catch { finish(new Error('The isolated logo decoder returned malformed JSON.')); }
     });
     if (!launcher) { inputSent = true; child.stdin.end(`${JSON.stringify({ id: randomUUID(), ...request })}\n`); }
   });
@@ -168,7 +183,7 @@ export function createIsolatedLogoDecoder(options: IsolatedLogoDecoderOptions): 
     },
     async health(): Promise<IsolatedLogoDecoderHealth> {
       const result = await runWorker(options, { operation: 'health' });
-      if (typeof result.workerVersion !== 'string' || typeof result.workerRevision !== 'string' || typeof result.sharpVersion !== 'string' || typeof result.nativePlatform !== 'string' || typeof result.nativeArch !== 'string' || typeof result.nativeBindingPath !== 'string' || !/^[0-9a-f]{64}$/iu.test(String(result.nativeBindingSha256)) || typeof result.baselineWorkingSetBytes !== 'number' || typeof result.peakWorkingSetBytes !== 'number' || typeof result.workingSetIncrementBytes !== 'number' || !Array.isArray(result.formats) || result.formats.length !== 3 || new Set(result.formats.map(String)).size !== 3 || result.formats.some((format) => !['png', 'jpeg', 'webp'].includes(String(format)))) throw new Error('The isolated decoder health handshake was incomplete.');
+      if (typeof result.workerPid !== 'number' || typeof result.baselinePid !== 'number' || result.workerPid !== result.baselinePid || typeof result.workerVersion !== 'string' || typeof result.workerRevision !== 'string' || typeof result.sharpVersion !== 'string' || typeof result.nativePlatform !== 'string' || typeof result.nativeArch !== 'string' || typeof result.nativeBindingPath !== 'string' || !/^[0-9a-f]{64}$/iu.test(String(result.nativeBindingSha256)) || typeof result.baselineWorkingSetBytes !== 'number' || typeof result.peakWorkingSetBytes !== 'number' || typeof result.workingSetIncrementBytes !== 'number' || !Array.isArray(result.formats) || result.formats.length !== 3 || new Set(result.formats.map(String)).size !== 3 || result.formats.some((format) => !['png', 'jpeg', 'webp'].includes(String(format)))) throw new Error('The isolated decoder health handshake was incomplete or its baseline PID was not the worker PID.');
       const manifestBytes = await readFile(options.manifestPath);
       const manifestSha256 = createHash('sha256').update(manifestBytes).digest('hex');
       const manifest = JSON.parse(manifestBytes.toString('utf8')) as { schemaVersion?: unknown; sourceCommit?: unknown; workerRevision?: unknown; workerSha256?: unknown; launcherSha256?: unknown; packageLockSha256?: unknown; sharpVersion?: unknown; sharpIntegrity?: unknown; platform?: unknown; arch?: unknown; nativeFiles?: unknown };
@@ -201,7 +216,7 @@ export function createIsolatedLogoDecoder(options: IsolatedLogoDecoderOptions): 
       const expected = nativeFiles.map((entry) => resolve(dirname(options.packageLockPath), entry)).sort();
       const actual = (await runtimeFiles(dirname(options.packageLockPath))).sort();
       if (nativeFiles.filter((entry) => entry.endsWith('.node')).length === 0 || JSON.stringify(expected) !== JSON.stringify(actual)) throw new Error('The packaged sharp and native runtime file set differs from the checked-in manifest.');
-      return { workerVersion: result.workerVersion, workerRevision: result.workerRevision, sharpVersion: result.sharpVersion, peakMemoryBytes: result.workingSetIncrementBytes, baselineWorkingSetBytes: result.baselineWorkingSetBytes, peakWorkingSetBytes: result.peakWorkingSetBytes, formats: result.formats.map(String), sharpIntegrity: manifest.sharpIntegrity, nativePlatform: result.nativePlatform, nativeArch: result.nativeArch, nativeBindingPath: bindingPath, nativeBindingSha256: String(result.nativeBindingSha256), nativeFiles };
+      return { workerPid: result.workerPid, baselinePid: result.baselinePid, workerVersion: result.workerVersion, workerRevision: result.workerRevision, sharpVersion: result.sharpVersion, peakMemoryBytes: result.workingSetIncrementBytes, baselineWorkingSetBytes: result.baselineWorkingSetBytes, peakWorkingSetBytes: result.peakWorkingSetBytes, formats: result.formats.map(String), sharpIntegrity: manifest.sharpIntegrity, nativePlatform: result.nativePlatform, nativeArch: result.nativeArch, nativeBindingPath: bindingPath, nativeBindingSha256: String(result.nativeBindingSha256), nativeFiles };
     },
     async reopen(input): Promise<LogoInspectionResult> {
       const result = await runWorker(options, { operation: 'reopen', bytesBase64: Buffer.from(input.bytes).toString('base64'), target: input.target });

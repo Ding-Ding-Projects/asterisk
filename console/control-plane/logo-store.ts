@@ -15,6 +15,7 @@ import {
   LOGO_PRESETS,
   LOGO_PACKAGE_IDENTITY,
   LOGO_SCHEMA_VERSION,
+  canonicalLogoCrop,
   inspectLogoBytes,
   validateLogoCrop,
   validateLogoTargets,
@@ -116,12 +117,13 @@ function receiptShape(value: unknown): value is LogoOutputReceipt {
   if (!isObject(value) || !isObject(value.target)) return false;
   const target = value.target;
   if (!exactKeys(target, ['format', 'width', 'height', 'alpha'])) return false;
-  if (!exactKeys(value, ['target', 'bytes', 'sha256', 'signature', 'width', 'height', 'alpha', 'decoder', 'roundTripVerified', 'lossNotes'])) return false;
+  if (!exactKeys(value, ['target', 'bytes', 'sha256', 'cropDigest', 'signature', 'width', 'height', 'alpha', 'decoder', 'roundTripVerified', 'lossNotes'])) return false;
   return (target.format === 'png' || target.format === 'jpeg' || target.format === 'webp')
     && Number.isInteger(target.width) && Number.isInteger(target.height)
     && typeof target.alpha === 'boolean'
     && typeof value.bytes === 'number' && Number.isInteger(value.bytes) && value.bytes > 0 && value.bytes <= LOGO_MAX_OUTPUT_BYTES
     && typeof value.sha256 === 'string' && /^[0-9a-f]{64}$/iu.test(value.sha256)
+    && typeof value.cropDigest === 'string' && /^[0-9a-f]{64}$/iu.test(value.cropDigest)
     && typeof value.signature === 'string' && value.signature.length > 0 && value.signature.length <= 128
     && value.decoder === 'isolated'
     && value.roundTripVerified === true
@@ -159,8 +161,12 @@ function digest(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
-async function validAssetBytes(bytes: Uint8Array, metadata: LogoCacheAssetMetadata, reopen: LogoStoreOptions['reopen']): Promise<boolean> {
-  if (bytes.byteLength !== metadata.receipt.bytes || bytes.byteLength > LOGO_MAX_OUTPUT_BYTES || digest(bytes) !== metadata.receipt.sha256) return false;
+function cropDigest(crop: LogoCacheRecord['crop']): string {
+  return createHash('sha256').update(canonicalLogoCrop(crop), 'utf8').digest('hex');
+}
+
+async function validAssetBytes(bytes: Uint8Array, metadata: LogoCacheAssetMetadata, crop: LogoCacheRecord['crop'], reopen: LogoStoreOptions['reopen']): Promise<boolean> {
+  if (metadata.receipt.cropDigest !== cropDigest(crop) || bytes.byteLength !== metadata.receipt.bytes || bytes.byteLength > LOGO_MAX_OUTPUT_BYTES || digest(bytes) !== metadata.receipt.sha256) return false;
   const inspection = inspectLogoBytes(bytes, { declaredExtension: metadata.receipt.target.format });
   if (!inspection.ok || inspection.inspection.format !== metadata.receipt.target.format || inspection.inspection.width !== metadata.receipt.width || inspection.inspection.height !== metadata.receipt.height || inspection.inspection.alpha !== metadata.receipt.alpha || inspection.inspection.signature !== metadata.receipt.signature) return false;
   if (!reopen) return false;
@@ -228,7 +234,7 @@ export class LogoStore {
       const parsed = JSON.parse(raw) as unknown;
       if (!cacheShape(parsed)) return undefined;
       const cropCheck = validateLogoCrop(parsed.crop);
-      return cropCheck.ok ? parsed : undefined;
+      return cropCheck.ok && parsed.assets.every((asset) => asset.receipt.cropDigest === cropDigest(parsed.crop)) ? parsed : undefined;
     } catch { return undefined; }
   }
 
@@ -247,10 +253,11 @@ export class LogoStore {
     if (!cacheShape(parsed)) return undefined;
     const cropCheck = validateLogoCrop(parsed.crop);
     if (!cropCheck.ok) return undefined;
+    if (parsed.assets.some((asset) => asset.receipt.cropDigest !== cropDigest(parsed.crop))) return undefined;
     for (const asset of parsed.assets) {
       try {
         const bytes = await readExactFile(this.assetPath(asset.filename), LOGO_MAX_OUTPUT_BYTES, asset.receipt.bytes);
-        if (!bytes || !(await validAssetBytes(bytes, asset, this.reopen))) return undefined;
+        if (!bytes || !(await validAssetBytes(bytes, asset, parsed.crop, this.reopen))) return undefined;
       } catch {
         return undefined;
       }
@@ -263,7 +270,7 @@ export class LogoStore {
     if (!metadata) return undefined;
     try {
       const bytes = await readExactFile(this.assetPath(filename), LOGO_MAX_OUTPUT_BYTES, metadata.receipt.bytes);
-      if (!bytes || !(await validAssetBytes(bytes, metadata, this.reopen))) return undefined;
+      if (!bytes || !(await validAssetBytes(bytes, metadata, record.crop, this.reopen))) return undefined;
       return bytes;
     } catch {
       return undefined;
@@ -280,7 +287,7 @@ export class LogoStore {
     if (!targetCheck.ok || result.outputs.length > LOGO_MAX_OUTPUTS) throw new Error(targetCheck.ok ? 'Logo output count is outside the bounded limit.' : targetCheck.reason);
     for (const asset of result.outputs) {
       const metadata = assetMetadata(asset);
-      if (!(await validAssetBytes(asset.bytes, metadata, this.reopen))) throw new Error('Logo cache refused an output that failed independent receipt and reopen validation.');
+      if (!(await validAssetBytes(asset.bytes, metadata, result.crop, this.reopen))) throw new Error('Logo cache refused an output whose crop-bound receipt or independent reopen validation failed.');
     }
     const outputBytes = result.outputs.reduce((total, asset) => total + asset.bytes.byteLength, 0);
     if (outputBytes > LOGO_MAX_OUTPUT_BYTES) throw new Error('Logo cache refused an output set over the aggregate byte limit.');

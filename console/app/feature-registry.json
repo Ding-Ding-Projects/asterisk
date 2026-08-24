@@ -882,7 +882,7 @@
     },
     "app-logo-customization": {
       "status": "partial",
-        "note": "Local logo validation, private converted-asset cache, desktop picker, privileged bridge actions, renderer lifecycle, reachable settings route, packaged sharp-backed isolated decoder worker, suspended AppContainer launcher with no capabilities, Job Object boundary, explicit pipe handles, temporary resource ACL, health handshake, loaded-native-binding proof, product-identity manifest digest, locked-package manifest, and build-time exact runtime-file hash generation are mounted. The decoder remains partial until the supported build produces and verifies the nonempty post-copy manifest and packaged identity.",
+        "note": "Local logo validation, private converted-asset cache, desktop picker, privileged bridge actions, renderer lifecycle, reachable settings route, generation-safe single-flight loading, packaged sharp-backed isolated decoder worker, suspended AppContainer launcher with no capabilities, Job Object boundary, explicit pipe handles, temporary resource ACL, guarded cleanup acknowledgements, startup file accessibility and digest proof, PID-bound memory baseline, loaded-native-binding proof, normalized crop-policy receipt digest, product-identity manifest digest, locked-package manifest, and build-time exact runtime-file hash generation are mounted. The decoder remains partial until the supported build produces and verifies the nonempty post-copy manifest, complete runtime set, and non-placeholder packaged identity.",
       "implementation": {
         "paths": [
           "shared/logo.ts",

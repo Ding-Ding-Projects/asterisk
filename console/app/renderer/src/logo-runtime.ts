@@ -66,6 +66,9 @@ function responseError(response: { ok: boolean; message?: string }): string | un
 export class LogoRuntime {
   private state: LogoRuntimeState = { status: 'idle', detail: 'The shipped logo preset is active.', active: initialActive(), decoderAvailable: undefined, cacheStatus: 'none' };
   private readonly listeners = new Set<(state: LogoRuntimeState) => void>();
+  private loadGeneration = 0;
+  private loadPromise?: Promise<LogoRuntimeState>;
+  private loadPromiseGeneration?: number;
 
   constructor(private readonly bridge: LogoRuntimeBridge) {}
 
@@ -117,12 +120,14 @@ export class LogoRuntime {
   getState(): LogoRuntimeState { return this.state; }
 
   restoreActiveLogo(active: ActiveLogo): LogoRuntimeState {
+    this.loadGeneration += 1;
     this.publish({ ...this.state, status: 'active', detail: 'The previous logo selection was restored.', active });
     return this.state;
   }
 
   selectPreset(presetId: string): LogoRuntimeState {
     if (!LOGO_PRESETS.some((preset) => preset.id === presetId)) return this.state;
+    this.loadGeneration += 1;
     this.publish({ status: 'active', detail: 'The selected shipped logo preset is active.', active: { kind: 'shipped-preset', presetId, crop: DEFAULT_LOGO_CROP, assets: new Map() } });
     return this.state;
   }
@@ -144,14 +149,28 @@ export class LogoRuntime {
   }
 
   async load(): Promise<LogoRuntimeState> {
+    if (this.loadPromise && this.loadPromiseGeneration === this.loadGeneration) return this.loadPromise;
+    const generation = ++this.loadGeneration;
+    const promise = this.loadInternal(generation);
+    this.loadPromise = promise;
+    this.loadPromiseGeneration = generation;
+    try { return await promise; } finally { if (this.loadPromiseGeneration === generation) { this.loadPromise = undefined; this.loadPromiseGeneration = undefined; } }
+  }
+
+  private async loadInternal(generation: number): Promise<LogoRuntimeState> {
+    const current = () => generation === this.loadGeneration;
+    if (!current()) return this.state;
     this.publish({ ...this.state, status: 'reading', detail: 'Reading the validated local logo cache.' });
     const decoderResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.decoder.status' });
+    if (!current()) return this.state;
     const decoderData = decoderResponse.data as { available?: unknown; workerVersion?: unknown; workerRevision?: unknown; sharpVersion?: unknown; sharpIntegrity?: unknown; nativePlatform?: unknown; nativeArch?: unknown; nativeBindingPath?: unknown; nativeBindingSha256?: unknown; nativeFiles?: unknown; formats?: unknown; peakMemoryBytes?: unknown; baselineWorkingSetBytes?: unknown; peakWorkingSetBytes?: unknown } | undefined;
     this.state = { ...this.state, decoderAvailable: decoderResponse.ok && decoderData?.available === true, ...(typeof decoderData?.workerVersion === 'string' && typeof decoderData.workerRevision === 'string' && typeof decoderData.sharpVersion === 'string' && typeof decoderData.sharpIntegrity === 'string' && typeof decoderData.nativePlatform === 'string' && typeof decoderData.nativeArch === 'string' && typeof decoderData.nativeBindingPath === 'string' && typeof decoderData.nativeBindingSha256 === 'string' && Array.isArray(decoderData.nativeFiles) && Array.isArray(decoderData.formats) && typeof decoderData.peakMemoryBytes === 'number' && typeof decoderData.baselineWorkingSetBytes === 'number' && typeof decoderData.peakWorkingSetBytes === 'number' ? { decoderHealth: { workerVersion: decoderData.workerVersion, workerRevision: decoderData.workerRevision, sharpVersion: decoderData.sharpVersion, sharpIntegrity: decoderData.sharpIntegrity, nativePlatform: decoderData.nativePlatform, nativeArch: decoderData.nativeArch, nativeBindingPath: decoderData.nativeBindingPath, nativeBindingSha256: decoderData.nativeBindingSha256, nativeFiles: decoderData.nativeFiles.map(String), formats: decoderData.formats.map(String), peakMemoryBytes: decoderData.peakMemoryBytes, baselineWorkingSetBytes: decoderData.baselineWorkingSetBytes, peakWorkingSetBytes: decoderData.peakWorkingSetBytes } } : {}) };
     const peekResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.cache.peek-stored' });
+    if (!current()) return this.state;
     const peekRecord = peekResponse.ok ? peekResponse.data as LogoCacheRecord | undefined : undefined;
     const hasValidatedCache = Boolean(peekRecord?.customLogoActive === true);
     const settingsResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'settings.snapshot' });
+    if (!current()) return this.state;
     const settingsValues = settingsResponse.ok ? (settingsResponse.data as { values?: Record<string, string> } | undefined)?.values : undefined;
     if (this.state.decoderAvailable !== true) {
       this.publish({ ...this.state, status: 'unavailable', cacheStatus: hasValidatedCache ? 'decoder-unavailable' : 'none', detail: typeof (decoderData as { reason?: unknown } | undefined)?.reason === 'string' ? String((decoderData as { reason: string }).reason) : hasValidatedCache ? 'The validated custom-logo cache is retained until the decoder can retry.' : 'The isolated logo decoder is unavailable; the shipped mark remains active.' });
@@ -167,6 +186,7 @@ export class LogoRuntime {
       } catch { /* Defaults remain active. */ }
     }
     const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.cache.read' });
+    if (!current()) return this.state;
     const error = responseError(response);
     if (error) {
       this.publish({ ...this.state, status: 'unavailable', cacheStatus: hasValidatedCache ? 'invalid' : 'none', detail: hasValidatedCache ? 'The saved custom-logo cache could not be reopened; it remains retained for retry.' : error });
@@ -180,6 +200,7 @@ export class LogoRuntime {
     const assets = new Map<string, Uint8Array>();
     for (const metadata of record.assets) {
       const assetResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.cache.asset.read', payload: { filename: metadata.filename } });
+      if (!current()) return this.state;
       if (!assetResponse.ok) {
         this.publish({ ...this.state, status: 'failed', cacheStatus: 'invalid', detail: 'A saved custom-logo asset could not be reopened; it remains retained for retry.' });
         return this.state;
@@ -210,9 +231,11 @@ export class LogoRuntime {
   }
 
   async convertAndCache(bytes: Uint8Array, crop: LogoCropModel, targets: readonly LogoTarget[], selectedPresetId?: string, name?: string, declaredMime?: string): Promise<LogoRuntimeState> {
+    const generation = ++this.loadGeneration;
     const previous = this.state;
     this.publish({ ...previous, status: 'converting', detail: 'Converting the local logo within bounded limits.' });
     const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.convert', payload: { source: { kind: 'local', bytesBase64: encodeBase64(bytes), metadata: { filename: name, declaredMime } }, crop, targets, selectedPresetId } });
+    if (generation !== this.loadGeneration) return this.state;
     if (!response.ok || !response.data || (response.data as { cached?: boolean }).cached !== true) {
       this.publish({ ...previous, status: 'failed', detail: response.message ?? 'Conversion failed; the previous logo remains active.' });
       return this.state;
@@ -221,6 +244,7 @@ export class LogoRuntime {
   }
 
   async clear(): Promise<LogoRuntimeState> {
+    const generation = ++this.loadGeneration;
     const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.cache.clear', payload: { kind: 'clear' } });
     if (!response.ok) {
       this.publish({ ...this.state, status: 'failed', detail: response.message ?? 'The local logo cache could not be cleared.' });
@@ -228,6 +252,7 @@ export class LogoRuntime {
     }
     const active = initialActive();
     await this.bridge.controlPlane.request({ requestId: requestId(), action: 'settings.remove', payload: { key: 'logo.ui-v1' } });
+    if (generation !== this.loadGeneration) return this.state;
     this.publish({ status: 'active', detail: 'Custom logo cleared; the shipped preset is active.', active });
     return this.state;
   }

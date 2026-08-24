@@ -1,8 +1,44 @@
 param(
   [Parameter(Mandatory = $true)][string]$NodePath,
   [Parameter(Mandatory = $true)][string]$WorkerPath,
-  [Parameter(Mandatory = $true)][long]$MemoryBytes
+  [Parameter(Mandatory = $true)][long]$MemoryBytes,
+  [Parameter(Mandatory = $true)][string]$ManifestPath,
+  [Parameter(Mandatory = $true)][string]$PackageLockPath
 )
+
+function Read-ProvenPath([string]$Path) {
+  try {
+    if (-not [IO.File]::Exists($Path)) { throw "missing" }
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+    try { return $stream.Length } finally { $stream.Dispose() }
+  } catch { throw "First inaccessible decoder path: $Path" }
+}
+
+try {
+  [void](Read-ProvenPath $NodePath)
+  [void](Read-ProvenPath $WorkerPath)
+  [void](Read-ProvenPath $ManifestPath)
+  [void](Read-ProvenPath $PackageLockPath)
+  $manifestText = [IO.File]::ReadAllText($ManifestPath)
+  if ([Text.Encoding]::UTF8.GetByteCount($manifestText) -gt 1048576) { throw "The decoder manifest exceeds its startup bound." }
+  $manifest = $manifestText | ConvertFrom-Json
+  if ($manifest.schemaVersion -ne 1 -or $manifest.sourceCommit -notmatch '^[0-9a-f]{40}$' -or $manifest.sourceCommit -eq ('0' * 40) -or @($manifest.nativeFiles).Count -eq 0) { throw "The decoder manifest is missing a non-placeholder source commit or native runtime set." }
+  $hash = (Get-FileHash -LiteralPath $WorkerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+  if ($manifest.workerSha256 -ne $hash) { throw "The decoder worker digest does not match the manifest: $WorkerPath" }
+  $hash = (Get-FileHash -LiteralPath $PackageLockPath -Algorithm SHA256).Hash.ToLowerInvariant()
+  if ($manifest.packageLockSha256 -ne $hash) { throw "The decoder package lock digest does not match the manifest: $PackageLockPath" }
+  [void](Read-ProvenPath $PSCommandPath)
+  $hash = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant()
+  if ($manifest.launcherSha256 -ne $hash) { throw "The decoder launcher digest does not match the manifest: $PSCommandPath" }
+  foreach ($entry in @($manifest.nativeFiles)) {
+    if ($entry.path -notmatch '^node_modules/(sharp|@img)/.+\.(js|mjs|cjs|node|dll|exe|so|dylib|wasm)$') { throw "The decoder manifest contains an invalid runtime path: $($entry.path)" }
+    $candidate = [IO.Path]::GetFullPath((Join-Path ([IO.Path]::GetDirectoryName($PackageLockPath)) ($entry.path -replace '/', '\')))
+    [void](Read-ProvenPath $candidate)
+  }
+} catch {
+  Write-Output "ERROR:STARTUP:$($_.Exception.Message)"
+  exit 1
+}
 
 Add-Type @"
 using System;
@@ -51,8 +87,9 @@ public static class LogoWorkerAppContainerLauncher {
     result=SetNamedSecurityInfo(path,SE_FILE_OBJECT,DACL_SECURITY_INFORMATION,IntPtr.Zero,IntPtr.Zero,addedDacl,IntPtr.Zero); if(result!=0) throw new Win32Exception((int)result,"SetNamedSecurityInfo failed");
   }
   static void RestoreResourceDacl(string path,IntPtr originalDacl){ var result=SetNamedSecurityInfo(path,SE_FILE_OBJECT,DACL_SECURITY_INFORMATION,IntPtr.Zero,IntPtr.Zero,originalDacl,IntPtr.Zero); if(result!=0) throw new Win32Exception((int)result,"Restoring decoder resource ACL failed"); }
+  static void Capture(ref Exception first,Action action){ try{action();}catch(Exception error){if(first==null)first=error;} }
   public static int Run(string node,string worker,long memoryBytes){
-    var profile="DingLogoDecoder_"+Guid.NewGuid().ToString("N"); IntPtr sid=IntPtr.Zero,job=IntPtr.Zero,attributes=IntPtr.Zero,resourceDescriptor=IntPtr.Zero,addedDacl=IntPtr.Zero,originalDacl=IntPtr.Zero,nodeDescriptor=IntPtr.Zero,nodeAddedDacl=IntPtr.Zero,nodeOriginalDacl=IntPtr.Zero; var resourceRoot=System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(worker)); if(String.IsNullOrEmpty(resourceRoot)) throw new InvalidOperationException("The decoder resource directory is unavailable"); PROCESS_INFORMATION pi=new PROCESS_INFORMATION();
+    var profile="DingLogoDecoder_"+Guid.NewGuid().ToString("N"); IntPtr sid=IntPtr.Zero,job=IntPtr.Zero,attributes=IntPtr.Zero,resourceDescriptor=IntPtr.Zero,addedDacl=IntPtr.Zero,originalDacl=IntPtr.Zero,nodeDescriptor=IntPtr.Zero,nodeAddedDacl=IntPtr.Zero,nodeOriginalDacl=IntPtr.Zero; var resourceRoot=System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(worker)); if(String.IsNullOrEmpty(resourceRoot)) throw new InvalidOperationException("The decoder resource directory is unavailable"); PROCESS_INFORMATION pi=new PROCESS_INFORMATION(); int workerExit=1; Exception setupError=null,cleanupError=null;
     try{
       var hr=CreateAppContainerProfile(profile,profile,"Ding PBX Console local logo decoder",IntPtr.Zero,0,out sid);
       if(hr!=0 && hr!=unchecked((int)0x800700B7)) throw new Win32Exception(hr,"CreateAppContainerProfile failed");
@@ -74,8 +111,26 @@ public static class LogoWorkerAppContainerLauncher {
       if(!CreateProcess(null,command,IntPtr.Zero,IntPtr.Zero,true,CREATE_SUSPENDED|EXTENDED_STARTUPINFO_PRESENT|CREATE_UNICODE_ENVIRONMENT,IntPtr.Zero,null,ref startup,out pi)) throw new Win32Exception(Marshal.GetLastWin32Error(),"CreateProcess AppContainer worker failed");
       if(!AssignProcessToJobObject(job,pi.hProcess)) throw new Win32Exception(Marshal.GetLastWin32Error(),"AssignProcessToJobObject failed");
       if(ResumeThread(pi.hThread)==unchecked((uint)-1)) throw new Win32Exception(Marshal.GetLastWin32Error(),"ResumeThread failed");
-      Console.Out.WriteLine("READY"); Console.Out.WriteLine("WORKER_PID:"+pi.dwProcessId); Console.Out.Flush(); WaitForSingleObject(pi.hProcess,INFINITE); uint exit; if(!GetExitCodeProcess(pi.hProcess,out exit)) throw new Win32Exception(Marshal.GetLastWin32Error(),"GetExitCodeProcess failed"); return (int)exit;
-    }finally{if(pi.hProcess!=IntPtr.Zero){uint current; if(GetExitCodeProcess(pi.hProcess,out current) && current==259) TerminateProcess(pi.hProcess,1); CloseHandle(pi.hProcess);}if(pi.hThread!=IntPtr.Zero)CloseHandle(pi.hThread);if(attributes!=IntPtr.Zero){DeleteProcThreadAttributeList(attributes);Marshal.FreeHGlobal(attributes);}if(nodeDescriptor!=IntPtr.Zero)RestoreResourceDacl(System.IO.Path.GetFullPath(node),nodeOriginalDacl);if(nodeAddedDacl!=IntPtr.Zero)LocalFree(nodeAddedDacl);if(nodeDescriptor!=IntPtr.Zero)LocalFree(nodeDescriptor);if(resourceDescriptor!=IntPtr.Zero)RestoreResourceDacl(resourceRoot,originalDacl);if(addedDacl!=IntPtr.Zero)LocalFree(addedDacl);if(resourceDescriptor!=IntPtr.Zero)LocalFree(resourceDescriptor);if(job!=IntPtr.Zero)CloseHandle(job);if(sid!=IntPtr.Zero)DeleteAppContainerProfile(profile);}
+      Console.Out.WriteLine("READY"); Console.Out.WriteLine("WORKER_PID:"+pi.dwProcessId); Console.Out.Flush(); WaitForSingleObject(pi.hProcess,INFINITE); uint exit; if(!GetExitCodeProcess(pi.hProcess,out exit)) throw new Win32Exception(Marshal.GetLastWin32Error(),"GetExitCodeProcess failed"); workerExit=(int)exit; Console.Out.WriteLine("WORKER_EXIT:"+workerExit); Console.Out.Flush();
+    }catch(Exception error){setupError=error;}
+    finally{
+      Capture(ref cleanupError,()=>{if(pi.hProcess!=IntPtr.Zero){uint current; if(GetExitCodeProcess(pi.hProcess,out current) && current==259){if(!TerminateProcess(pi.hProcess,1)) throw new Win32Exception(Marshal.GetLastWin32Error(),"Terminating decoder worker failed"); if(WaitForSingleObject(pi.hProcess,3000)==0x102) throw new TimeoutException("The decoder worker did not exit after native termination.");}}});
+      Capture(ref cleanupError,()=>{if(pi.hProcess!=IntPtr.Zero && !CloseHandle(pi.hProcess)) throw new Win32Exception(Marshal.GetLastWin32Error(),"Closing decoder worker handle failed");});
+      Capture(ref cleanupError,()=>{if(pi.hThread!=IntPtr.Zero && !CloseHandle(pi.hThread)) throw new Win32Exception(Marshal.GetLastWin32Error(),"Closing decoder worker thread failed");});
+      Capture(ref cleanupError,()=>{if(attributes!=IntPtr.Zero)DeleteProcThreadAttributeList(attributes);});
+      Capture(ref cleanupError,()=>{if(attributes!=IntPtr.Zero)Marshal.FreeHGlobal(attributes);});
+      Capture(ref cleanupError,()=>{if(nodeDescriptor!=IntPtr.Zero)RestoreResourceDacl(System.IO.Path.GetFullPath(node),nodeOriginalDacl);});
+      Capture(ref cleanupError,()=>{if(nodeAddedDacl!=IntPtr.Zero)LocalFree(nodeAddedDacl);});
+      Capture(ref cleanupError,()=>{if(nodeDescriptor!=IntPtr.Zero)LocalFree(nodeDescriptor);});
+      Capture(ref cleanupError,()=>{if(resourceDescriptor!=IntPtr.Zero)RestoreResourceDacl(resourceRoot,originalDacl);});
+      Capture(ref cleanupError,()=>{if(addedDacl!=IntPtr.Zero)LocalFree(addedDacl);});
+      Capture(ref cleanupError,()=>{if(resourceDescriptor!=IntPtr.Zero)LocalFree(resourceDescriptor);});
+      Capture(ref cleanupError,()=>{if(job!=IntPtr.Zero){if(!CloseHandle(job)) throw new Win32Exception(Marshal.GetLastWin32Error(),"Closing decoder Job Object failed"); Console.Out.WriteLine("JOB_CLEANUP_COMPLETE"); Console.Out.Flush();}});
+      Capture(ref cleanupError,()=>{if(sid!=IntPtr.Zero){var result=DeleteAppContainerProfile(profile); if(result!=0) throw new Win32Exception(result,"Deleting decoder AppContainer profile failed");}});
+    }
+    if(cleanupError!=null){Console.Out.WriteLine("ERROR:CLEANUP:"+cleanupError.Message); Console.Out.Flush(); return 1;}
+    if(setupError!=null){Console.Out.WriteLine("ERROR:"+setupError.Message); Console.Out.WriteLine("CLEANUP_COMPLETE"); Console.Out.Flush(); return 1;}
+    Console.Out.WriteLine("CLEANUP_COMPLETE"); Console.Out.Flush(); return workerExit;
   }
 }
 "@
