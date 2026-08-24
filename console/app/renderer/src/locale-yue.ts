@@ -204,6 +204,9 @@ export const CANTONESE: Catalog = {
   'CLI builder': '指令產生器',
   'Arcade': '遊戲機',
 
+  /* Command palette. */
+  'Find a screen or a setting': '搵螢幕或者設定',
+
   /* Console mark. */
   'Console mark': '主場標誌',
   'Shipped mark': '內置標誌',

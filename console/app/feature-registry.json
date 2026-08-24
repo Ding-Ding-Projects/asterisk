@@ -157,10 +157,12 @@
       ]
     },
     "command-palette": {
-      "state": "partial",
-      "note": "app/renderer/src/catalog.ts builds a searchable command/settings catalogue (61 lines) but is never imported by App.tsx or any mounted component. No Ctrl+Shift+F activation exists in App.tsx or the compiled console.",
+      "state": "implemented",
+      "note": "Wired 2026-08-24. Ctrl+Shift+F from anywhere, captured rather than bubbled so a field that stops key propagation cannot swallow the one chord meant to work everywhere. The list is DERIVED from the compiled design -- every destination, every setting on every screen, every appearance control -- because a hand-written palette is a second inventory of the same thing and the two diverge the first time somebody adds a control, always with the palette as the stale one. Plain text matching, case-insensitive, never a pattern: regex is an explicit opt-in everywhere else, and a palette treating a typed dot as any-character would return the wrong thing rather than nothing. Starts-with beats contains beats detail-only, stably, so a familiar result stops moving between keystrokes. Selecting a setting opens its screen and then scrolls and focuses the exact row through a data-ctl hook added to the design control template -- landing on the right screen and leaving somebody to hunt is not teleporting, and when the row genuinely is not on display it says so rather than silently doing nothing. Closed, it is absent from the document entirely, so nothing of it is tabbable or readable by a screen reader; Escape returns focus to whatever had it.",
       "files": [
-        "app/renderer/src/catalog.ts"
+        "app/renderer/src/App.tsx",
+        "app/renderer/src/catalog.ts",
+        "app/renderer/src/command-palette.ts"
       ]
     },
     "destructive-action-confirmation": {

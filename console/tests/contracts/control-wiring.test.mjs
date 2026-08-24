@@ -66,3 +66,22 @@ test('the interception the controls ride on is still installed', () => {
   assert.match(app, /^\s*this\.baseSetVal\(control, value\);/mu,
     'the override no longer delegates, so every other control has stopped working');
 });
+
+test('the palette can actually reach the control it names', () => {
+  /* The palette teleports by finding a control row in the document. That row is emitted by
+   * the compiled design, so the selector and the markup are written in two different files
+   * and nothing but this check keeps them agreeing. Without it the palette would open the
+   * right screen, find nothing, and report every setting as not on display -- which looks
+   * exactly like a feature that half works rather than a selector that matches nothing. */
+  const control = readFileSync(new URL('../../app/renderer/src/generated/m3-control.tsx', import.meta.url), 'utf8');
+  /* Anchored to the whole attribute and its value, not the substring: data-ctlX contains
+   * data-ctl, so a renamed attribute would satisfy a looser needle while the palette found
+   * nothing -- which is the exact way this check was written wrong the first time. */
+  assert.match(control, /"data-ctl": v\.ctl\.rawKey/, 'the compiled control row emits no addressable hook');
+  const app = readFileSync(new URL('../../app/renderer/src/App.tsx', import.meta.url), 'utf8');
+  assert.match(app, /\[data-ctl="\$\{id\}"\]/, 'App looks for a hook the compiled row does not emit');
+  /* And the palette is genuinely mounted rather than merely imported. */
+  assert.match(app, /^\s*render\(\): ReactNode \{/m, 'App does not wrap the shell render');
+  assert.match(app, /this\.paletteOverlay\(\)/, 'the overlay is never rendered');
+  assert.match(app, /^\s*window\.addEventListener\('keydown', handler, true\);/m, 'no global chord listener');
+});

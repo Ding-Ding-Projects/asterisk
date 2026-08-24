@@ -5,7 +5,7 @@
 import { DCLogic, h, F, A, R, S, fn, sty } from '../dc-runtime';
 function Template(v: any) {
   return F(
-    h("div", { style: sty(`display:flex; flex-direction:column; gap:8px; min-width:0;`) },
+    h("div", { "data-ctl": v.ctl.rawKey, style: sty(`display:flex; flex-direction:column; gap:8px; min-width:0;`) },
       h("div", { style: sty(`display:flex; align-items:center; gap:7px;`) },
         h("span", { style: sty(`font-size:12.5px; font-weight:500; color:#C4CBC2;`) },
           S(v.ctl.label)

@@ -320,13 +320,16 @@
       "note": "Every listed label has a Cantonese entry."
     },
     "command-palette": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [],
-      "localizedLabels": [],
+      "labels": [
+        "Find a screen or a setting"
+      ],
+      "localizedLabels": [
+        "Find a screen or a setting"
+      ],
       "untranslatedLabels": [],
-      "note": "Implemented as partial, but it contributes no label to the compiled design, so there is no string for the catalog to key against. The boundary already reaches any copy it does render; this is a missing surface rather than a missing translation.",
-      "blockedBy": "no-label-surface"
+      "note": "The palette's own copy is one field label; every result it lists is a design label already translated by the row that owns it, so translating them here would be a second copy of the same string."
     },
     "destructive-action-confirmation": {
       "state": "localized",

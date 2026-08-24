@@ -1,5 +1,6 @@
-import type { Component } from 'react';
-import ConsoleShell, { ONBOARD, ORDER, SCREENS } from './generated/console';
+import type { Component, ReactNode } from 'react';
+import ConsoleShell, { APPEAR_GROUPS, ONBOARD, ORDER, SCREENS } from './generated/console';
+import { h } from './dc-runtime';
 import {
   badgeFor, dashboardStats, formatDuration, healthBars, isReadable, reasonFor, regexMatchLabel, rowsFor, serverRows, valueOf,
   type ViewReadings,
@@ -50,6 +51,10 @@ import { HEADER_BYTES, readHeaderFacts } from '../../../control-plane/image-fact
 import {
   DEFAULT_PRESET_ID, LOGO_PRESETS, acceptLogo, chooseCustom, choosePreset, currentChoice, resetLogo,
 } from './logo-customization';
+import {
+  buildPalette, isPaletteChord, moveSelection, searchPalette,
+  type PaletteEntry, type PaletteMatch,
+} from './command-palette';
 import { applyResponse, isRejected, MIN_REFRESH_MS } from './external-settings-sources';
 import {
   buildSource, loadSources, saveSources, sourcesStatusLine,
@@ -153,6 +158,8 @@ interface Shell {
    *  cross-cutting setting can be noticed without touching a compiled file. */
   setVal: (control: ControlRef, value: unknown) => void;
   componentDidMount?(): void;
+  /** The compiled shell's own markup, which App wraps rather than replaces. */
+  render(): ReactNode;
   componentWillUnmount?(): void;
   showInfo(title: string, body: string, plain: string, x: string, y: string): void;
   ceremony(title: string, command: string): void;
@@ -238,6 +245,27 @@ export class App extends Base {
 
   /** Read by the compiled `text`-kind control marked `action:'logo-status'`. */
   private logoStatusLine = 'The shipped mark.';
+
+  /* --- command palette ---------------------------------------------------------------
+   * Built once: it is derived from the compiled design, which cannot change while the
+   * console is running, so rebuilding it per keystroke would be work with no possible
+   * different answer. */
+  private readonly palette: PaletteEntry[] = buildPalette(
+    ORDER as string[],
+    SCREENS as unknown as Record<string, { label: string; title: string; sub?: string; groups?: { title?: string; ctls?: { id: string; label: string; kind: string; info?: string }[] }[] }>,
+    APPEAR_GROUPS as unknown as { title?: string; ctls?: { id: string; label: string; kind: string; info?: string }[] }[],
+  );
+
+  private paletteOpen = false;
+
+  private paletteQuery = '';
+
+  private paletteRow = 0;
+
+  /** Where focus was when the palette opened, so Escape can put it back. */
+  private paletteReturnFocus: HTMLElement | undefined;
+
+  private stopPaletteKeys: (() => void) | undefined;
 
   private sourceReports: SourceReport[] = [];
 
@@ -368,6 +396,7 @@ export class App extends Base {
      * loaded, which is why it stays inside. */
     this.listenForProvisionSteps();
     this.startVoiceEnumeration();
+    this.listenForPaletteChord();
     /* The configured server list is not a reading from any PBX — it exists before
      * anything is reachable and must be on screen whether or not discovery finds a
      * target, so it is loaded independently of it. */
@@ -395,6 +424,8 @@ export class App extends Base {
     this.stopProvisionListener = undefined;
     this.stopVoiceListener?.();
     this.stopVoiceListener = undefined;
+    this.stopPaletteKeys?.();
+    this.stopPaletteKeys = undefined;
   }
 
   componentDidUpdate() {
@@ -800,6 +831,149 @@ What you can do: ${offered}.` : ''}`);
       ? `${name} is on and ${credential}.`
       : `${name} is off and ${credential}.`;
     this.forceUpdate();
+  }
+
+  // ---------------------------------------------------------------- command palette
+
+  /**
+   * One discoverable global shortcut.
+   *
+   * Captured rather than bubbled, so a field that stops keys from propagating cannot
+   * swallow the one chord that is meant to work from anywhere. The default is prevented
+   * only when the chord actually matches, because taking every control-shift keystroke
+   * would break whatever else the platform does with them.
+   */
+  private listenForPaletteChord(): void {
+    const handler = (event: KeyboardEvent) => {
+      if (isPaletteChord(event)) {
+        event.preventDefault();
+        this.togglePalette();
+        return;
+      }
+      if (!this.paletteOpen) return;
+      if (event.key === 'Escape') { event.preventDefault(); this.closePalette(); return; }
+      const matches = this.paletteMatches();
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        this.paletteRow = moveSelection(matches.length, this.paletteRow, event.key === 'ArrowDown' ? 1 : -1);
+        this.forceUpdate();
+        return;
+      }
+      if (event.key === 'Enter' && matches.length > 0) {
+        event.preventDefault();
+        this.activatePaletteEntry(matches[this.paletteRow].entry);
+      }
+    };
+    window.addEventListener('keydown', handler, true);
+    this.stopPaletteKeys = () => window.removeEventListener('keydown', handler, true);
+  }
+
+  private paletteMatches(): PaletteMatch[] {
+    return searchPalette(this.palette, this.paletteQuery);
+  }
+
+  private togglePalette(): void {
+    if (this.paletteOpen) { this.closePalette(); return; }
+    const active = (globalThis as { document?: Document }).document?.activeElement;
+    this.paletteReturnFocus = active instanceof HTMLElement ? active : undefined;
+    this.paletteOpen = true;
+    this.paletteQuery = '';
+    this.paletteRow = 0;
+    this.forceUpdate();
+  }
+
+  private closePalette(): void {
+    this.paletteOpen = false;
+    this.forceUpdate();
+    /* Focus goes back where it came from. Leaving it on a control that has just been
+     * removed from the document drops it to the body, and a keyboard user then has to
+     * tab from the top of the page to get back to what they were doing. */
+    this.paletteReturnFocus?.focus?.();
+    this.paletteReturnFocus = undefined;
+  }
+
+  /**
+   * Opens the destination, then reveals and focuses the exact control.
+   *
+   * Landing on the right screen and leaving somebody to hunt for the row is not
+   * teleporting. The reveal waits a frame because the destination's markup does not exist
+   * until the screen change has rendered.
+   */
+  private activatePaletteEntry(entry: PaletteEntry): void {
+    this.closePalette();
+    this.setState({ screen: entry.screen });
+    if (entry.controlId === undefined) return;
+    const id = entry.controlId;
+    const raf = (globalThis as { requestAnimationFrame?: (fn: () => void) => void }).requestAnimationFrame;
+    const reveal = () => {
+      const document = (globalThis as { document?: Document }).document;
+      const row = document?.querySelector(`[data-ctl="${id}"]`);
+      if (!(row instanceof HTMLElement)) {
+        /* Said plainly rather than silently doing nothing: a result that appears to work
+         * and does not is worse than one that admits it could not. */
+        this.toast('That setting is on this screen but its row is not on display right now.');
+        return;
+      }
+      row.scrollIntoView({ block: 'center' });
+      const focusable = row.querySelector('input, select, button, [tabindex]');
+      (focusable instanceof HTMLElement ? focusable : row).focus?.();
+    };
+    if (raf) raf(() => raf(reveal)); else reveal();
+  }
+
+  /** The palette itself. Absent from the document entirely when closed, so nothing of it
+   *  can be reached by tab or read by a screen reader while it is not in use. */
+  private paletteOverlay(): ReactNode {
+    if (!this.paletteOpen) return null;
+    const matches = this.paletteMatches();
+    const rows = matches.map((match, index) => h('button', {
+      key: match.entry.key,
+      class: `palette-row${index === this.paletteRow ? ' palette-row-on' : ''}`,
+      role: 'option',
+      'aria-selected': index === this.paletteRow ? 'true' : 'false',
+      onClick: () => this.activatePaletteEntry(match.entry),
+      onMouseEnter: () => { this.paletteRow = index; this.forceUpdate(); },
+    },
+      h('span', { class: 'palette-label' }, match.entry.label),
+      h('span', { class: 'palette-context' }, match.entry.context)));
+    return h('div', {
+      class: 'palette-scrim',
+      onClick: () => this.closePalette(),
+    }, h('div', {
+      class: 'palette-card',
+      role: 'dialog',
+      'aria-modal': 'true',
+      'aria-label': 'Find a screen or a setting',
+      onClick: (event: { stopPropagation(): void }) => event.stopPropagation(),
+    },
+      h('input', {
+        class: 'palette-field',
+        type: 'text',
+        autoFocus: true,
+        placeholder: 'Find a screen or a setting',
+        'aria-label': 'Find a screen or a setting',
+        'aria-controls': 'palette-results',
+        value: this.paletteQuery,
+        onInput: (event: { target: { value: string } }) => {
+          this.paletteQuery = event.target.value;
+          /* Back to the top on every keystroke: keeping the old row means Enter activates
+           * whatever happens to sit at that index in a list somebody has not read yet. */
+          this.paletteRow = 0;
+          this.forceUpdate();
+        },
+      }),
+      h('div', { id: 'palette-results', class: 'palette-results', role: 'listbox' },
+        rows.length > 0
+          ? rows
+          : h('p', { class: 'palette-empty' }, `Nothing here matches ${this.paletteQuery}.`)),
+      h('p', { class: 'palette-hint' },
+        `${matches.length} of ${this.palette.length}. Arrow keys to move, Enter to go, Escape to close.`)));
+  }
+
+  render(): ReactNode {
+    /* Wrapping the compiled shell rather than replacing it: the palette is the only thing
+     * added, and it sits above everything because it is rendered after. */
+    return h('div', { class: 'app-root' }, super.render(), this.paletteOverlay());
   }
 
   // ---------------------------------------------------------------- the console mark
