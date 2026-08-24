@@ -2224,6 +2224,29 @@ const SCREENS = {
       ctl('h_announce','Announcement every','slider',30,{ min:0, max:300, step:15, unit:'s' }),
       ctl('h_volume','Volume trim','slider',0,{ min:-20, max:10, unit:' dB' })
     ]}] },
+  fcodes:{ rail:'pbx', icon:'dialpad', label:'Feature codes', badge:'', title:'Feature codes', file:'features.conf', kind:'generic',
+    sub:'The digits a caller presses mid-call, and the transfer behaviour around them. These write features.conf directly. Every sequence here is free text because Asterisk accepts any digit string including * and #, and a picker cannot know what a site has standardised on -- but a control left untouched writes nothing at all.',
+    groups:[{ title:'In-call feature map', desc:'The [featuremap] section. A caller presses these during a call.', ctls:[
+      ctl('fc_blindxfer','blindxfer','text','',{ placeholder:'#', info:'Blind transfer: hand the call over without speaking to the destination first.' }),
+      ctl('fc_atxfer','atxfer','text','',{ placeholder:'*2', info:'Attended transfer: speak to the destination first, then complete or abort with the codes below.' }),
+      ctl('fc_disconnect','disconnect','text','',{ placeholder:'*0', info:'Hang the call up from either end.' }),
+      ctl('fc_automixmon','automixmon','text','',{ placeholder:'*3', info:'One-touch record. This Asterisk ships automixmon; the older automon is not in its features.conf sample, so this writes automixmon rather than a key the build would ignore.' }),
+      ctl('fc_parkcall','parkcall','text','',{ placeholder:'#72', info:'One-step park.' })
+    ]},
+    { title:'Attended transfer', desc:'What the transferring party presses once an attended transfer is already up. These live in [general], not [featuremap].', ctls:[
+      ctl('fc_atxferabort','atxferabort','text','',{ placeholder:'*1', info:'Cancel the transfer and return to the original caller.' }),
+      ctl('fc_atxfercomplete','atxfercomplete','text','',{ placeholder:'*2', info:'Complete it and drop out.' }),
+      ctl('fc_atxferthreeway','atxferthreeway','text','',{ placeholder:'*3', info:'Complete it but stay in the call, making it three-way.' }),
+      ctl('fc_atxferswap','atxferswap','text','',{ placeholder:'*4', info:'Swap between the two parties.' })
+    ]},
+    { title:'Pickup and timing', desc:'Call pickup and how long Asterisk waits for the digits above.', ctls:[
+      ctl('fc_pickupexten','pickupexten','text','',{ placeholder:'*8', info:'General call pickup: answer a colleague’s ringing phone from your own.' }),
+      ctl('fc_featuredigittimeout','featuredigittimeout','slider',1000,{ min:100, max:5000, step:100, unit:' ms', info:'Longest gap between digits before Asterisk stops waiting for the rest of a feature code.' }),
+      ctl('fc_transferdigittimeout','transferdigittimeout','slider',3,{ min:1, max:30, unit:' s', info:'How long to wait for the transfer destination’s digits.' }),
+      ctl('fc_atxfernoanswertimeout','atxfernoanswertimeout','slider',15,{ min:5, max:120, unit:' s', info:'How long to ring the attended-transfer destination before giving up.' }),
+      ctl('fc_atxferdropcall','atxferdropcall','switch',false,{ info:'When the transfer target never answers: drop the call outright, or return it to the transferrer.' })
+    ]}]
+  },
   codecs:{ rail:'media', icon:'graphic_eq', label:'Codecs & RTP', badge:'', title:'Codecs & RTP', file:'codecs.conf · rtp.conf', kind:'generic',
     sub:'Transcoding, packetisation and the media port range. Drag the codec list to change preference order globally.',
     groups:[{ title:'Codec preference', desc:'The order Asterisk offers codecs in an SDP. Drag to reorder — there is no list to type.', ctls:[
@@ -2563,7 +2586,7 @@ const DOCS = {
 
 const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
-const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
+const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },

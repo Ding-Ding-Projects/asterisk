@@ -398,6 +398,16 @@ export interface FeaturesGeneralView {
   atxfernoanswertimeout?: string;
   /** features.conf.sample: "atxferdropcall ... If this is set to 'yes' ...". */
   atxferdropcall?: string;
+  /** features.conf.sample: "atxferabort = *1 ; cancel the attended transfer". */
+  atxferabort?: string;
+  /** features.conf.sample: "atxfercomplete = *2 ; complete the attended transfer,
+   *  dropping out of the transfer". */
+  atxfercomplete?: string;
+  /** features.conf.sample: "atxferthreeway = *3 ; complete the attended transfer,
+   *  but stay in the call". */
+  atxferthreeway?: string;
+  /** features.conf.sample: "atxferswap = *4 ; swap to the other party". */
+  atxferswap?: string;
 }
 
 /** A single "<FeatureName> => <sequence>" line from `[featuremap]`. features.conf.sample:
@@ -422,6 +432,10 @@ const FEATURES_GENERAL_KEYS: ReadonlyArray<keyof FeaturesGeneralView> = [
   "featuredigittimeout",
   "atxfernoanswertimeout",
   "atxferdropcall",
+  "atxferabort",
+  "atxfercomplete",
+  "atxferthreeway",
+  "atxferswap",
 ];
 
 export function parseFeatures(value: ConfigValue): FeaturesView {
