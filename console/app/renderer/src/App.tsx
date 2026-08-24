@@ -48,7 +48,7 @@ import { resolveAppearanceValue } from './appearance';
 import { APPEARANCE_RUNTIME_STYLES, bindAppearanceRuntime, detectAppearanceCapabilities, mountAppearanceModel, type BoundAppearanceRuntime } from './appearance-runtime';
 import { createAppearanceStore, type AppearanceStore } from './appearance-store';
 import { controlAppearanceId, createRichControlRegistration, type RichControlInput, type RichControlRegistration } from './rich-control-registration';
-import { executeRichControl, type RegisteredCommand } from './command-registry';
+import { executeRichControl, type RegisteredCommand, type RichControlDescriptor } from './command-registry';
 import { createTeleportInstruction } from './palette-index';
 import { publishStartupContext } from './startup-context';
 import { appearanceFamilyDefects, missingAppearanceElementIds } from './appearance-element-inventory';
@@ -170,6 +170,7 @@ interface Shell {
 
 /** The shape the compiled shell hands every control callback. */
 interface ControlRef { id?: string; label?: string; kind?: string }
+export type SourceControlDescriptor = { id: string; sourceControlId?: string; kind?: RichControlDescriptor['kind']; label?: string; accept?: string };
 
 const Base = ConsoleShell as unknown as new (props: Record<string, never>) => Component<Record<string, never>> & Shell;
 
@@ -502,6 +503,12 @@ export class App extends Base {
     const candidate = colourProperties.has(property)
       ? { kind: 'colour' as const, value: String(value ?? '') }
       : { kind: 'literal' as const, value: String(value ?? '') };
+    if ((property === 'superscript' || property === 'subscript') && String(value).trim().toLowerCase() === 'true') {
+      const other: AppearanceProperty = property === 'superscript' ? 'subscript' : 'superscript';
+      const cleared = store.resetProperty({ scope: 'global' }, 'default', other);
+      if (!cleared.ok) { this.toast(cleared.reason); return; }
+      this.fire('Appearance adjusted', `${property} is active; ${other} was cleared because the two states are mutually exclusive.`);
+    }
     const draft = store.setDraft({ scope: 'global' }, 'default', property, candidate);
     if (!draft.ok) { this.toast(draft.reason); return; }
     const applied = store.applyDraft({ scope: 'global' }, 'default', property);
@@ -544,8 +551,9 @@ export class App extends Base {
       } else if (control.kind === 'file') {
         const originalId = control.sourceControlId;
         base.kind = 'file'; base.fileName = typeof current === 'string' && current ? current : 'No file chosen'; base.hasFile = Boolean(current); base.accept = control.accept ?? '';
-        base.onPick = (event: { target?: { files?: FileList | null } }) => { const file = event.target?.files?.[0]; if (file) this.onFilePicked({ id: originalId }, file); };
-        base.onClear = () => this.onFileCleared({ id: originalId });
+        const sourceDescriptor = { id: originalId, kind: control.kind, label: control.label, accept: control.accept, sourceControlId: control.sourceControlId };
+        base.onPick = (event: { target?: { files?: FileList | null } }) => { const file = event.target?.files?.[0]; if (file) this.onFilePicked(sourceDescriptor, file); };
+        base.onClear = () => this.onFileCleared(sourceDescriptor);
       } else if (control.kind === 'order') {
         const values = Array.isArray(current) ? current : [];
         const swap = (from: number, to: number) => { if (to < 0 || to >= values.length) return; const next = values.slice(); [next[from], next[to]] = [next[to], next[from]]; execute(next); };
@@ -571,16 +579,13 @@ export class App extends Base {
       this.toast(`Palette target is stale: ${entry.target.elementId}. Refresh the palette and try again.`);
       return;
     }
-    this.setState({ paletteOpen: false });
     const currentTabs = (this.state as { tabs?: unknown }).tabs;
-    if (Array.isArray(currentTabs) && !currentTabs.includes(entry.target.destinationId)) {
-      this.setState({ tabs: [...currentTabs, entry.target.destinationId], screen: entry.target.destinationId });
-    }
-    const openScreen = (this as unknown as { openScreen?: (id: string) => void }).openScreen;
-    if (!Array.isArray(currentTabs) || currentTabs.includes(entry.target.destinationId)) {
-      if (openScreen) openScreen(entry.target.destinationId);
-      else this.setState({ screen: entry.target.destinationId });
-    }
+    const currentRail = (this.state as { railId?: string }).railId;
+    const destinationRail = ((SCREENS as Record<string, { rail?: string }>)[entry.target.destinationId]?.rail) ?? currentRail;
+    const nextTabs = Array.isArray(currentTabs) && !currentTabs.includes(entry.target.destinationId)
+      ? [...currentTabs, entry.target.destinationId]
+      : currentTabs;
+    this.setState({ paletteOpen: false, screen: entry.target.destinationId, railId: destinationRail, ...(Array.isArray(nextTabs) ? { tabs: nextTabs } : {}) });
     globalThis.requestAnimationFrame?.(() => {
       const target = document.querySelector<HTMLElement>(`[data-appearance-id="${CSS.escape(instruction.elementId)}"]`);
       if (!target) { this.toast(`Palette target is stale after navigation: ${instruction.elementId}.`); return; }
@@ -758,7 +763,7 @@ export class App extends Base {
 
   /** The file's bytes never leave this process: read locally, validated by the pure
    *  loader in `personal-vocabulary.ts`, and — only on success — cached locally. */
-  onFilePicked = (ctl: { id: string }, file: File): void => {
+  onFilePicked = (ctl: SourceControlDescriptor, file: File): void => {
     const reader = new FileReader();
     reader.onload = () => {
       const text = typeof reader.result === 'string' ? reader.result : '';
@@ -772,7 +777,7 @@ export class App extends Base {
     reader.readAsText(file);
   };
 
-  onFileCleared = (ctl: { id: string }): void => {
+  onFileCleared = (ctl: SourceControlDescriptor): void => {
     const result = clearVocabulary(this.vocabStorage);
     this.pickedFileNames.delete(ctl.id);
     this.forceUpdate();
@@ -890,7 +895,9 @@ export class App extends Base {
     const response = await this.request('local-history.record', {
       payload: { action: 'settings-changed', stableRecordId: controlId, subject: action, snapshot: { controlId, action } },
     }).catch(() => undefined);
-    if (response?.ok) this.fire('Action history recorded', `${action} from ${controlId} was acknowledged by local history.`);
+    const nested = response?.data as { ok?: unknown; status?: unknown } | undefined;
+    const acknowledged = response?.ok === true && nested?.ok !== false && nested?.status !== 'failed';
+    if (acknowledged) this.fire('Action history recorded', `${action} from ${controlId} was acknowledged by local history.`);
     else this.fire('Action started', `${action} from ${controlId} is running, but local history is unavailable.`);
   }
 

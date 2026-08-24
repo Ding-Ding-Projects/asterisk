@@ -40,6 +40,14 @@ The checked-in design source now gives palette rows and M3 controls stable appea
 
 The design compiler and PBX M3 extension helper were the only allowed commands beyond source inspection. No tests, lint, broad build, package, UI, browser, captures, dew, or cleanup ran.
 
+## Seventh refutation repair, 2026-08-24
+
+Action rows now inspect nested history results before claiming acknowledgement. Unopened palette destinations update tabs, screen, and rail together before target resolution. File actions carry the complete typed source-control descriptor, including its original source id, kind, label, and accept constraint.
+
+Appearance validation iterates every required id family and direct target set. Double strikethrough composes line-through with double decoration style, superscript and subscript are mutually exclusive with a visible history-backed adjustment, and typed appearance values translate to valid CSS tokens before direct application. Hosted cache notes now state that revision and release changes affect the next eligible launch only.
+
+No tests, lint, broad build, package, UI, browser, captures, dew, or cleanup ran.
+
 ## Scope
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.

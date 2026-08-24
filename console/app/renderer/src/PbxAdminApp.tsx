@@ -1,4 +1,4 @@
-import { App } from './App';
+import { App, type SourceControlDescriptor } from './App';
 import type { ControlPlaneResponse } from '../../../shared/control-plane';
 import type { ConfigValue } from './configuration';
 import {
@@ -880,7 +880,7 @@ export class PbxAdminApp extends App {
     return this.appFileControlHasFile();
   };
 
-  onFileCleared = (control: { id: string }): void => {
+  onFileCleared = (control: SourceControlDescriptor): void => {
     if (control.id.startsWith('pbxadm:') && control.id.endsWith(':media-upload')) {
       this.adminPickedFileNames.delete(control.id);
       this.forceUpdate();
@@ -889,7 +889,7 @@ export class PbxAdminApp extends App {
     this.appFileCleared(control);
   };
 
-  onFilePicked = (control: { id: string }, file: File): void => {
+  onFilePicked = (control: SourceControlDescriptor, file: File): void => {
     if (!(control.id.startsWith('pbxadm:') && control.id.endsWith(':media-upload'))) {
       this.appFilePicked(control, file);
       return;

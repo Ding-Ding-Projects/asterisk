@@ -191,6 +191,7 @@ export function mountAppearanceModel(
             ? `linear-gradient(${serialised.cssValue}, ${serialised.cssValue})`
             : serialised.cssValue;
         (directValues[directProperty] ??= []).push(directValue);
+        if (property === 'doubleStrikethrough' && serialised.cssValue !== 'none') (directValues['text-decoration-style'] ??= []).push('double');
       }
       hasAnimatedRainbow ||= serialised.animated;
     }

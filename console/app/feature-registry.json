@@ -1313,7 +1313,7 @@
     },
     "command-palette": {
       "status": "partial",
-      "note": "App.tsx mounts a command registry built from the design destination and setting catalogue plus every appearance property, and the checked-in design renders its rich rows through the M3 control component with live readers, options, execute handlers, canonical teleport, focus, highlight, stale-target reporting, and named collision rows. The shared palette-index search and shortcut behavior remain separate integration surfaces. No tests, build, runtime interaction, or capture was run in this lane.",
+      "note": "App.tsx mounts a command registry built from the design destination and setting catalogue plus every appearance property, and the checked-in design renders its rich rows through the M3 control component with live readers, options, execute handlers, canonical teleport, focus, highlight, stale-target reporting, named collision rows, and nested history acknowledgement reporting. The shared palette-index search and shortcut behavior remain separate integration surfaces. No tests, build, runtime interaction, or capture was run in this lane.",
       "implementation": {
         "paths": [
           "app/renderer/src/catalog.ts",
