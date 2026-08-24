@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
 import { ExternalEditorRuntime } from '../../control-plane/external-editor-runtime.js';
@@ -23,6 +24,7 @@ let updateCheckInFlight: Promise<void> | undefined;
 let updateGeneration = 0;
 let installingLatch: Promise<UpdaterRestartResult> | undefined;
 let restartQuitScheduled = false;
+let editorPickerBusy = false;
 
 function readInitialState(): UpdaterState {
   const identity = readCurrentIdentity();
@@ -165,21 +167,31 @@ ipcMain.handle('external-editor:save-custom', (_event, record: ExternalEditorCus
 ipcMain.handle('external-editor:remove-custom', (_event, editorId: unknown) => externalEditor.removeCustom(String(editorId ?? '')));
 ipcMain.handle('external-editor:save-portable', (_event, executable: unknown) => externalEditor.savePortable(String(executable ?? '')));
 ipcMain.handle('external-editor:pick-executable', async () => {
-  const result = await dialog.showOpenDialog(mainWindow ?? undefined, {
-    title: 'Choose an editor executable',
-    properties: ['openFile'],
-    filters: [{ name: 'Programs', extensions: ['exe', 'com'] }, { name: 'All files', extensions: ['*'] }],
-  });
-  return { canceled: result.canceled, executable: result.canceled ? undefined : result.filePaths[0] };
+  const operationId = randomUUID();
+  if (editorPickerBusy) return { operationId, canceled: true, reason: 'busy' as const };
+  editorPickerBusy = true;
+  try {
+    const result = await dialog.showOpenDialog(mainWindow ?? undefined, {
+      title: 'Choose an editor executable',
+      properties: ['openFile'],
+      filters: [{ name: 'Programs', extensions: ['exe', 'com'] }, { name: 'All files', extensions: ['*'] }],
+    });
+    return { operationId, canceled: result.canceled, executable: result.canceled ? undefined : result.filePaths[0], reason: result.canceled ? 'user-cancelled' as const : 'picked' as const };
+  } finally { editorPickerBusy = false; }
 });
 ipcMain.handle('external-editor:pick-folder', async () => {
-  const result = await dialog.showOpenDialog(mainWindow ?? undefined, { title: 'Choose a local project folder', properties: ['openDirectory', 'createDirectory'] });
-  return { canceled: result.canceled, folder: result.canceled ? undefined : result.filePaths[0] };
+  const operationId = randomUUID();
+  if (editorPickerBusy) return { operationId, canceled: true, reason: 'busy' as const };
+  editorPickerBusy = true;
+  try {
+    const result = await dialog.showOpenDialog(mainWindow ?? undefined, { title: 'Choose a local project folder', properties: ['openDirectory', 'createDirectory'] });
+    return { operationId, canceled: result.canceled, folder: result.canceled ? undefined : result.filePaths[0], reason: result.canceled ? 'user-cancelled' as const : 'picked' as const };
+  } finally { editorPickerBusy = false; }
 });
 ipcMain.handle('external-editor:open-download', async (_event, editorId?: string) => {
   const resolved = externalEditor.openDownload(editorId);
   if (!resolved.ok) return resolved;
-  const allowed = new Set(['https://code.visualstudio.com/', 'https://code.visualstudio.com/insiders/', 'https://code.visualstudio.com/download']);
+  const allowed = new Set(['https://code.visualstudio.com/', 'https://code.visualstudio.com/insiders/', 'https://code.visualstudio.com/download', 'https://notepad-plus-plus.org/', 'https://www.sublimetext.com/']);
   const url = allowed.has(resolved.message) ? resolved.message : undefined;
   if (!url) return { ok: false, message: 'The official download link was not on the exact allowlist.' };
   try { await shell.openExternal(url); return { ok: true, message: url }; }
@@ -187,7 +199,7 @@ ipcMain.handle('external-editor:open-download', async (_event, editorId?: string
 });
 ipcMain.handle('external-editor:open-project', (_event, folder: unknown, editorId?: string) => externalEditor.launch({ kind: 'folder', path: String(folder ?? '') }, editorId));
 ipcMain.handle('external-editor:launch', (_event, target: ExternalEditorLaunchTarget, editorId?: string) => externalEditor.launch(target, editorId));
-ipcMain.handle('external-editor:open-export', (_event, input: { name: string; content: string; editorId?: string }) => externalEditor.openExport(input));
+ipcMain.handle('external-editor:open-export', (_event, input: { name: string; content: string; source?: string; editorId?: string }) => externalEditor.openExport(input));
 ipcMain.handle('external-editor:open-materialized-file', (_event, input: { name: string; content: string; source: string; editorId?: string }) => externalEditor.openMaterializedFile(input));
 
 function createWindow(): void {

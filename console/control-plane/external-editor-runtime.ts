@@ -6,7 +6,7 @@ import { spawn } from 'node:child_process';
 import { atomicWriteFileSync } from './atomic-file.js';
 import type {
   ExternalEditorCandidate, ExternalEditorCustomRecord, ExternalEditorLaunchResult,
-  ExternalEditorLaunchTarget, ExternalEditorStatus,
+  ExternalEditorLaunchTarget, ExternalEditorOperation, ExternalEditorStatus,
 } from '../shared/control-plane.js';
 
 type RuntimeDefinition = ExternalEditorCandidate & { command: string; fallbackPaths: string[]; folderArgs: string[]; fileArgs: string[] };
@@ -21,15 +21,17 @@ const OFFICIAL_DOWNLOADS = new Map([
   ['vscode', 'https://code.visualstudio.com/'],
   ['vscode-insiders', 'https://code.visualstudio.com/insiders/'],
   ['vscode-portable', 'https://code.visualstudio.com/download'],
+  ['notepadpp', 'https://notepad-plus-plus.org/'],
+  ['sublime', 'https://www.sublimetext.com/'],
 ]);
 
 const KNOWN: RuntimeDefinition[] = [
-  { id: 'vscode', name: 'Visual Studio Code', command: 'code', fallbackPaths: ['%LOCALAPPDATA%\\Programs\\Microsoft VS Code\\Code.exe', '%ProgramFiles%\\Microsoft VS Code\\Code.exe', '%ProgramFiles(x86)%\\Microsoft VS Code\\Code.exe'], folderArgs: ['--new-window'], fileArgs: [], supportsFolderWorkspace: true, downloadUrl: 'https://code.visualstudio.com/', custom: false, available: false, selected: false },
-  { id: 'vscode-insiders', name: 'Visual Studio Code Insiders', command: 'code-insiders', fallbackPaths: ['%LOCALAPPDATA%\\Programs\\Microsoft VS Code Insiders\\Code - Insiders.exe', '%ProgramFiles%\\Microsoft VS Code Insiders\\Code - Insiders.exe', '%ProgramFiles(x86)%\\Microsoft VS Code Insiders\\Code - Insiders.exe'], folderArgs: ['--new-window'], fileArgs: [], supportsFolderWorkspace: true, downloadUrl: 'https://code.visualstudio.com/insiders/', custom: false, available: false, selected: false },
-  { id: 'vscode-portable', name: 'Visual Studio Code Portable', command: 'code-portable', fallbackPaths: ['%USERPROFILE%\\Applications\\VSCode\\Code.exe', '%USERPROFILE%\\Tools\\VSCode\\Code.exe', '%LOCALAPPDATA%\\VSCode\\Code.exe'], folderArgs: ['--new-window'], fileArgs: [], supportsFolderWorkspace: true, downloadUrl: 'https://code.visualstudio.com/download', custom: false, available: false, selected: false },
-  { id: 'notepadpp', name: 'Notepad++', command: 'notepad++', fallbackPaths: ['%ProgramFiles%\\Notepad++\\notepad++.exe'], folderArgs: [], fileArgs: [], supportsFolderWorkspace: false, downloadUrl: 'https://notepad-plus-plus.org/', custom: false, available: false, selected: false },
-  { id: 'sublime', name: 'Sublime Text', command: 'subl', fallbackPaths: ['%ProgramFiles%\\Sublime Text\\subl.exe'], folderArgs: [], fileArgs: [], supportsFolderWorkspace: false, downloadUrl: 'https://www.sublimetext.com/', custom: false, available: false, selected: false },
-  { id: 'notepad', name: 'Notepad', command: 'notepad.exe', fallbackPaths: [], folderArgs: [], fileArgs: [], supportsFolderWorkspace: false, downloadUrl: undefined, custom: false, available: false, selected: false },
+  { id: 'vscode', name: 'Visual Studio Code', command: 'code', fallbackPaths: ['%LOCALAPPDATA%\\Programs\\Microsoft VS Code\\Code.exe', '%ProgramFiles%\\Microsoft VS Code\\Code.exe', '%ProgramFiles(x86)%\\Microsoft VS Code\\Code.exe'], folderArgs: ['--new-window'], fileArgs: [], supportsFolderWorkspace: true, downloadUrl: 'https://code.visualstudio.com/', custom: false, discovery: 'automatic', available: false, selected: false },
+  { id: 'vscode-insiders', name: 'Visual Studio Code Insiders', command: 'code-insiders', fallbackPaths: ['%LOCALAPPDATA%\\Programs\\Microsoft VS Code Insiders\\Code - Insiders.exe', '%ProgramFiles%\\Microsoft VS Code Insiders\\Code - Insiders.exe', '%ProgramFiles(x86)%\\Microsoft VS Code Insiders\\Code - Insiders.exe'], folderArgs: ['--new-window'], fileArgs: [], supportsFolderWorkspace: true, downloadUrl: 'https://code.visualstudio.com/insiders/', custom: false, discovery: 'automatic', available: false, selected: false },
+  { id: 'vscode-portable', name: 'Visual Studio Code Portable', command: 'code-portable', fallbackPaths: ['%USERPROFILE%\\Applications\\VSCode\\Code.exe', '%USERPROFILE%\\Tools\\VSCode\\Code.exe', '%LOCALAPPDATA%\\VSCode\\Code.exe'], folderArgs: ['--new-window'], fileArgs: [], supportsFolderWorkspace: true, downloadUrl: 'https://code.visualstudio.com/download', custom: false, discovery: 'automatic', available: false, selected: false },
+  { id: 'notepadpp', name: 'Notepad++', command: 'notepad++', fallbackPaths: ['%ProgramFiles%\\Notepad++\\notepad++.exe'], folderArgs: [], fileArgs: [], supportsFolderWorkspace: false, downloadUrl: 'https://notepad-plus-plus.org/', custom: false, discovery: 'automatic', available: false, selected: false },
+  { id: 'sublime', name: 'Sublime Text', command: 'subl', fallbackPaths: ['%ProgramFiles%\\Sublime Text\\subl.exe'], folderArgs: [], fileArgs: [], supportsFolderWorkspace: false, downloadUrl: 'https://www.sublimetext.com/', custom: false, discovery: 'automatic', available: false, selected: false },
+  { id: 'notepad', name: 'Notepad', command: 'notepad.exe', fallbackPaths: [], folderArgs: [], fileArgs: [], supportsFolderWorkspace: false, downloadUrl: undefined, custom: false, discovery: 'automatic', available: false, selected: false },
 ];
 
 function expand(value: string, env: NodeJS.ProcessEnv = process.env): string {
@@ -78,6 +80,7 @@ export class ExternalEditorRuntime {
   private config: Persisted;
   private persistenceState: 'valid' | 'missing' | 'invalid' = 'missing';
   private persistenceMessage: string | undefined;
+  private activeOperation: ExternalEditorOperation | undefined;
 
   constructor(options: ExternalEditorRuntimeOptions) {
     this.file = join(options.userDataPath, 'external-editors.json');
@@ -108,12 +111,17 @@ export class ExternalEditorRuntime {
   }
 
   private persist(): void {
+    const operation = this.beginOperation('persist');
+    if (!operation) throw new Error('Another editor operation is already running.');
     mkdirSync(dirname(this.file), { recursive: true });
     const text = JSON.stringify(this.config, null, 2);
-    if (Buffer.byteLength(text, 'utf8') > MAX_RECORD_BYTES) throw new Error('The external-editor settings are too large.');
-    atomicWriteFileSync(this.file, text);
+    if (Buffer.byteLength(text, 'utf8') > MAX_RECORD_BYTES) { this.finishOperation(operation, 'failed', 'The external-editor settings are too large.'); throw new Error('The external-editor settings are too large.'); }
+    this.updateOperation(operation, 0.5, 'Writing editor settings atomically.');
+    try { atomicWriteFileSync(this.file, text); }
+    catch (error) { this.finishOperation(operation, 'failed', error instanceof Error ? error.message : String(error)); throw error; }
     this.persistenceState = 'valid';
     this.persistenceMessage = undefined;
+    this.finishOperation(operation, 'completed', 'Editor settings saved.');
   }
 
   private candidates(): RuntimeDefinition[] {
@@ -121,13 +129,13 @@ export class ExternalEditorRuntime {
       const portable = definition.id === 'vscode-portable' && this.config.portableExecutable ? safePath(this.config.portableExecutable) : undefined;
       const resolved = portable && isFile(portable) ? portable : resolveCommand(definition.command, this.env)
         ?? definition.fallbackPaths.map((candidate) => safePath(candidate)).find(isFile);
-      return { ...definition, resolved, available: !!resolved, selected: definition.id === this.config.choiceId };
+      return { ...definition, resolved, discovery: portable && isFile(portable) ? 'explicit' : definition.discovery, available: !!resolved, selected: definition.id === this.config.choiceId };
     });
     const custom = this.config.customEditors.map((record) => {
       const resolved = safePath(record.executable);
       return {
         id: record.id!, name: record.name, command: resolved, fallbackPaths: [], resolved, available: isFile(resolved), selected: record.id === this.config.choiceId,
-        supportsFolderWorkspace: record.supportsFolderWorkspace === true, folderArgs: [], fileArgs: [], custom: true,
+        supportsFolderWorkspace: record.supportsFolderWorkspace === true, folderArgs: [], fileArgs: [], custom: true, discovery: 'custom',
       } as RuntimeDefinition;
     });
     return [...known, ...custom];
@@ -138,38 +146,58 @@ export class ExternalEditorRuntime {
     const available = candidates.filter((candidate) => candidate.available);
     return {
       selectedId: this.config.choiceId,
-      editors: candidates.map(({ id, name, resolved, available: found, selected, supportsFolderWorkspace, downloadUrl, custom }) => ({ id, name, resolved: found ? resolved : undefined, available: found, selected, supportsFolderWorkspace, downloadUrl, custom })),
+      editors: candidates.map(({ id, name, resolved, available: found, selected, supportsFolderWorkspace, downloadUrl, custom, discovery }) => ({ id, name, resolved: found ? resolved : undefined, available: found, selected, supportsFolderWorkspace, downloadUrl, custom, discovery })),
       noEditorMessage: available.length === 0 ? 'No supported editor is installed. The console works fully without one.' : undefined,
       persistenceState: this.persistenceState,
       persistenceMessage: this.persistenceMessage,
+      operation: this.activeOperation,
     };
+  }
+
+  private beginOperation(kind: ExternalEditorOperation['kind']): ExternalEditorOperation | undefined {
+    if (this.activeOperation?.state === 'running') return undefined;
+    this.activeOperation = { operationId: randomUUID(), kind, state: 'running', progress: 0, message: `${kind} started.` };
+    return this.activeOperation;
+  }
+
+  private updateOperation(operation: ExternalEditorOperation, progress: number, message: string): void {
+    this.activeOperation = { ...operation, progress: Math.max(0, Math.min(1, progress)), message };
+  }
+
+  private finishOperation(operation: ExternalEditorOperation, state: ExternalEditorOperation['state'], message: string): ExternalEditorOperation {
+    const finished = { ...operation, state, progress: state === 'completed' ? 1 : operation.progress, message };
+    this.activeOperation = finished;
+    return finished;
   }
 
   choose(editorId: string): ExternalEditorStatus {
     const candidate = this.candidates().find((entry) => entry.id === editorId && entry.available);
     if (!candidate) throw new Error('That editor is not currently available on this computer.');
-    this.config.choiceId = editorId;
-    this.persist();
+    const previous = this.config;
+    this.config = { ...this.config, choiceId: editorId };
+    try { this.persist(); } catch (error) { this.config = previous; throw error; }
     return this.status();
   }
 
   clearChoice(): ExternalEditorStatus {
-    this.config.choiceId = undefined;
-    this.persist();
+    const previous = this.config;
+    this.config = { ...this.config, choiceId: undefined };
+    try { this.persist(); } catch (error) { this.config = previous; throw error; }
     return this.status();
   }
 
   resetStorage(): ExternalEditorStatus {
+    const previous = this.config;
     this.config = { version: 1, customEditors: [] };
-    this.persist();
+    try { this.persist(); } catch (error) { this.config = previous; throw error; }
     return this.status();
   }
 
   savePortable(executable: string): ExternalEditorStatus {
     if (!executable || !isFile(safePath(executable)) || !['.exe', '.com'].includes(extname(executable).toLowerCase())) throw new Error('Choose an existing native Visual Studio Code executable for the portable route.');
-    this.config.portableExecutable = safePath(executable);
-    this.config.choiceId = 'vscode-portable';
-    this.persist();
+    const previous = this.config;
+    this.config = { ...this.config, portableExecutable: safePath(executable), choiceId: 'vscode-portable' };
+    try { this.persist(); } catch (error) { this.config = previous; throw error; }
     return this.status();
   }
 
@@ -186,43 +214,56 @@ export class ExternalEditorRuntime {
     const next = { ...record, id, name: record.name.trim(), executable: safePath(record.executable) };
     const rest = this.config.customEditors.filter((entry) => entry.id !== id);
     if (rest.length >= MAX_CUSTOM_EDITORS) throw new Error(`Keep at most ${MAX_CUSTOM_EDITORS} custom editors.`);
-    this.config.customEditors = [...rest, next];
-    this.config.choiceId = id;
-    this.persist();
+    const previous = this.config;
+    this.config = { ...this.config, customEditors: [...rest, next], choiceId: id };
+    try { this.persist(); } catch (error) { this.config = previous; throw error; }
     return this.status();
   }
 
   removeCustom(editorId: string): ExternalEditorStatus {
-    this.config.customEditors = this.config.customEditors.filter((entry) => entry.id !== editorId);
-    if (this.config.choiceId === editorId) this.config.choiceId = undefined;
-    this.persist();
+    const previous = this.config;
+    this.config = { ...this.config, customEditors: this.config.customEditors.filter((entry) => entry.id !== editorId), choiceId: this.config.choiceId === editorId ? undefined : this.config.choiceId };
+    try { this.persist(); } catch (error) { this.config = previous; throw error; }
     return this.status();
   }
 
   launch(target: ExternalEditorLaunchTarget, editorId?: string): Promise<ExternalEditorLaunchResult> {
-    if (!target || (target.kind !== 'file' && target.kind !== 'folder') || typeof target.path !== 'string') {
-      return Promise.resolve({ ok: false, code: 'INVALID_EDITOR', message: 'The editor target was not a valid file or folder.' });
+    const operation = this.beginOperation('launch');
+    if (!operation) {
+      const active = this.activeOperation!;
+      return Promise.resolve({ ok: false, code: 'BUSY', message: 'Another editor operation is already running.', operationId: active.operationId, stage: 'launch' });
     }
+    return this.launchWithOperation(target, editorId, operation);
+  }
+
+  private launchWithOperation(target: ExternalEditorLaunchTarget, editorId: string | undefined, operation: ExternalEditorOperation): Promise<ExternalEditorLaunchResult> {
+    const stage: 'launch' | 'materialization' = operation.kind === 'materialize' ? 'materialization' : 'launch';
+    if (!target || (target.kind !== 'file' && target.kind !== 'folder') || typeof target.path !== 'string') {
+      this.finishOperation(operation, 'failed', 'The editor target was not a valid file or folder.');
+      return Promise.resolve({ ok: false, code: 'INVALID_EDITOR', message: 'The editor target was not a valid file or folder.', operationId: operation.operationId, stage });
+    }
+    this.updateOperation(operation, stage === 'materialization' ? 0.7 : 0.1, 'Checking the selected editor and target.');
     const id = editorId ?? this.config.choiceId;
     const candidate = this.candidates().find((entry) => entry.id === id && entry.available);
-    if (!candidate) return Promise.resolve({ ok: false, code: 'NO_EDITOR', message: 'No selected editor is available. Choose one in settings, or install Visual Studio Code.', downloadUrl: 'https://code.visualstudio.com/' });
-    if (!target.path.trim()) return Promise.resolve({ ok: false, code: 'EMPTY_TARGET', message: 'There is no file or folder to open.' });
-    if (!existsSync(target.path)) return Promise.resolve({ ok: false, code: 'EMPTY_TARGET', message: `The selected ${target.kind} is not available at the reported path.` });
+    if (!candidate) { this.finishOperation(operation, 'failed', 'No selected editor is available.'); return Promise.resolve({ ok: false, code: 'NO_EDITOR', message: 'No selected editor is available. Choose one in settings, or install Visual Studio Code.', downloadUrl: 'https://code.visualstudio.com/', operationId: operation.operationId, stage }); }
+    if (!target.path.trim()) { this.finishOperation(operation, 'cancelled', 'Launch cancelled because no target was supplied.'); return Promise.resolve({ ok: false, code: stage === 'materialization' ? 'MATERIALIZATION_CANCELLED' : 'LAUNCH_CANCELLED', message: 'Launch cancelled because there is no file or folder to open.', operationId: operation.operationId, stage, cancelled: true }); }
+    if (!existsSync(target.path)) { this.finishOperation(operation, 'failed', `The selected ${target.kind} is not available at the reported path.`); return Promise.resolve({ ok: false, code: 'EMPTY_TARGET', message: `The selected ${target.kind} is not available at the reported path.`, operationId: operation.operationId, stage }); }
     let targetStat: ReturnType<typeof statSync>;
-    try { targetStat = statSync(target.path); } catch { return Promise.resolve({ ok: false, code: 'EMPTY_TARGET', message: `The selected ${target.kind} is not available at the reported path.` }); }
-    if (target.kind === 'file' && !targetStat.isFile()) return Promise.resolve({ ok: false, code: 'EMPTY_TARGET', message: 'The selected target is a folder, not a file.' });
-    if (target.kind === 'folder' && !targetStat.isDirectory()) return Promise.resolve({ ok: false, code: 'EMPTY_TARGET', message: 'The selected target is a file, not a folder.' });
-    if (target.kind === 'folder' && !candidate.supportsFolderWorkspace) return Promise.resolve({ ok: false, code: 'FOLDER_UNSUPPORTED', message: `${candidate.name} can open files but does not provide a folder workspace.` });
+    try { targetStat = statSync(target.path); } catch { this.finishOperation(operation, 'failed', `The selected ${target.kind} is not available at the reported path.`); return Promise.resolve({ ok: false, code: 'EMPTY_TARGET', message: `The selected ${target.kind} is not available at the reported path.`, operationId: operation.operationId, stage }); }
+    if (target.kind === 'file' && !targetStat.isFile()) { this.finishOperation(operation, 'failed', 'The selected target is a folder, not a file.'); return Promise.resolve({ ok: false, code: 'EMPTY_TARGET', message: 'The selected target is a folder, not a file.', operationId: operation.operationId, stage }); }
+    if (target.kind === 'folder' && !targetStat.isDirectory()) { this.finishOperation(operation, 'failed', 'The selected target is a file, not a folder.'); return Promise.resolve({ ok: false, code: 'EMPTY_TARGET', message: 'The selected target is a file, not a folder.', operationId: operation.operationId, stage }); }
+    if (target.kind === 'folder' && !candidate.supportsFolderWorkspace) { this.finishOperation(operation, 'failed', `${candidate.name} can open files but does not provide a folder workspace.`); return Promise.resolve({ ok: false, code: 'FOLDER_UNSUPPORTED', message: `${candidate.name} can open files but does not provide a folder workspace.`, operationId: operation.operationId, stage }); }
+    this.updateOperation(operation, stage === 'materialization' ? 0.85 : 0.45, `Starting ${candidate.name}.`);
     const executable = candidate.resolved!;
     const args = [...(target.kind === 'folder' ? candidate.folderArgs : candidate.fileArgs), target.path];
     return new Promise((resolveResult) => {
       let settled = false;
       const child = spawn(executable, args, { shell: false, windowsHide: true, detached: false, stdio: 'ignore' });
       let timer: ReturnType<typeof setTimeout> | undefined;
-      const finish = (result: ExternalEditorLaunchResult) => { if (settled) return; settled = true; if (timer !== undefined) clearTimeout(timer); resolveResult(result); };
-      child.once('spawn', () => { child.unref(); finish({ ok: true, editorId: candidate.id, executable, args, target, pid: child.pid }); });
-      child.once('error', (error: Error) => finish({ ok: false, code: 'SPAWN_FAILED', message: `The editor could not be started: ${error.message}` }));
-      timer = setTimeout(() => finish({ ok: false, code: 'SPAWN_FAILED', message: 'The editor did not acknowledge launch within the bounded startup window.' }), 1500);
+      const finish = (resultFactory: (progress: ExternalEditorOperation) => ExternalEditorLaunchResult, state: ExternalEditorOperation['state'], message: string) => { if (settled) return; settled = true; if (timer !== undefined) clearTimeout(timer); const progress = this.finishOperation(operation, state, message); resolveResult(resultFactory(progress)); };
+      child.once('spawn', () => { child.unref(); finish((progress) => ({ ok: true, editorId: candidate.id, executable, args, target, pid: child.pid, operationId: operation.operationId, progress }), 'completed', `${candidate.name} launch acknowledged.`); });
+      child.once('error', (error: Error) => finish(() => ({ ok: false, code: 'SPAWN_FAILED', message: `The editor could not be started: ${error.message}`, operationId: operation.operationId, stage }), 'failed', error.message));
+      timer = setTimeout(() => finish(() => ({ ok: false, code: 'SPAWN_FAILED', message: 'The editor did not acknowledge launch within the bounded startup window.', operationId: operation.operationId, stage }), 'failed', 'The editor did not acknowledge launch within the bounded startup window.'), 1500);
       if (typeof timer === 'object' && timer !== null && 'unref' in timer) (timer as { unref(): void }).unref();
     });
   }
@@ -232,14 +273,22 @@ export class ExternalEditorRuntime {
   }
 
   async openMaterializedFile(input: { name: string; content: string; source: string; editorId?: string }): Promise<ExternalEditorLaunchResult> {
-    if (!input || typeof input.name !== 'string' || typeof input.content !== 'string' || typeof input.source !== 'string' || input.source.trim() === '') return { ok: false, code: 'INVALID_EDITOR', message: 'The materialized editor payload was not valid text with a source record.' };
-    if (Buffer.byteLength(input.content, 'utf8') > MAX_EXPORT_BYTES) return { ok: false, code: 'SPAWN_FAILED', message: 'This export is too large to hand off safely.' };
+    const operation = this.beginOperation('materialize');
+    if (!operation) { const active = this.activeOperation!; return { ok: false, code: 'BUSY', message: 'Another editor operation is already running.', operationId: active.operationId, stage: 'materialization' }; }
+    if (!input || typeof input.name !== 'string' || typeof input.content !== 'string' || typeof input.source !== 'string' || input.source.trim() === '') { this.finishOperation(operation, 'cancelled', 'Materialization cancelled because the source record was incomplete.'); return { ok: false, code: 'MATERIALIZATION_CANCELLED', message: 'Materialization cancelled because the source record was incomplete.', operationId: operation.operationId, stage: 'materialization', cancelled: true }; }
+    if (Buffer.byteLength(input.content, 'utf8') > MAX_EXPORT_BYTES) { this.finishOperation(operation, 'failed', 'The materialized content exceeded the safe size limit.'); return { ok: false, code: 'SPAWN_FAILED', message: 'This export is too large to hand off safely.', operationId: operation.operationId, stage: 'materialization' }; }
+    this.updateOperation(operation, 0.35, 'Writing the bounded local materialization.');
     const safeName = basename(input.name).replace(/[^A-Za-z0-9._-]/gu, '_') || 'export.txt';
     const root = join(this.file.replace(/external-editors\.json$/u, ''), 'external-editor-exports');
     mkdirSync(root, { recursive: true });
     const path = join(root, safeName);
-    atomicWriteFileSync(path, input.content);
-    const result = await this.launch({ kind: 'file', path }, input.editorId);
+    try { atomicWriteFileSync(path, input.content); }
+    catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.finishOperation(operation, 'failed', message);
+      return { ok: false, code: 'SPAWN_FAILED', message: `The local materialization could not be written: ${message}`, operationId: operation.operationId, stage: 'materialization' };
+    }
+    const result = await this.launchWithOperation({ kind: 'file', path }, input.editorId, operation);
     return result.ok ? { ...result, source: input.source, materializedPath: path } : result;
   }
 }

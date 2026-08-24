@@ -11,7 +11,8 @@ generated output share one typed bridge. Exports and selected PBX read-back cont
 handed directly to Visual Studio Code through application-owned UTF-8 files. The launch path
 never uses a shell. The privileged store is the only source of the selected editor id and uses
 the shared bounded Windows-safe atomic rename retry helper. Invalid persistence is visible and
-resettable.
+resettable. Every operation now carries an id and bounded progress, refuses re-entry while
+busy, and reports picker cancellation separately from launch or materialization cancellation.
 
 ## Suggested articles
 

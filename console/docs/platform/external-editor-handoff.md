@@ -6,6 +6,8 @@ Open the current project folder, a selected configuration file, or an export in 
 
 The desktop process detects real executables and returns normalized absolute paths to the renderer. Detection covers Visual Studio Code stable, Visual Studio Code Insiders, Visual Studio Code Portable, user and machine installation paths, Notepad++, Sublime Text, and Notepad. A saved choice remains visible when its executable is unavailable, and the console never substitutes another editor without an explicit choice.
 
+Every picker, persistence write, launch, and materialization receives an operation id. Native pickers report `picked`, `user-cancelled`, or `busy` separately. Launch and materialization operations report bounded progress, refuse re-entry while another operation is active, and distinguish launch cancellation from materialization cancellation.
+
 The settings surface provides these actions:
 
 - Choose a local project folder through the native folder picker, then open that chosen folder as a workspace root. The installed console directory is never guessed as the user's project.
@@ -14,13 +16,15 @@ The settings surface provides these actions:
 - Open the latest export in Visual Studio Code through one action.
 - Browse for a custom editor executable, save it, remove it, or forget the selected editor.
 - Choose an arbitrary portable Visual Studio Code executable, which is verified and persisted separately from bounded automatic discovery routes.
+- Choose whether a custom editor supports folders as workspaces. The setting is explicit per custom record and defaults to files only.
+- Review the chosen project folder's session-only provenance and reset it without writing it to the privileged settings store.
 - Inspect invalid or corrupt persistence and reset the privileged editor store in one action.
 
 Folder opening is capability-aware. Visual Studio Code variants receive `--new-window` followed by the folder path. Editors without folder-workspace support refuse the folder action with an actionable message rather than opening a misleading single file.
 
 ## Configuration and persistence
 
-Custom records use the versioned `console.externalEditors.v1` shape in the application data store. The privileged runtime bounds the record to 32 entries, limits names to 80 characters and executable paths to 1,024 characters, normalizes accepted paths, and rejects command-line operators, quotes, newlines, and malformed identifiers. The selected editor id is stored separately from the renderer's display state so the choice survives relaunch and unavailable choices can still be reported.
+Custom records use the versioned `console.externalEditors.v1` shape in the application data store. The privileged runtime bounds the record to 32 entries, limits names to 80 characters and executable paths to 1,024 characters, normalizes accepted paths, and rejects command-line operators, quotes, newlines, and malformed identifiers. The selected editor id is stored separately from the renderer's display state so the choice survives relaunch and unavailable choices can still be reported. Portable Visual Studio Code auto-discovery is limited to the documented user and machine routes; an arbitrary portable executable is marked explicit only after the native picker verifies it.
 
 Exports handed to an editor are written to an application-owned `external-editor-exports` directory with a bounded UTF-8 payload and a sanitized filename. The source export remains unchanged. A selected PBX configuration receives a source path and a local materialized target path in its launch receipt.
 
@@ -30,7 +34,7 @@ No editor launch goes through a shell. The runtime calls `child_process.spawn` w
 
 When no supported editor is installed, the settings surface states that the console works fully without one and offers the official Visual Studio Code download page. It does not auto-download software. A missing selected executable, invalid custom record, unsupported folder target, unavailable bridge, oversized export, and failed process start each produces a distinct failure message.
 
-The hosted browser surface exposes an honest no-editor state because native executable detection, file picking and process creation require the installed desktop runtime. No browser route pretends that a local editor was opened. The official download action requires a known current editor id and uses one exact URL allowlist. Unknown or stale ids do not fall back to Visual Studio Code.
+The hosted browser surface exposes an honest no-editor state because native executable detection, file picking and process creation require the installed desktop runtime. No browser route pretends that a local editor was opened. The chosen project folder is session-only, with its local-picker provenance visible and an explicit reset action. The official download action requires a known current editor id and uses one exact URL allowlist. Unknown or stale ids do not fall back to Visual Studio Code.
 
 ## Accessibility and localization
 

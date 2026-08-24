@@ -11,7 +11,7 @@ import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
 import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, type ConfigValue } from './configuration';
 import { readControlValues, unmappedControls } from './control-keys';
 import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
-import type { ControlPlaneResponse, ExternalEditorLaunchResult, ExternalEditorStatus, PbxReadView } from '../../../shared/control-plane';
+import type { ControlPlaneResponse, ExternalEditorLaunchResult, ExternalEditorLatestExport, ExternalEditorStatus, PbxReadView } from '../../../shared/control-plane';
 import { ServerSwitcher } from './servers';
 import { buildEndpointDraft, endpointDocument, PJSIP_RESOURCE, WIZARD_CONTROLS } from './endpoint-create';
 import {
@@ -180,7 +180,7 @@ export class App extends Base {
   private durableStorage: DurableStorageHandle = createDurableStorage(this.bridge());
   private vocabStorage: VocabularyStorage = this.durableStorage.storage;
   private externalEditorStatus: ExternalEditorStatus = { editors: [], persistenceState: 'missing' };
-  private lastExport: { name: string; content: string } | undefined;
+  private latestExport: ExternalEditorLatestExport | undefined;
   private externalProjectFolder = '';
 
   /* The design's `lang_mode` control, mapped to the boundary's own mode names. The
@@ -316,11 +316,16 @@ export class App extends Base {
     this.fire('Editor not opened', result.message);
   }
 
+  private recordExport(name: string, content: string, source: string): void {
+    this.latestExport = { exportId: crypto.randomUUID(), name, content, source, createdAt: new Date().toISOString() };
+  }
+
   private async editorAction(action: string): Promise<void> {
     const bridge = this.bridge();
     if (!bridge?.externalEditor) { this.fire('Editor not reached', 'The desktop bridge is unavailable, so nothing was opened.'); return; }
     if (action === 'editor-browse') {
       const picked = await bridge.externalEditor.pickExecutable();
+      if (picked.canceled) { if (picked.reason === 'busy') this.fire('Editor picker busy', 'Another native picker is already open.'); else this.toast('Executable picker cancelled.'); return; }
       if (!picked.canceled && picked.executable) {
         this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, 'pbxadm:ed_custom_path': picked.executable } }));
         this.toast('Executable selected. Save the custom editor to keep it.');
@@ -329,6 +334,7 @@ export class App extends Base {
     }
     if (action === 'editor-pick-portable') {
       const picked = await bridge.externalEditor.pickExecutable();
+      if (picked.canceled) { if (picked.reason === 'busy') this.fire('Editor picker busy', 'Another native picker is already open.'); else this.toast('Portable executable picker cancelled.'); return; }
       if (!picked.canceled && picked.executable) {
         try { this.externalEditorStatus = await bridge.externalEditor.savePortable(picked.executable); this.toast('Portable Visual Studio Code path saved and selected.'); this.forceUpdate(); }
         catch (error) { this.fire('Portable editor not saved', error instanceof Error ? error.message : String(error)); }
@@ -337,7 +343,14 @@ export class App extends Base {
     }
     if (action === 'editor-pick-project') {
       const picked = await bridge.externalEditor.pickFolder();
+      if (picked.canceled) { if (picked.reason === 'busy') this.fire('Project folder picker busy', 'Another native picker is already open.'); else this.toast('Project folder picker cancelled.'); return; }
       if (!picked.canceled && picked.folder) { this.externalProjectFolder = picked.folder; this.toast(`Project folder selected: ${picked.folder}`); this.forceUpdate(); }
+      return;
+    }
+    if (action === 'editor-reset-project') {
+      this.externalProjectFolder = '';
+      this.toast('Session-only project folder reset.');
+      this.forceUpdate();
       return;
     }
     if (action === 'editor-save-custom') {
@@ -346,7 +359,7 @@ export class App extends Base {
         this.externalEditorStatus = await bridge.externalEditor.saveCustom({
           name: String(values['pbxadm:ed_custom_name'] ?? ''),
           executable: String(values['pbxadm:ed_custom_path'] ?? ''),
-          supportsFolderWorkspace: false,
+          supportsFolderWorkspace: String(values.ed_custom_folder ?? 'Files only') === 'Folders as workspaces',
         });
         this.toast('Custom editor saved and selected.');
         this.forceUpdate();
@@ -367,21 +380,18 @@ export class App extends Base {
       const selected = this.externalEditorStatus.selectedId;
       const record = this.externalEditorStatus.editors.find((editor) => editor.id === selected);
       if (!selected || !record?.custom) { this.fire('Custom editor not removed', 'Choose a saved custom editor first.'); return; }
-      this.externalEditorStatus = await bridge.externalEditor.removeCustom(selected);
-      this.toast('Custom editor removed.');
-      this.forceUpdate();
+      try { this.externalEditorStatus = await bridge.externalEditor.removeCustom(selected); this.toast('Custom editor removed.'); this.forceUpdate(); }
+      catch (error) { this.fire('Custom editor not removed', error instanceof Error ? error.message : String(error)); }
       return;
     }
     if (action === 'editor-clear-choice') {
-      this.externalEditorStatus = await bridge.externalEditor.clearChoice();
-      this.toast('Editor choice forgotten.');
-      this.forceUpdate();
+      try { this.externalEditorStatus = await bridge.externalEditor.clearChoice(); this.toast('Editor choice forgotten.'); this.forceUpdate(); }
+      catch (error) { this.fire('Editor choice not cleared', error instanceof Error ? error.message : String(error)); }
       return;
     }
     if (action === 'editor-reset-storage') {
-      this.externalEditorStatus = await bridge.externalEditor.resetStorage();
-      this.toast('Editor settings reset.');
-      this.forceUpdate();
+      try { this.externalEditorStatus = await bridge.externalEditor.resetStorage(); this.toast('Editor settings reset.'); this.forceUpdate(); }
+      catch (error) { this.fire('Editor settings not reset', error instanceof Error ? error.message : String(error)); }
       return;
     }
     if (action === 'editor-open-vscode') {
@@ -390,8 +400,8 @@ export class App extends Base {
       return;
     }
     if (action === 'editor-open-export') {
-      if (!this.lastExport) { this.fire('No export to open', 'Export something first. The editor handoff does not invent a file.'); return; }
-      this.editorResult(await bridge.externalEditor.openExport({ ...this.lastExport, editorId: 'vscode' }));
+      if (!this.latestExport) { this.fire('No export to open', 'Export something first. The editor handoff does not invent a file.'); return; }
+      this.editorResult(await bridge.externalEditor.openExport({ ...this.latestExport, editorId: 'vscode' }));
       return;
     }
     if (action === 'editor-open-selected') {
@@ -707,7 +717,12 @@ ${resolution.disclosure}`);
     if (action === 'daemon-status') return this.daemonStatusLine;
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
     if (action === 'editor-status') return this.externalEditorStatus.noEditorMessage ?? `${this.externalEditorStatus.editors.filter((editor) => editor.available).length} editor(s) detected.`;
-    if (action === 'editor-persistence') return this.externalEditorStatus.persistenceMessage ?? `Saved editor settings: ${this.externalEditorStatus.persistenceState}.`;
+    if (action === 'editor-persistence') {
+      const operation = this.externalEditorStatus.operation;
+      if (operation?.state === 'running') return `${operation.message} ${Math.round(operation.progress * 100)}%`;
+      return this.externalEditorStatus.persistenceMessage ?? `Saved editor settings: ${this.externalEditorStatus.persistenceState}.`;
+    }
+    if (action === 'editor-project-status') return this.externalProjectFolder ? `Session only local folder: ${this.externalProjectFolder}` : 'Session only: no local project folder chosen.';
     return '';
   };
 
@@ -967,7 +982,7 @@ ${resolution.disclosure}`);
       const text = exportRows({ rows: records, format, table: screen });
       const loss = describeLoss(records, format);
       const filename = exportFilename(screen, format);
-      this.lastExport = { name: filename, content: text };
+      this.recordExport(filename, text, `table:${screen}`);
       const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1820,6 +1835,7 @@ It is shown once. The phone needs it to register.`);
       return;
     }
     const json = exportTheme(this.buildAppearanceTheme(this.currentAppearanceValues()));
+    this.recordExport('asterisk-console-appearance.json', json, 'appearance');
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -2301,7 +2317,7 @@ It is shown once. The phone needs it to register.`);
   private exportChangelog(): void {
     const { entries } = this.changelogFilterResult();
     const markdown = toMarkdown(entries);
-    this.lastExport = { name: 'changelog-export.md', content: markdown };
+    this.recordExport('changelog-export.md', markdown, 'changelog');
     const blob = new Blob([markdown], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -2401,8 +2417,8 @@ interface DesktopBridge {
     saveCustom: (record: { name: string; executable: string; supportsFolderWorkspace?: boolean }) => Promise<ExternalEditorStatus>;
     removeCustom: (editorId: string) => Promise<ExternalEditorStatus>;
     savePortable: (executable: string) => Promise<ExternalEditorStatus>;
-    pickExecutable: () => Promise<{ canceled: boolean; executable?: string }>;
-    pickFolder: () => Promise<{ canceled: boolean; folder?: string }>;
+    pickExecutable: () => Promise<{ operationId: string; canceled: boolean; executable?: string; reason?: 'user-cancelled' | 'busy' | 'picked' }>;
+    pickFolder: () => Promise<{ operationId: string; canceled: boolean; folder?: string; reason?: 'user-cancelled' | 'busy' | 'picked' }>;
     openDownload: (editorId?: string) => Promise<{ ok: boolean; message: string }>;
     openProjectFolder: (folder: string, editorId?: string) => Promise<ExternalEditorLaunchResult>;
     launch: (target: { kind: 'file' | 'folder'; path: string }, editorId?: string) => Promise<ExternalEditorLaunchResult>;

@@ -18,6 +18,10 @@ async function postJson(path: string, body: unknown): Promise<Response> {
   });
 }
 
+function hostedEditorFailure(message: string, stage: 'launch' | 'materialization' = 'launch') {
+  return { ok: false as const, code: 'NO_EDITOR' as const, message, operationId: crypto.randomUUID(), stage };
+}
+
 export function installHttpBridge(): void {
   const api = {
     platform: 'web',
@@ -47,13 +51,13 @@ export function installHttpBridge(): void {
       async saveCustom(_record: { name: string; executable: string; supportsFolderWorkspace?: boolean }) { return { editors: [], noEditorMessage: 'External editor handoff is available only in the installed desktop console.', persistenceState: 'missing' as const }; },
       async removeCustom(_editorId: string) { return { editors: [], noEditorMessage: 'External editor handoff is available only in the installed desktop console.', persistenceState: 'missing' as const }; },
       async savePortable(_executable: string) { return { editors: [], noEditorMessage: 'External editor handoff is available only in the installed desktop console.', persistenceState: 'missing' as const }; },
-      async pickExecutable() { return { canceled: true }; },
-      async pickFolder() { return { canceled: true }; },
+      async pickExecutable() { return { operationId: crypto.randomUUID(), canceled: true, reason: 'user-cancelled' as const }; },
+      async pickFolder() { return { operationId: crypto.randomUUID(), canceled: true, reason: 'user-cancelled' as const }; },
       async openDownload(_editorId?: string) { return { ok: false, message: 'Native editor downloads are available only in the installed desktop console.' }; },
-      async openProjectFolder(_folder: string, _editorId?: string) { return { ok: false as const, code: 'NO_EDITOR' as const, message: 'External editor handoff is available only in the installed desktop console.' }; },
-      async launch(_target: ExternalEditorLaunchTarget, _editorId?: string) { return { ok: false as const, code: 'NO_EDITOR' as const, message: 'External editor handoff is available only in the installed desktop console.' }; },
-      async openExport(_input: { name: string; content: string; editorId?: string }) { return { ok: false as const, code: 'NO_EDITOR' as const, message: 'External editor handoff is available only in the installed desktop console.' }; },
-      async openMaterializedFile(_input: { name: string; content: string; source: string; editorId?: string }) { return { ok: false as const, code: 'NO_EDITOR' as const, message: 'External editor handoff is available only in the installed desktop console.' }; },
+      async openProjectFolder(_folder: string, _editorId?: string) { return hostedEditorFailure('External editor handoff is available only in the installed desktop console.'); },
+      async launch(_target: ExternalEditorLaunchTarget, _editorId?: string) { return hostedEditorFailure('External editor handoff is available only in the installed desktop console.'); },
+      async openExport(_input: { name: string; content: string; editorId?: string }) { return hostedEditorFailure('External editor handoff is available only in the installed desktop console.', 'materialization'); },
+      async openMaterializedFile(_input: { name: string; content: string; source: string; editorId?: string }) { return hostedEditorFailure('External editor handoff is available only in the installed desktop console.', 'materialization'); },
     },
     updater: {
       // Server mode does not self-update the way the desktop installer does — the

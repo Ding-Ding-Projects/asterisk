@@ -83,6 +83,15 @@ export interface ExternalEditorCandidate {
   supportsFolderWorkspace: boolean;
   downloadUrl?: string;
   custom: boolean;
+  discovery: 'automatic' | 'explicit' | 'custom';
+}
+
+export interface ExternalEditorOperation {
+  operationId: string;
+  kind: 'detect' | 'pick-executable' | 'pick-folder' | 'launch' | 'materialize' | 'persist';
+  state: 'running' | 'completed' | 'failed' | 'cancelled';
+  progress: number;
+  message: string;
 }
 
 export interface ExternalEditorStatus {
@@ -91,11 +100,20 @@ export interface ExternalEditorStatus {
   noEditorMessage?: string;
   persistenceState: 'valid' | 'missing' | 'invalid';
   persistenceMessage?: string;
+  operation?: ExternalEditorOperation;
 }
 
 export interface ExternalEditorLaunchTarget {
   kind: 'file' | 'folder';
   path: string;
+}
+
+export interface ExternalEditorLatestExport {
+  exportId: string;
+  name: string;
+  content: string;
+  source: string;
+  createdAt: string;
 }
 
 export interface ExternalEditorLaunchReceipt {
@@ -107,13 +125,18 @@ export interface ExternalEditorLaunchReceipt {
   pid?: number;
   source?: string;
   materializedPath?: string;
+  operationId: string;
+  progress: ExternalEditorOperation;
 }
 
 export interface ExternalEditorLaunchFailure {
   ok: false;
-  code: 'NO_EDITOR' | 'EMPTY_TARGET' | 'FOLDER_UNSUPPORTED' | 'SPAWN_FAILED' | 'INVALID_EDITOR';
+  code: 'NO_EDITOR' | 'EMPTY_TARGET' | 'FOLDER_UNSUPPORTED' | 'SPAWN_FAILED' | 'INVALID_EDITOR' | 'BUSY' | 'LAUNCH_CANCELLED' | 'MATERIALIZATION_CANCELLED';
   message: string;
   downloadUrl?: string;
+  operationId: string;
+  stage: 'launch' | 'materialization';
+  cancelled?: boolean;
 }
 
 export type ExternalEditorLaunchResult = ExternalEditorLaunchReceipt | ExternalEditorLaunchFailure;
@@ -132,8 +155,8 @@ export interface ExternalEditorApi {
   resetStorage(): Promise<ExternalEditorStatus>;
   saveCustom(record: ExternalEditorCustomRecord): Promise<ExternalEditorStatus>;
   removeCustom(editorId: string): Promise<ExternalEditorStatus>;
-  pickExecutable(): Promise<{ canceled: boolean; executable?: string }>;
-  pickFolder(): Promise<{ canceled: boolean; folder?: string }>;
+  pickExecutable(): Promise<{ operationId: string; canceled: boolean; executable?: string; reason?: 'user-cancelled' | 'busy' | 'picked' }>;
+  pickFolder(): Promise<{ operationId: string; canceled: boolean; folder?: string; reason?: 'user-cancelled' | 'busy' | 'picked' }>;
   savePortable(executable: string): Promise<ExternalEditorStatus>;
   openDownload(editorId?: string): Promise<{ ok: boolean; message: string }>;
   openProjectFolder(folder: string, editorId?: string): Promise<ExternalEditorLaunchResult>;

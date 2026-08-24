@@ -158,11 +158,12 @@
     },
     "external-editor-handoff": {
       "state": "implemented",
-      "note": "Mounted as a pure renderer policy plus the privileged control-plane runtime, preload bridge, and App.tsx actions. Detects stable, Insiders and bounded portable Visual Studio Code routes with normalized absolute paths and environment expansion, persists verified portable paths and bounded custom records, keeps unavailable choices visible, uses native file and folder pickers, materializes selected PBX read-back content into bounded local exports, and launches through child_process.spawn with shell:false and separate executable and argument values. The privileged store is the sole choice source, uses Windows-safe atomic rename retry, reports invalid persistence and offers reset, enforces file versus folder kind, and refuses unknown or stale editor ids without a fallback.",
+      "note": "Mounted as a pure renderer policy plus the privileged control-plane runtime, preload bridge, and App.tsx actions. Detects stable, Insiders and bounded portable Visual Studio Code routes with normalized absolute paths and environment expansion, persists verified portable paths and bounded custom records, keeps unavailable choices visible, uses native file and folder pickers, materializes selected PBX read-back content into bounded local exports, and launches through child_process.spawn with shell:false and separate executable and argument values. Each operation has an id, bounded progress, busy re-entry refusal, and distinct cancellation stage. The privileged store is the sole choice source, uses Windows-safe atomic rename retry, reports invalid persistence and offers reset, enforces file versus folder kind, records typed latest exports, and refuses unknown or stale editor ids without a fallback.",
       "files": [
         "app/renderer/src/external-editor.ts",
         "control-plane/external-editor-runtime.ts",
         "control-plane/atomic-file.ts",
+        "control-plane/settings-store.ts",
         "app/electron/main.ts",
         "app/electron/preload.ts",
         "app/electron/preload.cjs",

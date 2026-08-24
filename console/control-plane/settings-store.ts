@@ -65,13 +65,21 @@ export class SettingsRegistry {
   }
 
   set(key: string, value: string): void {
-    this.values.set(key, value);
-    this.store.write(this.snapshot());
+    const previous = this.values;
+    const next = new Map(previous);
+    next.set(key, value);
+    this.values = next;
+    try { this.store.write(this.snapshot()); }
+    catch (error) { this.values = previous; throw error; }
   }
 
   remove(key: string): void {
     if (!this.values.has(key)) return;
-    this.values.delete(key);
-    this.store.write(this.snapshot());
+    const previous = this.values;
+    const next = new Map(previous);
+    next.delete(key);
+    this.values = next;
+    try { this.store.write(this.snapshot()); }
+    catch (error) { this.values = previous; throw error; }
   }
 }

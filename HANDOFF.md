@@ -459,3 +459,11 @@ The privileged store now owns choice selection, clear, reset, invalid-state repo
 portable-path persistence. It writes through the shared Windows-safe atomic rename retry
 helper. Launches stat targets and reject a file-versus-folder mismatch, clear their timeout
 on every finish path, and refuse unknown or stale ids without falling back to another editor.
+
+The lane now also gives each picker, persistence write, launch and materialization an operation
+id, bounded progress and busy re-entry refusal. Picker cancellation is distinct from launch and
+materialization cancellation. Appearance, table and changelog exports all update one typed
+latest-export record. Custom folder capability is an explicit per-record choice, while the
+project folder is visibly session-only with picker provenance and reset. `SettingsRegistry`
+rolls its in-memory map back when a persistence write fails, so a later write cannot leak the
+failed state.
