@@ -11,11 +11,18 @@ const head = execFileSync('git', ['-C', repositoryRoot, 'rev-parse', 'HEAD'], { 
 const candidateCommit = process.env.DING_PBX_CANDIDATE_COMMIT ?? head;
 const version = process.env.DING_PBX_VERSION ?? packageJson.version;
 const runAttempt = process.env.GITHUB_RUN_ATTEMPT;
-const inferredTag = process.env.GITHUB_RUN_NUMBER && runAttempt ? `ding-pbx-console-v0.0.${process.env.GITHUB_RUN_NUMBER}-r${runAttempt}` : null;
+const runNumberText = process.env.GITHUB_RUN_NUMBER;
+const inferredTag = runNumberText && runAttempt ? `ding-pbx-console-v0.0.${runNumberText}-r${runAttempt}` : null;
 const tag = process.env.DING_PBX_RELEASE_TAG ?? inferredTag;
 if (!/^[0-9a-f]{40}$/u.test(candidateCommit) || candidateCommit !== head) throw new Error('The candidate commit must be the exact checkout HEAD.');
 if (!/^\d+\.\d+\.\d+$/u.test(version)) throw new Error('The package version must be numeric semantic version text.');
-if (tag !== null && tag !== `ding-pbx-console-v0.0.${process.env.GITHUB_RUN_NUMBER}-r${runAttempt}`) throw new Error('The release tag must use the legacy-compatible tag shape for this package version.');
+const publishing = process.env.GITHUB_ACTIONS === 'true' || tag !== null;
+if (publishing) {
+  if (!runNumberText || !/^[1-9]\d{0,8}$/u.test(runNumberText) || !Number.isSafeInteger(Number(runNumberText))) throw new Error('GITHUB_RUN_NUMBER must be a positive bounded decimal run number when publishing.');
+  if (version !== `0.1.${runNumberText}`) throw new Error(`Package version ${version} must map exactly to run ${runNumberText} as 0.1.${runNumberText}.`);
+  if (process.env.GITHUB_ACTIONS === 'true' && (version === '0.1.0' || tag === null)) throw new Error('The first repaired published manifest must be newer than 0.1.0 and carry a release tag.');
+  if (tag !== `ding-pbx-console-v0.0.${runNumberText}-r${runAttempt}`) throw new Error('The release tag must use the legacy-compatible tag shape for this package version.');
+}
 
 const outDir = join(consoleRoot, 'resources');
 mkdirSync(outDir, { recursive: true });
