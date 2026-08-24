@@ -26,7 +26,7 @@ The switch, name field, status line and unlock dialog are generated accessible c
 
 ## Verification
 
-The pure state module is covered by focused renderer checks. Cross-process refresh and credential-store behavior require the packaged desktop evidence route and remain recorded as built-artifact verification work.
+The pure state module is covered by focused renderer checks. The supported packaging path runs `electron-builder install-app-deps`, unpacks `keytar` from the asar, and runs `verify:keytar:packaged` to load the native add-on and complete an operating-system credential-vault round-trip before release evidence can claim the path. Cross-process refresh and dialog behavior remain packaged built-artifact verification work.
 
 ## Suggested articles
 

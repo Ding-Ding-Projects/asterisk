@@ -32,12 +32,12 @@
       ]
     },
     "school-mode": {
-      "state": "implemented",
-      "note": "Implemented with one shared School predicate covering optional controls, search and palette surfaces, live generation-bounded snapshot refresh, renamable copy propagation, saved language/funny/narration/quiet restoration, an app-owned accessible credential dialog, exact recovery copy, and operating-system credential-vault account verification.",
-      "files": ["app/renderer/src/school-mode.ts", "app/renderer/src/App.tsx", "app/electron/main.ts", "app/electron/preload.ts", "app/electron/preload.cjs", "design/Asterisk Console M3.dc.html"]
+      "state": "implemented-unverified",
+      "note": "Implemented but unverified in the packaged artifact. The shared School predicate covers optional controls, search and palette surfaces, live generation-bounded snapshot refresh, renamable copy propagation, saved language/funny/narration/quiet restoration, an app-owned accessible credential dialog, exact recovery copy, and operating-system credential-vault account verification. Packaging now rebuilds and unpacks keytar and runs an explicit load and round-trip Chut.",
+      "files": ["app/renderer/src/school-mode.ts", "app/renderer/src/App.tsx", "app/electron/main.ts", "app/electron/preload.ts", "app/electron/preload.cjs", "shared/school-contract.ts", "scripts/verify-keytar-packaged.mjs", "electron-builder.yml", "design/Asterisk Console M3.dc.html"]
     },
     "narration": {
-      "state": "implemented",
+      "state": "implemented-unverified",
       "note": "Mounted App.tsx now creates the browser speech adapter, splits event copy into independent English and Cantonese tracks before styling and speech, enforces strict language voice matching, disambiguates duplicate labels, persists quiet and explicit screen-reader state, reports no-engine/missing/network-backed voices, catches per-utterance errors and continues the queue. The handwritten dynamic event inventory records every localized or intentional plain-English fallback status.",
       "files": ["app/renderer/src/narration.ts", "app/renderer/src/event-copy-inventory.ts", "app/renderer/src/App.tsx", "design/Asterisk Console M3.dc.html"]
     },

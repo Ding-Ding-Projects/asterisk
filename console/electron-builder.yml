@@ -6,6 +6,8 @@ files:
   - dist/**/*
   - dist-electron/**/*
   - app/electron/preload.cjs
+asarUnpack:
+  - node_modules/keytar/**
 extraResources:
   - from: resources/asterisk-wsl-rootfs.tar
     to: asterisk/asterisk-wsl-rootfs.tar

@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import * as keytar from 'keytar';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
+import { SCHOOL_CREDENTIAL_ACCOUNT, SCHOOL_CREDENTIAL_SERVICE } from '../../shared/school-contract.js';
 import type { ControlPlaneRequest, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
 import {
   parseVersion, resolveLatestUpdate, validateReleaseIdentity, initialUpdaterState, beganChecking, checkSucceeded,
@@ -174,8 +175,6 @@ ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequ
 /** School mode's shared unlock value belongs in the operating-system credential vault,
  * not the settings snapshot or application data. Only success or a neutral reason
  * crosses the renderer boundary, never the stored value. */
-const SCHOOL_CREDENTIAL_ACCOUNT = 'ding-pbx-console:school-mode-shared-unlock';
-const SCHOOL_CREDENTIAL_SERVICE = 'ding-pbx-console';
 ipcMain.handle('school:set-credential', async (_event, candidate: unknown) => {
   if (typeof candidate !== 'string' || candidate.length < 4 || candidate.length > 256) return { ok: false, reason: 'The unlock credential must be between 4 and 256 characters.' };
   try {

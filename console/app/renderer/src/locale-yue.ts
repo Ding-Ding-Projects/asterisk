@@ -260,7 +260,7 @@ export const CANTONESE: Catalog = {
   'Unlock': '解鎖',
   'If you forget this credential, delete': '如果唔記得呢個憑證，請刪除',
   'to reset School mode and its local settings.': '去重設學校模式同本機設定。',
-  'This credential is stored only in the operating-system credential vault under the shared account key. It never enters settings, exports, history, logs or captures.': '呢個憑證只會按共享帳戶鍵儲喺操作系統憑證庫，唔會寫入設定、匯出、紀錄、日誌或者畫面截圖。',
+  'This credential is stored only in the operating-system credential vault under the shared account key for this installed desktop console. It never enters settings, exports, history, logs or captures.': '呢個憑證只會按呢個已安裝桌面主控台嘅共享帳戶鍵儲喺操作系統憑證庫，唔會寫入設定、匯出、紀錄、日誌或者畫面截圖。',
   'The credential is checked by the operating-system credential vault. Winning a challenge never bypasses this credential.': '呢個憑證會由操作系統憑證庫核對，答啱挑戰都唔可以繞過呢個憑證。',
 
   /* The destinations and controls added after the first pass: Feature codes, IAX

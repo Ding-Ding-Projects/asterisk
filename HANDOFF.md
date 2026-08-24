@@ -388,6 +388,13 @@ bounded scope. The generated renderer and docs bundle were regenerated from the 
 Markdown sources. A type-check attempt was not independently usable because this isolated checkout has
 no installed React dependencies and no referenced Electron declaration outputs.
 
+The School credential now uses the shared `keytar` OS-vault account contract in
+`shared/school-contract.ts`. The supported packaging path rebuilds native add-ons through
+`electron-builder install-app-deps`, unpacks `keytar` from the asar, and runs
+`scripts/verify-keytar-packaged.mjs` to load the packaged native module and complete a vault
+round-trip. The registry remains `implemented-unverified` until that packaged check and the focused
+runtime evidence have run.
+
 
 ## Next owner actions
 

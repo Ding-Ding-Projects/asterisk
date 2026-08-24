@@ -27,9 +27,16 @@ if (publishing) {
 const head = spawnSync('git', ['-C', repoRoot, 'rev-parse', 'HEAD'], { encoding: 'utf8', shell: false });
 if (head.status !== 0 || head.stdout.trim() !== candidateCommit) throw new Error(`Candidate commit ${candidateCommit} does not match checkout HEAD ${head.stdout.trim()}.`);
 const cli = join(consoleRoot, 'node_modules', 'electron-builder', 'cli.js');
+const native = spawnSync(process.execPath, [join(consoleRoot, 'node_modules', 'electron-builder', 'cli.js'), 'install-app-deps', '--platform', 'win32', '--arch', 'x64'], { cwd: consoleRoot, env: process.env, stdio: 'inherit', shell: false });
+if (native.error) throw native.error;
+if (native.status !== 0) process.exit(native.status ?? 1);
 const result = spawnSync(process.execPath, [cli, '--win', 'squirrel', '--config', 'electron-builder.yml', `--config.extraMetadata.version=${version}`], { cwd: consoleRoot, env: process.env, stdio: 'inherit', shell: false });
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
+
+const packagedProbe = spawnSync(process.execPath, [join(consoleRoot, 'scripts', 'verify-keytar-packaged.mjs')], { cwd: consoleRoot, env: process.env, stdio: 'inherit', shell: false });
+if (packagedProbe.error) throw packagedProbe.error;
+if (packagedProbe.status !== 0) process.exit(packagedProbe.status ?? 1);
 
 const output = join(consoleRoot, 'dist', 'squirrel-windows', 'squirrel-windows');
 const files = readdirSync(output).map((name) => ({ name, path: join(output, name) })).filter((entry) => statSync(entry.path).isFile());

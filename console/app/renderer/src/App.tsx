@@ -664,7 +664,7 @@ ${resolution.disclosure}`);
 
   private localizedSchoolDisclosure(setMode: boolean): string {
     const source = setMode
-      ? 'This credential is stored only in the operating-system credential vault under the shared account key. It never enters settings, exports, history, logs or captures.'
+      ? 'This credential is stored only in the operating-system credential vault under the shared account key for this installed desktop console. It never enters settings, exports, history, logs or captures.'
       : 'The credential is checked by the operating-system credential vault. Winning a challenge never bypasses this credential.';
     return this.renameSchoolText(localizeText(source));
   }

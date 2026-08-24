@@ -1,11 +1,11 @@
 /** Shared School mode state and fail-closed naming rules. */
+export { SCHOOL_CREDENTIAL_ACCOUNT } from '../../../shared/school-contract';
 
 export const SCHOOL_MODE_SETTING = 'console.schoolMode';
 export const SCHOOL_NAME_SETTING = 'console.schoolModeName';
 export const SCHOOL_PREVIOUS_SETTINGS = 'console.schoolModePrevious';
 export const DEFAULT_SCHOOL_NAME = 'School mode';
 export const MAX_SCHOOL_NAME_LENGTH = 60;
-export const SCHOOL_CREDENTIAL_ACCOUNT = 'ding-pbx-console:school-mode-shared-unlock';
 export const SCHOOL_RECOVERY_LINE = 'The exact application-data recovery path is unavailable until the desktop data boundary answers.';
 
 export interface SchoolStorage {
