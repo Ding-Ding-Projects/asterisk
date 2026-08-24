@@ -541,11 +541,14 @@ function Template(v: any) {
                       h("button", { onClick: fn($b.pick), style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:${S($b.color)}; background:#141A15; border:1px solid #333B34; border-radius:8px; padding:8px 9px; min-height:44px; cursor:pointer;`) },
                         S($b.label)
                       ),
-                      h("button", { onClick: fn($b.verify), title: `Verify retained tree`, style: sty(`width:44px; height:44px; border-radius:8px; background:#141A15; border:1px solid #333B34; color:${S($b.color)}; cursor:pointer;`) },
-                        h("span", { style: sty(`font-size:17px;`), className: "msym" },
-                          "verified"
-                        )
-                      )
+                      ($b.retained ? h("button", { onClick: fn($b.verify), title: `Verify retained tree`, style: sty(`width:44px; height:44px; border-radius:8px; background:#141A15; border:1px solid #333B34; color:${S($b.color)}; cursor:pointer;`) },
+                          h("span", { style: sty(`font-size:17px;`), className: "msym" },
+                            "verified"
+                          )
+                        ) : null),
+                      ($b.ordinary ? h("span", { style: sty(`font-size:10px; color:#8FA394; padding:4px 6px;`) },
+                          S($b.verifyLabel)
+                        ) : null)
                     ))),
                   h("label", { style: sty(`display:flex; align-items:center; gap:7px; min-height:44px; color:#C4CBC2; font-size:11px;`) },
                     "Keep verified ",

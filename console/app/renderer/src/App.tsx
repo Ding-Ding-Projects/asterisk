@@ -278,6 +278,8 @@ export class App extends Base {
   private migrationRegexSample = '';
   private migrationRetention = 30;
   private migrationRecoveryError = '';
+  private migrationPhase = 'idle';
+  private migrationPath = '';
   private selectedBackupPaths = new Set<string>();
   private selectedReceiptIds = new Set<string>();
   private migrationSelectionScope: 'matches' | 'all' = 'matches';
@@ -378,11 +380,12 @@ export class App extends Base {
 
   private waitMigrationOperation = async (operationId: string, label: string): Promise<void> => {
     for (let attempt = 0; attempt < 240; attempt += 1) {
-      const response = await this.request('migration.operation.status', { payload: { operationId } }); const status = response?.data as { state?: string; result?: { path?: string; manifest?: { omissions?: Array<{ path: string; detail: string }> }; operation?: { detail?: string } }; detail?: string } | undefined;
+      const response = await this.request('migration.operation.status', { payload: { operationId } }); const status = response?.data as { state?: string; phase?: string; path?: string; result?: { path?: string; manifest?: { omissions?: Array<{ path: string; detail: string }> }; operation?: { detail?: string; phase?: string } }; detail?: string } | undefined;
+      if (status?.phase) this.migrationPhase = status.phase; if (status?.path) this.migrationPath = status.path; this.migrationStatus = `${label} phase: ${this.migrationPhase}${this.migrationPath ? ` · ${this.migrationPath}` : ''}`; this.forceUpdate();
       if (status?.state === 'running') { await new Promise((resolve) => setTimeout(resolve, 250)); continue; }
       this.migrationOperationId = '';
       if (status?.state !== 'succeeded') { this.fire(`${label} not completed`, status?.detail ?? response?.message ?? 'The operation ended without a successful state.'); await this.loadMigrationState(); return; }
-      const data = status.result; this.migrationOmissionText = (data?.manifest?.omissions ?? []).map((entry) => `${entry.path}: ${entry.detail}`).join(' · ') || 'No omissions were reported.'; this.fire(`${label} verified`, `${data?.path ?? 'The local destination'} is ready.`); await this.loadMigrationState(); return;
+      const data = status.result; this.migrationOmissionText = (data?.manifest?.omissions ?? []).map((entry) => `${entry.path}: ${entry.detail}`).join(' · ') || 'No omissions were reported.'; this.migrationPath = data?.path ?? this.migrationPath; this.fire(`${label} verified`, `${this.migrationPath || 'The local destination'} is ready.`); await this.loadMigrationState(); return;
     }
     this.migrationOperationId = ''; this.fire(`${label} still running`, 'The operation exceeded the UI polling window, but its durable operation record remains available.');
   };
@@ -2106,7 +2109,7 @@ It is shown once. The phone needs it to register.`);
             { icon: 'refresh', label: 'Refresh state', run: () => { this.historyLoaded = false; void this.loadMigrationState(); }, bg: '#1B211C', border: '#414942', fg: '#C4CBC2' },
           ],
           importMigrationFile: this.importMigrationFile,
-          backupRows: this.historyData.backups.filter((backup) => matches(`${backup.path} ${backup.createdAt} ${backup.status} ${backup.detail}`)).map((backup) => ({ label: `${this.selectedBackupPaths.has(backup.path) ? '☑' : '☐'} ${backup.createdAt || 'backup'} · ${backup.bytes} bytes · ${backup.status}`, color: backup.status === 'verified' ? '#9FF7C4' : '#FFD68A', pick: () => this.toggleBackupSelection(backup.path), verify: async () => { if (backup.kind !== 'retained-import-tree') { this.toast(`${backup.path}: ordinary backup status is ${backup.status}, ${backup.detail}`); return; } const response = await this.request('backup.retained.verify', { payload: { path: backup.path } }); this.toast(response?.message ?? backup.detail); } })),
+          backupRows: this.historyData.backups.filter((backup) => matches(`${backup.path} ${backup.createdAt} ${backup.status} ${backup.detail}`)).map((backup) => ({ label: `${this.selectedBackupPaths.has(backup.path) ? '☑' : '☐'} ${backup.createdAt || 'backup'} · ${backup.bytes} bytes · ${backup.status}`, color: backup.status === 'verified' ? '#9FF7C4' : '#FFD68A', retained: backup.kind === 'retained-import-tree', ordinary: backup.kind !== 'retained-import-tree', verifyLabel: backup.status === 'verified' ? 'verified' : backup.status, pick: () => this.toggleBackupSelection(backup.path), verify: async () => { const response = await this.request('backup.retained.verify', { payload: { path: backup.path } }); this.toast(response?.message ?? backup.detail); } })),
           receiptRows: this.historyData.receipts.filter((receipt) => matches(`${receipt.id} ${receipt.action} ${receipt.remote} ${receipt.branch} ${receipt.status} ${receipt.detail}`)).map((receipt) => ({ label: `${this.selectedReceiptIds.has(receipt.id) ? '☑' : '☐'} ${receipt.action} · ${receipt.remote} · ${receipt.status}`, color: receipt.status === 'success' ? '#9FF7C4' : '#FFD68A', pick: () => { if (this.selectedReceiptIds.has(receipt.id)) this.selectedReceiptIds.delete(receipt.id); else this.selectedReceiptIds.add(receipt.id); this.forceUpdate(); } })),
           migrationOmissions: this.migrationOmissionText,
           migrationSearchText: this.migrationSearchText,
