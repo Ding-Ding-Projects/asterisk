@@ -188,7 +188,7 @@ export function createServerModeHandler(options: ServerModeOptions) {
         // TLS protects the transport, not the unconfigured account boundary. The
         // first administrator can only be created by a loopback client, regardless
         // of whether this server is serving HTTP or HTTPS.
-        if (!isLoopbackClient(req.socket.remoteAddress)) {
+        if (!boundToLoopback || !isLoopbackClient(req.socket.remoteAddress)) {
           return sendJson(res, 403, { error: 'SETUP_REQUIRES_LOOPBACK', message: 'First-time setup is accepted only from a loopback client.' });
         }
         if (hasAdminAccount(accountStore)) return sendJson(res, 409, { error: 'ALREADY_SET_UP', message: 'An administrator account already exists.' });

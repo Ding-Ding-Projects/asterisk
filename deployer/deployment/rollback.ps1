@@ -9,6 +9,7 @@ param(
     [Parameter(Mandatory)] [string]$PreflightEvidencePath,
     [string]$SessionCookieFile = '',
     [string]$SnapshotDirectory = '',
+    [string]$SnapshotEncryptionKeyFile = '',
     [string]$TlsCertificateSha256 = '',
     [string]$ComposeFile = "$PSScriptRoot\docker-compose.yml",
     [string]$ProjectName = 'ding-pbx-control-plane',
@@ -50,6 +51,7 @@ if (-not $Execute) {
     -PreflightEvidencePath $PreflightEvidencePath `
     -SessionCookieFile $SessionCookieFile `
     -SnapshotDirectory $SnapshotDirectory `
+    -SnapshotEncryptionKeyFile $SnapshotEncryptionKeyFile `
     -TlsCertificateSha256 $TlsCertificateSha256 `
     -ComposeFile $ComposeFile `
     -ProjectName $ProjectName `

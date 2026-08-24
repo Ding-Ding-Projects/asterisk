@@ -23,6 +23,7 @@
 - [x] Add named hosted refusals for WSL-only configuration, media, history, connect, and snapshot operations while exposing the local Asterisk target as a discoverable read-only target.
 - [x] Require loopback-only first-admin creation even under TLS, keep the container bind at `0.0.0.0` while host publication remains explicit, and verify host-side reachability before readiness.
 - [x] Add protected short-lived readiness credentials, pinned TLS validation, five-volume snapshot journals with archive digests and recovery proof, compatible volume rollback, immutable helper IDs, structured workload parsing, and an external packaged WSL release binding.
+- [x] Quiesce owned services before encrypted snapshot capture, journal stop, partial restore, and restart outcomes, require bounded helper deadlines, and provide verified retention cleanup plus standalone restore checks.
 - [ ] Build and publish a hosted image from a verified commit.
 - [ ] Run the read-only preflight against the chosen local or approved private target.
 - [ ] Deploy the hosted image, verify the health response and persistent volume, and retain rollback evidence.

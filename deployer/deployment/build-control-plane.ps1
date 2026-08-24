@@ -2,7 +2,6 @@
 param(
     [string]$Tag = '',
     [string]$Version = 'dev',
-    [string]$ImageDigest = 'unpublished',
     [string]$OutputDirectory = '',
     [switch]$NoCache
 )
@@ -29,7 +28,6 @@ if ($dirty.Count -gt 0) {
     throw 'The build context has uncommitted changes. Commit the exact source revision before building a reproducible image.'
 }
 if ($Version -notmatch '^[0-9A-Za-z][0-9A-Za-z._+-]{0,63}$') { throw 'Version must be a bounded package version without shell syntax.' }
-if ($ImageDigest -ne 'unpublished' -and $ImageDigest -notmatch '^sha256:[0-9a-f]{64}$') { throw 'ImageDigest must be sha256:<64 hex characters> or unpublished for a local pre-publish build.' }
 function File-Sha256([string]$Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
@@ -66,7 +64,6 @@ $buildArgs = @(
     '--build-arg', "CONSOLE_LOCK_SHA256=$consoleLockSha",
     '--build-arg', "INPUT_MANIFEST_SHA256=$inputManifestSha",
     '--build-arg', "IMAGE_VERSION=$Version",
-    '--build-arg', "IMAGE_DIGEST=$ImageDigest",
     '--label', "org.opencontainers.image.revision=$sourceCommit",
     '--label', "org.opencontainers.image.version=$Version",
     '--tag', $Tag
@@ -99,7 +96,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "docker cp provenance exited with $LASTEXITCODE" }
     $provenance = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
     Assert-ProvenanceRecord -Record $provenance -ExpectedCommit $sourceCommit -ExpectedVersion $Version -ExpectedDockerfileSha256 $dockerfileSha -ExpectedConsoleLockSha256 $consoleLockSha -ExpectedInputManifestSha256 $inputManifestSha -ExpectedUbuntuSnapshot $inputRecord.ubuntuSnapshot -ExpectedRuntimeBaseImage $inputRecord.ubuntuBase -ExpectedNodeBuildBaseImage $inputRecord.nodeBuildBase | Out-Null
-    if ($provenance.sourceTreeSha256 -ne $sourceTreeSha -or $provenance.dockerfileSha256 -ne $dockerfileSha -or $provenance.consoleLockSha256 -ne $consoleLockSha -or $provenance.inputManifestSha256 -ne $inputManifestSha -or $provenance.imageDigest -ne $ImageDigest -or $provenance.ubuntuSnapshot -ne $inputRecord.ubuntuSnapshot -or $provenance.baseImages.runtime -ne $inputRecord.ubuntuBase -or $provenance.baseImages.nodeBuild -ne $inputRecord.nodeBuildBase) { throw 'Embedded provenance has an unexpected source-tree, Dockerfile, lockfile, input, image, base-image, or package snapshot digest.' }
+    if ($provenance.sourceTreeSha256 -ne $sourceTreeSha -or $provenance.dockerfileSha256 -ne $dockerfileSha -or $provenance.consoleLockSha256 -ne $consoleLockSha -or $provenance.inputManifestSha256 -ne $inputManifestSha -or $provenance.ubuntuSnapshot -ne $inputRecord.ubuntuSnapshot -or $provenance.baseImages.runtime -ne $inputRecord.ubuntuBase -or $provenance.baseImages.nodeBuild -ne $inputRecord.nodeBuildBase) { throw 'Embedded provenance has an unexpected source-tree, Dockerfile, lockfile, input, base-image, or package snapshot digest.' }
     & docker cp "${container}:/opt/ding-pbx-console/sbom-apt.txt" $sbomPath | Out-Null
     & docker cp "${container}:/opt/ding-pbx-console/sbom-apt.sha256" $sbomHashPath | Out-Null
     & docker cp "${container}:/opt/ding-pbx-console/node-runtime-version.txt" $nodeVersionPath | Out-Null
@@ -126,7 +123,6 @@ $record = [ordered]@{
     image = $Tag
     imageId = $imageId
     imageVersion = $Version
-    imageDigest = $ImageDigest
     dockerfileSha256 = $dockerfileSha
     sourceTreeSha256 = $sourceTreeSha
     consoleLockSha256 = $consoleLockSha

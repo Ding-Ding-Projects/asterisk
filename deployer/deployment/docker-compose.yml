@@ -67,14 +67,29 @@ services:
 volumes:
   ding-pbx-data:
     name: ding-pbx-control-plane-data
+    labels:
+      io.ding.pbx.project: ding-pbx
+      io.ding.pbx.volume: control-plane-data
   ding-pbx-asterisk-etc:
     name: ding-pbx-control-plane-asterisk-etc
+    labels:
+      io.ding.pbx.project: ding-pbx
+      io.ding.pbx.volume: asterisk-etc
   ding-pbx-asterisk-lib:
     name: ding-pbx-control-plane-asterisk-lib
+    labels:
+      io.ding.pbx.project: ding-pbx
+      io.ding.pbx.volume: asterisk-lib
   ding-pbx-asterisk-log:
     name: ding-pbx-control-plane-asterisk-log
+    labels:
+      io.ding.pbx.project: ding-pbx
+      io.ding.pbx.volume: asterisk-log
   ding-pbx-asterisk-spool:
     name: ding-pbx-control-plane-asterisk-spool
+    labels:
+      io.ding.pbx.project: ding-pbx
+      io.ding.pbx.volume: asterisk-spool
 
 networks:
   control-plane:

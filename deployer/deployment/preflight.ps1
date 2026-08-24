@@ -46,6 +46,13 @@ function Has-DockerLabel($Container, [string]$Name, [string]$Value) {
     return @($labels | Where-Object { $_ -eq "$Name=$Value" }).Count -eq 1
 }
 
+function Convert-EngineStorageBytes([string]$Value) {
+    $match = [regex]::Match($Value.Trim(), '^(?<number>[0-9]+(?:\.[0-9]+)?)\s*(?<unit>B|kB|MB|GB|TB)$')
+    if (-not $match.Success) { return $null }
+    $multipliers = @{ B = 1; kB = 1KB; MB = 1MB; GB = 1GB; TB = 1TB }
+    return [long]([double]$match.Groups['number'].Value * $multipliers[$match.Groups['unit'].Value])
+}
+
 $targetKind = if ($Mode -eq 'host' -or ($Mode -eq 'all' -and $ApprovedHost)) { 'approved-ssh' } else { 'local-docker' }
 $targetHost = if ($targetKind -eq 'approved-ssh') { $ApprovedHost } else { 'local' }
 $targetUser = if ($targetKind -eq 'approved-ssh') { $ApprovedUser } else { 'local' }
@@ -96,6 +103,11 @@ if ($Mode -in @('docker', 'all')) {
         Add-Check $result 'docker-memory-threshold' ([long]$info.MemTotal -ge $MinimumMemoryBytes) "Memory=$($info.MemTotal) required=$MinimumMemoryBytes"
         $dockerRoot = [string]$info.DockerRootDir
         Add-Check $result 'docker-root-storage-readable' (-not [string]::IsNullOrWhiteSpace($dockerRoot)) "DockerRoot=$dockerRoot; storage is measured from Docker engine facts"
+        $availableStorage = $null
+        foreach ($row in @($info.DriverStatus)) {
+            if (@($row).Count -ge 2 -and [string]$row[0] -match 'Data Space Available|Backing Filesystem Available') { $availableStorage = Convert-EngineStorageBytes ([string]$row[1]) }
+        }
+        Add-Check $result 'docker-engine-free-storage-threshold' ($null -ne $availableStorage -and $availableStorage -ge $MinimumStorageBytes) "EngineAvailableBytes=$availableStorage required=$MinimumStorageBytes"
     } else { Add-Check $result 'docker-info-readable' $false 'Docker info was not valid JSON.' }
     $portConflict = @(Get-NetTCPConnection -State Listen -LocalPort $RequiredPort -ErrorAction SilentlyContinue)
     Add-Check $result 'local-port-available' ($portConflict.Count -eq 0) "Port $RequiredPort listeners=$($portConflict.Count)"

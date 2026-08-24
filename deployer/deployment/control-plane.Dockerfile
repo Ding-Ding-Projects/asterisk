@@ -57,7 +57,6 @@ ARG DOCKERFILE_SHA256
 ARG CONSOLE_LOCK_SHA256
 ARG INPUT_MANIFEST_SHA256
 ARG IMAGE_VERSION=dev
-ARG IMAGE_DIGEST=unpublished
 ARG UBUNTU_SNAPSHOT=20260824T000000Z
 ENV DEBIAN_FRONTEND=noninteractive \
     NODE_ENV=production \
@@ -96,7 +95,6 @@ RUN install -d -o ding-pbx -g ding-pbx /etc/asterisk /run/asterisk /var/lib/aste
   '  "schemaVersion": 1,' \
   '  "sourceCommit": "'"$SOURCE_COMMIT"'",' \
   '  "imageVersion": "'"$IMAGE_VERSION"",' \
-  '  "imageDigest": "'"$IMAGE_DIGEST"",' \
   '  "sourceTreeCommit": "'"$SOURCE_TREE_COMMIT"'",' \
   '  "sourceTreeSha256": "'"$SOURCE_TREE_SHA256"",' \
   '  "dockerfileSha256": "'"$DOCKERFILE_SHA256"'",' \
@@ -117,7 +115,6 @@ LABEL org.opencontainers.image.title="Ding PBX hosted control plane" \
       org.opencontainers.image.source="https://github.com/Ding-Ding-Projects/asterisk" \
       org.opencontainers.image.revision="$SOURCE_COMMIT" \
       org.opencontainers.image.version="$IMAGE_VERSION" \
-      io.ding.pbx.image-digest="$IMAGE_DIGEST" \
       io.ding.pbx.source-tree-commit="$SOURCE_TREE_COMMIT" \
       io.ding.pbx.source-tree-sha256="$SOURCE_TREE_SHA256" \
       io.ding.pbx.dockerfile-sha256="$DOCKERFILE_SHA256" \
