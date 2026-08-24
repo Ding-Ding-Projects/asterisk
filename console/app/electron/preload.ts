@@ -11,6 +11,11 @@ const api: DingDesktopApi = {
   controlPlane: {
     request: (request: ControlPlaneRequest) => ipcRenderer.invoke('control-plane:request', request) as Promise<ControlPlaneResponse>,
   },
+  converter: {
+    pickFile: () => ipcRenderer.invoke('converter:pick-file'),
+    pickDestination: () => ipcRenderer.invoke('converter:pick-destination'),
+    confirmOverwrite: (request: { destinationPath: string }) => ipcRenderer.invoke('converter:confirm-overwrite', request),
+  },
   updater: {
     getStatus: () => ipcRenderer.invoke('updater:get-status') as Promise<UpdaterStatusForRenderer>,
     checkNow: () => ipcRenderer.invoke('updater:check-now') as Promise<UpdaterStatusForRenderer>,

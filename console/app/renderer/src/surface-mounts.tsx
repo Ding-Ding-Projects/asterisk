@@ -5,7 +5,7 @@ import { DocsSurface } from './docs-surface';
 import { ChangelogSurface } from './changelog-surface';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
 import { CHANGELOG_MARKDOWN, CHANGELOG_REPOSITORY_URL } from './generated/changelog-bundle';
-import type { BackendResponse, OllamaSuiteSnapshot } from './ollama-suite-model';
+import type { BackendResponse, OllamaRuntimeEvidence, OllamaSuiteSnapshot } from './ollama-suite-model';
 import type { ConverterBackendHandlers } from '../../../shared/converter';
 
 type SurfaceRoute = 'converter' | 'ollama' | 'docs' | 'changelog';
@@ -34,9 +34,9 @@ const converterClient: ConverterClient = {
   resumeQueue: (request) => bridgeRequest('converter.queue.resume', request),
   cancelQueue: (request) => bridgeRequest('converter.queue.cancel', request),
   pdfCapabilities: () => bridgeRequest('converter.pdf-capabilities'),
-  pickLocalFile: () => unavailable('Converter', 'local file picker'),
-  pickDestinationPath: () => unavailable('Converter', 'destination picker'),
-  requestOverwriteConfirmation: () => unavailable('Converter', 'overwrite confirmation'),
+  pickLocalFile: () => window.dingDesktop?.converter.pickFile() ?? unavailable('Converter', 'local file picker'),
+  pickDestinationPath: () => window.dingDesktop?.converter.pickDestination() ?? unavailable('Converter', 'destination picker'),
+  requestOverwriteConfirmation: (request) => window.dingDesktop?.converter.confirmOverwrite({ destinationPath: request.destinationPath }) ?? unavailable('Converter', 'overwrite confirmation'),
   deadlineMs: 15_000,
 };
 
@@ -50,8 +50,64 @@ const unavailableOllamaResponse = <T,>(operation: string): Promise<BackendRespon
   },
 });
 
+function runtimeEvidence(value: { state: string; endpoint: string; version?: string; reason?: string; observedAt: string }): OllamaRuntimeEvidence {
+  const state = value.state === 'ready' ? 'healthy' : value.state === 'missing' ? 'missing' : value.state === 'stopped' ? 'stopped' : value.state === 'unhealthy' ? 'unhealthy' : 'offline';
+  return {
+    state,
+    endpoint: value.endpoint,
+    version: value.version,
+    reason: value.reason,
+    observedAt: value.observedAt,
+    nextActions: [],
+  };
+}
+
+async function readOllamaSnapshot(): Promise<BackendResponse<OllamaSuiteSnapshot>> {
+  const bridge = window.dingDesktop;
+  if (!bridge) return unavailableOllamaResponse('snapshot');
+  try {
+    const response = await bridge.controlPlane.request({ requestId: crypto.randomUUID(), action: 'ollama.snapshot' });
+    if (!response.ok) {
+      return { ok: false, requestId: response.requestId, observedAt: new Date().toISOString(), error: { code: response.code, message: response.message, recoveryAction: 'Start the local Ollama service, then retry this surface.', retryable: true } };
+    }
+    const data = response.data as { observedAt: string; endpoint: string; health: { state: string; version?: string; reason?: string; observedAt: string }; installed: ReadonlyArray<{ name: string; model: string; sizeBytes: number; details: { family?: string; parameterSize?: string; quantizationLevel?: string } }>; running: ReadonlyArray<{ name: string; model: string }> };
+    const running = new Set(data.running.flatMap((item) => [item.name, item.model]));
+    const variants = data.installed.map((item) => ({
+      id: item.name,
+      modelId: item.model,
+      family: item.details.family ?? 'Unknown family',
+      displayName: item.name,
+      exactTag: item.name,
+      blobSizeBytes: item.sizeBytes,
+      installed: true,
+      running: running.has(item.name) || running.has(item.model),
+      mode: 'plain' as const,
+      pattern: '',
+      flags: 'i',
+      sample: '',
+      limits: { maxPatternCharacters: 512, maxSampleCharacters: 4096, timeoutMs: 75, maxMatches: 200 },
+    }));
+    return {
+      ok: true,
+      requestId: response.requestId,
+      observedAt: data.observedAt,
+      value: {
+        sequence: 1,
+        receivedAt: data.observedAt,
+        runtime: runtimeEvidence({ ...data.health, endpoint: data.endpoint }),
+        catalog: { sourceIdentity: 'unavailable', pageCount: 0, completeness: 'unknown', stale: true, offlineCache: false },
+        variants,
+        chatSessions: [],
+        harnessProfiles: [],
+      },
+    };
+  } catch (error) {
+    return { ok: false, requestId: crypto.randomUUID(), observedAt: new Date().toISOString(), error: { code: 'ollama-bridge-failed', message: error instanceof Error ? error.message : 'The local Ollama bridge did not return a response.', recoveryAction: 'Retry after checking the local service.', retryable: true } };
+  }
+}
+
 const ollamaClient: OllamaSuiteClient = {
-  readSnapshot: () => unavailableOllamaResponse<OllamaSuiteSnapshot>('snapshot'),
+  readSnapshot: readOllamaSnapshot,
   subscribe: () => () => {},
   refreshRuntime: () => unavailableOllamaResponse('runtime refresh'),
   runRuntimeAction: () => unavailableOllamaResponse('runtime action'),

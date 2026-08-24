@@ -26,6 +26,12 @@ import type { ServerInventorySnapshot } from './server-inventory.js';
 import type { RawConfigReader } from './wsl-config-transport.js';
 import { ConverterRegistry } from './converter-registry.js';
 import { pdfCapabilities } from './converter-pdf.js';
+import { ConverterStore } from './converter-store.js';
+import { ConverterRunner } from './converter-runner.js';
+import { ConverterQueue } from './converter-queue.js';
+import { sniffFileType } from './converter-sniff.js';
+import { OllamaClient } from './ollama-client.js';
+import type { ConverterRequest, ConverterSniffResult } from '../shared/converter.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
 import type { ChangePlan, ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
@@ -51,6 +57,7 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'converter.catalog', 'converter.pdf-capabilities', 'converter.sniff',
   'converter.queue.create', 'converter.queue.enqueue-one', 'converter.queue.page',
   'converter.queue.start', 'converter.queue.pause', 'converter.queue.resume', 'converter.queue.cancel',
+  'ollama.snapshot',
 ]);
 
 function validateRequestSchema(request: ControlPlaneRequest): string | undefined {
@@ -80,12 +87,22 @@ export interface ControlPlaneDispatcherOptions {
   /** True when running under the hosted HTTP server rather than the desktop app. Gates
    *  the WSL-only actions above with an honest, named refusal instead of a stack trace. */
   hosted: boolean;
+  converterPickFile?: () => Promise<{ sourcePath: string; name: string; bytes: number; lastModified?: string; mediaType?: string } | undefined>;
+  converterPickDestination?: () => Promise<string | undefined>;
 }
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
   const { userDataPath, resourcesPath, hosted } = options;
   const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
   const converterRegistry = ConverterRegistry.create();
+  const ollamaClient = new OllamaClient();
+  const converterQueue = converterRegistry.then(async (registry) => {
+    const store = new ConverterStore({ rootPath: join(userDataPath, 'converter-queues') });
+    await store.initialize();
+    const queue = new ConverterQueue({ store, registry, runner: new ConverterRunner({ registry }) });
+    await queue.initialize();
+    return queue;
+  });
   const targetDiscovery = new TargetDiscovery(processExecutor);
   const cliGateway = new LocalAsteriskCliGateway(processExecutor);
   const readings = new AsteriskReadings(cliGateway);
@@ -493,6 +510,49 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           };
         }
         return { ok: true, requestId: request.requestId, data: pdfCapabilities(registry) };
+      }
+      if (request.action === 'converter.sniff') {
+        const sourcePath = typeof request.payload?.sourcePath === 'string' ? request.payload.sourcePath : '';
+        const maxBytes = typeof request.payload?.maxBytes === 'number' ? request.payload.maxBytes : undefined;
+        if (!sourcePath) return { ok: false, requestId: request.requestId, code: 'CONVERTER_SOURCE_REQUIRED', message: 'Choose a local source file first.' };
+        const result: ConverterSniffResult = await sniffFileType(sourcePath, maxBytes);
+        return { ok: true, requestId: request.requestId, data: result };
+      }
+      if (request.action === 'ollama.snapshot') {
+        const observedAt = new Date().toISOString();
+        const [health, version, installed, running] = await Promise.all([
+          ollamaClient.health(), ollamaClient.version(), ollamaClient.installedModels(), ollamaClient.runningModels(),
+        ]);
+        return { ok: true, requestId: request.requestId, data: { observedAt, endpoint: ollamaClient.endpoint, health, version, installed, running } };
+      }
+      if (request.action === 'converter.queue.create') {
+        const label = typeof request.payload?.label === 'string' ? request.payload.label : '';
+        return { ok: true, requestId: request.requestId, data: await (await converterQueue).create(label) };
+      }
+      if (request.action === 'converter.queue.enqueue-one') {
+        const queueId = typeof request.payload?.queueId === 'string' ? request.payload.queueId : '';
+        const item = request.payload?.item as ConverterRequest | undefined;
+        if (!queueId || !item) return { ok: false, requestId: request.requestId, code: 'CONVERTER_QUEUE_INPUT_INVALID', message: 'A queue id and one validated converter item are required.' };
+        return { ok: true, requestId: request.requestId, data: await (await converterQueue).enqueueOne(queueId, item) };
+      }
+      if (request.action === 'converter.queue.page') {
+        const queueId = typeof request.payload?.queueId === 'string' ? request.payload.queueId : '';
+        const cursor = request.payload?.cursor as { afterSequence: number } | undefined;
+        const limit = typeof request.payload?.limit === 'number' ? request.payload.limit : 100;
+        if (!queueId) return { ok: false, requestId: request.requestId, code: 'CONVERTER_QUEUE_REQUIRED', message: 'A converter queue must be selected.' };
+        const store = new ConverterStore({ rootPath: join(userDataPath, 'converter-queues') });
+        await store.initialize();
+        return { ok: true, requestId: request.requestId, data: await store.listPage(queueId, cursor ?? { afterSequence: 0 }, limit) };
+      }
+      if (request.action === 'converter.queue.start' || request.action === 'converter.queue.pause' || request.action === 'converter.queue.resume' || request.action === 'converter.queue.cancel') {
+        const queueId = typeof request.payload?.queueId === 'string' ? request.payload.queueId : '';
+        if (!queueId) return { ok: false, requestId: request.requestId, code: 'CONVERTER_QUEUE_REQUIRED', message: 'A converter queue must be selected.' };
+        const queue = await converterQueue;
+        const result = request.action === 'converter.queue.start' ? await queue.start(queueId)
+          : request.action === 'converter.queue.pause' ? await queue.pause(queueId)
+            : request.action === 'converter.queue.resume' ? await queue.resume(queueId)
+              : await queue.cancel(queueId);
+        return { ok: true, requestId: request.requestId, data: result };
       }
 
       if (request.action === 'runtime.status') {

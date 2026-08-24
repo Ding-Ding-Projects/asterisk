@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
@@ -169,6 +170,33 @@ ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindow.unmaximize() : mainWindow?.maximize());
 ipcMain.on('window:close', () => mainWindow?.close());
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
+ipcMain.handle('converter:pick-file', async () => {
+  const result = await dialog.showOpenDialog(mainWindow ?? undefined, { properties: ['openFile'], title: 'Choose a local source file' });
+  const sourcePath = result.canceled ? undefined : result.filePaths[0];
+  if (!sourcePath) return undefined;
+  const info = await stat(sourcePath);
+  return { sourcePath, name: sourcePath.slice(Math.max(sourcePath.lastIndexOf('\\'), sourcePath.lastIndexOf('/')) + 1), bytes: info.size };
+});
+ipcMain.handle('converter:pick-destination', async () => {
+  const result = await dialog.showSaveDialog(mainWindow ?? undefined, { title: 'Choose a conversion destination' });
+  return result.canceled ? undefined : result.filePath;
+});
+ipcMain.handle('converter:confirm-overwrite', async (_event, request: { destinationPath?: unknown }) => {
+  const destinationPath = typeof request?.destinationPath === 'string' ? request.destinationPath : '';
+  if (!destinationPath) return { approved: false, detail: 'No destination path was supplied.' };
+  const result = await dialog.showMessageBox(mainWindow ?? undefined, {
+    type: 'warning',
+    title: 'Confirm overwrite',
+    message: `Replace the existing destination?`,
+    detail: destinationPath,
+    buttons: ['Cancel', 'Replace'],
+    defaultId: 0,
+    cancelId: 0,
+  });
+  return result.response === 1
+    ? { approved: true, detail: 'The user explicitly approved replacing the destination.' }
+    : { approved: false, detail: 'Overwrite was cancelled; the destination was not touched.' };
+});
 
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();

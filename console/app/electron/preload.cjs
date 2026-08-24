@@ -10,6 +10,11 @@ const api = Object.freeze({
   controlPlane: Object.freeze({
     request: request => ipcRenderer.invoke('control-plane:request', request),
   }),
+  converter: Object.freeze({
+    pickFile: () => ipcRenderer.invoke('converter:pick-file'),
+    pickDestination: () => ipcRenderer.invoke('converter:pick-destination'),
+    confirmOverwrite: request => ipcRenderer.invoke('converter:confirm-overwrite', request),
+  }),
   updater: Object.freeze({
     getStatus: () => ipcRenderer.invoke('updater:get-status'),
     checkNow: () => ipcRenderer.invoke('updater:check-now'),

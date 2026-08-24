@@ -31,7 +31,8 @@ export type ControlPlaneAction =
    * use the same namespace so the renderer cannot invent a parallel transport. */
   | 'converter.catalog' | 'converter.pdf-capabilities' | 'converter.sniff'
   | 'converter.queue.create' | 'converter.queue.enqueue-one' | 'converter.queue.page'
-  | 'converter.queue.start' | 'converter.queue.pause' | 'converter.queue.resume' | 'converter.queue.cancel';
+  | 'converter.queue.start' | 'converter.queue.pause' | 'converter.queue.resume' | 'converter.queue.cancel'
+  | 'ollama.snapshot';
 
 /** The screens a `pbx.read` can answer, each backed by read-only Asterisk CLI output. */
 export type PbxReadView =
@@ -83,6 +84,11 @@ export interface DingDesktopApi {
   platform: string;
   window: { minimize(): void; toggleMaximize(): void; close(): void };
   controlPlane: { request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> };
+  converter: {
+    pickFile(): Promise<{ sourcePath: string; name: string; bytes: number; lastModified?: string } | undefined>;
+    pickDestination(): Promise<string | undefined>;
+    confirmOverwrite(request: { destinationPath: string }): Promise<{ approved: boolean; detail: string }>;
+  };
   updater: {
     /** Current state, read once (e.g. on mount) without waiting for the next push. */
     getStatus(): Promise<UpdaterStatusForRenderer>;
