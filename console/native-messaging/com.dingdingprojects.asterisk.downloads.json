@@ -1,9 +1,9 @@
 {
   "name": "com.dingdingprojects.asterisk.downloads",
   "description": "Ding PBX Console browser-extension download handoff host",
-  "path": "Ding-PBX-Console-NativeMessagingHost.cmd",
+  "path": "__INSTALL_ROOT__\\resources\\native-messaging\\Ding-PBX-Console-NativeMessagingHost.exe",
   "type": "stdio",
   "allowed_origins": [
-    "chrome-extension://com.dingdingprojects.asterisk.downloads/"
+    "chrome-extension://dnpkplcgjmipnndmghkhljjoefjhidab/"
   ]
 }

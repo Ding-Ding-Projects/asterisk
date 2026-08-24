@@ -1,6 +1,6 @@
 import type { ExtensionDownloadHandoff } from './download-transfer.js';
 
-export const DOWNLOAD_EXTENSION_ID = 'com.dingdingprojects.asterisk.downloads';
+export const DOWNLOAD_EXTENSION_ID = 'dnpkplcgjmipnndmghkhljjoefjhidab';
 export const DOWNLOAD_NATIVE_PIPE = '\\\\.\\pipe\\ding-pbx-download-ingress';
 export const DOWNLOAD_NATIVE_MESSAGE_LIMIT = 128 * 1024;
 
