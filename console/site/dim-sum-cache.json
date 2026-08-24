@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "source": "Ding-Ding-Projects/dim-sum-photos catalog names and published photo assets",
   "sourceUrl": "https://raw.githubusercontent.com/Ding-Ding-Projects/dim-sum-photos/main/catalog/index.json",
+  "catalogRevision": "catalog-v1",
   "imagePolicy": "public published catalog release assets referenced by immutable release tag; no copied photo",
   "dishes": [
     { "id": "hk-dish-0067", "name": { "en": "Scallion Flower Roll", "zhHant": "蔥花卷" }, "catalogRevision": "2541e4f85d4eb28509789eb9697e4323b9ba55c5", "releaseTag": "desktop-67-2541e4f8", "imageUrl": "https://github.com/Ding-Ding-Projects/dim-sum-photos/releases/download/desktop-67-2541e4f8/hk-dish-0067-scallion-flower-roll.png", "sha256": "0d5d4372e96f297aa6b40b6c86178f6b0d2c9df1c399c94e31d46004b1323119" },

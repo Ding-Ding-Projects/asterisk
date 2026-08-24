@@ -4,7 +4,7 @@
   "features": {
     "language-modes": {
       "state": "implemented",
-      "note": "global-settings.js renders an independently reachable language-mode control on every page, persists English, playful Hong Kong-style Cantonese, or bilingual selection in ding-pbx-site-global-settings-v1, and applies the selection through a hand-written page copy inventory to panel labels, notices, surprise copy, and separate narrator tracks. School mode forces English and suppresses optional controls live.",
+      "note": "global-settings.js renders an independently reachable language-mode control on every page, synchronizes it with the existing ding-pbx-pages-v2 app state through ding-global-settings-change, persists English, playful Hong Kong-style Cantonese, or bilingual selection, and applies the selection through a hand-written page copy inventory to independently segmented panel labels, notices, surprise copy, and separate narrator tracks. School mode forces English and suppresses optional controls live.",
       "files": [
         "site/app.js",
         "site/global-settings.js",

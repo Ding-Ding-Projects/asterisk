@@ -566,7 +566,11 @@ body.attn-focus .topbar:hover,body.attn-focus .topbar:focus-within,body.attn-foc
 
 /* Every published page owns this local settings surface. */
 .global-settings-open{white-space:nowrap}
+.global-settings-fallback-toolbar{position:sticky;top:0;z-index:25;display:flex;justify-content:flex-end;gap:8px;padding:10px 16px;border-bottom:1px solid var(--outline-variant);background:var(--surface-0)}
 .global-settings-panel{position:fixed;z-index:30;top:68px;right:18px;width:min(620px,calc(100vw - 36px));max-height:calc(100vh - 86px);overflow:auto;padding:22px;border:1px solid var(--outline-variant);border-radius:var(--radius-lg);background:var(--surface-0);box-shadow:0 22px 70px rgba(0,0,0,.35)}
+.copy-segment{display:inline}
+.copy-segment-en{font-family:inherit}
+.copy-segment-zh{font-family:inherit;letter-spacing:.01em}
 .global-settings-panel[hidden]{display:none}
 .global-settings-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid var(--outline-variant);padding-bottom:14px;margin-bottom:14px}
 .global-settings-header h2{margin:.2em 0 .35em}

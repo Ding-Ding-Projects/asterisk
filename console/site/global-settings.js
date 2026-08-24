@@ -14,6 +14,7 @@
   const MAX_ENDPOINT_BYTES = 65536;
   const MAX_ENDPOINT_DEPTH = 4;
   const MAX_ENDPOINT_FIELDS = 24;
+  const APPROVED_EXTERNAL_HOSTS = new Set(['api.github.com', 'localhost', '127.0.0.1']);
   const NARRATION_COOLDOWN_MS = 2500;
   const NARRATION_DEBOUNCE_MS = 250;
   const SCHOOL_SUPPRESSION_INVENTORY = [
@@ -45,7 +46,7 @@
     narratorRate: 1,
     narratorPitch: 1,
     schemaVersion: SETTINGS_SCHEMA_VERSION,
-    schedule: { schemaVersion: 1, rules: [], lastAppliedRule: '' },
+    schedule: { schemaVersion: 1, rules: [], lastAppliedRule: '', paused: false },
     displayName: 'Ding PBX Console',
     visited: false,
     dimSumShown: 0,
@@ -53,13 +54,10 @@
     reducedSound: false,
     screenReaderActive: false
   };
-  const DISHES = [
-    { id: 'hk-dish-0067', en: 'Scallion Flower Roll', zh: '蔥花卷', imageUrl: 'https://github.com/Ding-Ding-Projects/dim-sum-photos/releases/download/desktop-67-2541e4f8/hk-dish-0067-scallion-flower-roll.png', sha256: '0d5d4372e96f297aa6b40b6c86178f6b0d2c9df1c399c94e31d46004b1323119' },
-    { id: 'hk-dish-0066', en: 'Steamed Sausage Roll', zh: '腸仔包', imageUrl: 'https://github.com/Ding-Ding-Projects/dim-sum-photos/releases/download/desktop-66-83613a99/hk-dish-0066-steamed-sausage-roll.png', sha256: '0a725a63d2b5ef154acce3db60af7f6b445d109c0dd2210a8516def02a756329' },
-    { id: 'hk-dish-0065', en: 'Silver Thread Roll', zh: '銀絲卷', imageUrl: 'https://github.com/Ding-Ding-Projects/dim-sum-photos/releases/download/desktop-65-ddef13ca/hk-dish-0065-silver-thread-roll.png', sha256: '5f7ed2d9779c204437905f9b9426142d1732cff5b9ec5d8ef7f5c96bcd79b3dc' },
-    { id: 'hk-dish-0064', en: 'Plain Mantou', zh: '白饅頭', imageUrl: 'https://github.com/Ding-Ding-Projects/dim-sum-photos/releases/download/desktop-64-4d6dc73c/hk-dish-0064-plain-mantou.png', sha256: '98eaa1d43a8b9aa6055a46bb3b17cb07fc360502d9220ce6f22d6d37445f9834' },
-    { id: 'hk-dish-0063', en: 'Brown Sugar Mantou', zh: '黑糖饅頭', imageUrl: 'https://github.com/Ding-Ding-Projects/dim-sum-photos/releases/download/desktop-63-d299b10d/hk-dish-0063-brown-sugar-mantou.png', sha256: 'c17fc901233fc5abec67e5f49da5b2c506f2a5a71d7bcb38518da94581344a22' }
-  ];
+  let DISHES = [];
+  let dimSumReady = Promise.resolve(false);
+  let dimSumDrawnThisLaunch = false;
+  const DIM_SUM_IMAGE_CACHE_KEY = 'ding-pbx-dimsum-image-cache-v2';
   const WEEKDAYS = [['mo', 'Monday'], ['tu', 'Tuesday'], ['we', 'Wednesday'], ['th', 'Thursday'], ['fr', 'Friday'], ['sa', 'Saturday'], ['su', 'Sunday']];
   const $ = (id) => document.getElementById(id);
   const all = (selector) => [...document.querySelectorAll(selector)];
@@ -70,17 +68,30 @@
     if (mode === 'both') return `${en}${suffix} / ${zh}`;
     return `${en}${suffix}`;
   };
+  function setLocalizedText(node, en, zh, tone = 'en') {
+    if (!node) return;
+    node.replaceChildren();
+    if (state.language === 'both') {
+      const english = document.createElement('span'); english.className = 'copy-segment copy-segment-en'; english.lang = 'en'; english.textContent = copy(en, zh, tone, 'en');
+      const cantonese = document.createElement('span'); cantonese.className = 'copy-segment copy-segment-zh'; cantonese.lang = 'yue-HK'; cantonese.textContent = copy(en, zh, 'zh', 'zh');
+      node.append(english, document.createTextNode(' / '), cantonese);
+    } else node.textContent = copy(en, zh, tone, state.language);
+  }
   function load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY) || '{}';
       if (new TextEncoder().encode(raw).byteLength > MAX_STATE_BYTES) throw new Error('settings record exceeds the bounded size');
-      const saved = JSON.parse(raw);
+      const saved = parseUniqueJson(raw);
+      if (saved.schemaVersion !== undefined && ![1, SETTINGS_SCHEMA_VERSION].includes(saved.schemaVersion)) throw new Error('Unsupported settings schema version.');
+      if (!saved.schemaVersion) {
+        try { const legacy = parseUniqueJson(localStorage.getItem('ding-pbx-pages-v2') || '{}'); if (['en', 'zh', 'both'].includes(legacy.language)) saved.language = legacy.language; if (Number.isFinite(legacy.englishFunny)) saved.englishFunny = Math.min(5, Math.max(1, Math.round(Number(legacy.englishFunny) * 4 / 3 + 1))); if (Number.isFinite(legacy.cantoneseFunny)) saved.cantoneseFunny = Math.min(5, Math.max(1, Math.round(Number(legacy.cantoneseFunny) * 4 / 3 + 1))); } catch { /* the global record remains authoritative */ }
+      }
       const oldSchedule = saved.schedule || {};
       const rules = Array.isArray(oldSchedule.rules) ? oldSchedule.rules : (oldSchedule.enabled ? [{
         id: `migrated-${Date.now()}`, target: 'language', value: saved.language || 'en', startDate: '', endDate: '', startTime: oldSchedule.start || '', endTime: oldSchedule.end || '', weekdays: oldSchedule.weekdays || [], everyDay: false, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, precedence: 0, source: oldSchedule.source || 'local', endpoint: oldSchedule.endpoint || '', entity: ''
       }] : []);
       saved.schemaVersion = SETTINGS_SCHEMA_VERSION;
-      saved.schedule = { schemaVersion: 1, rules: rules.slice(0, MAX_RULES), lastAppliedRule: oldSchedule.lastAppliedRule || '' };
+      saved.schedule = { schemaVersion: 1, rules: rules.slice(0, MAX_RULES), lastAppliedRule: oldSchedule.lastAppliedRule || '', paused: oldSchedule.paused === true };
       return saved;
     } catch {
       return { ...DEFAULTS, schedule: { ...DEFAULTS.schedule } };
@@ -96,7 +107,7 @@
     safe.narratorPitch = Math.min(2, Math.max(0, Number(raw.narratorPitch) || 1));
     safe.dimSumShown = Math.min(100000, Math.max(0, Number(raw.dimSumShown) || 0));
     const schedule = raw.schedule || {};
-    safe.schedule = { schemaVersion: 1, lastAppliedRule: typeof schedule.lastAppliedRule === 'string' ? schedule.lastAppliedRule.slice(0, 128) : '', rules: Array.isArray(schedule.rules) ? schedule.rules.slice(0, MAX_RULES).map((rule) => ({ id: String(rule?.id || '').slice(0, 128), target: String(rule?.target || '').slice(0, 64), value: String(rule?.value || '').slice(0, 120), startDate: String(rule?.startDate || '').slice(0, 10), endDate: String(rule?.endDate || '').slice(0, 10), startTime: String(rule?.startTime || '').slice(0, 5), endTime: String(rule?.endTime || '').slice(0, 5), weekdays: Array.isArray(rule?.weekdays) ? rule.weekdays.filter((day) => WEEKDAYS.some(([id]) => id === day)).slice(0, 7) : [], everyDay: rule?.everyDay === true, timezone: String(rule?.timezone || '').slice(0, 80), precedence: Math.min(100, Math.max(0, Number(rule?.precedence) || 0)), source: ['local', 'https', 'home-assistant'].includes(rule?.source) ? rule.source : 'local', endpoint: String(rule?.endpoint || '').slice(0, 512), entity: String(rule?.entity || '').slice(0, 128) })) : [] };
+    safe.schedule = { schemaVersion: 1, lastAppliedRule: typeof schedule.lastAppliedRule === 'string' ? schedule.lastAppliedRule.slice(0, 128) : '', paused: schedule.paused === true, rules: Array.isArray(schedule.rules) ? schedule.rules.slice(0, MAX_RULES).map((rule) => ({ id: String(rule?.id || '').slice(0, 128), target: String(rule?.target || '').slice(0, 64), value: String(rule?.value || '').slice(0, 120), startDate: String(rule?.startDate || '').slice(0, 10), endDate: String(rule?.endDate || '').slice(0, 10), startTime: String(rule?.startTime || '').slice(0, 5), endTime: String(rule?.endTime || '').slice(0, 5), allDay: rule?.allDay === true, weekdays: Array.isArray(rule?.weekdays) ? rule.weekdays.filter((day) => WEEKDAYS.some(([id]) => id === day)).slice(0, 7) : [], everyDay: rule?.everyDay === true, timezone: String(rule?.timezone || '').slice(0, 80), precedence: Math.min(100, Math.max(0, Number(rule?.precedence) || 0)), source: ['local', 'https', 'home-assistant'].includes(rule?.source) ? rule.source : 'local', endpoint: String(rule?.endpoint || '').slice(0, 512), entity: String(rule?.entity || '').slice(0, 128) })) : [] };
     safe.schemaVersion = SETTINGS_SCHEMA_VERSION;
     return safe;
   }
@@ -159,21 +170,68 @@
 
   function save() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    let legacy = {};
+    try { legacy = parseUniqueJson(localStorage.getItem('ding-pbx-pages-v2') || '{}'); } catch { legacy = {}; }
+    legacy.language = state.language;
+    legacy.englishFunny = Math.min(3, Math.max(0, Math.round((state.englishFunny - 1) * 3 / 4)));
+    legacy.cantoneseFunny = Math.min(3, Math.max(0, Math.round((state.cantoneseFunny - 1) * 3 / 4)));
+    localStorage.setItem('ding-pbx-pages-v2', JSON.stringify(legacy));
+    window.dispatchEvent(new CustomEvent('ding-global-settings-change', { detail: { language: state.language, englishFunny: state.englishFunny, cantoneseFunny: state.cantoneseFunny } }));
+  }
+  function parseUniqueJson(raw) {
+    let index = 0;
+    const whitespace = () => { while (/\s/.test(raw[index] || '')) index += 1; };
+    const string = () => { const start = index; if (raw[index] !== '"') throw new Error('JSON string expected.'); index += 1; while (index < raw.length) { if (raw[index] === '\\') index += 2; else if (raw[index++] === '"') return JSON.parse(raw.slice(start, index)); } throw new Error('Unterminated JSON string.'); };
+    const value = () => { whitespace(); const char = raw[index]; if (char === '{') { index += 1; const object = {}; const keys = new Set(); whitespace(); if (raw[index] === '}') { index += 1; return object; } while (index < raw.length) { whitespace(); const key = string(); if (['__proto__', 'constructor', 'prototype'].includes(key)) throw new Error('Unsafe JSON key.'); if (keys.has(key)) throw new Error(`Duplicate JSON key: ${key}`); keys.add(key); whitespace(); if (raw[index++] !== ':') throw new Error('JSON colon expected.'); object[key] = value(); whitespace(); if (raw[index] === '}') { index += 1; return object; } if (raw[index++] !== ',') throw new Error('JSON comma expected.'); } throw new Error('Unterminated JSON object.'); } if (char === '[') { index += 1; const array = []; whitespace(); if (raw[index] === ']') { index += 1; return array; } while (index < raw.length) { array.push(value()); whitespace(); if (raw[index] === ']') { index += 1; return array; } if (raw[index++] !== ',') throw new Error('JSON comma expected.'); } throw new Error('Unterminated JSON array.'); } const start = index; while (index < raw.length && !/[\s,\]}]/.test(raw[index])) index += 1; if (start === index) throw new Error('JSON value expected.'); return JSON.parse(raw.slice(start, index)); };
+    const parsed = value(); whitespace(); if (index !== raw.length) throw new Error('Trailing JSON content.'); return parsed;
+  }
+  function assetUrl(name) {
+    const style = document.querySelector('link[href$="styles.css"]');
+    return new URL(name, style ? new URL(style.href, document.baseURI) : document.baseURI).href;
+  }
+  async function sha256Hex(bytes) {
+    if (!window.crypto?.subtle) return '';
+    const digestValue = await window.crypto.subtle.digest('SHA-256', bytes);
+    return [...new Uint8Array(digestValue)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  }
+  function bytesToBase64(bytes) { let binary = ''; for (let offset = 0; offset < bytes.length; offset += 8192) binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192)); return btoa(binary); }
+  async function decodeImage(dataUrl) {
+    if (typeof Image !== 'function') return false;
+    return new Promise((resolve) => { const image = new Image(); image.onload = () => resolve(image.naturalWidth > 0 && image.naturalHeight > 0); image.onerror = () => resolve(false); image.src = dataUrl; });
+  }
+  async function loadDimSumCatalog() {
+    try {
+      const response = await fetch(assetUrl(DIM_SUM_CACHE.file), { cache: 'no-store', credentials: 'omit' });
+      if (!response.ok) throw new Error(`Cache metadata HTTP ${response.status}`);
+      const raw = await response.text(); if (new TextEncoder().encode(raw).byteLength > 131072) throw new Error('Dim-sum cache metadata is too large.');
+      const parsed = parseUniqueJson(raw);
+      if (parsed.schemaVersion !== DIM_SUM_CACHE.schemaVersion || parsed.sourceUrl !== DIM_SUM_CACHE.sourceUrl || parsed.catalogRevision !== DIM_SUM_CACHE.releaseNamespace || !Array.isArray(parsed.dishes)) throw new Error('Dim-sum cache schema or source revision is not accepted.');
+      DISHES = parsed.dishes.filter((dish) => dish && typeof dish.id === 'string' && typeof dish.imageUrl === 'string' && /^https:\/\//.test(dish.imageUrl) && typeof dish.sha256 === 'string' && dish.sha256.length === 64 && typeof dish.releaseTag === 'string' && typeof dish.catalogRevision === 'string' && dish.name && typeof dish.name.en === 'string' && typeof dish.name.zhHant === 'string').map((dish) => ({ id: dish.id, en: dish.name.en, zh: dish.name.zhHant, imageUrl: dish.imageUrl, sha256: dish.sha256, releaseTag: dish.releaseTag, catalogRevision: dish.catalogRevision }));
+      const cached = parseUniqueJson(localStorage.getItem(DIM_SUM_IMAGE_CACHE_KEY) || '{}');
+      const usable = [];
+      for (const dish of DISHES) { const local = cached?.entries?.find((entry) => entry.id === dish.id && entry.sha256 === dish.sha256 && typeof entry.dataUrl === 'string'); if (local && await sha256Hex(Uint8Array.from(atob(local.dataUrl.split(',')[1] || ''), (char) => char.charCodeAt(0))) === dish.sha256 && await decodeImage(local.dataUrl)) usable.push({ ...dish, dataUrl: local.dataUrl }); }
+      if (usable.length) { DISHES = usable; return true; }
+      const first = DISHES[0]; if (!first) return false;
+      const imageResponse = await fetch(first.imageUrl, { cache: 'force-cache', credentials: 'omit', referrerPolicy: 'no-referrer' }); if (!imageResponse.ok || !imageResponse.body) return false;
+      const reader = imageResponse.body.getReader(); const chunks = []; let total = 0; while (true) { const part = await reader.read(); if (part.done) break; total += part.value.byteLength; if (total > 1048576) { await reader.cancel(); return false; } chunks.push(part.value); }
+      const bytes = new Uint8Array(total); let offset = 0; chunks.forEach((chunk) => { bytes.set(chunk, offset); offset += chunk.byteLength; }); const digestValue = await sha256Hex(bytes); if (digestValue !== first.sha256) return false;
+      const dataUrl = `data:image/png;base64,${bytesToBase64(bytes)}`; if (!await decodeImage(dataUrl)) return false; localStorage.setItem(DIM_SUM_IMAGE_CACHE_KEY, JSON.stringify({ schemaVersion: 1, catalogRevision: 'catalog-v1', entries: [{ id: first.id, sha256: first.sha256, dataUrl }] })); DISHES = [{ ...first, dataUrl }]; return true;
+    } catch { DISHES = []; return false; }
   }
   function applyPanelCopy() {
     Object.entries(PANEL_COPY).forEach(([id, [en, zh]]) => {
       const node = $(id);
-      if (node) node.textContent = copy(en, zh, state.language === 'zh' ? 'zh' : 'en');
+      if (node) setLocalizedText(node, en, zh, state.language === 'zh' ? 'zh' : 'en');
     });
     all('[data-global-copy-en]').forEach((node) => {
       const en = node.dataset.globalCopyEn || node.textContent;
       const zh = node.dataset.globalCopyZh || en;
-      node.textContent = copy(en, zh, state.language === 'zh' ? 'zh' : 'en');
+      setLocalizedText(node, en, zh, state.language === 'zh' ? 'zh' : 'en');
     });
     all('#global-settings-panel .global-setting').forEach((row) => {
       const key = Object.keys(ROW_COPY).find((candidate) => (row.dataset.search || '').includes(candidate));
       const heading = row.querySelector('h3');
-      if (key && heading) heading.textContent = copy(...ROW_COPY[key], state.language === 'zh' ? 'zh' : 'en');
+      if (key && heading) setLocalizedText(heading, ...ROW_COPY[key], state.language === 'zh' ? 'zh' : 'en');
     });
     const status = $('global-narrator-voice-status');
     if (status && !voices.en.length && !voices.zh.length) status.textContent = copy('No compatible installed browser voice is available yet.', '暫時未搵到可以用嘅瀏覽器聲音。', 'en');
@@ -191,7 +249,8 @@
     const region = $('toast-region') || (() => { const node = document.createElement('div'); node.id = 'toast-region'; node.className = 'toast-region'; node.setAttribute('aria-live', 'polite'); document.body.append(node); return node; })();
     const toast = document.createElement('div');
     toast.className = 'toast global-toast';
-    toast.innerHTML = `<strong>${state.dialogEmoji ? '<span aria-hidden="true">◈</span> ' : ''}${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span>`;
+    const titleNode = document.createElement('strong'); if (state.dialogEmoji) { const icon = document.createElement('span'); icon.setAttribute('aria-hidden', 'true'); icon.textContent = '◈ '; titleNode.append(icon); } const titleParts = state.language === 'both' ? title.split(' / ') : [title]; titleParts.forEach((part, index) => { if (index) titleNode.append(document.createTextNode(' / ')); const segment = document.createElement('span'); segment.className = index ? 'copy-segment copy-segment-zh' : 'copy-segment copy-segment-en'; segment.lang = index ? 'yue-HK' : 'en'; segment.textContent = part; titleNode.append(segment); });
+    const bodyNode = document.createElement('span'); const bodyParts = state.language === 'both' ? body.split(' / ') : [body]; bodyParts.forEach((part, index) => { if (index) bodyNode.append(document.createTextNode(' / ')); const segment = document.createElement('span'); segment.className = index ? 'copy-segment copy-segment-zh' : 'copy-segment copy-segment-en'; segment.lang = index ? 'yue-HK' : 'en'; segment.textContent = part; bodyNode.append(segment); }); toast.append(titleNode, bodyNode);
     region.append(toast);
     window.setTimeout(() => toast.remove(), 6000);
   }
@@ -311,8 +370,12 @@
     if (!popover) return;
     popover.hidden = false;
     $('global-regex-pattern').value = regexConfig.pattern;
+    if ($('global-regex-mode')) $('global-regex-mode').value = regexConfig.enabled ? 'regex' : 'plain';
     $('global-regex-i').checked = regexConfig.flags.includes('i');
     $('global-regex-u').checked = regexConfig.flags.includes('u');
+    $('global-regex-pattern').oninput = () => { previewRegex(); if ($('global-regex-mode')?.value === 'regex') { if (regexTargetInput) regexTargetInput.value = $('global-regex-pattern').value; else if ($('global-settings-search')) $('global-settings-search').value = $('global-regex-pattern').value; filterSettings(); } };
+    $('global-regex-i').onchange = previewRegex;
+    $('global-regex-u').onchange = previewRegex;
     $('global-regex-pattern').focus();
     previewRegex();
   }
@@ -327,13 +390,14 @@
   function applyRegex() {
     const pattern = $('global-regex-pattern')?.value.slice(0, 256) || '';
     const flags = `${$('global-regex-i')?.checked ? 'i' : ''}${$('global-regex-u')?.checked ? 'u' : ''}`;
+    if ($('global-regex-mode')?.value === 'plain') regexConfig.enabled = false;
     try { new RegExp(pattern, flags); } catch { return; }
     if (regexTargetInput) {
-      dropdownRegex.set(regexTargetInput, { pattern, flags, enabled: Boolean(pattern) });
+      dropdownRegex.set(regexTargetInput, { pattern, flags, enabled: regexConfig.enabled !== false && Boolean(pattern) });
       regexTargetInput.value = pattern;
       regexTargetInput.dispatchEvent(new Event('input'));
     } else {
-      regexConfig = { pattern, flags, enabled: Boolean(pattern) };
+      regexConfig = { pattern, flags, enabled: regexConfig.enabled !== false && Boolean(pattern) };
       if ($('global-settings-search')) $('global-settings-search').value = pattern;
     }
     $('global-regex-popover').hidden = true;
@@ -376,6 +440,12 @@
       if (help) help.id = helpId;
     });
   }
+  function ensureRegexModeControl() {
+    if ($('global-regex-mode')) return;
+    const pattern = $('global-regex-pattern'); if (!pattern) return;
+    const mode = document.createElement('select'); mode.id = 'global-regex-mode'; mode.setAttribute('aria-label', 'Search mode'); mode.innerHTML = '<option value="plain">Plain text</option><option value="regex">Regular expression</option>'; pattern.before(mode);
+    mode.onchange = () => { regexConfig.enabled = mode.value === 'regex'; if (!regexConfig.enabled) regexConfig.pattern = ''; previewRegex(); filterSettings(); };
+  }
   function decorateDialogs() {
     all('dialog .dialog-heading').forEach((heading) => {
       const existing = heading.querySelector('.global-dialog-emoji');
@@ -393,7 +463,7 @@
       const target = $(targetId); const hiddenBySchool = state.schoolMode && target && !target.closest('[data-school-keep]') && targetId !== 'global-school-toggle' && targetId !== 'global-school-name' && targetId !== 'global-school-reset';
       if (hiddenBySchool || (query && !label.toLocaleLowerCase().includes(query)) || existing.has(targetId)) return;
       const item = document.createElement('button'); item.type = 'button'; item.className = 'palette-result'; item.dataset.globalPalette = targetId; item.innerHTML = `<strong>${escapeHtml(label)}</strong><span>Open exact page setting</span>`;
-      item.onclick = () => { $('global-settings-panel').hidden = false; $('global-settings-open').setAttribute('aria-expanded', 'true'); target?.focus(); };
+      item.onclick = () => { $('global-settings-panel').hidden = false; $('global-settings-open').setAttribute('aria-expanded', 'true'); const panel = target?.closest('[role="tabpanel"]'); const tab = panel ? document.querySelector(`[role="tab"][aria-controls="${panel.id}"]`) : undefined; tab?.click(); target?.focus(); };
       list.append(item);
     });
   }
@@ -442,7 +512,15 @@
   }
   function renderPanel() {
     if ($('global-settings-panel')) return;
-    const topActions = document.querySelector('.top-actions') || document.querySelector('.topbar');
+    let topActions = document.querySelector('.top-actions') || document.querySelector('.topbar');
+    if (!topActions) {
+      topActions = document.createElement('div');
+      topActions.className = 'global-settings-fallback-toolbar';
+      topActions.setAttribute('role', 'toolbar');
+      topActions.setAttribute('aria-label', 'Page tools');
+      document.body.prepend(topActions);
+    }
+    ensurePaletteMarkup();
     const button = document.createElement('button');
     button.type = 'button'; button.id = 'global-settings-open'; button.className = 'text-button global-settings-open'; button.textContent = 'Settings'; button.setAttribute('aria-expanded', 'false');
     topActions?.prepend(button);
@@ -473,7 +551,16 @@
       <div id="global-confirm-popover" class="global-confirm-popover" role="dialog" aria-modal="false" aria-labelledby="global-confirm-title" hidden><h3 id="global-confirm-title">Confirm this local action</h3><p id="global-confirm-description"></p><label class="switch-row"><input id="global-confirm-key-one" type="checkbox"><span>I understand the exact local effect</span></label><label class="switch-row"><input id="global-confirm-key-two" type="checkbox"><span>I understand the recovery route</span></label><label>Unlock code, when requested<input id="global-confirm-code" type="password" autocomplete="current-password"></label><label>Slide fully to confirm<input id="global-confirm-slider" type="range" min="0" max="100" value="0"></label><div class="global-inline"><button type="button" class="danger-button" id="global-confirm-apply" disabled>Confirm</button><button type="button" class="text-button" id="global-confirm-cancel">Emergency exit</button></div></div>`;
     document.body.append(panel);
     ensureCopyAnchors();
+    ensureRegexModeControl();
     bindPanel(button);
+  }
+  function ensurePaletteMarkup() {
+    if (!$('palette-open')) {
+      const open = document.createElement('button'); open.type = 'button'; open.id = 'palette-open'; open.className = 'command-button'; open.textContent = 'Search'; open.innerHTML = 'Search <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>'; (document.querySelector('.global-settings-fallback-toolbar') || document.body).prepend(open);
+    }
+    if (!$('command-palette')) {
+      const dialog = document.createElement('dialog'); dialog.id = 'command-palette'; dialog.className = 'overlay-card'; dialog.setAttribute('aria-labelledby', 'global-palette-title'); dialog.innerHTML = '<form method="dialog"><div class="dialog-heading"><h2 id="global-palette-title">Command palette</h2><button class="icon-button" value="cancel" aria-label="Close">×</button></div><div class="search-composite"><label class="sr-only" for="palette-search">Search page settings and destinations</label><input id="palette-search" type="search" aria-label="Search page settings and destinations"><button type="button" class="regex-trigger" data-regex-for="palette-search" aria-label="Build a regular expression for palette search">.*</button></div><div id="palette-results" class="palette-results" role="listbox" aria-label="Page commands"></div></form></dialog>'; document.body.append(dialog);
+    }
   }
   function bindPanel(openButton) {
     const panel = $('global-settings-panel');
@@ -512,7 +599,7 @@
     $('global-narrator-rate').oninput = (event) => { state.narratorRate = Number(event.target.value); save(); applyState(); };
     $('global-narrator-pitch').oninput = (event) => { state.narratorPitch = Number(event.target.value); save(); applyState(); };
     $('global-narrator-test').onclick = () => announce('This is a local narrator test.', '呢句係本地旁白測試。');
-    $('global-schedule-enabled').onchange = (event) => { if (!event.target.checked) state.schedule.rules = []; save(); applyState(); };
+    $('global-schedule-enabled').onchange = (event) => { state.schedule.paused = !event.target.checked; save(); applyState(); };
     $('global-schedule-save').onclick = saveSchedule;
     $('global-schedule-check').onclick = checkSource;
     $('global-display-name-save').onclick = () => { const value = $('global-display-name').value.trim(); if (value) { baseSettings.displayName = value.slice(0, 80); state.displayName = baseSettings.displayName; save(); applyState(); notify(copy('Display name saved', '顯示名稱已保存', 'en'), copy('Only this page label changed; installed identity stayed fixed.', '只改變此頁標籤，已安裝身份保持不變。', 'en')); } };
@@ -543,7 +630,7 @@
     $('global-narrator-pitch') && ($('global-narrator-pitch').value = String(state.narratorPitch));
     $('global-narrator-rate-output') && ($('global-narrator-rate-output').textContent = String(state.narratorRate));
     $('global-narrator-pitch-output') && ($('global-narrator-pitch-output').textContent = String(state.narratorPitch));
-    $('global-schedule-enabled') && ($('global-schedule-enabled').checked = state.schedule.rules.length > 0);
+    $('global-schedule-enabled') && ($('global-schedule-enabled').checked = state.schedule.rules.length > 0 && !state.schedule.paused);
     $('global-schedule-timezone') && ($('global-schedule-timezone').value = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local timezone');
     renderScheduleRules();
     $('global-display-name') && ($('global-display-name').value = state.displayName);
@@ -559,6 +646,10 @@
       return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}`, weekday: { Sun: 'su', Mon: 'mo', Tue: 'tu', Wed: 'we', Thu: 'th', Fri: 'fr', Sat: 'sa' }[parts.weekday] };
     } catch { return { date: now.toISOString().slice(0, 10), time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`, weekday: ['su', 'mo', 'tu', 'we', 'th', 'fr', 'sa'][now.getDay()] }; }
   }
+  function isValidTimezone(timezone) {
+    if (typeof timezone !== 'string' || timezone.length > 80) return false;
+    try { return new Intl.DateTimeFormat('en-US', { timeZone: timezone }).resolvedOptions().timeZone === timezone; } catch { return false; }
+  }
   function scheduleRuleMatches(rule, now = new Date()) {
     const clock = scheduleClock(now, rule.timezone);
     if (rule.startDate && clock.date < rule.startDate) return false;
@@ -572,6 +663,7 @@
   }
   function applyScheduleRules() {
     Object.assign(effectiveSettings, baseSettings);
+    if (state.schedule.paused) { state.language = effectiveSettings.language; state.narratorEnabled = effectiveSettings.narratorEnabled; state.displayName = effectiveSettings.displayName; document.documentElement.dataset.theme = effectiveSettings.theme; document.documentElement.dataset.density = effectiveSettings.density; return; }
     const active = state.schedule.rules.filter((rule) => rule.source === 'local' && scheduleRuleMatches(rule)).sort((a, b) => Number(b.precedence) - Number(a.precedence))[0];
     if (active && SCHEDULE_TARGETS.some(([id]) => id === active.target)) effectiveSettings[active.target] = active.target === 'narratorEnabled' ? active.value === 'true' : active.value;
     state.language = effectiveSettings.language;
@@ -595,7 +687,7 @@
   function renderScheduleRules() {
     const node = $('global-schedule-rules');
     if (!node) return;
-    node.innerHTML = state.schedule.rules.length ? state.schedule.rules.map((rule) => `<div class="global-schedule-rule"><strong>${escapeHtml(rule.target)} = ${escapeHtml(rule.value)}</strong><span>${escapeHtml(rule.startDate || 'any date')} ${escapeHtml(rule.startTime || 'any time')} · ${escapeHtml(rule.everyDay ? 'every day' : (rule.weekdays || []).join(', ') || 'no weekdays')} · ${escapeHtml(rule.timezone || 'local timezone')} · precedence ${escapeHtml(rule.precedence)}</span><button type="button" class="text-button" data-remove-schedule="${escapeHtml(rule.id)}">Remove</button></div>`).join('') : '<p>No schedule rules saved.</p>';
+    node.innerHTML = state.schedule.rules.length ? state.schedule.rules.map((rule) => `<div class="global-schedule-rule"><strong>${escapeHtml(rule.target)} = ${escapeHtml(rule.value)}</strong><span>${escapeHtml(rule.startDate || 'any date')} ${escapeHtml(rule.allDay ? 'all day' : `${rule.startTime || 'any time'} to ${rule.endTime || 'any time'}`)} · ${escapeHtml(rule.everyDay ? 'every day' : (rule.weekdays || []).join(', ') || 'no weekdays')} · ${escapeHtml(rule.timezone || 'local timezone')} · precedence ${escapeHtml(rule.precedence)}</span><button type="button" class="text-button" data-remove-schedule="${escapeHtml(rule.id)}">Remove</button></div>`).join('') : '<p>No schedule rules saved.</p>';
     all('[data-remove-schedule]').forEach((button) => { button.onclick = () => openConfirmation('schedule-remove', button, 'Remove this schedule rule from the local rule list. The active base setting will remain available.', button.dataset.removeSchedule); });
   }
   function validateEndpoint(endpoint, source) {
@@ -606,6 +698,7 @@
     const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
     const privateHost = host === 'localhost' || host === '::1' || host === '127.0.0.1' || /^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || /^169\.254\./.test(host) || host.startsWith('fc') || host.startsWith('fd') || host.startsWith('fe80:');
     if (source === 'https' && privateHost) throw new Error('Production HTTPS sources may not use loopback, link-local, or private-address hosts.');
+    if (source === 'https' && !APPROVED_EXTERNAL_HOSTS.has(host)) throw new Error(`HTTPS source host is not on the approved host allowlist: ${[...APPROVED_EXTERNAL_HOSTS].join(', ')}.`);
     if (source === 'home-assistant' && !privateHost && url.protocol !== 'https:') throw new Error('Home Assistant requires HTTPS, loopback, or an explicitly local private host.');
     return url;
   }
@@ -630,17 +723,19 @@
     const reader = response.body.getReader(); const chunks = []; let total = 0;
     while (true) { const part = await reader.read(); if (part.done) break; total += part.value.byteLength; if (total > MAX_ENDPOINT_BYTES) { await reader.cancel(); throw new Error('The source response exceeded the 64 KiB bound.'); } chunks.push(part.value); }
     const bytes = new Uint8Array(total); let offset = 0; chunks.forEach((chunk) => { bytes.set(chunk, offset); offset += chunk.byteLength; });
-    const value = JSON.parse(new TextDecoder().decode(bytes)); validateExternalPayload(value); return value;
+    const value = parseUniqueJson(new TextDecoder().decode(bytes)); validateExternalPayload(value); return value;
   }
   function saveSchedule() {
     const source = $('global-schedule-source').value;
     const endpoint = $('global-schedule-endpoint').value.trim();
     if (source !== 'local') { try { validateEndpoint(endpoint, source); } catch (error) { $('global-schedule-status').textContent = `Schedule not saved: ${error.message}`; return; } }
     const startDate = $('global-schedule-start-date').value; const endDate = $('global-schedule-end-date').value; const startTime = $('global-schedule-start-time').value; const endTime = $('global-schedule-end-time').value;
+    const timezone = $('global-schedule-timezone').value;
+    if (!isValidTimezone(timezone)) { $('global-schedule-status').textContent = 'Schedule not saved: choose a valid IANA timezone.'; return; }
     if (startDate && endDate && endDate < startDate) { $('global-schedule-status').textContent = 'Schedule not saved: the end date must not precede the start date.'; return; }
     const allDay = $('global-schedule-all-day')?.checked === true;
     if (!allDay && (!startTime || !endTime)) { $('global-schedule-status').textContent = 'Schedule not saved: choose both a start and end time, or use a local all-day rule.'; return; }
-    const rule = { id: `rule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, target: $('global-schedule-target').value, value: $('global-schedule-value').value.slice(0, 120), startDate, endDate, startTime: allDay ? '' : startTime, endTime: allDay ? '' : endTime, weekdays: all('[data-global-weekday]:checked').map((node) => node.dataset.globalWeekday), everyDay: allDay || $('global-schedule-every-day').checked, timezone: $('global-schedule-timezone').value, precedence: Math.min(100, Math.max(0, Number($('global-schedule-precedence').value) || 0)), source, endpoint, entity: $('global-schedule-entity').value.trim().slice(0, 128) };
+    const rule = { id: `rule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, target: $('global-schedule-target').value, value: $('global-schedule-value').value.slice(0, 120), startDate, endDate, startTime: allDay ? '' : startTime, endTime: allDay ? '' : endTime, allDay, weekdays: all('[data-global-weekday]:checked').map((node) => node.dataset.globalWeekday), everyDay: $('global-schedule-every-day').checked, timezone, precedence: Math.min(100, Math.max(0, Number($('global-schedule-precedence').value) || 0)), source, endpoint, entity: $('global-schedule-entity').value.trim().slice(0, 128) };
     if (!rule.value) { $('global-schedule-status').textContent = 'Schedule not saved: choose a target value.'; return; }
     if (!rule.everyDay && !rule.weekdays.length) { $('global-schedule-status').textContent = 'Schedule not saved: choose weekdays or Every day.'; return; }
     if (source === 'home-assistant' && !/^\b(?:binary_sensor|input_boolean)\.[a-z0-9_]+$/i.test(rule.entity)) { $('global-schedule-status').textContent = 'Schedule not saved: use a boolean Home Assistant entity such as input_boolean.example.'; return; }
@@ -654,18 +749,21 @@
     try { const url = validateEndpoint(endpoint, source); const controller = new AbortController(); timer = setTimeout(() => controller.abort(), 5000); const response = await fetch(url.href, { credentials: 'omit', redirect: 'error', cache: 'no-store', signal: controller.signal, headers: { Accept: 'application/json' } }); if (!response.ok) throw new Error(`HTTP ${response.status}`); const body = await readBoundedJson(response); if (source === 'home-assistant') { const proxy = validateHomeAssistantProxy(body); if (proxy.state === 'on') applyExternalSetting(proxy, true); else { applyScheduleRules(); applyState(); } $('global-schedule-status').textContent = proxy.state === 'on' ? 'The Home Assistant reduced proxy is on. Its validated target and value were applied only to the effective local layer.' : 'The Home Assistant reduced proxy is off. The local base setting remains active.'; } else { applyExternalSetting(body, body.enabled !== false); if (body.enabled === false) { applyScheduleRules(); applyState(); } $('global-schedule-status').textContent = 'Source checked explicitly. The bounded response was read locally and was not stored as a permanent setting.'; } } catch (error) { $('global-schedule-status').textContent = `Source check failed safely: ${error.message}. The last local value remains active.`; } finally { if (timer) clearTimeout(timer); }
   }
   function showDimSum() {
-    if (!canShowDimSum()) return;
+    if (!canShowDimSum() || !dishCatalogUsable()) return;
     const dish = DISHES[Math.floor(Math.random() * DISHES.length)];
     const { en, zh } = dish;
     state.dimSumShown += 1; save(); applyState();
     const region = $('toast-region') || document.body;
-    const toast = document.createElement('div'); toast.className = 'global-dimsum-toast'; toast.setAttribute('role', 'status'); toast.innerHTML = `<img class="global-dimsum-image" src="${escapeHtml(dish.imageUrl)}" alt="${escapeHtml(`${en} · ${zh}`)}" width="96" height="72" referrerpolicy="no-referrer"><div><strong>${escapeHtml(copy(en, zh, 'en'))}</strong><span>${escapeHtml(copy('A local ten-percent visitor surprise.', '本地十個百分比訪客小驚喜。', 'en'))}</span><small>Catalog asset ${escapeHtml(dish.id)} · SHA-256 ${escapeHtml(dish.sha256)}</small></div>`; region.append(toast); setTimeout(() => toast.remove(), 7000);
+    const toast = document.createElement('div'); toast.className = 'global-dimsum-toast'; toast.setAttribute('role', 'status'); toast.innerHTML = `<img class="global-dimsum-image" src="${escapeHtml(dish.dataUrl)}" alt="${escapeHtml(`${en} · ${zh}`)}" width="96" height="72"><div><strong>${escapeHtml(copy(en, zh, 'en'))}</strong><span>${escapeHtml(copy('A local ten-percent visitor surprise.', '本地十個百分比訪客小驚喜。', 'en'))}</span><small>Catalog ${escapeHtml(dish.catalogRevision)} · release ${escapeHtml(dish.releaseTag)} · asset ${escapeHtml(dish.id)} · SHA-256 ${escapeHtml(dish.sha256)}</small></div>`; region.append(toast); setTimeout(() => toast.remove(), 7000);
   }
+  function dishCatalogUsable() { return DISHES.some((dish) => typeof dish.dataUrl === 'string' && dish.dataUrl.startsWith('data:image/')); }
   function canShowDimSum() {
     return !state.schoolMode && !document.hidden && !state.quietHours && !state.reducedSound && !document.body.classList.contains('low-stimulation') && document.body.dataset.errorPath !== 'true' && document.body.dataset.updateFlow !== 'true' && document.body.dataset.activeTask !== 'true' && document.body.dataset.screenReaderActive !== 'true';
   }
   function maybeDimSum() {
-    if (state.visited) { if (canShowDimSum() && Math.random() < 0.1) setTimeout(showDimSum, 700); return; }
+    if (dimSumDrawnThisLaunch) return;
+    dimSumDrawnThisLaunch = true;
+    if (state.visited) { dimSumReady.then(() => { if (canShowDimSum() && Math.random() < 0.1) setTimeout(showDimSum, 700); }); return; }
     state.visited = true; save();
   }
   function refreshScheduledState() {
@@ -686,9 +784,10 @@
     augmentPalette();
     if (speechSynthesisAvailable()) { voiceListener = () => { refreshVoices(); }; speechSynthesis.addEventListener('voiceschanged', voiceListener); refreshVoices(); }
     applyState();
+    dimSumReady = loadDimSumCatalog();
     maybeDimSum();
     scheduleTimer = window.setInterval(refreshScheduledState, 30000);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) { refreshScheduledState(); if (state.visited && canShowDimSum() && Math.random() < 0.1) setTimeout(showDimSum, 700); } });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshScheduledState(); });
     window.addEventListener('beforeunload', () => { if (voiceListener && speechSynthesisAvailable()) speechSynthesis.removeEventListener('voiceschanged', voiceListener); dialogObserver.disconnect(); paletteObserver.disconnect(); if (scheduleTimer) clearInterval(scheduleTimer); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true }); else init();
