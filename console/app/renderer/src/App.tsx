@@ -26,6 +26,10 @@ import {
   type LanguageMode,
 } from './text-boundary';
 import { CANTONESE } from './locale-yue';
+import {
+  IDENTITY, displayName, resetDisplayName, setDisplayName,
+} from './display-name';
+import { setEmojisEnabled } from './dialog-emojis';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
 import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
@@ -242,6 +246,7 @@ export class App extends Base {
     setVocabularyStorage(this.vocabStorage);
     void this.durableStorage.bootstrap().then(() => {
       this.restoreLanguageMode();
+      this.restoreDisplayName();
       this.restoreAppearance();
       this.forceUpdate();
     });
@@ -477,6 +482,19 @@ export class App extends Base {
     this.forceUpdate();
   };
 
+  // ---------------------------------------------------------------- display name
+
+  /** Seeds the rename field with the stored name. An unset name leaves the control on
+   *  its design placeholder rather than pre-filling the shipped name as though somebody
+   *  had chosen it, so the difference between default and chosen stays visible. */
+  private restoreDisplayName(): void {
+    const current = displayName(this.durableStorage.storage);
+    if (current === IDENTITY.productName) return;
+    this.setState((prior: { values?: Record<string, unknown> }) => ({
+      values: { ...(prior.values ?? {}), id_name: current },
+    }) as never);
+  }
+
   // ---------------------------------------------------------------- language mode
 
   /** Restores the saved mode. An unrecognised or absent value leaves English in place
@@ -491,6 +509,25 @@ export class App extends Base {
    *  the language one on its way past, applies it live and persists it, then hands the
    *  change on unchanged so the control behaves like every other control. */
   private languageAwareSetVal = (control: ControlRef, value: unknown): void => {
+    /* The display name and the dialog-emoji switch ride the same interception as the
+     * language mode: one place that notices a cross-cutting setting going past, rather
+     * than three places that each have to remember to. */
+    if (control?.id === 'id_name' && typeof value === 'string') {
+      const problems = setDisplayName(this.durableStorage.storage, value);
+      if (problems.length > 0) {
+        /* Report it rather than storing a name the module refused, which would leave
+         * the control showing something the app would not accept back. */
+        this.fire('That name will not work', problems[0].message);
+        return;
+      }
+    }
+    if (control?.id === 'id_name_reset' && value === true) {
+      resetDisplayName(this.durableStorage.storage);
+      this.toast(`Name restored to ${IDENTITY.productName}`);
+    }
+    if (control?.id === 'dlg_emoji' && typeof value === 'boolean') {
+      setEmojisEnabled(this.durableStorage.storage, value);
+    }
     if (control?.id === 'lang_mode') {
       const mode = App.LANGUAGE_CHOICES[String(value)];
       if (mode && mode !== languageMode()) {

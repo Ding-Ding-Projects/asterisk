@@ -12,10 +12,12 @@
       "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
       "labels": [
-        "Customise everything"
+        "Customise everything",
+        "Language"
       ],
       "localizedLabels": [
-        "Customise everything"
+        "Customise everything",
+        "Language"
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."
@@ -33,13 +35,18 @@
       "note": "Every listed label has a Cantonese entry."
     },
     "dialog-emojis": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [],
-      "localizedLabels": [],
+      "labels": [
+        "Dialogs",
+        "Show emojis in dialogs and message boxes"
+      ],
+      "localizedLabels": [
+        "Dialogs",
+        "Show emojis in dialogs and message boxes"
+      ],
       "untranslatedLabels": [],
-      "note": "Implemented as partial, but it contributes no label to the compiled design, so there is no string for the catalog to key against. The boundary already reaches any copy it does render; this is a missing surface rather than a missing translation.",
-      "blockedBy": "no-label-surface"
+      "note": "Every listed label has a Cantonese entry."
     },
     "school-mode": {
       "state": "not-localized",
@@ -477,13 +484,20 @@
       "note": "Every listed label has a Cantonese entry."
     },
     "app-display-name": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [],
-      "localizedLabels": [],
+      "labels": [
+        "Display name",
+        "Identity",
+        "Restore the shipped name"
+      ],
+      "localizedLabels": [
+        "Display name",
+        "Identity",
+        "Restore the shipped name"
+      ],
       "untranslatedLabels": [],
-      "note": "Implemented as partial, but it contributes no label to the compiled design, so there is no string for the catalog to key against. The boundary already reaches any copy it does render; this is a missing surface rather than a missing translation.",
-      "blockedBy": "no-label-surface"
+      "note": "Every listed label has a Cantonese entry."
     },
     "guided-forms": {
       "state": "localized",
