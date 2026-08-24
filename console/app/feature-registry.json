@@ -1,297 +1,3367 @@
 {
   "surface": "windows-console",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "canonicalMatrix": "console/inventories/surface-completeness.json",
   "features": {
     "language-modes": {
-      "state": "absent",
+      "status": "absent",
       "note": "No localization mechanism exists anywhere in the renderer: no locale files, no language-mode setting, no translated copy. Every string in App.tsx/PbxAdminApp.tsx and the compiled console is hardcoded English.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/language-modes.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "funny-levels": {
-      "state": "absent",
+      "status": "absent",
       "note": "No funny-level slider or copy-styling mechanism exists. Notification and dialog copy in App.tsx and the compiled console (this.fire/this.toast) is fixed text with no tone variation.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/funny-levels.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "dialog-emojis": {
-      "state": "absent",
+      "status": "absent",
       "note": "No show-emojis-in-dialogs toggle exists; dialog/toast copy in App.tsx has no emoji decoration control.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/dialog-emojis.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "school-mode": {
-      "state": "absent",
+      "status": "absent",
       "note": "No School mode setting, rename, or shared-credential unlock exists. The per-element lock mechanism in the compiled console (tryUnlock, PIN/password) is unrelated to School mode.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/school-mode.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "narration": {
-      "state": "partial",
+      "status": "partial",
       "note": "app/renderer/src/narration.ts implements TTS narration logic (queue, per-category cooldown, language selection) and is covered by tests/ui/narration.test.tsx, but the module is never imported by App.tsx, PbxAdminApp.tsx, or PbxAdminIntegratedApp.tsx, so it never runs inside the mounted application.",
-      "files": [
-        "app/renderer/src/narration.ts"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/narration.ts"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/narration.ts",
+            "name": "Narrator",
+            "kind": "class"
+          },
+          {
+            "path": "app/renderer/src/narration.ts",
+            "name": "resolveVoiceStatus",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/narration.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "scheduled-settings": {
-      "state": "absent",
+      "status": "absent",
       "note": "No scheduled-settings surface, date/time rule editor, or external source integration exists anywhere in the renderer or control-plane.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/scheduled-settings.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "external-settings-sources": {
-      "state": "absent",
+      "status": "absent",
       "note": "No external settings source (validated HTTPS API or Home Assistant boolean entity) is wired anywhere; same gap as scheduled-settings.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/external-settings-sources.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "dim-sum-surprise": {
-      "state": "absent",
+      "status": "absent",
       "note": "No startup dim-sum surprise, bundled dish assets, or 10% draw exists.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/dim-sum-surprise.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "regex-builder": {
-      "state": "partial",
+      "status": "partial",
       "note": "A real regex-capable control is wired: App.tsx binds readings.regexMatchLabel() to a live regex-match count (App.tsx line 889, readings.ts lines 356-360), and the compiled console tab-close filter (generated/console.tsx applyTabFilter, near line 4459) evaluates typed text as new RegExp(q, \"i\") with a plain-text fallback. Neither is the full guided builder (literal/class/anchor/group construction, flags UI, capture-group display) the contract requires; it is a single pattern field with live match feedback.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/readings.ts",
-        "app/renderer/src/generated/console.tsx"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/App.tsx",
+          "app/renderer/src/readings.ts",
+          "app/renderer/src/generated/console.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "applyTabFilter",
+            "kind": "method"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/regex-builder.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "non-blocking-notifications": {
-      "state": "partial",
+      "status": "partial",
       "note": "The compiled console (ConsoleShell, generated/console.tsx) implements this.fire()/this.toast() as the notification primitives, called extensively from App.tsx (lines 292, 325, 327, 342...) and the compiled UI itself. These read as corner toasts in the design, but there is no reviewable notification centre or history for dismissed notifications.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/generated/console.tsx"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/App.tsx",
+          "app/renderer/src/generated/console.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "toast",
+            "kind": "method"
+          },
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "fire",
+            "kind": "method"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "ConsoleShell",
+            "kind": "class"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/non-blocking-notifications.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "status-hub": {
-      "state": "absent",
+      "status": "absent",
       "note": "No live status-hub project, session card, or question-card surface exists. The single textual match for status-hub in the compiled console is a rail/menu label, not a working status surface.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/status-hub.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "material-appearance": {
-      "state": "partial",
+      "status": "partial",
       "note": "app/renderer/src/appearance.ts and colour.ts implement Material appearance tokens, an infinite-colour-picker translator (colour.ts, 743 lines) and per-element editing logic, covered by tests/ui/appearance.test.tsx and colour.test.tsx, but neither module is imported by App.tsx/PbxAdminApp.tsx. The compiled console separately implements its own tab-colour picker and a rainbow colour cycle (generated/console.tsx applyColour, tabColourOpts) which is real and wired, but narrower (tab colour only) than the appearance.ts/colour.ts module set.",
-      "files": [
-        "app/renderer/src/appearance.ts",
-        "app/renderer/src/colour.ts",
-        "app/renderer/src/generated/console.tsx"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/appearance.ts",
+          "app/renderer/src/colour.ts",
+          "app/renderer/src/generated/console.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/appearance.ts",
+            "name": "applyTheme",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/colour.ts",
+            "name": "translate",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/material-appearance.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "app-logo-customization": {
-      "state": "absent",
+      "status": "absent",
       "note": "No logo preset picker, custom-image upload, or icon-generation pipeline exists.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/app-logo-customization.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "local-file-converter": {
-      "state": "absent",
+      "status": "absent",
       "note": "No file-converter surface, adapter registry, or category catalogue exists anywhere in the renderer, control-plane, or server. Has no documentation article under docs/platform either, consistent with never having been built.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": null,
+        "state": "absent"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "ollama-suite-manager": {
-      "state": "absent",
+      "status": "absent",
       "note": "No Ollama integration of any kind (local API client, model store, chat surface, harness launcher) exists. Has no documentation article under docs/platform either.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": null,
+        "state": "absent"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "browser-style-tabs": {
-      "state": "implemented",
+      "status": "implemented-unverified",
       "note": "The compiled console (generated/console.tsx) implements a real tab strip with groups, docking (state.dock), colours, rename, pin (state.pinned / $t.pinned), and a bulk close-by-text/regex/colour filter (tabFilterOpen/applyTabFilter, near line 4437). This is live, wired UI, not a stub, though it is compiled from the checked-in design reference rather than hand-authored.",
-      "files": [
-        "app/renderer/src/generated/console.tsx"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/generated/console.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "openScreen",
+            "kind": "method"
+          },
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "applyTabFilter",
+            "kind": "method"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "ConsoleShell",
+            "kind": "class"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/browser-style-tabs.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "tab-groups-and-searches": {
-      "state": "partial",
+      "status": "partial",
       "note": "Tab groups (state.groups, tabGroups, group colours/collapse), a per-strip filter with Containing/Not-containing/By-colour modes (generated/console.tsx near line 4829), and pinning are real and wired. Missing: a dedicated group-name search, an in-group search, and a master cross-window tab search - only the single strip filter exists, so the four-search contract is not met.",
-      "files": [
-        "app/renderer/src/generated/console.tsx"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/generated/console.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "applyTabFilter",
+            "kind": "method"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "ConsoleShell",
+            "kind": "class"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/tab-groups-and-searches.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "command-palette": {
-      "state": "partial",
+      "status": "partial",
       "note": "app/renderer/src/catalog.ts builds a searchable command/settings catalogue (61 lines) but is never imported by App.tsx or any mounted component. No Ctrl+Shift+F activation exists in App.tsx or the compiled console.",
-      "files": [
-        "app/renderer/src/catalog.ts"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/catalog.ts"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/catalog.ts",
+            "name": "destinations",
+            "kind": "const"
+          },
+          {
+            "path": "app/renderer/src/catalog.ts",
+            "name": "findDestination",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/command-palette.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "destructive-action-confirmation": {
-      "state": "implemented",
+      "status": "implemented-unverified",
       "note": "app/renderer/src/ceremony.ts (runCeremonyCommand) is imported and invoked by App.tsx (lines 8, 788) to run a confirmation ceremony before a destructive PBX command executes; the compiled console additionally implements areYouSure() as a timed confirm used for other destructive UI actions (tab-partner approval, dialplan-step delete). Genuinely wired end to end.",
-      "files": [
-        "app/renderer/src/ceremony.ts",
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/generated/console.tsx"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/ceremony.ts",
+          "app/renderer/src/App.tsx",
+          "app/renderer/src/generated/console.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/ceremony.ts",
+            "name": "runCeremonyCommand",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "areYouSure",
+            "kind": "method"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "runCeremonyCommand",
+            "kind": "import"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/destructive-action-confirmation.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "local-version-history": {
-      "state": "absent",
+      "status": "absent",
       "note": "control-plane/local-history.ts and control-plane/config-history.ts implement Git-backed local history server-side, but nothing in the renderer surfaces a history/versions panel, restore action, or diff view to the user. The feature exists as backend plumbing with no reachable UI.",
-      "files": [
-        "control-plane/local-history.ts",
-        "control-plane/config-history.ts"
-      ]
+      "implementation": {
+        "paths": [
+          "control-plane/local-history.ts",
+          "control-plane/config-history.ts"
+        ],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/local-version-history.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "changelog-viewer": {
-      "state": "partial",
+      "status": "partial",
       "note": "Wired and reachable: App rail > App > Changelog renders every version parsed from a real build-time bundle of this repository's own tag history (scripts/bundle-changelog.mjs -> generated/changelog-bundle.ts), with search (plain text + regex toggle), a date range filter, copy and Markdown export, and per-change commit links validated against real commits (tests/ui/changelog-wired.test.tsx). Confirmed rendering real entries in the built Electron app via headless CDP. Remaining gap: the date filter is typed ISO fields plus range presets, not the full month/year-jump calendar grid the contract describes.",
-      "files": [
-        "app/renderer/src/changelog.ts",
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/generated/changelog-bundle.ts",
-        "design/Asterisk Console M3.dc.html",
-        "scripts/bundle-changelog.mjs",
-        "tests/ui/changelog-wired.test.tsx"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/changelog.ts",
+          "app/renderer/src/App.tsx",
+          "app/renderer/src/generated/changelog-bundle.ts",
+          "design/Asterisk Console M3.dc.html",
+          "scripts/bundle-changelog.mjs",
+          "tests/ui/changelog-wired.test.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/changelog.ts",
+            "name": "parseChangelog",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/changelog.ts",
+            "name": "filterAndSearch",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "changelogVals",
+            "kind": "method"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/changelog-viewer.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "external-editor-handoff": {
-      "state": "absent",
+      "status": "absent",
       "note": "No open-in-external-editor / VS Code handoff exists anywhere in the renderer or control-plane.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/external-editor-handoff.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "complete-exports": {
-      "state": "partial",
+      "status": "partial",
       "note": "app/renderer/src/export.ts (547 lines, tested by tests/ui/export.test.tsx) implements multi-format export logic, but is never imported by App.tsx or any mounted component.",
-      "files": [
-        "app/renderer/src/export.ts"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/export.ts"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/export.ts",
+            "name": "exportRows",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/complete-exports.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "bulk-actions": {
-      "state": "partial",
+      "status": "partial",
       "note": "app/renderer/src/bulk.ts (336 lines, tested by tests/ui/bulk.test.tsx) implements bulk selection/action logic, but is never imported by App.tsx or any mounted component. The compiled console does implement one real bulk action (bulk = (verb, sel) => ...fire...) for canvas-node selection, narrower than the bulk.ts contract.",
-      "files": [
-        "app/renderer/src/bulk.ts",
-        "app/renderer/src/generated/console.tsx"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/bulk.ts",
+          "app/renderer/src/generated/console.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/bulk.ts",
+            "name": "runBulk",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/bulk.ts",
+            "name": "planBulk",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "bulkSelectionVals",
+            "kind": "method"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/bulk-actions.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "accessibility": {
-      "state": "absent",
+      "status": "absent",
       "note": "No dedicated accessibility mechanism (focus management beyond default DOM behavior, ARIA audit, reduced-motion handling) was found in App.tsx or the compiled console source.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/accessibility.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "responsive-sizing": {
-      "state": "partial",
+      "status": "partial",
       "note": "The compiled console carries a per-screen narrow flag (App.tsx line 709, narrow: true) used to pick a narrower layout for at least one screen, but there is no evidence of a systematic responsive strategy (100/125/150/200% scale handling, narrow-width tab collapse) across the app.",
-      "files": [
-        "app/renderer/src/App.tsx"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/App.tsx"
+        ],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/responsive-sizing.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "personal-vocabulary-upload": {
-      "state": "implemented",
-      "note": "app/renderer/src/personal-vocabulary.ts is imported and fully wired into App.tsx: file load (loadVocabularyFile), clear (clearVocabulary), status (vocabularyStatus) and storage. Corrected 2026-08-23: the durability gap noted then is fixed. The renderer no longer reaches window.localStorage (in-memory only for a file:// origin) for this cache; it now goes through app/renderer/src/durable-storage.ts, which write-through-caches against the main process's control-plane settings.snapshot/settings.write/settings.remove actions (control-plane/settings-store.ts), persisted atomically (control-plane/atomic-file.ts) to settings.json under app.getPath('userData') the way the server inventory already is. Proved by a real relaunch on a headless desktop: set a value, force-killed then gracefully closed the app, inspected settings.json on disk between runs, relaunched, and confirmed the restored value without any manual reload.",
-      "files": [
-        "app/renderer/src/personal-vocabulary.ts",
-        "app/renderer/src/durable-storage.ts",
-        "app/renderer/src/App.tsx",
-        "control-plane/settings-store.ts",
-        "control-plane/atomic-file.ts",
-        "control-plane/dispatch.ts"
-      ]
+      "status": "partial",
+      "note": "app/renderer/src/personal-vocabulary.ts is imported and fully wired into App.tsx: file load (line 321 loadVocabularyFile), clear (line 332 clearVocabulary), status (lines 309, 313, 382 vocabularyStatus) and storage (line 134 createMemoryStorage/localStorage). Genuinely implemented end to end. Corrected 2026-08-23: the loader, validation, clear and status are all real and wired, but the cache is kept in window.localStorage and the renderer is loaded from a file:// origin, where Chromium keeps DOM storage in memory only. Proved while wiring the appearance editor: a value written successfully in one session left no trace in the on-disk store and was gone after relaunch, across three different ways of closing the application. The contract requires the choice to survive a restart, so this is partial rather than implemented until the cache is written through the main process the way the server inventory already is.",
+      "implementation": {
+        "paths": [
+          "app/renderer/src/personal-vocabulary.ts",
+          "app/renderer/src/App.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/personal-vocabulary.ts",
+            "name": "loadVocabularyFile",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/personal-vocabulary.ts",
+            "name": "clearVocabulary",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "loadVocabularyFile",
+            "kind": "import"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/personal-vocabulary-upload.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "per-element-toy-locks": {
-      "state": "partial",
+      "status": "partial",
       "note": "The compiled console implements a real per-element lock/unlock mechanism (state.locks keyed by element id, tryUnlock() checking PIN or password, generated/console.tsx near line 3963) that is wired and functional. Missing against the contract: no OTP/TOTP option, no per-element lock-creation wizard reachable from a documented context-menu command, and no OS credential-vault storage - credentials live in plain component state.",
-      "files": [
-        "app/renderer/src/generated/console.tsx"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/generated/console.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "tryUnlock",
+            "kind": "method"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "tryUnlock",
+            "kind": "method"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/per-element-toy-locks.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "support-tickets": {
-      "state": "absent",
+      "status": "absent",
       "note": "No Support Tickets surface exists; the per-element lock has no forgotten-password recovery route of any kind.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/support-tickets.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "unlock-ladder": {
-      "state": "partial",
-      "note": "app/renderer/src/unlock-ladder.ts is now imported and wired into the real per-element unlock dialog (App.tsx authVals/tryUnlock/finishLadderGrade): after three consecutive wrong PIN/password/TOTP attempts on a lock, tryUnlock calls ladder.issue() and, for a real dish or sums challenge, reuses the dialog's existing numeric keypad/dots and its mono-font method line (no new markup added, since the compiled design has no bound slot for a dish grid or sums list) to collect and grade a real answer through ladder.grade(). Confirmed reachable in the built app: right-clicking a screen opens 'Lock this element...', which opens the real wizard. A cleared challenge only closes the ladder UI and says the wait is over -- it never touches state.locks or the unlock dialog's own PIN/password/TOTP buffers, so the real credential is still required afterward (rule 1). The module's own 3-per-hour skip budget, single-use graded nonces, and never-refunding-the-attempt-budget rules are enforced by the module itself, unmodified. Two real gaps remain, both because editing the compiled design/generated output was out of scope here: the 'moles' rung has no visual board to render in this build, so it is treated as unreachable and the ladder falls back to 'wait it out' rather than faking a graded round; and because this app's per-element lock has no server-enforced or time-based lockout of its own (unlike the PIN/password it sits beside), 'clearing the wait' here dismisses the ladder UI but does not bypass any actual timed lockout, since none exists to bypass.",
-      "files": [
-        "app/renderer/src/unlock-ladder.ts",
-        "app/renderer/src/App.tsx"
-      ]
-    },
-    "built-in-authenticator": {
-      "state": "partial",
-      "note": "app/renderer/src/totp.ts is now imported and wired into the real per-element lock (App.tsx pairAuth/lockNext/tryUnlock/authVals). pairAuth generates a real random secret with the Web Crypto RNG, computes the real otpauth:// pairing URI (pairingUri), and reveals both as copyable text through the app's real info panel -- never a remote QR service, and never any network call. lockNext refuses to finish a TOTP-including lock until pairAuth has actually run, and stores the real secret (not a placeholder) in the lock record. tryUnlock verifies a real RFC 6238 code via verifyCode (one step of skew) using the app's own numeric keypad, reusing it for a second 'totp' entry phase after any PIN phase completes. Confirmed reachable in the built app via headless CDP: registered a real TOTP secret through the real UI, independently computed the current code from that exact captured secret with totp.ts's own generateCode, typed the six digits back into the running app's real unlock dialog, and the app's own verifyCode accepted it and cleared the lock -- an earlier, stale code was correctly rejected first. Two real gaps remain, both because editing the compiled design/generated output was out of scope here: the QR box next to 'Pair the built-in authenticator' is a static decorative gradient with no bound slot for pixel data (not S(v...) anywhere in it), so the secret is shown as copyable text instead of a scannable image; and there is no confirmation-code re-entry step before the secret is treated as paired, because the 'Password+TOTP' method's wizard panel has no digit-entry control of its own to collect one (the PIN keypad belongs to a different method combination and would corrupt the user's real PIN if reused for this). The secret itself is stored in the same non-durable, non-OS-credential-vault state.locks the PIN and password already were before this change -- a pre-existing gap, not a new one, and still recorded as such.",
-      "files": [
-        "app/renderer/src/totp.ts",
-        "app/renderer/src/App.tsx"
-      ]
+    "unlock-ladder": {
+      "status": "partial",
+      "note": "app/renderer/src/unlock-ladder.ts (438 lines, tested by tests/ui/unlock-ladder.test.tsx) implements the dim-sum/sums/whack-a-mole/clock ladder logic and School-mode starting-rung behavior, but is never imported by any mounted component. The compiled console own lock mechanism (tryUnlock) has no ladder at all - a wrong PIN just re-prompts.",
+      "implementation": {
+        "paths": [
+          "app/renderer/src/unlock-ladder.ts"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/unlock-ladder.ts",
+            "name": "UnlockLadder",
+            "kind": "class"
+          },
+          {
+            "path": "app/renderer/src/unlock-ladder.ts",
+            "name": "startingRung",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/unlock-ladder.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
+    }
     },
     "attention-modes": {
-      "state": "absent",
+      "status": "absent",
       "note": "No ADHD/attention-mode toggles (focus, low-stimulation, time-awareness, one-thing-at-a-time, momentum) exist anywhere in the renderer.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/attention-modes.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "browser-extension-download-surfaces": {
-      "state": "absent",
+      "status": "absent",
       "note": "This is a desktop console for an Asterisk PBX; there is no browser extension in this repository and no Start-download/Downloading/complete dialog surfaces.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/browser-extension-download-surfaces.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "offline-documentation-browser": {
-      "state": "partial",
+      "status": "partial",
       "note": "app/renderer/src/docs-browser.ts implements article lookup/search over the bundled docs, app/renderer/src/generated/docs-bundle.ts (83 articles) is real bundled content, and app/renderer/src/docs-markdown.ts parses each article's body into headings/paragraphs/code/list blocks with resolved inter-article links. The `docs` destination is now a real screen on the App rail (compiled from design/Asterisk Console M3.dc.html, kind:'docs') wired in App.tsx (docsVals) with a real search field, a regex-builder toggle and palette, an article list, a rendered body pane and in-app link navigation. Headlessly driven in the built app (Electron via CDP): the article list shows all 83 titles/excerpts, selecting an article renders its real headings/paragraphs (no raw '#'/'[]' Markdown syntax), an inline `[text](href)` link inside one article's body navigated to the linked article, and a query with no matches shows an honest '0 matches' state. Remaining gap: no promoted screenshot/interaction evidence has been filed under this project's design-parity capture pipeline, so this stays 'partial' rather than 'verified'.",
-      "files": [
-        "app/renderer/src/docs-browser.ts",
-        "app/renderer/src/docs-markdown.ts",
-        "app/renderer/src/generated/docs-bundle.ts",
-        "app/renderer/src/App.tsx",
-        "design/Asterisk Console M3.dc.html"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/docs-browser.ts",
+          "app/renderer/src/docs-markdown.ts",
+          "app/renderer/src/generated/docs-bundle.ts",
+          "app/renderer/src/App.tsx",
+          "design/Asterisk Console M3.dc.html"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/docs-browser.ts",
+            "name": "search",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/docs-markdown.ts",
+            "name": "parseMarkdown",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "docsVals",
+            "kind": "method"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/offline-documentation-browser.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "app-display-name": {
-      "state": "absent",
+      "status": "absent",
       "note": "No renameable-display-name setting exists; the product name (Ding PBX Console) is hardcoded in the compiled console with no user-facing rename control.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/app-display-name.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "guided-forms": {
-      "state": "partial",
+      "status": "partial",
       "note": "app/renderer/src/endpoint-create.ts (WIZARD_CONTROLS, buildEndpointDraft) is imported and wired into App.tsx (line 14, 482, 488) to drive the endpoint-creation wizard with real validated fields and a generated secret. This is a genuine guided form for one flow (new PJSIP endpoint), not a system-wide guided-forms contract.",
-      "files": [
-        "app/renderer/src/endpoint-create.ts",
-        "app/renderer/src/App.tsx"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/endpoint-create.ts",
+          "app/renderer/src/App.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/endpoint-create.ts",
+            "name": "buildEndpointDraft",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "onboardDeploy",
+            "kind": "method"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/guided-forms.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "bounded-overlays": {
-      "state": "absent",
+      "status": "absent",
       "note": "No dedicated overlay-bounding/viewport-clamping logic was found; overlays in the compiled console use plain fixed-position styling with no evidence of viewport-boundary handling.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/bounded-overlays.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "context-menu-shortcuts": {
-      "state": "absent",
+      "status": "absent",
       "note": "The compiled console context menu (ctxOpen/ctxSub) renders labels and icons only; no keyboard-shortcut column was found alongside its menu items.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/context-menu-shortcuts.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "long-operation-progress": {
-      "state": "absent",
+      "status": "absent",
       "note": "No dialog reporting real long-operation progress (queue/index/clone-style progress inside a start dialog) was found; ceremony.ts runs a bounded confirmation flow, not a progress-reporting operation.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/long-operation-progress.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "in-context-recovery": {
-      "state": "absent",
+      "status": "absent",
       "note": "No surface-level recovery route (for example re-authentication offered directly beside a refused push/credential error) was found.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/in-context-recovery.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "provider-markup-rendering": {
-      "state": "partial",
-      "note": "app/renderer/src/docs-markdown.ts parses bundled documentation body text (headings, paragraphs, fenced code, bullet list items, inline `[text](href)` links) into render-ready blocks, and the `docs` screen (App.tsx docsVals + the compiled `isDocs` template block) renders those blocks as real UI rather than printing raw Markdown source — confirmed by headless capture of the running app. This covers the bundled offline docs only; there is still no renderer for remote-authored text such as release notes or issue bodies.",
-      "files": [
-        "app/renderer/src/docs-markdown.ts",
-        "app/renderer/src/App.tsx"
-      ]
+    "provider-markup-rendering": {
+      "status": "partial",
+      "note": "app/renderer/src/docs-markdown.ts parses bundled documentation body text (headings, paragraphs, fenced code, bullet list items, inline `[text](href)` links) into render-ready blocks, and the `docs` screen (App.tsx docsVals + the compiled `isDocs` template block) renders those blocks as real UI rather than printing raw Markdown source - confirmed by headless capture of the running app. This covers the bundled offline docs only; there is still no renderer for remote-authored text such as release notes or issue bodies.",
+      "implementation": {
+        "paths": [
+          "app/renderer/src/docs-markdown.ts",
+          "app/renderer/src/App.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/docs-markdown.ts",
+            "name": "parseMarkdown",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "docsVals",
+            "kind": "method"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/provider-markup-rendering.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
+    }
     },
     "forge-publishing": {
-      "state": "absent",
+      "status": "absent",
       "note": "No GitHub/forge publishing flow (account picker, fork-vs-copy-and-push) exists; this is a PBX admin console, not a repository-publishing tool.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/forge-publishing.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "collapsible-filters": {
-      "state": "absent",
+      "status": "absent",
       "note": "No evidence of a collapsible filter/statistics row was found; the compiled console tab filter (tabFilterOpen) is a modal overlay, not a collapsible inline row.",
-      "files": []
+      "implementation": {
+        "paths": [],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/collapsible-filters.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "automatic-updates": {
-      "state": "implemented",
+      "status": "implemented-unverified",
       "note": "app/renderer/src/UpdateBanner.tsx (64 lines) is mounted as its own root in main.tsx (lines 39-41) and control-plane/updater.ts implements the update-check/download/ready-to-restart backend. Genuinely wired: the banner is created and rendered on every boot alongside the main app.",
-      "files": [
-        "app/renderer/src/UpdateBanner.tsx",
-        "app/renderer/src/main.tsx",
-        "control-plane/updater.ts"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/UpdateBanner.tsx",
+          "app/renderer/src/main.tsx",
+          "control-plane/updater.ts"
+        ],
+        "symbols": [
+          {
+            "path": "control-plane/updater.ts",
+            "name": "resolveLatestUpdate",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/UpdateBanner.tsx",
+            "name": "UpdateBanner",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/main.tsx",
+            "name": "UpdateBanner",
+            "kind": "mount"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/automatic-updates.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     }
   }
 }

@@ -42,6 +42,15 @@
 - [x] Create, verify, stop and remove the console's own WSL distribution from the packaged Asterisk payload, replacing a `server.provision-bundled` action that was declared and implemented nowhere.
 - [x] Make the confirmation flow dispatch the command it guards and report the real outcome, including refusals, instead of announcing success without calling anything.
 
+## Canonical surface completeness matrix
+
+- [x] Replace the two-aggregate-surface model with a versioned hand-written canonical feature and requirement set independent of source discovery.
+- [x] Enumerate the desktop shell, login and setup routes, 32 desktop destinations, 17 dialog or secondary-window states, six top-level site pages, 82 generated documentation routes, and Start, progress, and completion browser-extension states.
+- [x] Keep all 44 canonical features required on every surface, including local file conversion and the local Ollama suite manager, with no exemptions.
+- [x] Add exact implementation and registration symbol records, route, documentation, localization, persistence, provenance, focused-check, negative-evidence, built-interaction, capture, and design-parity fields to every row.
+- [x] Add exact-boundary negative regressions for missing features and pages, renamed or commented symbols, stale commits, missing evidence, route-only claims, fake success, and sample data.
+- [ ] Run the matrix validators and capture proof on the integrated default branch. This remains unverified because the current delivery lane explicitly did not run validators or captures.
+
 ## Cover Asterisk's real capability surface
 
 A survey against this checkout measured the console at roughly **12%** of Asterisk's

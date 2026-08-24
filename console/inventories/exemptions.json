@@ -1,20 +1,6 @@
 {
-  "schemaVersion": 1,
-  "note": "Features deliberately excluded from this product. Every row in surface-completeness.json marked `exempt` must appear here with a reason and who decided it. A gap with no reason reads as an oversight to the next person and as a decision to nobody, and eventually somebody closes it by building a thing that was never wanted.",
-  "exemptions": [
-    {
-      "feature": "ollama-suite-manager",
-      "surfaces": ["windows-console", "pages-site"],
-      "decidedBy": "owner",
-      "decidedOn": "2026-08-23",
-      "reason": "Excluded by owner decision. A local model manager sits outside what a PBX administration console is for: it shares no data, no target and no control path with anything else here, and would be a second product living inside the first. Nothing else in the console depends on it."
-    },
-    {
-      "feature": "local-file-converter",
-      "surfaces": ["windows-console", "pages-site"],
-      "decidedBy": "owner",
-      "decidedOn": "2026-08-23",
-      "reason": "Excluded by owner decision. A general file-conversion catalogue is unrelated to administering an exchange, and shipping the bundled decoders it would require is a large surface with its own sandboxing burden for no benefit to the product's actual job. Media handling that the console genuinely needs — prompts and recordings — is covered by its own feature rather than by a general converter."
-    }
-  ]
+  "schemaVersion": 2,
+  "canonicalMatrix": "console/inventories/surface-completeness.json",
+  "note": "No canonical feature is exempt. Local file conversion and the local Ollama suite manager remain required rows on every surface, including documentation routes and browser-extension states.",
+  "exemptions": []
 }
