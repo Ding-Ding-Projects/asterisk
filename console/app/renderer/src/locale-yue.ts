@@ -204,6 +204,8 @@ export const CANTONESE: Catalog = {
   'CLI builder': '指令產生器',
   'Arcade': '遊戲機',
 
+  'Lock this group': '鎖住成組',
+
   /* Narration. */
   'Narration': '旁白',
   'Narrated language': '旁白語言',

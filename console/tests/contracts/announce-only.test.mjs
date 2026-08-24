@@ -35,7 +35,6 @@ const STILL_ANNOUNCING = new Map([
   ['Export bundle', 'a git bundle of a repository that does not exist. The backups it would really be exporting are files, so an archive of those is the honest equivalent'],
   ['Revert just this option', 'restore replaces a whole file from a backup; there is no per-option revert, and inventing one means diffing and rewriting a single key inside a live config'],
   ['Branch from here', 'same as New branch: no repository, and the history that is git is append-only'],
-  ['Lock every tab in group', 'needs the per-element lock wizard to accept a whole group'],
 ]);
 
 /* The same shape, hiding behind a confirmation. This was a real blind spot: "Delete step"

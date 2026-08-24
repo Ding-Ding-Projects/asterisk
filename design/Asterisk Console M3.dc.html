@@ -4490,7 +4490,7 @@ class Component extends DCLogic {
           { icon:'unfold_less', label:g.collapsed ? 'Expand' : 'Collapse', run:() => upd({ collapsed:!g.collapsed }) },
           { icon:'compress', label:'Auto-collapse when inactive', run:() => upd({ auto:true }) },
           { icon:'push_pin', label:'Pin whole group', run:() => { close(); this.set('pinned', s.pinned.concat(g.tabs)); } },
-          { icon:'lock', label:'Lock every tab in group', run:() => { close(); this.toast('Each tab gets its own credential in the next step'); } },
+          { icon:'lock', label:'Lock this group', run:() => { close(); this.setState({ lockOpen:true, lockTarget:g.name + ' (' + g.tabs.length + ' tabs)', lockKey:'group-' + g.id, lockStep:0, lockX:'38%', lockY:'18%' }); } },
           { icon:'sync', label:'Reload every tab in group', run:() => { close(); this.ceremony('Reload group ' + g.name, 'reload ' + g.tabs.join(' ')); } },
           { icon:'visibility_off', label:'Hide from the strip', run:() => upd({ hidden:true }) }
         ];
