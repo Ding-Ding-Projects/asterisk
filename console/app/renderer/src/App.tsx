@@ -31,6 +31,11 @@ import {
   summarise as bulkSummarise, type SelectionState,
 } from './bulk';
 import { describeLoss, exportFilename, exportRows, suitableFormats, type ExportFormat } from './export';
+import {
+  addRule, applyTheme, cssVarFor, exportTheme, importTheme, resetAll, WILDCARD_ELEMENT,
+  type AppearanceProperty, type AppearanceTheme,
+} from './appearance';
+import { COLOUR_FORMATS, formatColour, parseColour, translate as translateColour } from './colour';
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -150,6 +155,17 @@ export class App extends Base {
   /** The daemon lifecycle group on Deploy & servers has no reading of its own until a
    *  target is connected and its status has actually been asked for once. */
   private daemonStatusLine = 'Unknown — no target connected yet.';
+  /** The appearance editor's persisted key in `window.localStorage` — a plain JSON
+   *  blob of the slider/select values it was built from, separate from the richer
+   *  `AppearanceTheme` (appearance.ts) an explicit Export writes to a file. This is
+   *  what makes a colour or font choice survive a relaunch. */
+  private readonly APPEARANCE_STORAGE_KEY = 'asterisk-appearance-v1';
+  /** Set once persisted state has been folded into `this.state.values`, so the
+   *  restore only ever happens once per mount. */
+  private appearanceRestored = false;
+  /** The last JSON actually written to storage, so `renderVals` (called on every
+   *  paint) does not re-write `localStorage` when nothing changed. */
+  private appearanceLastSerialised = '';
 
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
@@ -157,6 +173,7 @@ export class App extends Base {
 
   componentDidMount() {
     super.componentDidMount?.();
+    this.restoreAppearance();
     /* The configured server list is not a reading from any PBX — it exists before
      * anything is reachable and must be on screen whether or not discovery finds a
      * target, so it is loaded independently of it. */
@@ -1023,9 +1040,214 @@ It is shown once. The phone needs it to register.`);
     };
   }
 
+  // ---------------------------------------------------------------- Appearance
+  //
+  // Wires the compiled design's "Edit appearance..." panel (context menu on any
+  // element, tab, or group; see appearOpen in the design reference) to the two
+  // pure engines that back it: appearance.ts (the rule model, CSS-variable mapping,
+  // and JSON export/import) and colour.ts (real colour maths and format
+  // translation). Before this, the panel's colorFormats computed a fake hex value
+  // from an arithmetic formula that was not a colour conversion at all, its "copy"
+  // actions only showed a toast, and nothing it changed persisted past a reload or
+  // was visible anywhere outside its own preview swatch.
+  //
+  // Scope actually delivered: one global (wildcard-element) theme covering accent
+  // colour, font family, font weight and font size, applied live to the app's real
+  // root element and persisted in localStorage so it survives a relaunch. Per-
+  // element and per-tab scoping (the panel's appearTarget), and the remaining
+  // typography/border/shadow/effects/transform groups, are not wired to anything
+  // that renders -- the compiled markup has no selector for an individual element or
+  // tab to receive its own override, so those controls remain design-only.
+
+  /** The actual rendered root: the compiled design's outermost div, found via the
+   *  window drag-region marker on its first child rather than a hard-coded ref,
+   *  since the generated file assigns it no id or class of its own. */
+  private appearanceRootEl(): HTMLElement | null {
+    if (typeof document === 'undefined') return null;
+    const drag = document.querySelector('[data-window-drag]');
+    return (drag?.parentElement as HTMLElement | null) ?? null;
+  }
+
+  private currentAppearanceValues(): { hue: number; sat: number; light: number; family: string; weight: string; size: number } {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const num = (key: string, fallback: number): number => {
+      const raw = values[key];
+      const n = typeof raw === 'number' ? raw : Number(raw);
+      return Number.isFinite(n) ? n : fallback;
+    };
+    const str = (key: string, fallback: string): string => {
+      const raw = values[key];
+      return typeof raw === 'string' && raw.length > 0 ? raw : fallback;
+    };
+    return {
+      hue: num('ap_hue', 148), sat: num('ap_sat', 54), light: num('ap_light', 68),
+      family: str('ap_family', 'Roboto'), weight: str('ap_weight', '500'), size: num('ap_size', 14),
+    };
+  }
+
+  /** Builds the real appearance.ts theme these four values resolve to, scoped to
+   *  the wildcard element -- the only scope the compiled interface can actually read
+   *  back, since it exposes no per-element CSS hook. An invalid value (out of
+   *  addRule's own bounds) is simply left out of the theme rather than applied. */
+  private buildAppearanceTheme(vals: ReturnType<App['currentAppearanceValues']>): AppearanceTheme {
+    let theme: AppearanceTheme = { id: 'live', name: 'Live console appearance', rules: [] };
+    const colourStr = `hsl(${vals.hue} ${vals.sat}% ${vals.light}%)`;
+    const candidates: Array<[AppearanceProperty, string]> = [
+      ['colour', colourStr],
+      ['fontFamily', vals.family],
+      ['fontWeight', vals.weight],
+      ['fontSize', `${vals.size}px`],
+    ];
+    for (const [property, value] of candidates) {
+      const outcome = addRule(theme, { element: WILDCARD_ELEMENT, property, value });
+      if (!('reason' in outcome)) theme = outcome;
+    }
+    return theme;
+  }
+
+  /** Applies the theme to the actual root element's inline style -- the same
+   *  mechanism the design already uses for every other inline colour, so a value
+   *  set here wins the same way a design-authored one does, live, with no restart. */
+  private applyAppearanceToDom(theme: AppearanceTheme): void {
+    const root = this.appearanceRootEl();
+    if (!root) return;
+    const resolved = applyTheme(theme);
+    const colourVal = resolved[`${WILDCARD_ELEMENT}::${cssVarFor('colour')}`];
+    const familyVal = resolved[`${WILDCARD_ELEMENT}::${cssVarFor('fontFamily')}`];
+    const weightVal = resolved[`${WILDCARD_ELEMENT}::${cssVarFor('fontWeight')}`];
+    const sizeVal = resolved[`${WILDCARD_ELEMENT}::${cssVarFor('fontSize')}`];
+    if (colourVal) root.style.setProperty('color', colourVal);
+    if (familyVal) root.style.setProperty('font-family', `${familyVal},sans-serif`);
+    if (weightVal) root.style.setProperty('font-weight', weightVal);
+    if (sizeVal) root.style.setProperty('font-size', sizeVal);
+  }
+
+  /** Restores the persisted values into this.state.values once, at mount, before
+   *  the compiled controls ever read them -- this is what makes a relaunch open on
+   *  the appearance that was set last rather than the design's own defaults. */
+  private restoreAppearance(): void {
+    if (this.appearanceRestored) return;
+    this.appearanceRestored = true;
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    const raw = window.localStorage.getItem(this.APPEARANCE_STORAGE_KEY);
+    if (!raw) return;
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return;
+    }
+    const restored: Record<string, unknown> = {};
+    for (const key of ['ap_hue', 'ap_sat', 'ap_light', 'ap_family', 'ap_weight', 'ap_size']) {
+      if (key in parsed) restored[key] = parsed[key];
+    }
+    if (Object.keys(restored).length === 0) return;
+    this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, ...restored } }));
+    this.applyAppearanceToDom(this.buildAppearanceTheme(this.currentAppearanceValues()));
+  }
+
+  /** Persists the four values (only when they actually changed) and re-applies them
+   *  to the DOM. Called once per render, which is cheap: four numbers/strings
+   *  serialised and compared before anything is written. */
+  private syncAppearance(): void {
+    const vals = this.currentAppearanceValues();
+    const theme = this.buildAppearanceTheme(vals);
+    this.applyAppearanceToDom(theme);
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    const serialised = JSON.stringify({
+      ap_hue: vals.hue, ap_sat: vals.sat, ap_light: vals.light,
+      ap_family: vals.family, ap_weight: vals.weight, ap_size: vals.size,
+    });
+    if (serialised === this.appearanceLastSerialised) return;
+    this.appearanceLastSerialised = serialised;
+    window.localStorage.setItem(this.APPEARANCE_STORAGE_KEY, serialised);
+  }
+
+  /** Real overrides for the appearance panel's colour translator and its actions --
+   *  everything else in the panel (colorValue, hueStops, shadeStops, appearGroups,
+   *  appearPreviewStyle, appearStates) is left to the design's own bindings, which
+   *  already compute real (if unpersisted, unapplied) values. */
+  private appearanceVals(): Record<string, unknown> {
+    const vals = this.currentAppearanceValues();
+    const colourStr = `hsl(${vals.hue} ${vals.sat}% ${vals.light}%)`;
+    const translated = translateColour(colourStr);
+    const colorFormats = translated
+      ? COLOUR_FORMATS.map((format) => {
+          const text = translated[format];
+          return {
+            label: `${format} · ${text}`,
+            copy: () => {
+              const clipboard = (navigator as { clipboard?: { writeText?: (text: string) => Promise<void> } }).clipboard;
+              if (clipboard?.writeText) void clipboard.writeText(text);
+              this.toast(`${text} copied`);
+            },
+          };
+        })
+      : [];
+    return {
+      colorFormats,
+      appearActions: [
+        { icon: 'casino', label: 'Randomise this element', run: () => this.randomiseAppearanceHue() },
+        { icon: 'restart_alt', label: 'Reset', run: () => this.resetAppearance() },
+        { icon: 'bookmark_add', label: 'Save', run: () => this.saveAppearance() },
+        { icon: 'download', label: 'Export', run: () => this.exportAppearance() },
+      ],
+    };
+  }
+
+  private randomiseAppearanceHue(): void {
+    this.setState((st: { values: Record<string, unknown> }) => ({
+      values: { ...st.values, ap_hue: Math.floor(Math.random() * 360) },
+    }));
+    this.fire('Bold choice', 'Nobody will ever say it is boring.');
+  }
+
+  /** Clears the persisted theme, drops the four values back to the design's own
+   *  defaults, and re-applies that default to the root element immediately -- a real
+   *  reset, not the design's original values:{} (which cleared every control on
+   *  every screen, not only these four). */
+  private resetAppearance(): void {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem(this.APPEARANCE_STORAGE_KEY);
+    }
+    this.appearanceLastSerialised = '';
+    this.setState((st: { values: Record<string, unknown> }) => {
+      const next = { ...st.values };
+      for (const key of ['ap_hue', 'ap_sat', 'ap_light', 'ap_family', 'ap_weight', 'ap_size']) delete next[key];
+      return { values: next };
+    });
+    this.applyAppearanceToDom(resetAll(this.buildAppearanceTheme(this.currentAppearanceValues())));
+    this.toast('Appearance reset to the design system');
+  }
+
+  private saveAppearance(): void {
+    this.syncAppearance();
+    this.fire('Appearance saved', 'It will still be set the next time this opens.');
+  }
+
+  /** Downloads the real appearance.ts JSON export (schema-versioned, re-importable)
+   *  of the live theme -- not the design's placeholder toast claiming an export
+   *  happened. */
+  private exportAppearance(): void {
+    if (typeof document === 'undefined') {
+      this.toast('Export is not available in this environment.');
+      return;
+    }
+    const json = exportTheme(this.buildAppearanceTheme(this.currentAppearanceValues()));
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'asterisk-console-appearance.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    this.toast('Appearance exported as JSON');
+  }
+
   renderVals() {
     const screen = (this.state as { screen: string }).screen;
     this.applyRows(screen);
+    this.syncAppearance();
     const values = super.renderVals() as Record<string, unknown>;
     const bridge = this.bridge();
     const readings = this.readings[screen];
@@ -1033,6 +1255,9 @@ It is shown once. The phone needs it to register.`);
 
     return {
       ...values,
+      // The "Edit appearance..." panel's real colour translator and real actions
+      // (appearance.ts + colour.ts) -- see the Appearance section above renderVals.
+      ...this.appearanceVals(),
       __window: {
         minimize: () => bridge?.window.minimize(),
         toggleMaximize: () => bridge?.window.toggleMaximize(),
