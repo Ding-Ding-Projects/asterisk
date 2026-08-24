@@ -8,7 +8,7 @@ The documentation route strip is a navigation surface with browser-style tab pre
 
 ## Configuration
 
-The strip stores its route order, pinned routes, group membership, appearance choices, and toy-lock records in bounded browser storage. Route links use navigation semantics with `aria-current` and `aria-controls="main"`; the side presentation uses vertical arrow traversal and the top or bottom presentation uses horizontal traversal. At narrow widths the side rail becomes a compact header and every edge keeps an internally scrolling strip.
+The strip stores its route order, pinned routes, group membership, appearance choices, and toy-lock records in bounded browser storage. Route links use navigation semantics with `aria-current`; the side presentation uses vertical arrow traversal and the top or bottom presentation uses horizontal traversal. At narrow widths the side rail becomes a compact header and every edge keeps an internally scrolling strip.
 
 ## Current status
 

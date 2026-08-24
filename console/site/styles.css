@@ -621,6 +621,7 @@ html[data-tab-edge="left"] #site-nav,html[data-tab-edge="right"] #site-nav{max-h
 html[data-tab-edge="top"] #site-nav,html[data-tab-edge="bottom"] #site-nav{display:flex;flex-wrap:nowrap;max-width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior:contain}
 html[data-tab-edge="top"] #site-nav a.site-tab,html[data-tab-edge="bottom"] #site-nav a.site-tab{flex:0 0 auto}
 [data-local-appearance="true"]{accent-color:var(--element-accent,var(--primary));border-color:var(--element-accent,var(--outline-variant));font-size:calc(1em * var(--element-font-scale,1))}
+[data-locked="true"]{outline:2px solid var(--warning);outline-offset:2px}
 .tab-manager-dialog .search-composite{width:100%}
 .tab-manager-dialog .inline-controls{align-items:end;flex-wrap:wrap}
 .tab-manager-dialog .inline-controls input{flex:1 1 220px}
@@ -656,6 +657,17 @@ html[data-tab-edge="top"] #site-nav a.site-tab,html[data-tab-edge="bottom"] #sit
 .status-hub-form{display:grid;grid-template-columns:1.2fr .7fr 1.2fr auto;align-items:end;gap:12px}
 .status-hub-form label{display:flex;flex-direction:column;gap:6px}
 .status-hub-form button{white-space:nowrap}
+.security-tools{margin-top:var(--gap)}
+.auth-form,.ticket-form,.ladder-actions{display:grid;gap:12px}
+.auth-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+.auth-form label,.ticket-form label,.ladder-actions label{display:flex;flex-direction:column;gap:6px}
+.auth-form button,.ticket-form button{justify-self:start}
+.status-hub-receipt-field{grid-column:1/-1}
+.status-hub-receipt-field textarea{font-family:var(--font-mono);font-size:.78rem;min-height:120px}
+.record-list-item{display:grid;gap:5px;padding:12px;border:1px solid var(--outline-variant);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--on-surface);text-align:left}
+.record-list-item small{color:var(--muted-2)}
+.record-list-item p{margin:0;color:var(--muted);font-size:.82rem}
+.ladder-actions{grid-template-columns:auto auto minmax(150px,1fr);align-items:end}
 .download-status-panel .status-timeline{margin:0}
 .download-status-panel progress{margin-top:8px}
 .download-status-panel .card-top{align-items:flex-start}
@@ -683,9 +695,11 @@ html[data-tab-edge="bottom"] .topbar{position:fixed;top:auto;bottom:0;width:100%
   .universal-settings-grid{grid-template-columns:1fr}
   .status-hub-form{grid-template-columns:1fr 1fr}
   .status-hub-form label:first-child,.status-hub-form label:nth-child(3){grid-column:1/-1}
+  .auth-form{grid-template-columns:1fr}
 }
 @media(max-width:560px){.record-list{grid-template-columns:1fr}.universal-controls{padding:14px}}
 @media(max-width:720px){.suite-grid{grid-template-columns:1fr}.adapter-catalog{grid-template-columns:1fr}.ollama-bridge-form,.ollama-actions{align-items:stretch;flex-direction:column}.ollama-bridge-form>*{width:100%}}
 @media(max-width:560px){.status-hub-form{grid-template-columns:1fr}.status-hub-form label:first-child,.status-hub-form label:nth-child(3){grid-column:auto}.status-hub-form button{width:100%}}
+@media(max-width:560px){.ladder-actions{grid-template-columns:1fr}.auth-form button,.ticket-form button{width:100%}}
 @media(max-width:520px){.tab-manager-row{grid-template-columns:1fr}.tab-manager-actions{justify-content:flex-start}.tab-manager-actions>*{max-width:100%}.tab-manager-dialog{padding:12px}.tab-manager-section{padding:11px}}
 @media(max-width:360px){body{font-size:.92rem}.page-shell{padding-inline:12px}.topbar{padding-inline:10px}.tab-manager-dialog{width:calc(100vw - 12px)}.dialog-heading h2{font-size:1.2rem}.menu-search-trigger{font-size:.68rem;padding-inline:8px}}

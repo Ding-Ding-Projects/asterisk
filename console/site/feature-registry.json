@@ -2229,11 +2229,11 @@
       }
     },
     "support-tickets": {
-      "status": "absent",
-      "note": "No Support Tickets surface exists on the site.",
+      "status": "implemented-unverified",
+      "note": "settings.html and site/app.js now provide local fictional Support Tickets with category, severity, description, local number, immutable local status progression, canned response, no-network and no-delete disclosure, and clear-site-storage recovery copy. No hosted support route is claimed.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/site/settings.html", "console/site/app.js"],
+        "symbols": [{"path": "console/site/app.js", "name": "initSupportTickets", "kind": "function"}]
       },
       "registration": {
         "paths": [],
@@ -2300,11 +2300,11 @@
       }
     },
     "unlock-ladder": {
-      "status": "absent",
-      "note": "No unlock ladder (dim sum / sums / whack-a-mole / clock) exists; there is nothing to unlock in the first place (see per-element-toy-locks).",
+      "status": "partial",
+      "note": "settings.html and site/app.js now provide a local waiting-period ladder equivalent with a generated arithmetic challenge, bounded attempts, no session or cookie mutation, and no attempt refund. The dim-sum, whack-a-mole, server nonce, and server-side grading rungs are unavailable on this static surface and remain unimplemented.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/site/settings.html", "console/site/app.js"],
+        "symbols": [{"path": "console/site/app.js", "name": "initUnlockLadder", "kind": "function"}]
       },
       "registration": {
         "paths": [],
@@ -2371,11 +2371,11 @@
       }
     },
     "built-in-authenticator": {
-      "status": "absent",
-      "note": "No TOTP/authenticator surface, QR generation, or code display exists in site/app.js.",
+      "status": "partial",
+      "note": "settings.html and site/app.js now provide a browser-local TOTP registration surface, otpauth pairing URI, live current and next codes through Web Crypto, and local entry storage. Secrets remain excluded from ordinary export. QR rendering, platform vault storage, and runtime proof remain unavailable in this static lane.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/site/settings.html", "console/site/app.js"],
+        "symbols": [{"path": "console/site/app.js", "name": "initAuthenticator", "kind": "function"}]
       },
       "registration": {
         "paths": [],

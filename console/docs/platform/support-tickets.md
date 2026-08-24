@@ -14,11 +14,11 @@ One unmissable, unstyled line would state plainly that nothing leaves the device
 
 **Desktop application:** Not implemented. The desktop application has no such recovery flow; there is no per-element locking for it to recover from, and no mock support surface exists.
 
-**Documentation website:** Not implemented. The documentation website has no locks for this recovery flow to serve.
+**Documentation website:** Local equivalent implemented, runtime proof unverified. Settings provides a local fictional ticket form with category, severity, description, ticket number, status progression, canned response, and a plain disclosure that nothing is sent and nobody is reading. The recovery route is clear browser storage, not a hosted support process and not an automated delete action.
 
 ## Failure modes
 
-If the file manager cannot be launched on a given machine, the intended behavior is to show the exact folder path as text so the user can navigate there manually; nothing implements the flow yet to hit that fallback.
+The static surface does not open an operating-system file manager. It states the exact recovery action, clearing this site's browser storage, and never claims that a ticket or response left the device.
 
 ## Accessibility and localization
 
@@ -26,7 +26,7 @@ This feature is expected to follow the product's standing accessibility contract
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+This delegated source-only lane did not run tests, builds, browser checks, or captures. The site registry remains `implemented-unverified` for this local equivalent. The desktop application row remains not implemented.
 
 ## Suggested articles
 

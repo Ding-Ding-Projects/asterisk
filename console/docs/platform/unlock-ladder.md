@@ -14,11 +14,11 @@ Every answer would be generated and graded independently of the browser, using a
 
 **Desktop application:** Partial. A lockout timer exists after repeated wrong password attempts on the desktop application's launch gate, but there are no unlock-ladder games, no attempt-budget mechanic, and no server-side challenge grading.
 
-**Documentation website:** Not implemented. The documentation website has no lockable credential for a ladder to apply to.
+**Documentation website:** Partial, local equivalent implemented and runtime proof unverified. Settings provides a local waiting timer and arithmetic challenge with three attempts. A correct answer clears only the local timer, never signs in, creates a cookie, or refunds attempts. The dim-sum, whack-a-mole, server nonce, and server-side grading rungs are unavailable on this static surface.
 
 ## Failure modes
 
-A ladder submission that arrives before its round's own minimum duration has elapsed, or that replays an already-consumed challenge token, is meant to be rejected outright; there is no ladder implementation yet to enforce either check.
+A submission before the local wait expires is disabled and rejected by the local handler. The local ladder is not an authentication factor and has no server nonce, so the surface explicitly does not claim the server-side protections that the desktop or hosted implementation would require.
 
 ## Accessibility and localization
 
@@ -26,7 +26,7 @@ This feature is expected to follow the product's standing accessibility contract
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+This delegated source-only lane did not run tests, builds, browser checks, or captures. The site registry remains partial because only the local equivalent is implemented. The desktop application row remains partial.
 
 ## Suggested articles
 

@@ -14,11 +14,11 @@ A new pairing would be confirmed by entering one live code back before the entry
 
 **Desktop application:** Not implemented. The desktop application has no authenticator surface of any kind.
 
-**Documentation website:** Not implemented. The documentation website has no accounts of its own for an authenticator to pair with.
+**Documentation website:** Partial, local equivalent implemented and runtime proof unverified. Settings provides issuer, account, and manual Base32 registration, stores entries in browser storage, emits an `otpauth://totp/` pairing URI, and shows current and next TOTP codes generated with Web Crypto. QR rendering, platform credential-vault storage, and cloud sync remain unavailable on this static surface.
 
 ## Failure modes
 
-A clock skewed far enough that generated codes would be rejected everywhere is meant to be reported to the user in plain words; there is no authenticator yet to encounter that condition.
+A malformed or short Base32 secret is rejected before storage. Secrets are never included in ordinary export. Clock-skew diagnostics, QR image rendering, and server-side pairing confirmation remain unavailable in this static equivalent.
 
 ## Accessibility and localization
 
@@ -26,7 +26,7 @@ This feature is expected to follow the product's standing accessibility contract
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+This delegated source-only lane did not run tests, builds, browser checks, or captures. The site registry remains partial because QR rendering and platform vault storage are unavailable. The desktop application row remains not implemented.
 
 ## Suggested articles
 
