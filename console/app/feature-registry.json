@@ -173,8 +173,8 @@
       ]
     },
     "personal-vocabulary-upload": {
-      "state": "implemented",
-      "note": "app/renderer/src/personal-vocabulary.ts is imported and fully wired into App.tsx: file load (line 321 loadVocabularyFile), clear (line 332 clearVocabulary), status (lines 309, 313, 382 vocabularyStatus) and storage (line 134 createMemoryStorage/localStorage). Genuinely implemented end to end.",
+      "state": "partial",
+      "note": "app/renderer/src/personal-vocabulary.ts is imported and fully wired into App.tsx: file load (line 321 loadVocabularyFile), clear (line 332 clearVocabulary), status (lines 309, 313, 382 vocabularyStatus) and storage (line 134 createMemoryStorage/localStorage). Genuinely implemented end to end. Corrected 2026-08-23: the loader, validation, clear and status are all real and wired, but the cache is kept in window.localStorage and the renderer is loaded from a file:// origin, where Chromium keeps DOM storage in memory only. Proved while wiring the appearance editor: a value written successfully in one session left no trace in the on-disk store and was gone after relaunch, across three different ways of closing the application. The contract requires the choice to survive a restart, so this is partial rather than implemented until the cache is written through the main process the way the server inventory already is.",
       "files": [
         "app/renderer/src/personal-vocabulary.ts",
         "app/renderer/src/App.tsx"
@@ -262,7 +262,7 @@
     },
     "provider-markup-rendering": {
       "state": "partial",
-      "note": "app/renderer/src/docs-markdown.ts parses bundled documentation body text (headings, paragraphs, fenced code, bullet list items, inline `[text](href)` links) into render-ready blocks, and the `docs` screen (App.tsx docsVals + the compiled `isDocs` template block) renders those blocks as real UI rather than printing raw Markdown source — confirmed by headless capture of the running app. This covers the bundled offline docs only; there is still no renderer for remote-authored text such as release notes or issue bodies.",
+      "note": "app/renderer/src/docs-markdown.ts parses bundled documentation body text (headings, paragraphs, fenced code, bullet list items, inline `[text](href)` links) into render-ready blocks, and the `docs` screen (App.tsx docsVals + the compiled `isDocs` template block) renders those blocks as real UI rather than printing raw Markdown source \u2014 confirmed by headless capture of the running app. This covers the bundled offline docs only; there is still no renderer for remote-authored text such as release notes or issue bodies.",
       "files": [
         "app/renderer/src/docs-markdown.ts",
         "app/renderer/src/App.tsx"
