@@ -22,22 +22,22 @@
       ]
     },
     "dialog-emojis": {
-      "state": "implemented",
+      "state": "partial",
       "note": "global-settings.js provides a persisted Show emojis in dialogs and message boxes switch on every page. It decorates toast headings only, preserving plain control labels and accessible names.",
       "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     },
     "school-mode": {
-      "state": "implemented",
+      "state": "partial",
       "note": "global-settings.js provides a live visitor-local School mode equivalent on every page, with rename, unlock-code digest, reset, English suppression of optional controls, and storage-clear recovery wording. The mode is explicitly described as a user-experience preference rather than a security boundary.",
       "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     },
     "narration": {
-      "state": "implemented",
+      "state": "partial",
       "note": "global-settings.js implements an off-by-default browser narrator with late installed-voice enumeration, stable voiceURI persistence, English/Cantonese/Both serialization, rate and pitch controls, and a superseding queue. It reports browser capability honestly and never invents a voice.",
       "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     },
     "scheduled-settings": {
-      "state": "implemented",
+      "state": "partial",
       "note": "global-settings.js provides a versioned bounded visitor-local rule list with target/value, date/time, weekdays or Every day, timezone-aware matching, cross-midnight handling, precedence, apply/remove, boundary timer, visibility refresh, and separate base/effective values. Theme and density rules consume document root data attributes. External values never silently become permanent base settings.",
       "files": [
         "site/app.js",
@@ -46,7 +46,7 @@
       ]
     },
     "external-settings-sources": {
-      "state": "implemented",
+      "state": "partial",
       "note": "The page equivalent in global-settings.js accepts local, validated HTTPS, loopback development, or Home Assistant endpoint choices. It rejects credentials, query strings, fragments, unsafe hosts, private production hosts, redirects, oversized or deeply nested responses, and unknown fields. Home Assistant accepts only on or off state shapes and applies effective values without writing remote values into the permanent base record. The browser credential-vault limitation is explicit.",
       "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     },
@@ -217,7 +217,7 @@
       ]
     },
     "app-display-name": {
-      "state": "implemented",
+      "state": "partial",
       "note": "global-settings.js exposes a renameable visitor-local display name on every page, updates the document title, brand labels, data-display-name labels, and body consumer inventory, and provides a super-confirmed reset action. An explicit identity boundary keeps shipped package identity, data directory, installer identity, and update feed fixed.",
       "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     },
