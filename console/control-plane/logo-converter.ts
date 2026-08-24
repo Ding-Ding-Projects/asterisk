@@ -52,6 +52,8 @@ export interface IsolatedLogoDecoderHealth {
   readonly workerRevision: string;
   readonly sharpVersion: string;
   readonly peakMemoryBytes: number;
+  readonly baselineWorkingSetBytes: number;
+  readonly peakWorkingSetBytes: number;
   readonly formats: readonly string[];
   readonly sharpIntegrity: string;
   readonly nativePlatform: string;

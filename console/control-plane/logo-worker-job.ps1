@@ -26,6 +26,8 @@ public static class LogoWorkerJobBoundary {
     var process = OpenProcess(0x1F0FFFu, false, pid);
     if (process == IntPtr.Zero || !AssignProcessToJobObject(job, process)) throw new InvalidOperationException("AssignProcessToJobObject failed");
     CloseHandle(process);
+    [Console]::Out.WriteLine('READY');
+    [Console]::Out.Flush();
     try { while (true) { try { using (var p = Process.GetProcessById(pid)) { if (p.HasExited) break; } } catch { break; } System.Threading.Thread.Sleep(40); } }
     finally { CloseHandle(job); }
   }

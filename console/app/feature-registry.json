@@ -882,7 +882,7 @@
     },
     "app-logo-customization": {
       "status": "partial",
-      "note": "Local logo validation, private converted-asset cache, desktop picker, privileged bridge actions, renderer lifecycle, reachable settings route, packaged sharp-backed isolated decoder worker, health handshake, locked-package manifest, and Windows Job Object boundary are mounted. The checked-in manifest awaits generated active sharp JavaScript and native binding hashes, so the decoder remains unavailable until the build path produces verified packaged evidence.",
+      "note": "Local logo validation, private converted-asset cache, desktop picker, privileged bridge actions, renderer lifecycle, reachable settings route, packaged sharp-backed isolated decoder worker, health handshake, locked-package manifest, Windows Job Object boundary, and build-time exact runtime-file hash generation are mounted. The checked-in manifest awaits generated active sharp JavaScript and native binding hashes, so the decoder remains unavailable until the build path produces verified packaged evidence.",
       "implementation": {
         "paths": [
           "shared/logo.ts",

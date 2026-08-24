@@ -70,12 +70,17 @@ export async function mountApplicationRuntime(): Promise<ApplicationRuntime> {
   runtime.settings.hydrate();
   runtime.settings.subscribe(applySettings);
   let scheduleFingerprint = '';
+  let cycleGeneration = 0;
   const refreshExternal = async () => {
+    const generation = ++cycleGeneration;
     const rules = runtime.settings.snapshot().base.schedule.rules.filter((rule) => rule.source.kind !== 'local');
     const ids = rules.map((rule) => rule.id);
     await runtime.external.readState(ids);
+    if (generation !== cycleGeneration) return;
     for (const rule of rules) {
+      if (generation !== cycleGeneration) return;
       const state = await runtime.external.refresh(rule.id, rule.source, rule.assignments);
+      if (generation !== cycleGeneration) return;
       runtime.settings.setScheduleSourceState(rule.id, state.active);
     }
   };

@@ -27,7 +27,8 @@ export interface LogoRuntimeState {
   readonly detail: string;
   readonly active: ActiveLogo;
   readonly decoderAvailable?: boolean;
-  readonly decoderHealth?: { workerVersion: string; workerRevision: string; sharpVersion: string; sharpIntegrity: string; nativePlatform: string; nativeArch: string; nativeFiles: readonly string[]; formats: readonly string[]; peakMemoryBytes: number };
+  readonly cacheStatus?: 'none' | 'validated' | 'decoder-unavailable' | 'invalid';
+  readonly decoderHealth?: { workerVersion: string; workerRevision: string; sharpVersion: string; sharpIntegrity: string; nativePlatform: string; nativeArch: string; nativeFiles: readonly string[]; formats: readonly string[]; peakMemoryBytes: number; baselineWorkingSetBytes: number; peakWorkingSetBytes: number };
 }
 
 function requestId(): string {
@@ -63,7 +64,7 @@ function responseError(response: { ok: boolean; message?: string }): string | un
  * can become active. Conversion failure leaves the previous active mark intact.
  */
 export class LogoRuntime {
-  private state: LogoRuntimeState = { status: 'idle', detail: 'The shipped logo preset is active.', active: initialActive(), decoderAvailable: undefined };
+  private state: LogoRuntimeState = { status: 'idle', detail: 'The shipped logo preset is active.', active: initialActive(), decoderAvailable: undefined, cacheStatus: 'none' };
   private readonly listeners = new Set<(state: LogoRuntimeState) => void>();
 
   constructor(private readonly bridge: LogoRuntimeBridge) {}
@@ -115,6 +116,11 @@ export class LogoRuntime {
 
   getState(): LogoRuntimeState { return this.state; }
 
+  restoreActiveLogo(active: ActiveLogo): LogoRuntimeState {
+    this.publish({ ...this.state, status: 'active', detail: 'The previous logo selection was restored.', active });
+    return this.state;
+  }
+
   selectPreset(presetId: string): LogoRuntimeState {
     if (!LOGO_PRESETS.some((preset) => preset.id === presetId)) return this.state;
     this.publish({ status: 'active', detail: 'The selected shipped logo preset is active.', active: { kind: 'shipped-preset', presetId, crop: DEFAULT_LOGO_CROP, assets: new Map() } });
@@ -140,14 +146,17 @@ export class LogoRuntime {
   async load(): Promise<LogoRuntimeState> {
     this.publish({ ...this.state, status: 'reading', detail: 'Reading the validated local logo cache.' });
     const decoderResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.decoder.status' });
-    const decoderData = decoderResponse.data as { available?: unknown; workerVersion?: unknown; workerRevision?: unknown; sharpVersion?: unknown; sharpIntegrity?: unknown; nativePlatform?: unknown; nativeArch?: unknown; nativeFiles?: unknown; formats?: unknown; peakMemoryBytes?: unknown } | undefined;
-    this.state = { ...this.state, decoderAvailable: decoderResponse.ok && decoderData?.available === true, ...(typeof decoderData?.workerVersion === 'string' && typeof decoderData.workerRevision === 'string' && typeof decoderData.sharpVersion === 'string' && typeof decoderData.sharpIntegrity === 'string' && typeof decoderData.nativePlatform === 'string' && typeof decoderData.nativeArch === 'string' && Array.isArray(decoderData.nativeFiles) && Array.isArray(decoderData.formats) && typeof decoderData.peakMemoryBytes === 'number' ? { decoderHealth: { workerVersion: decoderData.workerVersion, workerRevision: decoderData.workerRevision, sharpVersion: decoderData.sharpVersion, sharpIntegrity: decoderData.sharpIntegrity, nativePlatform: decoderData.nativePlatform, nativeArch: decoderData.nativeArch, nativeFiles: decoderData.nativeFiles.map(String), formats: decoderData.formats.map(String), peakMemoryBytes: decoderData.peakMemoryBytes } } : {}) };
+    const decoderData = decoderResponse.data as { available?: unknown; workerVersion?: unknown; workerRevision?: unknown; sharpVersion?: unknown; sharpIntegrity?: unknown; nativePlatform?: unknown; nativeArch?: unknown; nativeFiles?: unknown; formats?: unknown; peakMemoryBytes?: unknown; baselineWorkingSetBytes?: unknown; peakWorkingSetBytes?: unknown } | undefined;
+    this.state = { ...this.state, decoderAvailable: decoderResponse.ok && decoderData?.available === true, ...(typeof decoderData?.workerVersion === 'string' && typeof decoderData.workerRevision === 'string' && typeof decoderData.sharpVersion === 'string' && typeof decoderData.sharpIntegrity === 'string' && typeof decoderData.nativePlatform === 'string' && typeof decoderData.nativeArch === 'string' && Array.isArray(decoderData.nativeFiles) && Array.isArray(decoderData.formats) && typeof decoderData.peakMemoryBytes === 'number' && typeof decoderData.baselineWorkingSetBytes === 'number' && typeof decoderData.peakWorkingSetBytes === 'number' ? { decoderHealth: { workerVersion: decoderData.workerVersion, workerRevision: decoderData.workerRevision, sharpVersion: decoderData.sharpVersion, sharpIntegrity: decoderData.sharpIntegrity, nativePlatform: decoderData.nativePlatform, nativeArch: decoderData.nativeArch, nativeFiles: decoderData.nativeFiles.map(String), formats: decoderData.formats.map(String), peakMemoryBytes: decoderData.peakMemoryBytes, baselineWorkingSetBytes: decoderData.baselineWorkingSetBytes, peakWorkingSetBytes: decoderData.peakWorkingSetBytes } } : {}) };
+    const settingsResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'settings.snapshot' });
+    const settingsValues = settingsResponse.ok ? (settingsResponse.data as { values?: Record<string, string> } | undefined)?.values : undefined;
+    const cacheStatus = settingsValues?.['logo.cache-status'];
+    const hasValidatedCache = cacheStatus ? (() => { try { return (JSON.parse(cacheStatus) as { hasValidatedCustomLogo?: unknown }).hasValidatedCustomLogo === true; } catch { return false; } })() : false;
     if (this.state.decoderAvailable !== true) {
-      this.publish({ ...this.state, status: 'unavailable', detail: typeof (decoderData as { reason?: unknown } | undefined)?.reason === 'string' ? String((decoderData as { reason: string }).reason) : 'The isolated logo decoder is unavailable; the previous active logo remains available for retry.' });
+      this.publish({ ...this.state, status: 'unavailable', cacheStatus: hasValidatedCache ? 'decoder-unavailable' : 'none', detail: typeof (decoderData as { reason?: unknown } | undefined)?.reason === 'string' ? String((decoderData as { reason: string }).reason) : hasValidatedCache ? 'The validated custom-logo cache is retained until the decoder can retry.' : 'The isolated logo decoder is unavailable; the shipped mark remains active.' });
       return this.state;
     }
-    const settingsResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'settings.snapshot' });
-    const stored = settingsResponse.ok ? (settingsResponse.data as { values?: Record<string, string> } | undefined)?.values?.['logo.ui-v1'] : undefined;
+    const stored = settingsValues?.['logo.ui-v1'];
     if (stored) {
       try {
         const parsed = JSON.parse(stored) as { selectedPresetId?: unknown; crop?: unknown };
@@ -159,30 +168,30 @@ export class LogoRuntime {
     const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.cache.read' });
     const error = responseError(response);
     if (error) {
-      this.publish({ ...this.state, status: 'unavailable', detail: error });
+      this.publish({ ...this.state, status: 'unavailable', cacheStatus: hasValidatedCache ? 'invalid' : 'none', detail: hasValidatedCache ? 'The saved custom-logo cache could not be reopened; it remains retained for retry.' : error });
       return this.state;
     }
     const record = response.data as LogoCacheRecord | undefined;
     if (!record) {
-      this.publish({ ...this.state, status: 'active', detail: 'No custom cache is present; the shipped preset remains active.' });
+      this.publish({ ...this.state, status: 'active', cacheStatus: hasValidatedCache ? 'invalid' : 'none', detail: hasValidatedCache ? 'The saved custom-logo cache could not be reopened; the shipped preset remains active for retry.' : 'No custom cache is present; the shipped preset remains active.' });
       return this.state;
     }
     const assets = new Map<string, Uint8Array>();
     for (const metadata of record.assets) {
       const assetResponse = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'logo.cache.asset.read', payload: { filename: metadata.filename } });
       if (!assetResponse.ok) {
-        this.publish({ ...this.state, status: 'failed', detail: 'A cached logo asset could not be read; the shipped preset remains active.' });
+        this.publish({ ...this.state, status: 'failed', cacheStatus: 'invalid', detail: 'A saved custom-logo asset could not be reopened; it remains retained for retry.' });
         return this.state;
       }
       const asset = assetResponse.data as { filename?: unknown; bytesBase64?: unknown } | undefined;
       const bytes = decodeBase64(asset?.bytesBase64);
       if (!bytes || asset?.filename !== metadata.filename) {
-        this.publish({ ...this.state, status: 'failed', detail: 'A cached logo asset failed byte validation; the shipped preset remains active.' });
+        this.publish({ ...this.state, status: 'failed', cacheStatus: 'invalid', detail: 'A saved custom-logo asset failed reopen validation; it remains retained for retry.' });
         return this.state;
       }
       assets.set(metadata.filename, bytes);
     }
-    this.publish({ status: 'active', detail: 'The validated local logo cache is active.', active: { kind: 'custom-local', presetId: record.selectedPresetId ?? LOGO_PRESETS[0].id, crop: record.crop, record, assets } });
+    this.publish({ ...this.state, status: 'active', cacheStatus: 'validated', detail: 'The validated local logo cache is active.', active: { kind: 'custom-local', presetId: record.selectedPresetId ?? LOGO_PRESETS[0].id, crop: record.crop, record, assets } });
     return this.state;
   }
 

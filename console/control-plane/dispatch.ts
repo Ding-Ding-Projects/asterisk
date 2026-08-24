@@ -660,7 +660,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (!logoDecoder) return { ok: true, requestId: request.requestId, data: { available: false, reason: 'The packaged isolated decoder worker is unavailable.' } };
         try {
           const health = await logoDecoder.health();
-          return { ok: true, requestId: request.requestId, data: { available: true, workerVersion: health.workerVersion, workerRevision: health.workerRevision, sharpVersion: health.sharpVersion, sharpIntegrity: health.sharpIntegrity, nativePlatform: health.nativePlatform, nativeArch: health.nativeArch, nativeFiles: health.nativeFiles, formats: health.formats, peakMemoryBytes: health.peakMemoryBytes } };
+          return { ok: true, requestId: request.requestId, data: { available: true, workerVersion: health.workerVersion, workerRevision: health.workerRevision, sharpVersion: health.sharpVersion, sharpIntegrity: health.sharpIntegrity, nativePlatform: health.nativePlatform, nativeArch: health.nativeArch, nativeFiles: health.nativeFiles, formats: health.formats, peakMemoryBytes: health.peakMemoryBytes, baselineWorkingSetBytes: health.baselineWorkingSetBytes, peakWorkingSetBytes: health.peakWorkingSetBytes } };
         } catch (error) {
           return { ok: true, requestId: request.requestId, data: { available: false, reason: error instanceof Error ? error.message : 'The decoder health handshake failed.' } };
         }
@@ -677,6 +677,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (!result.ok) return { ok: true, requestId: request.requestId, data: result };
         try {
           const record = await logoHandlers.cache.write({ kind: 'write', result, selectedPresetId: typeof request.payload?.selectedPresetId === 'string' ? request.payload.selectedPresetId : undefined });
+          settingsRegistry().set('logo.cache-status', JSON.stringify({ hasValidatedCustomLogo: true, selectedPresetId: record.selectedPresetId, crop: record.crop, updatedAt: record.updatedAt }));
           return { ok: true, requestId: request.requestId, data: { cached: true, record } };
         } catch (error) {
           return { ok: false, requestId: request.requestId, code: 'LOGO_CACHE_WRITE_FAILED', message: error instanceof Error ? error.message : 'The previous logo remains active because the cache write failed.' };
@@ -696,6 +697,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       }
       if (request.action === 'logo.cache.clear') {
         await logoHandlers.cache.clear({ kind: request.payload?.kind === 'reset' ? 'reset' : 'clear' });
+        settingsRegistry().remove('logo.cache-status');
         return { ok: true, requestId: request.requestId, data: { cleared: true } };
       }
       if (request.action === 'external-settings.state') {

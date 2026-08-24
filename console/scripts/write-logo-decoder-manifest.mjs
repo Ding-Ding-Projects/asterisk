@@ -13,7 +13,7 @@ function walk(directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const path = join(directory, entry.name);
     if (entry.isDirectory()) walk(path);
-    else if (/\.(?:js|node)$/u.test(entry.name) && (entry.name === 'index.js' || entry.name.endsWith('.node'))) {
+    else if (/\.(?:js|mjs|cjs|node|dll|exe|so|dylib|wasm)$/iu.test(entry.name)) {
       files.push({ path: relative(root, path).replaceAll('\\', '/'), sha256: createHash('sha256').update(readFileSync(path)).digest('hex') });
     }
   }

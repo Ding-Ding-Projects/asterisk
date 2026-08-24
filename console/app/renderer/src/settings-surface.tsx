@@ -150,6 +150,7 @@ export function SettingsSurface() {
       <LogoSurface
         state={logoState}
         onStateChange={(patch) => {
+          const priorActive = logoRuntime.getState().active;
           if (patch.selectedPresetId) logoRuntime.selectPreset(patch.selectedPresetId);
           setLogoState((previous) => {
             const next = { ...previous, ...patch };
@@ -157,7 +158,7 @@ export function SettingsSurface() {
             void logoRuntime.persistUiState({ selectedPresetId: next.selectedPresetId, crop: next.crop }).then((result) => {
               if (!result.ok) {
                 setLogoState(previous);
-                logoRuntime.selectPreset(previous.selectedPresetId);
+                logoRuntime.restoreActiveLogo(priorActive);
                 setLogoPersistStatus(`${result.reason ?? 'Logo selection was not saved.'} Previous selection restored.`);
               } else setLogoPersistStatus('Logo selection saved.');
             });
