@@ -178,7 +178,7 @@
     },
     "complete-exports": {
       "state": "implemented",
-      "note": "Mounted export inventory is explicit: table bulk export, appearance JSON export, changelog Markdown export, tab JSON export, group JSON export and all-tabs JSON export produce typed latest-export records and browser files. History bundle and row configuration export controls report honest unavailable states because their real local source data is not mounted. The external-editor handoff opens the latest typed record in Visual Studio Code.",
+      "note": "Mounted export inventory is explicit: table bulk export, appearance JSON export, changelog Markdown export, tab JSON export, group JSON export and all-tabs JSON export produce typed latest-export records and browser files. History bundle and row configuration export controls report honest unavailable states because their real local source data is not mounted. The external-editor handoff opens the latest typed record in the selected editor, while Visual Studio Code has a separate explicit action.",
       "files": [
         "app/renderer/src/export.ts",
         "app/renderer/src/App.tsx",

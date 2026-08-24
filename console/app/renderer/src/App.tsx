@@ -23,7 +23,7 @@ import {
 import { createDurableStorage, type DurableStorageHandle } from './durable-storage';
 import {
   isLanguageMode, languageMode, setCatalog, setLanguageMode, setVocabularyStorage,
-  type LanguageMode,
+  localizeText, type LanguageMode,
 } from './text-boundary';
 import { CANTONESE } from './locale-yue';
 import {
@@ -318,9 +318,15 @@ export class App extends Base {
   }
 
   private editorResult(result: ExternalEditorLaunchResult | undefined): void {
-    if (!result) { this.fire('Editor not reached', 'The desktop bridge is unavailable, so nothing was opened.'); return; }
-    if (result.ok) { this.externalEditorStatus = { ...this.externalEditorStatus, operation: result.progress }; this.toast(result.source ? `${result.editorId} opened local materialization for ${result.source}` : `${result.editorId} opened ${result.target.path}`); this.forceUpdate(); return; }
-    this.fire('Editor not opened', result.message);
+    if (!result) { this.fire(localizeText('Editor not reached'), localizeText('The desktop bridge is unavailable')); return; }
+    if (result.ok) {
+      this.externalEditorStatus = { ...this.externalEditorStatus, operation: result.progress };
+      const filename = result.source ?? result.target.path;
+      this.fire(localizeText('Editor handoff complete'), `${filename} · ${localizeText('Opened in selected editor')}`);
+      this.forceUpdate();
+      return;
+    }
+    this.fire(localizeText('Editor not opened'), result.message);
     void this.bridge()?.externalEditor.detect().then((status) => { this.externalEditorStatus = status; this.forceUpdate(); });
   }
 
@@ -337,18 +343,18 @@ export class App extends Base {
     anchor.download = record.name;
     anchor.click();
     URL.revokeObjectURL(url);
-    this.fire('Exported', `${record.name} is ready and can be opened in Visual Studio Code.`);
+    this.fire(localizeText('Export ready'), `${record.name} · ${localizeText(this.externalEditorStatus.selectedId ? 'Ready to open in selected editor' : 'Choose an editor first')}`);
   };
 
   exportUnavailable = (title: string, reason: string): void => this.fire(title, reason);
 
   private async editorAction(action: string): Promise<void> {
     const bridge = this.bridge();
-    if (!bridge?.externalEditor) { this.fire('Editor not reached', 'The desktop bridge is unavailable, so nothing was opened.'); return; }
+    if (!bridge?.externalEditor) { this.fire(localizeText('Editor not reached'), localizeText('The desktop bridge is unavailable')); return; }
     if (action === 'editor-browse') {
       const picked = await bridge.externalEditor.pickExecutable();
       this.externalEditorStatus = { ...this.externalEditorStatus, operation: picked.operation };
-      if (picked.canceled) { if (picked.reason === 'busy') this.fire('Editor picker busy', 'Another native picker is already open.'); else this.toast('Executable picker cancelled.'); return; }
+      if (picked.canceled) { if (picked.reason === 'busy') this.fire(localizeText('Editor picker busy'), localizeText('Another native picker is already open')); else this.toast(localizeText('Executable picker cancelled')); return; }
       if (!picked.canceled && picked.value) {
         this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, 'pbxadm:ed_custom_path': picked.value } }));
         this.toast('Executable selected. Save the custom editor to keep it.');
@@ -358,7 +364,7 @@ export class App extends Base {
     if (action === 'editor-pick-portable') {
       const picked = await bridge.externalEditor.pickExecutable();
       this.externalEditorStatus = { ...this.externalEditorStatus, operation: picked.operation };
-      if (picked.canceled) { if (picked.reason === 'busy') this.fire('Editor picker busy', 'Another native picker is already open.'); else this.toast('Portable executable picker cancelled.'); return; }
+      if (picked.canceled) { if (picked.reason === 'busy') this.fire(localizeText('Editor picker busy'), localizeText('Another native picker is already open')); else this.toast(localizeText('Portable executable picker cancelled')); return; }
       if (!picked.canceled && picked.value) {
         try { this.externalEditorStatus = await bridge.externalEditor.savePortable(picked.value); this.toast('Portable Visual Studio Code path saved and selected.'); this.forceUpdate(); }
         catch (error) { this.fire('Portable editor not saved', error instanceof Error ? error.message : String(error)); }
@@ -368,7 +374,7 @@ export class App extends Base {
     if (action === 'editor-pick-project') {
       const picked = await bridge.externalEditor.pickFolder();
       this.externalEditorStatus = { ...this.externalEditorStatus, operation: picked.operation };
-      if (picked.canceled) { if (picked.reason === 'busy') this.fire('Project folder picker busy', 'Another native picker is already open.'); else this.toast('Project folder picker cancelled.'); return; }
+      if (picked.canceled) { if (picked.reason === 'busy') this.fire(localizeText('Project folder picker busy'), localizeText('Another native picker is already open')); else this.toast(localizeText('Project folder picker cancelled')); return; }
       if (!picked.canceled && picked.value) { this.externalProjectFolder = picked.value; this.toast(`Project folder selected: ${picked.value}`); this.forceUpdate(); }
       return;
     }
@@ -398,14 +404,14 @@ export class App extends Base {
     }
     if (action === 'editor-download') {
       const selectedId = this.externalEditorStatus.selectedId;
-      if (!selectedId) { this.fire('No editor selected', 'Choose an editor first. The generic download action does not assume Visual Studio Code.'); return; }
+      if (!selectedId) { this.fire(localizeText('No editor selected'), localizeText('Choose an editor first')); return; }
       const result = await bridge.externalEditor.openDownload(selectedId);
-      if (result.ok) this.toast('Official editor download opened.'); else this.fire('Download link not opened', result.message);
+      if (result.ok) this.toast(localizeText('Generic editor download opened')); else this.fire(localizeText('Download link not opened'), result.message);
       return;
     }
     if (action === 'editor-download-vscode') {
       const result = await bridge.externalEditor.openDownload('vscode');
-      if (result.ok) this.toast('Official Visual Studio Code download opened.'); else this.fire('Visual Studio Code download not opened', result.message);
+      if (result.ok) this.toast(localizeText('Visual Studio Code download opened')); else this.fire(localizeText('Visual Studio Code download not opened'), result.message);
       return;
     }
     if (action === 'editor-remove-custom') {
@@ -428,9 +434,9 @@ export class App extends Base {
     }
     if (action === 'editor-cancel-operation') {
       const operationId = this.externalEditorStatus.operation?.operationId;
-      if (!operationId || this.externalEditorStatus.operation?.state !== 'running') { this.fire('No active editor operation', 'There is no running editor operation to cancel.'); return; }
-      try { this.externalEditorStatus = await bridge.externalEditor.cancelOperation(operationId); this.toast('Editor operation cancelled.'); this.forceUpdate(); }
-      catch (error) { this.fire('Editor operation not cancelled', error instanceof Error ? error.message : String(error)); }
+      if (!operationId || this.externalEditorStatus.operation?.state !== 'running') { this.fire(localizeText('No active editor operation'), localizeText('There is no running editor operation to cancel')); return; }
+      try { this.externalEditorStatus = await bridge.externalEditor.cancelOperation(operationId); this.toast(localizeText('Editor operation cancelled')); this.forceUpdate(); }
+      catch (error) { this.fire(localizeText('Editor operation not cancelled'), error instanceof Error ? error.message : String(error)); }
       return;
     }
     if (action === 'editor-open-vscode') {
@@ -439,7 +445,7 @@ export class App extends Base {
       return;
     }
     if (action === 'editor-open-export') {
-      if (!this.latestExport) { this.fire('No export to open', 'Export something first. The editor handoff does not invent a file.'); return; }
+      if (!this.latestExport) { this.fire(localizeText('No export to open'), localizeText('Export something first')); return; }
       this.editorResult(await bridge.externalEditor.openExport({ ...this.latestExport, editorId: this.externalEditorStatus.selectedId }));
       return;
     }

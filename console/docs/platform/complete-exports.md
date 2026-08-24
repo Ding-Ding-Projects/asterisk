@@ -12,7 +12,7 @@ Exports would be complete and, where the shape allows it, re-importable, rather 
 
 ## Current status
 
-**Desktop application:** Partial but mounted for the real producer inventory. Table bulk exports, appearance JSON, changelog Markdown, tab JSON, group JSON, and all-tabs JSON produce typed latest-export records plus browser files. The external editor surface can open the latest record directly in Visual Studio Code.
+**Desktop application:** Partial but mounted for the real producer inventory. Table bulk exports, appearance JSON, changelog Markdown, tab JSON, group JSON, and all-tabs JSON produce typed latest-export records plus browser files. The external editor surface can open the latest record directly in the selected editor. Visual Studio Code has a separate explicit handoff action.
 
 **Documentation website:** Partial. The site's settings page includes a placeholder export button that is not wired to produce a file yet.
 
