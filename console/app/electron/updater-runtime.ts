@@ -33,7 +33,16 @@ export function readCurrentTag(): string | undefined {
     : join(app.getAppPath(), 'resources', 'update-manifest.json');
   if (!existsSync(path)) return undefined;
   try {
-    const parsed = JSON.parse(readFileSync(path, 'utf8')) as { tag: string | null };
+    const parsed = JSON.parse(readFileSync(path, 'utf8')) as {
+      schemaVersion?: number;
+      tag?: string | null;
+      version?: string;
+      candidateCommit?: string;
+    };
+    if (parsed.schemaVersion !== 1) return undefined;
+    if (typeof parsed.version !== 'string' || !/^\d+\.\d+\.\d+$/u.test(parsed.version)) return undefined;
+    if (typeof parsed.candidateCommit !== 'string' || !/^[0-9a-f]{40}$/u.test(parsed.candidateCommit)) return undefined;
+    if (parsed.tag !== null && typeof parsed.tag !== 'string') return undefined;
     return parsed.tag ?? undefined;
   } catch {
     return undefined;
@@ -96,11 +105,11 @@ export async function downloadAsset(asset: ReleaseAsset, fetchImpl: typeof fetch
   return { path, sha256: hash.digest('hex'), size };
 }
 
-/** Fetches the plain-text SHA256SUMS.txt asset, or undefined when the release did not publish one. */
-export async function fetchShaSumsText(resolved: ResolvedUpdate, fetchImpl: typeof fetch = fetch): Promise<string | undefined> {
-  if (!resolved.shaSumsAsset) return undefined;
+/** Fetches the required plain-text SHA256SUMS.txt asset. */
+export async function fetchShaSumsText(resolved: ResolvedUpdate, fetchImpl: typeof fetch = fetch): Promise<string> {
+  if (!resolved.shaSumsAsset) throw new Error('The release does not include SHA256SUMS.txt.');
   const response = await fetchImpl(resolved.shaSumsAsset.browserDownloadUrl);
-  if (!response.ok) return undefined;
+  if (!response.ok) throw new Error(`SHA256SUMS.txt download failed with status ${response.status}.`);
   return response.text();
 }
 
@@ -116,6 +125,12 @@ export function discardDownload(path: string): void {
  * this genuinely upgrades the app rather than merely reinstalling a copy beside it.
  */
 export function launchInstallerAndQuit(installerPath: string): void {
-  spawn(installerPath, ['--silent'], { detached: true, stdio: 'ignore' }).unref();
-  app.quit();
+  const child = spawn(installerPath, ['--silent'], { detached: true, stdio: 'ignore' });
+  child.once('spawn', () => {
+    child.unref();
+    app.quit();
+  });
+  child.once('error', () => {
+    // Keep the current application open. A failed process start is not an update launch.
+  });
 }

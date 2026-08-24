@@ -221,6 +221,18 @@ export class HypervisorVmProvisioning {
     if (confirmedVmName !== MANAGED_VM_NAME) {
       return { name: "stop", ok: false, detail: `This deployer only stops ${MANAGED_VM_NAME}; it will not stop ${confirmedVmName}.` };
     }
+    const info = await this.#vboxManage(["showvminfo", MANAGED_VM_NAME, "--machinereadable"], signal, 15_000);
+    if (info.status !== "succeeded") {
+      return {
+        name: "stop",
+        ok: false,
+        detail: stripNulls(info.stderr).trim() || `VBoxManage showvminfo exited with ${info.exitCode}`,
+      };
+    }
+    const state = /^VMState="([^"]+)"$/mu.exec(stripNulls(info.stdout))?.[1];
+    if (state === "poweroff" || state === "saved" || state === "aborted") {
+      return { name: "stop", ok: true, detail: `${MANAGED_VM_NAME} was already stopped (${state})` };
+    }
     const result = await this.#vboxManage(["controlvm", MANAGED_VM_NAME, "poweroff"], signal, 60_000);
     return {
       name: "stop",

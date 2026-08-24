@@ -10,7 +10,7 @@
  */
 import { app, BrowserWindow, ipcMain } from "electron";
 import path from "node:path";
-import { readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { NodeProcessExecutor } from "../../control-plane/executor.js";
 import { DeployOrchestrator, type DeployTarget } from "../../control-plane/deploy-orchestrator.js";
@@ -20,7 +20,7 @@ import { SshIdentityStore } from "../../control-plane/ssh-identity-store.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const executor = new NodeProcessExecutor({
-  allowedExecutables: ["VBoxManage", "ssh"],
+  allowedExecutables: ["VBoxManage", "ssh", "scp"],
   defaultTimeoutMs: 30_000,
 });
 
@@ -47,25 +47,23 @@ function resourcePath(...segments: string[]): string {
   return path.join(base, ...segments);
 }
 
-function readInstallScript(): string {
-  try {
-    return readFileSync(resourcePath("server", "install.sh"), "utf8");
-  } catch {
-    /* The server-mode lane's install script is not present in this build yet. The
-     * orchestrator fails cleanly at the "copy install script" step rather than
-     * silently deploying nothing. */
-    return "";
-  }
+function serverPayloadRootIfComplete(): string | undefined {
+  const candidate = app.isPackaged
+    ? resourcePath("server-payload")
+    : path.resolve(app.getAppPath(), "..", "console");
+  const required = [
+    "dist",
+    "dist-electron",
+    "resources",
+    path.join("server", "deploy", "install.sh"),
+    path.join("server", "deploy", "ding-pbx-console.service"),
+  ];
+  return required.every((relative) => existsSync(path.join(candidate, relative))) ? candidate : undefined;
 }
 
 function appliancePathIfPresent(): string | undefined {
   const candidate = resourcePath("pbx", "ding-pbx.ova");
-  try {
-    readFileSync(candidate);
-    return candidate;
-  } catch {
-    return undefined;
-  }
+  return existsSync(candidate) ? candidate : undefined;
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -74,7 +72,7 @@ function createOrchestrator(): DeployOrchestrator {
   return new DeployOrchestrator({
     executor,
     appliancePath: appliancePathIfPresent(),
-    installScriptText: readInstallScript(),
+    payloadRoot: serverPayloadRootIfComplete(),
     approvedSshIdentities: identityStore.identities(),
   });
 }
@@ -135,7 +133,13 @@ ipcMain.handle("deployer:deploy", async (event: Electron.IpcMainInvokeEvent, tar
  */
 ipcMain.handle("deployer:remove-local-vm", async () => {
   const provisioning = new HypervisorVmProvisioning({ executor, appliancePath: appliancePathIfPresent() ?? "" });
-  return provisioning.remove(MANAGED_VM_NAME);
+  const stopped = await provisioning.stop(MANAGED_VM_NAME);
+  if (!stopped.ok) return stopped;
+  const removed = await provisioning.remove(MANAGED_VM_NAME);
+  return {
+    ...removed,
+    detail: removed.ok ? `${stopped.detail}; ${removed.detail}` : removed.detail,
+  };
 });
 
 ipcMain.on("window:minimize", () => mainWindow?.minimize());

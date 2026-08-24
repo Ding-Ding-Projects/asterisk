@@ -4,8 +4,8 @@
  * Ding PBX Console ships as Squirrel.Windows installers built and published by
  * `.github/workflows/delivery.yml`. Every push to `master` builds a fresh unsigned
  * Setup.exe/RELEASES/*.nupkg set and publishes it under a brand-new, immutable GitHub
- * Release tag shaped `ding-pbx-console-v0.0.<run number>-r<run attempt>` (see the
- * `release` job's `$tag` assignment). Each release stands alone: its RELEASES file only
+ * Release tag shaped `ding-pbx-console-v<version>-r<run attempt>` (see the release
+ * job's `$tag` assignment). Each release stands alone: its RELEASES file only
  * ever references the nupkg built in that same run, so there is no single running feed
  * directory that accumulates nupkgs release over release the way Squirrel's original
  * update protocol (and Electron's built-in `autoUpdater`, which speaks that protocol on
@@ -53,24 +53,30 @@ export interface GitHubRelease {
 
 export interface ResolvedUpdate {
   tag: string;
-  /** The numeric run/attempt pair extracted from the tag, used only to order releases. */
-  ordinal: readonly [number, number];
+  /** Semantic version plus run attempt, used only to order releases. */
+  ordinal: readonly [number, number, number, number];
   releaseUrl: string;
   setupAsset: ReleaseAsset;
-  shaSumsAsset: ReleaseAsset | undefined;
+  shaSumsAsset: ReleaseAsset;
 }
 
-const TAG_PATTERN = /^ding-pbx-console-v0\.0\.(\d+)-r(\d+)$/;
+const TAG_PATTERN = /^ding-pbx-console-v(\d+)\.(\d+)\.(\d+)-r(\d+)$/;
 
 /** Parses this project's own tag shape. Returns undefined for anything else, including a tag from a different product. */
-export function parseReleaseTag(tag: string): readonly [number, number] | undefined {
+export function parseReleaseTag(tag: string): readonly [number, number, number, number] | undefined {
   const match = TAG_PATTERN.exec(tag.trim());
   if (!match) return undefined;
-  return [Number(match[1]), Number(match[2])];
+  return [Number(match[1]), Number(match[2]), Number(match[3]), Number(match[4])];
 }
 
-function compareOrdinal(a: readonly [number, number], b: readonly [number, number]): number {
-  return a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1];
+function compareOrdinal(
+  a: readonly [number, number, number, number],
+  b: readonly [number, number, number, number],
+): number {
+  for (const index of [0, 1, 2, 3] as const) {
+    if (a[index] !== b[index]) return a[index] - b[index];
+  }
+  return 0;
 }
 
 /**
@@ -80,7 +86,7 @@ function compareOrdinal(a: readonly [number, number], b: readonly [number, numbe
  */
 export function resolveLatestUpdate(
   releases: readonly GitHubRelease[],
-  currentOrdinal: readonly [number, number] | undefined,
+  currentOrdinal: readonly [number, number, number, number] | undefined,
 ): ResolvedUpdate | undefined {
   let best: ResolvedUpdate | undefined;
   for (const release of releases) {
@@ -92,6 +98,7 @@ export function resolveLatestUpdate(
     const setupAsset = release.assets.find((asset) => asset.name.toLowerCase().endsWith('setup.exe'));
     if (!setupAsset || !setupAsset.browserDownloadUrl.startsWith('https://')) continue;
     const shaSumsAsset = release.assets.find((asset) => asset.name === 'SHA256SUMS.txt');
+    if (!shaSumsAsset || !shaSumsAsset.browserDownloadUrl.startsWith('https://')) continue;
     best = { tag: release.tagName, ordinal, releaseUrl: release.htmlUrl, setupAsset, shaSumsAsset };
   }
   return best;
@@ -155,13 +162,14 @@ export function beganDownloading(s: UpdaterState): UpdaterState {
   return { ...s, state: 'downloading' };
 }
 
-/** Transition: the download landed and its hash matched (or no hash was published to check against). */
+/** Transition: the download landed and its required published hash matched. */
 export function downloadReady(s: UpdaterState, downloadedPath: string): UpdaterState {
   return { ...s, state: 'ready', downloadedPath };
 }
 
 /** Transition: the user dismissed the ready banner for now. The update stays resolved so the banner can return. */
 export function dismissedForNow(s: UpdaterState): UpdaterState {
+  if (s.state === 'ready') return s;
   return { ...s, state: s.resolved ? 'available' : 'idle' };
 }
 
@@ -185,7 +193,10 @@ export function verifyDownload(
   if (file.size !== resolved.setupAsset.size) {
     return { ok: false, reason: `Downloaded ${file.size} bytes but the release declared ${resolved.setupAsset.size}.` };
   }
-  if (expectedDigest && file.sha256.toLowerCase() !== expectedDigest.toLowerCase()) {
+  if (!expectedDigest) {
+    return { ok: false, reason: 'The release did not publish a SHA-256 digest for Setup.exe.' };
+  }
+  if (file.sha256.toLowerCase() !== expectedDigest.toLowerCase()) {
     return { ok: false, reason: 'Downloaded file does not match the published SHA-256 digest.' };
   }
   return { ok: true };

@@ -1,0 +1,26 @@
+appId: org.dingdingprojects.dingpbxdeployer
+productName: Ding PBX Deployer
+directories:
+  output: dist/squirrel-windows
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - app/electron/preload.cjs
+extraResources:
+  - from: ../console/dist
+    to: server-payload/dist
+  - from: ../console/dist-electron
+    to: server-payload/dist-electron
+  - from: ../console/resources
+    to: server-payload/resources
+  - from: ../console/server/deploy
+    to: server-payload/server/deploy
+win:
+  target: squirrel
+  icon: ../console/assets/icon.png
+  signExecutable: false
+  signAndEditExecutable: false
+forceCodeSigning: false
+squirrelWindows:
+  artifactName: Ding-PBX-Deployer-Setup.${ext}
+  iconUrl: https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/0d831e3dce93c4194313567659aadac90c22372e/console/assets/icon.png

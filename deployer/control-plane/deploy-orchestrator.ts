@@ -44,8 +44,10 @@ export interface DeployOrchestratorOptions {
   executor: ProcessExecutor;
   /** Absolute path to the bundled VirtualBox appliance, or undefined if not carried. */
   appliancePath?: string;
-  /** The install script text bundled with this application, for SSH targets. */
-  installScriptText: string;
+  /** Absolute path to the complete server payload bundled with this application. */
+  payloadRoot?: string;
+  /** Retained only so older callers fail at runtime with the complete-payload reason instead of failing to compile. */
+  installScriptText?: string;
   approvedSshIdentities: ReadonlyArray<ApprovedSshIdentity>;
   serverPort?: number;
   healthGetter?: HttpGetter;
@@ -58,7 +60,7 @@ export type ProgressCallback = (step: DeployStepReport) => void;
 export class DeployOrchestrator {
   readonly #executor: ProcessExecutor;
   readonly #appliancePath?: string;
-  readonly #installScriptText: string;
+  readonly #payloadRoot?: string;
   readonly #approvedSshIdentities: ReadonlyArray<ApprovedSshIdentity>;
   readonly #serverPort: number;
   readonly #healthGetter?: HttpGetter;
@@ -68,7 +70,7 @@ export class DeployOrchestrator {
   constructor(options: DeployOrchestratorOptions) {
     this.#executor = options.executor;
     this.#appliancePath = options.appliancePath;
-    this.#installScriptText = options.installScriptText;
+    this.#payloadRoot = options.payloadRoot;
     this.#approvedSshIdentities = options.approvedSshIdentities;
     this.#serverPort = options.serverPort ?? DEFAULT_SERVER_PORT;
     this.#healthGetter = options.healthGetter;
@@ -155,7 +157,7 @@ export class DeployOrchestrator {
     const ssh = new SshServerDeployer(this.#executor, approvedIdentities);
     let outcome;
     try {
-      outcome = await ssh.deployInstallScript(target, this.#installScriptText, signal);
+      outcome = await ssh.deployPayload(target, this.#payloadRoot, signal);
     } catch (error) {
       if (error instanceof HostKeyMismatchError) {
         report({ name: "host key", ok: false, detail: `Host key for ${target.host}:${target.port} changed since it was last trusted. Deployment stopped to protect against a compromised or spoofed target.` });
@@ -176,7 +178,7 @@ export class DeployOrchestrator {
       name: "verify server responds",
       ok: health.ok,
       detail: health.ok
-        ? `server answered: Asterisk ${health.health?.asteriskVersion}`
+        ? `server readiness route answered; first-run setup required: ${health.health?.needsSetup ? "yes" : "no"}`
         : (health.reason ?? "The server did not answer."),
     });
     if (!health.ok) return { ok: false, steps, address: target.host };
@@ -186,8 +188,7 @@ export class DeployOrchestrator {
       steps,
       address: target.host,
       adminUrl: `http://${target.host}:${this.#serverPort}`,
-      asteriskVersion: health.health?.asteriskVersion,
-      authRequired: health.health?.authRequired,
+      authRequired: health.health ? !health.health.needsSetup : undefined,
     };
   }
 }

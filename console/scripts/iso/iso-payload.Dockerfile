@@ -43,11 +43,17 @@ RUN test -n "$ASTERISK_SOURCE_REVISION" && \
 ARG CONSOLE_BUILD_BASE_IMAGE=node:22.23.2-bookworm-slim
 FROM ${CONSOLE_BUILD_BASE_IMAGE} AS console-build
 
+ARG DING_PBX_VERSION
+ARG DING_PBX_CANDIDATE_COMMIT
+ENV DING_PBX_VERSION=${DING_PBX_VERSION}
+ENV DING_PBX_CANDIDATE_COMMIT=${DING_PBX_CANDIDATE_COMMIT}
+
 WORKDIR /console
 COPY console/package.json console/package-lock.json* ./
 RUN npm ci --no-audit --no-fund
 COPY console/ ./
-RUN npm run compile:design && npm run bundle:docs && npm run write:update-manifest && npx tsc -b && npx vite build
+RUN test -n "$DING_PBX_VERSION" && test -n "$DING_PBX_CANDIDATE_COMMIT" && \
+    npm run compile:design && npm run bundle:docs && npm run write:update-manifest && npx tsc -b && npx vite build
 
 # ---------------------------------------------------------------------------
 

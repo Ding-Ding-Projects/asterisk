@@ -1,6 +1,6 @@
 {
   "name": "ding-pbx-deployer",
-  "version": "0.1.0",
+  "version": "0.0.0-development",
   "description": "One-click deployer that stands up a Ding PBX server on a VM or remote host.",
   "author": "Ding-Ding-Projects",
   "private": true,

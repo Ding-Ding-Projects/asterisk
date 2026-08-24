@@ -50,16 +50,16 @@ export function registerDeployerScreens(): void {
       file: "deployer",
       kind: undefined,
       sub:
-        "Choose where to stand up the server, then run the deployment. Every dependency is " +
-        "obtained automatically; nothing here asks you to go and install something by hand.",
+        "Choose a detected route, then run the deployment. Remote hosts must already provide Asterisk, " +
+        "Node.js 22 or newer, and passwordless sudo for the approved account.",
       groups: [
         {
           title: "Target",
           desc: "Where the server is deployed. Only VirtualBox is offered if it is actually installed, " +
             "and only SSH targets you have approved below can be dialed.",
           ctls: [
-            ctl("d_mode", "Target", "segmented", "Local VM", {
-              options: ["Local VM", "Remote host (SSH)"],
+            ctl("d_mode", "Target", "segmented", "Detecting targets", {
+              options: ["Detecting targets"],
               info: "Local VM imports a bundled appliance into VirtualBox on this machine. Remote host connects " +
                 "over SSH to a Linux machine you already have and installs the server there.",
             }),
@@ -85,7 +85,7 @@ export function registerDeployerScreens(): void {
               options: ["Deploy Ding PBX"],
               action: "deploy-run",
               info: "Runs the full one-click deployment against the chosen target and does not report success " +
-                "until the server actually answers its health endpoint with a real Asterisk version.",
+                "until the server actually answers its readiness route with valid setup metadata.",
             }),
           ],
         },
@@ -203,6 +203,9 @@ export class DeployerShell extends Base {
   private lastSteps: DeployStepReport[] = [];
   private lastResult: DeployResult | null = null;
   private sshTargets: ReadonlyArray<{ host: string; port: number; user: string; label?: string }> = [];
+  private localVm: { available: boolean; version?: string; reason?: string; appliancePresent: boolean } | null = null;
+  private targetsLoaded = false;
+  private targetDetectionError = "";
   private addedTargetFileName = "";
   private unsubscribeProgress?: () => void;
 
@@ -213,7 +216,7 @@ export class DeployerShell extends Base {
       this.applyProgressRows();
       this.forceUpdate();
     });
-    void this.refreshSshTargets();
+    void this.refreshTargets();
   }
 
   componentWillUnmount(): void {
@@ -221,15 +224,48 @@ export class DeployerShell extends Base {
     this.unsubscribeProgress?.();
   }
 
-  private async refreshSshTargets(): Promise<void> {
-    this.sshTargets = await window.deployer.listApprovedSshIdentities();
-    this.forceUpdate();
+  private async refreshTargets(): Promise<void> {
+    this.targetsLoaded = false;
+    this.targetDetectionError = "";
+    try {
+      const [detected, sshTargets] = await Promise.all([
+        window.deployer.detectTargets(),
+        window.deployer.listApprovedSshIdentities(),
+      ]);
+      this.localVm = detected.localVm;
+      this.sshTargets = sshTargets;
+      const options = this.availableTargetModes();
+      const current = String((this.state.values as Record<string, unknown>).d_mode ?? "");
+      if (options.length > 0 && !options.includes(current)) this.set("d_mode", options[0]);
+    } catch (error) {
+      this.localVm = null;
+      this.sshTargets = [];
+      this.targetDetectionError = error instanceof Error ? error.message : "Target detection failed.";
+    } finally {
+      this.targetsLoaded = true;
+      this.forceUpdate();
+    }
+  }
+
+  private availableTargetModes(): string[] {
+    const modes: string[] = [];
+    if (this.localVm?.available && this.localVm.appliancePresent) modes.push("Local VM");
+    if (this.sshTargets.length > 0) modes.push("Remote host (SSH)");
+    return modes;
   }
 
   private applyProgressRows(): void {
-    const table = (SCREENS as Record<string, { table?: { rows: string[][] } }>).progress.table;
+    const progress = (SCREENS as Record<string, { sub?: string; table?: { rows: string[][] } }>).progress;
+    const table = progress.table;
     if (!table) return;
     table.rows = this.lastSteps.map((step) => [step.name, step.ok ? "✓ ok" : "✗ failed", step.detail]);
+    progress.sub = this.running
+      ? "Deployment is running. Completed steps appear below as the target reports them."
+      : this.lastResult?.ok
+        ? "The last deployment was verified by the installed server's readiness response."
+        : this.lastResult
+          ? "The last deployment did not complete. The final row names the observed reason."
+          : "No deployment has run in this session."
   }
 
   /** Read by the `select`-kind `d_sshtarget` control before every render. */
@@ -242,9 +278,27 @@ export class DeployerShell extends Base {
       : ["(none approved yet)"];
   }
 
+  private applyTargetModeOptions(): void {
+    const deployScreen = (SCREENS as Record<string, { groups?: Array<{ ctls?: Array<Record<string, unknown>> }> }>).deploy;
+    const control = deployScreen?.groups?.flatMap((group) => group.ctls ?? []).find((c) => c.id === "d_mode");
+    if (!control) return;
+    const modes = this.availableTargetModes();
+    control.options = !this.targetsLoaded
+      ? ["Detecting targets"]
+      : modes.length > 0
+        ? modes
+        : ["No available target"];
+    control.info = this.targetDetectionError
+      ? `Target detection failed: ${this.targetDetectionError}`
+      : modes.length === 0 && this.targetsLoaded
+        ? "No deployable route is available. A local route requires VirtualBox and the bundled appliance. A remote route requires an approved SSH target."
+        : "Only routes detected from the current machine and approved target store are listed.";
+  }
+
   renderVals(): Record<string, unknown> {
     this.applyProgressRows();
     this.applySshTargetOptions();
+    this.applyTargetModeOptions();
     const values = super.renderVals();
     return {
       ...values,
@@ -262,8 +316,9 @@ export class DeployerShell extends Base {
   };
 
   private currentTarget(): DeployTarget | undefined {
-    const mode = String((this.state.values as Record<string, unknown>).d_mode ?? "Local VM");
-    if (mode === "Local VM") return { kind: "localVm" };
+    if (!this.targetsLoaded) return undefined;
+    const mode = String((this.state.values as Record<string, unknown>).d_mode ?? "");
+    if (mode === "Local VM" && this.localVm?.available && this.localVm.appliancePresent) return { kind: "localVm" };
     const selectedLabel = String((this.state.values as Record<string, unknown>).d_sshtarget ?? "");
     const match = this.sshTargets.find(
       (target) => `${target.label ? target.label + " — " : ""}${target.user}@${target.host}:${target.port}` === selectedLabel,
@@ -275,7 +330,9 @@ export class DeployerShell extends Base {
   private startDeploy(): void {
     const target = this.currentTarget();
     if (!target) {
-      this.toast("Choose an approved SSH target first, or add one below.");
+      this.toast(this.targetsLoaded
+        ? "No deployable target is selected. Add an approved SSH target or install the detected local requirements."
+        : "Target detection is still running.");
       return;
     }
     const label = target.kind === "localVm" ? "the local VM" : `${target.user}@${target.host}:${target.port}`;
@@ -309,25 +366,45 @@ export class DeployerShell extends Base {
     this.applyProgressRows();
     this.set("screen", "progress");
     this.forceUpdate();
-    const result = await window.deployer.deploy(target);
-    this.running = false;
-    this.lastResult = result;
-    this.forceUpdate();
-    if (result.ok) {
-      this.fire("Deployment verified", `${result.adminUrl} answered with Asterisk ${result.asteriskVersion}.`);
-    } else {
-      this.toast("⚠ Deployment did not complete — see Progress & result for the exact reason");
+    try {
+      const result = await window.deployer.deploy(target);
+      this.lastResult = result;
+      if (result.ok) {
+        this.fire("Deployment verified", `${result.adminUrl} answered its readiness route.`);
+      } else {
+        this.toast("⚠ Deployment did not complete. See Progress & result for the exact reason.");
+      }
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "The deployment request ended unexpectedly.";
+      const failedStep = { name: "deployment request", ok: false, detail };
+      this.lastSteps = [...this.lastSteps, failedStep];
+      this.lastResult = { ok: false, steps: this.lastSteps };
+      this.toast(`⚠ ${detail}`);
+    } finally {
+      this.running = false;
+      this.applyProgressRows();
+      this.forceUpdate();
     }
   }
 
   private async runRemoveVm(): Promise<void> {
-    const step = await window.deployer.removeLocalVm();
-    if (step.ok) this.fire("VM removed", step.detail);
-    else this.toast(`⚠ ${step.detail}`);
+    if (this.running) return;
+    this.running = true;
+    this.forceUpdate();
+    try {
+      const step = await window.deployer.removeLocalVm();
+      if (step.ok) this.fire("VM removed", step.detail);
+      else this.toast(`⚠ ${step.detail}`);
+    } catch (error) {
+      this.toast(`⚠ ${error instanceof Error ? error.message : "The removal request ended unexpectedly."}`);
+    } finally {
+      this.running = false;
+      this.forceUpdate();
+    }
   }
 
   controlActionText = (action: string): string => {
-    if (action === "deploy-run") return this.running ? "Deploying…" : this.lastResult?.ok ? "Last run succeeded" : "";
+    if (action === "deploy-run") return this.running ? "Deployment running" : this.lastResult?.ok ? "Last deployment verified" : this.lastResult ? "Last deployment failed" : "";
     return "";
   };
 
@@ -354,7 +431,7 @@ export class DeployerShell extends Base {
         return;
       }
       this.addedTargetFileName = file.name;
-      await this.refreshSshTargets();
+      await this.refreshTargets();
       this.fire("SSH target approved", `${user}@${host}:${port} may now be selected as a deploy target.`);
     });
   };

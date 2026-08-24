@@ -32,6 +32,7 @@ const { controlPlaneRequest } = dispatcher;
  */
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let updaterState: UpdaterState = initialUpdaterState(undefined);
+let updateCheckInFlight: Promise<void> | undefined;
 
 function currentOrdinal() {
   const tag = readCurrentTag();
@@ -53,7 +54,8 @@ function publishUpdaterState(next: UpdaterState) {
 }
 
 /** Runs one full check-and-download cycle. Never throws; every failure lands in `updateFailed`. */
-async function runUpdateCheck(): Promise<void> {
+async function performUpdateCheck(): Promise<void> {
+  if (updaterState.state === 'ready') return;
   publishUpdaterState(beganChecking(updaterState, new Date()));
   let releases;
   try {
@@ -83,6 +85,14 @@ async function runUpdateCheck(): Promise<void> {
   } catch (error) {
     publishUpdaterState(updateFailed(updaterState, error instanceof Error ? error.message : String(error)));
   }
+}
+
+function runUpdateCheck(): Promise<void> {
+  if (updateCheckInFlight) return updateCheckInFlight;
+  updateCheckInFlight = performUpdateCheck().finally(() => {
+    updateCheckInFlight = undefined;
+  });
+  return updateCheckInFlight;
 }
 
 function scheduleUpdateChecks() {

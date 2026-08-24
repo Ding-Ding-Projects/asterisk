@@ -1,5 +1,9 @@
 [CmdletBinding()]
-param([switch]$Silent)
+param(
+    [switch]$Silent,
+    [string]$Version = $env:DING_PBX_VERSION,
+    [string]$CandidateCommit = $env:DING_PBX_CANDIDATE_COMMIT
+)
 
 $ErrorActionPreference = 'Stop'
 $started = [DateTimeOffset]::UtcNow
@@ -40,6 +44,28 @@ function Test-UnsignedPortableExecutable([string]$Path) {
 }
 
 try {
+    $headCommit = (& git -C $repoRoot rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0 -or $headCommit -notmatch '^[0-9a-f]{40}$') {
+        throw 'Could not resolve the exact candidate commit from the checkout.'
+    }
+    if ([string]::IsNullOrWhiteSpace($CandidateCommit)) { $CandidateCommit = $headCommit }
+    if ($CandidateCommit -ne $headCommit) {
+        throw "Candidate commit $CandidateCommit does not match checkout HEAD $headCommit."
+    }
+    if ([string]::IsNullOrWhiteSpace($Version)) {
+        $commitCount = (& git -C $repoRoot rev-list --count $CandidateCommit).Trim()
+        if ($LASTEXITCODE -ne 0 -or $commitCount -notmatch '^\d+$') {
+            throw 'Could not derive the local package version from the candidate commit.'
+        }
+        $Version = "0.0.$commitCount"
+    }
+    if ($Version -notmatch '^\d+\.\d+\.\d+$') {
+        throw "Version '$Version' must be a numeric semantic version."
+    }
+    $env:DING_PBX_VERSION = $Version
+    $env:DING_PBX_CANDIDATE_COMMIT = $CandidateCommit
+    Phase "Packaging version $Version from candidate commit $CandidateCommit."
+
     Phase 'Bootstrapping all packaging dependencies.'
     $bootstrapArgs = @()
     if ($Silent) { $bootstrapArgs += '/s' }
@@ -61,11 +87,17 @@ try {
     $setup = @(Get-ChildItem -LiteralPath $output -File -Filter '*Setup.exe')
     $releases = @(Get-ChildItem -LiteralPath $output -File -Filter 'RELEASES')
     $full = @(Get-ChildItem -LiteralPath $output -File -Filter '*-full.nupkg')
+    $delta = @(Get-ChildItem -LiteralPath $output -File -Filter '*-delta.nupkg')
     $bundledRootfs = Join-Path $repoRoot 'console\dist\squirrel-windows\win-unpacked\resources\asterisk\asterisk-wsl-rootfs.tar'
     $bundledProvenance = Join-Path $repoRoot 'console\dist\squirrel-windows\win-unpacked\resources\asterisk\asterisk-wsl-rootfs.json'
     if ($setup.Count -ne 1) { throw "expected exactly one Setup.exe under $output; found $($setup.Count)" }
     if ($releases.Count -ne 1) { throw "expected exactly one RELEASES under $output; found $($releases.Count)" }
     if ($full.Count -lt 1) { throw "expected at least one full .nupkg under $output; found none" }
+    $manifestPath = Join-Path $repoRoot 'console\resources\update-manifest.json'
+    $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
+    if ($manifest.schemaVersion -ne 1) { throw 'update manifest schema version is not 1' }
+    if ($manifest.version -ne $Version) { throw "update manifest version $($manifest.version) is not $Version" }
+    if ($manifest.candidateCommit -ne $CandidateCommit) { throw 'update manifest candidate commit does not match this package' }
     if (-not (Test-Path -LiteralPath $bundledRootfs)) { throw 'packaged application is missing the bundled Asterisk WSL rootfs' }
     if (-not (Test-Path -LiteralPath $bundledProvenance)) { throw 'packaged application is missing Asterisk bundle provenance' }
     $bundleRecord = Get-Content -Raw -LiteralPath $bundledProvenance | ConvertFrom-Json
@@ -73,7 +105,14 @@ try {
     if ($bundleRecord.sourceCommit -ne (& git -C $repoRoot rev-parse HEAD).Trim()) { throw 'packaged Asterisk WSL rootfs came from a different source commit' }
     $releaseText = Get-Content -Raw -LiteralPath $releases[0].FullName
     foreach ($package in $full) {
+        if ($package.Name -notmatch [regex]::Escape("-$Version-full.nupkg")) { throw "$($package.Name) does not carry package version $Version" }
         if ($releaseText -notmatch [regex]::Escape($package.Name)) { throw "RELEASES does not reference $($package.Name)" }
+    }
+    foreach ($package in $delta) {
+        if ($releaseText -notmatch [regex]::Escape($package.Name)) { throw "RELEASES does not reference generated delta $($package.Name)" }
+    }
+    if ($delta.Count -eq 0) {
+        Phase 'No delta package was generated because no compatible prior package was available; the full package remains required.'
     }
     if (-not (Test-UnsignedPortableExecutable $setup[0].FullName)) { throw 'code-signing policy violation: Setup.exe contains an Authenticode certificate table' }
 

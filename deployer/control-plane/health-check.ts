@@ -57,7 +57,7 @@ export async function checkServerHealth(
     return { ok: false, reason: error instanceof Error ? error.message : "The health check could not connect." };
   }
   if (response.statusCode !== 200) {
-    return { ok: false, reason: `The health endpoint returned HTTP ${response.statusCode}.` };
+    return { ok: false, reason: `The readiness route returned HTTP ${response.statusCode}.` };
   }
   const parsed = parseServerHealth(response.body);
   if (!parsed.ok) return { ok: false, reason: parsed.reason };

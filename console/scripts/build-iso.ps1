@@ -39,6 +39,9 @@ function Get-Sha256([string]$Path) {
 $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 $sourceCommit = (& git -C $repoRoot rev-parse HEAD).Trim()
 if (-not $sourceCommit) { throw 'Could not resolve the current commit; is this a git checkout?' }
+$sourceCommitCount = (& git -C $repoRoot rev-list --count $sourceCommit).Trim()
+if ($LASTEXITCODE -ne 0 -or $sourceCommitCount -notmatch '^\d+$') { throw 'Could not derive the console package version from the source commit.' }
+$consolePackageVersion = "0.0.$sourceCommitCount"
 $buildTimestamp = [DateTimeOffset]::UtcNow.ToString('o')
 
 Write-Phase "Phase 0: idempotence check"
@@ -80,6 +83,8 @@ docker build `
     --build-arg "NODE_RUNTIME_VERSION=$nodeRuntimeVersion" `
     --build-arg "NODE_RUNTIME_SHA256=$nodeRuntimeSha256" `
     --build-arg "CONSOLE_BUILD_BASE_IMAGE=$consoleBuildBaseImage" `
+    --build-arg "DING_PBX_VERSION=$consolePackageVersion" `
+    --build-arg "DING_PBX_CANDIDATE_COMMIT=$sourceCommit" `
     --target payload `
     --tag $payloadImage `
     $repoRoot

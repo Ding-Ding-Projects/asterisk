@@ -72,6 +72,8 @@ jobs:
             --build-arg "NODE_RUNTIME_VERSION=$node_version" \
             --build-arg "NODE_RUNTIME_SHA256=$node_sha256" \
             --build-arg "CONSOLE_BUILD_BASE_IMAGE=$console_build_base_image" \
+            --build-arg "DING_PBX_VERSION=0.0.${{ github.run_number }}" \
+            --build-arg "DING_PBX_CANDIDATE_COMMIT=$source_commit" \
             --target payload \
             --tag "$payload_image" \
             "$GITHUB_WORKSPACE"
@@ -132,7 +134,7 @@ jobs:
           echo "ubuntu_iso_sha256=$ubuntu_iso_sha256" >> "$GITHUB_OUTPUT"
           echo "build_timestamp=$build_timestamp" >> "$GITHUB_OUTPUT"
 
-      - name: Verify the produced ISO can actually boot
+      - name: Verify the produced ISO boot metadata and structure
         id: verify
         run: |
           set -euo pipefail

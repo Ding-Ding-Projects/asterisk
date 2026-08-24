@@ -21,33 +21,33 @@
  *
  * Expected script behavior (documented here because the deployer's tests assert
  * against it):
- *   - Installs Asterisk if not already present.
+ *   - Requires the target's existing Asterisk installation to remain available.
  *   - Installs and enables a systemd unit named `SERVICE_UNIT_NAME` that runs the
  *     server-mode HTTP admin surface.
- *   - Prints a single line `DING_PBX_INSTALL_OK <version>` on standard output when it
- *     finishes successfully, and a non-zero exit code otherwise.
+ *   - Prints the exact success marker only after the installed server answers its
+ *     readiness route, and exits non-zero otherwise.
  */
-export const INSTALL_SCRIPT_REMOTE_PATH = "/tmp/ding-pbx-install.sh";
+export const REMOTE_PAYLOAD_ROOT = "/tmp/ding-pbx-console-payload";
+export const INSTALL_SCRIPT_REMOTE_PATH = `${REMOTE_PAYLOAD_ROOT}/server/deploy/install.sh`;
 
 /** The systemd unit name the install script is expected to install and enable. */
-export const SERVICE_UNIT_NAME = "ding-pbx-server";
+export const SERVICE_UNIT_NAME = "ding-pbx-console.service";
 
 /** Default TCP port the server-mode HTTP admin surface listens on. */
-export const DEFAULT_SERVER_PORT = 8088;
+export const DEFAULT_SERVER_PORT = 8443;
 
 /**
- * The health endpoint the server-mode HTTP admin surface is expected to expose,
+ * The readiness route the server-mode HTTP admin surface exposes,
  * unauthenticated, so the deployer can verify a deployment without needing credentials
  * it was never given. Relative to `http://<host>:<port>`.
  */
-export const HEALTH_PATH = "/api/v1/health";
+export const HEALTH_PATH = "/api/setup";
+export const INSTALL_SUCCESS_MARKER = `DING_PBX_INSTALL_OK ${SERVICE_UNIT_NAME} ${DEFAULT_SERVER_PORT} ${HEALTH_PATH}`;
 
-/** What GET `HEALTH_PATH` is expected to return as JSON. */
+/** What GET `HEALTH_PATH` returns as JSON. */
 export interface ServerHealth {
-  status: "ok";
-  asteriskVersion: string;
-  /** Whether the admin surface requires sign-in before any mutating action. */
-  authRequired: boolean;
+  needsSetup: boolean;
+  tlsEnabled: boolean;
 }
 
 export function healthUrl(host: string, port: number): string {
@@ -64,23 +64,20 @@ export function parseServerHealth(body: string): { ok: true; value: ServerHealth
   try {
     parsed = JSON.parse(body);
   } catch {
-    return { ok: false, reason: "The health endpoint did not return valid JSON." };
+    return { ok: false, reason: "The readiness route did not return valid JSON." };
   }
   if (typeof parsed !== "object" || parsed === null) {
-    return { ok: false, reason: "The health endpoint did not return a JSON object." };
+    return { ok: false, reason: "The readiness route did not return a JSON object." };
   }
   const record = parsed as Record<string, unknown>;
-  if (record.status !== "ok") {
-    return { ok: false, reason: `The health endpoint reported status ${JSON.stringify(record.status)}.` };
+  if (typeof record.needsSetup !== "boolean") {
+    return { ok: false, reason: "The readiness route did not report whether first-run setup is required." };
   }
-  if (typeof record.asteriskVersion !== "string" || record.asteriskVersion.trim().length === 0) {
-    return { ok: false, reason: "The health endpoint did not report an Asterisk version." };
-  }
-  if (typeof record.authRequired !== "boolean") {
-    return { ok: false, reason: "The health endpoint did not report whether sign-in is required." };
+  if (typeof record.tlsEnabled !== "boolean") {
+    return { ok: false, reason: "The readiness route did not report whether TLS is enabled." };
   }
   return {
     ok: true,
-    value: { status: "ok", asteriskVersion: record.asteriskVersion, authRequired: record.authRequired },
+    value: { needsSetup: record.needsSetup, tlsEnabled: record.tlsEnabled },
   };
 }
