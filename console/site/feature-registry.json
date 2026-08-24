@@ -869,7 +869,7 @@
     },
     "material-appearance": {
       "status": "partial",
-      "note": "site/app.js implements a genuine infinite-colour-picker/translator, theme/density/accent/font-scale controls, group colour metadata, and a local per-tab or per-element appearance editor with colour-space selection, rainbow sentinel, reduced-motion freeze, typography, decoration, spacing, direction, alignment, reset, JSON import/export, and history wiring. The remaining boundaries are machine-populated font family and CJK fallback, variable-font axes, gamut clipping warnings, named themes, and runtime proof.",
+      "note": "site/app.js implements a genuine infinite-colour-picker/translator with source-space and clipping evidence, WCAG contrast, theme/density/accent/font-scale controls, group colour metadata, and a local per-tab or per-element appearance editor with colour-space selection, rainbow sentinel, reduced-motion freeze, typography, decoration, spacing, direction, alignment, reset, JSON import/export, and history wiring. Named theme presets and verified bundled or generic font choices with document.fonts availability checks are also wired. Variable-font axes and runtime proof remain incomplete.",
       "implementation": {
         "paths": [
           "console/site/app.js",
@@ -1529,7 +1529,7 @@
     },
     "local-version-history": {
       "status": "partial",
-      "note": "settings.html now receives a bounded browser history surface with per-mutation records for settings, tabs, appearance and locks, authenticator persistence, tickets, ladder, and status metadata, date and action filters with counts and presets, filtered selection, diff output, redacted export, append-only restore receipts, retention controls, and an explicit unsupported authenticator restore path because secrets are omitted. Advanced locale-aware calendar input, full record coverage proof, and runtime proof remain incomplete.",
+      "note": "settings.html now receives a bounded browser history surface with per-mutation records for settings, tabs, appearance and locks, authenticator persistence, tickets, ladder, and status metadata, date and action filters with counts and presets, filtered selection, diff output, redacted export, append-only restore receipts, retention controls, an advanced month and year calendar with local or ISO typed dates and range selection, and an explicit unsupported authenticator restore path because secrets are omitted. Full record coverage proof and runtime proof remain incomplete.",
       "implementation": {
         "paths": [],
         "symbols": []

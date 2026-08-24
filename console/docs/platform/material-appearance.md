@@ -8,17 +8,17 @@ A conformant visual system is meant to expose theme (light and dark), density, a
 
 ## Configuration
 
-Colors would be chosen through a continuous picker with bidirectional conversion between common color notations rather than a fixed swatch grid; presets would be exportable and importable as files.
+Colours are chosen through a continuous translator with bidirectional conversion between HEX, RGB, HSL, HSV, HWB, CMYK, Lab, LCH, OKLab, OKLCH, and named colours rather than a fixed swatch grid. The translator reports its source colour space, clipping risk, and WCAG contrast. Named theme presets are exportable and importable as bounded JSON files.
 
 ## Current status
 
 **Desktop application:** Partial. A dark/light theme toggle exists in settings, but accent color, density, typography customization, the continuous color picker, and the per-element appearance editor are all absent.
 
-**Documentation website:** Partial. Every page exposes persisted dark, light, and high-contrast themes, density, accent, font scale, navigation docking, logo presets, and a broad colour translator. These values apply live. Context-menu appearance editors now cover route tabs and stable local element targets, with credential checks before edits and resets when a target is toy-locked. The editor also stores font family, pixel size, weight, style, underline and strike, overline, capitalization, small caps, superscript or subscript, highlight, outline, shadow, spacing, line height, direction, alignment, rainbow sentinel, reduced-motion freeze, JSON import/export, and per-mutation history. Machine-populated fonts, variable axes, gamut warnings, and named theme presets remain incomplete.
+**Documentation website:** Partial. Every page exposes persisted dark, light, and high-contrast themes, density, accent, font scale, navigation docking, logo presets, and a broad colour translator. These values apply live. Context-menu appearance editors now cover route tabs and stable local element targets, with credential checks before edits and resets when a target is toy-locked. The editor also stores font family, pixel size, weight, style, underline and strike, overline, capitalization, small caps, superscript or subscript, highlight, outline, shadow, spacing, line height, direction, alignment, rainbow sentinel, reduced-motion freeze, JSON import/export, and per-mutation history. Named theme presets have local history, import, export, and reset. Font choices include verified bundled and generic families, typed validation, browser availability checks, and a CJK-safe fallback. Variable-font axes and full gamut editing remain incomplete.
 
 ## Failure modes
 
-An appearance change that fails to persist keeps the prior value and reports the browser error. A locked target requires its current toy-lock value before appearance edits or reset. Export includes redacted appearance records but never credential digests, and the export is not an import or restore format.
+An appearance change that fails to persist keeps the prior value and reports the browser error. A locked target requires its current toy-lock value before appearance edits or reset. A typed family that is unavailable remains selected but reports fallback to the CJK-safe family chain. Out-of-range colour values remain visible in the translator with a clipping warning. Export includes redacted appearance records but never credential digests.
 
 ## Accessibility and localization
 
@@ -26,7 +26,7 @@ This feature is expected to follow the product's standing accessibility contract
 
 ## Verification
 
-This delegated source-only lane did not run tests, builds, browser checks, or captures. The site registry remains partial because only the local equivalent was changed and full typography is incomplete. The desktop application row remains partial.
+This delegated source-only lane ran syntax and source Chuts only. It did not run test suites, builds, browser checks, or captures. The site registry remains partial because variable-font axes and runtime proof are incomplete. The desktop application row remains partial.
 
 ## Suggested articles
 
