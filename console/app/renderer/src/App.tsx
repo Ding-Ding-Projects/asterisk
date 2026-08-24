@@ -37,6 +37,12 @@ import {
   type AppearanceProperty, type AppearanceTheme,
 } from './appearance';
 import { COLOUR_FORMATS, formatColour, parseColour, translate as translateColour } from './colour';
+import {
+  encodeBase32, pairingUri, verifyCode, type TotpParameters,
+} from './totp';
+import {
+  UnlockLadder, type Challenge, type GradeResult,
+} from './unlock-ladder';
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -170,6 +176,18 @@ export class App extends Base {
   /** The last JSON actually written to storage, so `renderVals` (called on every
    *  paint) does not re-write `localStorage` when nothing changed. */
   private appearanceLastSerialised = '';
+  /** The unlock ladder (unlock-ladder.ts) for the per-element lock's unlock dialog.
+   *  Renderer-only: this app's per-element lock has no server-enforced attempt budget
+   *  or time-based lockout of its own, so this in-memory instance -- like the PIN and
+   *  password it sits beside -- is exactly as toy as the lock it serves, not a stronger
+   *  claim than that. Its own five safety rules (never returning a credential, never
+   *  refunding the attempt budget, the 3-per-hour skip budget, never touching lockout
+   *  escalation, and single-use graded nonces) are still fully enforced by the module
+   *  itself; see tryUnlock/authVals below for exactly how far that reaches. */
+  private ladder = new UnlockLadder({ now: () => Date.now(), random: () => Math.random() });
+  /** Consecutive wrong unlock attempts per lock key, so the ladder is offered after
+   *  repeated failures rather than on the first typo. */
+  private wrongUnlockCounts: Record<string, number> = {};
 
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
@@ -746,6 +764,152 @@ export class App extends Base {
         { icon: 'flip_camera_android', label: 'Invert selection', run: () => apply(bulkInvert(sel, ids)) },
       ]),
     };
+  }
+
+  /**
+   * Real local TOTP pairing for the per-element lock wizard (totp.ts).
+   *
+   * The design's own button just toasted "Built-in authenticator paired for this
+   * element only" and did nothing -- no secret ever existed. This generates a real
+   * random secret with the Web Crypto RNG, computes the real otpauth:// pairing URI,
+   * and reveals both through the info panel. The compiled QR box next to this button
+   * is a static decorative gradient with no bound slot for pixel data (not S(v...)
+   * anywhere in it) and adding one would mean editing the compiled design, which is
+   * out of scope here -- so the secret is shown as copyable text instead of a
+   * scannable image. Nothing here ever leaves this machine: there is no network call
+   * of any kind in this method.
+   */
+  pairAuth = (): void => {
+    const s = this.state as { lockKey: string; lockTarget: string; lockX?: string; lockY?: string };
+    const secretBytes = new Uint8Array(20);
+    crypto.getRandomValues(secretBytes);
+    const secret = encodeBase32(secretBytes);
+    const account = s.lockTarget || s.lockKey || 'this element';
+    const uri = pairingUri({ issuer: 'Ding PBX Console', account, parameters: { secret } });
+    this.setState({ totpPendingSecret: secret, totpPendingUri: uri } as never);
+    this.showInfo(
+      'Authenticator secret',
+      `Generated on this computer just now and never sent anywhere. Base32 secret: ${secret} - `
+        + `algorithm SHA-1, 6 digits, 30s period. Pairing URI: ${uri} - Add it to any TOTP app, `
+        + 'then finish this wizard to lock the element with it.',
+      'This build shows the real one-time secret as text rather than a scannable QR image -- copy it '
+        + 'into your authenticator app by hand.',
+      s.lockX || '40%',
+      s.lockY || '22%',
+    );
+    this.fire('Authenticator paired', 'A real TOTP secret was generated locally for this element.');
+  };
+
+  /**
+   * Finishes the per-element lock wizard (real version of the design's lockNext).
+   * Identical to the compiled original for PIN/Password, plus: a TOTP-including
+   * method cannot finish until pairAuth has actually generated a secret, and the
+   * real secret -- not a placeholder -- is what gets stored in the lock record.
+   */
+  lockNext = (): void => {
+    const s = this.state as {
+      lockStep: number; lockMethod: string; pin: string; password: string; lockTarget: string; lockKey: string;
+      locks: Record<string, { method: string; pin: string; password: string; totpSecret?: string; target: string }>;
+      totpPendingSecret?: string;
+    };
+    if (s.lockStep < 3) { this.set('lockStep', s.lockStep + 1); return; }
+    const needsPin = s.lockMethod.indexOf('PIN') >= 0;
+    const needsPw = s.lockMethod.indexOf('Password') >= 0;
+    const needsTotp = s.lockMethod.indexOf('TOTP') >= 0;
+    if (needsPin && s.pin.length < 4) { this.toast('Set at least a four-digit PIN first'); return; }
+    if (needsPw && (s.password || '').length < 4) { this.toast('Set a passphrase first'); return; }
+    if (needsTotp && !s.totpPendingSecret) { this.toast('Pair the built-in authenticator first'); return; }
+    const L = { ...s.locks };
+    L[s.lockKey] = {
+      method: s.lockMethod, pin: s.pin, password: s.password, target: s.lockTarget,
+      ...(needsTotp ? { totpSecret: s.totpPendingSecret } : {}),
+    };
+    this.setState({ locks: L, lockOpen: false, totpPendingSecret: undefined, totpPendingUri: undefined } as never);
+    this.toast(`${s.lockTarget} is locked with ${s.lockMethod} -- the surface is now disabled`);
+  };
+
+  /**
+   * Real unlock check (real version of the design's tryUnlock), extended to verify
+   * a real RFC 6238 code (totp.ts, one step of skew allowed) when the lock's method
+   * includes TOTP -- the compiled original silently ignored TOTP methods and only
+   * ever checked PIN/password. After three consecutive wrong attempts on the same
+   * lock it offers the unlock ladder (unlock-ladder.ts) instead of only re-toasting.
+   */
+  tryUnlock = async (): Promise<void> => {
+    const s = this.state as {
+      locks: Record<string, { method?: string; pin?: string; password?: string; totpSecret?: string }>;
+      unlockKey: string; unlockPin: string; unlockPw: string; unlockTotpDigits?: string;
+    };
+    const L = s.locks[s.unlockKey];
+    if (!L) { this.setState({ unlockOpen: false } as never); return; }
+    const m = L.method || 'PIN';
+
+    const wrong = (message: string): void => {
+      const count = (this.wrongUnlockCounts[s.unlockKey] ?? 0) + 1;
+      this.wrongUnlockCounts[s.unlockKey] = count;
+      this.setState({
+        unlockPin: '', unlockTotpDigits: '', unlockPhase: m.indexOf('PIN') >= 0 ? 'pin' : 'totp',
+      } as never);
+      if (count >= 3) {
+        const result = this.ladder.issue(s.unlockKey);
+        if (result.rung === 'clock') {
+          this.toast(`${message} -- ${result.reason}`);
+          return;
+        }
+        if (result.rung === 'moles') {
+          this.toast(`${message} -- the next challenge needs a visual board this build cannot show yet. Wait it out.`);
+          return;
+        }
+        this.setState({ ladderActive: true, ladderChallenge: result, ladderDigits: '', ladderSumsAnswers: [] } as never);
+        this.toast(`${message} -- or clear a quick challenge instead of waiting. It only clears the wait, not this credential.`);
+        return;
+      }
+      this.toast(message);
+    };
+
+    if (m.indexOf('PIN') >= 0 && s.unlockPin !== L.pin) { wrong('Wrong PIN -- the surface stays locked'); return; }
+    if (m.indexOf('Password') >= 0 && (s.unlockPw || '') !== L.password) { wrong('Wrong passphrase -- the surface stays locked'); return; }
+    if (m.indexOf('TOTP') >= 0) {
+      if (!L.totpSecret) { wrong('No authenticator secret is on record for this element'); return; }
+      const params: TotpParameters = { secret: L.totpSecret };
+      const ok = await verifyCode(params, s.unlockTotpDigits ?? '', Date.now(), 1);
+      if (!ok) { wrong('Wrong code -- the surface stays locked'); return; }
+    }
+
+    const n = { ...s.locks };
+    delete n[s.unlockKey];
+    this.wrongUnlockCounts[s.unlockKey] = 0;
+    this.setState({
+      locks: n, unlockOpen: false, unlockPin: '', unlockPw: '', unlockTotpDigits: '', unlockPhase: undefined,
+      ladderActive: false, ladderChallenge: null,
+    } as never);
+    this.fire('Unlocked', 'Welcome back.');
+  };
+
+  /**
+   * Grades one ladder answer and either clears the wait, escalates to the next
+   * rung, or falls to the clock -- exactly per unlock-ladder.ts's own rules.
+   * Rule 1 (never a credential) is kept explicitly honest here: a cleared
+   * challenge only closes the ladder and says so; it never touches s.locks
+   * or the unlock dialog's own PIN/password/TOTP state, so the real credential
+   * is still required afterward.
+   */
+  private finishLadderGrade(result: GradeResult, lockKey: string): void {
+    if (result.cleared) {
+      this.setState({ ladderActive: false, ladderChallenge: null, ladderDigits: '', ladderSumsAnswers: [] } as never);
+      this.toast('Challenge cleared -- the wait is over. You still need the real PIN, passphrase or code.');
+      return;
+    }
+    const next = this.ladder.issue(lockKey);
+    if (next.rung === 'clock' || next.rung === 'moles') {
+      this.setState({ ladderActive: false, ladderChallenge: null } as never);
+      this.toast(next.rung === 'clock'
+        ? `Wrong. ${next.reason}`
+        : 'Wrong. The next challenge needs a visual board this build cannot show yet.');
+      return;
+    }
+    this.setState({ ladderChallenge: next, ladderDigits: '', ladderSumsAnswers: [] } as never);
+    this.toast('Wrong -- try again.');
   }
 
   /** Writes the controls back onto the endpoint they were loaded from. */
@@ -1442,10 +1606,136 @@ It is shown once. The phone needs it to register.`);
       // Real selection mechanics and bulk-action plans (bulk.ts) plus a real file
       // export (export.ts) for every table-like screen -- see bulkSelectionVals above.
       ...(TABLE_SCREENS.includes(screen) ? this.bulkSelectionVals(screen, values) : {}),
+
+      // Real TOTP pairing/verification (totp.ts) for the per-element lock, and the real
+      // unlock ladder (unlock-ladder.ts) offered after repeated wrong unlock attempts --
+      // see authVals below. Unconditional: the lock and unlock dialogs can open from any
+      // screen's context menu.
+      ...this.authVals(),
     };
   }
 
-  /** Real values for the `docs` screen — see `docsVals` usage in `renderVals` above. */
+  /**
+   * Real values for the per-element lock's TOTP factor and the unlock ladder.
+   *
+   * Both wire into the *existing* lock-wizard and unlock-dialog controls -- the
+   * numeric keypad, its dots, and the mono-font line under the unlock dialog's
+   * title -- rather than adding new markup, because the compiled design has no
+   * bound slot for a dish grid, a sums list, a mole board, or QR pixel data, and
+   * editing the checked-in design reference or its generated output is out of
+   * scope here. That is a real gap, not a cosmetic one: the "moles" rung has no
+   * way to be rendered in this build, so it is treated as unreachable (see
+   * tryUnlock/finishLadderGrade) rather than faked.
+   */
+  private authVals(): Record<string, unknown> {
+    const s = this.state as {
+      locks: Record<string, { method?: string; pin?: string; password?: string; totpSecret?: string }>;
+      unlockKey: string; unlockPin: string; unlockPw: string; unlockTotpDigits?: string;
+      unlockPhase?: 'pin' | 'totp';
+      ladderActive?: boolean; ladderChallenge?: Challenge | null; ladderDigits?: string; ladderSumsAnswers?: number[];
+    };
+
+    const L = s.locks[s.unlockKey] || {};
+    const method = L.method || '';
+    const needsPin = method.indexOf('PIN') >= 0;
+    const needsTotp = method.indexOf('TOTP') >= 0;
+    const phase: 'pin' | 'totp' = s.unlockPhase ?? (needsPin ? 'pin' : 'totp');
+
+    const ladderActive = !!s.ladderActive;
+    const challenge = s.ladderChallenge ?? null;
+
+    const gradeLadder = (): void => {
+      if (!challenge) return;
+      const digits = s.ladderDigits ?? '';
+      if (challenge.rung === 'dish') {
+        const choiceIndex = Number(digits) - 1;
+        const result = this.ladder.grade(challenge.nonce, { kind: 'dish', choiceIndex }, Date.now());
+        this.finishLadderGrade(result, s.unlockKey);
+        return;
+      }
+      if (challenge.rung === 'sums') {
+        const answers = [...(s.ladderSumsAnswers ?? []), Number(digits)];
+        if (answers.length < challenge.payload.problems.length) {
+          this.setState({ ladderSumsAnswers: answers, ladderDigits: '' } as never);
+          return;
+        }
+        const result = this.ladder.grade(challenge.nonce, { kind: 'sums', answers }, Date.now());
+        this.finishLadderGrade(result, s.unlockKey);
+        return;
+      }
+      // moles never reaches here -- offerLadder/finishLadderGrade never store one.
+    };
+
+    const keyPress = (k: string): void => {
+      if (ladderActive) {
+        if (k === '⌫') { this.setState({ ladderDigits: (s.ladderDigits ?? '').slice(0, -1) } as never); return; }
+        if (k === '✓') { gradeLadder(); return; }
+        this.setState({ ladderDigits: ((s.ladderDigits ?? '') + k).slice(0, 6) } as never);
+        return;
+      }
+      if (k === '⌫') {
+        if (phase === 'pin') { this.setState({ unlockPin: s.unlockPin.slice(0, -1) } as never); return; }
+        this.setState({ unlockTotpDigits: (s.unlockTotpDigits ?? '').slice(0, -1) } as never);
+        return;
+      }
+      if (k === '✓') {
+        if (phase === 'pin' && needsTotp) { this.setState({ unlockPhase: 'totp' } as never); return; }
+        void this.tryUnlock();
+        return;
+      }
+      if (phase === 'pin') {
+        this.setState({ unlockPin: s.unlockPin.length < 6 ? s.unlockPin + k : s.unlockPin } as never);
+        return;
+      }
+      this.setState({
+        unlockTotpDigits: (s.unlockTotpDigits ?? '').length < 6 ? (s.unlockTotpDigits ?? '') + k : s.unlockTotpDigits,
+      } as never);
+    };
+
+    const unlockKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', '✓'].map((k) => ({
+      label: k, press: () => keyPress(k),
+    }));
+
+    const digitsLength = ladderActive
+      ? (s.ladderDigits ?? '').length
+      : (phase === 'pin' ? s.unlockPin.length : (s.unlockTotpDigits ?? '').length);
+    const unlockDots = Array.from({ length: 6 }, (_, i) => ({ bg: i < digitsLength ? '#82D9A5' : 'transparent' }));
+
+    let ladderPrompt = '';
+    if (challenge && challenge.rung === 'dish') {
+      const p = challenge.payload;
+      ladderPrompt = `Quick challenge -- which dish? 1 ${p.choices[0]} · 2 ${p.choices[1]} · `
+        + `3 ${p.choices[2]} · 4 ${p.choices[3]} -- press its digit, then the check mark`;
+    } else if (challenge && challenge.rung === 'sums') {
+      const idx = s.ladderSumsAnswers?.length ?? 0;
+      const problem = challenge.payload.problems[idx];
+      ladderPrompt = `Quick challenge -- sum ${idx + 1} of ${challenge.payload.problems.length}: `
+        + `${problem.a} ${problem.op} ${problem.b} = ? Type it, then the check mark`;
+    }
+
+    const unlockMethod = ladderActive
+      ? ladderPrompt
+      : (phase === 'totp' && needsTotp ? 'Six-digit code from the paired authenticator' : (method || 'PIN'));
+
+    return {
+      pairAuth: this.pairAuth,
+      lockNext: this.lockNext,
+
+      openUnlock: () => {
+        const screen = (this.state as { screen: string }).screen;
+        this.setState({
+          unlockOpen: true, unlockKey: screen, unlockPin: '', unlockPw: '', unlockTotpDigits: '',
+          unlockPhase: undefined, ladderActive: false, ladderChallenge: null, ladderDigits: '', ladderSumsAnswers: [],
+        } as never);
+      },
+      unlockKeys,
+      unlockDots,
+      unlockMethod,
+      submitUnlock: () => { if (ladderActive) { gradeLadder(); return; } void this.tryUnlock(); },
+    };
+  }
+
+    /** Real values for the `docs` screen — see `docsVals` usage in `renderVals` above. */
   private docsVals(): Record<string, unknown> {
     const state = this.state as { docsQuery?: string; docsRegexOn?: boolean; docsSelectedId?: string };
     const query = state.docsQuery ?? '';
