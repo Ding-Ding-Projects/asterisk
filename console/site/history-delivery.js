@@ -9,6 +9,7 @@
   const MAX_HISTORY = 250;
   const MAX_EVENT_COUNT = 100000;
   const MAX_EVENT_BYTES = 64 * 1024 * 1024;
+  const CANONICAL_ID_PATTERN = /^[a-z0-9_-]{1,80}$/;
   const CHANGELOG = (Array.isArray(window.DING_SITE_CHANGELOG) ? window.DING_SITE_CHANGELOG : []).filter(entry => entry && /^[0-9a-f]{40}$/.test(entry.commit || '') && entry.version && entry.date && entry.summary);
   const PRODUCT_CHANGELOG = CHANGELOG.filter(entry => entry.category === 'Release');
   const UPSTREAM_HISTORY = CHANGELOG.filter(entry => entry.category !== 'Release');
@@ -26,6 +27,9 @@
 
   const own = (value, fallback) => value === undefined || value === null ? fallback : value;
   const id = value => String(value || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 80) || `event-${Date.now()}`;
+  const isCanonicalId = value => typeof value === 'string' && CANONICAL_ID_PATTERN.test(value);
+  const isFiniteTimestamp = value => typeof value === 'string' && Number.isFinite(Date.parse(value));
+  const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
   const text = value => String(own(value, '')).replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, 600);
   const escapeHtml = value => text(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 
@@ -46,7 +50,7 @@
   function migrateLegacyEvent(event) {
     if (event && typeof event.params === 'object') return normalizePersistedEventParams(event.action, event.params);
     const details = event?.details && typeof event.details === 'object' ? event.details : {};
-    if (event?.action === 'restored' && EVENT_ACTIONS.has(details.sourceAction) && /^[a-z0-9_-]{1,100}$/i.test(details.sourceEvent || '')) return { sourceAction: details.sourceAction, sourceEvent: details.sourceEvent };
+    if (event?.action === 'restored' && EVENT_ACTIONS.has(details.sourceAction) && isCanonicalId(details.sourceEvent)) return { sourceAction: details.sourceAction, sourceEvent: details.sourceEvent };
     if (event?.action === 'pruned' && Number.isInteger(details.eventCount) && Number.isInteger(details.retention)) return { count: details.eventCount, retention: details.retention };
     if (['download-started', 'download-complete', 'download-cancelled'].includes(event?.action) && Number.isInteger(details.bytes)) return { bytes: details.bytes, status: event.action === 'download-started' ? 'writing' : event.action === 'download-complete' ? 'stream-closed' : 'cancelled' };
     if (event?.action === 'download-interrupted' && details.status === 'interrupted') return { status: 'interrupted' };
@@ -61,11 +65,15 @@
   function migrateLegacyHistory(events) {
     const counts = { imported: 0, omitted: 0, refused: 0, retentionOmitted: 0 };
     const migrated = [];
+    const seen = new Set();
     for (const event of Array.isArray(events) ? events : []) {
-      if (!event || typeof event !== 'object' || typeof event.id !== 'string' || typeof event.timestamp !== 'string' || typeof event.action !== 'string') { counts.omitted += 1; continue; }
+      if (!event || typeof event !== 'object') { counts.omitted += 1; continue; }
+      if (!hasOwn(event, 'id') || !hasOwn(event, 'timestamp') || !hasOwn(event, 'action')) { counts.omitted += 1; continue; }
+      if (typeof event.id !== 'string' || typeof event.timestamp !== 'string' || typeof event.action !== 'string' || !isCanonicalId(event.id) || seen.has(event.id) || !isFiniteTimestamp(event.timestamp)) { counts.refused += 1; continue; }
+      seen.add(event.id);
       const params = normalizePersistedEventParams(event.action, migrateLegacyEvent(event));
       if (!params) { counts.refused += 1; continue; }
-      migrated.push({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: event.action, params }); counts.imported += 1;
+      migrated.push({ id: event.id, timestamp: event.timestamp.slice(0, 40), action: event.action, params }); counts.imported += 1;
     }
     const retained = migrated.slice(-MAX_HISTORY); counts.retentionOmitted = migrated.length - retained.length; counts.imported = retained.length;
     return { events: retained, counts };
@@ -73,11 +81,15 @@
   function normalizeCurrentHistory(events) {
     const counts = { imported: 0, omitted: 0, refused: 0, retentionOmitted: 0 };
     const normalized = [];
+    const seen = new Set();
     for (const event of Array.isArray(events) ? events : []) {
-      if (!event || typeof event !== 'object' || typeof event.id !== 'string' || typeof event.timestamp !== 'string' || typeof event.action !== 'string') { counts.omitted += 1; continue; }
+      if (!event || typeof event !== 'object') { counts.omitted += 1; continue; }
+      if (!hasOwn(event, 'id') || !hasOwn(event, 'timestamp') || !hasOwn(event, 'action')) { counts.omitted += 1; continue; }
+      if (typeof event.id !== 'string' || typeof event.timestamp !== 'string' || typeof event.action !== 'string' || !isCanonicalId(event.id) || seen.has(event.id) || !isFiniteTimestamp(event.timestamp)) { counts.refused += 1; continue; }
+      seen.add(event.id);
       const params = normalizePersistedEventParams(event.action, event.params);
       if (!params) { counts.refused += 1; continue; }
-      normalized.push({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: event.action, params });
+      normalized.push({ id: event.id, timestamp: event.timestamp.slice(0, 40), action: event.action, params });
     }
     const retained = normalized.slice(-MAX_HISTORY); counts.retentionOmitted = normalized.length - retained.length; counts.imported = retained.length;
     return { events: retained, counts };
@@ -222,7 +234,7 @@
     const bytes = value => integer(value) !== null && value <= MAX_EVENT_BYTES ? integer(value) : null;
     const version = value => integer(value) !== null && value > 0 && value <= STATE_SCHEMA_VERSION ? integer(value) : null;
     if (action === 'updated') return EVENT_ENUMS.updatedField.has(params.field) && EVENT_ENUMS.updatedStatus.has(params.status) ? { field: params.field, status: params.status } : null;
-    if (action === 'restored') return EVENT_ACTIONS.has(params.sourceAction) && /^[a-z0-9_-]{1,100}$/i.test(params.sourceEvent || '') ? { sourceAction: params.sourceAction, sourceEvent: params.sourceEvent } : null;
+    if (action === 'restored') return EVENT_ACTIONS.has(params.sourceAction) && isCanonicalId(params.sourceEvent) ? { sourceAction: params.sourceAction, sourceEvent: params.sourceEvent } : null;
     if (action === 'pruned') return count(params.count) !== null && count(params.retention) !== null ? { count: count(params.count), retention: count(params.retention) } : null;
     if (['download-started', 'download-complete', 'download-cancelled'].includes(action)) return bytes(params.bytes) !== null && EVENT_ENUMS.deliveryStatus.has(params.status) ? { bytes: bytes(params.bytes), status: params.status } : null;
     if (action === 'download-interrupted') return params.status === 'interrupted' ? { status: params.status } : null;
@@ -499,9 +511,10 @@
     const seen = new Set(); const valid = []; let refused = 0;
     for (const event of parsed.events) {
       if (!event || typeof event !== 'object' || Array.isArray(event) || Object.keys(event).some(key => !['id', 'timestamp', 'action', 'params'].includes(key))) { refused += 1; continue; }
-      if (typeof event.id !== 'string' || typeof event.timestamp !== 'string' || typeof event.action !== 'string' || !/^[a-z0-9_-]{1,100}$/i.test(event.id) || seen.has(event.id) || !Number.isFinite(Date.parse(event.timestamp))) { refused += 1; continue; }
+      if (!isCanonicalId(event.id) || typeof event.timestamp !== 'string' || typeof event.action !== 'string' || seen.has(event.id) || !isFiniteTimestamp(event.timestamp)) { refused += 1; continue; }
+      seen.add(event.id);
       const params = normalizeEventParams(event.action, event.params); if (!params) { refused += 1; continue; }
-      seen.add(event.id); valid.push({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: event.action, params });
+      valid.push({ id: event.id, timestamp: event.timestamp.slice(0, 40), action: event.action, params });
     }
     return { valid, refused };
   }
