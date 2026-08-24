@@ -124,7 +124,7 @@
     },
     "local-version-history": {
       "state": "implemented",
-      "note": "history-delivery.js renders a schema-versioned local append-only visitor history panel with explicit older-state migration and future-version refusal, immediate redacted migration auditing, a safe structured event contract that refuses paths, URLs, private values, and content-bearing summaries, strict recursive redaction, search, anchored regex, real calendar date and action filters, validated presets, retention preview, prune-event reservation, restore-as-new-event, and redacted JSON/Markdown export. The history.html route and delivery rail make it reachable from every primary page.",
+      "note": "history-delivery.js renders a schema-versioned local append-only visitor history panel with explicit older-state migration and future-version refusal, immediate redacted migration auditing exposed separately, a safe structured event enum and allowlisted parameters that refuse paths, URLs, private values, and content-bearing summaries, strict recursive redaction, captured append results, search, anchored regex, real calendar date and action filters, validated presets, retention preview, prune-event reservation, restore-as-new-event, and redacted JSON/Markdown export. The history.html route and delivery rail make it reachable from every primary page.",
       "files": ["site/history-delivery.js", "site/history.html", "site/app.js", "site/build.mjs"]
     },
     "changelog-viewer": {
@@ -265,7 +265,7 @@
     },
     "automatic-updates": {
       "state": "implemented",
-      "note": "The static delivery workspace validates the versioned release-manifest schema, immutable HTTPS asset URLs, hashes, byte sizes, and full commit identity when a manifest is available. Available, downloading, and ready states require assets. Failed states may omit assets only when an exact commit and reason are present. The page reports unavailable, available, downloading, ready, or failed states without claiming installation.",
+      "note": "The static delivery workspace validates the versioned release-manifest schema, immutable HTTPS asset URLs, hashes, byte sizes, and full commit identity when a manifest is available. It exposes explicit preparing, prepared, handoff-started, handoff-unverified, and handoff-failed delivery states. Available, downloading, and ready manifest states require assets. Failed states may omit assets only when an exact commit and reason are present. The page never claims installation.",
       "files": ["site/history-delivery.js", "site/history.html", "site/release-manifest.js", "docs/platform/site-history-and-delivery.md"]
     }
   }

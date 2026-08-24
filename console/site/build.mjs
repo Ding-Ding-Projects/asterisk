@@ -119,6 +119,7 @@ async function wireGeneratedDelivery(relative) {
   const back = '../'.repeat(depth);
   const source = await readFile(file, 'utf8');
   let mounted = source.replace('<html lang="en" data-theme="dark">', `<html lang="en" data-theme="dark" data-base="${back}">`);
+  if (!mounted.includes('id="palette-open"')) mounted = mounted.replace('<main', '<button id="palette-open" class="command-button" type="button">Open command palette <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></button><main');
   if (!mounted.includes('history-delivery-mount')) mounted = mounted.replace('</main>', '<div id="history-delivery-mount" data-delivery-host></div></main>');
   if (!mounted.includes('history-delivery.js')) mounted = mounted.replace('</body></html>', `<script src="${back}changelog-data.js" defer></script><script src="${back}release-manifest.js" defer></script><script src="${back}full-builder.js" defer></script><script src="${back}app.js" defer></script><script src="${back}history-delivery.js" defer></script></body></html>`);
   await writeFile(file, mounted, 'utf8');

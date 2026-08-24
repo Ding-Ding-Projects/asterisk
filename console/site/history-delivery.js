@@ -3,6 +3,7 @@
 
   const STORAGE_KEY = 'ding-pbx-site-history-delivery-v1';
   const STATE_SCHEMA_VERSION = 2;
+  const DELIVERY_STATES = new Set(['idle', 'preparing', 'prepared', 'handoff-started', 'handoff-unverified', 'handoff-failed']);
   const MAX_HISTORY = 250;
   const CHANGELOG = (Array.isArray(window.DING_SITE_CHANGELOG) ? window.DING_SITE_CHANGELOG : []).filter(entry => entry && /^[0-9a-f]{40}$/.test(entry.commit || '') && entry.version && entry.date && entry.summary);
   const PRODUCT_CHANGELOG = CHANGELOG.filter(entry => entry.category === 'Release');
@@ -31,7 +32,7 @@
   }
 
   function defaultState() {
-    return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: 'none', sourceVersion: STATE_SCHEMA_VERSION, recorded: false }, history: [], tabs: TAB_ROUTES.map(([idValue], index) => ({ id: idValue, pinned: index < 2 })), forge: { account: 'browser', owner: '', repository: '', route: 'copy', source: 'current-site', destination: 'new-repository' }, editor: { lastExport: '' }, transfer: { status: 'idle', name: '', startedAt: '', completedAt: '', totalBytes: 0, bytesWritten: 0, interruptionRecorded: false, resume: 'never' }, update: { status: 'ready', checkedAt: '' } };
+    return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: 'none', sourceVersion: STATE_SCHEMA_VERSION, recorded: false }, history: [], tabs: TAB_ROUTES.map(([idValue], index) => ({ id: idValue, pinned: index < 2 })), forge: { account: 'browser', owner: '', repository: '', route: 'copy', source: 'current-site', destination: 'new-repository' }, editor: { lastExport: '' }, delivery: { status: 'idle', reason: '' }, transfer: { status: 'idle', name: '', startedAt: '', completedAt: '', totalBytes: 0, bytesWritten: 0, interruptionRecorded: false, resume: 'never' }, update: { status: 'ready', checkedAt: '' } };
   }
   function readState() {
     try {
@@ -45,7 +46,8 @@
       const forge = parsed.forge && typeof parsed.forge === 'object' ? { account: ['browser', 'manual'].includes(parsed.forge.account) ? parsed.forge.account : 'browser', owner: scrubSummary(parsed.forge.owner).slice(0, 80), repository: scrubSummary(parsed.forge.repository).slice(0, 100), route: ['copy', 'fork'].includes(parsed.forge.route) ? parsed.forge.route : 'copy', source: ['current-site', 'local-export', 'selected-file'].includes(parsed.forge.source) ? parsed.forge.source : 'current-site', destination: ['new-repository', 'existing-repository'].includes(parsed.forge.destination) ? parsed.forge.destination : 'new-repository' } : defaults.forge;
       const transferStatus = ['idle', 'started', 'complete', 'cancelled', 'unavailable', 'interrupted'].includes(parsed.transfer?.status) ? parsed.transfer.status : 'idle';
       const updateStatus = ['ready', 'unavailable', 'available', 'downloading', 'failed'].includes(parsed.update?.status) ? parsed.update.status : 'ready';
-      return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: persistedVersion < STATE_SCHEMA_VERSION ? 'migrated' : 'none', sourceVersion: persistedVersion, recorded: parsed.migration?.recorded === true }, history, tabs: tabs.length ? tabs : defaults.tabs, forge, editor: { lastExport: scrubSummary(parsed.editor?.lastExport).slice(0, 120) }, transfer: { status: transferStatus === 'started' ? 'interrupted' : transferStatus, name: scrubSummary(parsed.transfer?.name).slice(0, 160), startedAt: text(parsed.transfer?.startedAt).slice(0, 40), completedAt: text(parsed.transfer?.completedAt).slice(0, 40), totalBytes: Number.isFinite(parsed.transfer?.totalBytes) ? Math.max(0, parsed.transfer.totalBytes) : 0, bytesWritten: Number.isFinite(parsed.transfer?.bytesWritten) ? Math.max(0, parsed.transfer.bytesWritten) : 0, interruptionRecorded: transferStatus === 'started' ? false : parsed.transfer?.interruptionRecorded === true, resume: 'never' }, update: { status: updateStatus, checkedAt: text(parsed.update?.checkedAt).slice(0, 40) } };
+      const deliveryStatus = DELIVERY_STATES.has(parsed.delivery?.status) ? parsed.delivery.status : 'idle';
+      return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: persistedVersion < STATE_SCHEMA_VERSION ? 'migrated' : 'none', sourceVersion: persistedVersion, recorded: parsed.migration?.recorded === true }, history, tabs: tabs.length ? tabs : defaults.tabs, forge, editor: { lastExport: scrubSummary(parsed.editor?.lastExport).slice(0, 120) }, delivery: { status: deliveryStatus, reason: scrubSummary(parsed.delivery?.reason).slice(0, 240) }, transfer: { status: transferStatus === 'started' ? 'interrupted' : transferStatus, name: scrubSummary(parsed.transfer?.name).slice(0, 160), startedAt: text(parsed.transfer?.startedAt).slice(0, 40), completedAt: text(parsed.transfer?.completedAt).slice(0, 40), totalBytes: Number.isFinite(parsed.transfer?.totalBytes) ? Math.max(0, parsed.transfer.totalBytes) : 0, bytesWritten: Number.isFinite(parsed.transfer?.bytesWritten) ? Math.max(0, parsed.transfer.bytesWritten) : 0, interruptionRecorded: transferStatus === 'started' ? false : parsed.transfer?.interruptionRecorded === true, resume: 'never' }, update: { status: updateStatus, checkedAt: text(parsed.update?.checkedAt).slice(0, 40) } };
     } catch {
       return defaultState();
     }
@@ -65,6 +67,13 @@
   function persist() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* local storage can be unavailable in private browsing */ }
   }
+  function setDeliveryState(status, reason = '') {
+    if (!DELIVERY_STATES.has(status)) return false;
+    state.delivery = { status, reason: scrubSummary(reason).slice(0, 240) };
+    persist();
+    const output = document.querySelector('#delivery-state'); if (output) output.textContent = `Delivery state: ${status}. ${state.delivery.reason || 'No additional detail.'}`;
+    return true;
+  }
   function appendMigrationAudit(status, sourceVersion) {
     try {
       const key = `${STORAGE_KEY}-migration-audit`;
@@ -74,6 +83,19 @@
         localStorage.setItem(key, JSON.stringify(audit.slice(-20)));
       }
     } catch { /* refusal remains visible even when audit storage is unavailable */ }
+  }
+  function renderMigrationAudit() {
+    const host = document.querySelector('#migration-audit-list'); if (!host) return;
+    try {
+      const audit = JSON.parse(localStorage.getItem(`${STORAGE_KEY}-migration-audit`) || '[]');
+      host.innerHTML = audit.length ? audit.slice().reverse().map(item => `<li>${escapeHtml(item.status)} · saved state version ${escapeHtml(item.sourceVersion)} · ${escapeHtml(formatDate(item.timestamp))}</li>`).join('') : '<li>No refused future-state audit records.</li>';
+    } catch { host.textContent = 'Migration audit is unavailable because local audit storage could not be read.'; }
+  }
+  function ensureMigrationAuditPanel() {
+    if (document.querySelector('#migration-audit')) return;
+    const status = document.querySelector('#history-status'); if (!status) return;
+    const panel = document.createElement('details'); panel.id = 'migration-audit'; panel.className = 'delivery-migration-audit'; panel.innerHTML = '<summary>State migration refusal audit</summary><p>Future saved-state versions are refused without applying their records. This separate audit contains only schema status, version, and time.</p><ul id="migration-audit-list"></ul>';
+    status.after(panel); renderMigrationAudit();
   }
 
   function scrubSummary(value) {
@@ -85,8 +107,19 @@
     const safe = scrubSummary(raw);
     return safe.includes('[url omitted]') || safe.includes('[path omitted]') || safe.includes('[redacted]') ? null : safe;
   }
+  function summaryRefusalReason(value) {
+    const raw = text(value).trim();
+    if (!raw) return 'the summary is empty';
+    if (/https?:\/\/|file:|custom:|data:/i.test(raw)) return 'the summary contains a URL or non-local scheme';
+    if (/^[A-Za-z]:[\\/]|^\\\\|(?:^|\s)\.{1,2}[\\/]|(?:^|\s)\/(?:Users|home|private|tmp)\//i.test(raw)) return 'the summary contains a forward or backslash path';
+    if (/(?:content|body|payload|clipboard|html|markdown)\s*[:=]/i.test(raw)) return 'the summary contains content-bearing input';
+    if (/(?:bearer|token|password|passwd|secret|api[-_]?key)\s*[:=]|\b[0-9a-f]{32,}\b/i.test(raw)) return 'the summary contains a private value';
+    if (raw.length > 240) return 'the summary exceeds 240 characters';
+    return 'the summary is not within the safe event contract';
+  }
 
   const REDACTED_DETAIL_KEYS = new Set(['source', 'route', 'action', 'bytes', 'progress', 'owner', 'repository', 'protocol', 'restore', 'completion', 'installation', 'content', 'privateVocabulary', 'credentials', 'mode', 'status', 'name', 'tag', 'commit', 'provider', 'account', 'destination', 'eventCount', 'sourceEvent']);
+  const EVENT_ACTIONS = new Set(['updated', 'restored', 'pruned', 'download-started', 'download-complete', 'download-cancelled', 'download-interrupted', 'update-check', 'update-reload', 'recovery-opened', 'forge-preview', 'forge-handoff', 'tab-pin', 'provider-preview', 'state-migration']);
   function redactDetails(value, depth = 0) {
     if (depth > 3 || value === null || value === undefined) return undefined;
     if (typeof value === 'string') return scrubSummary(value).slice(0, 240);
@@ -106,8 +139,9 @@
   state = readState();
 
   function record(action, summary, details = {}) {
+    if (!EVENT_ACTIONS.has(action)) { const reason = `Refused event action "${text(action).slice(0, 80)}": it is not a registered event type.`; document.querySelector('#history-status')?.replaceChildren(document.createTextNode(reason)); return { ok: false, reason }; }
     const safeSummary = safeEventSummary(summary);
-    if (!safeSummary) { const status = document.querySelector('#history-status'); if (status) status.textContent = 'This event was refused because its summary contains a path, URL, private value, or content-bearing input.'; return null; }
+    if (!safeSummary) { const reason = `Refused event summary: ${summaryRefusalReason(summary)}. The original input remains in the field and was not stored.`; const status = document.querySelector('#history-status'); if (status) status.textContent = reason; return { ok: false, reason }; }
     const event = {
       id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       timestamp: new Date().toISOString(),
@@ -118,7 +152,7 @@
     state.history = [...state.history, event].slice(-MAX_HISTORY);
     persist();
     renderHistory();
-    return event;
+    return state.history.some(item => item.id === event.id) ? { ok: true, event } : { ok: false, reason: 'The event was not appended, so success was not reported.' };
   }
 
   function safeRegex(query) {
@@ -253,15 +287,15 @@
     const select = panel.querySelector('#history-retention-value'); const status = panel.querySelector('#history-prune-status'); const apply = panel.querySelector('#history-prune-apply');
     const preview = () => { const keep = select.value === 'all' ? state.history.length : Number(select.value); const remove = select.value === 'all' ? 0 : Math.max(0, state.history.length - Math.max(0, keep - 1)); status.textContent = remove ? `Preview: ${remove} older event${remove === 1 ? '' : 's'} will be removed, reserving one slot for the prune event.` : 'Preview: nothing will be removed.'; apply.disabled = remove === 0; };
     panel.querySelector('#history-prune-preview').addEventListener('click', preview);
-    apply.addEventListener('click', () => { const keep = Number(select.value); const retain = Math.max(0, keep - 1); const remove = Math.max(0, state.history.length - retain); if (!remove) return; state.history = state.history.slice(-retain); persist(); record('pruned', `Pruned ${remove} older local history event${remove === 1 ? '' : 's'} under the selected retention`, { eventCount: remove, mode: 'explicit-retention' }); status.textContent = `Pruned ${remove} older event${remove === 1 ? '' : 's'} and recorded the action. The prune event occupies the reserved slot.`; apply.disabled = true; });
+    apply.addEventListener('click', () => { const keep = Number(select.value); const retain = Math.max(0, keep - 1); const remove = Math.max(0, state.history.length - retain); if (!remove) return; state.history = state.history.slice(-retain); persist(); const result = record('pruned', `Pruned ${remove} older local history event${remove === 1 ? '' : 's'} under the selected retention`, { eventCount: remove, mode: 'explicit-retention' }); if (!result?.ok) { status.textContent = result?.reason || 'The prune event was not appended, so success was not reported.'; return; } status.textContent = `Pruned ${remove} older event${remove === 1 ? '' : 's'} and recorded the action. The prune event occupies the reserved slot.`; apply.disabled = true; });
   }
 
   function downloadFile(name, body, type) {
+    setDeliveryState('handoff-started', `Browser handoff started for ${name}`);
     const link = document.createElement('a');
     const url = URL.createObjectURL(new Blob([body], { type }));
-    link.href = url;
-    link.download = name;
-    link.click();
+    try { link.href = url; link.download = name; link.click(); setDeliveryState('handoff-unverified', `Browser handoff accepted for ${name}; completion is not observable here.`); }
+    catch (error) { setDeliveryState('handoff-failed', `Browser handoff failed: ${error.message || 'unknown error'}`); }
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     state.editor.lastExport = name;
     persist();
@@ -467,7 +501,8 @@
       const input = document.querySelector('#history-event-summary');
       const value = text(input?.value).trim();
       if (!value) { document.querySelector('#history-status').textContent = 'Enter a factual local event summary before recording it.'; input?.focus(); return; }
-      record('updated', value, { source: 'local-browser-form' });
+      const result = record('updated', value, { source: 'local-browser-form' });
+      if (!result?.ok) { input.focus(); return; }
       input.value = '';
       document.querySelector('#history-status').textContent = 'The append-only event was recorded locally.';
     });
@@ -513,10 +548,12 @@
       const file = document.querySelector('#transfer-file').files?.[0];
       const status = document.querySelector('#transfer-status');
       if (!file) return;
-      if (typeof window.showSaveFilePicker !== 'function') { status.textContent = 'Unavailable: this browser does not expose a verified local output handle, so no transfer was started.'; state.transfer = { ...state.transfer, status: 'unavailable', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; persist(); renderTransfer(); return; }
+      transferDestinationName = '';
+      setDeliveryState('preparing', `Preparing a local write for ${file.name}`);
+      if (typeof window.showSaveFilePicker !== 'function') { transferDestinationName = ''; setDeliveryState('handoff-failed', 'API unavailable: the browser does not expose a verified local output handle.'); status.textContent = 'Unavailable: this browser does not expose a verified local output handle, so no transfer was started.'; state.transfer = { ...state.transfer, status: 'unavailable', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; persist(); renderTransfer(); return; }
       let handle;
-      try { handle = await window.showSaveFilePicker({ suggestedName: file.name, types: [{ description: 'Selected file', accept: { [file.type || 'application/octet-stream']: [`.${file.name.split('.').pop() || 'bin'}`] } }] }); transferDestinationName = scrubSummary(handle.name || 'selected destination'); transferWriter = await handle.createWritable(); }
-      catch (error) { status.textContent = `The browser did not provide an output handle: ${error.message || 'selection cancelled'}. Nothing was written.`; state.transfer = { ...state.transfer, status: 'idle', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; renderTransfer(); return; }
+      try { handle = await window.showSaveFilePicker({ suggestedName: file.name, types: [{ description: 'Selected file', accept: { [file.type || 'application/octet-stream']: [`.${file.name.split('.').pop() || 'bin'}`] } }] }); transferDestinationName = scrubSummary(handle.name || 'selected destination'); transferWriter = await handle.createWritable(); setDeliveryState('handoff-started', 'Writable destination accepted; measured output is beginning.'); }
+      catch (error) { transferDestinationName = ''; const pickerReason = error?.name === 'AbortError' ? 'picker-cancelled' : error?.name === 'NotAllowedError' ? 'destination-failed' : 'writable-failed'; setDeliveryState('handoff-failed', pickerReason); status.textContent = `The local destination step ended with ${pickerReason}. Nothing was written.`; state.transfer = { ...state.transfer, status: 'idle', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; renderTransfer(); return; }
       transferAbort = new AbortController();
       state.transfer = { ...state.transfer, status: 'started', name: scrubSummary(file.name), startedAt: new Date().toISOString(), totalBytes: file.size, bytesWritten: 0, interruptionRecorded: false };
       persist(); renderTransfer();
@@ -531,11 +568,12 @@
           const progress = document.querySelector('#transfer-progress'); if (progress) progress.value = file.size ? Math.round((state.transfer.bytesWritten / file.size) * 100) : 100;
         }
         await transferWriter.close(); transferWriter = null;
-        state.transfer.status = 'complete'; state.transfer.completedAt = new Date().toISOString(); persist(); renderTransfer();
+        setDeliveryState('prepared', 'Measured writable stream closed successfully.'); transferDestinationName = ''; state.transfer.status = 'complete'; state.transfer.completedAt = new Date().toISOString(); persist(); renderTransfer();
         record('download-complete', `Completed the local file write for ${file.name}`, { bytes: file.size, completion: 'stream-close-confirmed' });
       } catch (error) {
         try { await transferWriter?.abort(); } catch { /* abort is best effort after a failed write */ }
-        transferWriter = null; state.transfer.status = 'cancelled'; persist(); renderTransfer();
+        transferWriter = null; transferDestinationName = ''; state.transfer.status = 'cancelled'; persist(); renderTransfer();
+        setDeliveryState('handoff-failed', error.name === 'AbortError' ? 'picker-cancelled' : 'writable-failed');
         record('download-cancelled', `Cancelled the local file write for ${file.name}`, { bytes: state.transfer.bytesWritten, completion: 'not-complete' });
         status.textContent = error.name === 'AbortError' ? 'Cancelled before the local stream closed.' : `The local write failed: ${error.message || 'unknown error'}. No completion claim was made.`;
       } finally { transferAbort = null; }
@@ -554,6 +592,7 @@
       operation.running = false;
       start.disabled = false;
       cancel.hidden = true;
+      if (operation.cancelled) setDeliveryState('handoff-failed', 'Preparation cancelled before browser handoff.'); else setDeliveryState('prepared', 'Local export preparation completed before browser handoff.');
       status.textContent = operation.cancelled ? 'Preparation cancelled before an export was written.' : 'Preparation complete. The redacted export is handed to the browser next, and browser download completion is unverified here.';
       if (!operation.cancelled) exportHistory('json');
     };
@@ -561,6 +600,7 @@
       if (operation.running) return;
       const payload = new TextEncoder().encode(JSON.stringify(historyExportRows()));
       operation = { running: true, cancelled: false, index: 0, total: Math.max(payload.byteLength, 1), payload, timer: 0 };
+      setDeliveryState('preparing', 'Encoding the redacted export before browser handoff.');
       start.disabled = true; cancel.hidden = false; progress.value = 0; status.textContent = 'Preparing a redacted local export. Re-entry is blocked until this run settles.';
       const tick = () => {
         if (!operation.running) return;
@@ -601,9 +641,10 @@
       const owner = state.forge.owner.trim(), repository = state.forge.repository.trim();
       const status = document.querySelector('#forge-status');
       if (!owner || !repository) { status.textContent = 'Enter the destination owner and repository name before previewing the provider handoff.'; document.querySelector('#forge-owner').focus(); return; }
+      const result = record('forge-preview', `Prepared a provider handoff preview for ${owner}/${repository}`, { owner, repository, source: state.forge.source, destination: state.forge.destination, account: state.forge.account, route: state.forge.route });
+      if (!result?.ok) { document.querySelector('#forge-open').disabled = true; status.textContent = result?.reason || 'The preview event was not appended, so success was not reported.'; return; }
       preview.textContent = `Preview: source ${state.forge.source}; destination ${state.forge.destination}; account ${state.forge.account}; owner ${owner}; repository ${repository}; route ${state.forge.route}. Credentials stay in the provider flow.`;
       document.querySelector('#forge-open').disabled = false;
-      record('forge-preview', `Prepared a provider handoff preview for ${owner}/${repository}`, { owner, repository, source: state.forge.source, destination: state.forge.destination, account: state.forge.account, route: state.forge.route });
     });
     document.querySelector('#forge-open')?.addEventListener('click', () => {
       const owner = state.forge.owner.trim(), repository = state.forge.repository.trim();
@@ -731,10 +772,11 @@
       <article class="surface-card delivery-panel" id="publishing"><div class="section-heading"><div><span class="card-kicker">FORGE BOUNDARY</span><h2>Publish through the browser</h2><p>Choose a visible account and owner, then open the provider's own flow. This page never stores a credential, signs in, publishes, or silently substitutes a fork for a copy-and-publish flow.</p></div><span class="status-chip">User mediated</span></div><form id="forge-form" class="delivery-form"><label>Account<select id="forge-account"><option value="browser">Use an already signed-in browser account</option><option value="manual">Choose account in the provider flow</option></select></label><label>Owner<input id="forge-owner" maxlength="80" autocomplete="organization" placeholder="Personal account or organization"></label><label>Repository<input id="forge-repository" maxlength="100" autocomplete="off" placeholder="Repository name"></label><label>Route<select id="forge-route"><option value="copy">Copy and publish</option><option value="fork">Provider fork flow</option></select></label><button id="forge-open" class="primary-button" type="button">Open provider flow</button></form><p id="forge-status" class="export-loss" role="status"></p><div class="delivery-recovery" data-recovery><strong>Recovery beside a refused flow</strong><p>Retry the browser handoff or return to local settings. Credentials remain in the provider's own sign-in surface.</p><button type="button" class="text-button" data-recovery-action="retry">Retry</button><span data-recovery-status role="status"></span></div></article>
       <article class="surface-card delivery-panel" id="updates"><div class="section-heading"><div><span class="card-kicker">STATIC UPDATE EQUIVALENT</span><h2>Update and download status</h2><p>A hosted page cannot install software or restart an application. It can record a local check and offer a normal browser reload without claiming that an update was applied.</p></div><span class="status-chip">No install claim</span></div><div class="delivery-actions"><button id="update-check" class="secondary-button" type="button">Check this published page</button><button id="update-reload" class="text-button" type="button">Reload page</button></div><p id="update-status" class="export-loss" role="status"></p></article>
       <article class="surface-card delivery-panel"><div class="section-heading"><div><span class="card-kicker">PROVIDER MARKUP</span><h2>Safe Markdown preview</h2><p>Provider-authored text is escaped first, then only headings, emphasis, code, and plain list rows are rendered. Links, scripts, images, and raw HTML are not executed.</p></div><span class="status-chip">Local preview</span></div><label>Paste provider-authored Markdown<textarea id="provider-markdown" rows="6" placeholder="No provider-authored text is loaded. Paste text here to preview it locally."></textarea></label><div class="delivery-actions"><button id="provider-render" class="secondary-button" type="button">Render safe preview</button><button id="provider-clear" class="text-button" type="button">Clear preview</button></div><div id="provider-preview" class="provider-markdown" aria-live="polite"><p>No provider-authored text is loaded.</p></div></article></section>`;
+    const deliveryState = document.createElement('p'); deliveryState.id = 'delivery-state'; deliveryState.className = 'filter-status'; deliveryState.setAttribute('role', 'status'); deliveryState.textContent = `Delivery state: ${state.delivery.status}. ${state.delivery.reason || 'No additional detail.'}`; host.querySelector('.page-intro')?.after(deliveryState);
     const editorLead = host.querySelector('#editor .section-heading p'); if (editorLead) editorLead.textContent = 'Select a local file or download an export. A normal browser does not expose a verified local path for external-editor opening, so this route remains explicitly unavailable.';
     const transferLead = host.querySelector('#downloads .section-heading p'); if (transferLead) transferLead.textContent = 'When File System Access is available, this page writes a selected local file to a user-chosen destination in measured chunks. Unsupported browsers remain unavailable.';
     host.querySelector('#transfer-complete')?.remove();
-    ensureDatePreset('history-preset', 'history-to'); ensureDatePreset('changelog-preset', 'changelog-to'); ensureRetentionControls(); ensureDropdownSearches();
+    ensureDatePreset('history-preset', 'history-to'); ensureDatePreset('changelog-preset', 'changelog-to'); ensureRetentionControls(); ensureMigrationAuditPanel(); ensureDropdownSearches();
     bindHistory(); bindChangelog(); bindEditor(); bindTransfer(); bindOperation(); bindRecovery(); bindForge(); bindUpdate();
     document.querySelector('#provider-render')?.addEventListener('click', () => { const value = document.querySelector('#provider-markdown').value.slice(0, 20000); document.querySelector('#provider-preview').innerHTML = parseProviderMarkdown(value) || '<p>No provider-authored text is loaded.</p>'; record('provider-preview', 'Rendered provider-authored Markdown in the isolated local preview', { content: 'omitted' }); });
     document.querySelector('#provider-clear')?.addEventListener('click', () => { document.querySelector('#provider-markdown').value = ''; document.querySelector('#provider-preview').innerHTML = '<p>No provider-authored text is loaded.</p>'; });
@@ -749,7 +791,7 @@
     renderPage();
     ensureRail();
     if (state.migration?.status === 'migrated' && !state.migration.recorded) { state.migration.recorded = true; persist(); record('state-migration', `Migrated saved state version ${state.migration.sourceVersion} to version ${STATE_SCHEMA_VERSION}`, { source: 'schema-migration', status: 'migrated', sourceEvent: 'redacted' }); }
-    if (state.migration?.status === 'future-version-refused') appendMigrationAudit('future-version-refused', state.migration.sourceVersion);
+    if (state.migration?.status === 'future-version-refused') { appendMigrationAudit('future-version-refused', state.migration.sourceVersion); renderMigrationAudit(); }
     ensurePaletteOpener();
     if (state.transfer.status === 'interrupted' && !state.transfer.interruptionRecorded) { state.transfer.interruptionRecorded = true; persist(); record('download-interrupted', `Recovered an interrupted local write for ${state.transfer.name || 'the selected file'}`, { status: 'interrupted', completion: 'not-complete' }); }
     document.querySelectorAll('#history-delivery-page .delivery-panel, #history-delivery-mount .delivery-panel').forEach(panel => { panel.dataset.deliveryContext = 'panel'; });

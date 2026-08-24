@@ -14,7 +14,7 @@ The published documentation surface now carries a local delivery workspace at `h
 - The update surface reads the bundled release-manifest equivalent and reports `unavailable`, `available`, `downloading`, `ready`, or `failed` only when the manifest carries that state and a valid full commit identifier. A static page cannot install an application or claim that an update was applied.
 - The shared delivery rail exposes ordinary persisted route navigation with pinning. Static-host limitations are stated beside it: grouping and reordering are not offered by this route, and the markup does not claim incomplete navigation is a full tab implementation.
 - Every select control receives its own local filter field and adjacent anchored regex builder. Date filters also provide validated ISO ranges and named presets.
-- A bounded local export operation disables re-entry, exposes real cancellation, and reports progress while processing the current event set.
+- A bounded local export operation disables re-entry, exposes real cancellation, and reports preparation progress while processing the current event set. Its versioned delivery state distinguishes `preparing`, `prepared`, `handoff-started`, `handoff-unverified`, and `handoff-failed`. A browser handoff never becomes a 100 percent completion claim merely because the browser accepted a click.
 
 ## Configuration
 
