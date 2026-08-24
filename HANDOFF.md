@@ -74,6 +74,14 @@ Palette rollback now restores one adapter snapshot and suppresses the next gener
 
 The hosted producer inventory now names `HostedDimSumCacheControl`, `hydrateHostedDimSumCache`, `importHostedDimSumCache`, `replaceHostedDimSumCache`, `clearHostedDimSumCache`, `validateDimSumCachePayloadAsync`, `window.localStorage`, and `DIM_SUM_CACHE_STORAGE_KEY` exactly. No tests, lint, broad build, package, UI, browser, captures, dew, or cleanup ran in this lane.
 
+## Smell repair after eleventh refutation, 2026-08-24
+
+Generated dynamic appearance IDs now use only a stable item `id` or `key`. Label and loop-index fallback identity was removed. Missing identity produces a `*-missing` marker, the appearance target validator refuses persistence for that marker, and the inventory reports the missing stable identity explicitly. The compiler writes `directAppearanceIds` for console, M3 Control, and mounted-state manifests in `generated/design-manifest.json`, and observed direct IDs are checked against that manifest.
+
+Navigation CAS now carries an expected adapter revision. Stale generated snapshots are rejected, adapter mutations publish newer revisions, and one transaction lock spans rollback, generated shell restoration, render-triggered definition refresh, and the synchronized publish. Rich operations append both a durable started record and a terminal completed or failed record under one operation ID.
+
+No tests, lint, broad build, package, UI, browser, captures, dew, or cleanup ran in this smell repair.
+
 ## Scope
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.

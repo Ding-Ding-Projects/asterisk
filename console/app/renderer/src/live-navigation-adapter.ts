@@ -16,6 +16,7 @@ export type GeneratedNavigationGroup = {
 };
 
 export type GeneratedNavigationSnapshot = {
+  readonly expectedRevision?: number;
   readonly screen?: unknown;
   readonly tabs?: unknown;
   readonly pinned?: unknown;
@@ -25,6 +26,8 @@ export type GeneratedNavigationSnapshot = {
 
 export interface LiveNavigationAdapter {
   getState(): NavigationState;
+  beginTransaction(): number;
+  endTransaction(token: number): boolean;
   restore(snapshot: NavigationState): NavigationState;
   subscribe(listener: (state: NavigationState) => void): () => void;
   replaceDefinitionState(definitions: NavigationState): NavigationState;
@@ -68,6 +71,8 @@ function sameTargetTab(definition: NavigationTab, current: NavigationTab | undef
 export function createLiveNavigationAdapter(initial: NavigationState): LiveNavigationAdapter {
   let state = initial;
   let definitions = initial;
+  let transactionToken = 0;
+  let lockedToken: number | undefined;
   const listeners = new Set<(next: NavigationState) => void>();
 
   const publish = (next: NavigationState): NavigationState => {
@@ -79,6 +84,18 @@ export function createLiveNavigationAdapter(initial: NavigationState): LiveNavig
 
   const restore = (snapshot: NavigationState): NavigationState => publish(snapshot);
 
+  const beginTransaction = (): number => {
+    transactionToken += 1;
+    lockedToken = transactionToken;
+    return transactionToken;
+  };
+
+  const endTransaction = (token: number): boolean => {
+    if (lockedToken !== token) return false;
+    lockedToken = undefined;
+    return true;
+  };
+
   const currentWorkspace = (): { workspace: NavigationState['workspaces'][string]; strip: NavigationState['workspaces'][string]['strips'][string] } | undefined => {
     const workspace = state.workspaces[state.activeWorkspaceId];
     if (!workspace) return undefined;
@@ -87,6 +104,7 @@ export function createLiveNavigationAdapter(initial: NavigationState): LiveNavig
   };
 
   const replaceDefinitionState = (nextDefinitions: NavigationState): NavigationState => {
+    if (lockedToken !== undefined) return state;
     definitions = nextDefinitions;
     const old = currentWorkspace();
     const nextWorkspace = nextDefinitions.workspaces[nextDefinitions.activeWorkspaceId];
@@ -147,6 +165,8 @@ export function createLiveNavigationAdapter(initial: NavigationState): LiveNavig
   };
 
   const syncGenerated = (snapshot: GeneratedNavigationSnapshot): NavigationState => {
+    if (lockedToken !== undefined) return state;
+    if (snapshot.expectedRevision !== undefined && snapshot.expectedRevision !== state.revision) return state;
     const current = currentWorkspace();
     if (!current) return state;
     const available = destinationMap(definitions);
@@ -223,6 +243,8 @@ export function createLiveNavigationAdapter(initial: NavigationState): LiveNavig
 
   return {
     getState: () => state,
+    beginTransaction,
+    endTransaction,
     restore,
     subscribe: (listener) => { listeners.add(listener); return () => listeners.delete(listener); },
     replaceDefinitionState,

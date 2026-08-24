@@ -36,13 +36,13 @@ function Template(v: any) {
         h("div", { style: sty(`display:flex; align-items:center; gap:8px; padding-right:4px; flex:0 0 auto;`) },
           h("div", { style: sty(`display:flex; border:1px solid #414942; border-radius:999px; overflow:hidden; height:28px;`) },
             A(v.modeOpts).map(($o, $o$i) => R($o$i, F(
-              ($o.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_1_7_1_1_1_1" + '-' + S($o?.id ?? $o?.key ?? $o?.label ?? $o$i), "data-direct-interactive": true, onClick: fn($o.pick), style: sty(`display:flex; align-items:center; gap:5px; background:#005230; color:#9FF7C4; border:0; padding:0 13px; font:inherit; font-size:12px; font-weight:500; cursor:pointer;`) },
+              ($o.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_1_7_1_1_1_1" + '-' + (S($o?.id ?? $o?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($o.pick), style: sty(`display:flex; align-items:center; gap:5px; background:#005230; color:#9FF7C4; border:0; padding:0 13px; font:inherit; font-size:12px; font-weight:500; cursor:pointer;`) },
                   h("span", { style: sty(`font-size:15px;`), className: "msym" },
                     "check"
                   ),
                   S($o.label)
                 ) : null),
-              ($o.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_1_7_1_1_3_1" + '-' + S($o?.id ?? $o?.key ?? $o?.label ?? $o$i), "data-direct-interactive": true, onClick: fn($o.pick), style: sty(`background:transparent; color:#9AA39B; border:0; padding:0 13px; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h1" },
+              ($o.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_1_7_1_1_3_1" + '-' + (S($o?.id ?? $o?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($o.pick), style: sty(`background:transparent; color:#9AA39B; border:0; padding:0 13px; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h1" },
                   S($o.label)
                 ) : null)
             )))
@@ -97,7 +97,7 @@ function Template(v: any) {
               ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#8FA394;`), className: "msym" },
                   "push_pin"
                 ) : null),
-              ($t.closable ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_3_3_1_1_11_0" + '-' + S($t?.id ?? $t?.key ?? $t?.label ?? $t$i), "data-direct-interactive": true, onClick: fn($t.close), "aria-label": `Close ${S($t.label)}`, style: sty(`width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h3" },
+              ($t.closable ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_3_3_1_1_11_0" + '-' + (S($t?.id ?? $t?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($t.close), "aria-label": `Close ${S($t.label)}`, style: sty(`width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h3" },
                   h("span", { style: sty(`font-size:14px;`), className: "msym" },
                     "close"
                   )
@@ -114,7 +114,7 @@ function Template(v: any) {
               ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#778078;`), className: "msym" },
                   "push_pin"
                 ) : null),
-              ($t.closable ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_3_3_3_1_9_0" + '-' + S($t?.id ?? $t?.key ?? $t?.label ?? $t$i), "data-direct-interactive": true, onClick: fn($t.close), "aria-label": `Close ${S($t.label)}`, style: sty(`width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h3" },
+              ($t.closable ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_3_3_3_1_9_0" + '-' + (S($t?.id ?? $t?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($t.close), "aria-label": `Close ${S($t.label)}`, style: sty(`width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h3" },
                   h("span", { style: sty(`font-size:14px;`), className: "msym" },
                     "close"
                   )
@@ -132,20 +132,20 @@ function Template(v: any) {
             "Tab strip"
           ),
           A(v.dockOpts).map(($d, $d$i) => R($d$i, F(
-            ($d.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_3_9_3_1_1" + '-' + S($d?.id ?? $d?.key ?? $d?.label ?? $d$i), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer; display:flex; align-items:center; justify-content:center;`) },
+            ($d.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_3_9_3_1_1" + '-' + (S($d?.id ?? $d?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer; display:flex; align-items:center; justify-content:center;`) },
                 h("span", { style: sty(`font-size:16px;`), className: "msym" },
                   S($d.icon)
                 )
               ) : null),
-            ($d.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_3_9_3_3_1" + '-' + S($d?.id ?? $d?.key ?? $d?.label ?? $d$i), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center;`), className: "k-h6" },
+            ($d.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_3_9_3_3_1" + '-' + (S($d?.id ?? $d?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center;`), className: "k-h6" },
                 h("span", { style: sty(`font-size:16px;`), className: "msym" },
                   S($d.icon)
                 )
               ) : null)
           ))),
           A(v.tabSearchSlots).map(($q, $q$i) => R($q$i, h("div", { role: `search`, "aria-label": $q.label, style: sty(`display:flex; align-items:center; gap:4px; background:#141A15; border:1px solid #333B34; border-radius:10px; padding:2px 5px;`) },
-              h("input", { "data-appearance-id": "direct-consoleshell-0_1_3_9_5_1_1" + '-' + S($q?.id ?? $q?.key ?? $q?.label ?? $q$i), "data-direct-interactive": true, type: `search`, value: $q.value, onInput: fn($q.input), placeholder: $q.label, "aria-label": $q.label, style: sty(`width:112px; background:transparent; border:0; color:#DFE4DC; font:inherit; font-size:11px;`) }),
-              h("button", { "data-appearance-id": "direct-consoleshell-0_1_3_9_5_1_3" + '-' + S($q?.id ?? $q?.key ?? $q?.label ?? $q$i), "data-direct-interactive": true, onClick: fn($q.regex), "aria-label": `Open regex builder for ${S($q.label)}`, style: sty(`background:transparent; border:0; color:#82D9A5; cursor:pointer;`) },
+              h("input", { "data-appearance-id": "direct-consoleshell-0_1_3_9_5_1_1" + '-' + (S($q?.id ?? $q?.key ?? '') || 'missing'), "data-direct-interactive": true, type: `search`, value: $q.value, onInput: fn($q.input), placeholder: $q.label, "aria-label": $q.label, style: sty(`width:112px; background:transparent; border:0; color:#DFE4DC; font:inherit; font-size:11px;`) }),
+              h("button", { "data-appearance-id": "direct-consoleshell-0_1_3_9_5_1_3" + '-' + (S($q?.id ?? $q?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($q.regex), "aria-label": `Open regex builder for ${S($q.label)}`, style: sty(`background:transparent; border:0; color:#82D9A5; cursor:pointer;`) },
                 h("span", { className: "msym" },
                   "data_object"
                 )
@@ -155,7 +155,7 @@ function Template(v: any) {
       ),
       h("div", { "data-appearance-id": `console-panel`, "data-shell-content": ``, id: `console-panel`, role: `tabpanel`, style: sty(`${S(v.workspaceInsetStyle)}`) },
         h("div", { style: sty(`width:88px; flex:0 0 88px; background:#0B0F0C; display:flex; flex-direction:column; align-items:center; padding:8px 0 12px; gap:4px; overflow-y:auto;`) },
-          A(v.rail).map(($r, $r$i) => R($r$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_1_1_1" + '-' + S($r?.id ?? $r?.key ?? $r?.label ?? $r$i), "data-direct-interactive": true, onClick: fn($r.pick), style: sty(`width:100%; background:transparent; border:0; cursor:pointer; padding:4px 0 2px; display:flex; flex-direction:column; align-items:center; gap:4px;`) },
+          A(v.rail).map(($r, $r$i) => R($r$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_1_1_1" + '-' + (S($r?.id ?? $r?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($r.pick), style: sty(`width:100%; background:transparent; border:0; cursor:pointer; padding:4px 0 2px; display:flex; flex-direction:column; align-items:center; gap:4px;`) },
               ($r.on ? h("span", { style: sty(`width:56px; height:32px; border-radius:16px; background:#005230; display:flex; align-items:center; justify-content:center; animation:m3Ripple .5s ease-out;`) },
                   h("span", { style: sty(`font-size:22px; color:#9FF7C4;`), className: "msym" },
                     S($r.icon)
@@ -203,7 +203,7 @@ function Template(v: any) {
           ),
           h("div", { style: sty(`flex:1; overflow-y:auto; padding:0 10px 8px;`) },
             A(v.sections).map(($s, $s$i) => R($s$i, F(
-              ($s.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_3_5_1_1_1" + '-' + S($s?.id ?? $s?.key ?? $s?.label ?? $s$i), "data-direct-interactive": true, onClick: fn($s.pick), style: sty(`width:100%; text-align:left; background:#005230; border:0; border-radius:999px; padding:9px 14px; margin-bottom:3px; cursor:pointer; display:flex; align-items:center; gap:11px; animation:m3Bounce .32s cubic-bezier(.2,1.3,.4,1);`) },
+              ($s.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_3_5_1_1_1" + '-' + (S($s?.id ?? $s?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($s.pick), style: sty(`width:100%; text-align:left; background:#005230; border:0; border-radius:999px; padding:9px 14px; margin-bottom:3px; cursor:pointer; display:flex; align-items:center; gap:11px; animation:m3Bounce .32s cubic-bezier(.2,1.3,.4,1);`) },
                   h("span", { style: sty(`font-size:19px; color:#9FF7C4;`), className: "msym" },
                     S($s.icon)
                   ),
@@ -214,7 +214,7 @@ function Template(v: any) {
                     S($s.badge)
                   )
                 ) : null),
-              ($s.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_3_5_1_3_1" + '-' + S($s?.id ?? $s?.key ?? $s?.label ?? $s$i), "data-direct-interactive": true, onClick: fn($s.pick), style: sty(`width:100%; text-align:left; background:transparent; border:0; border-radius:999px; padding:9px 14px; margin-bottom:3px; cursor:pointer; display:flex; align-items:center; gap:11px;`), className: "k-h7" },
+              ($s.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_3_5_1_3_1" + '-' + (S($s?.id ?? $s?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($s.pick), style: sty(`width:100%; text-align:left; background:transparent; border:0; border-radius:999px; padding:9px 14px; margin-bottom:3px; cursor:pointer; display:flex; align-items:center; gap:11px;`), className: "k-h7" },
                   h("span", { style: sty(`font-size:19px; color:#9AA39B;`), className: "msym" },
                     S($s.icon)
                   ),
@@ -354,17 +354,17 @@ function Template(v: any) {
                           S($c.dur)
                         ),
                         h("div", { style: sty(`display:flex; gap:4px; justify-content:flex-end; padding-right:2px;`) },
-                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_7_3_1_3_1_1_7_1" + '-' + S($c?.id ?? $c?.key ?? $c?.label ?? $c$i), "data-direct-interactive": true, onClick: fn($c.spy), title: `Listen (ChanSpy)`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
+                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_7_3_1_3_1_1_7_1" + '-' + (S($c?.id ?? $c?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($c.spy), title: `Listen (ChanSpy)`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                             h("span", { style: sty(`font-size:16px;`), className: "msym" },
                               "hearing"
                             )
                           ),
-                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_7_3_1_3_1_1_7_3" + '-' + S($c?.id ?? $c?.key ?? $c?.label ?? $c$i), "data-direct-interactive": true, onClick: fn($c.rec), title: `MixMonitor`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
+                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_7_3_1_3_1_1_7_3" + '-' + (S($c?.id ?? $c?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($c.rec), title: `MixMonitor`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                             h("span", { style: sty(`font-size:16px;`), className: "msym" },
                               "fiber_manual_record"
                             )
                           ),
-                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_7_3_1_3_1_1_7_5" + '-' + S($c?.id ?? $c?.key ?? $c?.label ?? $c$i), "data-direct-interactive": true, onClick: fn($c.kill), title: `Hangup`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#FFB4AB; cursor:pointer;`), className: "k-h12" },
+                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_7_3_1_3_1_1_7_5" + '-' + (S($c?.id ?? $c?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($c.kill), title: `Hangup`, style: sty(`width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#FFB4AB; cursor:pointer;`), className: "k-h12" },
                             h("span", { style: sty(`font-size:16px;`), className: "msym" },
                               "call_end"
                             )
@@ -399,7 +399,7 @@ function Template(v: any) {
                       "Quick actions"
                     ),
                     h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:8px;`) },
-                      A(v.quickActions).map(($q, $q$i) => R($q$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_7_3_3_3_3_1_1" + '-' + S($q?.id ?? $q?.key ?? $q?.label ?? $q$i), "data-direct-interactive": true, onClick: fn($q.run), style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h11" },
+                      A(v.quickActions).map(($q, $q$i) => R($q$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_7_3_3_3_3_1_1" + '-' + (S($q?.id ?? $q?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($q.run), style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h11" },
                           h("span", { style: sty(`font-size:17px;`), className: "msym" },
                             S($q.icon)
                           ),
@@ -433,7 +433,7 @@ function Template(v: any) {
                 ),
                 h("div", { style: sty(`display:flex; gap:8px; margin-top:18px; flex-wrap:wrap;`) },
                   A(v.funLevels).map(($l, $l$i) => R($l$i, F(
-                    ($l.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_9_1_3_1_1_1" + '-' + S($l?.id ?? $l?.key ?? $l?.label ?? $l$i), "data-direct-interactive": true, onClick: fn($l.pick), style: sty(`flex:1; min-width:150px; text-align:left; background:#9FF7C4; border:0; border-radius:16px; padding:13px 15px; cursor:pointer; animation:m3Bounce .34s cubic-bezier(.2,1.4,.4,1);`) },
+                    ($l.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_9_1_3_1_1_1" + '-' + (S($l?.id ?? $l?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($l.pick), style: sty(`flex:1; min-width:150px; text-align:left; background:#9FF7C4; border:0; border-radius:16px; padding:13px 15px; cursor:pointer; animation:m3Bounce .34s cubic-bezier(.2,1.4,.4,1);`) },
                         h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:24px; font-weight:700; color:#00391F;`) },
                           S($l.num)
                         ),
@@ -444,7 +444,7 @@ function Template(v: any) {
                           S($l.desc)
                         )
                       ) : null),
-                    ($l.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_9_1_3_1_3_1" + '-' + S($l?.id ?? $l?.key ?? $l?.label ?? $l$i), "data-direct-interactive": true, onClick: fn($l.pick), style: sty(`flex:1; min-width:150px; text-align:left; background:rgba(0,0,0,.24); border:1px solid rgba(159,247,196,.3); border-radius:16px; padding:13px 15px; cursor:pointer;`), className: "k-h13" },
+                    ($l.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_9_1_3_1_3_1" + '-' + (S($l?.id ?? $l?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($l.pick), style: sty(`flex:1; min-width:150px; text-align:left; background:rgba(0,0,0,.24); border:1px solid rgba(159,247,196,.3); border-radius:16px; padding:13px 15px; cursor:pointer;`), className: "k-h13" },
                         h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:24px; font-weight:700; color:#9FF7C4;`) },
                           S($l.num)
                         ),
@@ -494,15 +494,15 @@ function Template(v: any) {
                   )
                 ),
                 A(v.branches).map(($b, $b$i) => R($b$i, F(
-                  ($b.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_1_3_1_1" + '-' + S($b?.id ?? $b?.key ?? $b?.label ?? $b$i), "data-direct-interactive": true, onClick: fn($b.pick), style: sty(`background:#005230; border:0; border-radius:999px; padding:7px 14px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer;`) },
+                  ($b.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_1_3_1_1" + '-' + (S($b?.id ?? $b?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($b.pick), style: sty(`background:#005230; border:0; border-radius:999px; padding:7px 14px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer;`) },
                       S($b.label)
                     ) : null),
-                  ($b.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_1_3_3_1" + '-' + S($b?.id ?? $b?.key ?? $b?.label ?? $b$i), "data-direct-interactive": true, onClick: fn($b.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 14px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`), className: "k-h0" },
+                  ($b.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_1_3_3_1" + '-' + (S($b?.id ?? $b?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($b.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 14px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`), className: "k-h0" },
                       S($b.label)
                     ) : null)
                 ))),
                 h("div", { style: sty(`flex:1;`) }),
-                A(v.histActions).map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_1_7_1" + '-' + S($a?.id ?? $a?.key ?? $a?.label ?? $a$i), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:#1B211C; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h11" },
+                A(v.histActions).map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_1_7_1" + '-' + (S($a?.id ?? $a?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:#1B211C; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h11" },
                     h("span", { style: sty(`font-size:16px;`), className: "msym" },
                       S($a.icon)
                     ),
@@ -520,16 +520,16 @@ function Template(v: any) {
                     ),
                     h("div", { style: sty(`flex:1;`) }),
                     A(v.histFilters).map(($f, $f$i) => R($f$i, F(
-                      ($f.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_3_1_1_7_1_1" + '-' + S($f?.id ?? $f?.key ?? $f?.label ?? $f$i), "data-direct-interactive": true, onClick: fn($f.pick), style: sty(`background:#005230; border:0; border-radius:8px; padding:5px 11px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;`) },
+                      ($f.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_3_1_1_7_1_1" + '-' + (S($f?.id ?? $f?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($f.pick), style: sty(`background:#005230; border:0; border-radius:8px; padding:5px 11px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;`) },
                           S($f.label)
                         ) : null),
-                      ($f.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_3_1_1_7_3_1" + '-' + S($f?.id ?? $f?.key ?? $f?.label ?? $f$i), "data-direct-interactive": true, onClick: fn($f.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:5px 11px; color:#9AA39B; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h14" },
+                      ($f.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_3_1_1_7_3_1" + '-' + (S($f?.id ?? $f?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($f.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:5px 11px; color:#9AA39B; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h14" },
                           S($f.label)
                         ) : null)
                     )))
                   ),
                   h("div", { style: sty(`max-height:460px; overflow-y:auto;`) },
-                    A(v.commitRows).map(($c, $c$i) => R($c$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_3_1_3_1_1" + '-' + S($c?.id ?? $c?.key ?? $c?.label ?? $c$i), "data-direct-interactive": true, onClick: fn($c.pick), onContextMenu: fn($c.ctx), style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), className: "k-h15" },
+                    A(v.commitRows).map(($c, $c$i) => R($c$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_3_1_3_1_1" + '-' + (S($c?.id ?? $c?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($c.pick), onContextMenu: fn($c.ctx), style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), className: "k-h15" },
                         h("div", { style: sty(`display:flex; flex-direction:column; align-items:center; padding-top:3px; flex:0 0 auto;`) },
                           h("span", { style: sty(`width:11px; height:11px; border-radius:50%; background:${S($c.dot)}; border:2px solid #0F1510;`) }),
                           h("span", { style: sty(`width:2px; flex:1; min-height:22px; background:#333B34;`) })
@@ -550,7 +550,7 @@ function Template(v: any) {
                             S($c.meta)
                           )
                         ),
-                        h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_3_1_3_1_1_5" + '-' + S($c?.id ?? $c?.key ?? $c?.label ?? $c$i), "data-direct-interactive": true, onClick: fn($c.compare), title: `Add to comparison`, style: sty(`width:26px; height:26px; border-radius:50%; background:transparent; border:1px solid #414942; color:${S($c.cmpFg)}; cursor:pointer; flex:0 0 auto;`), className: "k-h16" },
+                        h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_3_1_3_1_1_5" + '-' + (S($c?.id ?? $c?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($c.compare), title: `Add to comparison`, style: sty(`width:26px; height:26px; border-radius:50%; background:transparent; border:1px solid #414942; color:${S($c.cmpFg)}; cursor:pointer; flex:0 0 auto;`), className: "k-h16" },
                           h("span", { style: sty(`font-size:15px;`), className: "msym" },
                             "compare_arrows"
                           )
@@ -572,7 +572,7 @@ function Template(v: any) {
                         )))
                     ),
                     h("div", { style: sty(`display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;`) },
-                      A(v.diffActions).map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_3_3_1_7_1_1" + '-' + S($a?.id ?? $a?.key ?? $a?.label ?? $a$i), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:${S($a.bg)}; border:0; border-radius:999px; padding:9px 15px 9px 12px; color:${S($a.fg)}; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`) },
+                      A(v.diffActions).map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_11_3_3_1_7_1_1" + '-' + (S($a?.id ?? $a?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:${S($a.bg)}; border:0; border-radius:999px; padding:9px 15px 9px 12px; color:${S($a.fg)}; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`) },
                           h("span", { style: sty(`font-size:16px;`), className: "msym" },
                             S($a.icon)
                           ),
@@ -640,22 +640,22 @@ function Template(v: any) {
                             )))
                         ),
                         h("div", { style: sty(`display:flex; align-items:center; gap:8px; margin-top:14px; flex-wrap:wrap;`) },
-                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_13_1_1_1_1_3_7_1" + '-' + S($a?.id ?? $a?.key ?? $a?.label ?? $a$i), "data-direct-interactive": true, onClick: fn($a.yes), style: sty(`display:flex; align-items:center; gap:7px; background:#82D9A5; border:0; border-radius:999px; padding:10px 22px 10px 16px; color:#00391F; font:inherit; font-size:13px; font-weight:600; cursor:pointer;`), className: "k-h10" },
+                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_13_1_1_1_1_3_7_1" + '-' + (S($a?.id ?? $a?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($a.yes), style: sty(`display:flex; align-items:center; gap:7px; background:#82D9A5; border:0; border-radius:999px; padding:10px 22px 10px 16px; color:#00391F; font:inherit; font-size:13px; font-weight:600; cursor:pointer;`), className: "k-h10" },
                             h("span", { style: sty(`font-size:18px;`), className: "msym" },
                               "thumb_up"
                             ),
                             "Send YES"
                           ),
-                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_13_1_1_1_1_3_7_3" + '-' + S($a?.id ?? $a?.key ?? $a?.label ?? $a$i), "data-direct-interactive": true, onClick: fn($a.no), style: sty(`display:flex; align-items:center; gap:7px; background:#93000A; border:0; border-radius:999px; padding:10px 22px 10px 16px; color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer;`), className: "k-h17" },
+                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_13_1_1_1_1_3_7_3" + '-' + (S($a?.id ?? $a?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($a.no), style: sty(`display:flex; align-items:center; gap:7px; background:#93000A; border:0; border-radius:999px; padding:10px 22px 10px 16px; color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer;`), className: "k-h17" },
                             h("span", { style: sty(`font-size:18px;`), className: "msym" },
                               "thumb_down"
                             ),
                             "Send NO"
                           ),
-                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_13_1_1_1_1_3_7_5" + '-' + S($a?.id ?? $a?.key ?? $a?.label ?? $a$i), "data-direct-interactive": true, onClick: fn($a.ask), "aria-disabled": $a.askDisabled, title: $a.askReason, style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`), className: "k-h0" },
+                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_13_1_1_1_1_3_7_5" + '-' + (S($a?.id ?? $a?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($a.ask), "aria-disabled": $a.askDisabled, title: $a.askReason, style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`), className: "k-h0" },
                             "Ask for detail"
                           ),
-                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_13_1_1_1_1_3_7_7" + '-' + S($a?.id ?? $a?.key ?? $a?.label ?? $a$i), "data-direct-interactive": true, onClick: fn($a.defer), style: sty(`background:transparent; border:0; color:#9AA39B; font:inherit; font-size:12.5px; cursor:pointer; padding:10px 12px;`) },
+                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_13_1_1_1_1_3_7_7" + '-' + (S($a?.id ?? $a?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($a.defer), style: sty(`background:transparent; border:0; color:#9AA39B; font:inherit; font-size:12.5px; cursor:pointer; padding:10px 12px;`) },
                             "Defer"
                           ),
                           h("div", { style: sty(`flex:1;`) }),
@@ -722,13 +722,13 @@ function Template(v: any) {
                 ),
                 h("div", { style: sty(`display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;`) },
                   A(v.oneClickModes).map(($m, $m$i) => R($m$i, F(
-                    ($m.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_15_1_5_1_1_1" + '-' + S($m?.id ?? $m?.key ?? $m?.label ?? $m$i), "data-direct-interactive": true, onClick: fn($m.pick), style: sty(`display:flex; align-items:center; gap:6px; background:#9FF7C4; border:0; border-radius:999px; padding:7px 15px; color:#00391F; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`) },
+                    ($m.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_15_1_5_1_1_1" + '-' + (S($m?.id ?? $m?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($m.pick), style: sty(`display:flex; align-items:center; gap:6px; background:#9FF7C4; border:0; border-radius:999px; padding:7px 15px; color:#00391F; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`) },
                         h("span", { style: sty(`font-size:16px;`), className: "msym" },
                           "check"
                         ),
                         S($m.label)
                       ) : null),
-                    ($m.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_15_1_5_1_3_1" + '-' + S($m?.id ?? $m?.key ?? $m?.label ?? $m$i), "data-direct-interactive": true, onClick: fn($m.pick), style: sty(`background:rgba(0,0,0,.22); border:1px solid rgba(159,247,196,.4); border-radius:999px; padding:7px 15px; color:#9FF7C4; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h19" },
+                    ($m.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_15_1_5_1_3_1" + '-' + (S($m?.id ?? $m?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($m.pick), style: sty(`background:rgba(0,0,0,.22); border:1px solid rgba(159,247,196,.4); border-radius:999px; padding:7px 15px; color:#9FF7C4; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h19" },
                         S($m.label)
                       ) : null)
                   )))
@@ -768,13 +768,13 @@ function Template(v: any) {
             (v.isCanvas ? h("div", { style: sty(`background:#141A15; border-radius:16px; padding:10px; display:flex; flex-direction:column; gap:10px; height:100%; min-height:560px; position:${S(v.canvasPosition)}; inset:${S(v.canvasInset)}; z-index:${S(v.canvasZ)};`) },
                 h("div", { style: sty(`display:flex; align-items:center; gap:8px; flex-wrap:wrap;`) },
                   A(v.canvasTools).map(($t, $t$i) => R($t$i, F(
-                    ($t.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_1_1_1_1" + '-' + S($t?.id ?? $t?.key ?? $t?.label ?? $t$i), "data-direct-interactive": true, onClick: fn($t.pick), style: sty(`display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#9FF7C4; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`) },
+                    ($t.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_1_1_1_1" + '-' + (S($t?.id ?? $t?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($t.pick), style: sty(`display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#9FF7C4; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`) },
                         h("span", { style: sty(`font-size:17px;`), className: "msym" },
                           S($t.icon)
                         ),
                         S($t.label)
                       ) : null),
-                    ($t.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_1_1_3_1" + '-' + S($t?.id ?? $t?.key ?? $t?.label ?? $t$i), "data-direct-interactive": true, onClick: fn($t.pick), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h7" },
+                    ($t.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_1_1_3_1" + '-' + (S($t?.id ?? $t?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($t.pick), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h7" },
                         h("span", { style: sty(`font-size:17px;`), className: "msym" },
                           S($t.icon)
                         ),
@@ -783,12 +783,12 @@ function Template(v: any) {
                   ))),
                   h("div", { style: sty(`flex:1;`) }),
                   A(v.canvasToggles).map(($t, $t$i) => R($t$i, F(
-                    ($t.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_1_5_1_1" + '-' + S($t?.id ?? $t?.key ?? $t?.label ?? $t$i), "data-direct-interactive": true, onClick: fn($t.pick), title: $t.label, style: sty(`width:32px; height:32px; border-radius:9px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;`) },
+                    ($t.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_1_5_1_1" + '-' + (S($t?.id ?? $t?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($t.pick), title: $t.label, style: sty(`width:32px; height:32px; border-radius:9px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;`) },
                         h("span", { style: sty(`font-size:17px;`), className: "msym" },
                           S($t.icon)
                         )
                       ) : null),
-                    ($t.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_1_5_3_1" + '-' + S($t?.id ?? $t?.key ?? $t?.label ?? $t$i), "data-direct-interactive": true, onClick: fn($t.pick), title: $t.label, style: sty(`width:32px; height:32px; border-radius:9px; background:transparent; border:1px solid #414942; color:#9AA39B; cursor:pointer;`), className: "k-h14" },
+                    ($t.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_1_5_3_1" + '-' + (S($t?.id ?? $t?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($t.pick), title: $t.label, style: sty(`width:32px; height:32px; border-radius:9px; background:transparent; border:1px solid #414942; color:#9AA39B; cursor:pointer;`), className: "k-h14" },
                         h("span", { style: sty(`font-size:17px;`), className: "msym" },
                           S($t.icon)
                         )
@@ -819,16 +819,16 @@ function Template(v: any) {
                   h("div", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1", "data-direct-interactive": true, onClick: fn(v.canvasBgClick), onDragOver: fn(v.canvasDragOver), onDrop: fn(v.canvasDrop), style: sty(`position:relative; border-radius:12px; background-color:#0C110D; background-image:radial-gradient(#222A23 1px, transparent 1px); background-size:22px 22px; overflow:hidden;`) },
                     h("div", { style: sty(`position:absolute; left:10px; top:10px; z-index:3; display:flex; gap:5px; background:rgba(20,26,21,.9); border-radius:999px; padding:4px;`) },
                       A(v.canvasLayers).map(($l, $l$i) => R($l$i, F(
-                        ($l.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_1_1_1_1" + '-' + S($l?.id ?? $l?.key ?? $l?.label ?? $l$i), "data-direct-interactive": true, onClick: fn($l.pick), style: sty(`background:#005230; border:0; border-radius:999px; padding:5px 12px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;`) },
+                        ($l.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_1_1_1_1" + '-' + (S($l?.id ?? $l?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($l.pick), style: sty(`background:#005230; border:0; border-radius:999px; padding:5px 12px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;`) },
                             S($l.label)
                           ) : null),
-                        ($l.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_1_1_3_1" + '-' + S($l?.id ?? $l?.key ?? $l?.label ?? $l$i), "data-direct-interactive": true, onClick: fn($l.pick), style: sty(`background:transparent; border:0; border-radius:999px; padding:5px 12px; color:#9AA39B; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h20" },
+                        ($l.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_1_1_3_1" + '-' + (S($l?.id ?? $l?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($l.pick), style: sty(`background:transparent; border:0; border-radius:999px; padding:5px 12px; color:#9AA39B; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h20" },
                             S($l.label)
                           ) : null)
                       )))
                     ),
                     h("div", { style: sty(`position:absolute; right:10px; bottom:10px; z-index:3; display:flex; gap:5px; background:rgba(20,26,21,.9); border-radius:12px; padding:5px;`) },
-                      A(v.canvasOps).map(($o, $o$i) => R($o$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_3_1_1" + '-' + S($o?.id ?? $o?.key ?? $o?.label ?? $o$i), "data-direct-interactive": true, onClick: fn($o.run), title: $o.label, style: sty(`width:30px; height:30px; border-radius:8px; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h11" },
+                      A(v.canvasOps).map(($o, $o$i) => R($o$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_3_1_1" + '-' + (S($o?.id ?? $o?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($o.run), title: $o.label, style: sty(`width:30px; height:30px; border-radius:8px; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h11" },
                           h("span", { style: sty(`font-size:17px;`), className: "msym" },
                             S($o.icon)
                           )
@@ -837,7 +837,7 @@ function Template(v: any) {
                     h("svg", { viewBox: `0 0 760 420`, preserveAspectRatio: `none`, style: sty(`position:absolute; left:0; top:0; width:760px; height:420px; pointer-events:none;`) },
                       A(v.edges).map(($e, $e$i) => R($e$i, h("path", { d: $e.d, fill: `none`, stroke: $e.stroke, strokeWidth: $e.w })))
                     ),
-                    A(v.nodes).map(($n, $n$i) => R($n$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1" + '-' + S($n?.id ?? $n?.key ?? $n?.label ?? $n$i), "data-direct-interactive": true, draggable: `true`, onDragStart: fn($n.onDragStart), onDragEnd: fn($n.onDragEnd), onClick: fn($n.pick), onContextMenu: fn($n.ctx), style: sty(`position:absolute; left:${S($n.x)}; top:${S($n.y)}; width:196px; border-radius:14px; background:#1B211C; border:2px solid ${S($n.border)}; padding:11px 13px; cursor:grab; box-shadow:0 4px 12px rgba(0,0,0,.45); transition:left .26s cubic-bezier(.2,0,0,1), top .26s cubic-bezier(.2,0,0,1), border-color .2s ease, box-shadow .2s ease;`) },
+                    A(v.nodes).map(($n, $n$i) => R($n$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1" + '-' + (S($n?.id ?? $n?.key ?? '') || 'missing'), "data-direct-interactive": true, draggable: `true`, onDragStart: fn($n.onDragStart), onDragEnd: fn($n.onDragEnd), onClick: fn($n.pick), onContextMenu: fn($n.ctx), style: sty(`position:absolute; left:${S($n.x)}; top:${S($n.y)}; width:196px; border-radius:14px; background:#1B211C; border:2px solid ${S($n.border)}; padding:11px 13px; cursor:grab; box-shadow:0 4px 12px rgba(0,0,0,.45); transition:left .26s cubic-bezier(.2,0,0,1), top .26s cubic-bezier(.2,0,0,1), border-color .2s ease, box-shadow .2s ease;`) },
                         h("div", { style: sty(`display:flex; align-items:center; gap:8px;`) },
                           h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                             S($n.icon)
@@ -853,38 +853,38 @@ function Template(v: any) {
                           S($n.detail)
                         ),
                         ($n.selected ? h("div", { style: sty(`display:flex; gap:3px; margin-top:9px; padding-top:8px; border-top:1px solid #262B26;`) },
-                            h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1_5_1_1" + '-' + S($n?.id ?? $n?.key ?? $n?.label ?? $n$i), "data-direct-interactive": true, onClick: fn($n.left), title: `Nudge left`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
+                            h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1_5_1_1" + '-' + (S($n?.id ?? $n?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($n.left), title: `Nudge left`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                                 "chevron_left"
                               )
                             ),
-                            h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1_5_1_3" + '-' + S($n?.id ?? $n?.key ?? $n?.label ?? $n$i), "data-direct-interactive": true, onClick: fn($n.up), title: `Nudge up`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
+                            h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1_5_1_3" + '-' + (S($n?.id ?? $n?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($n.up), title: `Nudge up`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                                 "expand_less"
                               )
                             ),
-                            h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1_5_1_5" + '-' + S($n?.id ?? $n?.key ?? $n?.label ?? $n$i), "data-direct-interactive": true, onClick: fn($n.down), title: `Nudge down`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
+                            h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1_5_1_5" + '-' + (S($n?.id ?? $n?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($n.down), title: `Nudge down`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                                 "expand_more"
                               )
                             ),
-                            h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1_5_1_7" + '-' + S($n?.id ?? $n?.key ?? $n?.label ?? $n$i), "data-direct-interactive": true, onClick: fn($n.right), title: `Nudge right`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
+                            h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1_5_1_7" + '-' + (S($n?.id ?? $n?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($n.right), title: `Nudge right`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                                 "chevron_right"
                               )
                             ),
                             h("div", { style: sty(`flex:1;`) }),
-                            h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1_5_1_11" + '-' + S($n?.id ?? $n?.key ?? $n?.label ?? $n$i), "data-direct-interactive": true, onClick: fn($n.connect), title: `Connect to…`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
+                            h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1_5_1_11" + '-' + (S($n?.id ?? $n?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($n.connect), title: `Connect to…`, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                                 "timeline"
                               )
                             ),
-                            h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1_5_1_13" + '-' + S($n?.id ?? $n?.key ?? $n?.label ?? $n$i), "data-direct-interactive": true, onClick: fn($n.dup), "aria-disabled": $n.dupDisabled, title: $n.dupReason, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
+                            h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1_5_1_13" + '-' + (S($n?.id ?? $n?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($n.dup), "aria-disabled": $n.dupDisabled, title: $n.dupReason, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;`), className: "k-h11" },
                               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                                 "content_copy"
                               )
                             ),
-                            h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1_5_1_15" + '-' + S($n?.id ?? $n?.key ?? $n?.label ?? $n$i), "data-direct-interactive": true, onClick: fn($n.del), "aria-disabled": $n.delDisabled, title: $n.delReason, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#FFB4AB; cursor:pointer;`), className: "k-h12" },
+                            h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_7_1_5_1_15" + '-' + (S($n?.id ?? $n?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($n.del), "aria-disabled": $n.delDisabled, title: $n.delReason, style: sty(`width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#FFB4AB; cursor:pointer;`), className: "k-h12" },
                               h("span", { style: sty(`font-size:15px;`), className: "msym" },
                                 "delete"
                               )
@@ -892,7 +892,7 @@ function Template(v: any) {
                           ) : null)
                       ))),
                     h("div", { style: sty(`position:absolute; left:16px; bottom:14px; display:flex; gap:8px;`) },
-                      A(v.paletteNodes).map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_9_1_1" + '-' + S($p?.id ?? $p?.key ?? $p?.label ?? $p$i), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`display:flex; align-items:center; gap:6px; background:#1B211C; border:1px solid #414942; border-radius:999px; padding:7px 13px 7px 10px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h21" },
+                      A(v.paletteNodes).map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_1_9_1_1" + '-' + (S($p?.id ?? $p?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`display:flex; align-items:center; gap:6px; background:#1B211C; border:1px solid #414942; border-radius:999px; padding:7px 13px 7px 10px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h21" },
                           h("span", { style: sty(`font-size:16px;`), className: "msym" },
                             S($p.icon)
                           ),
@@ -937,7 +937,7 @@ function Template(v: any) {
                               h("span", { style: sty(`flex:1; font-size:11.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
                                 S($e.to)
                               ),
-                              h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_3_9_3_1_1_1_7" + '-' + S($e?.id ?? $e?.key ?? $e?.label ?? $e$i), "data-direct-interactive": true, onClick: fn($e.del), title: `Remove`, style: sty(`width:22px; height:22px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h12" },
+                              h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_3_9_3_1_1_1_7" + '-' + (S($e?.id ?? $e?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($e.del), title: `Remove`, style: sty(`width:22px; height:22px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h12" },
                                 h("span", { style: sty(`font-size:14px;`), className: "msym" },
                                   "close"
                                 )
@@ -948,10 +948,10 @@ function Template(v: any) {
                             ),
                             h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;`) },
                               A($e.toOpts).map(($o, $o$i) => R($o$i, F(
-                                ($o.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_3_9_3_1_1_5_1_1_1" + '-' + S($e?.id ?? $e?.key ?? $e?.label ?? $e$i) + '-' + S($o?.id ?? $o?.key ?? $o?.label ?? $o$i), "data-direct-interactive": true, onClick: fn($o.pick), style: sty(`background:#005230; border:0; border-radius:6px; padding:4px 9px; color:#9FF7C4; font:inherit; font-size:10.5px; font-weight:500; cursor:pointer;`) },
+                                ($o.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_3_9_3_1_1_5_1_1_1" + '-' + (S($e?.id ?? $e?.key ?? '') || 'missing') + '-' + (S($o?.id ?? $o?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($o.pick), style: sty(`background:#005230; border:0; border-radius:6px; padding:4px 9px; color:#9FF7C4; font:inherit; font-size:10.5px; font-weight:500; cursor:pointer;`) },
                                     S($o.label)
                                   ) : null),
-                                ($o.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_3_9_3_1_1_5_1_3_1" + '-' + S($e?.id ?? $e?.key ?? $e?.label ?? $e$i) + '-' + S($o?.id ?? $o?.key ?? $o?.label ?? $o$i), "data-direct-interactive": true, onClick: fn($o.pick), style: sty(`background:transparent; border:1px solid #333B34; border-radius:6px; padding:4px 9px; color:#9AA39B; font:inherit; font-size:10.5px; cursor:pointer;`), className: "k-h22" },
+                                ($o.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_17_1_3_3_9_3_1_1_5_1_3_1" + '-' + (S($e?.id ?? $e?.key ?? '') || 'missing') + '-' + (S($o?.id ?? $o?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($o.pick), style: sty(`background:transparent; border:1px solid #333B34; border-radius:6px; padding:4px 9px; color:#9AA39B; font:inherit; font-size:10.5px; cursor:pointer;`), className: "k-h22" },
                                     S($o.label)
                                   ) : null)
                               )))
@@ -981,13 +981,13 @@ function Template(v: any) {
                       "Filter"
                     ),
                     A(v.tableFilters).map(($f, $f$i) => R($f$i, F(
-                      ($f.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_19_1_1_1_11_1_1" + '-' + S($f?.id ?? $f?.key ?? $f?.label ?? $f$i), "data-direct-interactive": true, onClick: fn($f.pick), style: sty(`display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:5px 12px; color:#9FF7C4; font:inherit; font-size:12px; font-weight:500; cursor:pointer;`) },
+                      ($f.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_19_1_1_1_11_1_1" + '-' + (S($f?.id ?? $f?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($f.pick), style: sty(`display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:5px 12px; color:#9FF7C4; font:inherit; font-size:12px; font-weight:500; cursor:pointer;`) },
                           h("span", { style: sty(`font-size:15px;`), className: "msym" },
                             "check"
                           ),
                           S($f.label)
                         ) : null),
-                      ($f.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_19_1_1_1_11_3_1" + '-' + S($f?.id ?? $f?.key ?? $f?.label ?? $f$i), "data-direct-interactive": true, onClick: fn($f.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:5px 12px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h0" },
+                      ($f.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_19_1_1_1_11_3_1" + '-' + (S($f?.id ?? $f?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($f.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:5px 12px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h0" },
                           S($f.label)
                         ) : null)
                     )))
@@ -1007,7 +1007,7 @@ function Template(v: any) {
                       S(v.selectionLabel)
                     ),
                     h("div", { style: sty(`flex:1;`) }),
-                    A(v.bulkActions).map(($b, $b$i) => R($b$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_19_1_3_1_7_1" + '-' + S($b?.id ?? $b?.key ?? $b?.label ?? $b$i), "data-direct-interactive": true, onClick: fn($b.run), style: sty(`display:flex; align-items:center; gap:6px; background:rgba(0,0,0,.24); border:0; border-radius:999px; padding:7px 14px 7px 11px; color:#9FF7C4; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h23" },
+                    A(v.bulkActions).map(($b, $b$i) => R($b$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_19_1_3_1_7_1" + '-' + (S($b?.id ?? $b?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($b.run), style: sty(`display:flex; align-items:center; gap:6px; background:rgba(0,0,0,.24); border:0; border-radius:999px; padding:7px 14px 7px 11px; color:#9FF7C4; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h23" },
                         h("span", { style: sty(`font-size:16px;`), className: "msym" },
                           S($b.icon)
                         ),
@@ -1040,8 +1040,8 @@ function Template(v: any) {
                       )
                     )
                   ) : null),
-                A(v.tableRows).map(($r, $r$i) => R($r$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_19_1_9_1" + '-' + S($r?.id ?? $r?.key ?? $r?.label ?? $r$i), "data-direct-interactive": true, onContextMenu: fn($r.ctx), style: sty(`display:grid; grid-template-columns:44px ${S(v.tableGrid)}; gap:10px; padding:12px 16px; border-top:1px solid #262B26; cursor:pointer; align-items:center; background:${S($r.bg)}; animation:m3Slide .26s cubic-bezier(.2,0,0,1) both; ${S($r.rnd)}`), className: "k-h15" },
-                    h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_19_1_9_1_1" + '-' + S($r?.id ?? $r?.key ?? $r?.label ?? $r$i), "data-direct-interactive": true, onClick: fn($r.toggle), style: sty(`width:20px; height:20px; border-radius:5px; border:2px solid ${S($r.border)}; background:${S($r.checkBg)}; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;`) },
+                A(v.tableRows).map(($r, $r$i) => R($r$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_19_1_9_1" + '-' + (S($r?.id ?? $r?.key ?? '') || 'missing'), "data-direct-interactive": true, onContextMenu: fn($r.ctx), style: sty(`display:grid; grid-template-columns:44px ${S(v.tableGrid)}; gap:10px; padding:12px 16px; border-top:1px solid #262B26; cursor:pointer; align-items:center; background:${S($r.bg)}; animation:m3Slide .26s cubic-bezier(.2,0,0,1) both; ${S($r.rnd)}`), className: "k-h15" },
+                    h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_19_1_9_1_1" + '-' + (S($r?.id ?? $r?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($r.toggle), style: sty(`width:20px; height:20px; border-radius:5px; border:2px solid ${S($r.border)}; background:${S($r.checkBg)}; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;`) },
                       h("span", { style: sty(`font-size:15px; color:#00391F;`), className: "msym" },
                         S($r.checkIcon)
                       )
@@ -1076,7 +1076,7 @@ function Template(v: any) {
                           h("span", { style: sty(`font-size:12px; font-weight:500; color:#C4CBC2;`) },
                             S($s.label)
                           ),
-                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_21_1_1_5_1_1_1_3" + '-' + S($s?.id ?? $s?.key ?? $s?.label ?? $s$i), "data-direct-interactive": true, onClick: fn($s.info), style: sty(`width:20px; height:20px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center;`), className: "k-h9" },
+                          h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_21_1_1_5_1_1_1_3" + '-' + (S($s?.id ?? $s?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($s.info), style: sty(`width:20px; height:20px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center;`), className: "k-h9" },
                             h("span", { style: sty(`font-size:14px;`), className: "msym" },
                               "info"
                             )
@@ -1084,10 +1084,10 @@ function Template(v: any) {
                         ),
                         h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:7px;`) },
                           A($s.options).map(($o, $o$i) => R($o$i, F(
-                            ($o.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_21_1_1_5_1_1_3_1_1_1" + '-' + S($s?.id ?? $s?.key ?? $s?.label ?? $s$i) + '-' + S($o?.id ?? $o?.key ?? $o?.label ?? $o$i), "data-direct-interactive": true, onClick: fn($o.pick), style: sty(`background:#005230; border:0; border-radius:8px; padding:7px 14px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12.5px; font-weight:500; cursor:pointer;`) },
+                            ($o.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_21_1_1_5_1_1_3_1_1_1" + '-' + (S($s?.id ?? $s?.key ?? '') || 'missing') + '-' + (S($o?.id ?? $o?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($o.pick), style: sty(`background:#005230; border:0; border-radius:8px; padding:7px 14px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12.5px; font-weight:500; cursor:pointer;`) },
                                 S($o.label)
                               ) : null),
-                            ($o.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_21_1_1_5_1_1_3_1_3_1" + '-' + S($s?.id ?? $s?.key ?? $s?.label ?? $s$i) + '-' + S($o?.id ?? $o?.key ?? $o?.label ?? $o$i), "data-direct-interactive": true, onClick: fn($o.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 14px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12.5px; cursor:pointer;`), className: "k-h0" },
+                            ($o.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_21_1_1_5_1_1_3_1_3_1" + '-' + (S($s?.id ?? $s?.key ?? '') || 'missing') + '-' + (S($o?.id ?? $o?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($o.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 14px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12.5px; cursor:pointer;`), className: "k-h0" },
                                 S($o.label)
                               ) : null)
                           )))
@@ -1140,13 +1140,13 @@ function Template(v: any) {
                       )
                     ),
                     h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:7px; margin-bottom:12px;`) },
-                      A(v.regexTokens).map(($t, $t$i) => R($t$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_23_1_1_1_3_1_1" + '-' + S($t?.id ?? $t?.key ?? $t?.label ?? $t$i), "data-direct-interactive": true, onClick: fn($t.remove), style: sty(`display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:8px; padding:6px 10px 6px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`) },
+                      A(v.regexTokens).map(($t, $t$i) => R($t$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_23_1_1_1_3_1_1" + '-' + (S($t?.id ?? $t?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($t.remove), style: sty(`display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:8px; padding:6px 10px 6px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`) },
                           S($t.label),
                           h("span", { style: sty(`font-size:14px;`), className: "msym" },
                             "close"
                           )
                         ))),
-                      A(v.regexPalette).map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_23_1_1_1_3_3_1" + '-' + S($p?.id ?? $p?.key ?? $p?.label ?? $p$i), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:6px 12px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`), className: "k-h21" },
+                      A(v.regexPalette).map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_23_1_1_1_3_3_1" + '-' + (S($p?.id ?? $p?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:6px 12px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`), className: "k-h21" },
                           S($p.label)
                         )))
                     ),
@@ -1189,7 +1189,7 @@ function Template(v: any) {
                             S($r.v)
                           )
                         ))),
-                      h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_23_1_3_1_1_5" + '-' + S($p?.id ?? $p?.key ?? $p?.label ?? $p$i), "data-direct-interactive": true, onClick: fn($p.act), style: sty(`margin-top:10px; width:100%; background:#262B26; border:0; border-radius:999px; padding:9px 0; color:#9FF7C4; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`), className: "k-h9" },
+                      h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_23_1_3_1_1_5" + '-' + (S($p?.id ?? $p?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($p.act), style: sty(`margin-top:10px; width:100%; background:#262B26; border:0; border-radius:999px; padding:9px 0; color:#9FF7C4; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`), className: "k-h9" },
                         S($p.action)
                       )
                     )))
@@ -1210,7 +1210,7 @@ function Template(v: any) {
                       )
                     ),
                     (v.docsRegexOn ? h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px; margin-bottom:2px;`) },
-                        A(v.docsRegexPalette).map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_25_1_1_1_3_1_1_1" + '-' + S($p?.id ?? $p?.key ?? $p?.label ?? $p$i), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
+                        A(v.docsRegexPalette).map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_25_1_1_1_3_1_1_1" + '-' + (S($p?.id ?? $p?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
                             S($p.label)
                           )))
                       ) : null),
@@ -1223,7 +1223,7 @@ function Template(v: any) {
                       S(v.docsResultsLabel)
                     ),
                     h("div", { style: sty(`overflow-y:auto; flex:1;`) },
-                      A(v.docsResults).map(($r, $r$i) => R($r$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_25_1_1_3_3_1_1" + '-' + S($r?.id ?? $r?.key ?? $r?.label ?? $r$i), "data-direct-interactive": true, onClick: fn($r.select), style: sty(`padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($r.bg)};`), className: "k-h15" },
+                      A(v.docsResults).map(($r, $r$i) => R($r$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_25_1_1_3_3_1_1" + '-' + (S($r?.id ?? $r?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($r.select), style: sty(`padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($r.bg)};`), className: "k-h15" },
                           h("div", { style: sty(`display:flex; align-items:center; gap:8px;`) },
                             h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#82D9A5; text-transform:uppercase;`) },
                               S($r.category)
@@ -1268,7 +1268,7 @@ function Template(v: any) {
                           ),
                           h("span", null,
                             A($b.spans).map(($sp, $sp$i) => R($sp$i, F(
-                              ($sp.isLink ? h("span", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_25_1_3_3_1_9_1_3_1_1_1" + '-' + S($b?.id ?? $b?.key ?? $b?.label ?? $b$i) + '-' + S($sp?.id ?? $sp?.key ?? $sp?.label ?? $sp$i), "data-direct-interactive": true, onClick: fn($sp.onClick), style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
+                              ($sp.isLink ? h("span", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_25_1_3_3_1_9_1_3_1_1_1" + '-' + (S($b?.id ?? $b?.key ?? '') || 'missing') + '-' + (S($sp?.id ?? $sp?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($sp.onClick), style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
                                   S($sp.text)
                                 ) : null),
                               ($sp.isPlain ? h("span", null,
@@ -1279,7 +1279,7 @@ function Template(v: any) {
                         ) : null),
                       ($b.isParagraph ? h("div", { style: sty(`margin:8px 0;`) },
                           A($b.spans).map(($sp, $sp$i) => R($sp$i, F(
-                            ($sp.isLink ? h("span", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_25_1_3_3_1_11_1_1_1_1" + '-' + S($b?.id ?? $b?.key ?? $b?.label ?? $b$i) + '-' + S($sp?.id ?? $sp?.key ?? $sp?.label ?? $sp$i), "data-direct-interactive": true, onClick: fn($sp.onClick), style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
+                            ($sp.isLink ? h("span", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_25_1_3_3_1_11_1_1_1_1" + '-' + (S($b?.id ?? $b?.key ?? '') || 'missing') + '-' + (S($sp?.id ?? $sp?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($sp.onClick), style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
                                 S($sp.text)
                               ) : null),
                             ($sp.isPlain ? h("span", null,
@@ -1293,7 +1293,7 @@ function Template(v: any) {
                       h("div", { style: sty(`font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:8px;`) },
                         "Suggested articles"
                       ),
-                      A(v.docsSuggested).map(($sg, $sg$i) => R($sg$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_25_1_3_5_1_3_1" + '-' + S($sg?.id ?? $sg?.key ?? $sg?.label ?? $sg$i), "data-direct-interactive": true, onClick: fn($sg.select), style: sty(`display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;`), className: "k-h24" },
+                      A(v.docsSuggested).map(($sg, $sg$i) => R($sg$i, h("div", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_25_1_3_5_1_3_1" + '-' + (S($sg?.id ?? $sg?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($sg.select), style: sty(`display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;`), className: "k-h24" },
                           h("span", { style: sty(`font-size:15px;`), className: "msym" },
                             S($sg.icon)
                           ),
@@ -1317,7 +1317,7 @@ function Template(v: any) {
                     h("input", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_27_1_1_3_3", "data-direct-interactive": true, value: v.changelogTo, onChange: fn(v.setChangelogTo), placeholder: `YYYY-MM-DD`, style: sty(`width:130px; background:#0C110D; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-family:'Roboto Mono',monospace; font-size:12px;`) })
                   ),
                   h("div", { style: sty(`display:flex; gap:6px; flex-wrap:wrap;`) },
-                    A(v.changelogPresets).map(($pr, $pr$i) => R($pr$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_27_1_1_5_1_1" + '-' + S($pr?.id ?? $pr?.key ?? $pr?.label ?? $pr$i), "data-direct-interactive": true, onClick: fn($pr.apply), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:6px 12px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h0" },
+                    A(v.changelogPresets).map(($pr, $pr$i) => R($pr$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_27_1_1_5_1_1" + '-' + (S($pr?.id ?? $pr?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($pr.apply), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:6px 12px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h0" },
                         S($pr.label)
                       )))
                   ),
@@ -1348,7 +1348,7 @@ function Template(v: any) {
                   )
                 ),
                 (v.changelogRegexOn ? h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px;`) },
-                    A(v.changelogRegexPalette).map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_27_1_3_1_1_1" + '-' + S($p?.id ?? $p?.key ?? $p?.label ?? $p$i), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
+                    A(v.changelogRegexPalette).map(($p, $p$i) => R($p$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_27_1_3_1_1_1" + '-' + (S($p?.id ?? $p?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
                         S($p.label)
                       )))
                   ) : null),
@@ -1455,7 +1455,7 @@ function Template(v: any) {
                       S($g.desc)
                     )
                   ),
-                  h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_33_1_1_3" + '-' + S($g?.id ?? $g?.key ?? $g?.label ?? $g$i), "data-direct-interactive": true, onClick: fn($g.wizard), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 14px 7px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer; white-space:nowrap;`), className: "k-h0" },
+                  h("button", { "data-appearance-id": "direct-consoleshell-0_1_5_5_3_33_1_1_3" + '-' + (S($g?.id ?? $g?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($g.wizard), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 14px 7px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer; white-space:nowrap;`), className: "k-h0" },
                     h("span", { style: sty(`font-size:16px; color:#82D9A5;`), className: "msym" },
                       "auto_fix_high"
                     ),
@@ -1484,12 +1484,12 @@ function Template(v: any) {
             ),
             h("span", { style: sty(`display:flex; gap:2px; flex:0 0 auto;`) }),
             A(v.infoDockOpts).map(($d, $d$i) => R($d$i, F(
-              ($d.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_3_1_9_1_1" + '-' + S($d?.id ?? $d?.key ?? $d?.label ?? $d$i), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:24px; height:24px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;`) },
+              ($d.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_3_1_9_1_1" + '-' + (S($d?.id ?? $d?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:24px; height:24px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;`) },
                   h("span", { style: sty(`font-size:14px;`), className: "msym" },
                     S($d.icon)
                   )
                 ) : null),
-              ($d.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_3_1_9_3_1" + '-' + S($d?.id ?? $d?.key ?? $d?.label ?? $d$i), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:24px; height:24px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h25" },
+              ($d.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_7_3_1_9_3_1" + '-' + (S($d?.id ?? $d?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:24px; height:24px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h25" },
                   h("span", { style: sty(`font-size:14px;`), className: "msym" },
                     S($d.icon)
                   )
@@ -1563,12 +1563,12 @@ function Template(v: any) {
             ),
             h("div", { style: sty(`display:flex; gap:3px; flex:0 0 auto;`) },
               A(v.wizardDockOpts).map(($d, $d$i) => R($d$i, F(
-                ($d.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_9_1_1_5_1_1_1" + '-' + S($d?.id ?? $d?.key ?? $d?.label ?? $d$i), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;`) },
+                ($d.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_9_1_1_5_1_1_1" + '-' + (S($d?.id ?? $d?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;`) },
                     h("span", { style: sty(`font-size:15px;`), className: "msym" },
                       S($d.icon)
                     )
                   ) : null),
-                ($d.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_9_1_1_5_1_3_1" + '-' + S($d?.id ?? $d?.key ?? $d?.label ?? $d$i), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h26" },
+                ($d.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_9_1_1_5_1_3_1" + '-' + (S($d?.id ?? $d?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h26" },
                     h("span", { style: sty(`font-size:15px;`), className: "msym" },
                       S($d.icon)
                     )
@@ -1586,19 +1586,19 @@ function Template(v: any) {
           ),
           h("div", { style: sty(`padding:0 14px 10px; display:flex; gap:4px; overflow-x:auto;`) },
             A(v.wizardRail).map(($w, $w$i) => R($w$i, F(
-              ($w.current ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_9_1_5_1_1_1" + '-' + S($w?.id ?? $w?.key ?? $w?.label ?? $w$i), "data-direct-interactive": true, onClick: fn($w.go), style: sty(`display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:999px; padding:6px 12px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer; white-space:nowrap;`) },
+              ($w.current ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_9_1_5_1_1_1" + '-' + (S($w?.id ?? $w?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($w.go), style: sty(`display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:999px; padding:6px 12px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer; white-space:nowrap;`) },
                   h("span", { style: sty(`width:16px; height:16px; border-radius:50%; background:#9FF7C4; color:#00391F; font-size:10px; display:flex; align-items:center; justify-content:center;`) },
                     S($w.num)
                   ),
                   S($w.label)
                 ) : null),
-              ($w.done ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_9_1_5_1_3_1" + '-' + S($w?.id ?? $w?.key ?? $w?.label ?? $w$i), "data-direct-interactive": true, onClick: fn($w.go), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:0; border-radius:999px; padding:6px 12px; color:#82D9A5; font:inherit; font-size:11.5px; cursor:pointer; white-space:nowrap;`), className: "k-h7" },
+              ($w.done ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_9_1_5_1_3_1" + '-' + (S($w?.id ?? $w?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($w.go), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:0; border-radius:999px; padding:6px 12px; color:#82D9A5; font:inherit; font-size:11.5px; cursor:pointer; white-space:nowrap;`), className: "k-h7" },
                   h("span", { style: sty(`font-size:15px;`), className: "msym" },
                     "check_circle"
                   ),
                   S($w.label)
                 ) : null),
-              ($w.todo ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_9_1_5_1_5_1" + '-' + S($w?.id ?? $w?.key ?? $w?.label ?? $w$i), "data-direct-interactive": true, onClick: fn($w.go), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:0; border-radius:999px; padding:6px 12px; color:#778078; font:inherit; font-size:11.5px; cursor:pointer; white-space:nowrap;`), className: "k-h7" },
+              ($w.todo ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_9_1_5_1_5_1" + '-' + (S($w?.id ?? $w?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($w.go), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:0; border-radius:999px; padding:6px 12px; color:#778078; font:inherit; font-size:11.5px; cursor:pointer; white-space:nowrap;`), className: "k-h7" },
                   h("span", { style: sty(`width:16px; height:16px; border-radius:50%; border:1px solid #414942; font-size:10px; display:flex; align-items:center; justify-content:center;`) },
                     S($w.num)
                   ),
@@ -1677,7 +1677,7 @@ function Template(v: any) {
           h("div", { style: sty(`max-height:420px; overflow-y:auto; padding:8px;`) },
             A(v.paletteItems).map(($p, $p$i) => R($p$i, F(
               ($p.rich ? h("div", { "data-appearance-id": `palette-row-${S($p.id)}`, style: sty(`display:flex; flex-direction:column; gap:8px; padding:9px 12px; border-radius:12px; background:#1B211C;`), className: "k-h27" },
-                  h("button", { "data-appearance-id": "direct-consoleshell-0_1_11_3_3_1_1_1_1" + '-' + S($p?.id ?? $p?.key ?? $p?.label ?? $p$i), "data-direct-interactive": true, disabled: $p.disabled, "aria-disabled": $p.disabled, onClick: fn($p.go), style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; padding:0; cursor:pointer;`) },
+                  h("button", { "data-appearance-id": "direct-consoleshell-0_1_11_3_3_1_1_1_1" + '-' + (S($p?.id ?? $p?.key ?? '') || 'missing'), "data-direct-interactive": true, disabled: $p.disabled, "aria-disabled": $p.disabled, onClick: fn($p.go), style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; padding:0; cursor:pointer;`) },
                     h("span", { style: sty(`font-size:19px; color:#82D9A5;`), className: "msym" },
                       S($p.icon)
                     ),
@@ -1877,7 +1877,7 @@ function Template(v: any) {
                 ),
                 h("div", { style: sty(`display:grid; grid-template-columns:repeat(4,1fr); gap:8px;`) },
                   A(v.moleCells).map(($m, $m$i) => R($m$i, F(
-                    ($m.up ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_15_1_1_11_1_3_1_1_1" + '-' + S($m?.id ?? $m?.key ?? $m?.label ?? $m$i), "data-direct-interactive": true, onClick: fn($m.whack), style: sty(`height:74px; border-radius:14px; background:#005230; border:2px solid #82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; animation:m3Pop .12s ease-out;`) },
+                    ($m.up ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_15_1_1_11_1_3_1_1_1" + '-' + (S($m?.id ?? $m?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($m.whack), style: sty(`height:74px; border-radius:14px; background:#005230; border:2px solid #82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; animation:m3Pop .12s ease-out;`) },
                         h("span", { style: sty(`font-size:32px; color:#9FF7C4;`), className: "msym" },
                           "radio_button_checked"
                         )
@@ -2016,12 +2016,12 @@ function Template(v: any) {
             ),
             h("div", { style: sty(`flex:1;`) }),
             A(v.regexDockOpts).map(($d, $d$i) => R($d$i, F(
-              ($d.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_21_3_1_9_1_1" + '-' + S($d?.id ?? $d?.key ?? $d?.label ?? $d$i), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;`) },
+              ($d.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_21_3_1_9_1_1" + '-' + (S($d?.id ?? $d?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;`) },
                   h("span", { style: sty(`font-size:15px;`), className: "msym" },
                     S($d.icon)
                   )
                 ) : null),
-              ($d.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_21_3_1_9_3_1" + '-' + S($d?.id ?? $d?.key ?? $d?.label ?? $d$i), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h25" },
+              ($d.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_21_3_1_9_3_1" + '-' + (S($d?.id ?? $d?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h25" },
                   h("span", { style: sty(`font-size:15px;`), className: "msym" },
                     S($d.icon)
                   )
@@ -2047,7 +2047,7 @@ function Template(v: any) {
             )
           ),
           h("div", { style: sty(`display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;`) },
-            A(v.rxTools).map(($t, $t$i) => R($t$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_21_3_7_1_1" + '-' + S($t?.id ?? $t?.key ?? $t?.label ?? $t$i), "data-direct-interactive": true, onClick: fn($t.run), title: $t.title, style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:5px 10px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
+            A(v.rxTools).map(($t, $t$i) => R($t$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_21_3_7_1_1" + '-' + (S($t?.id ?? $t?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($t.run), title: $t.title, style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:5px 10px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
                 h("span", { style: sty(`font-size:14px;`), className: "msym" },
                   S($t.icon)
                 ),
@@ -2063,7 +2063,7 @@ function Template(v: any) {
             )
           ),
           h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;`) },
-            A(v.regexChips).map(($t, $t$i) => R($t$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_21_3_11_1_1" + '-' + S($t?.id ?? $t?.key ?? $t?.label ?? $t$i), "data-direct-interactive": true, onClick: fn($t.remove), style: sty(`display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:8px; padding:6px 9px 6px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`) },
+            A(v.regexChips).map(($t, $t$i) => R($t$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_21_3_11_1_1" + '-' + (S($t?.id ?? $t?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($t.remove), style: sty(`display:flex; align-items:center; gap:6px; background:#005230; border:0; border-radius:8px; padding:6px 9px 6px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`) },
                 S($t.label),
                 h("span", { style: sty(`font-size:14px;`), className: "msym" },
                   "close"
@@ -2075,7 +2075,7 @@ function Template(v: any) {
                 S($g.title)
               ),
               h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px;`) },
-                A($g.items).map(($i, $i$i) => R($i$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_21_3_13_1_3_1_1" + '-' + S($g?.id ?? $g?.key ?? $g?.label ?? $g$i) + '-' + S($i?.id ?? $i?.key ?? $i?.label ?? $i$i), "data-direct-interactive": true, onClick: fn($i.add), style: sty(`display:flex; flex-direction:column; align-items:flex-start; gap:2px; background:#1B211C; border:1px solid #414942; border-radius:10px; padding:7px 11px; cursor:pointer;`), className: "k-h16" },
+                A($g.items).map(($i, $i$i) => R($i$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_21_3_13_1_3_1_1" + '-' + (S($g?.id ?? $g?.key ?? '') || 'missing') + '-' + (S($i?.id ?? $i?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($i.add), style: sty(`display:flex; flex-direction:column; align-items:flex-start; gap:2px; background:#1B211C; border:1px solid #414942; border-radius:10px; padding:7px 11px; cursor:pointer;`), className: "k-h16" },
                     h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:12px; color:#9FF7C4;`) },
                       S($i.token)
                     ),
@@ -2087,13 +2087,13 @@ function Template(v: any) {
             ))),
           h("div", { style: sty(`margin-top:14px; display:flex; flex-wrap:wrap; gap:6px;`) },
             A(v.regexFlags).map(($f, $f$i) => R($f$i, F(
-              ($f.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_21_3_15_1_1_1" + '-' + S($f?.id ?? $f?.key ?? $f?.label ?? $f$i), "data-direct-interactive": true, onClick: fn($f.toggle), style: sty(`display:flex; align-items:center; gap:5px; background:#1B4D33; border:0; border-radius:8px; padding:6px 12px; color:#9FF7C4; font:inherit; font-size:12px; font-weight:500; cursor:pointer;`) },
+              ($f.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_21_3_15_1_1_1" + '-' + (S($f?.id ?? $f?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($f.toggle), style: sty(`display:flex; align-items:center; gap:5px; background:#1B4D33; border:0; border-radius:8px; padding:6px 12px; color:#9FF7C4; font:inherit; font-size:12px; font-weight:500; cursor:pointer;`) },
                   h("span", { style: sty(`font-size:14px;`), className: "msym" },
                     "check"
                   ),
                   S($f.label)
                 ) : null),
-              ($f.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_21_3_15_1_3_1" + '-' + S($f?.id ?? $f?.key ?? $f?.label ?? $f$i), "data-direct-interactive": true, onClick: fn($f.toggle), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:6px 12px; color:#9AA39B; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h14" },
+              ($f.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_21_3_15_1_3_1" + '-' + (S($f?.id ?? $f?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($f.toggle), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:6px 12px; color:#9AA39B; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h14" },
                   S($f.label)
                 ) : null)
             )))
@@ -2141,7 +2141,7 @@ function Template(v: any) {
               )
             )
           ),
-          A(v.ctxItems).map(($i, $i$i) => R($i$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_23_3_5_1" + '-' + S($i?.id ?? $i?.key ?? $i?.label ?? $i$i), "data-direct-interactive": true, role: `menuitem`, "aria-disabled": $i.disabled, title: $i.reason, onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h27" },
+          A(v.ctxItems).map(($i, $i$i) => R($i$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_23_3_5_1" + '-' + (S($i?.id ?? $i?.key ?? '') || 'missing'), "data-direct-interactive": true, role: `menuitem`, "aria-disabled": $i.disabled, title: $i.reason, onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h27" },
               h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                 S($i.icon)
               ),
@@ -2154,7 +2154,7 @@ function Template(v: any) {
             )))
         ),
         (v.subOpen ? h("div", { role: `menu`, "aria-label": `Nested actions`, style: sty(`position:absolute; left:${S(v.subX)}; top:${S(v.subY)}; width:230px; max-height:calc(100vh - 24px); overflow:auto; background:#252B25; border:1px solid #414942; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);`) },
-            A(v.subItems).map(($i, $i$i) => R($i$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_23_5_1_1_1" + '-' + S($i?.id ?? $i?.key ?? $i?.label ?? $i$i), "data-direct-interactive": true, role: `menuitem`, "aria-disabled": $i.disabled, title: $i.reason, onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h27" },
+            A(v.subItems).map(($i, $i$i) => R($i$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_23_5_1_1_1" + '-' + (S($i?.id ?? $i?.key ?? '') || 'missing'), "data-direct-interactive": true, role: `menuitem`, "aria-disabled": $i.disabled, title: $i.reason, onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h27" },
                 h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                   S($i.icon)
                 ),
@@ -2177,12 +2177,12 @@ function Template(v: any) {
             ),
             h("div", { style: sty(`flex:1;`) }),
             A(v.lockDockOpts).map(($d, $d$i) => R($d$i, F(
-              ($d.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_1_1_9_1_1" + '-' + S($d?.id ?? $d?.key ?? $d?.label ?? $d$i), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;`) },
+              ($d.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_1_1_9_1_1" + '-' + (S($d?.id ?? $d?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:#005230; border:0; color:#9FF7C4; cursor:pointer;`) },
                   h("span", { style: sty(`font-size:15px;`), className: "msym" },
                     S($d.icon)
                   )
                 ) : null),
-              ($d.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_1_1_9_3_1" + '-' + S($d?.id ?? $d?.key ?? $d?.label ?? $d$i), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h25" },
+              ($d.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_1_1_9_3_1" + '-' + (S($d?.id ?? $d?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($d.pick), title: $d.label, style: sty(`width:26px; height:26px; border-radius:7px; background:transparent; border:0; color:#778078; cursor:pointer;`), className: "k-h25" },
                   h("span", { style: sty(`font-size:15px;`), className: "msym" },
                     S($d.icon)
                   )
@@ -2209,7 +2209,7 @@ function Template(v: any) {
           ),
           (v.lockPickMethod ? h("div", { style: sty(`display:flex; flex-direction:column; gap:6px;`) },
               A(v.lockMethods).map(($m, $m$i) => R($m$i, F(
-                ($m.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_1_11_1_1_1_1" + '-' + S($m?.id ?? $m?.key ?? $m?.label ?? $m$i), "data-direct-interactive": true, onClick: fn($m.pick), style: sty(`display:flex; align-items:center; gap:10px; background:#005230; border:0; border-radius:12px; padding:12px 14px; color:#9FF7C4; font:inherit; font-size:13px; font-weight:500; cursor:pointer; text-align:left;`) },
+                ($m.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_1_11_1_1_1_1" + '-' + (S($m?.id ?? $m?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($m.pick), style: sty(`display:flex; align-items:center; gap:10px; background:#005230; border:0; border-radius:12px; padding:12px 14px; color:#9FF7C4; font:inherit; font-size:13px; font-weight:500; cursor:pointer; text-align:left;`) },
                     h("span", { style: sty(`font-size:19px;`), className: "msym" },
                       S($m.icon)
                     ),
@@ -2220,7 +2220,7 @@ function Template(v: any) {
                       "radio_button_checked"
                     )
                   ) : null),
-                ($m.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_1_11_1_1_3_1" + '-' + S($m?.id ?? $m?.key ?? $m?.label ?? $m$i), "data-direct-interactive": true, onClick: fn($m.pick), style: sty(`display:flex; align-items:center; gap:10px; background:transparent; border:1px solid #414942; border-radius:12px; padding:12px 14px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h7" },
+                ($m.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_1_11_1_1_3_1" + '-' + (S($m?.id ?? $m?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($m.pick), style: sty(`display:flex; align-items:center; gap:10px; background:transparent; border:1px solid #414942; border-radius:12px; padding:12px 14px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h7" },
                     h("span", { style: sty(`font-size:19px; color:#9AA39B;`), className: "msym" },
                       S($m.icon)
                     ),
@@ -2244,7 +2244,7 @@ function Template(v: any) {
                 A(v.pinDots).map(($d, $d$i) => R($d$i, h("span", { style: sty(`width:15px; height:15px; border-radius:50%; background:${S($d.bg)}; border:2px solid #414942; transition:background .12s;`) })))
               ),
               h("div", { style: sty(`display:grid; grid-template-columns:repeat(3,1fr); gap:7px;`) },
-                A(v.pinKeys).map(($k, $k$i) => R($k$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_1_13_1_5_1_1" + '-' + S($k?.id ?? $k?.key ?? $k?.label ?? $k$i), "data-direct-interactive": true, onClick: fn($k.press), style: sty(`height:50px; border-radius:10px; background:linear-gradient(#20281F,#171D18); border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .07s, background .12s; box-shadow:0 2px 0 #0C110D;`), className: "k-h28" },
+                A(v.pinKeys).map(($k, $k$i) => R($k$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_1_13_1_5_1_1" + '-' + (S($k?.id ?? $k?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($k.press), style: sty(`height:50px; border-radius:10px; background:linear-gradient(#20281F,#171D18); border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .07s, background .12s; box-shadow:0 2px 0 #0C110D;`), className: "k-h28" },
                     S($k.label)
                   )))
               ),
@@ -2284,7 +2284,7 @@ function Template(v: any) {
                 )
               ),
               h("div", { style: sty(`display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;`) },
-                A(v.pwBuilders).map(($b, $b$i) => R($b$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_1_15_1_5_1_1" + '-' + S($b?.id ?? $b?.key ?? $b?.label ?? $b$i), "data-direct-interactive": true, onClick: fn($b.run), style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:6px 11px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
+                A(v.pwBuilders).map(($b, $b$i) => R($b$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_25_1_15_1_5_1_1" + '-' + (S($b?.id ?? $b?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($b.run), style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:6px 11px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
                     h("span", { style: sty(`font-size:14px;`), className: "msym" },
                       S($b.icon)
                     ),
@@ -2370,7 +2370,7 @@ function Template(v: any) {
                 A(v.unlockDots).map(($d, $d$i) => R($d$i, h("span", { style: sty(`width:14px; height:14px; border-radius:50%; background:${S($d.bg)}; border:2px solid #414942;`) })))
               ) : null),
             h("div", { style: sty(`display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;`) },
-              A(v.unlockKeys).map(($k, $k$i) => R($k$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_27_1_1_15_1_1" + '-' + S($k?.id ?? $k?.key ?? $k?.label ?? $k$i), "data-direct-interactive": true, onClick: fn($k.press), style: sty(`height:50px; border-radius:14px; background:#1B211C; border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .08s;`), className: "k-h29" },
+              A(v.unlockKeys).map(($k, $k$i) => R($k$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_27_1_1_15_1_1" + '-' + (S($k?.id ?? $k?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($k.press), style: sty(`height:50px; border-radius:14px; background:#1B211C; border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:19px; cursor:pointer; transition:transform .08s;`), className: "k-h29" },
                   S($k.label)
                 )))
             ),
@@ -2403,10 +2403,10 @@ function Template(v: any) {
           ),
           h("div", { style: sty(`padding:0 20px 10px; display:flex; gap:5px; flex-wrap:wrap;`) },
             A(v.appearStates).map(($t, $t$i) => R($t$i, F(
-              ($t.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_3_1_1_1" + '-' + S($t?.id ?? $t?.key ?? $t?.label ?? $t$i), "data-direct-interactive": true, onClick: fn($t.pick), style: sty(`background:#005230; border:0; border-radius:999px; padding:6px 13px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;`) },
+              ($t.on ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_3_1_1_1" + '-' + (S($t?.id ?? $t?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($t.pick), style: sty(`background:#005230; border:0; border-radius:999px; padding:6px 13px; color:#9FF7C4; font:inherit; font-size:11.5px; font-weight:500; cursor:pointer;`) },
                   S($t.label)
                 ) : null),
-              ($t.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_3_1_3_1" + '-' + S($t?.id ?? $t?.key ?? $t?.label ?? $t$i), "data-direct-interactive": true, onClick: fn($t.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:6px 13px; color:#9AA39B; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h14" },
+              ($t.off ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_3_1_3_1" + '-' + (S($t?.id ?? $t?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($t.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:6px 13px; color:#9AA39B; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h14" },
                   S($t.label)
                 ) : null)
             )))
@@ -2436,13 +2436,13 @@ function Template(v: any) {
                 h("div", { style: sty(`width:56px; border-radius:12px; background:${S(v.colorValue)}; border:1px solid #414942; flex:0 0 auto;`) }),
                 h("div", { style: sty(`flex:1; display:flex; flex-direction:column; gap:7px;`) },
                   h("div", { style: sty(`display:flex; gap:2px; height:26px; border-radius:8px; overflow:hidden;`) },
-                    A(v.hueStops).map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_7_1_3_3_1_1_1" + '-' + S($h?.id ?? $h?.key ?? $h?.label ?? $h$i), "data-direct-interactive": true, onClick: fn($h.pick), title: $h.label, style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.color)};`) })))
+                    A(v.hueStops).map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_7_1_3_3_1_1_1" + '-' + (S($h?.id ?? $h?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($h.pick), title: $h.label, style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.color)};`) })))
                   ),
                   h("div", { style: sty(`display:flex; gap:2px; height:22px; border-radius:8px; overflow:hidden;`) },
-                    A(v.shadeStops).map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_7_1_3_3_3_1_1" + '-' + S($h?.id ?? $h?.key ?? $h?.label ?? $h$i), "data-direct-interactive": true, onClick: fn($h.pick), style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.color)};`) })))
+                    A(v.shadeStops).map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_7_1_3_3_3_1_1" + '-' + (S($h?.id ?? $h?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($h.pick), style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.color)};`) })))
                   ),
                   h("div", { style: sty(`display:flex; gap:6px; flex-wrap:wrap;`) },
-                    A(v.colorActions).map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_7_1_3_3_5_1_1" + '-' + S($a?.id ?? $a?.key ?? $a?.label ?? $a$i), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:5px 10px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
+                    A(v.colorActions).map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_7_1_3_3_5_1_1" + '-' + (S($a?.id ?? $a?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:5px; background:#1B211C; border:1px solid #414942; border-radius:8px; padding:5px 10px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h21" },
                         h("span", { style: sty(`font-size:14px;`), className: "msym" },
                           S($a.icon)
                         ),
@@ -2452,7 +2452,7 @@ function Template(v: any) {
                 )
               ),
               h("div", { style: sty(`display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;`) },
-                A(v.colorFormats).map(($f, $f$i) => R($f$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_7_1_5_1_1" + '-' + S($f?.id ?? $f?.key ?? $f?.label ?? $f$i), "data-direct-interactive": true, onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h30" },
+                A(v.colorFormats).map(($f, $f$i) => R($f$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_7_1_5_1_1" + '-' + (S($f?.id ?? $f?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h30" },
                     S($f.label)
                   )))
               )
@@ -2473,7 +2473,7 @@ function Template(v: any) {
               )))
           ),
           h("div", { style: sty(`padding:12px 20px; border-top:1px solid #262B26; display:flex; gap:8px; flex-wrap:wrap;`) },
-            A(v.appearActions).map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_9_1_1" + '-' + S($a?.id ?? $a?.key ?? $a?.label ?? $a$i), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:999px; padding:9px 15px 9px 12px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h11" },
+            A(v.appearActions).map(($a, $a$i) => R($a$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_29_1_9_1_1" + '-' + (S($a?.id ?? $a?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:999px; padding:9px 15px 9px 12px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h11" },
                 h("span", { style: sty(`font-size:16px;`), className: "msym" },
                   S($a.icon)
                 ),
@@ -2519,7 +2519,7 @@ function Template(v: any) {
               ),
               h("div", { style: sty(`display:grid; grid-template-columns:repeat(4,1fr); gap:8px;`) },
                 A(v.sureCells).map(($c, $c$i) => R($c$i, F(
-                  ($c.up ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_31_1_1_5_3_1_1_1" + '-' + S($c?.id ?? $c?.key ?? $c?.label ?? $c$i), "data-direct-interactive": true, onClick: fn($c.hit), style: sty(`height:54px; border-radius:14px; background:#005230; border:2px solid #82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; animation:m3Pop .12s ease-out;`) },
+                  ($c.up ? h("button", { "data-appearance-id": "direct-consoleshell-0_1_31_1_1_5_3_1_1_1" + '-' + (S($c?.id ?? $c?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($c.hit), style: sty(`height:54px; border-radius:14px; background:#005230; border:2px solid #82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; animation:m3Pop .12s ease-out;`) },
                       h("span", { style: sty(`font-size:24px; color:#9FF7C4;`), className: "msym" },
                         "touch_app"
                       )
@@ -2567,7 +2567,7 @@ function Template(v: any) {
             )
           ),
           (v.tabFilterIsColour ? h("div", { style: sty(`display:flex; flex-direction:column; gap:6px; margin-top:14px;`) },
-              A(v.tabFilterColours).map(($c, $c$i) => R($c$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_33_3_3_1_1_1" + '-' + S($c?.id ?? $c?.key ?? $c?.label ?? $c$i), "data-direct-interactive": true, onClick: fn($c.pick), style: sty(`display:flex; align-items:center; gap:11px; background:#141A15; border:2px solid ${S($c.border)}; border-radius:12px; padding:10px 13px; cursor:pointer; text-align:left;`), className: "k-h27" },
+              A(v.tabFilterColours).map(($c, $c$i) => R($c$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_33_3_3_1_1_1" + '-' + (S($c?.id ?? $c?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($c.pick), style: sty(`display:flex; align-items:center; gap:11px; background:#141A15; border:2px solid ${S($c.border)}; border-radius:12px; padding:10px 13px; cursor:pointer; text-align:left;`), className: "k-h27" },
                   h("span", { style: sty(`width:18px; height:18px; border-radius:50%; background:${S($c.colour)}; flex:0 0 auto;`) }),
                   h("div", { style: sty(`flex:1; min-width:0;`) },
                     h("div", { style: sty(`font-size:12.5px; color:#DFE4DC;`) },
@@ -2639,21 +2639,21 @@ function Template(v: any) {
             h("span", { style: sty(`width:36px; height:36px; border-radius:10px; background:${S(v.cpickValue)}; border:1px solid #414942; animation:${S(v.cpickAnim)};`) })
           ),
           h("div", { style: sty(`display:flex; gap:2px; height:26px; border-radius:8px; overflow:hidden; margin-top:12px;`) },
-            A(v.cpickHues).map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_35_3_3_1_1" + '-' + S($h?.id ?? $h?.key ?? $h?.label ?? $h$i), "data-direct-interactive": true, onClick: fn($h.pick), title: $h.label, style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.colour)};`) })))
+            A(v.cpickHues).map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_35_3_3_1_1" + '-' + (S($h?.id ?? $h?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($h.pick), title: $h.label, style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.colour)};`) })))
           ),
           h("div", { style: sty(`display:flex; gap:2px; height:20px; border-radius:8px; overflow:hidden; margin-top:4px;`) },
-            A(v.cpickShades).map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_35_3_5_1_1" + '-' + S($h?.id ?? $h?.key ?? $h?.label ?? $h$i), "data-direct-interactive": true, onClick: fn($h.pick), style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.colour)};`) })))
+            A(v.cpickShades).map(($h, $h$i) => R($h$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_35_3_5_1_1" + '-' + (S($h?.id ?? $h?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($h.pick), style: sty(`flex:1; border:0; padding:0; cursor:pointer; background:${S($h.colour)};`) })))
           ),
           h("div", { style: sty(`display:flex; flex-direction:column; gap:12px; margin-top:14px;`) },
             A(v.cpickCtls).map(($c, $c$i) => R($c$i, h(M3Control, { ctl: $c })))
           ),
           h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;`) },
-            A(v.cpickFormats).map(($f, $f$i) => R($f$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_35_3_9_1_1" + '-' + S($f?.id ?? $f?.key ?? $f?.label ?? $f$i), "data-direct-interactive": true, onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h30" },
+            A(v.cpickFormats).map(($f, $f$i) => R($f$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_35_3_9_1_1" + '-' + (S($f?.id ?? $f?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($f.copy), style: sty(`background:#141A15; border:0; border-radius:8px; padding:6px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11px; cursor:pointer;`), className: "k-h30" },
                 S($f.label)
               )))
           ),
           h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;`) },
-            A(v.tabColourOpts).map(($c, $c$i) => R($c$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_35_3_11_1_1" + '-' + S($c?.id ?? $c?.key ?? $c?.label ?? $c$i), "data-direct-interactive": true, onClick: fn($c.pick), style: sty(`width:34px; height:34px; border-radius:10px; background:${S($c.colour)}; border:2px solid ${S($c.border)}; cursor:pointer;`) }))),
+            A(v.tabColourOpts).map(($c, $c$i) => R($c$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_35_3_11_1_1" + '-' + (S($c?.id ?? $c?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($c.pick), style: sty(`width:34px; height:34px; border-radius:10px; background:${S($c.colour)}; border:2px solid ${S($c.border)}; cursor:pointer;`) }))),
             h("button", { "data-appearance-id": "direct-consoleshell-0_1_35_3_11_3", "data-direct-interactive": true, onClick: fn(v.cpickApply), style: sty(`flex:1; min-width:120px; background:#82D9A5; border:0; border-radius:10px; padding:0 16px; color:#00391F; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`) },
               "Use this colour"
             )
@@ -2663,7 +2663,7 @@ function Template(v: any) {
                 "Already used by other tabs"
               ),
               h("div", { style: sty(`display:flex; flex-direction:column; gap:6px;`) },
-                A(v.usedColours).map(($u, $u$i) => R($u$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_35_3_13_1_3_1_1" + '-' + S($u?.id ?? $u?.key ?? $u?.label ?? $u$i), "data-direct-interactive": true, onClick: fn($u.pick), style: sty(`display:flex; align-items:center; gap:10px; background:#141A15; border:0; border-radius:10px; padding:9px 12px; cursor:pointer; text-align:left;`), className: "k-h27" },
+                A(v.usedColours).map(($u, $u$i) => R($u$i, h("button", { "data-appearance-id": "direct-consoleshell-0_1_35_3_13_1_3_1_1" + '-' + (S($u?.id ?? $u?.key ?? '') || 'missing'), "data-direct-interactive": true, onClick: fn($u.pick), style: sty(`display:flex; align-items:center; gap:10px; background:#141A15; border:0; border-radius:10px; padding:9px 12px; cursor:pointer; text-align:left;`), className: "k-h27" },
                     h("span", { style: sty(`width:14px; height:14px; border-radius:50%; background:${S($u.colour)};`) }),
                     h("span", { style: sty(`flex:1; font-size:12.5px; color:#DFE4DC;`) },
                       S($u.tabs)

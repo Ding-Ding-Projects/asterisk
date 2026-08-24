@@ -561,6 +561,9 @@ export function validateStableElementId(elementId: string): ValidationResult {
       reason: `elementId '${elementId}' must start with a letter and contain only letters, digits, '.', '_', ':', or '-'`,
     };
   }
+  if (/^direct-.*-missing$/u.test(elementId)) {
+    return { ok: false, reason: `elementId '${elementId}' has no stable id or key and cannot be persisted` };
+  }
   return { ok: true };
 }
 

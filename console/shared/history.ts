@@ -33,6 +33,7 @@ export interface RedactedHistoryMetadata {
   changedFields?: ReadonlyArray<string>;
   source?: string;
   operationId?: string;
+  phase?: 'started' | 'completed' | 'failed' | 'cancelled';
 }
 
 export interface HistoryEntryDraft {

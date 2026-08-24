@@ -181,25 +181,25 @@ const EVENTS = new Set([
 
 const DIRECT_INTERACTIVE_TAGS = new Set(['button', 'input', 'select', 'textarea', 'summary']);
 
-function annotateDirectInteractiveNodes(nodes, componentName, path = '0') {
+function annotateDirectInteractiveNodes(nodes, componentName, paths, path = '0') {
   nodes.forEach((node, index) => {
     if (node.text !== undefined) return;
     const nodePath = `${path}_${index}`;
     const interactive = DIRECT_INTERACTIVE_TAGS.has(node.tag) || Object.keys(node.attrs ?? {}).some((name) => EVENTS.has(name));
     if (interactive && !node.attrs['data-appearance-id']) {
       node.attrs['data-direct-appearance-path'] = `${componentName.toLowerCase()}-${nodePath}`;
+      paths.push(`direct-${componentName.toLowerCase()}-${nodePath}`);
     }
-    annotateDirectInteractiveNodes(node.children ?? [], componentName, nodePath);
+    annotateDirectInteractiveNodes(node.children ?? [], componentName, paths, nodePath);
   });
 }
 
 function directAppearanceId(path, scope) {
   const dynamicParts = [];
-  if (path.startsWith('m3control-')) dynamicParts.push("S(v.ctl?.presentationId ?? v.ctl?.id ?? '')");
+  if (path.startsWith('m3control-')) dynamicParts.push("(S(v.ctl?.presentationId ?? v.ctl?.id ?? '') || 'missing')");
   for (const [name, alias] of scope.entries()) {
     if (name.startsWith('__index:')) continue;
-    const index = scope.get(`__index:${name}`);
-    dynamicParts.push(`S(${alias}?.id ?? ${alias}?.key ?? ${alias}?.label ?? ${index ?? "''"})`);
+    dynamicParts.push(`(S(${alias}?.id ?? ${alias}?.key ?? '') || 'missing')`);
   }
   return dynamicParts.length > 0
     ? `${JSON.stringify(`direct-${path}`)} + '-' + ${dynamicParts.join(" + '-' + ")}`
@@ -280,7 +280,6 @@ function emit(node, scope, hovers, indent) {
     const index = `${alias}$i`;
     const inner = new Map(scope);
     inner.set(item, alias);
-    inner.set(`__index:${item}`, index);
     const children = emitChildren(node, inner, hovers, indent);
     return `A(${list}).map((${alias}, ${index}) => R(${index}, ${wrapFragment(children, indent)}))`;
   }
@@ -401,7 +400,8 @@ function compileComponent({ name, source, componentName, extraImports = '', expo
   // into design-styles.css instead, so the rendered tree drops the element entirely.
   let nodes = parseMarkup(sanitizeBrand(source.markup)).filter((node) => node.tag !== 'helmet');
   if (windowChrome) nodes = attachWindowChrome(nodes);
-  annotateDirectInteractiveNodes(nodes, componentName);
+  const directAppearancePaths = [];
+  annotateDirectInteractiveNodes(nodes, componentName, directAppearancePaths);
   const body = generate(nodes, new Map(), hovers, '    ');
   const template = `function Template(v: any) {\n  return F(${body.map((part) => `\n    ${part}`).join(',')}\n  );\n}`;
 
@@ -412,6 +412,7 @@ function compileComponent({ name, source, componentName, extraImports = '', expo
 
   return {
     hoverCss: hovers.css(),
+    directAppearancePaths,
     code: [
       '// @ts-nocheck',
       '/* GENERATED FILE — do not edit.',
@@ -488,6 +489,16 @@ const manifest = {
   sources: ['design/Asterisk Console M3.dc.html', 'design/M3 Control.dc.html'],
   sanitization: ['product branding replaced', 'runtime font CDN links replaced with bundled families'],
   hoverRules: control.hoverCss.split('\n').filter(Boolean).length + consoleModule.hoverCss.split('\n').filter(Boolean).length,
+  directAppearanceIds: {
+    console: consoleModule.directAppearancePaths,
+    m3Control: control.directAppearancePaths,
+    mountedStates: {
+      shell: consoleModule.directAppearancePaths,
+      palette: [...consoleModule.directAppearancePaths, ...control.directAppearancePaths],
+      appearance: [...consoleModule.directAppearancePaths, ...control.directAppearancePaths],
+      'palette-appearance': [...consoleModule.directAppearancePaths, ...control.directAppearancePaths],
+    },
+  },
 };
 writeFileSync(resolve(outDir, 'design-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 

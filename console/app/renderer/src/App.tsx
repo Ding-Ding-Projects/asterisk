@@ -29,6 +29,7 @@ import { CANTONESE } from './locale-yue';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
 import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
+import DESIGN_MANIFEST from './generated/design-manifest.json';
 import { parseMarkdown, plainTextExcerpt, type DocsBlock } from './docs-markdown';
 import {
   commitUrl, filterAndSearch, parseChangelogDetailed, toMarkdown, toPlainText, type ChangelogEntry,
@@ -248,6 +249,7 @@ export class App extends Base {
       executeControlAction: (controlId, action) => this.onControlAction(action, controlId),
     });
     this.navigationAdapter = this.richControlRegistration.navigationAdapter;
+    this.generatedNavigationRevision = this.navigationAdapter.getState().revision;
   }
   /** The chosen file's own name, kept only for display — never its contents. */
   private pickedFileNames = new Map<string, string>();
@@ -274,6 +276,9 @@ export class App extends Base {
   private richControlRegistration: RichControlRegistration;
   private navigationAdapter!: LiveNavigationAdapter;
   private navigationRollbackPending = false;
+  private navigationTransactionToken: number | undefined;
+  private queuedRichControlRefresh: { screenId: string; controls: ReadonlyArray<RichControlInput> } | undefined;
+  private generatedNavigationRevision = 0;
   /** The unlock ladder (unlock-ladder.ts) for the per-element lock's unlock dialog.
    *  Renderer-only: this app's per-element lock has no server-enforced attempt budget
    *  or time-based lockout of its own, so this in-memory instance -- like the PIN and
@@ -288,6 +293,10 @@ export class App extends Base {
   private wrongUnlockCounts: Record<string, number> = {};
 
   protected refreshRichControlRegistration(screenId: string, controls: ReadonlyArray<RichControlInput>): void {
+    if (this.navigationTransactionToken !== undefined) {
+      this.queuedRichControlRefresh = { screenId, controls: [...controls] };
+      return;
+    }
     this.richControlRegistration = createRichControlRegistration({
       runtimeControls: { [screenId]: controls },
       navigationAdapter: this.navigationAdapter,
@@ -371,18 +380,27 @@ export class App extends Base {
   componentDidUpdate() {
     if (this.navigationRollbackPending) {
       this.navigationRollbackPending = false;
+      if (this.navigationTransactionToken !== undefined) {
+        this.navigationAdapter.endTransaction(this.navigationTransactionToken);
+        this.navigationTransactionToken = undefined;
+      }
+      const queuedRefresh = this.queuedRichControlRefresh;
+      this.queuedRichControlRefresh = undefined;
       this.publishDimSumContext(true);
       this.syncLegacyAppearanceStore();
       void this.refresh();
+      if (queuedRefresh) this.refreshRichControlRegistration(queuedRefresh.screenId, queuedRefresh.controls);
       return;
     }
-    this.navigationAdapter.syncGenerated({
+    const syncedNavigation = this.navigationAdapter.syncGenerated({
+      expectedRevision: this.generatedNavigationRevision,
       screen: (this.state as { screen?: unknown }).screen,
       tabs: (this.state as { tabs?: unknown }).tabs,
       pinned: (this.state as { pinned?: unknown }).pinned,
       groups: (this.state as { groups?: unknown }).groups,
       railId: (this.state as { railId?: unknown }).railId,
     });
+    this.generatedNavigationRevision = syncedNavigation.revision;
     this.publishDimSumContext(true);
     this.syncLegacyAppearanceStore();
     void this.refresh();
@@ -516,7 +534,11 @@ export class App extends Base {
       expectedDynamicIds.add(`palette-row-${String(item.id)}`);
       if (item.ctl && typeof item.id === 'string') expectedDynamicIds.add(paletteControlAppearanceId(item.id));
     }
-    const inventoryDefects = appearanceInventoryDefects(document, mountedState, expectedDynamicIds);
+    const directManifest = new Set<string>([
+      ...(DESIGN_MANIFEST.directAppearanceIds?.console ?? []),
+      ...(DESIGN_MANIFEST.directAppearanceIds?.m3Control ?? []),
+    ]);
+    const inventoryDefects = appearanceInventoryDefects(document, mountedState, expectedDynamicIds, directManifest);
     if (inventoryDefects.length > 0) {
       document.documentElement.dataset.appearanceRegistrationError = `inventory:${inventoryDefects.join(' | ')}`;
       return false;
@@ -669,6 +691,7 @@ export class App extends Base {
           return;
         }
         this.navigationRollbackPending = true;
+        this.navigationTransactionToken = this.navigationAdapter.beginTransaction();
         this.navigationAdapter.restore(previousState);
         this.restoreNavigationShell(previousState, true);
         this.toast(`Palette target is stale after bounded render: ${instruction.elementId}. Navigation was rolled back.`);
@@ -1002,13 +1025,13 @@ export class App extends Base {
       const operationId = crypto.randomUUID();
       this.fire('Action started', `${action} from ${canonicalControlId}. Operation ${operationId} started; history acknowledgement is pending.`);
       void this.recordControlActionHistory(canonicalControlId, action, operationId);
-      void this.runControlAction(action, operationId);
+      void this.runControlAction(action, operationId, canonicalControlId);
       return;
     }
     void this.runControlAction(action, crypto.randomUUID());
   };
 
-  private async runControlAction(action: string, operationId: string): Promise<void> {
+  private async runControlAction(action: string, operationId: string, controlId?: string): Promise<void> {
     let ok = false;
     let detail = 'No action handler is registered for this control.';
     if (action === 'vocab-clear') {
@@ -1019,17 +1042,19 @@ export class App extends Base {
       ok = await this.daemonAction(action.slice('daemon-'.length) as 'start' | 'stop' | 'restart', operationId);
       detail = ok ? 'The observed daemon state matches the requested action.' : 'The requested daemon state was not independently observed.';
     }
-    this.fire('Action outcome', `${action} operation ${operationId} ${ok ? 'completed' : 'did not complete'}: ${detail}`);
+    const phase = ok ? 'completed' : 'failed';
+    this.fire('Action outcome', `${action} operation ${operationId} ${phase}: ${detail}`);
+    if (controlId) void this.recordControlActionHistory(controlId, action, operationId, phase);
   }
 
-  private async recordControlActionHistory(controlId: string, action: string, operationId: string): Promise<void> {
+  private async recordControlActionHistory(controlId: string, action: string, operationId: string, phase: 'started' | 'completed' | 'failed' | 'cancelled' = 'started'): Promise<void> {
     const response = await this.request('local-history.record', {
-      payload: { action: 'settings-changed', stableRecordId: controlId, subject: action, metadata: { source: 'rich-control', operationId }, snapshot: { controlId, action, operationId } },
+      payload: { action: 'settings-changed', stableRecordId: controlId, subject: `${action} ${phase}`, metadata: { source: 'rich-control', operationId, phase }, snapshot: { controlId, action, operationId, phase } },
     }).catch(() => undefined);
     const nested = response?.data as { ok?: unknown; status?: unknown } | undefined;
     const acknowledged = response?.ok === true && nested?.ok !== false && nested?.status !== 'failed';
-    if (acknowledged) this.fire('Action history outcome', `${action} operation ${operationId} was acknowledged by local history.`);
-    else this.fire('Action history outcome', `${action} operation ${operationId} started, but local history is unavailable.`);
+    if (acknowledged) this.fire('Action history outcome', `${action} operation ${operationId} ${phase} was acknowledged by local history.`);
+    else this.fire('Action history outcome', `${action} operation ${operationId} ${phase} could not be recorded by local history.`);
   }
 
   // ---------------------------------------------------------------- server add / remove

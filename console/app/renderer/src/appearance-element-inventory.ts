@@ -40,7 +40,12 @@ export function observedAppearanceElementIds(root: ParentNode): Set<string> {
 
 function dynamicIdIsDeclared(id: string): boolean { return DYNAMIC_ID_PATTERNS.some(([, pattern]) => pattern.test(id)); }
 
-export function appearanceInventoryDefects(root: ParentNode, state: AppearanceMountedState, expectedDynamicIds: ReadonlySet<string> = new Set()): string[] {
+export function appearanceInventoryDefects(
+  root: ParentNode,
+  state: AppearanceMountedState,
+  expectedDynamicIds: ReadonlySet<string> = new Set(),
+  directManifestPaths: ReadonlySet<string> = new Set(),
+): string[] {
   const expected = EXPECTED_APPEARANCE_IDS_BY_STATE[state];
   const observed = observedAppearanceElementIds(root);
   const defects: string[] = [];
@@ -48,7 +53,10 @@ export function appearanceInventoryDefects(root: ParentNode, state: AppearanceMo
   for (const id of expectedDynamicIds) if (!observed.has(id)) defects.push(`Mounted state ${state} is missing generated appearance id ${id}.`);
   for (const id of observed) {
     if (expected.has(id) || expectedDynamicIds.has(id)) continue;
-    if (dynamicIdIsDeclared(id) && !id.startsWith(DIRECT_INTERACTIVE_APPEARANCE_ID_PREFIX)) defects.push(`Mounted state ${state} rendered an unregistered dynamic appearance id ${id}.`);
+    if (id.startsWith(DIRECT_INTERACTIVE_APPEARANCE_ID_PREFIX)) {
+      const registered = [...directManifestPaths].some((path) => id === path || id.startsWith(`${path}-`));
+      if (!registered) defects.push(`Mounted state ${state} rendered direct appearance id ${id}, absent from the checked-in direct-ID manifest.`);
+    } else if (dynamicIdIsDeclared(id)) defects.push(`Mounted state ${state} rendered an unregistered dynamic appearance id ${id}.`);
     else defects.push(`Mounted state ${state} rendered unexpected appearance id ${id}.`);
   }
   return defects;
@@ -75,6 +83,7 @@ export function appearanceFamilyDefects(root: ParentNode): string[] {
     for (const element of Array.from(root.querySelectorAll<HTMLElement>(selector))) {
       const id = element.getAttribute('data-appearance-id') ?? '';
       if (!id.startsWith(prefix)) defects.push(`${selector} is missing the ${prefix} appearance id: ${id || 'none'}`);
+      if (selector === '[data-direct-interactive]' && id.endsWith('-missing')) defects.push(`${selector} has no stable id or key and cannot receive persisted appearance: ${id}`);
     }
   }
   return defects;
