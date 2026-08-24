@@ -93,8 +93,13 @@ export function createLiveNavigationAdapter(initial: NavigationState): LiveNavig
     const nextStrip = nextWorkspace?.strips[nextWorkspace.activeStripId];
     if (!nextWorkspace || !nextStrip) return publish(nextDefinitions);
     const oldByDestination = old ? new Map(Object.values(old.strip.tabs).map((tab) => [tab.destinationId, tab])) : new Map();
+    const availableGroups = old?.strip.groups ?? nextStrip.groups;
     const tabs: Record<string, NavigationTab> = {};
-    for (const tab of Object.values(nextStrip.tabs)) tabs[tab.id] = sameTargetTab(tab, oldByDestination.get(tab.destinationId));
+    for (const tab of Object.values(nextStrip.tabs)) {
+      const previous = oldByDestination.get(tab.destinationId);
+      const preserved = previous && (previous.groupId === undefined || Boolean(availableGroups[previous.groupId])) ? previous : undefined;
+      tabs[tab.id] = sameTargetTab(tab, preserved);
+    }
     const desiredOrder = old?.strip.tabOrder
       .map((id) => old.strip.tabs[id]?.destinationId)
       .filter((id): id is string => typeof id === 'string' && Boolean(destinationMap(nextDefinitions).get(id))) ?? [];
@@ -179,8 +184,10 @@ export function createLiveNavigationAdapter(initial: NavigationState): LiveNavig
     const activeTabId = activeDestination && tabs[available.get(activeDestination)?.id ?? '']
       ? available.get(activeDestination)?.id
       : current.strip.activeTabId && tabs[current.strip.activeTabId] ? current.strip.activeTabId : Object.keys(tabs)[0];
+    const activeTab = activeTabId ? tabs[activeTabId] : undefined;
     const nextWorkspace = {
       ...current.workspace,
+      ...(typeof snapshot.railId === 'string' ? { railId: snapshot.railId } : activeTab?.railId ? { railId: activeTab.railId } : {}),
       strips: {
         ...current.workspace.strips,
         [current.strip.id]: {
@@ -204,7 +211,7 @@ export function createLiveNavigationAdapter(initial: NavigationState): LiveNavig
     const tabs = { ...current.strip.tabs, [definition.id]: existing };
     const tabOrder = current.strip.tabOrder.includes(definition.id) ? [...current.strip.tabOrder] : [...current.strip.tabOrder, definition.id];
     const strip = { ...current.strip, tabs, tabOrder, activeTabId: definition.id };
-    const workspace = { ...current.workspace, strips: { ...current.workspace.strips, [strip.id]: strip } };
+    const workspace = { ...current.workspace, ...(definition.railId ? { railId: definition.railId } : {}), strips: { ...current.workspace.strips, [strip.id]: strip } };
     return publish({ ...state, workspaces: { ...state.workspaces, [workspace.id]: workspace }, revision: state.revision + 1 });
   };
 

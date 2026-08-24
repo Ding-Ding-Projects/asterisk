@@ -15,12 +15,14 @@ export const EXPECTED_APPEARANCE_IDS_BY_STATE: Readonly<Record<AppearanceMounted
   'palette-appearance': new Set([...REQUIRED_APPEARANCE_ELEMENT_IDS, 'command-palette', 'appearance-editor']),
 };
 
-export const REQUIRED_APPEARANCE_ID_FAMILIES = ['control-', 'tab-', 'tab-group-', 'palette-row-', 'palette-control-', 'window-'] as const;
+export const REQUIRED_APPEARANCE_ID_FAMILIES = ['control-', 'tab-', 'tab-group-', 'palette-row-', 'palette-control-', 'window-', 'direct-'] as const;
 export const CONDITIONAL_APPEARANCE_ID_FAMILIES = new Set(['palette-row-', 'palette-control-', 'tab-group-']);
+export const DIRECT_INTERACTIVE_APPEARANCE_ID_PREFIX = 'direct-';
 const DYNAMIC_ID_PATTERNS: ReadonlyArray<readonly [string, RegExp]> = [
   ['control-', /^control-[A-Za-z0-9._:-]+$/u], ['tab-', /^tab-[A-Za-z0-9._:-]+$/u],
   ['tab-group-', /^tab-group-[A-Za-z0-9._:-]+$/u], ['palette-row-', /^palette-row-[A-Za-z0-9._:-]+$/u],
   ['palette-control-', /^palette-control-[A-Za-z0-9._:-]+$/u],
+  ['direct-', /^direct-[A-Za-z0-9._:-]+(?:-[A-Za-z0-9._:-]+)*$/u],
   ['window-', /^window-[A-Za-z0-9._:-]+$/u],
 ];
 
@@ -46,7 +48,7 @@ export function appearanceInventoryDefects(root: ParentNode, state: AppearanceMo
   for (const id of expectedDynamicIds) if (!observed.has(id)) defects.push(`Mounted state ${state} is missing generated appearance id ${id}.`);
   for (const id of observed) {
     if (expected.has(id) || expectedDynamicIds.has(id)) continue;
-    if (dynamicIdIsDeclared(id)) defects.push(`Mounted state ${state} rendered an unregistered dynamic appearance id ${id}.`);
+    if (dynamicIdIsDeclared(id) && !id.startsWith(DIRECT_INTERACTIVE_APPEARANCE_ID_PREFIX)) defects.push(`Mounted state ${state} rendered an unregistered dynamic appearance id ${id}.`);
     else defects.push(`Mounted state ${state} rendered unexpected appearance id ${id}.`);
   }
   return defects;
@@ -63,7 +65,10 @@ export function appearanceFamilyDefects(root: ParentNode): string[] {
     if (matches.length === 0 && !CONDITIONAL_APPEARANCE_ID_FAMILIES.has(prefix)) defects.push(`No rendered target exposes the required ${prefix} appearance-id family.`);
   }
   const checks: Array<[string, string]> = [
-    ['[data-control-kind]', 'control-'], ['[role="tab"]', 'tab-'],
+    ['[data-control-kind]:not([data-palette-control="true"])', 'control-'],
+    ['[data-control-kind][data-palette-control="true"]', 'palette-control-'],
+    ['[data-direct-interactive]', 'direct-'],
+    ['[role="tab"]', 'tab-'],
     ['[role="group"]:not([data-control-kind])', 'tab-group-'], ['[data-window-button]', 'window-'],
   ];
   for (const [selector, prefix] of checks) {

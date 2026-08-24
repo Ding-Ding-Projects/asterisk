@@ -76,6 +76,7 @@ function canonicalNavigationState(runtimeControls: Readonly<Record<string, Reado
       id: tabId,
       label: typeof screen.title === 'string' ? screen.title : destinationId,
       destinationId,
+      ...(typeof (screen as { rail?: unknown }).rail === 'string' ? { railId: (screen as { rail: string }).rail } : {}),
       pageId: `page:${idPart(destinationId)}`,
       elementId: tabAppearanceId(destinationId),
       teleportElementIds: [tabAppearanceId(destinationId), ...controlIds],
@@ -89,7 +90,9 @@ function canonicalNavigationState(runtimeControls: Readonly<Record<string, Reado
   const baseStrip = createEmptyStrip('console-strip');
   const strip = { ...baseStrip, tabOrder: Object.keys(tabs), activeTabId: Object.keys(tabs)[0], tabs };
   const baseWorkspace = createWorkspace('console-workspace', 'Console', 'main-window', 'console-strip');
-  const workspace = { ...baseWorkspace, strips: { 'console-strip': strip } };
+  const firstDestination = destinationIds[0];
+  const firstRail = firstDestination ? (SCREENS as unknown as Record<string, { rail?: unknown }>)[firstDestination]?.rail : undefined;
+  const workspace = { ...baseWorkspace, ...(typeof firstRail === 'string' ? { railId: firstRail } : {}), strips: { 'console-strip': strip } };
   const searchFields = ['strip', 'group-names', 'master', 'palette'].map((kind) => {
     const fieldId = `navigation-${kind}`;
     const searchKind: SearchFieldKind = kind === 'strip' ? 'strip-tabs' : kind === 'group-names' ? 'group-names' : kind === 'master' ? 'master-tabs' : 'palette';

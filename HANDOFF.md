@@ -66,6 +66,14 @@ Rich action and history records share one operation identifier. The renderer emi
 
 No tests, lint, broad build, package, UI, browser, captures, dew, or cleanup ran in this lane.
 
+## Eleventh refutation repair, 2026-08-24
+
+The appearance family validator now distinguishes ordinary `control-*` targets from nested `palette-control-*` targets using the design-authored `data-palette-control` marker. The shared navigation model carries rail identity on each canonical tab and derives the active rail in the adapter. Definition refresh filters stale group memberships against the refreshed target and group set while retaining docking and overflow metadata.
+
+Palette rollback now restores one adapter snapshot and suppresses the next generated-state sync, preventing the rollback from being overwritten by the shell's own update. Vocabulary clear receives and returns the rich action operation identifier, which is also carried in the history record.
+
+The hosted producer inventory now names `HostedDimSumCacheControl`, `hydrateHostedDimSumCache`, `importHostedDimSumCache`, `replaceHostedDimSumCache`, `clearHostedDimSumCache`, `validateDimSumCachePayloadAsync`, `window.localStorage`, and `DIM_SUM_CACHE_STORAGE_KEY` exactly. No tests, lint, broad build, package, UI, browser, captures, dew, or cleanup ran in this lane.
+
 ## Scope
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.

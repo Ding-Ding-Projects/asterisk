@@ -179,6 +179,33 @@ const EVENTS = new Set([
   'onMouseEnter', 'onMouseLeave', 'onDrop', 'onDragStart', 'onDragOver', 'onDragEnd',
 ]);
 
+const DIRECT_INTERACTIVE_TAGS = new Set(['button', 'input', 'select', 'textarea', 'summary']);
+
+function annotateDirectInteractiveNodes(nodes, componentName, path = '0') {
+  nodes.forEach((node, index) => {
+    if (node.text !== undefined) return;
+    const nodePath = `${path}_${index}`;
+    const interactive = DIRECT_INTERACTIVE_TAGS.has(node.tag) || Object.keys(node.attrs ?? {}).some((name) => EVENTS.has(name));
+    if (interactive && !node.attrs['data-appearance-id']) {
+      node.attrs['data-direct-appearance-path'] = `${componentName.toLowerCase()}-${nodePath}`;
+    }
+    annotateDirectInteractiveNodes(node.children ?? [], componentName, nodePath);
+  });
+}
+
+function directAppearanceId(path, scope) {
+  const dynamicParts = [];
+  if (path.startsWith('m3control-')) dynamicParts.push("S(v.ctl?.presentationId ?? v.ctl?.id ?? '')");
+  for (const [name, alias] of scope.entries()) {
+    if (name.startsWith('__index:')) continue;
+    const index = scope.get(`__index:${name}`);
+    dynamicParts.push(`S(${alias}?.id ?? ${alias}?.key ?? ${alias}?.label ?? ${index ?? "''"})`);
+  }
+  return dynamicParts.length > 0
+    ? `${JSON.stringify(`direct-${path}`)} + '-' + ${dynamicParts.join(" + '-' + ")}`
+    : JSON.stringify(`direct-${path}`);
+}
+
 // ---------------------------------------------------------------- hover / active styles
 
 class HoverStyles {
@@ -253,6 +280,7 @@ function emit(node, scope, hovers, indent) {
     const index = `${alias}$i`;
     const inner = new Map(scope);
     inner.set(item, alias);
+    inner.set(`__index:${item}`, index);
     const children = emitChildren(node, inner, hovers, indent);
     return `A(${list}).map((${alias}, ${index}) => R(${index}, ${wrapFragment(children, indent)}))`;
   }
@@ -264,8 +292,12 @@ function emit(node, scope, hovers, indent) {
 
   const props = [];
   let className = null;
+  if (node.attrs['data-direct-appearance-path']) {
+    props.push(`"data-appearance-id": ${directAppearanceId(node.attrs['data-direct-appearance-path'], scope)}`);
+    props.push('"data-direct-interactive": true');
+  }
   for (const [name, raw] of Object.entries(node.attrs)) {
-    if (name.startsWith(HINT_PREFIX) || DROP_ATTRS.has(name)) continue;
+    if (name.startsWith(HINT_PREFIX) || DROP_ATTRS.has(name) || name === 'data-direct-appearance-path') continue;
     if (name === 'style-hover' || name === 'style-active') continue;
     if (name === 'style') {
       props.push(`style: sty(${templateLiteral(raw, scope)})`);
@@ -369,6 +401,7 @@ function compileComponent({ name, source, componentName, extraImports = '', expo
   // into design-styles.css instead, so the rendered tree drops the element entirely.
   let nodes = parseMarkup(sanitizeBrand(source.markup)).filter((node) => node.tag !== 'helmet');
   if (windowChrome) nodes = attachWindowChrome(nodes);
+  annotateDirectInteractiveNodes(nodes, componentName);
   const body = generate(nodes, new Map(), hovers, '    ');
   const template = `function Template(v: any) {\n  return F(${body.map((part) => `\n    ${part}`).join(',')}\n  );\n}`;
 

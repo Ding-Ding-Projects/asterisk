@@ -273,6 +273,7 @@ export class App extends Base {
   private appearanceObserver: MutationObserver | undefined;
   private richControlRegistration: RichControlRegistration;
   private navigationAdapter!: LiveNavigationAdapter;
+  private navigationRollbackPending = false;
   /** The unlock ladder (unlock-ladder.ts) for the per-element lock's unlock dialog.
    *  Renderer-only: this app's per-element lock has no server-enforced attempt budget
    *  or time-based lockout of its own, so this in-memory instance -- like the PIN and
@@ -368,6 +369,13 @@ export class App extends Base {
   }
 
   componentDidUpdate() {
+    if (this.navigationRollbackPending) {
+      this.navigationRollbackPending = false;
+      this.publishDimSumContext(true);
+      this.syncLegacyAppearanceStore();
+      void this.refresh();
+      return;
+    }
     this.navigationAdapter.syncGenerated({
       screen: (this.state as { screen?: unknown }).screen,
       tabs: (this.state as { tabs?: unknown }).tabs,
@@ -639,7 +647,7 @@ export class App extends Base {
         tabs: strip.tabOrder.filter((tabId) => strip.tabs[tabId]?.groupId === group.id).map((tabId) => strip.tabs[tabId]!.destinationId),
       };
     });
-    const currentRail = (this.state as { railId?: string }).railId;
+    const currentRail = navigation.workspaces[instruction.workspaceId]?.railId ?? (this.state as { railId?: string }).railId;
     const destinationRail = ((SCREENS as Record<string, { rail?: string }>)[entry.target.destinationId]?.rail) ?? currentRail;
     this.setState({ screen: entry.target.destinationId, railId: destinationRail, tabs, pinned, groups });
     return { instruction, previousState };
@@ -660,6 +668,7 @@ export class App extends Base {
           else globalThis.setTimeout(resolveAfterRender, 25);
           return;
         }
+        this.navigationRollbackPending = true;
         this.navigationAdapter.restore(previousState);
         this.restoreNavigationShell(previousState, true);
         this.toast(`Palette target is stale after bounded render: ${instruction.elementId}. Navigation was rolled back.`);
@@ -695,7 +704,7 @@ export class App extends Base {
     });
     this.setState({
       ...(reopenPalette ? { paletteOpen: true } : {}),
-      ...(activeTab ? { screen: activeTab.destinationId, railId: (SCREENS as Record<string, { rail?: string }>)[activeTab.destinationId]?.rail } : {}),
+      ...(activeTab ? { screen: activeTab.destinationId, railId: workspace.railId ?? (SCREENS as Record<string, { rail?: string }>)[activeTab.destinationId]?.rail } : {}),
       tabs,
       pinned,
       groups,
@@ -883,8 +892,8 @@ export class App extends Base {
     reader.readAsText(file);
   };
 
-  onFileCleared = (ctl: SourceControlDescriptor) => {
-    const result = clearVocabulary(this.vocabStorage);
+  onFileCleared = (ctl: SourceControlDescriptor, operationId?: string) => {
+    const result = clearVocabulary(this.vocabStorage, operationId);
     this.pickedFileNames.delete(ctl.id);
     this.forceUpdate();
     this.toast(result.status);
@@ -1003,7 +1012,7 @@ export class App extends Base {
     let ok = false;
     let detail = 'No action handler is registered for this control.';
     if (action === 'vocab-clear') {
-      const result = this.onFileCleared({ id: 'va_file' });
+      const result = this.onFileCleared({ id: 'va_file' }, operationId);
       ok = result.ok;
       detail = result.status;
     } else if (action === 'daemon-start' || action === 'daemon-stop' || action === 'daemon-restart') {

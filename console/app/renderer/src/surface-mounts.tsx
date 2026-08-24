@@ -16,7 +16,30 @@ import type { ConverterBackendHandlers } from '../../../shared/converter';
 
 type SurfaceRoute = 'converter' | 'ollama' | 'docs' | 'changelog';
 
-function HostedDimSumCacheControl() {
+type HostedCacheStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+
+export async function hydrateHostedDimSumCache(storage: HostedCacheStorage = window.localStorage) {
+  const raw = storage.getItem(DIM_SUM_CACHE_STORAGE_KEY);
+  if (!raw) return { ok: true as const, cache: undefined };
+  return await validateDimSumCachePayloadAsync(raw);
+}
+
+export async function importHostedDimSumCache(raw: string) {
+  if (new TextEncoder().encode(raw).byteLength > DIM_SUM_CACHE_MAX_BYTES) {
+    return { ok: false as const, reason: `The selected cache exceeds the ${DIM_SUM_CACHE_MAX_BYTES}-byte limit.` };
+  }
+  return await validateDimSumCachePayloadAsync(raw);
+}
+
+export function replaceHostedDimSumCache(storage: HostedCacheStorage, raw: string): void {
+  storage.setItem(DIM_SUM_CACHE_STORAGE_KEY, raw);
+}
+
+export function clearHostedDimSumCache(storage: HostedCacheStorage): void {
+  storage.removeItem(DIM_SUM_CACHE_STORAGE_KEY);
+}
+
+export function HostedDimSumCacheControl() {
   const [status, setStatus] = useState('No visitor-local dim-sum cache loaded.');
   const [busy, setBusy] = useState(false);
   const [pendingReplace, setPendingReplace] = useState<{ raw: string; count: number } | undefined>();
@@ -24,10 +47,9 @@ function HostedDimSumCacheControl() {
     let active = true;
     void (async () => {
       try {
-        const raw = window.localStorage.getItem(DIM_SUM_CACHE_STORAGE_KEY);
-        if (!raw) return;
-        const result = await validateDimSumCachePayloadAsync(raw);
+        const result = await hydrateHostedDimSumCache(window.localStorage);
         if (!active) return;
+        if (!result.cache) return;
         setStatus(result.ok
           ? `Loaded and revalidated ${result.cache.entries.length} visitor-local dish entries from catalog revision ${result.cache.source.catalogRevision}, release ${result.cache.source.assetRelease}.`
           : `Stored visitor-local cache is invalid: ${result.reason}`);
@@ -40,7 +62,7 @@ function HostedDimSumCacheControl() {
   const clear = () => {
     setPendingReplace(undefined);
     try {
-      window.localStorage.removeItem(DIM_SUM_CACHE_STORAGE_KEY);
+      clearHostedDimSumCache(window.localStorage);
       setStatus('Visitor-local cache cleared. The surprise remains unavailable until a valid file is selected.');
     } catch (error) {
       setStatus(`Visitor-local cache could not be cleared: ${error instanceof Error ? error.message : String(error)}`);
@@ -57,7 +79,7 @@ function HostedDimSumCacheControl() {
     setBusy(true);
     try {
       const raw = await file.text();
-      const result = await validateDimSumCachePayloadAsync(raw);
+      const result = await importHostedDimSumCache(raw);
       if (!result.ok) { setStatus(`Rejected: ${result.reason}`); return; }
       const existing = window.localStorage.getItem(DIM_SUM_CACHE_STORAGE_KEY);
       if (existing && existing !== raw) {
@@ -65,7 +87,7 @@ function HostedDimSumCacheControl() {
         setStatus(`Validated replacement with ${result.cache.entries.length} entries. Confirm replacement of the existing visitor-local cache.`);
         return;
       }
-      window.localStorage.setItem(DIM_SUM_CACHE_STORAGE_KEY, raw);
+      replaceHostedDimSumCache(window.localStorage, raw);
       setStatus(`Validated and stored ${result.cache.entries.length} visitor-local dish entries from catalog revision ${result.cache.source.catalogRevision}, release ${result.cache.source.assetRelease}. No network request was made.`);
     } catch (error) {
       setStatus(`The selected cache was not stored: ${error instanceof Error ? error.message : String(error)}`);
@@ -76,7 +98,7 @@ function HostedDimSumCacheControl() {
   const confirmReplace = () => {
     if (!pendingReplace) return;
     try {
-      window.localStorage.setItem(DIM_SUM_CACHE_STORAGE_KEY, pendingReplace.raw);
+      replaceHostedDimSumCache(window.localStorage, pendingReplace.raw);
       setStatus(`Replacement stored with ${pendingReplace.count} visitor-local dish entries. The startup draw state was not rerun.`);
       setPendingReplace(undefined);
     } catch (error) {

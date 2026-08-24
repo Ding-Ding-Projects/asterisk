@@ -16,7 +16,7 @@ There is deliberately no setting to turn this off; the only configurable aspect 
 
 **Documentation website:** Not implemented. A static documentation site has no startup event to attach this to.
 
-The hosted documentation-site equivalent is `HostedDimSumCacheControl` in `console/app/renderer/src/surface-mounts.tsx`. It validates a user-selected cache JSON with `validateDimSumCachePayloadAsync`, stores it per visitor in `window.localStorage` under `DIM_SUM_CACHE_STORAGE_KEY`, and offers replace and clear actions. Replacing or clearing the cache updates the next eligible launch only; it never reruns the current launch draw. It makes no control-plane request and vendors no consumer photo.
+The hosted documentation-site equivalent is `HostedDimSumCacheControl` in `console/app/renderer/src/surface-mounts.tsx`. Its mount hydration calls `hydrateHostedDimSumCache`, import calls `importHostedDimSumCache` and `validateDimSumCachePayloadAsync`, replacement calls `replaceHostedDimSumCache`, and clearing calls `clearHostedDimSumCache`. The producer uses `window.localStorage` under `DIM_SUM_CACHE_STORAGE_KEY`, stores it per visitor, and offers explicit replace and clear actions. Replacing or clearing the cache updates the next eligible launch only; it never reruns the current launch draw. It makes no control-plane request and vendors no consumer photo.
 
 ## Failure modes
 

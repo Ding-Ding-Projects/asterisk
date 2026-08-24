@@ -30,7 +30,7 @@ Runtime support is recorded explicitly for installed-font enumeration, variable 
 
 ## Mounting
 
-`appearance-runtime.ts` mounts values onto elements that expose `data-appearance-id`. A host can set `data-appearance-state` as interaction changes and remount the model. Palette rows use separate `palette-row-*` and nested `palette-control-*` presentation IDs, while their commands retain the underlying screen target. The adapter reports element identifiers that are stored but not present in the mounted surface. It also exports the stylesheet needed for hue interpolation. The central renderer must install that stylesheet and mount the adapter before these model changes become visible.
+`appearance-runtime.ts` mounts values onto elements that expose `data-appearance-id`. A host can set `data-appearance-state` as interaction changes and remount the model. The design compiler assigns stable `direct-*` IDs to generated interactive elements, while palette rows use separate `palette-row-*` and nested `palette-control-*` presentation IDs. Palette commands retain the underlying screen target. The adapter reports element identifiers that are stored but not present in the mounted surface. It also exports the stylesheet needed for hue interpolation. The central renderer must install that stylesheet and mount the adapter before these model changes become visible.
 
 ## Failure modes and security
 

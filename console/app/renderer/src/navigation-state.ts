@@ -12,6 +12,7 @@ export interface NavigationTab {
   readonly id: string;
   readonly label: string;
   readonly destinationId: string;
+  readonly railId?: string;
   readonly pageId: string;
   readonly elementId: string;
   /** Every exact element that a palette result may focus or highlight. */
@@ -55,6 +56,8 @@ export interface NavigationWorkspace {
   readonly windowId: string;
   readonly order: number;
   readonly activeStripId: string;
+  /** Rail identity is owned by navigation and follows the active destination. */
+  readonly railId?: string;
   readonly strips: Readonly<Record<string, TabStripState>>;
 }
 
@@ -207,6 +210,7 @@ function validateWorkspace(workspace: NavigationWorkspace): void {
   if (typeof workspace.label !== 'string' || workspace.label.trim().length === 0 || workspace.label.length > 240) {
     throw new Error(`Workspace ${workspace.id} has an invalid label.`);
   }
+  if (workspace.railId !== undefined) assertIdentifier(workspace.railId, 'rail id');
   if (!Number.isSafeInteger(workspace.order) || workspace.order < 0) throw new Error(`Workspace ${workspace.id} has an invalid order.`);
   const strips = Object.values(workspace.strips);
   if (strips.length === 0 || strips.length > MAX_STRIPS_PER_WORKSPACE) {

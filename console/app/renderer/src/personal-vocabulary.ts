@@ -228,6 +228,7 @@ export interface LoadResult {
   readonly ok: boolean;
   readonly status: string;
   readonly replacementCount: number;
+  readonly operationId?: string;
 }
 
 /** A rejected upload leaves the last valid cache unchanged. */
@@ -247,7 +248,7 @@ export function loadVocabularyFile(storage: VocabularyStorage, rawText: string):
   return { ok: true, status: `Loaded ${count} local replacement${count === 1 ? '' : 's'}. No data was transmitted.`, replacementCount: count };
 }
 
-export function clearVocabulary(storage: VocabularyStorage): LoadResult {
+export function clearVocabulary(storage: VocabularyStorage, operationId?: string): LoadResult {
   try {
     storage.removeItem(CACHE_KEY);
   } catch (error) {
@@ -255,9 +256,10 @@ export function clearVocabulary(storage: VocabularyStorage): LoadResult {
       ok: false,
       status: `The local cache was not cleared: ${error instanceof Error ? error.message : String(error)}`,
       replacementCount: readVocabularyCache(storage)?.replacements.length ?? 0,
+      ...(operationId ? { operationId } : {}),
     };
   }
-  return { ok: true, status: 'No file loaded; original wording is active.', replacementCount: 0 };
+  return { ok: true, status: 'No file loaded; original wording is active.', replacementCount: 0, ...(operationId ? { operationId } : {}) };
 }
 
 export function vocabularyStatus(storage: VocabularyStorage): LoadResult {
