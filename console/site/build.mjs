@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(fileURLToPath(import.meta.url));
 const docs = resolve(root, '..', 'docs');
 const output = join(root, 'dist');
-const assets = ['index.html', 'product.html', 'documentation.html', 'downloads.html', 'status.html', 'settings.html', 'styles.css', 'app.js'];
+const assets = ['index.html', 'product.html', 'documentation.html', 'converter.html', 'ollama.html', 'downloads.html', 'status.html', 'settings.html', 'styles.css', 'app.js'];
 const socialPreview = resolve(root, '..', '..', 'social-preview.png');
 const packageFile = resolve(root, '..', 'package.json');
 const releaseEvidenceFile = resolve(root, '..', 'release', 'evidence', 'site-release.json');
