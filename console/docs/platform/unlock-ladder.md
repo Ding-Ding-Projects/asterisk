@@ -1,24 +1,24 @@
 # Unlock ladder
 
-A small set of optional games — dim sum trivia, arithmetic, whack-a-mole — a locked-out user can play to shorten a wait, never to bypass the credential itself.
+A small set of optional games, dim sum trivia, arithmetic, and whack-a-mole, lets a toy-lock user shorten a wait without bypassing the credential itself.
 
 ## Behavior
 
-Winning a rung is meant to clear only the current lockout wait, never the credential requirement itself, with a capped, server-graded budget of skippable waits so the ladder cannot be scripted into a bypass.
+Winning a rung clears only the authoritative wait for the exact toy lock that failed verification. It never clears the credential requirement. The service owns the capped rolling budget, elapsed-duration check, nonce consumption, and one receipt per visible mole spawn.
 
 ## Configuration
 
-Every answer would be generated and graded independently of the browser, using a single-use token, so a client-side script cannot forge a win.
+Every challenge is generated and graded in the privileged local service with a single-use nonce. The explicit bounded guarantees are the three-per-hour budget, server elapsed-duration check, and one-hit-per-spawn receipt rule. This desktop scope does not claim a separate application-login lockout.
 
 ## Current status
 
-**Desktop application:** Partial. A lockout timer exists after repeated wrong password attempts on the desktop application's launch gate, but there are no unlock-ladder games, no attempt-budget mechanic, and no server-side challenge grading.
+**Desktop application:** Implemented-unverified for toy-lock waits. A failed verification creates an authoritative wait for the exact lock, the mounted surface receives the lock ID, and a successful grade clears only that wait. Built-artifact interaction remains unverified.
 
 **Documentation website:** Not implemented. The documentation website has no lockable credential for a ladder to apply to.
 
 ## Failure modes
 
-A ladder submission that arrives before its round's own minimum duration has elapsed, or that replays an already-consumed challenge token, is meant to be rejected outright; there is no ladder implementation yet to enforce either check.
+An early mole submission, a replayed nonce, an unknown receipt, a repeated spawn, an unavailable state store, and an exhausted rolling budget remain explicit outcomes. School mode is read from the privileged shared settings record, so the hidden dish rung is not selected from renderer input.
 
 ## Accessibility and localization
 
@@ -26,7 +26,7 @@ This feature is expected to follow the product's standing accessibility contract
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+Focused checks and built-artifact interaction remain unverified in this lane. The source contract covers authoritative wait creation, exact lock identity, server timing, single-use receipts, the rolling budget, and the clock-only fallback.
 
 ## Suggested articles
 

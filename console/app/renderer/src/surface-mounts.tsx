@@ -12,7 +12,7 @@ import type { AuthenticatorClient, AuthenticatorHistoryClient } from './authenti
 import type { HistoryRestoreReceipt } from '../../../shared/history';
 import { initializeMountedNotificationStore, mountedNotificationStore } from './notification-runtime';
 import { NotificationDeleteGate } from './notification-delete-gate';
-import type { AuthenticatorRegistration } from '../../../shared/authenticator';
+import type { AuthenticatorRegistration, AuthenticatorRemovalReceipt } from '../../../shared/authenticator';
 import { LockManagerSurface } from './lock-manager-surface';
 import type { ToyLockClient, ToyLockCredentialClient } from './lock-manager-surface';
 import type { ToyLockCreateReceipt, ToyLockRecord, ToyLockRecoveryMetadata, ToyLockReconciliationReceipt, ToyLockRemovalReceipt, ToyLockRelockReceipt, ToyLockUnlockReceipt } from '../../../shared/locks';
@@ -57,7 +57,7 @@ const authenticatorClient: AuthenticatorClient = {
   list: () => bridgeRequest<Awaited<ReturnType<AuthenticatorClient['list']>>>('authenticator.list'),
   register: (input: AuthenticatorRegistration) => bridgeRequest<Awaited<ReturnType<AuthenticatorClient['register']>>>('authenticator.register', input),
   confirmAndArm: (id, code) => bridgeRequest<Awaited<ReturnType<AuthenticatorClient['confirmAndArm']>>>('authenticator.confirm', { id, code }),
-  remove: (id) => bridgeRequest<Awaited<ReturnType<AuthenticatorClient['remove']>>>('authenticator.remove', { id }),
+  remove: (id) => bridgeRequest<AuthenticatorRemovalReceipt>('authenticator.remove', { id }),
   codeSnapshot: (id) => bridgeRequest<Awaited<ReturnType<AuthenticatorClient['codeSnapshot']>>>('authenticator.snapshot', { id }),
   reconciliation: () => bridgeRequest('authenticator.reconciliation'),
 };

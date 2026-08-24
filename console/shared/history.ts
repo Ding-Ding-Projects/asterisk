@@ -78,7 +78,7 @@ export type HistoryResult<T> =
 export type HistoryRestoreReceipt =
   | { status: "applied"; entry: import("./authenticator.js").AuthenticatorEntry }
   | { status: "non-restorable"; message: string }
-  | { status: "unavailable"; message: string }
+  | { status: "unavailable"; message: string; reconciliation?: import("./authenticator.js").AuthenticatorReconciliationReceipt }
   | { status: "malformed"; message: string };
 
 export function historyFailure(

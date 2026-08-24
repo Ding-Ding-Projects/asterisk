@@ -4,21 +4,21 @@ A playful, entirely local, fake support-desk flow that helps a user recover from
 
 ## Behavior
 
-A mock ticket form is meant to lead, after a canned first response, to opening the application's local data folder in the file manager so the user can delete it themselves — nothing sent anywhere and no real ticket created.
+A local ticket form leads, after a canned first response, to opening the application's local data folder in the file manager so the user can delete it themselves. Nothing is sent anywhere and no real ticket is created.
 
 ## Configuration
 
-One unmissable, unstyled line would state plainly that nothing leaves the device and nobody is reading the ticket, regardless of the active funny level.
+The surface uses one unmissable, unstyled disclosure stating that nothing leaves the device and nobody is reading the ticket, regardless of the active funny level. Categories, severities, statuses, ticket numbers, opening time, and the canned response use one shared bounded model.
 
 ## Current status
 
-**Desktop application:** Not implemented. The desktop application has no such recovery flow; there is no per-element locking for it to recover from, and no mock support surface exists.
+**Desktop application:** Implemented-unverified. The mounted Support Tickets surface stores bounded local records, shows the exact recovery folder, provides a canned first response, and never deletes anything itself. Built-artifact interaction remains unverified.
 
 **Documentation website:** Not implemented. The documentation website has no locks for this recovery flow to serve.
 
 ## Failure modes
 
-If the file manager cannot be launched on a given machine, the intended behavior is to show the exact folder path as text so the user can navigate there manually; nothing implements the flow yet to hit that fallback.
+If the file manager cannot be launched, the surface reports that exact outcome and continues to show the copyable folder path so the user can navigate there manually. Malformed or unavailable local ticket storage remains an explicit error rather than an empty success state.
 
 ## Accessibility and localization
 
@@ -26,7 +26,7 @@ This feature is expected to follow the product's standing accessibility contract
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+Focused checks and built-artifact interaction remain unverified in this lane. The source contract covers local persistence, bounded fields, exact disclosure, status advancement, and the non-deleting folder handoff.
 
 ## Suggested articles
 

@@ -44,6 +44,12 @@ export type AuthenticatorReconciliationReceipt =
   | { status: 'pending-removal-failed'; affectedIds: ReadonlyArray<string>; warning: string }
   | { status: 'unresolved-legacy'; affectedIds: ReadonlyArray<string>; warning: string };
 
+export type AuthenticatorRemovalReceipt =
+  | { status: 'removed'; value: undefined }
+  | { status: 'pending'; message: string; recoverable: true }
+  | { status: 'rolledBack'; message: string; recoverable: true }
+  | { status: 'recoverable'; message: string; recoverable: true };
+
 export interface AuthenticatorRegistration {
   issuer: string;
   account: string;
@@ -66,7 +72,7 @@ export type VaultResult<T> =
 
 export type AuthenticatorResult<T> =
   | { ok: true; value: T }
-  | { ok: false; code: AuthenticatorErrorCode; message: string };
+  | { ok: false; code: AuthenticatorErrorCode; message: string; reconciliation?: AuthenticatorReconciliationReceipt };
 
 export type AuthenticatorErrorCode =
   | 'invalid-input'
@@ -77,6 +83,7 @@ export type AuthenticatorErrorCode =
   | 'confirmation-failed'
   | 'metadata-unavailable'
   | 'metadata-error'
+  | 'reconciliation-blocked'
   | 'duplicate-entry'
   | 'not-found';
 

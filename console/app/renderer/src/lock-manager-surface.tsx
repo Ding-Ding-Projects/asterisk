@@ -66,6 +66,7 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
   const [removing, setRemoving] = useState<ToyLockRecord | undefined>();
   const [reconciliation, setReconciliation] = useState<ToyLockReconciliationReceipt | undefined>();
   const [reconciliationBusy, setReconciliationBusy] = useState(false);
+  const [lastMutation, setLastMutation] = useState<ToyLockCreateReceipt | ToyLockUnlockReceipt<ToyLockRecord> | ToyLockRelockReceipt | ToyLockRemovalReceipt | undefined>();
 
   const refresh = async () => {
     try {
@@ -113,6 +114,7 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
       if (!credential.ok) throw new Error(credential.message);
       const lockId = `lock-${crypto.randomUUID()}`;
       const result = await withDeadline(client.create({ id: lockId, targetId: targetId.trim(), credential: credential.value, unlockDuration: durationFrom(durationChoice, minutes) }));
+      setLastMutation(result);
       if (!result.ok) throw new Error(result.message);
       setTargetId('');
       setCredentialValue('');
@@ -130,6 +132,7 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
     if (candidate.length > 512) { setError('The unlock value is too long.'); setCandidateById((current) => ({ ...current, [record.id]: '' })); setBusy(false); return; }
     try {
       const result = await withDeadline(client.unlock(record.id, new TextEncoder().encode(candidate), surfaceId));
+      setLastMutation(result);
       if (!result.ok) { if (result.code === 'verification-failed' && result.waitCreated === true) onOpenUnlockLadder?.(record.id); throw new Error(result.message); }
       setCandidateById((current) => ({ ...current, [record.id]: '' }));
       await refresh();
@@ -142,7 +145,7 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
     if (busy) return;
     if (reconciliation && reconciliation.status !== 'reconciled') { setError(reconciliation.warning); return; }
     setBusy(true);
-    try { const result = await withDeadline(client.relock(record.id)); if (!result.ok) throw new Error(result.message); await refresh(); }
+    try { const result = await withDeadline(client.relock(record.id)); setLastMutation(result); if (!result.ok) throw new Error(result.message); await refresh(); }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'The lock could not be closed again.'); }
     finally { setBusy(false); }
   };
@@ -151,7 +154,7 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
     if (busy) return { status: 'recoverable', message: 'Another lock mutation is already in progress.', recoverable: true };
     if (reconciliation && reconciliation.status !== 'reconciled') { setError(reconciliation.warning); return { status: 'recoverable', message: reconciliation.warning, recoverable: true }; }
     setBusy(true);
-    try { const result = await withDeadline(client.remove(record.id)); if (result.status === 'removed') await refresh(); return result; }
+    try { const result = await withDeadline(client.remove(record.id)); setLastMutation(result); if (result.status === 'removed') await refresh(); return result; }
     catch (reason) { const message = reason instanceof Error ? reason.message : 'The lock could not be removed.'; setError(message); return { status: 'recoverable', message, recoverable: true }; }
     finally { setBusy(false); }
   };
@@ -161,6 +164,7 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
     <div className="auth-disclosure" role="note">These locks are for fun. They are not encryption or a security boundary. If a lockout happens, recovery is to open the application-data folder below and remove it yourself.</div>
     {error ? <div className="auth-error" role="alert">{error}</div> : null}
     {reconciliation && reconciliation.status !== 'reconciled' ? <div className="auth-disclosure" role="status">{reconciliation.warning} Affected elements: {reconciliation.affectedIds.join(', ') || 'unresolved state'}. Contradictory lock changes remain unavailable. <button type="button" className="auth-button secondary" onClick={() => void refreshReconciliation()} disabled={reconciliationBusy}>{reconciliationBusy ? 'Retrying reconciliation…' : 'Retry reconciliation'}</button></div> : null}
+    {lastMutation && (('ok' in lastMutation && !lastMutation.ok) || ('status' in lastMutation && lastMutation.status !== 'removed')) ? <div className="auth-error" role="status">{'message' in lastMutation ? lastMutation.message : 'The lock mutation remains pending or recoverable.'}</div> : null}
     <div className="auth-grid">
        <form className="auth-card" onSubmit={(event) => void createLock(event)}><h3>Lock one exact element</h3><p className="auth-help">Use the element's stable identity. A fresh vault credential is created for this element only.</p><label>Target identity<input value={targetId} onChange={(event) => setTargetId(event.target.value)} placeholder="settings.appearance.font-size" maxLength={128} required /></label><label>Credential method<select value={method} onChange={(event) => setMethod(event.target.value as 'password' | 'totp')} disabled={Boolean(reconciliation && reconciliation.status !== 'reconciled')}><option value="password">Password</option><option value="totp">TOTP</option></select></label><label>{method === 'totp' ? 'Base32 TOTP secret' : 'Password'}<input type="password" value={credentialValue} onChange={(event) => setCredentialValue(event.target.value)} maxLength={512} autoComplete="new-password" required disabled={Boolean(reconciliation && reconciliation.status !== 'reconciled')} /></label><label>Unlock duration<select value={durationChoice} onChange={(event) => setDurationChoice(event.target.value as DurationChoice)} disabled={Boolean(reconciliation && reconciliation.status !== 'reconciled')}><option value="surface">This surface</option><option value="minutes">Timed</option><option value="until-application-closes">Until the app closes</option></select></label>{durationChoice === 'minutes' ? <label>Minutes<input type="number" min={1} max={1440} value={minutes} onChange={(event) => setMinutes(event.target.value)} disabled={Boolean(reconciliation && reconciliation.status !== 'reconciled')} /></label> : null}<button className="auth-button" type="submit" disabled={busy || Boolean(reconciliation && reconciliation.status !== 'reconciled')}>Create independent lock</button></form>
       <div className="auth-card"><h3>Recovery details</h3><p className="auth-help">The app never deletes this folder for you. Support Tickets can open it in the platform file manager.</p><dl className="auth-facts"><div><dt>Application data</dt><dd><code>{client.recovery.applicationDataPath}</code></dd></div><div><dt>Support route</dt><dd>{client.recovery.supportTicketRoute}</dd></div><div><dt>Auto-delete</dt><dd>No</dd></div></dl><button className="auth-button secondary" type="button" onClick={onOpenSupportTickets}>Open Support Tickets</button></div>

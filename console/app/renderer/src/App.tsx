@@ -2127,7 +2127,22 @@ It is shown once. The phone needs it to register.`);
             { text: stateLabel, isChip: true, isMono: false, isText: false, bg: record.state === 'active' ? '#5C1B18' : '#1B4D33', fg: record.state === 'active' ? '#FFB4AB' : '#9FF7C4' },
           ],
         };
-      }) : [],
+      }) : [{
+        pick: () => undefined,
+        rnd: this.rnd(80),
+        bg: 'transparent',
+        border: '#8B938C',
+        checkBg: 'transparent',
+        checkIcon: '',
+        toggle: () => undefined,
+        ctx: () => undefined,
+        cells: [
+          { text: availability.state === 'loading' ? 'Loading notification history' : 'Notification history unavailable', isChip: true, isMono: false, isText: false, bg: '#3A3020', fg: '#FFD8A8' },
+          { text: availability.reason ?? 'The notification store has not produced a verified snapshot.', isChip: false, isMono: false, isText: true, bg: 'transparent', fg: '#C4CBC2' },
+          { text: 'No verified rows', isChip: false, isMono: false, isText: true, bg: 'transparent', fg: '#C4CBC2' },
+          { text: availability.state, isChip: true, isMono: true, isText: false, bg: '#3A3020', fg: '#FFD8A8' },
+        ],
+      }],
       notificationAvailability: availability.state,
       notificationAvailabilityReason: availability.reason ?? '',
     };

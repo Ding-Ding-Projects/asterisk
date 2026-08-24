@@ -50,15 +50,16 @@ export type ToyLockReconciliationReceipt =
 export type ToyLockUnlockReceipt<T> =
   | { ok: true; value: T }
   | { ok: false; code: 'verification-failed'; message: string; waitCreated: boolean }
-  | { ok: false; code: Exclude<ToyLockFailureCode, 'verification-failed'>; message: string; waitCreated: false };
+  | { ok: false; code: Exclude<ToyLockFailureCode, 'verification-failed'>; message: string; waitCreated: false; reconciliation?: ToyLockReconciliationReceipt };
 export type ToyLockCreateReceipt =
   | { ok: true; value: ToyLockRecord }
-  | { ok: false; code: Exclude<ToyLockFailureCode, 'verification-failed'>; message: string; recoverable: boolean };
+  | { ok: false; code: Exclude<ToyLockFailureCode, 'verification-failed'>; message: string; recoverable: boolean; reconciliation?: ToyLockReconciliationReceipt };
 export type ToyLockRelockReceipt =
   | { ok: true; value: ToyLockRecord }
-  | { ok: false; code: Exclude<ToyLockFailureCode, 'verification-failed'>; message: string; recoverable: boolean };
+  | { ok: false; code: Exclude<ToyLockFailureCode, 'verification-failed'>; message: string; recoverable: boolean; reconciliation?: ToyLockReconciliationReceipt };
 export type ToyLockRemovalReceipt =
   | { status: 'removed'; value: { removed: true } }
+  | { status: 'blocked'; message: string; recoverable: true; reconciliation: ToyLockReconciliationReceipt }
   | { status: 'pending'; message: string; recoverable: true }
   | { status: 'rolledBack'; message: string; recoverable: true }
   | { status: 'recoverable'; message: string; recoverable: true };

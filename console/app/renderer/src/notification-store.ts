@@ -234,6 +234,8 @@ export class NotificationStore {
       const persistenceReceipt = await this.enqueuePersistence(snapshot);
       const invalid = persistenceReceiptProblem(persistenceReceipt, snapshot);
       if (invalid) {
+        this.availability = { state: 'unavailable', reason: invalid };
+        this.emit();
         return {
           mutationId,
           command,
@@ -266,6 +268,8 @@ export class NotificationStore {
         persistenceReceipt,
       };
     } catch (error) {
+      this.availability = { state: 'unavailable', reason: errorMessage(error) };
+      this.emit();
       return {
         mutationId,
         command,

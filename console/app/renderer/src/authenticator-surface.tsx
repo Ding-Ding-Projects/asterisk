@@ -161,7 +161,7 @@ export function AuthenticatorSurface({ client, history, onNotice, notificationSt
     setBusy(true);
     try {
       const result = await withDeadline(client.remove(entry.id));
-      if (!result.ok) throw new Error(result.message);
+      if (result.status !== 'removed') throw new Error(result.message);
       const historyReceipt = await recordAuthHistory(history, { action: 'deleted', subject: `Authenticator ${entry.issuer} / ${entry.account}`, stableRecordId: entry.id, snapshot: { kind: 'authenticator-entry-deleted', entry } }); if (historyReceipt.warning) await reportHistoryWarning(historyReceipt.warning, notificationStore, setHistoryNotice, onNotice);
       await refresh();
       return true;

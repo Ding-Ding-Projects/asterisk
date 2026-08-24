@@ -609,7 +609,7 @@
     },
     "non-blocking-notifications": {
       "status": "implemented-unverified",
-      "note": "The generated ConsoleShell notification destination is backed by one mounted durable NotificationStore. Bootstrap and subscription are registered in notification-runtime.ts, App.tsx injects live history rows and source-level action readiness into the generated table, while authenticator history warnings publish through the same store. Loading, ready-empty, ready, and unavailable states are explicit. Bulk delete routes through the shared destructive two-key/full-slider gate with an exact record preview and Emergency exit. The separate mounted side-center was removed, so the product has one canonical notification center. Built-artifact interaction and focused checks remain unverified in this lane.",
+      "note": "The generated ConsoleShell notification destination is backed by one mounted durable NotificationStore. Bootstrap and subscription are registered in notification-runtime.ts, App.tsx injects live history rows and source-level action readiness into the generated table, while authenticator history warnings publish through the same store. Loading, ready-empty, ready, and unavailable states are explicit, and persistence failures transition the store to unavailable until reload or retry. Bulk delete routes through the shared destructive two-key/full-slider gate with an exact record preview and Emergency exit. The separate mounted side-center was removed, so the product has one canonical notification center. Built-artifact interaction and focused checks remain unverified in this lane.",
       "implementation": {
         "paths": [
           "app/renderer/src/App.tsx",

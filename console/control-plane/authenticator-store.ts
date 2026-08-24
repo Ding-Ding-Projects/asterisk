@@ -4,6 +4,7 @@ import type {
   AuthenticatorParameters,
   AuthenticatorRegistration,
   AuthenticatorResult,
+  AuthenticatorRemovalReceipt,
   CredentialVault,
 } from "../shared/authenticator.js";
 import {
@@ -244,41 +245,46 @@ export class AuthenticatorStore {
     return { ok: true, value: redactAuthenticatorEntry(updated) };
   }
 
-  async remove(id: string): Promise<AuthenticatorResult<undefined>> { return await this.#serialize(() => this.#remove(id)); }
-  async #remove(id: string): Promise<AuthenticatorResult<undefined>> {
-    if (!this.#vault.available) return vaultFailure("vault-unavailable");
+  async remove(id: string): Promise<AuthenticatorRemovalReceipt> { return await this.#serialize(() => this.#remove(id)); }
+  async #remove(id: string): Promise<AuthenticatorRemovalReceipt> {
+    const recoverable = (message: string): AuthenticatorRemovalReceipt => ({ status: 'recoverable', message, recoverable: true });
+    const pending = (message: string): AuthenticatorRemovalReceipt => ({ status: 'pending', message, recoverable: true });
+    const rolledBack = (message: string): AuthenticatorRemovalReceipt => ({ status: 'rolledBack', message, recoverable: true });
+    if (!this.#vault.available) return recoverable("The operating-system credential vault is unavailable.");
     const current = await this.#readRecords();
-    if (!current.ok) return metadataFailure(current);
+    if (!current.ok) return recoverable("Authenticator metadata could not be read.");
     const existing = current.value.find((entry) => entry.id === id);
-    if (!existing) return { ok: false, code: "not-found", message: "Authenticator entry was not found." };
+    if (!existing) return recoverable("Authenticator entry was not found.");
 
     if (this.#metadata.beginRemoval) {
       const tombstone = await this.#metadata.beginRemoval(id, { vaultAccount: existing.credentialReference, method: 'totp' });
-      if (!tombstone.ok) return metadataFailure(tombstone);
+      if (!tombstone.ok) return recoverable("The removal journal could not be started.");
     }
     let secretResult;
     try {
       secretResult = await this.#vault.getSecret(existing.credentialReference);
     } catch {
       await this.#metadata.rollbackRemoval?.(id);
-      return vaultFailure("vault-error");
+      return recoverable("The credential vault could not be read.");
     }
-    if (!secretResult.ok) { await this.#metadata.rollbackRemoval?.(id); return vaultFailure(secretResult.code); }
+    if (!secretResult.ok) { await this.#metadata.rollbackRemoval?.(id); return recoverable(secretResult.message); }
 
     let deleted;
     try { deleted = await this.#vault.deleteSecret(existing.credentialReference); }
-    catch { await this.#metadata.rollbackRemoval?.(id); return vaultFailure("vault-error"); }
-    if (!deleted.ok) { await this.#metadata.rollbackRemoval?.(id); return vaultFailure(deleted.code); }
+    catch { await this.#metadata.rollbackRemoval?.(id); return recoverable("The credential vault could not remove the credential."); }
+    if (!deleted.ok) { await this.#metadata.rollbackRemoval?.(id); return recoverable(deleted.message); }
 
     const written = await this.#writeRecords(current.value.filter((entry) => entry.id !== id));
     if (!written.ok) {
       try { await this.#vault.setSecret(existing.credentialReference, secretResult.value); }
-      catch { return vaultFailure("vault-error"); }
-      await this.#metadata.rollbackRemoval?.(id);
-      return metadataFailure(written);
+      catch { return pending("The credential was removed, but the previous metadata could not be restored."); }
+      const rollback = await this.#metadata.rollbackRemoval?.(id);
+      if (rollback && !rollback.ok) return pending("The credential was restored, but the removal journal remains pending recovery.");
+      return rolledBack("The credential was restored, but metadata removal failed and the previous state was restored.");
     }
-    await this.#metadata.completeRemoval?.(id);
-    return { ok: true, value: undefined };
+    const completed = await this.#metadata.completeRemoval?.(id);
+    if (completed && !completed.ok) return pending("The credential was removed, but the removal receipt remains pending recovery.");
+    return { status: 'removed', value: undefined };
   }
 
   async restoreRedacted(snapshot: unknown): Promise<AuthenticatorResult<AuthenticatorEntry>> { return await this.#serialize(() => this.#restoreRedacted(snapshot)); }
