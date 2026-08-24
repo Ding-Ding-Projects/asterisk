@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "sourceCommit": "0000000000000000000000000000000000000000",
   "workerRevision": "logo-worker-2026-08-23-v4",
   "workerSha256": "4a4744f3306edbdffc8436240c190b4b3b53944e295f6c1288efcb20163c6638",
   "sharpVersion": "0.33.5",

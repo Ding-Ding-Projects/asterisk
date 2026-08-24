@@ -40,10 +40,10 @@ async function runtimeFiles(root: string): Promise<string[]> {
 function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, unknown>): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
     const minimalEnv: NodeJS.ProcessEnv = { ELECTRON_RUN_AS_NODE: '1', PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, TEMP: process.env.TEMP, TMP: process.env.TMP };
-    const child = spawn(process.execPath, ['--max-old-space-size=64', options.workerPath, '--no-network'], { windowsHide: true, shell: false, env: minimalEnv, stdio: ['pipe', 'pipe', 'ignore'] });
-    const boundary = process.platform === 'win32' && options.jobScriptPath
-      ? spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', options.jobScriptPath, '-Pid', String(child.pid), '-MemoryBytes', String(MAX_WORKER_OS_BYTES)], { windowsHide: true, shell: false, stdio: ['ignore', 'ignore', 'ignore'] })
-      : undefined;
+    const launcher = process.platform === 'win32' && options.jobScriptPath;
+    const child = launcher
+      ? spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', options.jobScriptPath!, '-NodePath', process.execPath, '-WorkerPath', options.workerPath, '-MemoryBytes', String(MAX_WORKER_OS_BYTES)], { windowsHide: true, shell: false, env: minimalEnv, stdio: ['pipe', 'pipe', 'ignore'] })
+      : spawn(process.execPath, ['--max-old-space-size=64', options.workerPath, '--no-network'], { windowsHide: true, shell: false, env: minimalEnv, stdio: ['pipe', 'pipe', 'ignore'] });
     const limit = MAX_WORKER_RESPONSE_BYTES;
     let output = '';
     let settled = false;
@@ -64,18 +64,23 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
       settled = true;
       clearTimeout(timer);
       clearInterval(monitor);
-      boundary?.kill();
       child.kill();
       if (error) reject(error); else resolve({ ...value!, peakWorkingSetBytes, baselineWorkingSetBytes, workingSetIncrementBytes: baselineWorkingSetBytes === undefined ? undefined : peakWorkingSetBytes - baselineWorkingSetBytes });
     };
     const timer = setTimeout(() => finish(new Error('The isolated logo decoder exceeded its bounded deadline.')), options.timeoutMs ?? 2_000);
     child.once('error', () => finish(new Error('The isolated logo decoder could not be started.')));
-    boundary?.once('error', () => finish(new Error('The isolated decoder OS memory boundary could not be started.')));
-    boundary?.stdout?.on('data', (chunk: Buffer) => { if (!inputSent && chunk.toString('utf8').includes('READY')) { inputSent = true; child.stdin.end(`${JSON.stringify({ id: randomUUID(), ...request })}\n`); } });
-    boundary?.once('exit', (code) => { if (!inputSent && !settled) finish(new Error(code === 0 ? 'The isolated decoder OS memory boundary exited before readiness.' : 'The isolated decoder OS memory boundary refused the child.')); });
+    child.once('exit', (code) => { if (!settled && (code !== 0 || !inputSent)) finish(new Error(code === 0 ? 'The isolated decoder exited before a complete response.' : 'The isolated decoder launcher exited with a nonzero status.')); });
     child.stdout.on('data', (chunk: Buffer) => {
       output += chunk.toString('utf8');
       if (Buffer.byteLength(output, 'utf8') > limit) finish(new Error('The isolated logo decoder exceeded its output bound.'));
+      if (launcher && !inputSent) {
+        const ready = /^READY\r?\n/u.exec(output);
+        if (!ready) return;
+        output = output.slice(ready[0].length);
+        inputSent = true;
+        child.stdin.end(`${JSON.stringify({ id: randomUUID(), ...request })}\n`);
+        if (!output) return;
+      }
       const newline = output.indexOf('\n');
       if (newline < 0) return;
       const line = output.slice(0, newline);
@@ -85,7 +90,7 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
         else finish(undefined, value);
       } catch { finish(new Error('The isolated logo decoder returned malformed JSON.')); }
     });
-    if (!boundary) { inputSent = true; child.stdin.end(`${JSON.stringify({ id: randomUUID(), ...request })}\n`); }
+    if (!launcher) { inputSent = true; child.stdin.end(`${JSON.stringify({ id: randomUUID(), ...request })}\n`); }
   });
 }
 
@@ -102,10 +107,10 @@ export function createIsolatedLogoDecoder(options: IsolatedLogoDecoderOptions): 
     async health(): Promise<IsolatedLogoDecoderHealth> {
       const result = await runWorker(options, { operation: 'health' });
       if (typeof result.workerVersion !== 'string' || typeof result.workerRevision !== 'string' || typeof result.sharpVersion !== 'string' || typeof result.nativePlatform !== 'string' || typeof result.nativeArch !== 'string' || typeof result.baselineWorkingSetBytes !== 'number' || typeof result.peakWorkingSetBytes !== 'number' || typeof result.workingSetIncrementBytes !== 'number' || !Array.isArray(result.formats) || result.formats.length !== 3 || new Set(result.formats.map(String)).size !== 3 || result.formats.some((format) => !['png', 'jpeg', 'webp'].includes(String(format)))) throw new Error('The isolated decoder health handshake was incomplete.');
-      const manifest = JSON.parse(await readFile(options.manifestPath, 'utf8')) as { schemaVersion?: unknown; workerRevision?: unknown; workerSha256?: unknown; sharpVersion?: unknown; sharpIntegrity?: unknown; platform?: unknown; arch?: unknown; nativeFiles?: unknown };
+      const manifest = JSON.parse(await readFile(options.manifestPath, 'utf8')) as { schemaVersion?: unknown; sourceCommit?: unknown; workerRevision?: unknown; workerSha256?: unknown; sharpVersion?: unknown; sharpIntegrity?: unknown; platform?: unknown; arch?: unknown; nativeFiles?: unknown };
       const lock = JSON.parse(await readFile(options.packageLockPath, 'utf8')) as { packages?: Record<string, { version?: unknown; integrity?: unknown }> };
       const lockedSharp = lock.packages?.['node_modules/sharp'];
-      if (manifest.schemaVersion !== 1 || manifest.workerRevision !== result.workerRevision || manifest.sharpVersion !== result.sharpVersion || lockedSharp?.version !== manifest.sharpVersion || typeof manifest.sharpIntegrity !== 'string' || lockedSharp?.integrity !== manifest.sharpIntegrity || manifest.platform !== result.nativePlatform || manifest.arch !== result.nativeArch || !Array.isArray(manifest.nativeFiles) || manifest.nativeFiles.length === 0) throw new Error('The isolated decoder does not match the checked-in worker, native binding, and sharp lock manifest.');
+      if (manifest.schemaVersion !== 1 || typeof manifest.sourceCommit !== 'string' || !/^[0-9a-f]{40}$/iu.test(manifest.sourceCommit) || manifest.workerRevision !== result.workerRevision || manifest.sharpVersion !== result.sharpVersion || lockedSharp?.version !== manifest.sharpVersion || typeof manifest.sharpIntegrity !== 'string' || lockedSharp?.integrity !== manifest.sharpIntegrity || manifest.platform !== result.nativePlatform || manifest.arch !== result.nativeArch || !Array.isArray(manifest.nativeFiles) || manifest.nativeFiles.length === 0) throw new Error('The isolated decoder does not match the checked-in worker, native binding, source commit, and sharp lock manifest.');
       const workerDigest = createHash('sha256').update(await readFile(options.workerPath)).digest('hex');
       if (manifest.workerSha256 !== workerDigest) throw new Error('The packaged decoder worker digest does not match its checked-in manifest.');
       const nativeFiles: string[] = [];

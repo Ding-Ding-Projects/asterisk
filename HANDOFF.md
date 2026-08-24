@@ -22,7 +22,9 @@ The decoder now requires a bounded child health handshake that imports `sharp`, 
 
 Manifest and asset reads use one open handle with `fstat` and a fixed-size read, and every cache asset reopens before activation. External cadence, hydration, subscriptions, and per-rule refreshes now live in the application-lifetime runtime. Credential removal uses the shared two-key full-slider confirmation and refuses references still used by rules. No checks, builds, packaging, UI runs, captures, pushes, or cleanup were performed.
 
-The sixth repair confirms the Windows Job Object memory boundary and exact `READY` handshake, but it does not implement an AppContainer or restricted-token network capability. The registry and article keep the feature partial until that OS boundary and generated native-file manifest are verified by the supported build path.
+The sixth repair confirmed the Windows Job Object memory boundary and exact `READY` handshake before the AppContainer launcher was added. The registry and article keep the feature partial until the new OS boundary and generated native-file manifest are verified by the supported build path.
+
+The current follow-up replaces that limitation in source: the Windows helper creates the worker suspended with an AppContainer security descriptor carrying no capabilities, assigns the Job Object before resuming, inherits only the bounded pipe, and emits exactly one `READY` frame before the parent sends input. The registry remains partial because the supported bootstrap has not yet generated the nonempty native-file hash set and source-commit-bound manifest.
 
 ## Surface mount integration, 2026-08-23
 
