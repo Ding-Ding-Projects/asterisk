@@ -16,7 +16,7 @@ The shared site export includes a versioned redacted tab and group record, inclu
 
 **Desktop application:** Not implemented. The desktop application has no concept of multiple open tabs to group or search across.
 
-**Documentation website:** Partial, runtime proof unverified. The shared route strip exposes group creation, rename, delete, colour metadata, collapse, pinning, reordering, four independent searches, closed-route persistence, reopen actions, a two-key full-range destructive confirmation, and local bulk-close controls. Group colour is rendered as a route accent with a reset action and contrast status. Full element-level group appearance editing and built-artifact proof remain incomplete. It does not claim that separate HTML documents share one renderer panel.
+**Documentation website:** Partial, runtime proof unverified. The shared route strip exposes group creation, rename, delete, colour metadata, collapse, pinning, reordering, four independent searches, closed-route persistence, reopen actions, a two-key full-range destructive confirmation, and local bulk-close controls. Group headers and their member routes can target the same deep appearance editor as tabs, including contrast, reset, import, export, and local history. It does not claim that separate HTML documents share one renderer panel.
 
 ## Failure modes
 

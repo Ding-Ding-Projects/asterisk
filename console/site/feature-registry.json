@@ -5,7 +5,7 @@
   "features": {
     "language-modes": {
       "status": "partial",
-      "note": "site/app.js applyLanguage() (line 539) switches document.lang and preview copy between English, Cantonese and bilingual, wired from initSettings() language-mode select. This is a real, wired switch but only changes one preview string, not the whole site's rendered copy - most page text has no data-copy hook.",
+      "note": "site/app.js applyLanguage() switches document.lang and preview copy between English, Cantonese and bilingual, wired from initSettings() language-mode select. A handwritten PAGE_COPY_INVENTORY now checks every dynamic surface touched by this lane and reports missing surfaces. The switch remains partial because most authored page prose has no three-mode copy hook.",
       "implementation": {
         "paths": [
           "site/app.js",
@@ -798,7 +798,7 @@
     },
     "status-hub": {
       "status": "partial",
-      "note": "site/status.html exposes a local user-declared Status Hub projection with a session label, state, optional HTTP(S) evidence reference, persistence, and explicit no-hosted-service boundaries. The static surface has no trusted receipt signature verifier, so pasted public commit, tag, URL, and hash values remain user-declared and unverified. Live hosted sessions, question delivery, and remote updates remain absent.",
+      "note": "site/status.html exposes a local Status Hub projection with a session label, state, optional HTTP(S) evidence reference, persistence, and explicit no-hosted-service boundaries. When a validated embedded release record exists, the user can generate or paste a receipt and the verifier requires exact commit, tag, setup URL, and SHA-256 equality before showing the locally verified state. Hosted sessions, cryptographic signatures, question delivery, and remote updates remain absent.",
       "implementation": {
         "paths": ["console/site/status.html", "console/site/app.js"],
         "symbols": [{"path": "console/site/app.js", "name": "initStatusHub", "kind": "function"}]
@@ -1299,7 +1299,7 @@
     },
     "tab-groups-and-searches": {
       "status": "partial",
-      "note": "The tab manager persists groups, group metadata, collapse, pinning, reorder actions, four independently searchable views, closed routes, reopen actions, a two-key full-range close confirmation, local bulk-close controls, and route-accent colour rendering with reset and contrast status. Full element-level group appearance editing and runtime proof remain incomplete.",
+      "note": "The tab manager persists groups, group metadata, collapse, pinning, reorder actions, four independently searchable views, closed routes, reopen actions, a two-key full-range close confirmation, local bulk-close controls, route-accent colour rendering, and deep group-header plus member appearance targets with reset, import, export, contrast, and history wiring. Runtime proof remains incomplete.",
       "implementation": {
         "paths": ["console/site/app.js", "console/site/styles.css"],
         "symbols": [{"path": "console/site/app.js", "name": "renderTabManager", "kind": "function"}]
@@ -2302,7 +2302,7 @@
     },
     "unlock-ladder": {
       "status": "partial",
-      "note": "settings.html and site/app.js now provide a lockout-bound local ladder equivalent with worker-issued dim-sum, guaranteed mixed-width arithmetic, timed mole, clock fallback, School-mode start, persisted visible-challenge rehydration, nonce consumption, and a rolling local budget. It clears only the local wait and cannot be a security boundary. Trusted server-side grading remains unavailable, so this row stays partial.",
+      "note": "settings.html and site/app.js now provide a lockout-bound local ladder equivalent with worker-issued challenge IDs, byte-serialized payload parity on reload, stale-payload discard and fresh reissue before controls enable, worker-issued dim-sum, guaranteed mixed-width arithmetic, timed mole, clock fallback, School-mode start, nonce consumption, and a rolling local budget. It clears only the local wait and cannot be a security boundary. Trusted server-side grading remains unavailable, so this row stays partial.",
       "implementation": {
         "paths": ["console/site/settings.html", "console/site/app.js"],
         "symbols": [{"path": "console/site/app.js", "name": "initUnlockLadder", "kind": "function"}]

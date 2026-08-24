@@ -17,6 +17,20 @@
     "notifSettingsReset",
     "themeDesc"
   ],
+  "pageCopyInventory": [
+    "site-controls",
+    "command-palette",
+    "regex-dialog",
+    "notifications-dialog",
+    "tab-manager-dialog",
+    "tab-appearance-dialog",
+    "tab-lock-dialog",
+    "site-history",
+    "site-changelog-viewer",
+    "status-hub-panel",
+    "auth-entries",
+    "unlock-ladder"
+  ],
   "features": {
     "language-modes": {
       "state": "localized",
