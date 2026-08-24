@@ -29,3 +29,28 @@ export function validateInclusiveDateRange(from: string, to: string): DateRangeV
 export function dateRangeContains(date: string, range: InclusiveDateRange): boolean {
   return (!range.from || date >= range.from) && (!range.to || date <= range.to);
 }
+
+export interface CalendarDay {
+  iso: string;
+  label: string;
+  inMonth: boolean;
+}
+
+export function calendarDays(month: string): CalendarDay[] {
+  const match = /^(\d{4})-(\d{2})$/u.exec(month);
+  const year = match ? Number(match[1]) : new Date().getFullYear();
+  const monthIndex = match ? Number(match[2]) - 1 : new Date().getMonth();
+  const first = new Date(year, monthIndex, 1);
+  const start = new Date(year, monthIndex, 1 - first.getDay());
+  return Array.from({ length: 42 }, (_, index) => {
+    const day = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index);
+    const pad = (value: number) => String(value).padStart(2, '0');
+    return { iso: `${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}`, label: String(day.getDate()), inMonth: day.getMonth() === monthIndex };
+  });
+}
+
+export function shiftCalendarMonth(month: string, delta: number): string {
+  const [year, monthNumber] = month.split('-').map(Number);
+  const value = new Date(year || new Date().getFullYear(), (monthNumber || new Date().getMonth() + 1) - 1 + delta, 1);
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}`;
+}

@@ -46,6 +46,8 @@ export interface LocalHistoryEntry {
   action: HistoryAction;
   /** What changed, named plainly enough to appear in a commit message — never a placeholder. */
   subject: string;
+  /** Stable target/resource/kind/object identity, never a display label. */
+  identity?: string;
   payload: unknown;
 }
 
@@ -88,7 +90,12 @@ export interface LocalHistoryOptions {
 }
 
 const REDACTED_MARKER = "[redacted]";
-const SECRET_KEY_NAMES = ["password", "passwd", "secret", "token", "pin", "credential", "privatekey", "accesskey"];
+const SECRET_KEY_NAMES = ["password", "passwd", "passphrase", "secret", "token", "bearer", "authorization", "authheader", "apikey", "api_key", "pin", "credential", "privatekey", "accesskey"];
+const MAX_PAYLOAD_BYTES = 1_048_576;
+const MAX_PAYLOAD_DEPTH = 32;
+const MAX_PAYLOAD_ENTRIES = 10_000;
+const MAX_PAYLOAD_KEY_LENGTH = 256;
+const MAX_PAYLOAD_VALUE_LENGTH = 8_192;
 
 const RECORD_SEPARATOR = "\x1e";
 const GROUP_SEPARATOR = "\x1d";
@@ -154,8 +161,37 @@ function subjectId(subject: string): string {
   return createHash("sha256").update(subject, "utf8").digest("hex").slice(0, 32);
 }
 
-function filenameFor(subject: string): string {
-  return `records/${subjectId(subject)}.json`;
+function validatePayload(value: unknown, depth = 0, counts = { entries: 0 }, seen = new WeakSet<object>()): void {
+  if (depth > MAX_PAYLOAD_DEPTH) throw new Error(`A history payload exceeds the maximum depth of ${MAX_PAYLOAD_DEPTH}.`);
+  if (typeof value === 'bigint' || typeof value === 'function' || typeof value === 'symbol') throw new Error('A history payload contains a value that cannot be serialized safely.');
+  if (typeof value === 'string' && value.length > MAX_PAYLOAD_VALUE_LENGTH) throw new Error(`A history value exceeds ${MAX_PAYLOAD_VALUE_LENGTH} characters.`);
+  if (Array.isArray(value)) {
+    if (seen.has(value)) return;
+    seen.add(value);
+    counts.entries += value.length;
+    if (counts.entries > MAX_PAYLOAD_ENTRIES) throw new Error(`A history payload exceeds ${MAX_PAYLOAD_ENTRIES} entries.`);
+    for (const child of value) validatePayload(child, depth + 1, counts, seen);
+    return;
+  }
+  if (value && typeof value === 'object') {
+    if (seen.has(value)) return;
+    seen.add(value);
+    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+      counts.entries += 1;
+      if (counts.entries > MAX_PAYLOAD_ENTRIES) throw new Error(`A history payload exceeds ${MAX_PAYLOAD_ENTRIES} entries.`);
+      if (key.length > MAX_PAYLOAD_KEY_LENGTH || /[\u0000-\u001f\u007f]/u.test(key)) throw new Error('A history payload key is too long or contains a control character.');
+      validatePayload(child, depth + 1, counts, seen);
+    }
+  }
+}
+
+function filenameFor(identity: string): string {
+  return `records/${subjectId(identity)}.json`;
+}
+
+function stablePayloadIdentity(entry: LocalHistoryEntry): string {
+  if (entry.identity?.trim()) return entry.identity.trim();
+  return `${entry.action}:${JSON.stringify(redactSecretValues(entry.payload))}`;
 }
 
 function commitMessage(
@@ -279,8 +315,13 @@ export class LocalHistory {
   async record(entry: LocalHistoryEntry): Promise<HistoryCommit> {
     assertKnownAction(entry.action);
     const subject = requireSubject(entry.subject);
+    validatePayload(entry.payload);
     const redactedPayload = redactSecretValues(entry.payload);
-    const relativePath = filenameFor(subject);
+    const serializedPayload = JSON.stringify(redactedPayload);
+    if (serializedPayload.length > MAX_PAYLOAD_BYTES) throw new Error(`A history payload exceeds the ${MAX_PAYLOAD_BYTES}-byte limit.`);
+    const identity = stablePayloadIdentity(entry);
+    if (identity.length > 512 || /[\u0000-\u001f\u007f]/u.test(identity)) throw new Error("A history identity must be bounded and contain no control characters.");
+    const relativePath = filenameFor(identity);
     const absolutePath = join(this.#repositoryPath, relativePath);
     await mkdir(join(this.#repositoryPath, 'records'), { recursive: true });
     if (entry.action === "deleted") {
@@ -292,7 +333,7 @@ export class LocalHistory {
     /* Stage the entire records tree so a delete is a real tree deletion and every
      * commit carries the complete selected snapshot, not only the changed file. */
     await this.#run(["add", "-A", "--", "records"]);
-    return await this.#commit(entry.action, subject);
+    return await this.#commit(entry.action, subject, { SubjectId: subjectId(identity) }, { allowEmpty: true });
   }
 
   /** Compatibility list for callers that need the complete bounded result. */

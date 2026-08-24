@@ -638,7 +638,7 @@ export class PbxAdminApp extends App {
       target: context.target,
       resource: context.resource,
       value: context.value,
-    });
+    }, `pbx:${context.target}:${context.resource}`);
     this.fire('Configuration applied', result.message ?? `${context.resource} was applied and verified by post-read.`);
     const feature = featureForAdvancedScreen(context.screen);
     if (feature) {
@@ -810,7 +810,7 @@ export class PbxAdminApp extends App {
       return;
     }
     this.adminMedia.delete(mediaKey(target, root));
-    this.recordLocalHistory('deleted', `media ${selected.name}`, { target, root, name: selected.name });
+    this.recordLocalHistory('deleted', `media ${selected.name}`, { target, root, name: selected.name }, `media:${target}:${root}:${selected.name}`);
     this.fire('Media file removed', result.detail ?? `${selected.name} was removed.`);
     await this.loadAdminMedia(screen, true);
   };
@@ -928,7 +928,7 @@ export class PbxAdminApp extends App {
         const landed = response.data as MediaFile;
         this.adminPickedFileNames.set(control.id, landed.name);
         this.adminMedia.delete(mediaKey(context.target, root));
-        this.recordLocalHistory('created', `media ${landed.name}`, { target: context.target, root, name: landed.name, bytes: landed.bytes });
+        this.recordLocalHistory('created', `media ${landed.name}`, { target: context.target, root, name: landed.name, bytes: landed.bytes }, `media:${context.target}:${root}:${landed.name}`);
         this.fire('Media file uploaded', `${landed.name} landed as ${landed.bytes} bytes and was confirmed by the target.`);
         await this.loadAdminMedia(context.screen, true);
       });

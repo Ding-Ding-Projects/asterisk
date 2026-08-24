@@ -8,7 +8,7 @@ Visible table rows use the shared export engine and export the selected rows, no
 
 ## Configuration
 
-Exports are UTF-8 and carry every field represented by the selected rows. Coding formats are re-importable where their schema permits it. ZIP output is produced by the bundled store-mode writer, includes a safe relative entry name, and is validated by its local and end records before download. The archive catalog exposes compression and encryption choices honestly. 7z remains disabled with the exact missing bundled adapter and its full future option inventory: LZMA2, LZMA, PPMd, BZip2, Deflate, store through ultra levels, solid mode, AES-256 content encryption, and encrypted headers.
+Exports are UTF-8 and carry every field represented by the selected rows. Coding formats are re-importable where their schema permits it. ZIP output is produced by the bundled store-mode writer, includes a safe relative entry name, and is validated by its local records, central-directory offsets, sizes, CRC values, and end record before download. The archive catalog exposes only implemented ZIP store mode. 7z remains disabled with the exact missing bundled adapter and its full future option inventory: LZMA2, LZMA, PPMd, BZip2, Deflate, store through ultra levels, solid mode, AES-256 content encryption, and encrypted headers.
 
 ## Current status
 

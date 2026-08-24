@@ -210,3 +210,8 @@ export function planLaunch(
 export function isRefusal(result: LaunchPlan | LaunchRefusal): result is LaunchRefusal {
   return 'message' in result;
 }
+
+/** Shared planner entry for the mandatory VS Code export and folder handoff seam. */
+export function planVscodeFolderHandoff(path: string): LaunchPlan | LaunchRefusal {
+  return planLaunch({ definition: VS_CODE, resolved: VS_CODE.command }, { kind: 'folder', path });
+}

@@ -273,7 +273,9 @@
       "files": [
         "app/renderer/src/docs-browser.ts",
         "app/renderer/src/docs-markdown.ts",
+        "inventories/docs-link-chut.json",
         "app/renderer/src/generated/docs-bundle.ts",
+        "app/renderer/src/generated/docs-bundle-manifest.json",
         "app/renderer/src/App.tsx",
         "design/Asterisk Console M3.dc.html"
       ]

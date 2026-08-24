@@ -76,13 +76,17 @@ export function filterHistory(entries: readonly HistoryCommit[], filter: History
     }
   }
 
-  const since = filter.since ? Date.parse(filter.since) : undefined;
-  const until = filter.until ? Date.parse(filter.until) : undefined;
+  const localDay = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return timestamp.slice(0, 10);
+    const pad = (value: number) => String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  };
   const filtered = entries.filter((entry) => {
     if (filter.action && entry.action !== filter.action) return false;
-    const timestamp = Date.parse(entry.timestamp);
-    if (since !== undefined && Number.isFinite(since) && timestamp < since) return false;
-    if (until !== undefined && Number.isFinite(until) && timestamp > until) return false;
+    const day = localDay(entry.timestamp);
+    if (filter.since && day < filter.since) return false;
+    if (filter.until && day > filter.until) return false;
     if (matcher && !matcher(`${entry.subject} ${entry.action} ${entry.message}`)) return false;
     return true;
   });

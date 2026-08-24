@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "name": "DOCS_BUNDLE internal-link Chut",
+  "implementedBy": "scripts/bundle-docs.mjs and app/renderer/src/docs-browser.ts",
+  "greenFixture": { "from": "platform/local-version-history", "href": "changelog-viewer.md", "expectedTarget": "platform/changelog-viewer" },
+  "fragmentGreenFixture": { "from": "platform/local-version-history", "href": "../app/history.md", "expectedTarget": "app/history" },
+  "redFixtures": [
+    { "from": "platform/local-version-history", "href": "missing.md", "reason": "target article is absent" },
+    { "from": "platform/local-version-history", "href": "changelog-viewer.md#missing-heading", "reason": "heading fragment is absent" }
+  ],
+  "behavior": "The docs generator refuses any red fixture shape found in the real bundle, while docs-browser resolves only bundled articles and real heading fragments."
+}

@@ -8,7 +8,7 @@
  * no dependency on Electron and can run inside a plain Node.js process on a VM.
  */
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, relative, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { WslProvisioning, MANAGED_DISTRIBUTION } from './wsl-provisioning.js';
 import { AsteriskService } from './asterisk-service.js';
@@ -51,7 +51,7 @@ export interface ControlPlaneDispatcherOptions {
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
   const { userDataPath, resourcesPath, hosted } = options;
-  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker', 'powershell.exe'] });
+  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker', 'powershell.exe', 'code', 'code.cmd', 'code-insiders', 'code-insiders.cmd'] });
   const localHistory = new LocalHistory({ executor: processExecutor, repositoryPath: join(userDataPath, 'history') });
   const historyVault = new WindowsCredentialVault(processExecutor);
   let historyInitialized = false;
@@ -532,6 +532,46 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const contentBase64 = typeof request.payload?.contentBase64 === 'string' ? request.payload.contentBase64 : '';
         if (!contentBase64) return { ok: false, requestId: request.requestId, code: 'CONTENT_REQUIRED', message: 'No file content was supplied.' };
         return { ok: true, requestId: request.requestId, data: await library.upload(root, name, contentBase64) };
+      }
+      if (request.action === 'external-editor.path') {
+        const target = request.payload?.target === 'history' ? join(resolve(userDataPath), 'history') : '';
+        if (!target) return { ok: false, requestId: request.requestId, code: 'EDITOR_TARGET_REFUSED', message: 'The requested application-data path is not owned by this console.' };
+        return { ok: true, requestId: request.requestId, data: { target } };
+      }
+      if (request.action === 'external-editor.open') {
+        const editor = request.payload?.editor === 'vscode' ? 'code' : '';
+        const kind = request.payload?.kind === 'file' ? 'file' : 'folder';
+        const target = typeof request.payload?.target === 'string' ? request.payload.target.trim() : '';
+        const plannedArgs = Array.isArray(request.payload?.args) && request.payload?.args.every((value) => typeof value === 'string') ? request.payload.args as string[] : undefined;
+        if (!editor || !target) return { ok: false, requestId: request.requestId, code: 'EDITOR_TARGET_REQUIRED', message: 'Choose Visual Studio Code and a file or folder first.' };
+        const root = resolve(userDataPath);
+        const resolvedTarget = target === 'history' ? join(root, 'history') : resolve(target);
+        const relativeTarget = relative(root, resolvedTarget);
+        const withinRoot = relativeTarget !== '' && !relativeTarget.startsWith('..') && !/^[a-z]:[\\/]/iu.test(relativeTarget);
+        if (!withinRoot) return { ok: false, requestId: request.requestId, code: 'EDITOR_TARGET_REFUSED', message: 'The external-editor handoff only opens an app-data export or history path owned by this console.' };
+        const args = kind === 'folder' ? ['--new-window', resolvedTarget] : [resolvedTarget];
+        if (plannedArgs && plannedArgs.length !== 2 && kind === 'folder') return { ok: false, requestId: request.requestId, code: 'EDITOR_PLAN_MISMATCH', message: 'The shared external-editor planner did not produce the expected workspace-root plan.' };
+        try {
+          const result = await processExecutor.execute({ executable: editor, args, cwd: root, timeoutMs: 5_000, maxOutputBytes: 64 * 1024 });
+          if (result.status !== 'succeeded' && result.status !== 'timedOut') return { ok: false, requestId: request.requestId, code: 'EDITOR_OPEN_FAILED', message: result.stderr.trim() || 'Visual Studio Code did not accept the handoff.' };
+          return { ok: true, requestId: request.requestId, data: { editor: 'vscode', kind, target: resolvedTarget, launched: true } };
+        } catch (error) {
+          return { ok: false, requestId: request.requestId, code: 'EDITOR_UNAVAILABLE', message: error instanceof Error ? error.message : 'Visual Studio Code is not available on this machine.' };
+        }
+      }
+      if (request.action === 'external-editor.write-open') {
+        const editor = request.payload?.editor === 'vscode' ? 'code' : '';
+        const filename = typeof request.payload?.filename === 'string' ? request.payload.filename.trim() : '';
+        const contentBase64 = typeof request.payload?.contentBase64 === 'string' ? request.payload.contentBase64 : '';
+        if (!editor || !filename || !contentBase64) return { ok: false, requestId: request.requestId, code: 'EDITOR_EXPORT_REQUIRED', message: 'Choose Visual Studio Code and provide a named export.' };
+        if (!/^[a-zA-Z0-9._-]{1,160}$/u.test(filename) || contentBase64.length > 16 * 1024 * 1024) return { ok: false, requestId: request.requestId, code: 'EDITOR_EXPORT_REFUSED', message: 'The export filename or size is outside the bounded editor handoff contract.' };
+        const exportRoot = join(userDataPath, 'exports');
+        mkdirSync(exportRoot, { recursive: true });
+        const target = join(exportRoot, filename);
+        writeFileSync(target, Buffer.from(contentBase64, 'base64'));
+        const result = await processExecutor.execute({ executable: editor, args: ['--new-window', target], cwd: exportRoot, timeoutMs: 5_000, maxOutputBytes: 64 * 1024 });
+        if (result.status !== 'succeeded' && result.status !== 'timedOut') return { ok: false, requestId: request.requestId, code: 'EDITOR_EXPORT_FAILED', message: result.stderr.trim() || 'Visual Studio Code did not accept the export handoff.' };
+        return { ok: true, requestId: request.requestId, data: { editor: 'vscode', target, launched: true } };
       }
       if (request.action.startsWith('local-history.')) {
         if (request.action === 'local-history.status') {

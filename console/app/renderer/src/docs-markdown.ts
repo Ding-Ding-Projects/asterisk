@@ -16,6 +16,11 @@ export type DocsBlock =
   | { readonly kind: 'code'; readonly text: string }
   | { readonly kind: 'paragraph' | 'list-item'; readonly spans: readonly DocsSpan[] };
 
+export const SUPPORTED_MARKDOWN_SUBSET = Object.freeze([
+  'ATX headings', 'fenced code blocks', 'ordered and unordered list items',
+  'blockquote paragraphs', 'inline relative Markdown links', 'plain paragraphs',
+] as const);
+
 const LINK_RE = /\[([^\]]*)\]\(([^)]+)\)/g;
 
 /** Splits one line of prose into plain-text and link spans. */

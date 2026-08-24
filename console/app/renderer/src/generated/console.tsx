@@ -567,6 +567,31 @@ function Template(v: any) {
               (v.historyQueryError ? h("div", { style: sty(`font-size:11.5px; color:#FFB4AB; margin:-4px 0 12px;`) },
                   S(v.historyQueryError)
                 ) : null),
+              h("div", { style: sty(`font-size:11.5px; color:#8FA394; margin:-4px 0 12px;`) },
+                S(v.historyBulkPreview)
+              ),
+              h("div", { style: sty(`background:#141A15; border:1px solid #333B34; border-radius:12px; padding:10px 14px; margin:-4px 0 12px; max-width:420px;`) },
+                h("div", { style: sty(`display:flex; align-items:center; gap:8px; margin-bottom:7px;`) },
+                  h("button", { onClick: fn(v.historyCalendarPrev), title: `Previous month`, style: sty(`background:transparent; border:0; color:#9FF7C4; cursor:pointer;`) },
+                    h("span", { className: "msym" },
+                      "chevron_left"
+                    )
+                  ),
+                  h("span", { style: sty(`flex:1; text-align:center; font-size:12px; color:#C4CBC2;`) },
+                    S(v.historyCalendarLabel)
+                  ),
+                  h("button", { onClick: fn(v.historyCalendarNext), title: `Next month`, style: sty(`background:transparent; border:0; color:#9FF7C4; cursor:pointer;`) },
+                    h("span", { className: "msym" },
+                      "chevron_right"
+                    )
+                  )
+                ),
+                h("div", { style: sty(`display:grid; grid-template-columns:repeat(7,1fr); gap:3px;`) },
+                  A(v.historyCalendarDays).map(($d, $d$i) => R($d$i, h("button", { onClick: fn($d.pick), style: sty(`background:${S($d.bg)}; border:0; border-radius:5px; padding:5px 0; color:#C4CBC2; font:inherit; font-size:11px; cursor:pointer; opacity:${S($d.inMonth ? '1' : '.4')};`) },
+                      S($d.label)
+                    )))
+                )
+              ),
               h("div", { style: sty(`display:grid; grid-template-columns:1fr 420px; gap:12px; margin-bottom:12px;`) },
                 h("div", { style: sty(`background:#1B211C; border-radius:16px; overflow:hidden;`) },
                   h("div", { style: sty(`display:flex; align-items:center; gap:8px; padding:12px 16px;`) },
@@ -606,6 +631,11 @@ function Template(v: any) {
                           ),
                           h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394; margin-top:3px;`) },
                             S($c.meta)
+                          )
+                        ),
+                        h("button", { onClick: fn($c.select), title: `Select history entry`, style: sty(`width:28px; height:28px; border-radius:7px; background:transparent; border:1px solid #414942; color:#9FF7C4; cursor:pointer; flex:0 0 auto;`) },
+                          h("span", { style: sty(`font-size:17px;`), className: "msym" },
+                            S($c.selectIcon)
                           )
                         ),
                         h("button", { onClick: fn($c.compare), title: `Add to comparison`, style: sty(`width:26px; height:26px; border-radius:50%; background:transparent; border:1px solid #414942; color:${S($c.cmpFg)}; cursor:pointer; flex:0 0 auto;`), className: "k-h17" },
@@ -1649,7 +1679,8 @@ function Template(v: any) {
                     S($b)
                   )))
               ) : null),
-            A(v.groups).map(($g, $g$i) => R($g$i, h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:18px 20px; margin-bottom:12px; animation:m3Rise .36s cubic-bezier(.2,0,0,1) both; ${S($g.rnd)}`) },
+            A(v.groups).map(($g, $g$i) => R($g$i, F(
+              h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:18px 20px; margin-bottom:12px; animation:m3Rise .36s cubic-bezier(.2,0,0,1) both; ${S($g.rnd)}`) },
                 h("div", { style: sty(`display:flex; align-items:flex-start; gap:12px; margin-bottom:16px;`) },
                   h("div", { style: sty(`flex:1;`) },
                     h("div", { style: sty(`font-size:15.5px; font-weight:500;`) },
@@ -1669,7 +1700,30 @@ function Template(v: any) {
                 h("div", { style: sty(`display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 24px;`) },
                   A($g.ctls).map(($c, $c$i) => R($c$i, h(M3Control, { ctl: $c })))
                 )
-              )))
+              ),
+              h("div", { style: sty(`background:#141A15; border:1px solid #333B34; border-radius:12px; padding:10px 14px; max-width:420px;`) },
+                h("div", { style: sty(`display:flex; align-items:center; gap:8px; margin-bottom:7px;`) },
+                  h("button", { onClick: fn(v.changelogCalendarPrev), title: `Previous month`, style: sty(`background:transparent; border:0; color:#9FF7C4; cursor:pointer;`) },
+                    h("span", { className: "msym" },
+                      "chevron_left"
+                    )
+                  ),
+                  h("span", { style: sty(`flex:1; text-align:center; font-size:12px; color:#C4CBC2;`) },
+                    S(v.changelogCalendarLabel)
+                  ),
+                  h("button", { onClick: fn(v.changelogCalendarNext), title: `Next month`, style: sty(`background:transparent; border:0; color:#9FF7C4; cursor:pointer;`) },
+                    h("span", { className: "msym" },
+                      "chevron_right"
+                    )
+                  )
+                ),
+                h("div", { style: sty(`display:grid; grid-template-columns:repeat(7,1fr); gap:3px;`) },
+                  A(v.changelogCalendarDays).map(($d, $d$i) => R($d$i, h("button", { onClick: fn($d.pick), style: sty(`background:${S($d.bg)}; border:0; border-radius:5px; padding:5px 0; color:#C4CBC2; font:inherit; font-size:11px; cursor:pointer; opacity:${S($d.inMonth ? '1' : '.4')};`) },
+                      S($d.label)
+                    )))
+                )
+              )
+            )))
           )
         )
       ),

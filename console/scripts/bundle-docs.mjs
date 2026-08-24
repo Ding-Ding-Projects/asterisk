@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(fileURLToPath(import.meta.url));
 const docsDir = resolve(root, '..', 'docs');
 const outFile = resolve(root, '..', 'app', 'renderer', 'src', 'generated', 'docs-bundle.ts');
+const manifestFile = resolve(root, '..', 'app', 'renderer', 'src', 'generated', 'docs-bundle-manifest.json');
 
 function slugId(relPath) {
   return relPath.replaceAll('\\', '/').replace(/\.md$/, '');
@@ -83,6 +84,31 @@ async function main() {
 
   articles.sort((a, b) => a.id.localeCompare(b.id));
 
+  // The bundle is the source of truth for in-app article navigation. Refuse a
+  // broken article target or a stale heading fragment before emitting it.
+  const byId = new Map(articles.map((article) => [article.id, article]));
+  const slugHeading = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const brokenLinks = [];
+  for (const article of articles) {
+    for (const href of article.links) {
+      const [pathPart, fragment] = href.split('#', 2);
+      const baseParts = article.id.split('/');
+      baseParts.pop();
+      for (const segment of pathPart.split('/')) {
+        if (!segment || segment === '.') continue;
+        if (segment === '..') baseParts.pop();
+        else baseParts.push(segment);
+      }
+      const target = byId.get(baseParts.join('/').replace(/\.md$/, ''));
+      let decodedFragment = fragment;
+      try { if (fragment) decodedFragment = decodeURIComponent(fragment); } catch { decodedFragment = ''; }
+      if (!target || (fragment && !target.headings.some((heading) => heading.id === slugHeading(decodedFragment)))) {
+        brokenLinks.push(`${article.id}: ${href}`);
+      }
+    }
+  }
+  if (brokenLinks.length > 0) throw new Error(`docs-bundle: broken internal article link(s): ${brokenLinks.join(', ')}`);
+
   const header = `// GENERATED FILE — do not edit by hand.
 // Produced by console/scripts/bundle-docs.mjs from console/docs/**/*.md.
 // Re-run \`node scripts/bundle-docs.mjs\` after changing any documentation article.
@@ -121,6 +147,7 @@ export interface DocsBundle {
 
   await mkdir(dirname(outFile), { recursive: true });
   await writeFile(outFile, `${header}\n${body}`, 'utf8');
+  await writeFile(manifestFile, `${JSON.stringify({ schemaVersion: 1, articleCount: articles.length, articleIds: articles.map((article) => article.id), linkChut: 'generator-fails-on-missing-target-or-heading-fragment' }, null, 2)}\n`, 'utf8');
 
   console.log(
     `docs-bundle: wrote ${articles.length} article(s) from ${relFiles.length} markdown file(s) to ${relative(process.cwd(), outFile)}`,

@@ -24,6 +24,7 @@ export type ControlPlaneAction =
   /* The console's own append-only record of what it changed, kept locally. */
   | 'local-history.status' | 'local-history.authorize' | 'local-history.list' | 'local-history.record' | 'local-history.restore'
   | 'local-history.inspect' | 'local-history.compare' | 'local-history.prune'
+  | 'external-editor.path' | 'external-editor.open' | 'external-editor.write-open'
   /* Durable renderer settings (appearance, personal vocabulary) -- see
    * `control-plane/settings-store.ts`. The renderer's own `localStorage` is in-memory
    * only for a `file://` origin and never survives a relaunch. */

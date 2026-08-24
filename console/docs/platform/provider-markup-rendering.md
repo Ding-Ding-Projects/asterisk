@@ -10,6 +10,8 @@ Provider-authored markdown-like text is rendered through the shared isolated `do
 
 The renderer would keep an honest empty state when no content is provided, rather than presenting a blank area that looks like a loading failure.
 
+The supported subset is explicit: ATX headings, fenced code blocks, ordered and unordered list items, blockquote paragraphs, inline relative Markdown links, and plain paragraphs. Tables, raw HTML, embedded images, and executable link schemes are not accepted as active markup in this renderer.
+
 ## Current status
 
 **Desktop application:** Implemented for bundled documentation and changelog text through the shared block parser. The parser emits safe blocks and never inserts raw HTML.
