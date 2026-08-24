@@ -35,6 +35,7 @@ if ($compiler) {
   $brokerExit = $LASTEXITCODE
 }
 if ($hostExit -ne 0 -or $helperExit -ne 0 -or $brokerExit -ne 0) { throw "Native compilation failed, host=$hostExit helper=$helperExit broker=$brokerExit." }
+Write-Output "Native compiler exits: host=$hostExit helper=$helperExit broker=$brokerExit"
 if (-not (Test-Path -LiteralPath $output -PathType Leaf) -or -not (Test-Path -LiteralPath $secureOutput -PathType Leaf) -or -not (Test-Path -LiteralPath $brokerOutput -PathType Leaf)) { throw 'A fresh native messaging host, secure temp helper, or pipe broker executable was not produced.' }
 $digest = (Get-FileHash -LiteralPath $output -Algorithm SHA256).Hash.ToLowerInvariant()
 Set-Content -LiteralPath "$output.sha256" -Value "$digest  $(Split-Path -Leaf $output)" -Encoding ASCII
