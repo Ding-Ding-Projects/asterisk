@@ -370,8 +370,8 @@ option carries a mark and its text is not the bare value.
 
 ## Language, School mode and narration lane
 
-The desktop language lane is implemented in commits `1b920405cfc18908565da8eb531aba089a06f17e` and
-the follow-up repair commit for this lane. The design source adds three language modes, independent English and Cantonese funny
+The desktop language lane is implemented in commits `1b920405cfc18908565da8eb531aba089a06f17e`,
+`303733d7ab3018f132a824bff4b6582fc243d41e`, and `d743779088`. The design source adds three language modes, independent English and Cantonese funny
 levels, a persisted dialog-emoji switch, a shared renamable School mode, and an off-by-default narration
 group. The renderer mounts the existing localization boundary, applies bounded funny wrappers to app
 notifications and dialogs, polls the shared settings snapshot once per second, and hides Cantonese,
