@@ -46,6 +46,46 @@ export interface ControlBinding {
    * exactly the kind of silent luck this table refuses to rely on.
    */
   valueMap?: Readonly<Record<string, string>>;
+  /**
+   * Set only when two controls share ONE Asterisk value that carries two things -- the
+   * clearest case being `tlsbindaddr=address:port`, which the interface offers as an address
+   * field and a port stepper because that is how a person thinks about it.
+   *
+   * `part` says which half this control owns. Reading takes that half; writing replaces that
+   * half and leaves the other exactly as it was, so two controls can edit one line without
+   * either erasing the other's work -- which is the whole reason this exists rather than
+   * binding one of them and quietly dropping the other.
+   */
+  composite?: { separator: string; part: 'before' | 'after' };
+}
+
+/** Splits a composite value into its two halves, tolerating a missing or malformed one. */
+export function splitComposite(raw: string, separator: string): { before: string; after: string } {
+  const at = raw.indexOf(separator);
+  /* No separator means the whole value is the FIRST half. That is what Asterisk means by a
+   * bare tlsbindaddr with no port, and treating it as the second half would silently move an
+   * address into a port field. */
+  if (at < 0) return { before: raw.trim(), after: '' };
+  return { before: raw.slice(0, at).trim(), after: raw.slice(at + separator.length).trim() };
+}
+
+/** Puts one half back, keeping the other. */
+export function joinComposite(
+  existing: string,
+  separator: string,
+  part: 'before' | 'after',
+  value: string,
+): string {
+  const halves = splitComposite(existing, separator);
+  const next = part === 'before'
+    ? { before: value.trim(), after: halves.after }
+    : { before: halves.before, after: value.trim() };
+  /* An empty other half is written without a dangling separator, because `0.0.0.0:` is not
+   * a value Asterisk accepts and a half-filled line is worse than a short one. */
+  if (next.before === '' && next.after === '') return '';
+  if (next.after === '') return next.before;
+  if (next.before === '') return `${separator}${next.after}`.replace(separator, '');
+  return `${next.before}${separator}${next.after}`;
 }
 
 const YES_VALUES = new Set(['yes', 'true', 'on', '1']);
@@ -190,10 +230,9 @@ function l(control: string, section: string, key: string): ControlBinding {
 export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBinding>>> = {
   // configs/samples/http.conf.sample — every key below is in [general] there, checked
   // by hand against the file in this checkout rather than taken from a proposal.
-  // ht_tlsaddr and ht_tlsport stay unbound, and not for want of looking: Asterisk spells
-  // both halves as one tlsbindaddr=address:port value, and a binding maps one control to
-  // one key, so binding either alone would drop the other half. Joining them needs a
-  // composite binding this model does not have.
+  // ht_tlsaddr and ht_tlsport are two halves of one Asterisk value: tlsbindaddr is
+  // address:port (line 88 of the sample). Each owns its half and leaves the other alone on
+  // write, so editing the port cannot erase the address.
   httpd: [
     b('ht_enabled', 'general', 'enabled'),  // line 29: ;enabled=yes
     s('ht_prefix', 'general', 'prefix'),  // line 45: ;prefix=asterisk
@@ -209,7 +248,11 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     b('ht_status', 'general', 'enable_status'),  // line 74: ;enable_status=yes
     s('ht_tlscert', 'general', 'tlscertfile'),  // line 90: ;tlscertfile=</path/to/certificate.pem>
     b('ht_notls12', 'general', 'tlsdisablev12'),  // line 114: ; tlsdisablev12=yes
-    n('ht_sesslimit', 'general', 'sessionlimit'),  // line 50: ;sessionlimit=100  // line 63: ;session_keep_alive=15000
+    n('ht_sesslimit', 'general', 'sessionlimit'),
+    { control: 'ht_tlsaddr', section: 'general', key: 'tlsbindaddr', kind: 'string',
+      composite: { separator: ':', part: 'before' } },
+    { control: 'ht_tlsport', section: 'general', key: 'tlsbindaddr', kind: 'number',
+      composite: { separator: ':', part: 'after' } },  // line 50: ;sessionlimit=100  // line 63: ;session_keep_alive=15000
   ],
   // configs/samples/features.conf.sample — the five transfer and parking codes live in
   // [featuremap] and the timeouts in [general]; both sections were confirmed per key,
@@ -459,7 +502,11 @@ export function readControlValues(screen: string, value: ConfigValue | undefined
     const section = value.find((candidate) => candidate.name === binding.section);
     const entry = section?.entries.find((e) => e.key === binding.key);
     if (!entry) continue;
-    const parsed = fromRaw(entry.value, binding.kind, binding.invert, binding.valueMap);
+    const rawValue = binding.composite
+      ? splitComposite(entry.value, binding.composite.separator)[binding.composite.part]
+      : entry.value;
+    if (binding.composite && rawValue === '') continue;
+    const parsed = fromRaw(rawValue, binding.kind, binding.invert, binding.valueMap);
     if (parsed !== undefined) out[binding.control] = parsed;
   }
   return out;
@@ -488,8 +535,8 @@ export function applyControlValues(
 
   for (const binding of bindings) {
     if (!(binding.control in changes)) continue;
-    const raw = toRaw(changes[binding.control], binding.kind, binding.invert, binding.valueMap);
-    if (raw === undefined) continue;
+    const own = toRaw(changes[binding.control], binding.kind, binding.invert, binding.valueMap);
+    if (own === undefined) continue;
 
     let section = sections.find((sec) => sec.name === binding.section);
     if (!section) {
@@ -499,6 +546,12 @@ export function applyControlValues(
 
     const entries = section.entries as { key: string; value: string }[];
     const idx = entries.findIndex((e) => e.key === binding.key);
+    /* A composite control owns half of the value, so the other half is read back off what is
+     * already there and carried forward. Writing only this half would erase the other
+     * control's work every time either one changed. */
+    const raw = binding.composite
+      ? joinComposite(idx === -1 ? '' : entries[idx].value, binding.composite.separator, binding.composite.part, own)
+      : own;
     if (idx === -1) {
       entries.push({ key: binding.key, value: raw });
     } else {

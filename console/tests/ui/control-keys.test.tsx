@@ -49,7 +49,9 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // Then eight more the same day, going through the remainder one control at a time: seven
   // http.conf keys and the last feature code. That finished features.conf entirely and left
   // http.conf with only the two halves of tlsbindaddr, which no single binding can carry.
-  assert.equal(controlCount, 113);
+  // And 115 once composite bindings arrived, which let the two halves of tlsbindaddr be
+  // bound at last. http.conf is now completely bound, as is features.conf.
+  assert.equal(controlCount, 115);
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -372,4 +374,55 @@ test('unmappedControls reflects the two controls bound on this second look', () 
   for (const stillUnbound of ['k_order', 'k_transcode', 'k_opusbr', 'k_ptime', 'r_dtmf', 'r_dtls']) {
     assert.ok(unmappedControls('codecs').includes(stillUnbound), `expected ${stillUnbound} to remain unmapped`);
   }
+});
+
+// ---------------------------------------------------------------- composite values
+
+test('two controls sharing one value each read their own half', () => {
+  /* Asterisk writes tlsbindaddr as address:port, and the interface offers an address field
+   * and a port stepper because that is how a person thinks about it. */
+  const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'tlsbindaddr', value: '10.0.0.5:8089' }] }];
+  const values = readControlValues('httpd', cfg);
+  assert.equal(values.ht_tlsaddr, '10.0.0.5');
+  assert.equal(values.ht_tlsport, 8089);
+});
+
+test('a bare address with no port is read as the address, never the port', () => {
+  /* Asterisk accepts tlsbindaddr with no port. Treating the whole value as the second half
+   * would silently move an address into a port field, which then writes back as nonsense. */
+  const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'tlsbindaddr', value: '0.0.0.0' }] }];
+  const values = readControlValues('httpd', cfg);
+  assert.equal(values.ht_tlsaddr, '0.0.0.0');
+  assert.equal(values.ht_tlsport, undefined, 'a missing half was invented rather than left absent');
+});
+
+test('changing one half leaves the other exactly as it was', () => {
+  /* The whole reason composite bindings exist. Writing only the changed half would erase the
+   * other control's work every time either one was touched. */
+  const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'tlsbindaddr', value: '10.0.0.5:8089' }] }];
+  const afterPort = applyControlValues('httpd', cfg, { ht_tlsport: 9443 });
+  assert.equal(afterPort[0].entries[0].value, '10.0.0.5:9443');
+  const afterAddr = applyControlValues('httpd', cfg, { ht_tlsaddr: '192.168.1.9' });
+  assert.equal(afterAddr[0].entries[0].value, '192.168.1.9:8089');
+});
+
+test('both halves changing at once produce one correct value', () => {
+  const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'tlsbindaddr', value: '10.0.0.5:8089' }] }];
+  const after = applyControlValues('httpd', cfg, { ht_tlsaddr: '0.0.0.0', ht_tlsport: 443 });
+  assert.equal(after[0].entries[0].value, '0.0.0.0:443');
+});
+
+test('setting a half when the key does not exist yet writes only that half', () => {
+  /* No dangling separator: `0.0.0.0:` is not a value Asterisk accepts, and a half-filled
+   * line is worse than a short one. */
+  const after = applyControlValues('httpd', [{ name: 'general', entries: [] }], { ht_tlsaddr: '0.0.0.0' });
+  assert.equal(after[0].entries[0].value, '0.0.0.0');
+});
+
+test('a malformed stored value does not stop the other half being edited', () => {
+  /* Somebody hand-edits the file and leaves something odd. Refusing to write would be a
+   * console that stops working because the file it edits is imperfect. */
+  const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'tlsbindaddr', value: '::::' }] }];
+  const after = applyControlValues('httpd', cfg, { ht_tlsport: 8443 });
+  assert.match(after[0].entries[0].value, /8443$/u);
 });
