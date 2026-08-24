@@ -7,6 +7,7 @@ import type {
 } from '../shared/status-hub.js';
 import {
   StatusHubClient,
+  validateStatusHubProjectRegistration,
   type StatusHubPollingHandle,
   type StatusHubPollingState,
   type StatusHubResult,
@@ -153,6 +154,10 @@ export class StatusHubStore {
     return this.registerProject(this.registration);
   }
 
+  async retryPersistRegistration(): Promise<void> {
+    if (this.state.project) await this.persistRegistration(this.state.project);
+  }
+
   async dispatchQuestion(sessionId: string, questionId: string, answer: string): Promise<StatusHubResult<StatusHubQuestionDeliveryReceipt>> {
     if (this.disposed) return { ok: false, error: { state: 'stale', code: 'STORE_DISPOSED', message: 'The Status Hub surface is no longer mounted.', retryable: false }, generation: this.generation };
     const generation = this.client.beginGeneration();
@@ -268,6 +273,7 @@ function isPersistedRegistration(value: unknown): value is StatusHubPersistedReg
   const record = registration as Partial<StatusHubProjectRegistration>;
   return typeof candidate.projectId === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u.test(candidate.projectId)
     && record.projectId === candidate.projectId
+    && validateStatusHubProjectRegistration(registration)
     && typeof record.projectName === 'string' && record.projectName.length > 0 && record.projectName.length <= 160
     && typeof record.defaultBranch === 'string' && record.defaultBranch.length > 0 && record.defaultBranch.length <= 128
     && typeof record.releaseChannel === 'string' && record.releaseChannel.length > 0 && record.releaseChannel.length <= 160

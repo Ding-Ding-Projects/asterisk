@@ -364,7 +364,8 @@ if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.whenReady().then(createWindow).then(async () => {
     await downloadTransfers.initialize();
     const latest = downloadTransfers.getLatestSnapshot();
-    if (latest?.status === 'failed' && latest.publicationPending) openDownloadWindow('complete');
+    if (latest?.status === 'partial') openDownloadWindow('progress', { handoffId: latest.handoffId, transferId: latest.transferId, origin: mainWindow });
+    else if (latest?.status === 'failed') openDownloadWindow('complete', { handoffId: latest.handoffId, transferId: latest.transferId, origin: mainWindow });
     else {
       const handoffs = downloadTransfers.listPendingHandoffs();
       if (handoffs.length > 0) openNextPendingStart(mainWindow);

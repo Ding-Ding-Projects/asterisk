@@ -65,6 +65,7 @@ export function DownloadProgressSurface({ client, transferId, initialSnapshot, o
       {snapshot.resumeDisabledReason && <p className="download-surface__deadline" role="note">Pause and resume are unavailable: {snapshot.resumeDisabledReason}</p>}
       {snapshot.partial && <p className="download-surface__partial" role="status">Partial result: {formatBytes(snapshot.partial.bytesTransferred)} received. {snapshot.partial.reason} {snapshot.partial.canResume ? 'Resume is available.' : 'Resume is not available.'}</p>}
       {commandError && <p className="download-surface__error" role="alert">{commandError}</p>}
+      {snapshot.cleanupCompleted === false && snapshot.cleanupError && <p className="download-surface__error" role="alert">Temporary-file cleanup needs attention: {snapshot.cleanupError.message}</p>}
       <div className="download-actions" aria-label="Transfer controls">
         {(snapshot.status === 'downloading' || snapshot.canPause) && <button type="button" className="download-button" disabled={commandState.pending || !snapshot.canPause} title={snapshot.resumeDisabledReason}>Pause</button>}
         {(snapshot.status === 'paused' || snapshot.status === 'partial' || snapshot.canResume) && <button type="button" className="download-button" disabled={commandState.pending || !snapshot.canResume} title={snapshot.resumeDisabledReason} onClick={() => action('resume')}>Resume</button>}

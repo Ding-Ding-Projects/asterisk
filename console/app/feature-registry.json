@@ -702,8 +702,8 @@
       "status": "implemented-unverified",
       "note": "The desktop surface is mounted at #surface=status and reads observed project, session, evidence, question, inbox, and receipt data through the typed Status Hub client and store. The external service remains unavailable until STATUS_HUB_URL is configured.",
       "implementation": {
-        "paths": ["console/shared/status-hub.ts", "console/control-plane/status-hub-client.ts", "console/control-plane/status-hub-store.ts", "console/app/renderer/src/status-hub-state.ts", "console/app/renderer/src/status-hub-surface.tsx", "console/app/electron/main.ts", "console/app/electron/preload.ts"],
-        "symbols": ["StatusHubClient", "StatusHubStore", "StatusHubSurface", "status-hub.project", "status-hub.sessions", "status-hub.session", "status-hub.replies", "status-hub.answer"]
+        "paths": ["console/shared/status-hub.ts", "console/control-plane/status-hub-client.ts", "console/control-plane/status-hub-store.ts", "console/app/renderer/src/status-hub-state.ts", "console/app/renderer/src/status-hub-surface.tsx", "console/app/renderer/src/surface-mounts.tsx", "console/app/electron/main.ts", "console/app/electron/preload.ts"],
+        "symbols": ["StatusHubClient", "validateStatusHubProjectRegistration", "StatusHubStore", "StatusHubSurface", "StatusHubRegistrationPersistence", "statusPersistence", "retryPersistRegistration", "status-hub.project", "status-hub.sessions", "status-hub.session", "status-hub.replies", "status-hub.answer"]
       },
       "registration": {
         "paths": ["console/shared/control-plane.ts", "console/control-plane/dispatch.ts", "console/app/renderer/src/surface-mounts.tsx"],
@@ -721,8 +721,8 @@
       },
       "persistence": {
         "state": "external-service",
-        "paths": ["console/control-plane/status-hub-store.ts"],
-        "symbols": []
+        "paths": ["console/control-plane/status-hub-store.ts", "console/app/renderer/src/surface-mounts.tsx", "console/control-plane/settings-store.ts", "console/control-plane/atomic-file.ts"],
+        "symbols": ["StatusHubRegistrationPersistence", "statusPersistence", "settings.snapshot", "settings.write", "settings.remove"]
       },
       "focusedChecks": {
         "state": "not-run",

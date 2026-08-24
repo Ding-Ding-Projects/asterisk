@@ -24,6 +24,7 @@ export function DownloadCompleteSurface({ snapshot, onDismiss, onRetry, onDiscar
       <div className="download-complete-surface__body">
         <p className="download-surface__eyebrow">Transfer result</p>
         <p>{outcome(snapshot)}</p>
+        {snapshot.cleanupCompleted === false && snapshot.cleanupError ? <p className="download-surface__error">Temporary-file cleanup needs attention: {snapshot.cleanupError.message}</p> : null}
         <p className="download-surface__hint">Observed at {snapshot.observedAt}. Unsaved work was not changed by this transfer.</p>
       </div>
       <div className="download-actions">

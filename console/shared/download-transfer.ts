@@ -80,6 +80,8 @@ export interface DownloadTransferSnapshot {
   publicationPending?: boolean;
   publicationSize?: number;
   publicationSha256?: string;
+  cleanupCompleted?: boolean;
+  cleanupError?: TransferError;
   partial?: PartialTransferOutcome;
   resume?: DownloadResumeSupport;
   resumeDisabledReason?: string;
