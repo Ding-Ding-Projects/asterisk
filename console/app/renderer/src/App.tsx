@@ -31,8 +31,8 @@ import {
 } from './display-name';
 import { setEmojisEnabled } from './dialog-emojis';
 import {
-  ATTENTION_MODES, LAST_CHANGED_SETTING_KEY,
-  SNOOZED_UNTIL_SETTING_KEY, SNOOZE_MS, elapsedPhrase,
+  ATTENTION_MODES, LAST_CHANGED_SETTING_KEY, NEXT_ACTION_MAX_LENGTH, NEXT_ACTION_SETTING_KEY,
+  MODE_SETTING_PREFIX, SNOOZED_UNTIL_SETTING_KEY, SNOOZE_MIGRATION_TOLERANCE_MS, SNOOZE_MS, elapsedPhrase,
   isAttentionMode, modeEnabled, momentumPrompt, nextAction, presentationFor, setModeEnabled,
   setNextAction,
 } from './attention-modes';
@@ -216,6 +216,7 @@ export class App extends Base {
    *  shell's and the copy would point at itself -- a recursion with no base case. */
   private readonly baseSetVal: (control: ControlRef, value: unknown) => void;
   private readonly baseToast: (message: string) => void;
+  private readonly baseFire: (title: string, body: string) => void;
   private attentionTimer: ReturnType<typeof setInterval> | undefined;
   private attentionSessionStartedAt = Date.now();
   private attentionLastChangedAt = this.attentionSessionStartedAt;
@@ -224,18 +225,29 @@ export class App extends Base {
   private attentionStatus: HTMLElement | undefined;
   private attentionMotionQuery: MediaQueryList | undefined;
   private attentionSyncing = false;
+  private attentionPersistenceState: 'saved' | 'pending' | 'session-only' | 'retry' = 'saved';
+  private attentionPendingWrites = new Map<string, string | null>();
+  private attentionNoticeHistory: Array<{ severity: 'warning' | 'error'; title: string; body: string }> = [];
 
   constructor(props: Record<string, never>) {
     super(props);
     this.baseSetVal = this.setVal as (control: ControlRef, value: unknown) => void;
     this.setVal = this.languageAwareSetVal;
     this.baseToast = this.toast as (message: string) => void;
+    this.baseFire = this.fire as (title: string, body: string) => void;
     this.toast = (message: string): void => {
-      /* Low stimulation keeps urgent fire() notices available but quietens ordinary
-       * informational toasts. The source is the same durable mode storage used by
-       * the switch, so there is no second notification preference to drift. */
-      if (modeEnabled(this.durableStorage.storage, 'lowStimulation')) return;
+      const severity = this.attentionSeverity(message, '');
+      if (severity !== 'info') this.attentionRecordNotice(severity, 'Notification', message);
+      /* Low stimulation suppresses informational messages only. Warnings and errors
+       * stay visible and are retained by the reviewable history below. */
+      if (severity === 'info' && modeEnabled(this.durableStorage.storage, 'lowStimulation')) return;
       this.baseToast(message);
+    };
+    this.fire = (title: string, body: string): void => {
+      const severity = this.attentionSeverity(title, body);
+      if (severity !== 'info') this.attentionRecordNotice(severity, title, body);
+      if (severity === 'info' && modeEnabled(this.durableStorage.storage, 'lowStimulation')) return;
+      this.baseFire(title, body);
     };
   }
   /** The chosen file's own name, kept only for display — never its contents. */
@@ -281,6 +293,58 @@ export class App extends Base {
     return restored;
   }
 
+  private attentionSeverity(title: string, body: string): 'info' | 'warning' | 'error' {
+    const text = `${title} ${body}`.toLowerCase();
+    if (/(error|failed|failure|cannot|could not|refused|rejected|unavailable|invalid|not found|not saved|not written|not created|not removed|not added|will not)/.test(text)) return 'error';
+    if (/(warning|caution|unsafe|missing|stale|offline|blocked|not now)/.test(text)) return 'warning';
+    return 'info';
+  }
+
+  private attentionRecordNotice(severity: 'warning' | 'error', title: string, body: string): void {
+    this.attentionNoticeHistory = [{ severity, title, body }, ...this.attentionNoticeHistory].slice(0, 20);
+    this.attentionRender();
+  }
+
+  private attentionPersistenceNotice(): string {
+    if (this.attentionPersistenceState === 'pending') return 'Attention settings are being saved.';
+    if (this.attentionPersistenceState === 'session-only') return 'Attention settings are active for this session only because the desktop bridge is unavailable.';
+    if (this.attentionPersistenceState === 'retry') return 'Attention settings could not be saved. The current values remain active, and a retry is available.';
+    return '';
+  }
+
+  private attentionWrite(key: string, value: string | null): void {
+    this.attentionPendingWrites.set(key, value);
+    this.attentionPersistenceState = this.bridge() ? 'pending' : 'session-only';
+    this.attentionRender();
+    const result = value === null
+      ? this.durableStorage.removeItem(key)
+      : this.durableStorage.writeItem(key, value);
+    void result.then((outcome) => {
+      if (!outcome.durable) {
+        if (this.attentionPendingWrites.get(key) !== value) return;
+        this.attentionPersistenceState = 'session-only';
+        this.attentionRender();
+        return;
+      }
+      if (!outcome.ok) {
+        if (this.attentionPendingWrites.get(key) !== value) return;
+        this.attentionPersistenceState = 'retry';
+        this.attentionRender();
+        return;
+      }
+      if (this.attentionPendingWrites.get(key) !== value) return;
+      this.attentionPendingWrites.delete(key);
+      if (this.attentionPendingWrites.size === 0) this.attentionPersistenceState = 'saved';
+      this.attentionRender();
+    });
+  }
+
+  private attentionRetry(): void {
+    const pending = [...this.attentionPendingWrites.entries()];
+    if (pending.length === 0) return;
+    for (const [key, value] of pending) this.attentionWrite(key, value);
+  }
+
   /** Restores all five independent switches and the chosen next action from the one
    * durable storage handle before the compiled controls are refreshed. */
   private restoreAttention(): void {
@@ -289,14 +353,18 @@ export class App extends Base {
     if (Number.isFinite(changed) && changed >= 0 && changed <= Date.now()) this.attentionLastChangedAt = changed;
     const rawSnooze = this.durableStorage.storage.getItem(SNOOZED_UNTIL_SETTING_KEY);
     const snoozed = rawSnooze ? Number(rawSnooze) : NaN;
-    if (Number.isFinite(snoozed) && snoozed > Date.now()) this.attentionSnoozedUntil = snoozed;
+    const now = Date.now();
+    if (Number.isFinite(snoozed) && snoozed > now && snoozed <= now + SNOOZE_MS + SNOOZE_MIGRATION_TOLERANCE_MS) {
+      this.attentionSnoozedUntil = snoozed;
+    }
     const restored = this.attentionStateValues();
     this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, ...restored } }));
   }
 
   private attentionRoot(): HTMLElement | null {
-    const drag = typeof document === 'undefined' ? null : document.querySelector('[data-window-drag]');
-    return (drag?.parentElement as HTMLElement | null) ?? null;
+    const titlebar = typeof document === 'undefined'
+      ? null : document.querySelector<HTMLElement>('[data-attention-titlebar="true"]');
+    return titlebar?.parentElement ?? null;
   }
 
   private ensureAttentionStyle(): void {
@@ -322,12 +390,12 @@ export class App extends Base {
 
   private attentionSetLastChanged(now = Date.now()): void {
     this.attentionLastChangedAt = now;
-    this.durableStorage.storage.setItem(LAST_CHANGED_SETTING_KEY, String(now));
+    this.attentionWrite(LAST_CHANGED_SETTING_KEY, String(now));
   }
 
   private attentionSnooze(): void {
     this.attentionSnoozedUntil = Date.now() + SNOOZE_MS;
-    this.durableStorage.storage.setItem(SNOOZED_UNTIL_SETTING_KEY, String(this.attentionSnoozedUntil));
+    this.attentionWrite(SNOOZED_UNTIL_SETTING_KEY, String(this.attentionSnoozedUntil));
     this.attentionRender();
   }
 
@@ -359,13 +427,21 @@ export class App extends Base {
     document.body.classList.toggle('attention-focus', presentation.dimInactive);
     document.body.classList.toggle('attention-low-stimulation', presentation.quietNotifications);
     document.body.classList.toggle('attention-reduced-motion', presentation.reduceMotion);
-    const main = root.children[1] as HTMLElement | undefined;
-    const inactive = [root.children[0], main?.children[0], main?.children[1]].filter(Boolean) as HTMLElement[];
-    for (const el of inactive) el.dataset.attentionInactive = presentation.dimInactive ? 'true' : 'false';
-    if (main?.children[2]) (main.children[2] as HTMLElement).dataset.attentionCurrent = 'true';
-
-    const content = main?.children[2] as HTMLElement | undefined;
+    const selectors = [
+      '[data-attention-titlebar="true"]',
+      '[data-attention-tabstrip="true"]',
+      '[data-attention-rail="true"]',
+      '[data-attention-section-list="true"]',
+    ];
+    for (const selector of selectors) {
+      const element = root.querySelector<HTMLElement>(selector);
+      if (element) element.dataset.attentionInactive = presentation.dimInactive ? 'true' : 'false';
+    }
+    const content = root.querySelector<HTMLElement>('[data-attention-work-region="true"]');
     if (!content) return;
+    content.dataset.attentionCurrent = 'true';
+    const mount = content.querySelector<HTMLElement>('[data-attention-card-mount="true"]');
+    if (!mount) return;
     let status = this.attentionStatus;
     if (!status || !status.isConnected) {
       status = document.createElement('div');
@@ -373,7 +449,7 @@ export class App extends Base {
       status.setAttribute('role', 'status');
       status.setAttribute('aria-live', 'polite');
       this.attentionStatus = status;
-      content.prepend(status);
+      mount.prepend(status);
     }
     const now = Date.now();
     const prompt = momentumPrompt(
@@ -381,7 +457,8 @@ export class App extends Base {
       Math.max(0, now - this.attentionLastChangedAt),
       this.attentionSnoozedUntil > 0 ? Math.max(0, now - (this.attentionSnoozedUntil - SNOOZE_MS)) : undefined,
     );
-    const shouldShow = presentation.showElapsedTime || presentation.showNextAction || prompt.show;
+    const shouldShow = presentation.showElapsedTime || presentation.showNextAction || prompt.show
+      || this.attentionPersistenceState !== 'saved' || this.attentionNoticeHistory.length > 0;
     status.hidden = !shouldShow;
     status.replaceChildren();
     if (!shouldShow) return;
@@ -407,6 +484,30 @@ export class App extends Base {
       button.textContent = `Not now for ${elapsedPhrase(SNOOZE_MS)}`;
       button.addEventListener('click', () => this.attentionSnooze(), { once: true });
       status.append(button);
+    }
+    const persistence = this.attentionPersistenceNotice();
+    if (persistence) {
+      const notice = document.createElement('div');
+      notice.textContent = persistence;
+      status.append(notice);
+      if (this.attentionPersistenceState === 'retry') {
+        const retry = document.createElement('button');
+        retry.type = 'button';
+        retry.textContent = 'Retry saving attention settings';
+        retry.addEventListener('click', () => this.attentionRetry(), { once: true });
+        status.append(retry);
+      }
+    }
+    if (this.attentionNoticeHistory.length > 0) {
+      const history = document.createElement('div');
+      history.dataset.attentionMeta = 'true';
+      history.textContent = `Recent warnings and errors retained: ${this.attentionNoticeHistory.length}.`;
+      status.append(history);
+      for (const item of this.attentionNoticeHistory.slice(0, 3)) {
+        const entry = document.createElement('div');
+        entry.textContent = `${item.severity}: ${item.title} ${item.body}`;
+        status.append(entry);
+      }
     }
   };
 
@@ -618,7 +719,10 @@ export class App extends Base {
       const result = loadVocabularyFile(this.vocabStorage, text);
       this.pickedFileNames.set(ctl.id, result.ok ? file.name : `${file.name} — rejected`);
       this.forceUpdate();
-      if (result.ok) this.toast(result.status);
+      if (result.ok) {
+        this.attentionSetLastChanged();
+        this.toast(result.status);
+      }
       else this.fire('Vocabulary file rejected', result.status);
     };
     reader.onerror = () => this.fire('Vocabulary file not read', 'The file could not be read from disk.');
@@ -629,6 +733,7 @@ export class App extends Base {
     const result = clearVocabulary(this.vocabStorage);
     this.pickedFileNames.delete(ctl.id);
     this.forceUpdate();
+    this.attentionSetLastChanged();
     this.toast(result.status);
   };
 
@@ -691,6 +796,7 @@ export class App extends Base {
       return;
     }
     const resolution = resolutionFor(IDENTITY.dataDirectory);
+    this.attentionSetLastChanged();
     this.fire(`Ticket ${result.id} — ${result.status}`,
       `${result.firstResponse}
 
@@ -760,12 +866,14 @@ ${resolution.disclosure}`);
     }
     if (control?.id?.startsWith('att_') && typeof value === 'boolean') {
       const mode = App.ATTENTION_CONTROLS[control.id];
-      if (isAttentionMode(mode)) setModeEnabled(this.durableStorage.storage, mode, value);
-      this.attentionSetLastChanged();
+      if (isAttentionMode(mode)) {
+        setModeEnabled(this.durableStorage.storage, mode, value);
+        this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');
+      }
     }
     if (control?.id === 'att_next' && typeof value === 'string') {
       setNextAction(this.durableStorage.storage, value);
-      this.attentionSetLastChanged();
+      this.attentionWrite(NEXT_ACTION_SETTING_KEY, value.trim().slice(0, NEXT_ACTION_MAX_LENGTH) || null);
     }
     if (control?.id === 'dlg_emoji' && typeof value === 'boolean') {
       setEmojisEnabled(this.durableStorage.storage, value);
@@ -778,6 +886,9 @@ ${resolution.disclosure}`);
       }
     }
     this.baseSetVal(control, value);
+    /* Every setVal call is a user-authored setting, draft, or configuration mutation.
+     * Navigation uses setState directly and therefore does not reset untouched time. */
+    this.attentionSetLastChanged();
     this.attentionRender();
   };
 
@@ -817,7 +928,10 @@ ${resolution.disclosure}`);
     }
     const created = await this.servers.add(input as never);
     this.forceUpdate();
-    if (created) this.fire('Connection added', `${created.name} is now in the server list below.`);
+    if (created) {
+      this.attentionSetLastChanged();
+      this.fire('Connection added', `${created.name} is now in the server list below.`);
+    }
     else this.fire('Not added', 'The control plane did not accept that connection.');
   };
 
@@ -827,7 +941,10 @@ ${resolution.disclosure}`);
     if (!server) { this.fire('Not found', `${name} is no longer in the server list.`); return; }
     const removed = await this.servers.remove(server.id);
     this.forceUpdate();
-    if (removed) this.fire('Connection removed', `${name} was removed from the server list.`);
+    if (removed) {
+      this.attentionSetLastChanged();
+      this.fire('Connection removed', `${name} was removed from the server list.`);
+    }
     else this.fire('Not removed', 'The control plane did not accept that removal.');
   };
 
@@ -886,6 +1003,7 @@ ${resolution.disclosure}`);
     const created = await this.servers.add(input as never);
     this.forceUpdate();
     if (created) {
+      this.attentionSetLastChanged();
       this.fire('Connected', `${created.name} was added to the server list and is available on Deploy & servers.`);
       void this.discover();
       this.set('onboardOpen', false);
@@ -962,6 +1080,7 @@ ${resolution.disclosure}`);
               'Every changed file was backed up first and is in local history if you need to undo this.',
             ].filter(Boolean).join('\n\n'),
           );
+          this.attentionSetLastChanged();
           this.set('onboardOpen', false);
           this.set('screen', 'servers');
           this.set('railId', 'app');
@@ -1171,6 +1290,7 @@ ${resolution.disclosure}`);
       ...(needsTotp ? { totpSecret: s.totpPendingSecret } : {}),
     };
     this.setState({ locks: L, lockOpen: false, totpPendingSecret: undefined, totpPendingUri: undefined } as never);
+    this.attentionSetLastChanged();
     this.toast(`${s.lockTarget} is locked with ${s.lockMethod} -- the surface is now disabled`);
   };
 
@@ -1229,6 +1349,7 @@ ${resolution.disclosure}`);
       locks: n, unlockOpen: false, unlockPin: '', unlockPw: '', unlockTotpDigits: '', unlockPhase: undefined,
       ladderActive: false, ladderChallenge: null,
     } as never);
+    this.attentionSetLastChanged();
     this.fire('Unlocked', 'Welcome back.');
   };
 
@@ -1309,6 +1430,7 @@ It is shown once. The phone needs it to register.`);
     delete this.configs.endpoints;
     this.seeded.delete('endpoints');
     this.fire(done, summary.join('\n'));
+    this.attentionSetLastChanged();
     this.forceUpdate();
     return true;
   }
@@ -1862,6 +1984,7 @@ It is shown once. The phone needs it to register.`);
     this.setState((st: { values: Record<string, unknown> }) => ({
       values: { ...st.values, ap_hue: Math.floor(Math.random() * 360) },
     }));
+    this.attentionSetLastChanged();
     this.fire('Bold choice', 'Nobody will ever say it is boring.');
   }
 
@@ -1878,11 +2001,13 @@ It is shown once. The phone needs it to register.`);
       return { values: next };
     });
     this.applyAppearanceToDom(resetAll(this.buildAppearanceTheme(this.currentAppearanceValues())));
+    this.attentionSetLastChanged();
     this.toast('Appearance reset to the design system');
   }
 
   private saveAppearance(): void {
     this.syncAppearance();
+    this.attentionSetLastChanged();
     this.fire('Appearance saved', 'It will still be set the next time this opens.');
   }
 

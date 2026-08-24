@@ -7,7 +7,7 @@ import M3Control from './m3-control';
 function Template(v: any) {
   return F(
     h("div", { style: sty(`height:100vh; display:flex; flex-direction:column; background:#0B0F0C; color:#DFE4DC; font-family:Roboto,system-ui,sans-serif; font-size:14px; overflow:hidden; position:relative;`) },
-      h("div", { style: sty(`height:40px; flex:0 0 40px; display:flex; align-items:stretch; background:#141A15; user-select:none; overflow:hidden; min-width:0;`), "data-window-drag": `` },
+      h("div", { "data-attention-titlebar": `true`, style: sty(`height:40px; flex:0 0 40px; display:flex; align-items:stretch; background:#141A15; user-select:none; overflow:hidden; min-width:0;`), "data-window-drag": `` },
         h("div", { style: sty(`display:flex; align-items:center; gap:10px; padding:0 12px; flex:0 0 auto; white-space:nowrap;`) },
           h("span", { style: sty(`font-size:20px; color:#82D9A5; flex:0 0 auto;`), className: "msym" },
             "deployed_code"
@@ -79,7 +79,7 @@ function Template(v: any) {
           )
         )
       ),
-      h("div", { style: sty(`height:38px; flex:0 0 38px; display:flex; align-items:flex-end; gap:2px; background:#0B0F0C; padding:0 6px; overflow-x:auto;`) },
+      h("div", { "data-attention-tabstrip": `true`, style: sty(`height:38px; flex:0 0 38px; display:flex; align-items:flex-end; gap:2px; background:#0B0F0C; padding:0 6px; overflow-x:auto;`) },
         A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { onClick: fn($g.toggle), onContextMenu: fn($g.ctx), style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
             h("span", { style: sty(`width:9px; height:9px; border-radius:50%; background:${S($g.colour)};`) }),
             h("span", { style: sty(`font-size:12px; font-weight:500; color:#DFE4DC; white-space:nowrap;`) },
@@ -154,7 +154,7 @@ function Template(v: any) {
         )
       ),
       h("div", { style: sty(`flex:1; display:flex; min-height:0; gap:0; flex-direction:${S(v.dockDirection)};`) },
-        h("div", { style: sty(`width:88px; flex:0 0 88px; background:#0B0F0C; display:flex; flex-direction:column; align-items:center; padding:8px 0 12px; gap:4px; overflow-y:auto;`) },
+        h("div", { "data-attention-rail": `true`, style: sty(`width:88px; flex:0 0 88px; background:#0B0F0C; display:flex; flex-direction:column; align-items:center; padding:8px 0 12px; gap:4px; overflow-y:auto;`) },
           A(v.rail).map(($r, $r$i) => R($r$i, h("button", { onClick: fn($r.pick), style: sty(`width:100%; background:transparent; border:0; cursor:pointer; padding:4px 0 2px; display:flex; flex-direction:column; align-items:center; gap:4px;`) },
               ($r.on ? h("span", { style: sty(`width:56px; height:32px; border-radius:16px; background:#005230; display:flex; align-items:center; justify-content:center; animation:m3Ripple .5s ease-out;`) },
                   h("span", { style: sty(`font-size:22px; color:#9FF7C4;`), className: "msym" },
@@ -177,7 +177,7 @@ function Template(v: any) {
             )
           )
         ),
-        h("div", { style: sty(`width:268px; flex:0 0 268px; background:#141A15; border-radius:16px 0 0 0; display:flex; flex-direction:column; min-height:0;`) },
+        h("div", { "data-attention-section-list": `true`, style: sty(`width:268px; flex:0 0 268px; background:#141A15; border-radius:16px 0 0 0; display:flex; flex-direction:column; min-height:0;`) },
           h("div", { style: sty(`padding:16px 18px 12px;`) },
             h("div", { style: sty(`font-size:11px; letter-spacing:1.1px; text-transform:uppercase; color:#8FA394; font-weight:500;`) },
               S(v.groupLabel)
@@ -236,7 +236,8 @@ function Template(v: any) {
             )
           )
         ),
-        h("div", { style: sty(`flex:1; min-width:0; display:flex; flex-direction:column; background:#0F1510;`) },
+        h("div", { "data-attention-work-region": `true`, style: sty(`flex:1; min-width:0; display:flex; flex-direction:column; background:#0F1510;`) },
+          h("div", { "data-attention-card-mount": `true` }),
           h("div", { style: sty(`padding:20px 26px 16px; display:flex; align-items:flex-start; gap:16px;`) },
             h("div", { style: sty(`flex:1; min-width:0;`) },
               h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },

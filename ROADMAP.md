@@ -44,7 +44,7 @@
 
 ## Attention runtime
 
-- [x] Mount the five independent attention modes from durable settings, add live desktop consumers, and persist the user-selected next action. Status: implemented-unverified in `codex/mount-attention-runtime`; the design compiler ran, but no built-artifact or UI evidence was collected in that lane.
+- [x] Mount the five independent attention modes from durable settings, add live desktop consumers, persist the user-selected next action, acknowledge durable writes, and record real mutation paths without treating navigation or reads as changes. Status: implemented-unverified in `codex/mount-attention-runtime`; the design compiler ran, but no built-artifact or UI evidence was collected in that lane.
 - [ ] Run focused built-artifact verification for attention restoration, focus dimming, low stimulation, time awareness, one thing at a time, Momentum snooze, keyboard access, and reduced-motion behavior.
 
 ## Cover Asterisk's real capability surface

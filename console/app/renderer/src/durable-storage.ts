@@ -21,9 +21,10 @@
  * `bootstrap()` loads the full snapshot once, after which every read is answered from an
  * in-memory `Map` and every write updates that `Map` immediately (so the value is visible
  * to the very next synchronous read within the same session) and is mirrored to the main
- * process in the background. Until `bootstrap()` resolves, reads answer as if nothing were
- * stored yet -- the same fail-closed-to-defaults behaviour a corrupt or missing file gets
- * on the main-process side.
+ * process in the background for legacy callers. Attention settings use the explicit
+ * `writeItem` and `removeItem` methods when they need an acknowledgement. Until
+ * `bootstrap()` resolves, reads answer as if nothing were stored yet, the same
+ * fail-closed-to-defaults behaviour a corrupt or missing file gets on the main-process side.
  */
 
 /** The minimal shape of the control-plane request the durable storage needs, kept
@@ -54,6 +55,15 @@ export interface DurableStorageHandle {
    *  immediately with an empty cache). Callers that restore persisted UI state at mount
    *  should await this before reading, then re-render. */
   bootstrap(): Promise<void>;
+  /** Writes one value and reports whether the main process acknowledged it. */
+  writeItem(key: string, value: string): Promise<DurableWriteResult>;
+  /** Removes one value and reports whether the main process acknowledged it. */
+  removeItem(key: string): Promise<DurableWriteResult>;
+}
+
+export interface DurableWriteResult {
+  ok: boolean;
+  durable: boolean;
 }
 
 /**
@@ -91,13 +101,36 @@ export function createDurableStorage(bridge: DurableStorageBridge | undefined): 
     return bootstrapPromise;
   }
 
-  function persist(action: 'settings.write' | 'settings.remove', payload: Record<string, unknown>): void {
-    if (!bridge) return;
-    // Fire-and-forget: the cache is already updated synchronously above, so the
-    // renderer's own next read is correct regardless of how long the IPC round trip
-    // takes. A failure here means the next relaunch loses this one write; it never
-    // corrupts the in-session value.
-    void bridge.controlPlane.request({ requestId: newRequestId(), action, payload }).catch(() => {});
+  const pending = new Map<string, { kind: 'write' | 'remove'; value?: string; promise: Promise<DurableWriteResult> }>();
+
+  function persist(action: 'settings.write' | 'settings.remove', payload: Record<string, unknown>, key: string, value?: string): Promise<DurableWriteResult> {
+    const kind = action === 'settings.write' ? 'write' : 'remove';
+    const existing = pending.get(key);
+    if (existing && existing.kind === kind && existing.value === value) return existing.promise;
+    const promise = bridge
+      ? bridge.controlPlane.request({ requestId: newRequestId(), action, payload })
+        .then((response) => ({ ok: response?.ok === true, durable: true }))
+        .catch(() => ({ ok: false, durable: true }))
+      : Promise.resolve({ ok: false, durable: false });
+    pending.set(key, { kind, value, promise });
+    void promise.finally(() => {
+      const current = pending.get(key);
+      if (current?.promise === promise) pending.delete(key);
+    });
+    return promise;
+  }
+
+  function writeItem(key: string, value: string): Promise<DurableWriteResult> {
+    cache.set(key, value);
+    return persist('settings.write', { key, value }, key, value);
+  }
+
+  function removeItem(key: string): Promise<DurableWriteResult> {
+    const existing = pending.get(key);
+    if (existing && existing.kind === 'remove') return existing.promise;
+    if (!cache.has(key)) return Promise.resolve({ ok: true, durable: !!bridge });
+    cache.delete(key);
+    return persist('settings.remove', { key }, key);
   }
 
   const storage: DurableStorage = {
@@ -105,15 +138,12 @@ export function createDurableStorage(bridge: DurableStorageBridge | undefined): 
       return cache.has(key) ? cache.get(key)! : null;
     },
     setItem(key, value) {
-      cache.set(key, value);
-      persist('settings.write', { key, value });
+      void writeItem(key, value);
     },
     removeItem(key) {
-      if (!cache.has(key)) return;
-      cache.delete(key);
-      persist('settings.remove', { key });
+      void removeItem(key);
     },
   };
 
-  return { storage, bootstrap };
+  return { storage, bootstrap, writeItem, removeItem };
 }

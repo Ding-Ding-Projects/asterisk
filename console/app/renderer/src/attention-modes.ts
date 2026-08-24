@@ -140,6 +140,7 @@ export interface MomentumPrompt {
 
 /** How long "not now" is respected. Long enough to mean it. */
 export const SNOOZE_MS = 30 * 60 * 1000;
+export const SNOOZE_MIGRATION_TOLERANCE_MS = 5 * 60 * 1000;
 export const IDLE_THRESHOLD_MS = 20 * 60 * 1000;
 
 /**
