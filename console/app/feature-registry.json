@@ -2298,7 +2298,6 @@
           "control-plane/authenticator-store.ts",
           "app/electron/credential-vault.ts",
           "app/renderer/src/destructive-action-gate.tsx",
-          "app/renderer/src/auth-notification-center.ts",
           "app/renderer/src/notification-store.ts",
           "app/renderer/src/qr.ts"
         ],

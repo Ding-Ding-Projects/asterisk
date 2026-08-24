@@ -20,6 +20,7 @@ export interface AuthenticatorClient {
   confirmAndArm(id: string, code: string): Promise<AuthenticatorResult<AuthenticatorEntry>>;
   remove(id: string): Promise<AuthenticatorResult<undefined>>;
   codeSnapshot(id: string): Promise<AuthenticatorResult<AuthenticatorCodeSnapshot>>;
+  reconciliation?(): Promise<{ status: string; affectedIds: ReadonlyArray<string>; warning?: string }>;
 }
 
 export interface AuthenticatorHistoryClient {

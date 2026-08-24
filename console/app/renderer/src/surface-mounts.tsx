@@ -10,6 +10,9 @@ import type { ConverterBackendHandlers } from '../../../shared/converter';
 import { AuthenticatorSurface } from './authenticator-surface';
 import type { AuthenticatorClient, AuthenticatorHistoryClient } from './authenticator-surface-state';
 import type { HistoryRestoreReceipt } from '../../../shared/history';
+import type { NotificationPersistenceAdapter, NotificationPersistenceReceipt, NotificationSnapshot } from '../../../shared/notifications';
+import { NotificationStore } from './notification-store';
+import { createDurableStorage } from './durable-storage';
 import type { AuthenticatorRegistration } from '../../../shared/authenticator';
 import { LockManagerSurface } from './lock-manager-surface';
 import type { ToyLockClient, ToyLockCredentialClient } from './lock-manager-surface';
@@ -20,6 +23,13 @@ import { UnlockLadderSurface } from './unlock-ladder-surface';
 import type { UnlockLadderClient } from './unlock-ladder-surface';
 
 type SurfaceRoute = 'converter' | 'ollama' | 'docs' | 'changelog' | 'authenticator' | 'locks' | 'support-tickets' | 'unlock-ladder';
+
+const notificationStorage = createDurableStorage(typeof window === 'undefined' ? undefined : window.dingDesktop);
+const notificationPersistence: NotificationPersistenceAdapter = {
+  async load() { await notificationStorage.bootstrap(); const raw = notificationStorage.storage.getItem('notification.center'); if (!raw) return undefined; try { return JSON.parse(raw) as NotificationSnapshot; } catch { return undefined; } },
+  async save(snapshot: NotificationSnapshot): Promise<NotificationPersistenceReceipt> { notificationStorage.storage.setItem('notification.center', JSON.stringify(snapshot)); return { receiptId: `notification-${snapshot.revision}`, snapshotRevision: snapshot.revision, storedCount: snapshot.records.length, observedAt: new Date().toISOString(), observationRef: 'durable-settings-store' }; },
+};
+const mountedNotificationStore = new NotificationStore({ persistence: notificationPersistence });
 
 function unavailable<T>(surface: string, operation: string): Promise<T> {
   return Promise.reject(new Error(`${surface} ${operation} is not registered in the privileged bridge. No value was assumed and no operation was attempted.`));
@@ -57,6 +67,7 @@ const authenticatorClient: AuthenticatorClient = {
   confirmAndArm: (id, code) => bridgeRequest<Awaited<ReturnType<AuthenticatorClient['confirmAndArm']>>>('authenticator.confirm', { id, code }),
   remove: (id) => bridgeRequest<Awaited<ReturnType<AuthenticatorClient['remove']>>>('authenticator.remove', { id }),
   codeSnapshot: (id) => bridgeRequest<Awaited<ReturnType<AuthenticatorClient['codeSnapshot']>>>('authenticator.snapshot', { id }),
+  reconciliation: () => bridgeRequest('authenticator.reconciliation'),
 };
 const historyClient: AuthenticatorHistoryClient = {
   record: async (entry) => { const result = await bridgeRequest<{ ok: boolean; message?: string }>('local-history.record', { ...entry, snapshot: entry.snapshot ?? { kind: 'authenticator-redacted', stableRecordId: entry.stableRecordId, action: entry.action, subject: entry.subject } }); return result.ok ? { ok: true } : { ok: false, warning: result.message ?? 'The local history receipt was unavailable.' }; },
@@ -223,7 +234,7 @@ export function SurfaceMounts() {
       {route === 'ollama' ? <OllamaSuite client={ollamaClient} /> : null}
       {route === 'docs' ? <DocsSurface bundle={DOCS_BUNDLE} /> : null}
       {route === 'changelog' ? <ChangelogSurface markdown={CHANGELOG_MARKDOWN} repositoryUrl={CHANGELOG_REPOSITORY_URL} /> : null}
-      {route === 'authenticator' ? <AuthenticatorSurface client={authenticatorClient} history={historyClient} /> : null}
+      {route === 'authenticator' ? <AuthenticatorSurface client={authenticatorClient} history={historyClient} notificationStore={mountedNotificationStore} /> : null}
       {route === 'locks' ? <LockManagerSurface client={lockClient} credentials={lockCredentials} surfaceId="locks" onOpenSupportTickets={() => { window.location.hash = 'surface=support-tickets'; }} onOpenUnlockLadder={(id) => { window.location.hash = `surface=unlock-ladder&lockout=${encodeURIComponent(id)}`; }} /> : null}
       {route === 'support-tickets' ? <SupportTicketsSurface client={supportTicketsClient} applicationDataPath={lockRecovery.applicationDataPath} openApplicationDataFolder={(path) => window.dingDesktop?.localAuth?.openApplicationDataFolder(path) ?? Promise.resolve({ ok: false, message: 'The privileged application bridge is unavailable.' })} /> : null}
       {route === 'unlock-ladder' ? <UnlockLadderSurface client={unlockLadderClient} lockoutId={lockoutId} budgetScopeId="console-surface" /> : null}

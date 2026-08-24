@@ -13,17 +13,18 @@ import {
 } from './authenticator-surface-state';
 import './authenticator-surface.css';
 import { DestructiveActionGate } from './destructive-action-gate';
-import { publishAuthHistoryWarning } from './auth-notification-center';
+import type { NotificationStore } from './notification-store';
 
 export interface AuthenticatorSurfaceProps {
   client: AuthenticatorClient;
   history?: AuthenticatorHistoryClient;
   onNotice?: (message: string, detail?: string) => void;
+  notificationStore?: NotificationStore;
 }
 
 const EMPTY_REGISTRATION: AuthenticatorRegistration = { issuer: '', account: '', secret: '', algorithm: 'SHA-1', digits: 6, period: 30 };
 
-export function AuthenticatorSurface({ client, history, onNotice }: AuthenticatorSurfaceProps) {
+export function AuthenticatorSurface({ client, history, onNotice, notificationStore }: AuthenticatorSurfaceProps) {
   const [entries, setEntries] = useState<ReadonlyArray<AuthenticatorEntry>>([]);
   const [registration, setRegistration] = useState<AuthenticatorRegistration>(EMPTY_REGISTRATION);
   const [pairing, setPairing] = useState<PairingDescriptor | undefined>();
@@ -38,6 +39,7 @@ export function AuthenticatorSurface({ client, history, onNotice }: Authenticato
   const [historyCommit, setHistoryCommit] = useState('');
   const [historyNotice, setHistoryNotice] = useState<string | undefined>();
   const [historyEntries, setHistoryEntries] = useState<ReadonlyArray<{ commitId: string; timestamp: string; action: string; subject: string }>>([]);
+  const [reconciliationNotice, setReconciliationNotice] = useState<string | undefined>();
 
   const refresh = async () => {
     try {
@@ -50,6 +52,7 @@ export function AuthenticatorSurface({ client, history, onNotice }: Authenticato
     }
   };
   useEffect(() => { void refresh(); }, [client]);
+  useEffect(() => { void client.reconciliation?.().then((receipt) => { if (receipt.status !== 'reconciled') setReconciliationNotice(receipt.warning ?? 'Authenticator reconciliation is pending.'); }).catch(() => setReconciliationNotice('Authenticator reconciliation is unavailable.')); }, [client]);
   useEffect(() => { void history?.list?.().then((receipt) => { setHistoryEntries(receipt.entries); if (receipt.warning) setHistoryNotice(receipt.warning); }).catch(() => setHistoryNotice('History list was unavailable.')); }, [history]);
 
   useEffect(() => {
@@ -92,7 +95,7 @@ export function AuthenticatorSurface({ client, history, onNotice }: Authenticato
     try {
       const result = await withDeadline(client.register(registration));
       if (!result.ok) throw new Error(result.message);
-      const historyReceipt = await recordAuthHistory(history, { action: 'created', subject: `Authenticator ${result.value.issuer} / ${result.value.account}`, stableRecordId: result.value.id, snapshot: { kind: 'authenticator-entry', entry: result.value } }); if (historyReceipt.warning) { setHistoryNotice(historyReceipt.warning); void publishAuthHistoryWarning(historyReceipt.warning); onNotice?.(historyReceipt.warning); }
+      const historyReceipt = await recordAuthHistory(history, { action: 'created', subject: `Authenticator ${result.value.issuer} / ${result.value.account}`, stableRecordId: result.value.id, snapshot: { kind: 'authenticator-entry', entry: result.value } }); if (historyReceipt.warning) { setHistoryNotice(historyReceipt.warning); if (notificationStore) { await notificationStore.initialize().catch(() => undefined); const receipt = await notificationStore.publish({ id: `auth-history-${Date.now()}`, severity: 'warning', title: 'Authenticator history unavailable', body: historyReceipt.warning, source: 'auth-lock' }); if (receipt.outcome !== 'succeeded') setHistoryNotice(`${historyReceipt.warning} Notification persistence unavailable.`); } onNotice?.(historyReceipt.warning); }
       setPairing(undefined);
       setRegistration(EMPTY_REGISTRATION);
       setConfirmation('');
@@ -108,7 +111,7 @@ export function AuthenticatorSurface({ client, history, onNotice }: Authenticato
     try {
       const result = await withDeadline(client.confirmAndArm(entryId, confirmation));
       if (!result.ok) throw new Error(result.message);
-      const historyReceipt = await recordAuthHistory(history, { action: 'updated', subject: `Authenticator ${result.value.issuer} armed`, stableRecordId: result.value.id, snapshot: { kind: 'authenticator-entry', entry: result.value } }); if (historyReceipt.warning) { setHistoryNotice(historyReceipt.warning); void publishAuthHistoryWarning(historyReceipt.warning); onNotice?.(historyReceipt.warning); }
+      const historyReceipt = await recordAuthHistory(history, { action: 'updated', subject: `Authenticator ${result.value.issuer} armed`, stableRecordId: result.value.id, snapshot: { kind: 'authenticator-entry', entry: result.value } }); if (historyReceipt.warning) { setHistoryNotice(historyReceipt.warning); if (notificationStore) { await notificationStore.initialize().catch(() => undefined); const receipt = await notificationStore.publish({ id: `auth-history-${Date.now()}`, severity: 'warning', title: 'Authenticator history unavailable', body: historyReceipt.warning, source: 'auth-lock' }); if (receipt.outcome !== 'succeeded') setHistoryNotice(`${historyReceipt.warning} Notification persistence unavailable.`); } onNotice?.(historyReceipt.warning); }
       setConfirmation('');
       await refresh();
       onNotice?.('Authenticator armed after local code confirmation.');
@@ -122,7 +125,7 @@ export function AuthenticatorSurface({ client, history, onNotice }: Authenticato
     try {
       const result = await withDeadline(client.remove(entry.id));
       if (!result.ok) throw new Error(result.message);
-      const historyReceipt = await recordAuthHistory(history, { action: 'deleted', subject: `Authenticator ${entry.issuer} / ${entry.account}`, stableRecordId: entry.id, snapshot: { kind: 'authenticator-entry-deleted', entry } }); if (historyReceipt.warning) { setHistoryNotice(historyReceipt.warning); void publishAuthHistoryWarning(historyReceipt.warning); onNotice?.(historyReceipt.warning); }
+      const historyReceipt = await recordAuthHistory(history, { action: 'deleted', subject: `Authenticator ${entry.issuer} / ${entry.account}`, stableRecordId: entry.id, snapshot: { kind: 'authenticator-entry-deleted', entry } }); if (historyReceipt.warning) { setHistoryNotice(historyReceipt.warning); if (notificationStore) { await notificationStore.initialize().catch(() => undefined); const receipt = await notificationStore.publish({ id: `auth-history-${Date.now()}`, severity: 'warning', title: 'Authenticator history unavailable', body: historyReceipt.warning, source: 'auth-lock' }); if (receipt.outcome !== 'succeeded') setHistoryNotice(`${historyReceipt.warning} Notification persistence unavailable.`); } onNotice?.(historyReceipt.warning); }
       await refresh();
       return true;
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Authenticator could not be removed.'); }
@@ -145,6 +148,7 @@ export function AuthenticatorSurface({ client, history, onNotice }: Authenticato
     </header>
     <div className="auth-disclosure" role="note">Ordinary exports omit secret material and vault references. A deliberate secret export is not part of this surface.</div>
     {error ? <div className="auth-error" role="alert">{error}</div> : null}
+    {reconciliationNotice ? <div className="auth-disclosure" role="status">{reconciliationNotice} Contradictory authenticator changes remain unavailable until reconciliation completes.</div> : null}
     <div className="auth-grid">
       <form className="auth-card" onSubmit={(event) => { event.preventDefault(); beginPairing(); }}>
         <h3>Pair an account</h3><p className="auth-help">Create a local pairing, review the QR payload and manual value, then confirm one current code before arming.</p>

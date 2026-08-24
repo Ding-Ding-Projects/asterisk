@@ -228,7 +228,9 @@ export function createAuthLockRuntime(options: AuthLockRuntimeOptions) {
   const authenticator = new AuthenticatorStore({ vault, metadata, verifyCode, createEntryId: () => `${Date.now().toString(36)}-${randomBytes(12).toString("hex")}` });
   const persistence: LockRecordPersistence = new FileLockRecordPersistence(join(options.userDataPath, "toy-locks.json"), () => randomUUID().replaceAll("-", ""));
   const locks = new ToyLockStore({ persistence, vault, recovery: options.recovery });
-  const locksReady = (async () => { await metadata.reconcile(vault); await (persistence as FileLockRecordPersistence).reconcileReceipt?.(vault); return await locks.initialize(); })();
+  let authenticatorReconciliation: AuthenticatorReconciliationReceipt = { status: 'reconciled', affectedIds: [] };
+  let lockReconciliation: unknown = { status: 'reconciled', affectedIds: [] };
+  const locksReady = (async () => { authenticatorReconciliation = await metadata.reconcile(vault); lockReconciliation = await (persistence as FileLockRecordPersistence).reconcileReceipt?.(vault) ?? lockReconciliation; return await locks.initialize(); })();
   const tickets = new FileSupportTicketStore(join(options.userDataPath, "support-tickets.json"));
   const ladderState = new FileUnlockLadderStateStore(join(options.userDataPath, "unlock-ladder-state.json"));
   const ladder = new UnlockLadder({ now: () => Date.now(), random: randomUnit, createNonce, stateStore: ladderState, hasAuthoritativeWait: (lockoutId) => ladderState.hasWait(lockoutId), clearAuthoritativeWait: (lockoutId) => ladderState.clearWait(lockoutId) });
@@ -263,6 +265,7 @@ export function createAuthLockRuntime(options: AuthLockRuntimeOptions) {
     async issueLadder(request: { lockoutId: string; budgetScopeId: string; schoolMode: boolean }): Promise<UnlockLadderIssueResult> { return await ladder.issue(request); },
     async hitLadder(nonce: string, spawnId: number, cell: number): Promise<{ ok: true; value: MoleHitReceipt } | { ok: false; reason: string }> { return await ladder.recordMoleHit(nonce, spawnId, cell); },
     async createLadderWait(lockoutId: string, durationMs?: number): Promise<void> { await ladderState.createWait(lockoutId, durationMs); },
+    async awaitReconciliation() { await locksReady; return { authenticator: authenticatorReconciliation, locks: lockReconciliation }; },
     async gradeLadder(nonce: string, answer: UnlockLadderAnswer): Promise<UnlockLadderGradeResult> { return await ladder.grade(nonce, answer); },
   };
 }

@@ -62,9 +62,9 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'daemon.status', 'daemon.start', 'daemon.stop', 'daemon.restart',
   'history.list', 'history.restore', 'media.list', 'media.upload', 'media.remove',
   'local-history.list', 'local-history.record', 'local-history.restore',
-  'authenticator.list', 'authenticator.register', 'authenticator.confirm', 'authenticator.remove', 'authenticator.snapshot', 'authenticator.restore',
+  'authenticator.list', 'authenticator.reconciliation', 'authenticator.register', 'authenticator.confirm', 'authenticator.remove', 'authenticator.snapshot', 'authenticator.restore',
   'toy-lock.initialize', 'toy-lock.list', 'toy-lock.create', 'toy-lock.unlock', 'toy-lock.relock', 'toy-lock.remove',
-  'toy-lock.recovery',
+  'toy-lock.recovery', 'toy-lock.reconciliation',
   'toy-lock-credential.create',
   'support-ticket.list', 'support-ticket.create', 'support-ticket.advance',
   'unlock-ladder.issue', 'unlock-ladder.hit', 'unlock-ladder.grade',
@@ -909,18 +909,23 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         return { ok: true, requestId: request.requestId, data: await library.upload(root, name, contentBase64) };
       }
       if (request.action === 'authenticator.list') {
+        await authLocks.awaitReconciliation();
         return { ok: true, requestId: request.requestId, data: await authLocks.authenticator.list() };
       }
+      if (request.action === 'authenticator.reconciliation') return { ok: true, requestId: request.requestId, data: (await authLocks.awaitReconciliation()).authenticator };
       if (request.action === 'authenticator.register') {
+        const reconciliation = (await authLocks.awaitReconciliation()).authenticator; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning } };
         const input = request.payload as never;
         return { ok: true, requestId: request.requestId, data: await authLocks.authenticator.register(input) };
       }
       if (request.action === 'authenticator.confirm') {
+        const reconciliation = (await authLocks.awaitReconciliation()).authenticator; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning } };
         const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
         const code = typeof request.payload?.code === 'string' ? request.payload.code : '';
         return { ok: true, requestId: request.requestId, data: await authLocks.authenticator.confirmAndArm(id, code, Date.now(), 1) };
       }
       if (request.action === 'authenticator.remove') {
+        const reconciliation = (await authLocks.awaitReconciliation()).authenticator; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning } };
         const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
         return { ok: true, requestId: request.requestId, data: await authLocks.authenticator.remove(id) };
       }
@@ -949,6 +954,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'toy-lock.recovery') {
         return { ok: true, requestId: request.requestId, data: authLocks.locks.recovery };
       }
+      if (request.action === 'toy-lock.reconciliation') return { ok: true, requestId: request.requestId, data: (await authLocks.awaitReconciliation()).locks };
       if (request.action === 'toy-lock-credential.create') {
         const targetId = typeof request.payload?.targetId === 'string' ? request.payload.targetId.trim() : '';
         const method = request.payload?.method === 'totp' ? 'totp' : request.payload?.method === 'password' ? 'password' : undefined;
@@ -965,6 +971,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         return { ok: true, requestId: request.requestId, data: { vaultAccount, method } };
       }
       if (request.action === 'toy-lock.create') {
+        const reconciliation = (await authLocks.awaitReconciliation()).locks as { status?: string; warning?: string }; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning ?? 'Toy-lock reconciliation is pending.' } };
         await authLocks.locksReady;
         const payload = request.payload as never;
         const result = await authLocks.locks.create(payload);
@@ -975,6 +982,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         return { ok: true, requestId: request.requestId, data: result };
       }
       if (request.action === 'toy-lock.unlock') {
+        const reconciliation = (await authLocks.awaitReconciliation()).locks as { status?: string; warning?: string }; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning ?? 'Toy-lock reconciliation is pending.', waitCreated: false } };
         await authLocks.locksReady;
         const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
         const encoded = typeof request.payload?.candidateBase64 === 'string' ? request.payload.candidateBase64 : '';
@@ -987,6 +995,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         return { ok: true, requestId: request.requestId, data: result };
       }
       if (request.action === 'toy-lock.relock' || request.action === 'toy-lock.remove') {
+        const reconciliation = (await authLocks.awaitReconciliation()).locks as { status?: string; warning?: string }; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { ok: false, code: 'persistence-unavailable', message: reconciliation.warning ?? 'Toy-lock reconciliation is pending.' } };
         await authLocks.locksReady;
         const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
         const data = request.action === 'toy-lock.relock' ? await authLocks.locks.relock(id) : await authLocks.locks.remove(id);
