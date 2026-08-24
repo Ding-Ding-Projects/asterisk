@@ -94,6 +94,12 @@ Rich actions now wait for acknowledged durable `started` history before executio
 
 The navigation owner rejects stale activation and generated snapshots through revision compare-and-swap. Rollback, generated restoration, render-triggered definition refresh, and synchronized publication stay under one transaction token until restoration completes. The direct-ID compiler ledger compares observed IDs against the mounted-state manifest in both directions, while dynamic IDs expand only from stable `id` or `key` values.
 
+## Final repair after the next refutation, 2026-08-24
+
+Ordinary select, segmented, and chips producers now expose each option's `value` as its stable `id` and `key`. M3 choices, flags, keypad keys, order rows, and pool entries carry producer-side stable identities before rendering. The compiler validates source-declared M3 identity fields and the runtime helper remains a second defense with an exact design path and loop variable.
+
+The active mounted-state direct-ID manifest is selected by mounted state and checked for missing and unexpected observed IDs. The navigation adapter returns explicit stale CAS results, restores the generated shell from its current state, and refuses activation while its owner transaction token is held. Executing-operation cancellation now emits and durably records a cancellation-refused outcome without creating a second terminal phase. The rich progress and Cancel surface remains mounted from the checked-in design source.
+
 ## Scope
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.

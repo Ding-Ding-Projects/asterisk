@@ -63,7 +63,7 @@
 
   <sc-if value="{{ isSegmented }}" hint-placeholder-val="{{ true }}">
     <div role="radiogroup" aria-labelledby="{{ labelId }}" aria-describedby="{{ describedBy }}" style="display:flex; border:1px solid #414942; border-radius:18px; overflow:hidden; align-self:flex-start; max-width:100%; flex-wrap:wrap;">
-      <sc-for list="{{ choices }}" as="o" hint-placeholder-count="3">
+      <sc-for list="{{ choices }}" as="o" data-identity="{{ o.id }}" hint-placeholder-count="3">
         <button type="button" role="radio" aria-checked="{{ o.selected }}" aria-label="{{ o.accessibleLabel }}" disabled="{{ o.disabled }}" tabindex="{{ o.tabIndex }}" onClick="{{ o.pickSafe }}" style="display:flex; align-items:center; justify-content:center; gap:6px; min-width:48px; min-height:48px; max-width:100%; background:{{ o.bg }}; color:{{ o.fg }}; border:0; border-left:1px solid #414942; padding:9px 15px; font-family:Roboto,sans-serif; font-size:12.5px; font-weight:500; cursor:pointer; overflow-wrap:anywhere; outline-offset:-4px;" style-hover="background:#262B26; color:#DFE4DC;">
           <sc-if value="{{ o.selected }}" hint-placeholder-val="{{ true }}"><span class="msym" aria-hidden="true" style="font-size:16px;">check</span></sc-if>
           <span>{{ o.label }}</span>
@@ -74,7 +74,7 @@
 
   <sc-if value="{{ isSegNarrow }}" hint-placeholder-val="{{ true }}">
     <div role="radiogroup" aria-labelledby="{{ labelId }}" aria-describedby="{{ describedBy }}" style="display:flex; flex-direction:column; gap:6px; width:100%; min-width:0;">
-      <sc-for list="{{ choices }}" as="o" hint-placeholder-count="3">
+      <sc-for list="{{ choices }}" as="o" data-identity="{{ o.id }}" hint-placeholder-count="3">
         <button type="button" role="radio" aria-checked="{{ o.selected }}" aria-label="{{ o.accessibleLabel }}" disabled="{{ o.disabled }}" tabindex="{{ o.tabIndex }}" onClick="{{ o.pickSafe }}" style="display:flex; align-items:center; gap:8px; width:100%; min-height:48px; background:{{ o.bg }}; color:{{ o.fg }}; border:1px solid #414942; border-radius:10px; padding:9px 12px; font-family:Roboto,sans-serif; font-size:12.5px; font-weight:500; cursor:pointer; text-align:left; overflow-wrap:anywhere; outline-offset:3px;" style-hover="background:#262B26; border-color:#82D9A5;">
           <span class="msym" aria-hidden="true" style="font-size:17px;">{{ o.radioIcon }}</span>
           <span>{{ o.label }}</span>
@@ -99,7 +99,7 @@
           <label for="{{ regexInputId }}" style="font-size:11.5px; color:#C4CBC2;">Pattern</label>
           <input id="{{ regexInputId }}" type="text" value="{{ filterQuery }}" onChange="{{ onFilterInput }}" onInput="{{ onFilterInput }}" aria-invalid="{{ regexInvalid }}" aria-describedby="{{ filterStatusId }}" placeholder="Type a pattern" autocomplete="off" spellcheck="false" style="width:100%; min-height:48px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:13px; outline-offset:3px;" />
           <div role="group" aria-label="Regex flags" style="display:flex; flex-wrap:wrap; gap:6px;">
-            <sc-for list="{{ regexFlags }}" as="f" hint-placeholder-count="4">
+            <sc-for list="{{ regexFlags }}" as="f" data-identity="{{ f.id }}" hint-placeholder-count="4">
               <button type="button" aria-pressed="{{ f.on }}" onClick="{{ f.toggle }}" style="min-width:48px; min-height:48px; background:{{ f.bg }}; border:1px solid #414942; border-radius:10px; color:{{ f.fg }}; padding:8px 12px; font-family:'Roboto Mono',monospace; cursor:pointer; outline-offset:3px;" style-hover="border-color:#82D9A5;">{{ f.label }}</button>
             </sc-for>
           </div>
@@ -107,7 +107,7 @@
         </div>
       </sc-if>
       <div role="listbox" aria-labelledby="{{ labelId }}" aria-describedby="{{ describedBy }}" style="display:flex; flex-wrap:wrap; gap:6px; max-width:100%;">
-        <sc-for list="{{ filteredChoices }}" as="o" hint-placeholder-count="4">
+        <sc-for list="{{ filteredChoices }}" as="o" data-identity="{{ o.id }}" hint-placeholder-count="4">
           <button type="button" role="option" aria-selected="{{ o.selected }}" aria-label="{{ o.accessibleLabel }}" disabled="{{ o.disabled }}" onClick="{{ o.pickSafe }}" style="display:flex; align-items:center; justify-content:center; gap:6px; min-width:48px; min-height:48px; max-width:100%; background:{{ o.bg }}; border:1px solid #414942; border-radius:10px; padding:8px 13px; color:{{ o.fg }}; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer; overflow-wrap:anywhere; outline-offset:3px;" style-hover="background:#262B26; border-color:#82D9A5;">
             <sc-if value="{{ o.selected }}" hint-placeholder-val="{{ true }}"><span class="msym" aria-hidden="true" style="font-size:15px;">check</span></sc-if>
             <span>{{ o.label }}</span>
@@ -120,7 +120,7 @@
 
   <sc-if value="{{ isChips }}" hint-placeholder-val="{{ true }}">
     <div role="group" aria-labelledby="{{ labelId }}" aria-describedby="{{ describedBy }}" style="display:flex; flex-wrap:wrap; gap:6px; max-width:100%;">
-      <sc-for list="{{ choices }}" as="o" hint-placeholder-count="5">
+      <sc-for list="{{ choices }}" as="o" data-identity="{{ o.id }}" hint-placeholder-count="5">
         <button type="button" aria-pressed="{{ o.selected }}" aria-label="{{ o.accessibleLabel }}" disabled="{{ o.disabled }}" onClick="{{ o.pickSafe }}" style="display:flex; align-items:center; justify-content:center; gap:6px; min-width:48px; min-height:48px; max-width:100%; background:{{ o.chipBg }}; border:1px solid #414942; border-radius:10px; padding:8px 12px; color:{{ o.fg }}; font-family:Roboto,sans-serif; font-size:12px; font-weight:500; cursor:pointer; overflow-wrap:anywhere; outline-offset:3px;" style-hover="background:#262B26; border-color:#82D9A5;">
           <sc-if value="{{ o.selected }}" hint-placeholder-val="{{ true }}"><span class="msym" aria-hidden="true" style="font-size:15px;">check</span></sc-if>
           <span>{{ o.label }}</span>
@@ -155,7 +155,7 @@
         <output aria-live="polite" style="font-family:'Roboto Mono',monospace; font-size:16px; color:#9FF7C4; overflow-wrap:anywhere;">{{ padValue }}</output>
       </div>
       <div style="display:grid; grid-template-columns:repeat(3,minmax(48px,1fr)); gap:6px;">
-        <sc-for list="{{ padKeys }}" as="k" hint-placeholder-count="12">
+      <sc-for list="{{ padKeys }}" as="k" data-identity="{{ k.id }}" hint-placeholder-count="12">
           <button type="button" onClick="{{ k.press }}" aria-label="{{ k.accessibleLabel }}" style="min-width:48px; min-height:48px; border-radius:10px; background:linear-gradient(#20281F,#171D18); border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:17px; cursor:pointer; box-shadow:0 2px 0 #0C110D; outline-offset:3px;" style-active="transform:translateY(2px); box-shadow:none;" style-hover="background:#005230; color:#9FF7C4;">{{ k.label }}</button>
         </sc-for>
       </div>
@@ -169,7 +169,7 @@
   <sc-if value="{{ isOrder }}" hint-placeholder-val="{{ true }}">
     <div style="display:flex; flex-direction:column; gap:8px; min-width:0; max-width:100%;">
       <ol aria-labelledby="{{ labelId }}" aria-describedby="{{ describedBy }}" style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; min-width:0;">
-        <sc-for list="{{ dragItems }}" as="i" hint-placeholder-count="3">
+      <sc-for list="{{ dragItems }}" as="i" data-identity="{{ i.id }}" hint-placeholder-count="3">
           <li draggable="{{ i.draggable }}" aria-current="{{ i.current }}" aria-posinset="{{ i.position }}" aria-setsize="{{ orderSize }}" onDragStart="{{ i.onDragStart }}" onDragOver="{{ i.onDragOver }}" onDrop="{{ i.onDrop }}" onDragEnd="{{ i.onDragEnd }}" style="display:flex; align-items:center; gap:8px; min-height:48px; min-width:0; background:{{ i.bg }}; border:1px solid #333B34; border-radius:10px; padding:5px 6px 5px 12px; cursor:{{ i.cursor }};">
             <span class="msym" aria-hidden="true" style="font-size:18px; color:#778078; flex:0 0 auto;">drag_indicator</span>
             <span style="flex:1; min-width:0; font-family:'Roboto Mono',monospace; font-size:12.5px; color:#DFE4DC; overflow-wrap:anywhere;">{{ i.label }}</span>
@@ -180,7 +180,7 @@
         </sc-for>
       </ol>
       <div role="group" aria-label="Available items for {{ ctl.label }}" style="display:flex; flex-wrap:wrap; gap:6px;">
-        <sc-for list="{{ poolItems }}" as="p" hint-placeholder-count="2">
+      <sc-for list="{{ poolItems }}" as="p" data-identity="{{ p.id }}" hint-placeholder-count="2">
           <button type="button" onClick="{{ p.addSafe }}" disabled="{{ p.disabled }}" aria-label="Add {{ p.label }}" style="display:flex; align-items:center; justify-content:center; gap:5px; min-width:48px; min-height:48px; max-width:100%; background:transparent; border:1px dashed #414942; border-radius:10px; padding:8px 12px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer; overflow-wrap:anywhere; outline-offset:3px;" style-hover="border-color:#82D9A5; color:#9FF7C4;"><span class="msym" aria-hidden="true" style="font-size:15px;">add</span>{{ p.label }}</button>
         </sc-for>
       </div>

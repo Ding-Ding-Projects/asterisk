@@ -615,7 +615,7 @@ export class App extends Base {
         base.kind = 'switch'; base.on = Boolean(current); base.off = !Boolean(current); base.toggle = () => execute(!Boolean(current));
       } else if (control.kind === 'select') {
         const options = registry.optionsProviders[control.optionsProviderId ?? '']?.() ?? [];
-        base.kind = 'select'; base.options = options.map((option) => ({ label: option.label, on: option.value === current, off: option.value !== current, pick: () => execute(option.value) }));
+        base.kind = 'select'; base.options = options.map((option) => ({ id: option.value, key: option.value, value: option.value, label: option.label, on: option.value === current, off: option.value !== current, pick: () => execute(option.value) }));
       } else if (control.kind === 'slider') {
         base.kind = 'slider'; base.min = control.minimum ?? 0; base.max = control.maximum ?? 100; base.step = control.step ?? 1; base.onSlide = (event: { target?: { value?: unknown } }) => execute(Number(event.target?.value)); base.display = String(current ?? '');
       } else if (control.kind === 'stepper' || control.kind === 'number') {
@@ -1065,6 +1065,7 @@ export class App extends Base {
     if (operation.executing) {
       const reason = `Operation ${operationId} is already executing and cannot be cancelled.`;
       this.fire('Action cancellation outcome', reason);
+      void this.recordControlActionHistory(operation.controlId, operation.action, operationId, 'cancel-refused');
       return { ok: false, cancelled: false, reason };
     }
     operation.cancelled = true;
@@ -1107,7 +1108,7 @@ export class App extends Base {
     this.forceUpdate();
   }
 
-  private async recordControlActionHistory(controlId: string, action: string, operationId: string, phase: 'started' | 'completed' | 'failed' | 'cancelled' = 'started'): Promise<boolean> {
+  private async recordControlActionHistory(controlId: string, action: string, operationId: string, phase: 'started' | 'completed' | 'failed' | 'cancelled' | 'cancel-refused' = 'started'): Promise<boolean> {
     const response = await this.request('local-history.record', {
       payload: { action: 'settings-changed', stableRecordId: controlId, subject: `${action} ${phase}`, metadata: { source: 'rich-control', operationId, phase }, snapshot: { controlId, action, operationId, phase } },
     }).catch(() => undefined);

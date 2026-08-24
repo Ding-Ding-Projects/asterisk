@@ -141,11 +141,11 @@ function richKind(control: RichControlInput): 'switch' | 'checkbox' | 'text' | '
   return undefined;
 }
 
-function optionsFor(control: RichControlInput): ReadonlyArray<{ readonly value: string; readonly label: string }> {
+function optionsFor(control: RichControlInput): ReadonlyArray<{ readonly id: string; readonly key: string; readonly value: string; readonly label: string }> {
   if (!Array.isArray(control.options)) return [];
   return control.options
     .filter((value): value is string => typeof value === 'string')
-    .map((value) => ({ value, label: value }));
+    .map((value) => ({ id: value, key: value, value, label: value }));
 }
 
 function groupsFor(screen: DesignScreen): RichControlInput[] {

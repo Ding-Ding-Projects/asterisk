@@ -205,7 +205,11 @@ function directAppearanceId(path, scope) {
   const dynamicParts = [];
   if (path.startsWith('m3control-')) dynamicParts.push(`stableDynamicIdentity(v.ctl, ${JSON.stringify(path)}, 'ctl')`);
   for (const [name, alias] of scope.entries()) {
-    if (name.startsWith('__index:')) continue;
+    if (name.startsWith('__')) continue;
+    const declaredIdentity = scope.get(`__identity:${name}`);
+    if (path.startsWith('m3control-') && typeof declaredIdentity !== 'string') {
+      throw new Error(`Design path ${path}, loop variable ${name} is missing a source-declared id/key identity.`);
+    }
     assertStableDynamicIdentityContract(path, name);
     const identityExpression = `stableDynamicIdentity(${alias}, ${JSON.stringify(path)}, ${JSON.stringify(name)})`;
     if (!identityExpression.includes('stableDynamicIdentity') || !identityExpression.includes(JSON.stringify(name))) {
@@ -288,10 +292,15 @@ function emit(node, scope, hovers, indent) {
   if (node.tag === 'sc-for') {
     const list = attrValue(node.attrs.list ?? '', scope);
     const item = node.attrs.as || 'item';
+    const declaredIdentity = node.attrs['data-identity'];
+    if (declaredIdentity !== undefined && !/\.id\b|\.key\b/.test(declaredIdentity)) {
+      throw new Error(`Design loop variable ${item} declares an invalid stable identity: ${declaredIdentity}`);
+    }
     const alias = `$${item}`;
     const index = `${alias}$i`;
     const inner = new Map(scope);
     inner.set(item, alias);
+    if (declaredIdentity !== undefined) inner.set(`__identity:${item}`, declaredIdentity);
     const children = emitChildren(node, inner, hovers, indent);
     return `A(${list}).map((${alias}, ${index}) => R(${index}, ${wrapFragment(children, indent)}))`;
   }
