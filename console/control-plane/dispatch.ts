@@ -7,7 +7,7 @@
  * directly now takes those two paths as constructor options instead, so this module has
  * no dependency on Electron and can run inside a plain Node.js process on a VM.
  */
-import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync, openSync, readSync, closeSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { WslProvisioning, MANAGED_DISTRIBUTION } from './wsl-provisioning.js';
@@ -34,7 +34,11 @@ import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../
  */
 export const HOSTED_UNSUPPORTED_ACTIONS = new Set<string>([
   'runtime.status', 'runtime.provision', 'runtime.stop', 'runtime.remove',
+  'daemon.status', 'daemon.start', 'daemon.stop', 'daemon.restart',
 ]);
+
+const TRUSTED_WSL_BASE_DIGEST = 'sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517';
+const MAX_WSL_ROOTFS_BYTES = 8 * 1024 * 1024 * 1024;
 
 export interface ControlPlaneDispatcherOptions {
   /** Where per-installation state (server inventory, local history) is written. */
@@ -50,7 +54,7 @@ export interface ControlPlaneDispatcherOptions {
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
   const { userDataPath, resourcesPath, hosted } = options;
-  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
+  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['asterisk', 'wsl.exe', 'docker'] });
   const asteriskService = new AsteriskService({ executor: processExecutor });
   const targetDiscovery = new TargetDiscovery(processExecutor);
   const cliGateway = new LocalAsteriskCliGateway(processExecutor);
@@ -58,6 +62,17 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
   const dialplanReadings = new DialplanReadings(cliGateway);
 
   async function resolveTarget(serverId: string | undefined): Promise<TargetProfile> {
+    if (hosted) {
+      const transport = process.env.DING_ASTERISK_TRANSPORT?.trim().toLowerCase();
+      if (transport === 'local') {
+        return {
+          id: 'hosted-local-asterisk',
+          displayName: 'Hosted local Asterisk',
+          connectionKind: 'local',
+        };
+      }
+      throw new Error('HOSTED_TARGET_NOT_CONFIGURED: hosted mode requires DING_ASTERISK_TRANSPORT=local or an explicitly implemented SSH transport. WSL and daemon lifecycle actions are unavailable here.');
+    }
     const requested = serverId?.trim();
     if (!requested) throw new Error('Select a server first.');
 
@@ -158,7 +173,23 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       const runtime = record.runtime === 'wsl2-linux-amd64';
       const baseDigest = typeof record.baseDigest === 'string' && /^sha256:[0-9a-f]{64}$/iu.test(record.baseDigest);
       const actualBytes = statSync(rootfs).size;
-      if (record.schemaVersion !== 1 || !sourceCommit || !digest || !bytes || !runtime || !baseDigest || actualBytes !== record.bytes) {
+      if (actualBytes > MAX_WSL_ROOTFS_BYTES) {
+        return { state: 'unavailable', reason: 'The packaged Asterisk WSL rootfs exceeds the safe size bound.' };
+      }
+      const handle = openSync(rootfs, 'r');
+      const hash = createHash('sha256');
+      const buffer = Buffer.allocUnsafe(1024 * 1024);
+      try {
+        let offset = 0;
+        while (offset < actualBytes) {
+          const read = readSync(handle, buffer, 0, Math.min(buffer.length, actualBytes - offset), offset);
+          if (read <= 0) break;
+          hash.update(buffer.subarray(0, read));
+          offset += read;
+        }
+      } finally { closeSync(handle); }
+      const actualDigest = hash.digest('hex');
+      if (record.schemaVersion !== 1 || !sourceCommit || !digest || !bytes || !runtime || record.baseDigest !== TRUSTED_WSL_BASE_DIGEST || actualBytes !== record.bytes || actualDigest !== record.sha256) {
         return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime provenance does not match the rootfs bytes.' };
       }
       return { state: 'available', rootfs, provenance, record };

@@ -42,10 +42,13 @@ export const DEFAULT_SERVER_PORT = 8088;
  */
 export const HEALTH_PATH = "/api/v1/health";
 
-/** What GET `HEALTH_PATH` is expected to return as JSON. */
+/** What GET `HEALTH_PATH` is expected to return as JSON. Target readiness is a separate authenticated route. */
 export interface ServerHealth {
   status: "ok";
-  asteriskVersion: string;
+  service: "ding-pbx-control-plane";
+  targetReadiness: "authenticated";
+  /** The hosted liveness route never claims that the target is ready. */
+  asteriskVersion?: string;
   /** Whether the admin surface requires sign-in before any mutating action. */
   authRequired: boolean;
 }
@@ -73,14 +76,17 @@ export function parseServerHealth(body: string): { ok: true; value: ServerHealth
   if (record.status !== "ok") {
     return { ok: false, reason: `The health endpoint reported status ${JSON.stringify(record.status)}.` };
   }
-  if (typeof record.asteriskVersion !== "string" || record.asteriskVersion.trim().length === 0) {
-    return { ok: false, reason: "The health endpoint did not report an Asterisk version." };
+  if (record.service !== "ding-pbx-control-plane") {
+    return { ok: false, reason: "The health endpoint did not identify the hosted control plane." };
+  }
+  if (record.targetReadiness !== "authenticated") {
+    return { ok: false, reason: "The health endpoint incorrectly claimed unauthenticated target readiness." };
   }
   if (typeof record.authRequired !== "boolean") {
     return { ok: false, reason: "The health endpoint did not report whether sign-in is required." };
   }
   return {
     ok: true,
-    value: { status: "ok", asteriskVersion: record.asteriskVersion, authRequired: record.authRequired },
+    value: { status: "ok", service: "ding-pbx-control-plane", targetReadiness: "authenticated", authRequired: record.authRequired },
   };
 }

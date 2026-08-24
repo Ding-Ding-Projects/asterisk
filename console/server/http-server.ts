@@ -9,6 +9,7 @@
  */
 import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { createServer as createHttpsServer } from 'node:https';
+import { randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { readFileSync, existsSync, statSync, createReadStream } from 'node:fs';
 import { join, extname, normalize, sep } from 'node:path';
@@ -60,30 +61,19 @@ export const PLAIN_HTTP_WARNING =
 
 const SESSION_COOKIE = 'ding_session';
 
-function bundledAsteriskVersion(): Promise<string> {
-  return new Promise((resolve) => {
-    execFile('/usr/sbin/asterisk', ['-V'], { timeout: 5_000, maxBuffer: 64 * 1024 }, (error, stdout, stderr) => {
-      if (error) {
-        resolve(`unavailable: ${String(stderr || error.message).trim() || 'Asterisk version was not reported.'}`);
-        return;
-      }
-      const value = String(stdout).trim();
-      resolve(value || 'unavailable: Asterisk version was empty.');
-    });
-  });
-}
-
 export function createServerModeHandler(options: ServerModeOptions) {
   const accountStore: AccountStore = new FileAccountStore(join(options.dataDir, 'admin-account.json'));
   const signingKey = loadOrCreateSigningKey(join(options.dataDir, 'session-signing-key'));
   const sessions = new SessionManager({ signingKey });
   const limiter = new LoginRateLimiter();
+  let setupNonce: string | undefined;
   const dispatcher = createControlPlaneDispatcher({
     userDataPath: options.dataDir,
     resourcesPath: options.resourcesDir,
     hosted: true,
   });
   const tlsEnabled = Boolean(options.tls);
+  const boundToLoopback = ['127.0.0.1', '::1', 'localhost'].includes(options.host ?? '127.0.0.1');
 
   function readCookie(req: IncomingMessage): string | undefined {
     const header = req.headers.cookie;
@@ -122,10 +112,13 @@ export function createServerModeHandler(options: ServerModeOptions) {
   async function readJsonBody(req: IncomingMessage): Promise<unknown> {
     const chunks: Buffer[] = [];
     let total = 0;
+    const announced = Number(req.headers['content-length'] ?? 0);
+    if (Number.isFinite(announced) && announced > 5 * 1024 * 1024) throw new Error('Request body too large.');
     for await (const chunk of req) {
-      total += (chunk as Buffer).length;
+      const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
+      total += bytes.length;
       if (total > 5 * 1024 * 1024) throw new Error('Request body too large.');
-      chunks.push(chunk as Buffer);
+      chunks.push(bytes);
     }
     if (chunks.length === 0) return {};
     return JSON.parse(Buffer.concat(chunks).toString('utf8'));
@@ -138,6 +131,8 @@ export function createServerModeHandler(options: ServerModeOptions) {
       'Content-Length': Buffer.byteLength(text),
       // A JSON API response is never itself a page; refuse framing/sniffing regardless.
       'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'no-store',
+      Pragma: 'no-cache',
     });
     res.end(text);
   }
@@ -164,25 +159,41 @@ export function createServerModeHandler(options: ServerModeOptions) {
   }
 
   async function handleRequest(req: IncomingMessage, res: ServerResponse) {
+    req.setTimeout(15_000, () => req.destroy());
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'no-store');
     const url = new URL(req.url ?? '/', 'http://internal');
     const path = url.pathname;
 
     try {
       if (path === '/api/v1/health' && req.method === 'GET') {
-        const asteriskVersion = await bundledAsteriskVersion();
-        const healthy = !asteriskVersion.startsWith('unavailable:');
-        return sendJson(res, healthy ? 200 : 503, {
-          status: healthy ? 'ok' : 'unavailable',
-          asteriskVersion,
+        return sendJson(res, 200, {
+          status: 'ok',
+          service: 'ding-pbx-control-plane',
+          targetReadiness: 'authenticated',
           authRequired: true,
         });
       }
       if (path === '/api/setup' && req.method === 'GET') {
-        return sendJson(res, 200, { needsSetup: !hasAdminAccount(accountStore), tlsEnabled });
+        const needsSetup = !hasAdminAccount(accountStore);
+        setupNonce = needsSetup ? randomUUID() : undefined;
+        return sendJson(res, 200, { needsSetup, tlsEnabled, setupNonce });
       }
       if (path === '/api/setup' && req.method === 'POST') {
+        if (!boundToLoopback && !tlsEnabled) {
+          return sendJson(res, 400, { error: 'SETUP_REQUIRES_TLS', message: 'First-time setup over a non-loopback connection requires TLS.' });
+        }
         if (hasAdminAccount(accountStore)) return sendJson(res, 409, { error: 'ALREADY_SET_UP', message: 'An administrator account already exists.' });
-        const body = await readJsonBody(req) as { username?: string; password?: string };
+        const body = await readJsonBody(req) as { username?: string; password?: string; setupNonce?: string };
+        if (typeof body.setupNonce !== 'string' || body.setupNonce.length < 20) {
+          return sendJson(res, 400, { error: 'SETUP_NONCE_REQUIRED', message: 'Fetch a fresh setup nonce before submitting the first administrator account.' });
+        }
+        /* The nonce is intentionally single-use and process-local. Account creation is
+         * still guarded by the durable account file, so a restart cannot reopen setup. */
+        if (body.setupNonce !== setupNonce) {
+          return sendJson(res, 400, { error: 'SETUP_NONCE_INVALID', message: 'That setup nonce is no longer valid. Fetch a fresh setup nonce.' });
+        }
+        setupNonce = undefined;
         try {
           createAdminAccount(accountStore, String(body.username ?? ''), String(body.password ?? ''));
         } catch (error) {
@@ -199,6 +210,31 @@ export function createServerModeHandler(options: ServerModeOptions) {
           needsSetup: !hasAdminAccount(accountStore),
           tlsEnabled,
           plainHttpWarning: tlsEnabled ? undefined : PLAIN_HTTP_WARNING,
+        });
+      }
+
+      if (path === '/api/v1/ready' && req.method === 'GET') {
+        const session = sessions.verify(readCookie(req));
+        if (!session) return sendJson(res, 401, { error: 'UNAUTHENTICATED', message: 'Sign in before checking target readiness.' });
+        if (process.env.DING_ASTERISK_TRANSPORT?.trim().toLowerCase() !== 'local') {
+          return sendJson(res, 503, { status: 'unready', reason: 'HOSTED_TARGET_NOT_CONFIGURED' });
+        }
+        const readiness = await new Promise<{ ok: boolean; version?: string; reason?: string }>((resolve) => {
+          const timer = setTimeout(() => resolve({ ok: false, reason: 'Asterisk readiness timed out.' }), 5_000);
+          execFile('asterisk', ['-rx', 'core show version'], { timeout: 4_000, maxBuffer: 64 * 1024 }, (error: Error | null, stdout: string | Buffer, stderr: string | Buffer) => {
+            clearTimeout(timer);
+            const version = String(stdout ?? '').trim();
+            if (error || !version || /Unable to connect to remote asterisk/iu.test(version)) {
+              resolve({ ok: false, reason: String(stderr || error?.message || 'Asterisk did not answer.').trim() });
+              return;
+            }
+            resolve({ ok: true, version });
+          });
+        });
+        return sendJson(res, readiness.ok ? 200 : 503, {
+          status: readiness.ok ? 'ready' : 'unready',
+          asteriskVersion: readiness.version,
+          reason: readiness.reason,
         });
       }
 
@@ -276,6 +312,10 @@ export function startServerMode(options: ServerModeOptions): Server {
   } else {
     server = createHttpServer(handleRequest);
   }
+  server.headersTimeout = 10_000;
+  server.requestTimeout = 15_000;
+  server.keepAliveTimeout = 5_000;
+  server.maxHeadersCount = 64;
   server.listen(port, host, () => {
     // eslint-disable-next-line no-console
     console.log(`Ding PBX Console server mode listening on ${options.tls ? 'https' : 'http'}://${host}:${port}`);

@@ -146,7 +146,7 @@ export interface AsteriskCliGateway {
   run(target: TargetProfile, command: ReadOnlyCommand, signal?: AbortSignal): Promise<CommandResult>;
 }
 
-/** Invokes `asterisk -rx` on a discovered WSL distribution or local container. */
+/** Invokes `asterisk -rx` on an explicitly selected local transport. */
 export class LocalAsteriskCliGateway implements AsteriskCliGateway {
   readonly #executor: ProcessExecutor;
 
@@ -161,6 +161,9 @@ export class LocalAsteriskCliGateway implements AsteriskCliGateway {
   }
 
   #invocation(target: TargetProfile, command: ReadOnlyCommand): { executable: string; args: ReadonlyArray<string> } {
+    if (target.connectionKind === "local") {
+      return { executable: "asterisk", args: ["-rx", command] };
+    }
     if (target.connectionKind === "wsl") {
       if (!target.wslDistribution) throw new Error("A WSL target requires a discovered distribution name");
       return { executable: "wsl.exe", args: ["-d", target.wslDistribution, "--", "asterisk", "-rx", command] };

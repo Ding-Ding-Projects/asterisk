@@ -11,6 +11,14 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    mem_limit: 2g
+    cpus: "2.0"
+    pids_limit: 512
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 8192
+      nproc: 512
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
       - /run:rw,noexec,nosuid,size=16m
@@ -22,6 +30,7 @@ services:
       DING_HOST: 0.0.0.0
       DING_PORT: 8088
       DING_DATA_DIR: /var/lib/ding-pbx-console
+      DING_ASTERISK_TRANSPORT: local
       # TLS paths point at Docker secrets, never at an image layer or a shell
       # variable containing secret bytes.
       DING_TLS_CERT: /run/secrets/tls_cert
@@ -30,7 +39,7 @@ services:
       - tls_cert
       - tls_key
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8088/api/v1/health').then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1))"]
+      test: ["CMD", "node", "-e", "require('https').get('https://127.0.0.1:8088/api/v1/health',{rejectUnauthorized:false},r=>{process.exitCode=r.statusCode===200?0:1}).on('error',()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -41,10 +50,16 @@ services:
       org.opencontainers.image.version: ${DING_PBX_VERSION:?Set the image version}
       io.ding.pbx.project: ding-pbx
       io.ding.pbx.service: control-plane
+    networks:
+      - control-plane
 
 volumes:
   ding-pbx-data:
     name: ding-pbx-control-plane-data
+
+networks:
+  control-plane:
+    internal: true
 
 secrets:
   tls_cert:

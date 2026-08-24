@@ -10,8 +10,8 @@
  * identity system. One admin account is the whole model, matching what a single
  * appliance-style install actually needs.
  */
-import { randomBytes, scryptSync, timingSafeEqual, createHmac } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { randomBytes, randomUUID, scryptSync, timingSafeEqual, createHmac } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 const SCRYPT_N = 16384; // CPU/memory cost — Node's documented interactive default.
@@ -46,7 +46,9 @@ export class FileAccountStore implements AccountStore {
   }
   write(record: AdminAccountRecord) {
     mkdirSync(dirname(this.path), { recursive: true });
-    writeFileSync(this.path, JSON.stringify(record, null, 2), { mode: 0o600 });
+    const temporary = `${this.path}.${randomUUID()}.tmp`;
+    writeFileSync(temporary, JSON.stringify(record, null, 2), { mode: 0o600 });
+    renameSync(temporary, this.path);
   }
 }
 

@@ -15,6 +15,10 @@
 - [x] Add the Compose contract with read-only root, dropped capabilities, restart policy, external TLS secrets, and no secret values in image layers, environment files, or logs.
 - [x] Add the Windows build, read-only preflight inventory, and plan-only rollback scripts. They do not deploy or contact a private host unless an operator explicitly executes the supported path.
 - [x] Add the hosted health endpoint and strict packaged WSL provenance shape and byte-count validation.
+- [x] Separate hosted process liveness from authenticated local-Asterisk target readiness, and refuse hosted WSL and daemon lifecycle actions by name.
+- [x] Add immutable image-reference validation, provenance inspection, bounded health wait, automatic rollback, resource limits, internal egress policy, and atomic first-setup protections.
+- [x] Add source-tree, Dockerfile, lockfile, input-manifest, apt snapshot, Node runtime, and apt SBOM records to the hosted image contract.
+- [x] Require the exact private inventory tuple, persistent known-hosts path, capacity thresholds, architecture, port, conflict, and workload checks for approved-host preflight.
 - [ ] Build and publish a hosted image from a verified commit.
 - [ ] Run the read-only preflight against the chosen local or approved private target.
 - [ ] Deploy the hosted image, verify the health response and persistent volume, and retain rollback evidence.

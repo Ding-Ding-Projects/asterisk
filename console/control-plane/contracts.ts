@@ -1,4 +1,5 @@
 export const CONNECTION_KINDS = [
+  "local",
   "wsl",
   "localDocker",
   "remoteLinux",

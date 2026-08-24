@@ -176,7 +176,7 @@ export class DeployOrchestrator {
       name: "verify server responds",
       ok: health.ok,
       detail: health.ok
-        ? `server answered: Asterisk ${health.health?.asteriskVersion}`
+        ? 'control plane liveness answered; authenticated target readiness remains a separate check'
         : (health.reason ?? "The server did not answer."),
     });
     if (!health.ok) return { ok: false, steps, address: target.host };
@@ -186,7 +186,7 @@ export class DeployOrchestrator {
       steps,
       address: target.host,
       adminUrl: `http://${target.host}:${this.#serverPort}`,
-      asteriskVersion: health.health?.asteriskVersion,
+      asteriskVersion: undefined,
       authRequired: health.health?.authRequired,
     };
   }
