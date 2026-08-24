@@ -59,7 +59,8 @@ test('persistence and reconciliation failures remain explicit and retryable', ()
   assert.match(notificationStore, /this\.availability = \{ state: 'unavailable'/);
   assert.match(runtimeSource, /status: 'pending-removal-failed'/);
   assert.match(dispatchSource, /reconciliation\.affectedIds\.join/);
-  assert.match(appSource, /Retry reconciliation/);
+  assert.match(appSource, /retryMountedNotificationStore/);
+  assert.match(appSource, /Retry notification history/);
   const withoutUnavailableTransition = notificationStore.replace(/this\.availability = \{ state: 'unavailable'/g, 'this.availability = { state: "ready"');
   assert.doesNotMatch(withoutUnavailableTransition, /this\.availability = \{ state: 'unavailable'/);
 });

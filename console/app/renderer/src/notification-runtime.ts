@@ -78,3 +78,12 @@ export function initializeMountedNotificationStore(): Promise<void> {
   }
   return initialization;
 }
+
+export function retryMountedNotificationStore(): Promise<void> {
+  initialization = mountedNotificationStore.reload()
+    .catch((error) => {
+      initialization = undefined;
+      throw error;
+    });
+  return initialization;
+}

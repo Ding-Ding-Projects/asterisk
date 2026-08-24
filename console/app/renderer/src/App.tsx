@@ -50,7 +50,7 @@ import {
 import {
   UnlockLadder, type Challenge, type GradeResult,
 } from './unlock-ladder';
-import { initializeMountedNotificationStore, mountedNotificationStore, requestNotificationDelete } from './notification-runtime';
+import { initializeMountedNotificationStore, mountedNotificationStore, requestNotificationDelete, retryMountedNotificationStore } from './notification-runtime';
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -2091,9 +2091,14 @@ It is shown once. The phone needs it to register.`);
       link.click();
       URL.revokeObjectURL(url);
     };
+    const retryHistory = () => {
+      void retryMountedNotificationStore()
+        .then(() => this.forceUpdate())
+        .catch((error) => this.fire('Notification history unavailable', error instanceof Error ? error.message : 'Notification history could not be reloaded.'));
+    };
     return {
-      tableAddLabel: availability.state === 'loading' ? 'Loading notifications…' : availability.state === 'unavailable' ? 'Notifications unavailable' : availability.state === 'ready-empty' ? 'No notifications' : 'Mark all read',
-      openWizard: () => runBulk('mark-read'),
+      tableAddLabel: availability.state === 'loading' ? 'Loading notifications…' : availability.state === 'unavailable' ? 'Retry notification history' : availability.state === 'ready-empty' ? 'No notifications' : 'Mark all read',
+      openWizard: availability.state === 'unavailable' ? retryHistory : () => runBulk('mark-read'),
       tableCols: ['Source', 'Message', 'When', 'State'],
       tableGrid: '1fr 2fr 1fr 110px',
       selectionLabel: `${selected.length} of ${ids.length} selected`,
@@ -2106,6 +2111,8 @@ It is shown once. The phone needs it to register.`);
         { icon: 'notifications_off', label: 'Dismiss', run: () => runBulk('dismiss') },
         { icon: 'delete', label: 'Delete', run: () => runBulk('delete') },
         { icon: 'download', label: 'Export', run: exportHistory },
+      ] : availability.state === 'unavailable' ? [
+        { icon: 'refresh', label: 'Retry notification history', run: retryHistory },
       ] : [],
       tableRows: ready ? records.map((record, index) => {
         const isSelected = selected.includes(record.id);

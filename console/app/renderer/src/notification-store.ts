@@ -79,21 +79,24 @@ export class NotificationStore {
   async initialize(): Promise<void> {
     if (this.initialized) return;
     if (this.initialization) return await this.initialization;
-    this.availability = { state: 'loading' };
-    this.emit();
-    this.initialization = (async () => {
-      const loaded = await this.options.persistence.load();
-      if (loaded) this.snapshot = validateSnapshot(loaded);
-      this.initialized = true;
-      this.availability = { state: this.snapshot.records.length === 0 ? 'ready-empty' : 'ready' };
-      this.emit();
-    })();
+    this.initialization = this.loadFromPersistence();
     try {
       await this.initialization;
     } catch (error) {
-      this.availability = { state: 'unavailable', reason: errorMessage(error) };
-      this.emit();
-      this.initialization = undefined;
+      throw error;
+    }
+  }
+
+  /** Re-read the durable snapshot after an unavailable state. The current in-memory
+   * snapshot is retained until load and validation both succeed, so corrupt storage is
+   * never replaced by an empty success just to make the row look healthy. */
+  async reload(): Promise<void> {
+    if (this.initialization) await this.initialization.catch(() => undefined);
+    this.initialized = false;
+    this.initialization = this.loadFromPersistence();
+    try {
+      await this.initialization;
+    } catch (error) {
       throw error;
     }
   }
@@ -234,6 +237,7 @@ export class NotificationStore {
       const persistenceReceipt = await this.enqueuePersistence(snapshot);
       const invalid = persistenceReceiptProblem(persistenceReceipt, snapshot);
       if (invalid) {
+        this.initialized = false;
         this.availability = { state: 'unavailable', reason: invalid };
         this.emit();
         return {
@@ -268,6 +272,7 @@ export class NotificationStore {
         persistenceReceipt,
       };
     } catch (error) {
+      this.initialized = false;
       this.availability = { state: 'unavailable', reason: errorMessage(error) };
       this.emit();
       return {
@@ -301,6 +306,32 @@ export class NotificationStore {
     const write = this.persistenceTail.then(() => this.options.persistence.save(snapshot));
     this.persistenceTail = write.then(() => undefined, () => undefined);
     return write;
+  }
+
+  private loadFromPersistence(): Promise<void> {
+    this.availability = { state: 'loading' };
+    this.emit();
+    const load = (async () => {
+      const loaded = await this.options.persistence.load();
+      const nextSnapshot = loaded ? validateSnapshot(loaded) : {
+        schemaVersion: 1,
+        revision: 0,
+        nextStackOrder: 1,
+        records: [],
+      } satisfies NotificationSnapshot;
+      this.snapshot = nextSnapshot;
+      this.initialized = true;
+      this.availability = { state: this.snapshot.records.length === 0 ? 'ready-empty' : 'ready' };
+      this.emit();
+    })();
+    return load.catch((error) => {
+      this.initialized = false;
+      this.availability = { state: 'unavailable', reason: errorMessage(error) };
+      this.emit();
+      throw error;
+    }).finally(() => {
+      this.initialization = undefined;
+    });
   }
 
   private requireInitialized(): void {
