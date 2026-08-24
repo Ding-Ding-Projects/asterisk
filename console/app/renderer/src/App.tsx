@@ -458,11 +458,11 @@ export class App extends Base {
     if (action === 'editor-open-selected') {
       const screen = (this.state as { screen: string }).screen;
       const reading = this.configs[screen];
-      if (!reading || reading.state !== 'read' || !reading.value) { this.fire('No selected file', 'This screen has not completed a live configuration read.'); return; }
+      if (!reading || reading.state !== 'read' || !reading.value) { this.fire(localizeText('No selected file'), localizeText('This screen has not completed a live configuration read')); return; }
       const source = reading.resource;
       const content = renderForDisplay(reading.value, 100_000);
-      if (content.includes('not shown')) { this.fire('Selected file too large', 'The read-back exceeds the bounded local materialization limit, so no partial editor file was created.'); return; }
-      if (!content) { this.fire('No selected file', 'The live configuration read was empty, so no local editor file was created.'); return; }
+      if (content.includes('not shown')) { this.fire(localizeText('Selected file too large'), `${localizeText('Read-back exceeds bounded local materialization limit')}; ${localizeText('No partial editor file created')}.`); return; }
+      if (!content) { this.fire(localizeText('No selected file'), `${localizeText('Live configuration read was empty')}; ${localizeText('No local editor file created')}.`); return; }
       this.editorResult(await bridge.externalEditor.openMaterializedFile({ name: source.split('/').pop() ?? 'asterisk.conf', content, source, editorId: this.externalEditorStatus.selectedId }));
     }
   }
@@ -784,7 +784,7 @@ ${resolution.disclosure}`);
         ? `${localizeText('Editor settings state')}: ${persistenceLabel} · ${this.externalEditorStatus.persistenceMessage}`
         : `${localizeText('Editor settings state')}: ${persistenceLabel}`;
     }
-    if (action === 'editor-project-status') return this.externalProjectFolder ? `Session only local folder: ${this.externalProjectFolder}` : 'Session only: no local project folder chosen.';
+    if (action === 'editor-project-status') return this.externalProjectFolder ? `${localizeText('Session-only local folder')}: ${this.externalProjectFolder}` : localizeText('No local project folder chosen');
     return '';
   };
 

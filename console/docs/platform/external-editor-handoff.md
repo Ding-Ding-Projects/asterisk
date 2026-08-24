@@ -24,6 +24,8 @@ The settings surface provides these actions:
 - Review the chosen project folder's session-only provenance and reset it without writing it to the privileged settings store.
 - Inspect invalid or corrupt persistence and reset the privileged editor store in one action.
 
+Session-only folder status preserves the factual selected path while localizing the surrounding state. A missing project folder, an oversized selected file, an empty live configuration read, and the decision not to create a partial local editor file each have distinct localized states.
+
 Folder opening is capability-aware. Visual Studio Code variants receive `--new-window` followed by the folder path. Editors without folder-workspace support refuse the folder action with an actionable message rather than opening a misleading single file.
 
 ## Configuration and persistence
