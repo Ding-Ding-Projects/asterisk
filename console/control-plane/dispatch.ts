@@ -512,14 +512,16 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (!moduleId) return { ok: false, requestId: request.requestId, code: 'FREEPBX_MODULE_REQUIRED', message: 'A catalog module ID is required.' };
         const familyCatalog = freePbxCatalogEntries().find((module) => module.moduleId === moduleId);
         if (!familyCatalog || familyCatalog.entitlementClass !== 'open') return { ok: false, requestId: request.requestId, code: 'FREEPBX_ENTITLEMENT_UNAVAILABLE', message: 'The selected family has no verified open entitlement, so the family route is non-actionable.' };
-        const capability = await new FreePbxRuntimeAdapter({ executor: processExecutor, target, catalog: freePbxCatalogEntries(), receipts: receiptStore }).handshake();
-        if (capability.moduleAdmin !== 'available' || capability.database !== 'available' || capability.webService !== 'available' || capability.backup !== 'available') return { ok: false, requestId: request.requestId, code: 'FREEPBX_CAPABILITY_UNKNOWN', message: `The family route requires known capabilities. moduleAdmin=${capability.moduleAdmin}, database=${capability.database}, webService=${capability.webService}, backup=${capability.backup}.` };
         const runtime = new FreePbxFamilyRuntime({ executor: processExecutor, target, catalog: freePbxFamilyEntries() });
-        if (request.action === 'freepbx.family.schema') return { ok: true, requestId: request.requestId, data: runtime.schema(moduleId) };
+        const schema = runtime.schema(moduleId);
+        if (request.action === 'freepbx.family.schema') return { ok: true, requestId: request.requestId, data: schema };
+        if (schema.backend !== 'config-transaction') return { ok: false, requestId: request.requestId, code: 'FREEPBX_FAMILY_UNAVAILABLE', message: schema.unavailableReason ?? 'This family has no executable target backend.', data: schema } as ControlPlaneResponse;
         if (request.action === 'freepbx.family.read') return { ok: true, requestId: request.requestId, data: await runtime.read(moduleId) };
         const documents = Array.isArray(request.payload?.documents) ? request.payload.documents as Array<{ resource: string; value: never }> : [];
         if (documents.length === 0) return { ok: false, requestId: request.requestId, code: 'FREEPBX_DOCUMENTS_REQUIRED', message: 'A family write must include the target-backed configuration documents.' };
         if (request.action === 'freepbx.family.apply') {
+          const capability = await new FreePbxRuntimeAdapter({ executor: processExecutor, target, catalog: freePbxCatalogEntries(), receipts: receiptStore }).handshake();
+          if (capability.moduleAdmin !== 'available' || capability.database !== 'available' || capability.webService !== 'available' || capability.backup !== 'available') return { ok: false, requestId: request.requestId, code: 'FREEPBX_CAPABILITY_UNKNOWN', message: `The family mutation requires known capabilities. moduleAdmin=${capability.moduleAdmin}, database=${capability.database}, webService=${capability.webService}, backup=${capability.backup}.` };
           const backup = request.payload?.backup;
           const typedBackup = backup && typeof backup === 'object' && (backup as Record<string, unknown>).source === 'official-freepbx-backup' && typeof (backup as Record<string, unknown>).jobId === 'string' && typeof (backup as Record<string, unknown>).nonce === 'string' ? backup as { jobId: string; nonce: string; catalogRevision: string | null } : undefined;
           if (!typedBackup || !receiptStore.consume({ targetId: target.id, jobId: typedBackup.jobId, moduleId, action: 'update', catalogRevision: typedBackup.catalogRevision, nonce: typedBackup.nonce })) return { ok: false, requestId: request.requestId, code: 'FREEPBX_BACKUP_RECEIPT_REQUIRED', message: 'A one-time target-bound backup receipt is required before the family mutation.' };

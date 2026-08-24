@@ -10,8 +10,10 @@ const runtimeSource = readFileSync(resolve(root, 'console/control-plane/freepbx-
 const adapterSource = readFileSync(resolve(root, 'console/app/renderer/src/freepbx-module-adapters.ts'), 'utf8');
 const familyRuntimeSource = readFileSync(resolve(root, 'console/control-plane/freepbx-family-runtime.ts'), 'utf8');
 const targetTransportSource = readFileSync(resolve(root, 'console/control-plane/wsl-config-transport.ts'), 'utf8');
+const docsSource = readFileSync(resolve(root, 'console/docs/pbx/freepbx-modules.md'), 'utf8');
 const rendererSource = readFileSync(resolve(root, 'console/app/renderer/src/PbxAdminApp.tsx'), 'utf8');
 const regexWorkerSource = readFileSync(resolve(root, 'console/app/renderer/src/bounded-regex-worker.ts'), 'utf8');
+const localeSource = readFileSync(resolve(root, 'console/app/renderer/src/locale-yue.ts'), 'utf8');
 
 function unique(values, label) {
   const duplicates = values.filter((value, index) => values.indexOf(value) !== index);
@@ -100,6 +102,11 @@ function verifyTargetTransport(source) {
   for (const marker of ['target?: Pick<TargetProfile', 'connectionKind === "localDocker"', 'dockerContext']) if (!source.includes(marker)) throw new Error(`Shared target transport is missing ${marker}.`);
 }
 
+function verifyDocumentationAnchors(catalogValue, inventoryValue, source) {
+  for (const module of catalogValue.modules) if (!source.includes(`<a id=\"module-${module.moduleId}\"></a>`)) throw new Error(`FreePBX module documentation anchor is missing for ${module.moduleId}.`);
+  for (const family of inventoryValue.families) if (!source.includes(`<a id=\"family-${family}\"></a>`)) throw new Error(`FreePBX family documentation anchor is missing for ${family}.`);
+}
+
 function verifyProductionBindings(source) {
   for (const marker of ['freepbx.family.schema', 'freepbx.family.read', 'freepbx.family.plan', 'freepbx.family.apply', 'freepbx-family-read', 'freepbx-family-plan', 'freepbx-family-apply', 'freePbxFamilySchemaKey']) {
     if (!source.includes(marker)) throw new Error(`FreePBX renderer is missing production binding ${marker}.`);
@@ -110,13 +117,20 @@ function verifyRegexWorker(source) {
   for (const marker of ['new Worker', 'worker.terminate()', 'MAX_REGEX_EVALUATION_MS']) if (!source.includes(marker)) throw new Error(`FreePBX regex worker is missing ${marker}.`);
 }
 
+function verifyDynamicLocalization(source, locale) {
+  if (!source.includes('freePbxFire') || !source.includes('transformText')) throw new Error('FreePBX dynamic messages do not pass through the localization boundary.');
+  for (const marker of ['FreePBX detail', 'FreePBX module action unavailable', 'FreePBX module action refused', 'FreePBX module action result', 'FreePBX family action unavailable', 'FreePBX family apply', 'FreePBX family read', 'FreePBX family plan']) if (!locale.includes(`'${marker}'`)) throw new Error(`FreePBX dynamic localization record is missing ${marker}.`);
+}
+
 const result = verify(catalog, inventory);
 verifyRuntime(runtimeSource);
 verifyAdapters(adapterSource);
 verifyFamilyRuntime(familyRuntimeSource);
 verifyTargetTransport(targetTransportSource);
+verifyDocumentationAnchors(catalog, inventory, docsSource);
 verifyProductionBindings(rendererSource);
 verifyRegexWorker(regexWorkerSource);
+verifyDynamicLocalization(rendererSource, localeSource);
 if (process.argv.includes('--probe-negative')) {
   const broken = { ...inventory, modules: inventory.modules.slice(1) };
   let failedClosed = false;
@@ -134,6 +148,12 @@ if (process.argv.includes('--probe-negative')) {
   let regexWorkerFailedClosed = false;
   try { verifyRegexWorker(regexWorkerSource.replaceAll('new Worker', 'removed Worker')); } catch { regexWorkerFailedClosed = true; }
   if (!regexWorkerFailedClosed) throw new Error('negative regex worker regression did not fail closed.');
+  let docsFailedClosed = false;
+  try { verifyDocumentationAnchors(catalog, inventory, docsSource.replace('<a id="module-amd"></a>', '')); } catch { docsFailedClosed = true; }
+  if (!docsFailedClosed) throw new Error('negative documentation-anchor regression did not fail closed.');
+  let localizationFailedClosed = false;
+  try { verifyDynamicLocalization(rendererSource.replaceAll('freePbxFire', 'removedFreePbxFire'), localeSource); } catch { localizationFailedClosed = true; }
+  if (!localizationFailedClosed) throw new Error('negative dynamic-localization regression did not fail closed.');
   console.log('negative inventory regression: red on one removed module, restored catalog: green');
 }
-console.log(`FreePBX module inventory verified structurally: ${result.modules} modules, ${result.families} families, ${result.exclusions} exclusion records, ${result.unavailable} unavailable or unverified entries.`);
+console.log(`FreePBX module inventory verified structurally: ${result.modules} modules, ${result.families} families, ${result.exclusions} exclusion records, ${result.unavailable} unavailable or unverified entries, documentation anchors ${result.modules} module/${result.families} family.`);
