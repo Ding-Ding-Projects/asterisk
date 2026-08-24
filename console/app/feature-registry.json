@@ -27,7 +27,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "desktop://console/main",
+      "route": "desktop://console/#surface=status",
       "documentation": {
         "path": "console/docs/platform/funny-levels.md",
         "state": "present"
@@ -131,7 +131,7 @@
           }
         ]
       },
-      "route": "desktop://console/main",
+      "route": "desktop://console/#surface=download/start",
       "documentation": {
         "path": "console/docs/platform/dialog-emojis.md",
         "state": "present"
@@ -740,17 +740,17 @@
       }
     },
     "status-hub": {
-      "status": "absent",
-      "note": "No live status-hub project, session card, or question-card surface exists. The single textual match for status-hub in the compiled console is a rail/menu label, not a working status surface.",
+      "status": "implemented-unverified",
+      "note": "The desktop surface is mounted at #surface=status and reads observed project, session, evidence, question, inbox, and receipt data through the typed Status Hub client and store. The external service remains unavailable until STATUS_HUB_URL is configured.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/shared/status-hub.ts", "console/control-plane/status-hub-client.ts", "console/control-plane/status-hub-store.ts", "console/app/renderer/src/status-hub-state.ts", "console/app/renderer/src/status-hub-surface.tsx", "console/app/renderer/src/surface-mounts.tsx", "console/app/electron/main.ts", "console/app/electron/preload.ts"],
+        "symbols": ["StatusHubClient", "validateStatusHubProjectRegistration", "StatusHubStore", "StatusHubSurface", "StatusHubRegistrationPersistence", "statusPersistence", "retryPersistRegistration", "status-hub.project", "status-hub.sessions", "status-hub.session", "status-hub.replies", "status-hub.answer"]
       },
       "registration": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/shared/control-plane.ts", "console/control-plane/dispatch.ts", "console/app/renderer/src/surface-mounts.tsx"],
+        "symbols": ["ControlPlaneAction", "createControlPlaneDispatcher", "SurfaceMounts"]
       },
-      "route": "desktop://console/main",
+      "route": "desktop://console/#surface=status",
       "documentation": {
         "path": "console/docs/platform/status-hub.md",
         "state": "present"
@@ -761,9 +761,9 @@
         "symbols": []
       },
       "persistence": {
-        "state": "unverified",
-        "paths": [],
-        "symbols": []
+        "state": "external-service",
+        "paths": ["console/control-plane/status-hub-store.ts", "console/app/renderer/src/surface-mounts.tsx", "console/control-plane/settings-store.ts", "console/control-plane/atomic-file.ts"],
+        "symbols": ["StatusHubRegistrationPersistence", "statusPersistence", "settings.snapshot", "settings.write", "settings.remove"]
       },
       "focusedChecks": {
         "state": "not-run",
@@ -2456,17 +2456,17 @@
       }
     },
     "browser-extension-download-surfaces": {
-      "status": "absent",
-      "note": "This is a desktop console for an Asterisk PBX; there is no browser extension in this repository and no Start-download/Downloading/complete dialog surfaces.",
+      "status": "implemented-unverified",
+      "note": "Electron now creates dedicated always-on-top Start, Downloading, and completion windows as the sole transfer surface owners. The primary shell offers only a passive open-window action. The packaged submission-only native-messaging host authenticates the allowlisted extension origin and forwards only bounded handoffs through the native broker, which owns a protected current-user plus SYSTEM pipe, verifies ACL readiness, and has a bounded startup handshake. The desktop arms the secure-helper path only after every config, manifest, host, broker, and helper digest and ACL check passes, and clears it on every failure, registration problem, broker startup or shutdown problem, and hot reload. Immutable handoffs, native destination approval, strict durable snapshots, acknowledged native durable writes, exact durable-size equality before Range resume, pause snapshots reconciled after helper close, discard-until-cleanup, native exclusive-handle digest validation, final identity verification and parent-relative atomic publication for initial and retry paths, cancellable publication children attached to transfer tasks, confirmed termination before cleanup, late-publication conflict receipts, PUBLISH_AMBIGUOUS review blocking, retryable publication, exact TRANSFER_TIMEOUT_HEADER, TRANSFER_TIMEOUT_BODY_IDLE, and TRANSFER_TIMEOUT_TOTAL receipts, and broker-close-aware hot reload back the windows. A failed pause reconciliation emits SECURE_TEMP_SIZE_RECONCILIATION_FAILED and disables resume until discard. The companion extension capture itself remains an external integration input because this Oak Kay does not ship the browser extension.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/shared/download-transfer.ts", "console/shared/native-messaging.ts", "console/control-plane/download-transfer-manager.ts", "console/native-messaging/README.md", "console/native-messaging/extension-identity.json", "console/native-messaging/Ding-PBX-Console-NativeMessagingHost.cpp", "console/native-messaging/Ding-PBX-Console-NativeIngressBroker.cpp", "console/native-messaging/secure-temp-helper.cpp", "console/native-messaging/build-native-host.ps1", "console/native-messaging/com.dingdingprojects.asterisk.downloads.json", "console/native-messaging/register-native-host.ps1", "console/app/renderer/src/download-state.ts", "console/app/renderer/src/download-window-mount.tsx", "console/app/renderer/src/download-start-surface.tsx", "console/app/renderer/src/download-progress-surface.tsx", "console/app/renderer/src/download-complete-surface.tsx", "console/app/electron/main.ts", "console/app/electron/preload.ts"],
+        "symbols": ["DownloadTransferManager", "DownloadWindowMount", "dedicatedDownloadWindowKind", "DownloadStartSurface", "DownloadProgressSurface", "DownloadCompleteSurface", "NativeDownloadIngressMessage", "isNativeDownloadIngressMessage", "acceptExtensionHandoff", "startNativeDownloadIngress", "download:submit-handoff", "download:snapshot", "download:open-window"]
       },
       "registration": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/shared/native-messaging.ts", "console/app/electron/main.ts", "console/native-messaging/com.dingdingprojects.asterisk.downloads.json", "console/native-messaging/register-native-host.ps1", "console/shared/control-plane.ts", "console/app/renderer/src/surface-mounts.tsx", "console/app/renderer/src/download-window-mount.tsx"],
+        "symbols": ["DOWNLOAD_EXTENSION_ID", "NativeIngressConfig", "startNativeDownloadIngress", "reloadNativeDownloadIngress", "acceptExtensionHandoff", "publishSecureTemp", "OpenVerifiedDirectory", "CreateNoFollowTemp", "CreateRelativeNoFollow", "publishRelative", "NativeIngressBroker", "nativeHost", "SurfaceMounts", "DownloadWindowMount"]
       },
-      "route": "desktop://console/main",
+      "route": "desktop://console/#surface=download/start",
       "documentation": {
         "path": "console/docs/platform/browser-extension-download-surfaces.md",
         "state": "present"
@@ -2477,8 +2477,8 @@
         "symbols": []
       },
       "persistence": {
-        "state": "unverified",
-        "paths": [],
+        "state": "implemented-unverified",
+        "paths": ["console/control-plane/download-transfer-manager.ts"],
         "symbols": []
       },
       "focusedChecks": {

@@ -1,5 +1,6 @@
 /** Fetch-backed hosted bridge. Authentication failures remain server decisions. */
-import type { ControlPlaneRequest, ControlPlaneResponse } from '../../../../shared/control-plane';
+import type { ControlPlaneRequest, ControlPlaneResponse, NativeHostStatus } from '../../../../shared/control-plane';
+import type { DownloadCommand, DownloadTransferReceipt, DownloadTransferSnapshot, ExtensionDownloadHandoff } from '../../../../shared/download-transfer';
 import type {
   HostedAuthBridge,
   HostedAuthMutationResult,
@@ -49,6 +50,9 @@ async function postMutation(path: string): Promise<HostedAuthMutationResult> {
 }
 
 export function installHttpBridge(): void {
+  const unavailableTransfer = (command: DownloadCommand, handoffId = ''): Promise<DownloadTransferReceipt> => Promise.resolve({
+    command, handoffId, accepted: false, observedAt: new Date().toISOString(), status: 'rejected', detail: 'Browser-extension transfer handoff is unavailable in hosted mode.',
+  });
   const auth: HostedAuthBridge = {
     async getSession(): Promise<HostedSessionStatus> {
       const { response, body } = await requestJson<HostedSessionStatus>('/api/session');
@@ -102,6 +106,24 @@ export function installHttpBridge(): void {
           };
         }
       },
+    },
+    statusHub: { baseUrl: undefined },
+    nativeHost: {
+      getStatus: async (): Promise<NativeHostStatus> => ({ state: 'unavailable', message: 'Native extension ingress is unavailable in hosted mode.', retryable: false }),
+      register: async (): Promise<NativeHostStatus> => ({ state: 'unavailable', message: 'Native extension ingress is unavailable in hosted mode.', retryable: false }),
+      onStatus: (_listener: (status: NativeHostStatus) => void) => () => {},
+    },
+    downloads: {
+      listPendingHandoffs: async (): Promise<ExtensionDownloadHandoff[]> => [],
+      start: (handoff: ExtensionDownloadHandoff) => unavailableTransfer('start', handoff.handoffId),
+      cancelHandoff: (handoffId: string) => unavailableTransfer('cancel', handoffId),
+      command: (_transferId: string, command: Exclude<DownloadCommand, 'start'>) => unavailableTransfer(command),
+      getSnapshot: async (_transferId: string): Promise<DownloadTransferSnapshot | undefined> => undefined,
+      subscribe: (_transferId: string, _listener: (snapshot: DownloadTransferSnapshot) => void) => () => {},
+      onHandoff: (_listener: (handoff: ExtensionDownloadHandoff) => void) => () => {},
+      onHandoffCancelled: (_listener: (handoffId: string) => void) => () => {},
+      closeWindow: async (_kind: 'start' | 'progress' | 'complete') => {},
+      openWindow: async (_kind: 'start' | 'progress' | 'complete') => {},
     },
     converter: {
       pickFile: async () => { throw new Error('The hosted server cannot open a desktop file picker. Choose a local file through the site surface.'); },

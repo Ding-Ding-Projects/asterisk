@@ -35,6 +35,9 @@ import { createOllamaRuntimeHandlers } from './ollama-client.js';
 import { OllamaStore } from './ollama-store.js';
 import { OllamaPullQueue, createOllamaPullHandlers } from './ollama-pulls.js';
 import { OllamaChat, createOllamaChatHandlers } from './ollama-chat.js';
+import { DownloadTransferManager } from './download-transfer-manager.js';
+import { createStatusHubClient, createVaultReference, type StatusHubClient } from './status-hub-client.js';
+import type { StatusHubCredentialReferences, StatusHubProjectRegistrationRequest } from '../shared/status-hub.js';
 import type { ConverterRequest, ConverterSniffResult } from '../shared/converter.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
 import type { ChangePlan, ReadOnlyCommand, TargetProfile } from './index.js';
@@ -65,6 +68,7 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'ollama.health', 'ollama.version', 'ollama.models.installed', 'ollama.models.running', 'ollama.model.show', 'ollama.model.delete', 'ollama.model.copy',
   'ollama.pulls.list', 'ollama.pulls.enqueue', 'ollama.pulls.cancel', 'ollama.pulls.retry', 'ollama.pulls.reconcile',
   'ollama.chat.sessions', 'ollama.chat.create', 'ollama.chat.rename', 'ollama.chat.delete', 'ollama.chat.send', 'ollama.chat.retry', 'ollama.chat.regenerate', 'ollama.chat.stop',
+  'status-hub.register', 'status-hub.project', 'status-hub.sessions', 'status-hub.session', 'status-hub.replies', 'status-hub.answer',
   'dim-sum.cache.read',
 ]);
 
@@ -97,6 +101,8 @@ export interface ControlPlaneDispatcherOptions {
   hosted: boolean;
   converterPickFile?: () => Promise<{ sourcePath: string; name: string; bytes: number; lastModified?: string; mediaType?: string } | undefined>;
   converterPickDestination?: () => Promise<string | undefined>;
+  statusHubBaseUrl?: string;
+  statusHubCredentials?: StatusHubCredentialReferences;
 }
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
@@ -113,6 +119,10 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     ...createOllamaChatHandlers(ollamaChat),
   };
   const ollamaReady = ollamaPullQueue.initialize();
+  const downloadTransfers = new DownloadTransferManager(userDataPath);
+  const statusHubClient: StatusHubClient | undefined = options.statusHubBaseUrl
+    ? createStatusHubClient({ baseUrl: options.statusHubBaseUrl, credentials: options.statusHubCredentials })
+    : undefined;
   const converterQueue = converterRegistry.then(async (registry) => {
     const store = new ConverterStore({ rootPath: join(userDataPath, 'converter-queues') });
     await store.initialize();
@@ -312,6 +322,16 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     } catch {
       return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime provenance is invalid.' };
     }
+  }
+
+  function statusHubUnavailable(requestId: string): ControlPlaneResponse {
+    return { ok: false, requestId, code: 'STATUS_HUB_UNAVAILABLE', message: 'The Status Hub is not configured for this installation.' };
+  }
+
+  function statusHubResult<T>(requestId: string, result: { ok: true; value: T } | { ok: false; error: { code: string; message: string } }): ControlPlaneResponse {
+    return result.ok
+      ? { ok: true, requestId, data: result.value }
+      : { ok: false, requestId, code: result.error.code, message: result.error.message };
   }
 
   const rootfsDownloader = {
@@ -549,6 +569,36 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           const code = (error as { code?: string }).code;
           if (code === 'ENOENT') return { ok: true, requestId: request.requestId, data: { text: null } };
           return { ok: false, requestId: request.requestId, code: 'DIM_SUM_CACHE_UNAVAILABLE', message: 'The local dim-sum cache could not be read.' };
+        }
+      }
+      if (request.action.startsWith('status-hub.')) {
+        if (!statusHubClient) return statusHubUnavailable(request.requestId);
+        if (request.action === 'status-hub.register') {
+          const payload = (request.payload ?? {}) as Partial<StatusHubProjectRegistrationRequest>;
+          return statusHubResult(request.requestId, await statusHubClient.registerProject(payload as StatusHubProjectRegistrationRequest));
+        }
+        if (request.action === 'status-hub.project') {
+          const projectId = typeof request.payload?.projectId === 'string' ? request.payload.projectId : '';
+          return statusHubResult(request.requestId, await statusHubClient.getProject(projectId));
+        }
+        if (request.action === 'status-hub.sessions') {
+          const projectId = typeof request.payload?.projectId === 'string' ? request.payload.projectId : '';
+          return statusHubResult(request.requestId, await statusHubClient.listSessions(projectId));
+        }
+        if (request.action === 'status-hub.session') {
+          const sessionId = typeof request.payload?.sessionId === 'string' ? request.payload.sessionId : '';
+          return statusHubResult(request.requestId, await statusHubClient.getSession(sessionId));
+        }
+        if (request.action === 'status-hub.replies') {
+          const sessionId = typeof request.payload?.sessionId === 'string' ? request.payload.sessionId : '';
+          const cursor = typeof request.payload?.cursor === 'string' ? request.payload.cursor : undefined;
+          return statusHubResult(request.requestId, await statusHubClient.getReplies(sessionId, cursor));
+        }
+        if (request.action === 'status-hub.answer') {
+          const sessionId = typeof request.payload?.sessionId === 'string' ? request.payload.sessionId : '';
+          const questionId = typeof request.payload?.questionId === 'string' ? request.payload.questionId : '';
+          const answer = typeof request.payload?.answer === 'string' ? request.payload.answer : '';
+          return statusHubResult(request.requestId, await statusHubClient.deliverQuestion(sessionId, questionId, answer));
         }
       }
       if (request.action.startsWith('ollama.')) {
@@ -910,7 +960,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     }
   }
 
-  return { controlPlaneRequest, bundledAsteriskRuntime, serverInventory };
+  return { controlPlaneRequest, bundledAsteriskRuntime, serverInventory, downloadTransfers };
 }
 
 export type ControlPlaneDispatcher = ReturnType<typeof createControlPlaneDispatcher>;

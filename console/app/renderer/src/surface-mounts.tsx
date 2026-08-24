@@ -5,10 +5,14 @@ import { DocsSurface } from './docs-surface';
 import { ChangelogSurface } from './changelog-surface';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
 import { CHANGELOG_MARKDOWN, CHANGELOG_REPOSITORY_URL } from './generated/changelog-bundle';
+import { StatusHubSurface } from './status-hub-surface';
+import { createStatusHubClient, type StatusHubFetch } from '../../../control-plane/status-hub-client';
+import { createStatusHubStore, type StatusHubPersistenceResult, type StatusHubRegistrationPersistence, type StatusHubPersistedRegistration } from '../../../control-plane/status-hub-store';
+import { DownloadWindowMount, dedicatedDownloadWindowKind } from './download-window-mount';
 import type { BackendResponse, ChatSession, OllamaRuntimeEvidence, OllamaSuiteSnapshot, PullQueueEvidence } from './ollama-suite-model';
 import type { ConverterBackendHandlers } from '../../../shared/converter';
 
-type SurfaceRoute = 'converter' | 'ollama' | 'docs' | 'changelog';
+type SurfaceRoute = 'converter' | 'ollama' | 'docs' | 'changelog' | 'status';
 
 function unavailable<T>(surface: string, operation: string): Promise<T> {
   return Promise.reject(new Error(`${surface} ${operation} is not registered in the privileged bridge. No value was assumed and no operation was attempted.`));
@@ -147,28 +151,91 @@ function routeFromHash(): SurfaceRoute | undefined {
   const value = window.location.hash.slice(1);
   if (!value.startsWith('surface=')) return undefined;
   const route = value.slice('surface='.length);
-  return route === 'converter' || route === 'ollama' || route === 'docs' || route === 'changelog' ? route : undefined;
+  return route === 'converter' || route === 'ollama' || route === 'docs' || route === 'changelog' || route === 'status' ? route : undefined;
 }
 
+const statusHubBridgeFetch: StatusHubFetch = async (input, init) => {
+  const url = new URL(input.toString());
+  const path = url.pathname.replace(/\/$/u, '');
+  const body = typeof init?.body === 'string' ? JSON.parse(init.body) as Record<string, unknown> : {};
+  let action: string;
+  let payload: Record<string, unknown> = body;
+  if (path === '/api/status-hub/projects' && init?.method === 'POST') action = 'status-hub.register';
+  else if (/^\/api\/status-hub\/projects\/[^/]+$/u.test(path)) { action = 'status-hub.project'; payload = { projectId: decodeURIComponent(path.split('/').at(-1) ?? '') }; }
+  else if (/^\/api\/status-hub\/projects\/[^/]+\/sessions$/u.test(path)) { action = 'status-hub.sessions'; payload = { projectId: decodeURIComponent(path.split('/').at(-2) ?? '') }; }
+  else if (/^\/api\/status-hub\/sessions\/[^/]+$/u.test(path)) { action = 'status-hub.session'; payload = { sessionId: decodeURIComponent(path.split('/').at(-1) ?? '') }; }
+  else if (/^\/api\/status-hub\/sessions\/[^/]+\/replies$/u.test(path)) { action = 'status-hub.replies'; payload = { sessionId: decodeURIComponent(path.split('/').at(-2) ?? ''), cursor: url.searchParams.get('cursor') ?? undefined }; }
+  else if (/^\/api\/status-hub\/sessions\/[^/]+\/questions\/[^/]+\/answers$/u.test(path)) { action = 'status-hub.answer'; const parts = path.split('/'); payload = { sessionId: decodeURIComponent(parts[4] ?? ''), questionId: decodeURIComponent(parts[6] ?? ''), answer: body.answer }; }
+  else return new Response(JSON.stringify({ message: 'The Status Hub route is unavailable.' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+  const bridge = window.dingDesktop;
+  if (!bridge) return new Response(JSON.stringify({ message: 'The desktop control-plane bridge is unavailable.' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+  const response = await bridge.controlPlane.request({ requestId: crypto.randomUUID(), action: action as never, payload });
+  const status = response.ok ? 200 : response.code === 'STATUS_HUB_UNAVAILABLE' ? 503 : response.code === 'AUTH_REQUIRED' ? 401 : 502;
+  return new Response(JSON.stringify(response.ok ? { data: response.data } : { message: response.message }), { status, headers: { 'Content-Type': 'application/json' } });
+};
+
 export function SurfaceMounts() {
+  const downloadWindow = dedicatedDownloadWindowKind();
+  return downloadWindow ? <DownloadWindowMount kind={downloadWindow} /> : <PrimarySurfaceMounts />;
+}
+
+function PrimarySurfaceMounts() {
   const [route, setRoute] = useState<SurfaceRoute | undefined>(() => routeFromHash());
+  const [nativeHostStatus, setNativeHostStatus] = useState(() => ({ state: 'unavailable', message: 'Native extension ingress status is loading.', retryable: true }));
+  const statusPersistence = useMemo<StatusHubRegistrationPersistence>(() => ({
+    async load(): Promise<StatusHubPersistenceResult<StatusHubPersistedRegistration | undefined>> {
+      const response = await window.dingDesktop?.controlPlane.request({ requestId: crypto.randomUUID(), action: 'settings.snapshot' });
+      if (!response) return { ok: false, error: { state: 'offline', code: 'SETTINGS_BRIDGE_UNAVAILABLE', message: 'The durable settings bridge is unavailable.', retryable: true } };
+      if (!response.ok) return { ok: false, error: { state: 'error', code: response.code, message: response.message, retryable: true } };
+      const raw = (response.data as { values?: Record<string, string> } | undefined)?.values?.['status-hub.registration'];
+      if (!raw) return { ok: true, value: undefined };
+      try { return { ok: true, value: JSON.parse(raw) as StatusHubPersistedRegistration }; } catch { return { ok: false, error: { state: 'error', code: 'PERSISTED_RECEIPT_JSON_INVALID', message: 'The durable Status Hub receipt is not valid JSON.', retryable: false } }; }
+    },
+    async save(value: StatusHubPersistedRegistration): Promise<StatusHubPersistenceResult<void>> {
+      const response = await window.dingDesktop?.controlPlane.request({ requestId: crypto.randomUUID(), action: 'settings.write', payload: { key: 'status-hub.registration', value: JSON.stringify(value) } });
+      if (!response) return { ok: false, error: { state: 'offline', code: 'SETTINGS_BRIDGE_UNAVAILABLE', message: 'The durable settings bridge is unavailable.', retryable: true } };
+      return response.ok ? { ok: true, value: undefined } : { ok: false, error: { state: 'error', code: response.code, message: response.message, retryable: true } };
+    },
+    async clear(): Promise<StatusHubPersistenceResult<void>> {
+      const response = await window.dingDesktop?.controlPlane.request({ requestId: crypto.randomUUID(), action: 'settings.remove', payload: { key: 'status-hub.registration' } });
+      if (!response) return { ok: false, error: { state: 'offline', code: 'SETTINGS_BRIDGE_UNAVAILABLE', message: 'The durable settings bridge is unavailable.', retryable: true } };
+      return response.ok ? { ok: true, value: undefined } : { ok: false, error: { state: 'error', code: response.code, message: response.message, retryable: true } };
+    },
+  }), []);
+  const statusStore = useMemo(() => createStatusHubStore({
+    client: createStatusHubClient({ baseUrl: 'http://127.0.0.1:8099/', fetchImpl: statusHubBridgeFetch }),
+    projectId: 'asterisk',
+    registration: { projectId: 'asterisk', projectName: 'Ding PBX Console', defaultBranch: 'master', releaseChannel: 'desktop', stableUrl: 'https://ding-ding-projects.github.io/asterisk/' },
+    persistence: statusPersistence,
+    pollReplies: true,
+  }), [statusPersistence]);
   useEffect(() => {
     const onHash = () => setRoute(routeFromHash());
     window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
+    return () => { window.removeEventListener('hashchange', onHash); };
+  }, []);
+  useEffect(() => {
+    const host = window.dingDesktop?.nativeHost;
+    if (!host) return;
+    void host.getStatus().then(setNativeHostStatus);
+    return host.onStatus(setNativeHostStatus);
   }, []);
 
-  const links = useMemo(() => (['converter', 'ollama', 'docs', 'changelog'] as const), []);
+  const links = useMemo(() => ['converter', 'ollama', 'docs', 'changelog', 'status'] as const, []);
   return (
     <aside className="surface-mount-host" aria-label="Mounted feature surfaces">
       <nav aria-label="Mounted feature surfaces">
         {links.map((item) => <a key={item} href={`#surface=${item}`} aria-current={route === item ? 'page' : undefined}>{item}</a>)}
         {route ? <a href="#" aria-label="Close mounted feature surface">Close</a> : null}
+        <button type="button" onClick={() => void window.dingDesktop?.downloads.openWindow('start')}>Open download window</button>
+        <span role="status" aria-live="polite">Extension ingress: {nativeHostStatus.state}</span>
+        {nativeHostStatus.state !== 'ready' ? <button type="button" onClick={() => void window.dingDesktop?.nativeHost.register()}>Register extension ingress</button> : null}
       </nav>
       {route === 'converter' ? <ConverterSurface client={converterClient} /> : null}
       {route === 'ollama' ? <OllamaSuite client={ollamaClient} /> : null}
       {route === 'docs' ? <DocsSurface bundle={DOCS_BUNDLE} /> : null}
       {route === 'changelog' ? <ChangelogSurface markdown={CHANGELOG_MARKDOWN} repositoryUrl={CHANGELOG_REPOSITORY_URL} /> : null}
+      {route === 'status' ? <StatusHubSurface store={statusStore} /> : null}
     </aside>
   );
 }

@@ -17,7 +17,7 @@ export function StatusHubSurface({ store, heading = 'Status Hub' }: StatusHubSur
 
   useEffect(() => {
     void store.mount();
-    return () => store.dispose();
+    return () => store.stop();
   }, [store]);
 
   const setAnswer = (questionId: string, value: string) => {
@@ -51,6 +51,14 @@ export function StatusHubSurface({ store, heading = 'Status Hub' }: StatusHubSur
       </header>
 
       {model.error ? <p className="status-hub-error" role="alert">{model.error.message}</p> : null}
+      {model.persistenceWarning ? <p className="status-hub-error" role="alert">Local receipt warning: {model.persistenceWarning.message}</p> : null}
+      {model.error ? <div className="status-hub-actions" aria-label="Status Hub recovery actions">
+        <button type="button" onClick={() => void store.mount()}>Retry</button>
+        <button type="button" onClick={() => void store.reregister()}>Re-register</button>
+      </div> : null}
+      {model.persistenceWarning && model.project ? <div className="status-hub-actions" aria-label="Local receipt recovery actions">
+        <button type="button" onClick={() => void store.retryPersistRegistration()}>Retry local save</button>
+      </div> : null}
       {model.observedAt ? <p className="status-hub-observed">Last observed {model.observedAt}</p> : null}
 
       {model.project ? <ProjectEvidence project={model.project} /> : (

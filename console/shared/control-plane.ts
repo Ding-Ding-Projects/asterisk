@@ -1,3 +1,14 @@
+import type { DownloadSurfaceKind, DownloadTransferClient, DownloadTransferSnapshot, ExtensionDownloadHandoff } from './download-transfer.js';
+
+export interface NativeHostStatus {
+  state: 'ready' | 'starting' | 'unavailable' | 'error';
+  message: string;
+  retryable: boolean;
+  browsers?: readonly string[];
+  executablePath?: string;
+  executableSha256?: string;
+}
+
 /**
  * `runtime.*` manage the console's own WSL distribution, created from the Asterisk
  * payload inside the installer. They replace an earlier `server.provision-bundled`
@@ -37,6 +48,9 @@ export type ControlPlaneAction =
   | 'ollama.pulls.list' | 'ollama.pulls.enqueue' | 'ollama.pulls.cancel' | 'ollama.pulls.retry' | 'ollama.pulls.reconcile'
   | 'ollama.chat.sessions' | 'ollama.chat.create' | 'ollama.chat.rename' | 'ollama.chat.delete' | 'ollama.chat.send'
   | 'ollama.chat.retry' | 'ollama.chat.regenerate' | 'ollama.chat.stop'
+  /* Live Status Hub observations and receipt-backed question delivery. */
+  | 'status-hub.register' | 'status-hub.project' | 'status-hub.sessions' | 'status-hub.session'
+  | 'status-hub.replies' | 'status-hub.answer'
   /* Dim-sum cache is local-only. A missing cache is an honest unavailable result. */
   | 'dim-sum.cache.read';
 
@@ -90,6 +104,20 @@ export interface DingDesktopApi {
   platform: string;
   window: { minimize(): void; toggleMaximize(): void; close(): void };
   controlPlane: { request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> };
+  statusHub: { baseUrl?: string };
+  nativeHost: {
+    getStatus(): Promise<NativeHostStatus>;
+    register(): Promise<NativeHostStatus>;
+    onStatus(listener: (status: NativeHostStatus) => void): () => void;
+  };
+  downloads: DownloadTransferClient & {
+    listPendingHandoffs(): Promise<ExtensionDownloadHandoff[]>;
+    getSnapshot(transferId: string): Promise<DownloadTransferSnapshot | undefined>;
+    onHandoff(listener: (handoff: ExtensionDownloadHandoff) => void): () => void;
+    onHandoffCancelled(listener: (handoffId: string) => void): () => void;
+    closeWindow(kind: DownloadSurfaceKind): Promise<void>;
+    openWindow(kind: DownloadSurfaceKind): Promise<void>;
+  };
   converter: {
     pickFile(): Promise<{ sourcePath: string; name: string; bytes: number; lastModified?: string } | undefined>;
     pickDestination(): Promise<string | undefined>;

@@ -16,7 +16,7 @@ export type DownloadTransferStatus =
   | 'cancelled'
   | 'partial';
 
-export type DownloadCommand = 'start' | 'cancel' | 'pause' | 'resume' | 'retry';
+export type DownloadCommand = 'start' | 'cancel' | 'pause' | 'resume' | 'retry' | 'discard';
 
 export type UnsavedWorkState = 'none' | 'preserved' | 'pending';
 
@@ -46,6 +46,14 @@ export interface TransferError {
   observedAt: string;
 }
 
+export type TransferTimeoutKind = 'header' | 'body-idle' | 'total';
+
+export interface DownloadResumeSupport {
+  acceptRanges: boolean;
+  etag?: string;
+  lastModified?: string;
+}
+
 export interface PartialTransferOutcome {
   bytesTransferred: number;
   reason: string;
@@ -67,7 +75,16 @@ export interface DownloadTransferSnapshot {
   deadlineAt?: string;
   observedAt: string;
   error?: TransferError;
+  timeoutKind?: TransferTimeoutKind;
+  bodyComplete?: boolean;
+  publicationPending?: boolean;
+  publicationSize?: number;
+  publicationSha256?: string;
+  cleanupCompleted?: boolean;
+  cleanupError?: TransferError;
   partial?: PartialTransferOutcome;
+  resume?: DownloadResumeSupport;
+  resumeDisabledReason?: string;
   canPause: boolean;
   canResume: boolean;
   canCancel: boolean;
@@ -81,6 +98,7 @@ export interface DownloadTransferReceipt {
   accepted: boolean;
   observedAt: string;
   status: DownloadTransferStatus | 'rejected';
+  code?: string;
   detail?: string;
 }
 

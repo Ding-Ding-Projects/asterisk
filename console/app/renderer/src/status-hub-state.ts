@@ -9,6 +9,7 @@ export interface StatusHubSurfaceModel {
   project: StatusHubClientState['project'];
   rows: readonly StatusHubSurfaceRow[];
   error?: StatusHubClientState['error'];
+  persistenceWarning?: StatusHubClientState['persistenceWarning'];
   observedAt?: string;
 }
 
@@ -22,6 +23,7 @@ export function selectStatusHubSurface(state: StatusHubClientState): StatusHubSu
     project: state.project,
     rows: Object.values(state.snapshots).map(snapshot => ({ snapshot })),
     error: state.error,
+    persistenceWarning: state.persistenceWarning,
     observedAt: state.observedAt,
   };
 }

@@ -17,3 +17,4 @@ export * from "./updater.js";
 export * from "./server-inventory.js";
 export * from "./settings-store.js";
 export * from "./atomic-file.js";
+export * from "./download-transfer-manager.js";

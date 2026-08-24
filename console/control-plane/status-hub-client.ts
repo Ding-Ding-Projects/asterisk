@@ -231,6 +231,11 @@ function parseRegistration(value: unknown): StatusHubProjectRegistration {
   };
 }
 
+/** Strict shared validator used for durable registration receipts before hydration. */
+export function validateStatusHubProjectRegistration(value: unknown): value is StatusHubProjectRegistration {
+  try { parseRegistration(value); return true; } catch { return false; }
+}
+
 function parseSession(value: unknown): StatusHubSession {
   const source = record(value, 'session');
   const state = boundedString(source.state, 'session.state', 32);

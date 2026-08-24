@@ -54,7 +54,6 @@ export function DownloadStartSurface({ handoff, client, onReceipt, onClose }: Do
     <section
       className="download-surface download-start-surface"
       aria-labelledby="download-start-title"
-      data-window-intent="always-on-top"
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
           event.preventDefault();

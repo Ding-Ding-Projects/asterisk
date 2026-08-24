@@ -13,6 +13,8 @@ extraResources:
     to: asterisk/asterisk-wsl-rootfs.json
   - from: resources/update-manifest.json
     to: update-manifest.json
+  - from: native-messaging
+    to: native-messaging
 win:
   target: squirrel
   icon: assets/icon.png
