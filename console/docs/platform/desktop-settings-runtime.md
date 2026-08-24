@@ -40,6 +40,7 @@ Replacement is available only through an explicitly classified private user-inte
 ## Failure modes and security
 
 - A storage read or validation failure activates defaults and reports the exact recovery reason.
+- A privacy context that refuses access to browser storage uses one guarded probe, then gives settings and personal vocabulary the same memory-only store. Snapshots report `session-memory` provenance and the reason values will not survive restart.
 - A storage write failure leaves the previous settings active and returns a failed update result.
 - An external schedule source has no effect until its privileged reader reports a current true state.
 - Missing speech support leaves narration unmounted. Voice enumeration then returns an empty list and queue attempts return `false`.

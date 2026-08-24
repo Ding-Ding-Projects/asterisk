@@ -22,7 +22,19 @@ export interface SettingsStorageEvents {
   removeEventListener(type: 'storage', listener: EventListener): void;
 }
 
-export type StoredProvenance = 'default' | 'persisted';
+export type StoredProvenance = 'default' | 'persisted' | 'session-memory';
+
+export interface BrowserSettingsStorageProbe {
+  storage: SettingsStorage;
+  events?: SettingsStorageEvents;
+  persistence: 'persistent' | 'session-memory';
+  fallbackReason?: string;
+}
+
+export interface SettingsStoreOptions {
+  persistence?: BrowserSettingsStorageProbe['persistence'];
+  fallbackReason?: string;
+}
 
 export interface SettingsStoreSnapshot {
   settings: DesktopSettings;
@@ -52,6 +64,8 @@ export class SettingsStore {
   private hydrated = false;
   private provenance: StoredProvenance = 'default';
   private recoveryReason: string | undefined;
+  private readonly persistence: BrowserSettingsStorageProbe['persistence'];
+  private readonly fallbackReason: string | undefined;
   private readonly listeners = new Set<SettingsStoreListener>();
   private readonly onStorage: EventListener = (event): void => {
     const storageEvent = event as unknown as StorageEventLike;
@@ -62,12 +76,20 @@ export class SettingsStore {
   constructor(
     private readonly storage: SettingsStorage,
     private readonly events?: SettingsStorageEvents,
+    options: SettingsStoreOptions = {},
   ) {
+    this.persistence = options.persistence ?? 'persistent';
+    this.fallbackReason = options.fallbackReason;
+    this.restoreBaseProvenance();
     events?.addEventListener('storage', this.onStorage);
   }
 
   hydrate(): SettingsStoreSnapshot {
-    this.readRaw(this.storage.getItem(DESKTOP_SETTINGS_STORAGE_KEY), true);
+    try {
+      this.readRaw(this.storage.getItem(DESKTOP_SETTINGS_STORAGE_KEY), true);
+    } catch (error) {
+      this.recover(`Settings storage could not be read: ${error instanceof Error ? error.name : 'storage access error'}.`, false);
+    }
     return this.snapshot();
   }
 
@@ -111,8 +133,8 @@ export class SettingsStore {
     }
     this.settings = validation.value;
     this.hydrated = true;
-    this.provenance = 'persisted';
-    this.recoveryReason = undefined;
+    this.provenance = this.persistence === 'persistent' ? 'persisted' : 'session-memory';
+    this.recoveryReason = this.fallbackReason;
     this.emit();
     return { ok: true, snapshot: this.snapshot() };
   }
@@ -129,8 +151,7 @@ export class SettingsStore {
     }
     this.settings = defaultDesktopSettings();
     this.hydrated = true;
-    this.provenance = 'default';
-    this.recoveryReason = undefined;
+    this.restoreBaseProvenance();
     this.emit();
     return { ok: true, snapshot: this.snapshot() };
   }
@@ -144,8 +165,7 @@ export class SettingsStore {
     this.hydrated = true;
     if (raw === null) {
       this.settings = defaultDesktopSettings();
-      this.provenance = 'default';
-      this.recoveryReason = undefined;
+      this.restoreBaseProvenance();
       this.emit();
       return;
     }
@@ -162,19 +182,24 @@ export class SettingsStore {
       return;
     }
     this.settings = validation.value;
-    this.provenance = 'persisted';
-    this.recoveryReason = undefined;
+    this.provenance = this.persistence === 'persistent' ? 'persisted' : 'session-memory';
+    this.recoveryReason = this.fallbackReason;
     this.emit();
   }
 
   private recover(reason: string, purgeInvalid: boolean): void {
     this.settings = defaultDesktopSettings();
-    this.provenance = 'default';
-    this.recoveryReason = reason;
+    this.provenance = this.persistence === 'persistent' ? 'default' : 'session-memory';
+    this.recoveryReason = this.fallbackReason ? `${this.fallbackReason} ${reason}` : reason;
     if (purgeInvalid) {
       try { this.storage.removeItem(DESKTOP_SETTINGS_STORAGE_KEY); } catch { /* Defaults remain active. */ }
     }
     this.emit();
+  }
+
+  private restoreBaseProvenance(): void {
+    this.provenance = this.persistence === 'persistent' ? 'default' : 'session-memory';
+    this.recoveryReason = this.fallbackReason;
   }
 
   private emit(): void {
@@ -192,13 +217,40 @@ export function createMemorySettingsStorage(): SettingsStorage {
   };
 }
 
-export function createBrowserSettingsStore(): SettingsStore {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return new SettingsStore(createMemorySettingsStorage());
-  }
-  const events: SettingsStorageEvents = {
-    addEventListener: (type, listener) => window.addEventListener(type, listener),
-    removeEventListener: (type, listener) => window.removeEventListener(type, listener),
+function browserStorageFallback(reason: string): BrowserSettingsStorageProbe {
+  return {
+    storage: createMemorySettingsStorage(),
+    persistence: 'session-memory',
+    fallbackReason: reason,
   };
-  return new SettingsStore(window.localStorage, events);
+}
+
+/**
+ * Acquire browser storage exactly once inside a guarded boundary. Access to the
+ * localStorage getter can itself throw in privacy-restricted contexts, so neither a
+ * boolean expression nor a second consumer may reach for it independently.
+ */
+export function probeBrowserSettingsStorage(): BrowserSettingsStorageProbe {
+  if (typeof window === 'undefined') {
+    return browserStorageFallback('Browser storage is unavailable outside a window. Settings and personal vocabulary are memory-only for this session.');
+  }
+  try {
+    const storage = window.localStorage;
+    storage.getItem(DESKTOP_SETTINGS_STORAGE_KEY);
+    const events: SettingsStorageEvents = {
+      addEventListener: (type, listener) => window.addEventListener(type, listener),
+      removeEventListener: (type, listener) => window.removeEventListener(type, listener),
+    };
+    return { storage, events, persistence: 'persistent' };
+  } catch (error) {
+    const name = error instanceof Error && error.name ? error.name : 'storage access error';
+    return browserStorageFallback(`Browser storage is unavailable in this privacy context (${name}). Settings and personal vocabulary are memory-only for this session.`);
+  }
+}
+
+export function createBrowserSettingsStore(probe = probeBrowserSettingsStorage()): SettingsStore {
+  return new SettingsStore(probe.storage, probe.events, {
+    persistence: probe.persistence,
+    fallbackReason: probe.fallbackReason,
+  });
 }
