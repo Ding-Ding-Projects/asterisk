@@ -4566,7 +4566,7 @@ class Component extends DCLogic {
             { icon:'content_copy', label:'Duplicate tab', hint:'⌃D', run:() => { close(); this.setState({ tabs:s.tabs.concat([k]) }); } },
             { icon:'close', label:'Close tab', hint:'⌃W', run:() => { close(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:t[0] || 'dash' }); } },
             { icon:'save', label:'Export & import', hint:'▸', sub:'tabexport' },
-            { icon:'folder', label:'Group tabs by area', hint:'', run:() => { close(); this.toast('Tabs grouped by rail area'); } },
+            { icon:'folder', label:'Group tabs by area', hint:'', run:() => { close(); const byRail = {}; s.tabs.forEach(t => { const r = (SCREENS[t] || {}).rail; if (r) { (byRail[r] = byRail[r] || []).push(t); } }); const made = Object.keys(byRail).filter(r => byRail[r].length > 1).map(r => ({ id:'area-' + r, name:((RAIL.filter(x => x.id === r)[0] || {}).groupLabel) || r, tabs:byRail[r], colour:'', collapsed:false })); if (made.length) { this.setState({ groups:made }); this.fire('Tabs grouped', made.length + ' group(s) by area.'); } else { this.fire('Nothing to group', 'No area has more than one tab open, and a group of one is just clutter.'); } } },
             { icon:'dock_to_right', label:'Dock this tab right', hint:'', run:() => { close(); this.set('dock', 'right'); } },
             { icon:'lock', label:'Lock this tab…', hint:'⌃L', run:common[0].run }
           ]);

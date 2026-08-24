@@ -36,7 +36,6 @@ const STILL_ANNOUNCING = new Map([
   ['Revert just this option', 'restore replaces a whole file from a backup; there is no per-option revert, and inventing one means diffing and rewriting a single key inside a live config'],
   ['Branch from here', 'same as New branch: no repository, and the history that is git is append-only'],
   ['Lock every tab in group', 'needs the per-element lock wizard to accept a whole group'],
-  ['Group tabs by area', 'needs the tab model to accept a bulk regroup'],
   ['Duplicate step', 'needs the dialplan canvas to accept an inserted node'],
   ['Insert condition before', 'needs the dialplan canvas to accept an inserted node'],
   ['Export', 'the bulk-selection Export shares a label with the appearance Export; it needs the selection model to produce rows'],
