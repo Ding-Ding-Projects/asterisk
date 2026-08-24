@@ -346,9 +346,13 @@
       ]
     },
     "forge-publishing": {
-      "state": "absent",
-      "note": "No GitHub/forge publishing flow (account picker, fork-vs-copy-and-push) exists; this is a PBX admin console, not a repository-publishing tool.",
-      "files": []
+      "state": "partial",
+      "note": "Implemented 2026-08-24 as app/renderer/src/forge-publishing.ts: multi-account sign-in with an active account that keeps single-account callers working, owner selection across a user’s own namespace and the organizations they can create in, route selection between forking and copy-and-push, and a plan that reports every problem at once. No token passes through the module: an account carries only the vault key naming where its token lives, asserted both against the object and against the type declaration -- the object-level check alone missed an optional field added to the interface, which is how that gap was found. With several accounts signed in and none chosen, nothing is active rather than the first being guessed, because guessing is how work lands in somebody else’s namespace and is discovered by a colleague not finding it. A fork preference on a forge that cannot fork becomes a copy and SAYS SO, since a fork has an upstream link and a copy does not.",
+      "blockedBy": "BLOCKED ON THE FORGE TRANSPORT. The module decides what should happen and nothing performs it: there is no code that calls a forge API to create a repository, fork one, or push to a new remote, and no account list for it to read. Real consumption needs the privileged process to own those calls -- the renderer must not hold a token -- exposed the way the provisioning steps now are, plus an account store keyed to the OS credential vault. Until then this is a correct decision it has no way to carry out, and wiring a control to it would produce a publish button that plans and never publishes.",
+      "files": [
+        "app/renderer/src/forge-publishing.ts",
+        "tests/ui/forge-publishing.test.tsx"
+      ]
     },
     "collapsible-filters": {
       "state": "partial",
