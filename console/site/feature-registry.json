@@ -52,7 +52,7 @@
     },
     "dim-sum-surprise": {
       "state": "partial",
-      "note": "global-settings.js consumes the versioned dim-sum-cache.json records, including authoritative bilingual names, immutable catalog-v1 release tags, public image URLs, and SHA-256 values. It performs a fresh ten-percent later-visit draw, one draw per launch, with first-visit, School, quiet, error, update, active-work, hidden-page, and screen-reader suppression. The rendered card uses a verified locally cached sanctioned catalog image and accessible bilingual alt text, with no CSS substitute or opt-out. First use remains partial because it requires a bounded network fetch to populate the local image cache, and the candidate set is bounded and shuffled rather than fixed to one record.",
+      "note": "global-settings.js consumes the versioned dim-sum-cache.json records, including authoritative bilingual names, immutable catalog-v1 release tags, exact host/repository/path/filename identity, public image URLs, and SHA-256 values. It performs a fresh ten-percent later-visit draw, one draw per launch, with first-visit, School, quiet, error, update, active-work, hidden-page, and screen-reader suppression. The rendered card uses a verified locally cached sanctioned catalog image and accessible bilingual alt text, with no CSS substitute or opt-out. First use remains partial because it requires a bounded network fetch to populate the local image cache, and the candidate set is bounded and shuffled rather than fixed to one record.",
       "files": ["site/global-settings.js", "site/dim-sum-cache.json", "docs/app/site-global-settings.md"]
     },
     "regex-builder": {
@@ -112,7 +112,7 @@
     },
     "command-palette": {
       "state": "partial",
-      "note": "site/app.js implements openPalette() (line 816) opening a real <dialog id=\"command-palette\"> with a live-filtered palette-search field and renderPalette(), wired from a palette-open button and Ctrl+Shift+F was not confirmed as the activation key (only a button click and palette-search input were found) - the keyboard-shortcut activation contract is unverified.",
+      "note": "site/app.js registers Ctrl+Shift+F before the navigation element early return, and global-settings.js creates complete palette markup, renames School-mode entries from the chosen name, activates the owning tab before focus, and exposes exact global-setting controls for generated articles. The surface remains partial because the broader all-feature palette inventory is not yet complete.",
       "files": [
         "site/app.js"
       ]

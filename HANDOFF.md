@@ -527,6 +527,31 @@ Verification remained limited to `node --check` for the changed JavaScript files
 `git diff --check`; no tests, lint, build, browser, UI, captures, hosting, deployment, push,
 release, or cleanup work ran.
 
+## Pages global settings sixth refutation repair, 2026-08-24
+
+The global copy renderer now has five distinct fact-preserving levels for every page-owned copy
+key, with no top-level clamping that collapses levels. The visible copy inventory now enumerates
+panel headings, controls, placeholders, options, weekdays, regex controls, confirmations,
+notifications, palette labels, narrator status, schedule status, dim-sum status, and update status.
+After a School-mode rename, the chosen name drives the tab label, palette labels, search labels,
+status count, control labels, and accessibility labels.
+
+Page events now carry neutral IDs and source English and Cantonese title and body tracks at the
+producer. No event consumer splits a rendered bilingual string. The existing page runtime and
+global settings remain synchronized through the canonical state and output-only compatibility
+projection. Public dim-sum metadata now requires exact `catalog-v1` host, repository, release path,
+filename, and tag identity. Stored candidates are validated on load, a bounded shuffled set is
+bootstrapped, and invalid rule values or cache records are surfaced or purged.
+
+The schedule effective signature now includes rule ID, target, and value, so a changed value under
+the same rule ID is a real transition. The regex panel uses physical anchor geometry with panel
+collision, width, height, and scroll handling. Home Assistant values remain target-validated and
+limited to the approved host policy.
+
+Verification remained limited to `node --check` for the changed JavaScript files and
+`git diff --check`; no tests, lint, build, browser, UI, captures, hosting, deployment, push,
+release, or cleanup work ran.
+
 ## Pages global settings fifth refutation repair, 2026-08-24
 
 The navigation keyboard listener now registers before the navigation element early return, so

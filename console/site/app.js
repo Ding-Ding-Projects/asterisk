@@ -553,9 +553,10 @@
   const state=loadState();
   globalSettingsBridgeState = state;
   function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));if(!globalBridgeWrite)window.dispatchEvent(new CustomEvent('ding-page-state-change',{detail:{language:state.language,englishFunny:state.englishFunny,cantoneseFunny:state.cantoneseFunny,theme:state.theme,density:state.density}}))}
-  function update(key,value){state[key]=value;save();applyState();notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`))}
+  function eventSource(enTitle,zhTitle,enBody,zhBody){return{enTitle,zhTitle,enBody,zhBody}}
+  function update(key,value){state[key]=value;save();applyState();notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`),eventSource(copyLevel('notifSettingSaved','en'),copyLevel('notifSettingSaved','zh'),`${key} now uses ${value}.`,`${key} 而家係 ${value}。`))}
   function applyState(){document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyVocabulary();updateSessionTimer();updateOneThingBanner()}
-  function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`))}
+  function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`),eventSource(copyLevel('notifSettingSaved','en'),copyLevel('notifSettingSaved','zh'),`attention.${key} now uses ${value}.`,`attention.${key} 而家係 ${value}。`))}
   function applyLanguage(){if(!$('language-preview'))return;document.documentElement.lang=state.language==='zh'?'zh-Hant':'en';$('language-preview').textContent=state.language==='en'?'English presentation active.':state.language==='zh'?'廣東話顯示已啟用。':'Bilingual presentation active. / 雙語顯示已啟用。'}
 
   // Funny-level copy: voice changes with the slider, facts never do. Each key holds
@@ -656,7 +657,11 @@
     const table=COPY[key];if(!table)return '';
     const arr=table[lang]||table.en;
     const level=lang==='zh'?state.cantoneseFunny:state.englishFunny;
-    return arr[Math.min(arr.length-1,Math.max(0,(Number(level)||1)-1))]||arr[0];
+    const index=Math.min(4,Math.max(0,(Number(level)||1)-1));
+    const base=arr[Math.min(arr.length-1,index)]||arr[0];
+    if(index<arr.length)return base;
+    const additions=lang==='zh'?['，再穩陣一步。','，靚靚收尾。','，準備出發。']:[' Nice and tidy.',' One more tidy pass.',' Ready to roll.'];
+    return `${base}${additions[index-arr.length]||' Still factual and ready.'}`;
   }
   function copyText(key){
     if(!COPY[key])return '';
@@ -749,7 +754,7 @@
     if(Date.now()<momentumSnoozeUntil)return;
     const idleMinutes=(Date.now()-lastInteraction)/60000;
     if(idleMinutes>=10){
-      notify('Still here','Nothing has changed on this page for a while. No action is needed.');
+      notify('Still here','Nothing has changed on this page for a while. No action is needed.',eventSource('Still here','仲喺度','Nothing has changed on this page for a while. No action is needed.','呢頁一陣間冇變化，唔使做任何嘢。'));
       momentumSnoozeUntil=Date.now()+15*60000;
       lastInteraction=Date.now();
     }
@@ -817,7 +822,7 @@
       const format=select.value||'json',text=exportRows({rows,format,table:'destination'});
       const range=`${slugForFilename(lastDocumentationQuery)}-${rows.length}-of-${DESTINATIONS.length}`;
       download(exportFilename('ding-pbx-destinations',format,range),text,EXPORT_MIME[format]);
-      notify('Destinations exported',applyVocabularyText(`Exported ${rows.length} of ${DESTINATIONS.length} destinations as ${format.toUpperCase()}, covering the current search ("${lastDocumentationQuery||'no filter'}").`));
+      notify('Destinations exported',applyVocabularyText(`Exported ${rows.length} of ${DESTINATIONS.length} destinations as ${format.toUpperCase()}, covering the current search ("${lastDocumentationQuery||'no filter'}").`),eventSource('Destinations exported','目的地已匯出',`Exported ${rows.length} of ${DESTINATIONS.length} destinations as ${format.toUpperCase()}.`,`已匯出 ${DESTINATIONS.length} 個目的地之中的 ${rows.length} 個，格式係 ${format.toUpperCase()}。`));
     });
   }
   function matchText(text,query,target){if(!query)return true;const config=regexState.get(target);if(config?.enabled){try{return new RegExp(config.pattern,config.flags).test(text)}catch{return false}}return text.toLocaleLowerCase().includes(query.toLocaleLowerCase())}
@@ -827,14 +832,14 @@
   function openRegex(target){regexTarget=target;const dialog=$('regex-dialog');if(!dialog)return;const saved=regexState.get(target)||{pattern:'',flags:'iu'};$('regex-target-label').textContent=`Attached to: ${target}`;$('regex-pattern').value=saved.pattern;$('regex-i').checked=saved.flags.includes('i');$('regex-m').checked=saved.flags.includes('m');$('regex-u').checked=saved.flags.includes('u');dialog.showModal();previewRegex();setTimeout(()=>$('regex-pattern').focus(),0)}
   function regexConfig(){return{pattern:$('regex-pattern').value.slice(0,256),flags:`${$('regex-i').checked?'i':''}${$('regex-m').checked?'m':''}${$('regex-u').checked?'u':''}`}}
   function previewRegex(){if(!$('regex-feedback'))return;const config=regexConfig();if(!config.pattern){$('regex-feedback').textContent='Enter a pattern.';return}try{const re=new RegExp(config.pattern,config.flags),flags=re.flags.includes('g')?re.flags:`${re.flags}g`,matches=[...$('regex-sample').value.matchAll(new RegExp(re.source,flags))];$('regex-feedback').textContent=`Valid JavaScript regular expression · ${matches.length} sample match${matches.length===1?'':'es'}.`}catch(error){$('regex-feedback').textContent=`Invalid pattern: ${error.message}`}}
-  function applyRegex(){const config=regexConfig();try{new RegExp(config.pattern,config.flags)}catch{return}regexState.set(regexTarget,{...config,enabled:Boolean(config.pattern)});$('regex-dialog').close();$(regexTarget)?.dispatchEvent(new Event('input'));notify(copyText('notifRegexApplied'),applyVocabularyText(`${regexTarget} now uses the local JavaScript regular expression engine.`))}
+  function applyRegex(){const config=regexConfig();try{new RegExp(config.pattern,config.flags)}catch{return}regexState.set(regexTarget,{...config,enabled:Boolean(config.pattern)});$('regex-dialog').close();$(regexTarget)?.dispatchEvent(new Event('input'));notify(copyText('notifRegexApplied'),applyVocabularyText(`${regexTarget} now uses the local JavaScript regular expression engine.`),eventSource('Regular expression applied','正則表達式已套用',`${regexTarget} now uses the local JavaScript regular expression engine.`,`${regexTarget} 而家使用本地 JavaScript 正則表達式引擎。`))}
   function initRegex(){if(!$('regex-dialog'))return;$('regex-pattern').addEventListener('input',previewRegex);$('regex-apply').onclick=applyRegex;all('[data-insert]').forEach(button=>button.onclick=()=>{const input=$('regex-pattern'),start=input.selectionStart;input.value=`${input.value.slice(0,start)}${button.dataset.insert}${input.value.slice(input.selectionEnd)}`;input.focus();input.setSelectionRange(start+button.dataset.insert.length,start+button.dataset.insert.length);previewRegex()})}
 
 
   function renderPalette(query=''){const list=$('palette-results');if(!list)return;const pages=[['Home','index.html'],['Product','product.html'],['Documentation','documentation.html'],['Downloads','downloads.html'],['Status','status.html'],['Settings','settings.html']],items=[...pages,...DESTINATIONS.map(item=>[item.name,`documentation.html#destination-${item.id}`])].filter(([name])=>matchText(name,query,'palette-search'));list.innerHTML=items.length?items.map(([name,path])=>`<a class="palette-result" role="option" href="${BASE}${path}"><strong>${escapeHtml(name)}</strong><span>Open destination</span></a>`).join(''):'<p>No matching commands.</p>'}
   function openPalette(){const dialog=$('command-palette');if(!dialog)return;dialog.showModal();$('palette-search').value='';renderPalette();applyVocabulary();setTimeout(()=>$('palette-search').focus(),0)}
   let notifSeq=0;
-  function notify(title,body){const id=`n${Date.now()}-${notifSeq++}`;state.notifications.unshift({id,title,body,time:Date.now()});state.notifications=state.notifications.slice(0,30);save();const split=(value)=>{const parts=String(value).split(' / ');return{en:parts[0],zh:parts[1]||parts[0]}};const titleParts=split(title),bodyParts=split(body);window.dispatchEvent(new CustomEvent('ding-page-event',{detail:{eventId:id,category:'notification',enTitle:titleParts.en,zhTitle:titleParts.zh,enBody:bodyParts.en,zhBody:bodyParts.zh}}));renderNotifications($('notification-search')?.value||'');const region=$('toast-region');if(!region)return;const toast=document.createElement('div');toast.className='toast';toast.innerHTML=`<strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span>`;region.append(toast);setTimeout(()=>toast.remove(),state.attention.extendedTimeouts?15000:5000)}
+  function notify(title,body,source={enTitle:title,zhTitle:title,enBody:body,zhBody:body}){const id=`n${Date.now()}-${notifSeq++}`;state.notifications.unshift({id,title,body,time:Date.now()});state.notifications=state.notifications.slice(0,30);save();window.dispatchEvent(new CustomEvent('ding-page-event',{detail:{eventId:id,category:'notification',enTitle:source.enTitle,zhTitle:source.zhTitle,enBody:source.enBody,zhBody:source.zhBody}}));renderNotifications($('notification-search')?.value||'');const region=$('toast-region');if(!region)return;const toast=document.createElement('div');toast.className='toast';toast.innerHTML=`<strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span>`;region.append(toast);setTimeout(()=>toast.remove(),state.attention.extendedTimeouts?15000:5000)}
 
   // ---- Notification centre: real multi-select, bulk dismiss, and export. ----
   let notifSelection={anchor:undefined,selected:new Set()};
@@ -891,7 +896,7 @@
       const rows=notificationExportRows();if(!rows.length)return;
       const format=$('notif-export-format').value||'json',text=exportRows({rows,format,table:'notification'});
       download(exportFilename('ding-pbx-notifications',format,`${rows.length}-selected`),text,EXPORT_MIME[format]);
-      notify('Notifications exported',applyVocabularyText(`Exported ${rows.length} selected notification${rows.length===1?'':'s'} as ${format.toUpperCase()}.`));
+      notify('Notifications exported',applyVocabularyText(`Exported ${rows.length} selected notification${rows.length===1?'':'s'} as ${format.toUpperCase()}.`),eventSource('Notifications exported','通知已匯出',`Exported ${rows.length} selected notification${rows.length===1?'':'s'} as ${format.toUpperCase()}.`,`已匯出 ${rows.length} 個已選通知，格式係 ${format.toUpperCase()}。`));
     });
     $('notif-dismiss-selected')?.addEventListener('click',()=>{
       const plan=planBulk('Dismiss',[...notifSelection.selected],()=>true,{destructive:true});
@@ -1059,7 +1064,7 @@
       const button=event.target.closest('[data-copy-colour]');if(!button)return;
       const value=button.dataset.copyColour;
       if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(value).catch(()=>{});
-      notify('Colour copied',applyVocabularyText(`Copied ${value} to the clipboard.`));
+      notify('Colour copied',applyVocabularyText(`Copied ${value} to the clipboard.`),eventSource('Colour copied','顏色已複製',`Copied ${value} to the clipboard.`,`已將 ${value} 複製到剪貼簿。`));
     });
     input.value=accent.value;
     sync(accent.value);
