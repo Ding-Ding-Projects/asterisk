@@ -50,7 +50,8 @@
   ],
   "requiredEvidenceFiles": [
     "console/app/renderer/src/generated/docs-bundle.ts",
-    "console/site/asterisk-action-registry.json"
+    "console/site/asterisk-action-registry.json",
+    "console/inventories/asterisk-actions-evidence.json"
   ],
   "requiredGeneratedFiles": [
     "console/control-plane/generated/asterisk-catalog.json",
@@ -65,7 +66,8 @@
   "expectedRegistrations": {
     "amiActions": 122,
     "amiEvents": 11,
-    "ariOperations": 109
+    "ariOperations": 109,
+    "ariWebSocketOperations": 1
   },
   "requiredBoundaries": [
     "unknown when a live surface was not read",

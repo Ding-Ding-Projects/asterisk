@@ -21,6 +21,9 @@ export function validateAsteriskCatalog(catalog, inventory, files = new Set()) {
   const amiActionCount = catalog.modules.reduce((count, entry) => count + entry.registrations.amiActions.length, 0);
   const amiEventCount = catalog.modules.reduce((count, entry) => count + entry.registrations.amiEvents.length, 0);
   if (amiActionCount !== inventory.expectedRegistrations?.amiActions || amiEventCount !== inventory.expectedRegistrations?.amiEvents || operationIds.length !== inventory.expectedRegistrations?.ariOperations) throw new Error('Asterisk AMI or ARI registration counts drift');
+  const ariOperations = catalog.apiResources.flatMap((entry) => entry.apiOperations ?? []);
+  if (ariOperations.filter((operation) => operation.websocket).length !== inventory.expectedRegistrations?.ariWebSocketOperations) throw new Error('Asterisk ARI WebSocket operation count drift');
+  if (ariOperations.some((operation) => !operation.responseSchema || !Array.isArray(operation.parameters) || !operation.requestSchema)) throw new Error('Asterisk ARI operation schema is incomplete');
   if (catalog.counts?.modules !== catalog.modules.length || catalog.counts?.resources !== catalog.resources.length || catalog.counts?.apiResources !== catalog.apiResources.length) throw new Error('Asterisk catalogue counts drift');
   if (catalog.counts.modules !== inventory.expectedCounts?.modules || catalog.counts.resources !== inventory.expectedCounts?.resources || catalog.counts.apiResources !== inventory.expectedCounts?.apiResources) throw new Error('Asterisk catalogue hand-written expected counts drift');
   const configSources = walkFiles(resolve(root, 'configs')).map((path) => relative(root, path).replaceAll('\\', '/')).filter((path) => !path.endsWith('/README'));
@@ -62,6 +65,12 @@ export function validateAsteriskCatalog(catalog, inventory, files = new Set()) {
   for (const boundary of inventory.requiredBoundaries ?? []) {
     const needle = boundary.startsWith('unknown') ? 'state: "unknown"' : 'unverified-installed-module';
     if (!reconciliationSource.includes(needle)) throw new Error(`Asterisk catalogue boundary is not implemented: ${boundary}`);
+  }
+  const actionEvidence = JSON.parse(readText('console/inventories/asterisk-actions-evidence.json'));
+  if (actionEvidence.status !== 'implemented-unverified' || !Array.isArray(actionEvidence.actions) || actionEvidence.actions.length !== 17) throw new Error('Asterisk action evidence inventory is incomplete');
+  const actionCatalogSource = readText('console/control-plane/asterisk-action-catalog.ts');
+  for (const path of ['console/docs/system/asterisk-capability-catalog.md', 'console/site/asterisk-action-registry.json', 'console/inventories/asterisk-actions-evidence.json', 'local-history.record', 'catalogue-record-search', 'command-palette-action-result', 'bulk-action-preview', 'catalogue-export', 'native-labelled-control']) {
+    if (!actionCatalogSource.includes(path)) throw new Error(`Asterisk action surface mapping is missing: ${path}`);
   }
   return { modules: catalog.modules.length, resources: catalog.resources.length, total: ids.length };
 }

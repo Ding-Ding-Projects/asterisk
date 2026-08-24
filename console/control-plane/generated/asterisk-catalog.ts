@@ -29069,7 +29069,15 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "list",
           "summary": "List all applications.",
-          "responseClass": "List[Application]"
+          "responseClass": "List[Application]",
+          "parameters": [],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "List[Application]",
+            "errors": []
+          }
         },
         {
           "id": "asterisk.ari.applications.operation.get.applications.applicationname.get",
@@ -29077,7 +29085,29 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "get",
           "summary": "Get details of an application.",
-          "responseClass": "Application"
+          "responseClass": "Application",
+          "parameters": [
+            {
+              "name": "applicationName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Application's name"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Application",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Application does not exist."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.applications.operation.post.applications.applicationname.subscription.subscribe",
@@ -29085,7 +29115,45 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "subscribe",
           "summary": "Subscribe an application to a event source.",
-          "responseClass": "Application"
+          "responseClass": "Application",
+          "parameters": [
+            {
+              "name": "applicationName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Application's name"
+            },
+            {
+              "name": "eventSource",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": true,
+              "dataType": "string",
+              "description": "URI for event source (channel:{channelId}, bridge:{bridgeId}, endpoint:{tech}[/{resource}], deviceState:{deviceName}"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Application",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Missing parameter."
+              },
+              {
+                "code": 404,
+                "reason": "Application does not exist."
+              },
+              {
+                "code": 422,
+                "reason": "Event source does not exist."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.applications.operation.delete.applications.applicationname.subscription.unsubscribe",
@@ -29093,7 +29161,49 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "unsubscribe",
           "summary": "Unsubscribe an application from an event source.",
-          "responseClass": "Application"
+          "responseClass": "Application",
+          "parameters": [
+            {
+              "name": "applicationName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Application's name"
+            },
+            {
+              "name": "eventSource",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": true,
+              "dataType": "string",
+              "description": "URI for event source (channel:{channelId}, bridge:{bridgeId}, endpoint:{tech}[/{resource}], deviceState:{deviceName}"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Application",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Missing parameter; event source scheme not recognized."
+              },
+              {
+                "code": 404,
+                "reason": "Application does not exist."
+              },
+              {
+                "code": 409,
+                "reason": "Application not subscribed to event source."
+              },
+              {
+                "code": 422,
+                "reason": "Event source does not exist."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.applications.operation.put.applications.applicationname.eventfilter.filter",
@@ -29101,7 +29211,47 @@ export const ASTERISK_CATALOG = {
           "method": "PUT",
           "nickname": "filter",
           "summary": "Filter application events types.",
-          "responseClass": "Application"
+          "responseClass": "Application",
+          "parameters": [
+            {
+              "name": "applicationName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Application's name"
+            },
+            {
+              "name": "filter",
+              "paramType": "body",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "object",
+              "description": "Specify which event types to allow/disallow"
+            }
+          ],
+          "requestSchema": {
+            "body": [
+              {
+                "name": "filter",
+                "dataType": "object",
+                "required": false
+              }
+            ]
+          },
+          "responseSchema": {
+            "responseClass": "Application",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Bad request."
+              },
+              {
+                "code": 404,
+                "reason": "Application does not exist."
+              }
+            ]
+          }
         }
       ],
       "docsSource": "rest-api/api-docs/applications.json",
@@ -29237,7 +29387,45 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "getObject",
           "summary": "Retrieve a dynamic configuration object.",
-          "responseClass": "List[ConfigTuple]"
+          "responseClass": "List[ConfigTuple]",
+          "parameters": [
+            {
+              "name": "configClass",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The configuration class containing dynamic configuration objects."
+            },
+            {
+              "name": "objectType",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The type of configuration object to retrieve."
+            },
+            {
+              "name": "id",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The unique identifier of the object to retrieve."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "List[ConfigTuple]",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "{configClass|objectType|id} not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.asterisk.operation.put.asterisk.config.dynamic.configclass.objecttype.id.updateobject",
@@ -29245,7 +29433,67 @@ export const ASTERISK_CATALOG = {
           "method": "PUT",
           "nickname": "updateObject",
           "summary": "Create or update a dynamic configuration object.",
-          "responseClass": "List[ConfigTuple]"
+          "responseClass": "List[ConfigTuple]",
+          "parameters": [
+            {
+              "name": "configClass",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The configuration class containing dynamic configuration objects."
+            },
+            {
+              "name": "objectType",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The type of configuration object to create or update."
+            },
+            {
+              "name": "id",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The unique identifier of the object to create or update."
+            },
+            {
+              "name": "fields",
+              "paramType": "body",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "containers",
+              "description": "The body object should have a value that is a list of ConfigTuples, which provide the fields to update. Ex. [ { \"attribute\": \"directmedia\", \"value\": \"false\" } ]"
+            }
+          ],
+          "requestSchema": {
+            "body": [
+              {
+                "name": "fields",
+                "dataType": "containers",
+                "required": false
+              }
+            ]
+          },
+          "responseSchema": {
+            "responseClass": "List[ConfigTuple]",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Bad request body"
+              },
+              {
+                "code": 403,
+                "reason": "Could not create or update object"
+              },
+              {
+                "code": 404,
+                "reason": "{configClass|objectType} not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.asterisk.operation.delete.asterisk.config.dynamic.configclass.objecttype.id.deleteobject",
@@ -29253,7 +29501,49 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "deleteObject",
           "summary": "Delete a dynamic configuration object.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "configClass",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The configuration class containing dynamic configuration objects."
+            },
+            {
+              "name": "objectType",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The type of configuration object to delete."
+            },
+            {
+              "name": "id",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The unique identifier of the object to delete."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 403,
+                "reason": "Could not delete object"
+              },
+              {
+                "code": 404,
+                "reason": "{configClass|objectType|id} not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.asterisk.operation.get.asterisk.info.getinfo",
@@ -29261,7 +29551,24 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "getInfo",
           "summary": "Gets Asterisk system information.",
-          "responseClass": "AsteriskInfo"
+          "responseClass": "AsteriskInfo",
+          "parameters": [
+            {
+              "name": "only",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": true,
+              "dataType": "string",
+              "description": "Filter information returned"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "AsteriskInfo",
+            "errors": []
+          }
         },
         {
           "id": "asterisk.ari.asterisk.operation.get.asterisk.ping.ping",
@@ -29269,7 +29576,15 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "ping",
           "summary": "Response pong message.",
-          "responseClass": "AsteriskPing"
+          "responseClass": "AsteriskPing",
+          "parameters": [],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "AsteriskPing",
+            "errors": []
+          }
         },
         {
           "id": "asterisk.ari.asterisk.operation.get.asterisk.modules.listmodules",
@@ -29277,7 +29592,15 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "listModules",
           "summary": "List Asterisk modules.",
-          "responseClass": "List[Module]"
+          "responseClass": "List[Module]",
+          "parameters": [],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "List[Module]",
+            "errors": []
+          }
         },
         {
           "id": "asterisk.ari.asterisk.operation.get.asterisk.modules.modulename.getmodule",
@@ -29285,7 +29608,33 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "getModule",
           "summary": "Get Asterisk module information.",
-          "responseClass": "Module"
+          "responseClass": "Module",
+          "parameters": [
+            {
+              "name": "moduleName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Module's name"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Module",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Module could not be found in running modules."
+              },
+              {
+                "code": 409,
+                "reason": "Module information could not be retrieved."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.asterisk.operation.post.asterisk.modules.modulename.loadmodule",
@@ -29293,7 +29642,29 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "loadModule",
           "summary": "Load an Asterisk module.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "moduleName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Module's name"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 409,
+                "reason": "Module could not be loaded."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.asterisk.operation.delete.asterisk.modules.modulename.unloadmodule",
@@ -29301,7 +29672,33 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "unloadModule",
           "summary": "Unload an Asterisk module.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "moduleName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Module's name"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Module not found in running modules."
+              },
+              {
+                "code": 409,
+                "reason": "Module could not be unloaded."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.asterisk.operation.put.asterisk.modules.modulename.reloadmodule",
@@ -29309,7 +29706,33 @@ export const ASTERISK_CATALOG = {
           "method": "PUT",
           "nickname": "reloadModule",
           "summary": "Reload an Asterisk module.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "moduleName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Module's name"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Module not found in running modules."
+              },
+              {
+                "code": 409,
+                "reason": "Module could not be reloaded."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.asterisk.operation.get.asterisk.logging.listlogchannels",
@@ -29317,7 +29740,15 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "listLogChannels",
           "summary": "Gets Asterisk log channel information.",
-          "responseClass": "List[LogChannel]"
+          "responseClass": "List[LogChannel]",
+          "parameters": [],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "List[LogChannel]",
+            "errors": []
+          }
         },
         {
           "id": "asterisk.ari.asterisk.operation.post.asterisk.logging.logchannelname.addlog",
@@ -29325,7 +29756,41 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "addLog",
           "summary": "Adds a log channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "logChannelName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The log channel to add"
+            },
+            {
+              "name": "configuration",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "levels of the log channel"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Bad request body"
+              },
+              {
+                "code": 409,
+                "reason": "Log channel could not be created."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.asterisk.operation.delete.asterisk.logging.logchannelname.deletelog",
@@ -29333,7 +29798,29 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "deleteLog",
           "summary": "Deletes a log channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "logChannelName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Log channels name"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Log channel does not exist."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.asterisk.operation.put.asterisk.logging.logchannelname.rotate.rotatelog",
@@ -29341,7 +29828,29 @@ export const ASTERISK_CATALOG = {
           "method": "PUT",
           "nickname": "rotateLog",
           "summary": "Rotates a log channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "logChannelName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Log channel's name"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Log channel does not exist."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.asterisk.operation.get.asterisk.variable.getglobalvar",
@@ -29349,7 +29858,29 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "getGlobalVar",
           "summary": "Get the value of a global variable.",
-          "responseClass": "Variable"
+          "responseClass": "Variable",
+          "parameters": [
+            {
+              "name": "variable",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The variable to get"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Variable",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Missing variable parameter."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.asterisk.operation.post.asterisk.variable.setglobalvar",
@@ -29357,7 +29888,37 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "setGlobalVar",
           "summary": "Set the value of a global variable.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "variable",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The variable to set"
+            },
+            {
+              "name": "value",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The value to set the variable to"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Missing variable parameter."
+              }
+            ]
+          }
         }
       ],
       "docsSource": "rest-api/api-docs/asterisk.json",
@@ -29503,7 +30064,15 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "list",
           "summary": "List all active bridges in Asterisk.",
-          "responseClass": "List[Bridge]"
+          "responseClass": "List[Bridge]",
+          "parameters": [],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "List[Bridge]",
+            "errors": []
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.post.bridges.create",
@@ -29511,7 +30080,59 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "create",
           "summary": "Create a new bridge.",
-          "responseClass": "Bridge"
+          "responseClass": "Bridge",
+          "parameters": [
+            {
+              "name": "type",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Comma separated list of bridge type attributes (mixing, holding, dtmf_events, proxy_media, video_sfu, video_single, sdp_label)."
+            },
+            {
+              "name": "bridgeId",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Unique ID to give to the bridge being created."
+            },
+            {
+              "name": "name",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Name to give to the bridge being created."
+            },
+            {
+              "name": "variables",
+              "paramType": "body",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "containers",
+              "description": "The \"variables\" key in the body object holds variable key/value pairs to set on the bridge on creation. Each variable is an object containing \"value\" (string) and optional \"report_events\" (boolean) to include updates for that variable in bridge events (defaults to false).   Ex. { \"name\": \"SupportBridge\", \"variables\": {  \"Bridge_State\": { \"value\": \"WaitingForAgent\", \"report_events\": true } } }"
+            }
+          ],
+          "requestSchema": {
+            "body": [
+              {
+                "name": "variables",
+                "dataType": "containers",
+                "required": false
+              }
+            ]
+          },
+          "responseSchema": {
+            "responseClass": "Bridge",
+            "errors": [
+              {
+                "code": 409,
+                "reason": "Bridge with the same bridgeId already exists"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.createwithid",
@@ -29519,7 +30140,59 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "createWithId",
           "summary": "Create a new bridge.",
-          "responseClass": "Bridge"
+          "responseClass": "Bridge",
+          "parameters": [
+            {
+              "name": "type",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Comma separated list of bridge type attributes (mixing, holding, dtmf_events, proxy_media, video_sfu, video_single, sdp_label) to set."
+            },
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Unique ID to give to the bridge being created."
+            },
+            {
+              "name": "name",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Set the name of the bridge."
+            },
+            {
+              "name": "variables",
+              "paramType": "body",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "containers",
+              "description": "The \"variables\" key in the body object holds variable key/value pairs to set on the bridge on creation. Each variable is an object containing \"value\" (string) and optional \"report_events\" (boolean) to include updates for that variable in bridge events (defaults to false).   Ex. { \"name\": \"SupportBridge\", \"variables\": {  \"Bridge_State\": { \"value\": \"WaitingForAgent\", \"report_events\": true } } }"
+            }
+          ],
+          "requestSchema": {
+            "body": [
+              {
+                "name": "variables",
+                "dataType": "containers",
+                "required": false
+              }
+            ]
+          },
+          "responseSchema": {
+            "responseClass": "Bridge",
+            "errors": [
+              {
+                "code": 409,
+                "reason": "Bridge with the same bridgeId already exists"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.get.bridges.bridgeid.get",
@@ -29527,7 +30200,29 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "get",
           "summary": "Get bridge details.",
-          "responseClass": "Bridge"
+          "responseClass": "Bridge",
+          "parameters": [
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Bridge's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Bridge",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Bridge not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.delete.bridges.bridgeid.destroy",
@@ -29535,7 +30230,29 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "destroy",
           "summary": "Shut down a bridge.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Bridge's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Bridge not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.get.bridges.bridgeid.variable.getbridgevar",
@@ -29543,7 +30260,45 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "getBridgeVar",
           "summary": "Get the value of a bridge variable or function.",
-          "responseClass": "Variable"
+          "responseClass": "Variable",
+          "parameters": [
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Bridge's id"
+            },
+            {
+              "name": "variable",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The bridge variable or function to get"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Variable",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Missing variable parameter."
+              },
+              {
+                "code": 404,
+                "reason": "Bridge or variable not found"
+              },
+              {
+                "code": 409,
+                "reason": "Bridge not in a Stasis application"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.variable.setbridgevar",
@@ -29551,7 +30306,61 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "setBridgeVar",
           "summary": "Set the value of a bridge variable or function.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Bridge's id"
+            },
+            {
+              "name": "variable",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The bridge variable or function to set"
+            },
+            {
+              "name": "value",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The value to set the variable to"
+            },
+            {
+              "name": "report_events",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "boolean",
+              "description": "Whether this variable should be included in bridge events. Defaults to false."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Missing variable parameter."
+              },
+              {
+                "code": 404,
+                "reason": "Bridge not found"
+              },
+              {
+                "code": 409,
+                "reason": "Bridge not in a Stasis application"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.get.bridges.bridgeid.variables.getbridgevars",
@@ -29559,7 +30368,45 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "getBridgeVars",
           "summary": "Get the value of multiple bridge variables or functions.",
-          "responseClass": "Variables"
+          "responseClass": "Variables",
+          "parameters": [
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Bridge's id"
+            },
+            {
+              "name": "variables",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": true,
+              "dataType": "string",
+              "description": "The bridge variables or functions to get"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Variables",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Missing variables parameter."
+              },
+              {
+                "code": 404,
+                "reason": "Bridge or variable not found"
+              },
+              {
+                "code": 409,
+                "reason": "Bridge not in a Stasis application"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.variables.setbridgevars",
@@ -29567,7 +30414,51 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "setBridgeVars",
           "summary": "Set the values of multiple bridge variables or functions.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Bridge's id"
+            },
+            {
+              "name": "variables",
+              "paramType": "body",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "containers",
+              "description": "The \"variables\" key in the body object holds variable key/value pairs to set on the bridge. Each variable value may be either a string or an object containing \"value\" (string) and optional \"report_events\" (boolean) to include updates for that variable in bridge events (defaults to false). Ex. { \"variables\": { \"Bridge_State\": \"WaitingForAgent\", \"Support_Level\": { \"value\": \"Premium\", \"report_events\": true } } }"
+            }
+          ],
+          "requestSchema": {
+            "body": [
+              {
+                "name": "variables",
+                "dataType": "containers",
+                "required": true
+              }
+            ]
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Missing variables parameter."
+              },
+              {
+                "code": 404,
+                "reason": "Bridge not found"
+              },
+              {
+                "code": 409,
+                "reason": "Bridge not in a Stasis application"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.addchannel.addchannel",
@@ -29575,7 +30466,81 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "addChannel",
           "summary": "Add a channel to a bridge.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Bridge's id"
+            },
+            {
+              "name": "channel",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": true,
+              "dataType": "string",
+              "description": "Ids of channels to add to bridge"
+            },
+            {
+              "name": "role",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's role in the bridge"
+            },
+            {
+              "name": "absorbDTMF",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "boolean",
+              "description": "Absorb DTMF coming from this channel, preventing it to pass through to the bridge"
+            },
+            {
+              "name": "mute",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "boolean",
+              "description": "Mute audio from this channel, preventing it to pass through to the bridge"
+            },
+            {
+              "name": "inhibitConnectedLineUpdates",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "boolean",
+              "description": "Do not present the identity of the newly connected channel to other bridge members"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 404,
+                "reason": "Bridge not found"
+              },
+              {
+                "code": 409,
+                "reason": "Bridge not in Stasis application; Channel currently recording"
+              },
+              {
+                "code": 422,
+                "reason": "Channel not in Stasis application"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.removechannel.removechannel",
@@ -29583,7 +30548,49 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "removeChannel",
           "summary": "Remove a channel from a bridge.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Bridge's id"
+            },
+            {
+              "name": "channel",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": true,
+              "dataType": "string",
+              "description": "Ids of channels to remove from bridge"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 404,
+                "reason": "Bridge not found"
+              },
+              {
+                "code": 409,
+                "reason": "Bridge not in Stasis application"
+              },
+              {
+                "code": 422,
+                "reason": "Channel not in this bridge"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.videosource.channelid.setvideosource",
@@ -29591,7 +30598,45 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "setVideoSource",
           "summary": "Set a channel as the video source in a multi-party mixing bridge. This operation has no effect on bridges with two or fewer participants.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Bridge's id"
+            },
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Bridge or Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in Stasis application"
+              },
+              {
+                "code": 422,
+                "reason": "Channel not in this Bridge"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.delete.bridges.bridgeid.videosource.clearvideosource",
@@ -29599,7 +30644,29 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "clearVideoSource",
           "summary": "Removes any explicit video source in a multi-party mixing bridge. This operation has no effect on bridges with two or fewer participants. When no explicit video source is set, talk detection will be used to determine the active video stream.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Bridge's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Bridge not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.moh.startmoh",
@@ -29607,7 +30674,41 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "startMoh",
           "summary": "Play music on hold to a bridge or change the MOH class that is playing.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Bridge's id"
+            },
+            {
+              "name": "mohClass",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Bridge not found"
+              },
+              {
+                "code": 409,
+                "reason": "Bridge not in Stasis application"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.delete.bridges.bridgeid.moh.stopmoh",
@@ -29615,7 +30716,33 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "stopMoh",
           "summary": "Stop playing music on hold to a bridge.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Bridge's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Bridge not found"
+              },
+              {
+                "code": 409,
+                "reason": "Bridge not in Stasis application"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.play.play",
@@ -29623,7 +30750,85 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "play",
           "summary": "Start playback of media on a bridge.",
-          "responseClass": "Playback"
+          "responseClass": "Playback",
+          "parameters": [
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Bridge's id"
+            },
+            {
+              "name": "media",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": true,
+              "dataType": "string",
+              "description": "Media URIs to play."
+            },
+            {
+              "name": "announcer_format",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Format of the 'Anouncer' channel attached to the bridge. Defaults to the format of the channel in the bridge with the highest sampe rate."
+            },
+            {
+              "name": "lang",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "For sounds, selects language for sound."
+            },
+            {
+              "name": "offsetms",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Number of milliseconds to skip before playing. Only applies to the first URI if multiple media URIs are specified."
+            },
+            {
+              "name": "skipms",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Number of milliseconds to skip for forward/reverse operations."
+            },
+            {
+              "name": "playbackId",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Playback Id."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Playback",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Bridge not found"
+              },
+              {
+                "code": 409,
+                "reason": "Bridge not in a Stasis application"
+              },
+              {
+                "code": 422,
+                "reason": "The format specified is unknown on this system"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.play.playbackid.playwithid",
@@ -29631,7 +30836,85 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "playWithId",
           "summary": "Start playback of media on a bridge.",
-          "responseClass": "Playback"
+          "responseClass": "Playback",
+          "parameters": [
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Bridge's id"
+            },
+            {
+              "name": "playbackId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Playback ID."
+            },
+            {
+              "name": "media",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": true,
+              "dataType": "string",
+              "description": "Media URIs to play."
+            },
+            {
+              "name": "announcer_format",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Format of the 'Anouncer' channel attached to the bridge. Defaults to the format of the channel in the bridge with the highest sampe rate."
+            },
+            {
+              "name": "lang",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "For sounds, selects language for sound."
+            },
+            {
+              "name": "offsetms",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Number of milliseconds to skip before playing. Only applies to the first URI if multiple media URIs are specified."
+            },
+            {
+              "name": "skipms",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Number of milliseconds to skip for forward/reverse operations."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Playback",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Bridge not found"
+              },
+              {
+                "code": 409,
+                "reason": "Bridge not in a Stasis application"
+              },
+              {
+                "code": 422,
+                "reason": "The format specified is unknown on this system"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.bridges.operation.post.bridges.bridgeid.record.record",
@@ -29639,7 +30922,105 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "record",
           "summary": "Start a recording.",
-          "responseClass": "LiveRecording"
+          "responseClass": "LiveRecording",
+          "parameters": [
+            {
+              "name": "bridgeId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Bridge's id"
+            },
+            {
+              "name": "name",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Recording's filename"
+            },
+            {
+              "name": "format",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Format to encode audio in"
+            },
+            {
+              "name": "recorder_format",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Format of the 'Recorder' channel attached to the bridge. Defaults to the same format as the 'format' parameter."
+            },
+            {
+              "name": "maxDurationSeconds",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Maximum duration of the recording, in seconds. 0 for no limit."
+            },
+            {
+              "name": "maxSilenceSeconds",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Maximum duration of silence, in seconds. 0 for no limit."
+            },
+            {
+              "name": "ifExists",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Action to take if a recording with the same name already exists."
+            },
+            {
+              "name": "beep",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "boolean",
+              "description": "Play beep when recording begins"
+            },
+            {
+              "name": "terminateOn",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "DTMF input to terminate recording."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "LiveRecording",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Invalid parameters"
+              },
+              {
+                "code": 404,
+                "reason": "Bridge not found"
+              },
+              {
+                "code": 409,
+                "reason": "Bridge is not in a Stasis application; A recording with the same name already exists on the system and can not be overwritten because it is in progress or ifExists=fail"
+              },
+              {
+                "code": 422,
+                "reason": "The format specified is unknown on this system"
+              }
+            ]
+          }
         }
       ],
       "docsSource": "rest-api/api-docs/bridges.json",
@@ -29870,7 +31251,15 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "list",
           "summary": "List all active channels in Asterisk.",
-          "responseClass": "List[Channel]"
+          "responseClass": "List[Channel]",
+          "parameters": [],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "List[Channel]",
+            "errors": []
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.originate",
@@ -29878,7 +31267,143 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "originate",
           "summary": "Create a new channel (originate).",
-          "responseClass": "Channel"
+          "responseClass": "Channel",
+          "parameters": [
+            {
+              "name": "endpoint",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Endpoint to call."
+            },
+            {
+              "name": "extension",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The extension to dial after the endpoint answers. Mutually exclusive with 'app'."
+            },
+            {
+              "name": "context",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The context to dial after the endpoint answers. If omitted, uses 'default'. Mutually exclusive with 'app'."
+            },
+            {
+              "name": "priority",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "long",
+              "description": "The priority to dial after the endpoint answers. If omitted, uses 1. Mutually exclusive with 'app'."
+            },
+            {
+              "name": "label",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The label to dial after the endpoint answers. Will supersede 'priority' if provided. Mutually exclusive with 'app'."
+            },
+            {
+              "name": "app",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The application that is subscribed to the originated channel. When the channel is answered, it will be passed to this Stasis application. Mutually exclusive with 'context', 'extension', 'priority', and 'label'."
+            },
+            {
+              "name": "appArgs",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The application arguments to pass to the Stasis application provided by 'app'. Mutually exclusive with 'context', 'extension', 'priority', and 'label'."
+            },
+            {
+              "name": "callerId",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "CallerID to use when dialing the endpoint or extension."
+            },
+            {
+              "name": "timeout",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Timeout (in seconds) before giving up dialing, or -1 for no timeout."
+            },
+            {
+              "name": "variables",
+              "paramType": "body",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "containers",
+              "description": "The \"variables\" key in the body object holds variable key/value pairs to set on the channel on creation. Each variable value may be either a string or an object containing \"value\" (string) and optional \"report_events\" (boolean) to include updates for that variable in channel events (defaults to false). Other keys in the body object are interpreted as query parameters. Ex. { \"endpoint\": \"SIP/Alice\", \"variables\": { \"CALLERID(name)\": \"Alice\", \"Call_State\": { \"value\": \"WaitingForAgent\", \"report_events\": true } } }"
+            },
+            {
+              "name": "channelId",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The unique id to assign the channel on creation."
+            },
+            {
+              "name": "otherChannelId",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The unique id to assign the second channel when using local channels."
+            },
+            {
+              "name": "originator",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The unique id of the channel which is originating this one."
+            },
+            {
+              "name": "formats",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The format name capability list to use if originator is not specified. Ex. \"ulaw,slin16\".  Format names can be found with \"core show codecs\"."
+            }
+          ],
+          "requestSchema": {
+            "body": [
+              {
+                "name": "variables",
+                "dataType": "containers",
+                "required": false
+              }
+            ]
+          },
+          "responseSchema": {
+            "responseClass": "Channel",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Invalid parameters for originating a channel."
+              },
+              {
+                "code": 409,
+                "reason": "Channel with given unique ID already exists."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.create.create",
@@ -29886,7 +31411,91 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "create",
           "summary": "Create channel.",
-          "responseClass": "Channel"
+          "responseClass": "Channel",
+          "parameters": [
+            {
+              "name": "endpoint",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Endpoint for channel communication"
+            },
+            {
+              "name": "app",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Stasis Application to place channel into"
+            },
+            {
+              "name": "appArgs",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The application arguments to pass to the Stasis application provided by 'app'. Mutually exclusive with 'context', 'extension', 'priority', and 'label'."
+            },
+            {
+              "name": "channelId",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The unique id to assign the channel on creation."
+            },
+            {
+              "name": "otherChannelId",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The unique id to assign the second channel when using local channels."
+            },
+            {
+              "name": "originator",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Unique ID of the calling channel"
+            },
+            {
+              "name": "formats",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The format name capability list to use if originator is not specified. Ex. \"ulaw,slin16\".  Format names can be found with \"core show codecs\"."
+            },
+            {
+              "name": "variables",
+              "paramType": "body",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "containers",
+              "description": "The \"variables\" key in the body object holds variable key/value pairs to set on the channel on creation. Each variable value may be either a string or an object containing \"value\" (string) and optional \"report_events\" (boolean) to include updates for that variable in channel events (defaults to false). Other keys in the body object are interpreted as query parameters. Ex. { \"endpoint\": \"SIP/Alice\", \"variables\": { \"CALLERID(name)\": \"Alice\", \"Call_State\": { \"value\": \"WaitingForAgent\", \"report_events\": true } } }"
+            }
+          ],
+          "requestSchema": {
+            "body": [
+              {
+                "name": "variables",
+                "dataType": "containers",
+                "required": false
+              }
+            ]
+          },
+          "responseSchema": {
+            "responseClass": "Channel",
+            "errors": [
+              {
+                "code": 409,
+                "reason": "Channel with given unique ID already exists."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.get.channels.channelid.get",
@@ -29894,7 +31503,29 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "get",
           "summary": "Channel details.",
-          "responseClass": "Channel"
+          "responseClass": "Channel",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Channel",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.originatewithid",
@@ -29902,7 +31533,143 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "originateWithId",
           "summary": "Create a new channel (originate with id).",
-          "responseClass": "Channel"
+          "responseClass": "Channel",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The unique id to assign the channel on creation."
+            },
+            {
+              "name": "endpoint",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Endpoint to call."
+            },
+            {
+              "name": "extension",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The extension to dial after the endpoint answers. Mutually exclusive with 'app'."
+            },
+            {
+              "name": "context",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The context to dial after the endpoint answers. If omitted, uses 'default'. Mutually exclusive with 'app'."
+            },
+            {
+              "name": "priority",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "long",
+              "description": "The priority to dial after the endpoint answers. If omitted, uses 1. Mutually exclusive with 'app'."
+            },
+            {
+              "name": "label",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The label to dial after the endpoint answers. Will supersede 'priority' if provided. Mutually exclusive with 'app'."
+            },
+            {
+              "name": "app",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The application that is subscribed to the originated channel. When the channel is answered, it will be passed to this Stasis application. Mutually exclusive with 'context', 'extension', 'priority', and 'label'."
+            },
+            {
+              "name": "appArgs",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The application arguments to pass to the Stasis application provided by 'app'. Mutually exclusive with 'context', 'extension', 'priority', and 'label'."
+            },
+            {
+              "name": "callerId",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "CallerID to use when dialing the endpoint or extension."
+            },
+            {
+              "name": "timeout",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Timeout (in seconds) before giving up dialing, or -1 for no timeout."
+            },
+            {
+              "name": "variables",
+              "paramType": "body",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "containers",
+              "description": "The \"variables\" key in the body object holds variable key/value pairs to set on the channel on creation. Each variable value may be either a string or an object containing \"value\" (string) and optional \"report_events\" (boolean) to include updates for that variable in channel events (defaults to false). Other keys in the body object are interpreted as query parameters. Ex. { \"endpoint\": \"SIP/Alice\", \"variables\": { \"CALLERID(name)\": \"Alice\", \"Call_State\": { \"value\": \"WaitingForAgent\", \"report_events\": true } } }"
+            },
+            {
+              "name": "otherChannelId",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The unique id to assign the second channel when using local channels."
+            },
+            {
+              "name": "originator",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The unique id of the channel which is originating this one."
+            },
+            {
+              "name": "formats",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The format name capability list to use if originator is not specified. Ex. \"ulaw,slin16\".  Format names can be found with \"core show codecs\"."
+            }
+          ],
+          "requestSchema": {
+            "body": [
+              {
+                "name": "variables",
+                "dataType": "containers",
+                "required": false
+              }
+            ]
+          },
+          "responseSchema": {
+            "responseClass": "Channel",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Invalid parameters for originating a channel."
+              },
+              {
+                "code": 409,
+                "reason": "Channel with given unique ID already exists."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.delete.channels.channelid.hangup",
@@ -29910,7 +31677,49 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "hangup",
           "summary": "Delete (i.e. hangup) a channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "reason_code",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The reason code for hanging up the channel for detail use. Mutually exclusive with 'reason'. See detail hangup codes at here. https://docs.asterisk.org/Configuration/Miscellaneous/Hangup-Cause-Mappings/"
+            },
+            {
+              "name": "reason",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Reason for hanging up the channel for simple use. Mutually exclusive with 'reason_code'."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Invalid reason for hangup provided"
+              },
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.continue.continueindialplan",
@@ -29918,7 +31727,69 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "continueInDialplan",
           "summary": "Exit application; continue execution in the dialplan.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "context",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The context to continue to."
+            },
+            {
+              "name": "extension",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The extension to continue to."
+            },
+            {
+              "name": "priority",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "The priority to continue to."
+            },
+            {
+              "name": "label",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The label to continue to - will supersede 'priority' if both are provided."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.move.move",
@@ -29926,7 +31797,49 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "move",
           "summary": "Move the channel from one Stasis application to another.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "app",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The channel will be passed to this Stasis application."
+            },
+            {
+              "name": "appArgs",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The application arguments to pass to the Stasis application provided by 'app'."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": "404",
+                "reason": "Channel not found"
+              },
+              {
+                "code": "409",
+                "reason": "Channel not in a Stasis application"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.redirect.redirect",
@@ -29934,7 +31847,53 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "redirect",
           "summary": "Redirect the channel to a different location.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "endpoint",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The endpoint to redirect the channel to"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Endpoint parameter not provided"
+              },
+              {
+                "code": 404,
+                "reason": "Channel or endpoint not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 422,
+                "reason": "Endpoint is not the same type as the channel"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.answer.answer",
@@ -29942,7 +31901,37 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "answer",
           "summary": "Answer a channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.ring.ring",
@@ -29950,7 +31939,37 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "ring",
           "summary": "Indicate ringing to a channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.delete.channels.channelid.ring.ringstop",
@@ -29958,7 +31977,37 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "ringStop",
           "summary": "Stop ringing indication on a channel if locally generated.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.progress.progress",
@@ -29966,7 +32015,37 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "progress",
           "summary": "Indicate progress on a channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.dtmf.senddtmf",
@@ -29974,7 +32053,81 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "sendDTMF",
           "summary": "Send provided DTMF to a given channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "dtmf",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "DTMF To send."
+            },
+            {
+              "name": "before",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Amount of time to wait before DTMF digits (specified in milliseconds) start."
+            },
+            {
+              "name": "between",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Amount of time in between DTMF digits (specified in milliseconds)."
+            },
+            {
+              "name": "duration",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Length of each DTMF digit (specified in milliseconds)."
+            },
+            {
+              "name": "after",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Amount of time to wait after DTMF digits (specified in milliseconds) end."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "DTMF is required"
+              },
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.mute.mute",
@@ -29982,7 +32135,45 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "mute",
           "summary": "Mute a channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "direction",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Direction in which to mute audio"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.delete.channels.channelid.mute.unmute",
@@ -29990,7 +32181,45 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "unmute",
           "summary": "Unmute a channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "direction",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Direction in which to unmute audio"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.hold.hold",
@@ -29998,7 +32227,37 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "hold",
           "summary": "Hold a channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.delete.channels.channelid.hold.unhold",
@@ -30006,7 +32265,37 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "unhold",
           "summary": "Remove a channel from hold.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.moh.startmoh",
@@ -30014,7 +32303,45 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "startMoh",
           "summary": "Play music on hold to a channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "mohClass",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Music on hold class to use"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.delete.channels.channelid.moh.stopmoh",
@@ -30022,7 +32349,37 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "stopMoh",
           "summary": "Stop playing music on hold to a channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.silence.startsilence",
@@ -30030,7 +32387,37 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "startSilence",
           "summary": "Play silence to a channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.delete.channels.channelid.silence.stopsilence",
@@ -30038,7 +32425,37 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "stopSilence",
           "summary": "Stop playing silence to a channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.play.play",
@@ -30046,7 +32463,77 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "play",
           "summary": "Start playback of media.",
-          "responseClass": "Playback"
+          "responseClass": "Playback",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "media",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": true,
+              "dataType": "string",
+              "description": "Media URIs to play."
+            },
+            {
+              "name": "lang",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "For sounds, selects language for sound."
+            },
+            {
+              "name": "offsetms",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Number of milliseconds to skip before playing. Only applies to the first URI if multiple media URIs are specified."
+            },
+            {
+              "name": "skipms",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Number of milliseconds to skip for forward/reverse operations."
+            },
+            {
+              "name": "playbackId",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Playback ID."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Playback",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.play.playbackid.playwithid",
@@ -30054,7 +32541,77 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "playWithId",
           "summary": "Start playback of media and specify the playbackId.",
-          "responseClass": "Playback"
+          "responseClass": "Playback",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "playbackId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Playback ID."
+            },
+            {
+              "name": "media",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": true,
+              "dataType": "string",
+              "description": "Media URIs to play."
+            },
+            {
+              "name": "lang",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "For sounds, selects language for sound."
+            },
+            {
+              "name": "offsetms",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Number of milliseconds to skip before playing. Only applies to the first URI if multiple media URIs are specified."
+            },
+            {
+              "name": "skipms",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Number of milliseconds to skip for forward/reverse operations."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Playback",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.record.record",
@@ -30062,7 +32619,97 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "record",
           "summary": "Start a recording.",
-          "responseClass": "LiveRecording"
+          "responseClass": "LiveRecording",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "name",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Recording's filename"
+            },
+            {
+              "name": "format",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Format to encode audio in"
+            },
+            {
+              "name": "maxDurationSeconds",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Maximum duration of the recording, in seconds. 0 for no limit"
+            },
+            {
+              "name": "maxSilenceSeconds",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Maximum duration of silence, in seconds. 0 for no limit"
+            },
+            {
+              "name": "ifExists",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Action to take if a recording with the same name already exists."
+            },
+            {
+              "name": "beep",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "boolean",
+              "description": "Play beep when recording begins"
+            },
+            {
+              "name": "terminateOn",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "DTMF input to terminate recording"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "LiveRecording",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Invalid parameters"
+              },
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel is not in a Stasis application; the channel is currently bridged with other channels; A recording with the same name already exists on the system and can not be overwritten because it is in progress or ifExists=fail"
+              },
+              {
+                "code": 422,
+                "reason": "The format specified is unknown on this system"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.get.channels.channelid.variable.getchannelvar",
@@ -30070,7 +32717,45 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "getChannelVar",
           "summary": "Get the value of a channel variable or function.",
-          "responseClass": "Variable"
+          "responseClass": "Variable",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "variable",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The channel variable or function to get"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Variable",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Missing variable parameter."
+              },
+              {
+                "code": 404,
+                "reason": "Channel or variable not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.variable.setchannelvar",
@@ -30078,7 +32763,61 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "setChannelVar",
           "summary": "Set the value of a channel variable or function.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "variable",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The channel variable or function to set"
+            },
+            {
+              "name": "value",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The value to set the variable to"
+            },
+            {
+              "name": "report_events",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "boolean",
+              "description": "Whether this variable should be included in channel events. Defaults to false."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Missing variable parameter."
+              },
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.get.channels.channelid.variables.getchannelvars",
@@ -30086,7 +32825,45 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "getChannelVars",
           "summary": "Get the value of multiple channel variables or functions.",
-          "responseClass": "Variables"
+          "responseClass": "Variables",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "variables",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": true,
+              "dataType": "string",
+              "description": "The channel variables or functions to get"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Variables",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Missing variables parameter."
+              },
+              {
+                "code": 404,
+                "reason": "Channel or variable not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.variables.setchannelvars",
@@ -30094,7 +32871,51 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "setChannelVars",
           "summary": "Set the values of multiple channel variables or functions.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "variables",
+              "paramType": "body",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "containers",
+              "description": "The \"variables\" key in the body object holds variable key/value pairs to set on the channel. Each variable value may be either a string or an object containing \"value\" (string) and optional \"report_events\" (boolean) to include updates for that variable in channel events (defaults to false). Ex. { \"variables\": { \"CALLERID(name)\": \"Alice\", \"Call_State\": { \"value\": \"WaitingForAgent\", \"report_events\": true } } }"
+            }
+          ],
+          "requestSchema": {
+            "body": [
+              {
+                "name": "variables",
+                "dataType": "containers",
+                "required": true
+              }
+            ]
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Missing variables parameter."
+              },
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.snoop.snoopchannel",
@@ -30102,7 +32923,73 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "snoopChannel",
           "summary": "Start snooping.",
-          "responseClass": "Channel"
+          "responseClass": "Channel",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "spy",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Direction of audio to spy on"
+            },
+            {
+              "name": "whisper",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Direction of audio to whisper into"
+            },
+            {
+              "name": "app",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Application the snooping channel is placed into"
+            },
+            {
+              "name": "appArgs",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The application arguments to pass to the Stasis application"
+            },
+            {
+              "name": "snoopId",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Unique ID to assign to snooping channel"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Channel",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Invalid parameters"
+              },
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.snoop.snoopid.snoopchannelwithid",
@@ -30110,7 +32997,73 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "snoopChannelWithId",
           "summary": "Start snooping.",
-          "responseClass": "Channel"
+          "responseClass": "Channel",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "snoopId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Unique ID to assign to snooping channel"
+            },
+            {
+              "name": "spy",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Direction of audio to spy on"
+            },
+            {
+              "name": "whisper",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Direction of audio to whisper into"
+            },
+            {
+              "name": "app",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Application the snooping channel is placed into"
+            },
+            {
+              "name": "appArgs",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The application arguments to pass to the Stasis application"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Channel",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Invalid parameters"
+              },
+              {
+                "code": 404,
+                "reason": "Channel not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.dial.dial",
@@ -30118,7 +33071,49 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "dial",
           "summary": "Dial a created channel.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "caller",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel ID of caller"
+            },
+            {
+              "name": "timeout",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Dial timeout"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel cannot be found."
+              },
+              {
+                "code": 409,
+                "reason": "Channel cannot be dialed."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.get.channels.channelid.rtp.statistics.rtpstatistics",
@@ -30126,7 +33121,29 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "rtpstatistics",
           "summary": "RTP stats on a channel.",
-          "responseClass": "RTPstat"
+          "responseClass": "RTPstat",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "RTPstat",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel cannot be found."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.externalmedia.externalmedia",
@@ -30134,7 +33151,119 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "externalMedia",
           "summary": "Start an External Media session.",
-          "responseClass": "Channel"
+          "responseClass": "Channel",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The unique id to assign the channel on creation."
+            },
+            {
+              "name": "app",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Stasis Application to place channel into"
+            },
+            {
+              "name": "variables",
+              "paramType": "body",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "containers",
+              "description": "The \"variables\" key in the body object holds variable key/value pairs to set on the channel on creation. Each variable value may be either a string or an object containing \"value\" (string) and optional \"report_events\" (boolean) to include updates for that variable in channel events (defaults to false). Other keys in the body object are interpreted as query parameters. Ex. { \"endpoint\": \"SIP/Alice\", \"variables\": { \"CALLERID(name)\": \"Alice\", \"Call_State\": { \"value\": \"WaitingForAgent\", \"report_events\": true } } }"
+            },
+            {
+              "name": "external_host",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Hostname/ip:port or websocket_client connection ID of external host.  May be empty for a websocket server connection."
+            },
+            {
+              "name": "encapsulation",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Payload encapsulation protocol.  Must be 'none' for the websocket transport."
+            },
+            {
+              "name": "transport",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Transport protocol"
+            },
+            {
+              "name": "connection_type",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Connection type (client/server). 'server' is only valid for the websocket transport."
+            },
+            {
+              "name": "format",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Format to encode audio in"
+            },
+            {
+              "name": "direction",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "External media direction"
+            },
+            {
+              "name": "data",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "An arbitrary data field"
+            },
+            {
+              "name": "transport_data",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Transport-specific data. For websocket this is appended to the dialstring."
+            }
+          ],
+          "requestSchema": {
+            "body": [
+              {
+                "name": "variables",
+                "dataType": "containers",
+                "required": false
+              }
+            ]
+          },
+          "responseSchema": {
+            "responseClass": "Channel",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Invalid parameters"
+              },
+              {
+                "code": 409,
+                "reason": "Channel is not in a Stasis application; Channel is already bridged"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.channels.operation.post.channels.channelid.transfer.progress.transfer.progress",
@@ -30142,7 +33271,49 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "transfer_progress",
           "summary": "Inform the channel about the progress of the attended/blind transfer.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Channel's id"
+            },
+            {
+              "name": "states",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The state of the progress"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Endpoint parameter not provided"
+              },
+              {
+                "code": 404,
+                "reason": "Channel or endpoint not found"
+              },
+              {
+                "code": 409,
+                "reason": "Channel not in a Stasis application"
+              },
+              {
+                "code": 412,
+                "reason": "Channel in invalid state"
+              }
+            ]
+          }
         }
       ],
       "docsSource": "rest-api/api-docs/channels.json",
@@ -30218,7 +33389,15 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "list",
           "summary": "List all ARI controlled device states.",
-          "responseClass": "List[DeviceState]"
+          "responseClass": "List[DeviceState]",
+          "parameters": [],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "List[DeviceState]",
+            "errors": []
+          }
         },
         {
           "id": "asterisk.ari.devicestates.operation.get.devicestates.devicename.get",
@@ -30226,7 +33405,24 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "get",
           "summary": "Retrieve the current state of a device.",
-          "responseClass": "DeviceState"
+          "responseClass": "DeviceState",
+          "parameters": [
+            {
+              "name": "deviceName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Name of the device"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "DeviceState",
+            "errors": []
+          }
         },
         {
           "id": "asterisk.ari.devicestates.operation.put.devicestates.devicename.update",
@@ -30234,7 +33430,41 @@ export const ASTERISK_CATALOG = {
           "method": "PUT",
           "nickname": "update",
           "summary": "Change the state of a device controlled by ARI. (Note - implicitly creates the device state).",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "deviceName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Name of the device"
+            },
+            {
+              "name": "deviceState",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Device state value"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Device name is missing"
+              },
+              {
+                "code": 409,
+                "reason": "Uncontrolled device specified"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.devicestates.operation.delete.devicestates.devicename.delete",
@@ -30242,7 +33472,33 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "delete",
           "summary": "Destroy a device-state controlled by ARI.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "deviceName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Name of the device"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Device name is missing"
+              },
+              {
+                "code": 409,
+                "reason": "Uncontrolled device specified"
+              }
+            ]
+          }
         }
       ],
       "docsSource": "rest-api/api-docs/deviceStates.json",
@@ -30333,7 +33589,15 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "list",
           "summary": "List all endpoints.",
-          "responseClass": "List[Endpoint]"
+          "responseClass": "List[Endpoint]",
+          "parameters": [],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "List[Endpoint]",
+            "errors": []
+          }
         },
         {
           "id": "asterisk.ari.endpoints.operation.put.endpoints.sendmessage.sendmessage",
@@ -30341,7 +33605,62 @@ export const ASTERISK_CATALOG = {
           "method": "PUT",
           "nickname": "sendMessage",
           "summary": "Send a message to some technology URI or endpoint.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "to",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The endpoint resource or technology specific URI to send the message to. Valid resources are pjsip, and xmpp."
+            },
+            {
+              "name": "from",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The endpoint resource or technology specific identity to send this message from. Valid resources are pjsip, and xmpp."
+            },
+            {
+              "name": "body",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The body of the message"
+            },
+            {
+              "name": "variables",
+              "paramType": "body",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "containers"
+            }
+          ],
+          "requestSchema": {
+            "body": [
+              {
+                "name": "variables",
+                "dataType": "containers",
+                "required": false
+              }
+            ]
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Invalid parameters for sending a message."
+              },
+              {
+                "code": 404,
+                "reason": "Endpoint not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.endpoints.operation.post.endpoints.refer.refer",
@@ -30349,7 +33668,71 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "refer",
           "summary": "Refer an endpoint or technology URI to some technology URI or endpoint.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "to",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The endpoint resource or technology specific URI that should be referred to somewhere. Valid resource is pjsip."
+            },
+            {
+              "name": "from",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The endpoint resource or technology specific identity to refer from."
+            },
+            {
+              "name": "refer_to",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The endpoint resource or technology specific URI to refer to."
+            },
+            {
+              "name": "to_self",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "boolean",
+              "description": "If true and \"refer_to\" refers to an Asterisk endpoint, the \"refer_to\" value is set to point to this Asterisk endpoint - so the referee is referred to Asterisk. Otherwise, use the contact URI associated with the endpoint."
+            },
+            {
+              "name": "variables",
+              "paramType": "body",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "containers",
+              "description": "The \"variables\" key in the body object holds technology specific key/value pairs to append to the message. These can be interpreted and used by the various resource types; for example, the pjsip resource type will add the key/value pairs as SIP headers. The \"display_name\" key is used by the PJSIP technology. Its value will be prepended as a display name to the Refer-To URI."
+            }
+          ],
+          "requestSchema": {
+            "body": [
+              {
+                "name": "variables",
+                "dataType": "containers",
+                "required": false
+              }
+            ]
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Invalid parameters for referring."
+              },
+              {
+                "code": 404,
+                "reason": "Endpoint not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.endpoints.operation.get.endpoints.tech.listbytech",
@@ -30357,7 +33740,29 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "listByTech",
           "summary": "List available endoints for a given endpoint technology.",
-          "responseClass": "List[Endpoint]"
+          "responseClass": "List[Endpoint]",
+          "parameters": [
+            {
+              "name": "tech",
+              "paramType": "path",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Technology of the endpoints (pjsip,iax2,...)"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "List[Endpoint]",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Endpoints not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.endpoints.operation.get.endpoints.tech.resource.get",
@@ -30365,7 +33770,41 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "get",
           "summary": "Details for an endpoint.",
-          "responseClass": "Endpoint"
+          "responseClass": "Endpoint",
+          "parameters": [
+            {
+              "name": "tech",
+              "paramType": "path",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Technology of the endpoint"
+            },
+            {
+              "name": "resource",
+              "paramType": "path",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "ID of the endpoint"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Endpoint",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Invalid parameters for sending a message."
+              },
+              {
+                "code": 404,
+                "reason": "Endpoints not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.endpoints.operation.put.endpoints.tech.resource.sendmessage.sendmessagetoendpoint",
@@ -30373,7 +33812,70 @@ export const ASTERISK_CATALOG = {
           "method": "PUT",
           "nickname": "sendMessageToEndpoint",
           "summary": "Send a message to some endpoint in a technology.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "tech",
+              "paramType": "path",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Technology of the endpoint"
+            },
+            {
+              "name": "resource",
+              "paramType": "path",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "ID of the endpoint"
+            },
+            {
+              "name": "from",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The endpoint resource or technology specific identity to send this message from. Valid resources are pjsip and xmpp."
+            },
+            {
+              "name": "body",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The body of the message"
+            },
+            {
+              "name": "variables",
+              "paramType": "body",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "containers"
+            }
+          ],
+          "requestSchema": {
+            "body": [
+              {
+                "name": "variables",
+                "dataType": "containers",
+                "required": false
+              }
+            ]
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Invalid parameters for sending a message."
+              },
+              {
+                "code": 404,
+                "reason": "Endpoint not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.endpoints.operation.post.endpoints.tech.resource.refer.refertoendpoint",
@@ -30381,7 +33883,79 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "referToEndpoint",
           "summary": "Refer an endpoint or technology URI to some technology URI or endpoint.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "tech",
+              "paramType": "path",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Technology of the endpoint"
+            },
+            {
+              "name": "resource",
+              "paramType": "path",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "ID of the endpoint"
+            },
+            {
+              "name": "from",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The endpoint resource or technology specific identity to refer from."
+            },
+            {
+              "name": "refer_to",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The endpoint resource or technology specific URI to refer to."
+            },
+            {
+              "name": "to_self",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "boolean",
+              "description": "If true and \"refer_to\" refers to an Asterisk endpoint, the \"refer_to\" value is set to point to this Asterisk endpoint - so the referee is referred to Asterisk. Otherwise, use the contact URI associated with the endpoint."
+            },
+            {
+              "name": "variables",
+              "paramType": "body",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "containers",
+              "description": "The \"variables\" key in the body object holds technology specific key/value pairs to append to the message. These can be interpreted and used by the various resource types; for example, the pjsip resource type will add the key/value pairs as SIP headers,"
+            }
+          ],
+          "requestSchema": {
+            "body": [
+              {
+                "name": "variables",
+                "dataType": "containers",
+                "required": false
+              }
+            ]
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "Invalid parameters for referring."
+              },
+              {
+                "code": 404,
+                "reason": "Endpoint not found"
+              }
+            ]
+          }
         }
       ],
       "docsSource": "rest-api/api-docs/endpoints.json",
@@ -30452,7 +34026,35 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "eventWebsocket",
           "summary": "WebSocket connection for events.",
-          "responseClass": "Message"
+          "responseClass": "Message",
+          "parameters": [
+            {
+              "name": "app",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": true,
+              "dataType": "string",
+              "description": "Applications to subscribe to."
+            },
+            {
+              "name": "subscribeAll",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "boolean",
+              "description": "Subscribe to all Asterisk events. If provided, the applications listed will be subscribed to all events, effectively disabling the application specific subscriptions. Default is 'false'."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Message",
+            "errors": []
+          },
+          "websocket": {
+            "protocol": "ari"
+          }
         },
         {
           "id": "asterisk.ari.events.operation.post.events.user.eventname.userevent",
@@ -30460,7 +34062,67 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "userEvent",
           "summary": "Generate a user event.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "eventName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Event name"
+            },
+            {
+              "name": "application",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The name of the application that will receive this event"
+            },
+            {
+              "name": "source",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": true,
+              "dataType": "string",
+              "description": "URI for event source (channel:{channelId}, bridge:{bridgeId}, endpoint:{tech}/{resource}, deviceState:{deviceName}"
+            },
+            {
+              "name": "variables",
+              "paramType": "body",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "containers",
+              "description": "The \"variables\" key in the body object holds custom key/value pairs to add to the user event. Ex. { \"variables\": { \"key\": \"value\" } }"
+            }
+          ],
+          "requestSchema": {
+            "body": [
+              {
+                "name": "variables",
+                "dataType": "containers",
+                "required": false
+              }
+            ]
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Application does not exist."
+              },
+              {
+                "code": 422,
+                "reason": "Event source not found."
+              },
+              {
+                "code": 400,
+                "reason": "Invalid even tsource URI or userevent data."
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.events.operation.post.events.claim.claimchannel",
@@ -30468,7 +34130,41 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "claimChannel",
           "summary": "Claim a broadcast channel for this application.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "channelId",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The ID of the channel to claim"
+            },
+            {
+              "name": "application",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The name of the application claiming the channel"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Channel not found or not in broadcast state."
+              },
+              {
+                "code": 409,
+                "reason": "Channel has already been claimed by another application."
+              }
+            ]
+          }
         }
       ],
       "docsSource": "rest-api/api-docs/events.json",
@@ -30544,7 +34240,15 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "list",
           "summary": "List all mailboxes.",
-          "responseClass": "List[Mailbox]"
+          "responseClass": "List[Mailbox]",
+          "parameters": [],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "List[Mailbox]",
+            "errors": []
+          }
         },
         {
           "id": "asterisk.ari.mailboxes.operation.get.mailboxes.mailboxname.get",
@@ -30552,7 +34256,29 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "get",
           "summary": "Retrieve the current state of a mailbox.",
-          "responseClass": "Mailbox"
+          "responseClass": "Mailbox",
+          "parameters": [
+            {
+              "name": "mailboxName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Name of the mailbox"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Mailbox",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Mailbox not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.mailboxes.operation.put.mailboxes.mailboxname.update",
@@ -30560,7 +34286,45 @@ export const ASTERISK_CATALOG = {
           "method": "PUT",
           "nickname": "update",
           "summary": "Change the state of a mailbox. (Note - implicitly creates the mailbox).",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "mailboxName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Name of the mailbox"
+            },
+            {
+              "name": "oldMessages",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Count of old messages in the mailbox"
+            },
+            {
+              "name": "newMessages",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "int",
+              "description": "Count of new messages in the mailbox"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Mailbox not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.mailboxes.operation.delete.mailboxes.mailboxname.delete",
@@ -30568,7 +34332,29 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "delete",
           "summary": "Destroy a mailbox.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "mailboxName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Name of the mailbox"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Mailbox not found"
+              }
+            ]
+          }
         }
       ],
       "docsSource": "rest-api/api-docs/mailboxes.json",
@@ -30639,7 +34425,29 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "get",
           "summary": "Get a playback's details.",
-          "responseClass": "Playback"
+          "responseClass": "Playback",
+          "parameters": [
+            {
+              "name": "playbackId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Playback's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Playback",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "The playback cannot be found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.playbacks.operation.delete.playbacks.playbackid.stop",
@@ -30647,7 +34455,29 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "stop",
           "summary": "Stop a playback.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "playbackId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Playback's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "The playback cannot be found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.playbacks.operation.post.playbacks.playbackid.control.control",
@@ -30655,7 +34485,45 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "control",
           "summary": "Control a playback.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "playbackId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Playback's id"
+            },
+            {
+              "name": "operation",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Operation to perform on the playback."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 400,
+                "reason": "The provided operation parameter was invalid"
+              },
+              {
+                "code": 404,
+                "reason": "The playback cannot be found"
+              },
+              {
+                "code": 409,
+                "reason": "The operation cannot be performed in the playback's current state"
+              }
+            ]
+          }
         }
       ],
       "docsSource": "rest-api/api-docs/playbacks.json",
@@ -30771,7 +34639,15 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "listStored",
           "summary": "List recordings that are complete.",
-          "responseClass": "List[StoredRecording]"
+          "responseClass": "List[StoredRecording]",
+          "parameters": [],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "List[StoredRecording]",
+            "errors": []
+          }
         },
         {
           "id": "asterisk.ari.recordings.operation.get.recordings.stored.recordingname.getstored",
@@ -30779,7 +34655,29 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "getStored",
           "summary": "Get a stored recording's details.",
-          "responseClass": "StoredRecording"
+          "responseClass": "StoredRecording",
+          "parameters": [
+            {
+              "name": "recordingName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The name of the recording"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "StoredRecording",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Recording not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.recordings.operation.delete.recordings.stored.recordingname.deletestored",
@@ -30787,7 +34685,29 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "deleteStored",
           "summary": "Delete a stored recording.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "recordingName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The name of the recording"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Recording not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.recordings.operation.get.recordings.stored.recordingname.file.getstoredfile",
@@ -30795,7 +34715,33 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "getStoredFile",
           "summary": "Get the file associated with the stored recording.",
-          "responseClass": "binary"
+          "responseClass": "binary",
+          "parameters": [
+            {
+              "name": "recordingName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The name of the recording"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "binary",
+            "errors": [
+              {
+                "code": 403,
+                "reason": "The recording file could not be opened"
+              },
+              {
+                "code": 404,
+                "reason": "Recording not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.recordings.operation.post.recordings.stored.recordingname.copy.copystored",
@@ -30803,7 +34749,41 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "copyStored",
           "summary": "Copy a stored recording.",
-          "responseClass": "StoredRecording"
+          "responseClass": "StoredRecording",
+          "parameters": [
+            {
+              "name": "recordingName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The name of the recording to copy"
+            },
+            {
+              "name": "destinationRecordingName",
+              "paramType": "query",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The destination name of the recording"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "StoredRecording",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Recording not found"
+              },
+              {
+                "code": 409,
+                "reason": "A recording with the same name already exists on the system"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.recordings.operation.get.recordings.live.recordingname.getlive",
@@ -30811,7 +34791,29 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "getLive",
           "summary": "List live recordings.",
-          "responseClass": "LiveRecording"
+          "responseClass": "LiveRecording",
+          "parameters": [
+            {
+              "name": "recordingName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The name of the recording"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "LiveRecording",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Recording not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.recordings.operation.delete.recordings.live.recordingname.cancel",
@@ -30819,7 +34821,29 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "cancel",
           "summary": "Stop a live recording and discard it.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "recordingName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The name of the recording"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Recording not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.recordings.operation.post.recordings.live.recordingname.stop.stop",
@@ -30827,7 +34851,29 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "stop",
           "summary": "Stop a live recording and store it.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "recordingName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The name of the recording"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Recording not found"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.recordings.operation.post.recordings.live.recordingname.pause.pause",
@@ -30835,7 +34881,33 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "pause",
           "summary": "Pause a live recording.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "recordingName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The name of the recording"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Recording not found"
+              },
+              {
+                "code": 409,
+                "reason": "Recording not in session"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.recordings.operation.delete.recordings.live.recordingname.pause.unpause",
@@ -30843,7 +34915,33 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "unpause",
           "summary": "Unpause a live recording.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "recordingName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The name of the recording"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Recording not found"
+              },
+              {
+                "code": 409,
+                "reason": "Recording not in session"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.recordings.operation.post.recordings.live.recordingname.mute.mute",
@@ -30851,7 +34949,33 @@ export const ASTERISK_CATALOG = {
           "method": "POST",
           "nickname": "mute",
           "summary": "Mute a live recording.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "recordingName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The name of the recording"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Recording not found"
+              },
+              {
+                "code": 409,
+                "reason": "Recording not in session"
+              }
+            ]
+          }
         },
         {
           "id": "asterisk.ari.recordings.operation.delete.recordings.live.recordingname.mute.unmute",
@@ -30859,7 +34983,33 @@ export const ASTERISK_CATALOG = {
           "method": "DELETE",
           "nickname": "unmute",
           "summary": "Unmute a live recording.",
-          "responseClass": "void"
+          "responseClass": "void",
+          "parameters": [
+            {
+              "name": "recordingName",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "The name of the recording"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "void",
+            "errors": [
+              {
+                "code": 404,
+                "reason": "Recording not found"
+              },
+              {
+                "code": 409,
+                "reason": "Recording not in session"
+              }
+            ]
+          }
         }
       ],
       "docsSource": "rest-api/api-docs/recordings.json",
@@ -30925,7 +35075,32 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "list",
           "summary": "List all sounds.",
-          "responseClass": "List[Sound]"
+          "responseClass": "List[Sound]",
+          "parameters": [
+            {
+              "name": "lang",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Lookup sound for a specific language."
+            },
+            {
+              "name": "format",
+              "paramType": "query",
+              "required": false,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Lookup sound in a specific format."
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "List[Sound]",
+            "errors": []
+          }
         },
         {
           "id": "asterisk.ari.sounds.operation.get.sounds.soundid.get",
@@ -30933,7 +35108,24 @@ export const ASTERISK_CATALOG = {
           "method": "GET",
           "nickname": "get",
           "summary": "Get a sound's details.",
-          "responseClass": "Sound"
+          "responseClass": "Sound",
+          "parameters": [
+            {
+              "name": "soundId",
+              "paramType": "path",
+              "required": true,
+              "allowMultiple": false,
+              "dataType": "string",
+              "description": "Sound's id"
+            }
+          ],
+          "requestSchema": {
+            "body": []
+          },
+          "responseSchema": {
+            "responseClass": "Sound",
+            "errors": []
+          }
         }
       ],
       "docsSource": "rest-api/api-docs/sounds.json",
@@ -30950,5 +35142,5 @@ export const ASTERISK_CATALOG = {
       }
     }
   ],
-  "catalogRevision": "af004d93c465b1e0a25d190711813591c62f222b86a2b3dd7b0954aaa55e97e4"
+  "catalogRevision": "e3d24320e1a0c7c763af7baa65b778b64a269efc9aea93d7fcdedca90386da4f"
 } as const;

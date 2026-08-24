@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "status": "implemented-unverified",
+  "source": "console/control-plane/asterisk-action-catalog.ts",
+  "actions": [
+    "module.load",
+    "module.unload",
+    "module.reload",
+    "configuration.plan",
+    "configuration.apply",
+    "configuration.restore",
+    "dialplan.read",
+    "media.list",
+    "media.upload",
+    "media.remove",
+    "call.hangup",
+    "call.supervise",
+    "call.record.start",
+    "call.record.stop",
+    "routing.read",
+    "security.read",
+    "reporting.read"
+  ],
+  "runtimeEvidence": "No runtime exchange or built desktop evidence was run in this source-only lane."
+}

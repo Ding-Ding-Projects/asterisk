@@ -388,6 +388,10 @@ async function main() {
       nickname: operation.nickname,
       summary: operation.summary,
       responseClass: operation.responseClass,
+      parameters: (operation.parameters ?? []).map((parameter) => ({ name: parameter.name, paramType: parameter.paramType, required: parameter.required === true, allowMultiple: parameter.allowMultiple === true, dataType: parameter.dataType, description: parameter.description })),
+      requestSchema: { body: (operation.parameters ?? []).filter((parameter) => parameter.paramType === 'body').map((parameter) => ({ name: parameter.name, dataType: parameter.dataType, required: parameter.required === true })) },
+      responseSchema: { responseClass: operation.responseClass, errors: (operation.errorResponses ?? []).map((error) => ({ code: error.code, reason: error.reason })) },
+      websocket: operation.upgrade === 'websocket' ? { protocol: operation.websocketProtocol ?? 'ari' } : undefined,
     })));
     const sourceBuffer = await readFile(absolute);
     const sourceText = sourceBuffer.toString('utf8');
@@ -446,6 +450,10 @@ async function main() {
     nickname: operation.nickname,
     summary: operation.summary,
     responseClass: operation.responseClass,
+    parameters: operation.parameters,
+    requestSchema: operation.requestSchema,
+    responseSchema: operation.responseSchema,
+    websocket: operation.websocket,
     source: resource.source,
   })));
   await mkdir(dirname(outputJson), { recursive: true });

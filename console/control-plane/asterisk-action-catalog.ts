@@ -51,20 +51,20 @@ export const ASTERISK_ACTION_CATALOG: ReadonlyArray<AsteriskActionDefinition> = 
 
 export const ASTERISK_ACTION_SURFACE_MAP: Readonly<Record<string, AsteriskActionSurfaceContract>> = Object.fromEntries(
   ASTERISK_ACTION_CATALOG.map((action) => [action.id, {
-    rendererRoute: action.family === "module" ? "modules" : action.family,
-    dispatcherAction: action.transport === "ami" ? "ami.action" : action.transport === "ari" ? "ari.operation" : action.id,
+    rendererRoute: ({ module: "modules", call: "live", configuration: "modules", dialplan: "canvas", media: "moh", routing: "endpoints", security: "security", reporting: "cdr" } as Record<string, string>)[action.family] ?? "modules",
+    dispatcherAction: action.id === "configuration.plan" ? "pbx.plan" : action.id === "configuration.apply" ? "pbx.apply" : action.id === "configuration.restore" ? "history.restore" : action.id === "dialplan.read" ? "pbx.read" : action.id.startsWith("media.") ? `media.${action.id.split(".")[1]}` : action.transport === "ami" ? "ami.action" : action.transport === "ari" ? "ari.operation" : action.id,
     localizationKey: `asterisk.action.${action.id}`,
     confirmation: action.confirmation,
     readback: action.transport === "control-plane" ? "typed-control-plane-receipt" : "transport-receipt-and-reread",
     history: "local-history.record",
-    docs: `console/docs/platform/${action.family}-actions.md`,
-    site: `console/site/documentation.html#${action.family}-actions`,
+    docs: "console/docs/system/asterisk-capability-catalog.md",
+    site: "console/site/asterisk-action-registry.json",
     search: "catalogue-record-search",
     palette: "command-palette-action-result",
     bulk: "bulk-action-preview",
     export: "catalogue-export",
     accessibility: "native-labelled-control",
-    evidence: `console/release/evidence/windows-console/${action.id}.json`,
+    evidence: "console/inventories/asterisk-actions-evidence.json",
   } satisfies AsteriskActionSurfaceContract]),
 );
 

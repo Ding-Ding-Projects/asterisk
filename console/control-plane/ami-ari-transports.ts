@@ -122,6 +122,88 @@ export class AmiTransport {
   private unavailable(action: AmiActionName, reason: string): AmiReceipt { return { state: "unavailable", observedAt: this.#optionsNow(), action, reason }; }
 }
 
+export interface AmiEventEnvelope {
+  event: string;
+  fields: AmiFieldMap;
+  observedAt: string;
+}
+
+export interface AmiEventTransportOptions extends AmiTransportOptions {
+  queueLimit?: number;
+  reconnectLimit?: number;
+}
+
+/** Event-only AMI session. Actions and events use separate lifecycles and receipts. */
+export class AmiEventTransport {
+  readonly #options: Required<Pick<AmiEventTransportOptions, "timeoutMs" | "queueLimit" | "reconnectLimit" | "now">> & AmiEventTransportOptions;
+  readonly #knownEvents = new Set(AMI_EVENT_REGISTRY.map((event) => event.name));
+  readonly #queue: AmiEventEnvelope[] = [];
+  #socket: Socket | undefined;
+  #stopped = false;
+  #dropped = 0;
+
+  constructor(options: AmiEventTransportOptions) {
+    if (!Number.isInteger(options.port) || options.port < 1 || options.port > 65535) throw new Error("AMI event port must be 1-65535");
+    if (options.tls !== true && !isLoopback(options.host)) throw new Error("Plain AMI events are permitted only on loopback.");
+    this.#options = { ...options, timeoutMs: options.timeoutMs ?? 10_000, queueLimit: options.queueLimit ?? 256, reconnectLimit: options.reconnectLimit ?? 3, now: options.now ?? (() => new Date()) };
+  }
+
+  async start(listener: (event: AmiEventEnvelope) => void, signal?: AbortSignal): Promise<{ state: TransportState; dropped: number; reason?: string }> {
+    const credential = await this.#options.vault.read(this.#options.credentialKey, signal);
+    if (!credential) return { state: "unavailable", dropped: 0, reason: "The AMI event credential is unavailable in the OS vault." };
+    this.#stopped = false;
+    signal?.addEventListener("abort", () => this.stop(), { once: true });
+    let attempts = 0;
+    while (!this.#stopped && attempts <= this.#options.reconnectLimit) {
+      try {
+        await this.#connect(credential, listener, signal);
+        if (this.#stopped) return { state: "cancelled", dropped: this.#dropped };
+      } catch (error) {
+        if (this.#stopped || signal?.aborted) return { state: "cancelled", dropped: this.#dropped, reason: "AMI event stream cancelled." };
+        attempts += 1;
+        if (attempts > this.#options.reconnectLimit) return { state: "unavailable", dropped: this.#dropped, reason: error instanceof Error ? error.message : "AMI event stream failed." };
+        await new Promise((resolve) => setTimeout(resolve, Math.min(2 ** attempts * 250, 2_000)));
+      }
+    }
+    return { state: "cancelled", dropped: this.#dropped };
+  }
+
+  stop(): void { this.#stopped = true; this.#socket?.destroy(); this.#socket = undefined; }
+
+  #connect(credential: VaultCredential, listener: (event: AmiEventEnvelope) => void, signal?: AbortSignal): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let buffer = "";
+      let settled = false;
+      const finish = (error?: Error) => { if (settled) return; settled = true; this.#socket?.destroy(); this.#socket = undefined; error ? reject(error) : resolve(); };
+      this.#socket = this.#options.tls === true ? tlsConnect({ host: this.#options.host, port: this.#options.port, rejectUnauthorized: true }) : createConnection({ host: this.#options.host, port: this.#options.port });
+      this.#socket.setTimeout(this.#options.timeoutMs, () => finish(new Error("AMI event stream timed out")));
+      this.#socket.setEncoding("utf8");
+      this.#socket.once("connect", () => this.#socket?.write(`Action: Login\r\nUsername: ${credential.username}\r\nSecret: ${credential.secret}\r\nEvents: on\r\n\r\n`));
+      this.#socket.on("data", (chunk: string) => {
+        buffer += chunk;
+        if (buffer.length > 2 * 1024 * 1024) return finish(new Error("AMI event stream exceeded the bounded buffer"));
+        let separator = buffer.indexOf("\r\n\r\n");
+        while (separator >= 0) {
+          const raw = buffer.slice(0, separator);
+          buffer = buffer.slice(separator + 4);
+          const fields = parseAmiHeaders(raw).fields;
+          const event = fields.Event;
+          if (event && this.#knownEvents.has(event)) {
+            const envelope = { event, fields, observedAt: this.#options.now().toISOString() };
+            if (this.#queue.length >= this.#options.queueLimit) { this.#queue.shift(); this.#dropped += 1; }
+            this.#queue.push(envelope);
+            listener(this.#queue.shift()!);
+          }
+          separator = buffer.indexOf("\r\n\r\n");
+        }
+      });
+      this.#socket.once("close", () => finish());
+      this.#socket.once("error", (error) => finish(error));
+      if (signal?.aborted) finish(new Error("AMI event stream cancelled"));
+    });
+  }
+}
+
 export const ARI_OPERATIONS: Record<string, { method: string; path: string }> = {
   asteriskInfo: { method: "GET", path: "/ari/asterisk/info" },
   listChannels: { method: "GET", path: "/ari/channels" },
@@ -201,6 +283,93 @@ export class AriTransport {
       if (receipt.state === "available") names.push(spec.path);
     }
     return { state: names.length > 0 ? "available" : "unavailable", names, reason: names.length > 0 ? undefined : "No ARI resource operation returned an available response." };
+  }
+}
+
+export interface AriWebSocketLike {
+  onopen: (() => void) | null;
+  onmessage: ((event: { data: string }) => void) | null;
+  onerror: ((error: unknown) => void) | null;
+  onclose: (() => void) | null;
+  close(): void;
+}
+
+export type AriWebSocketFactory = (url: string, headers: Readonly<Record<string, string>>) => AriWebSocketLike;
+
+export interface AriEventEnvelope {
+  type: string;
+  value: unknown;
+  observedAt: string;
+}
+
+/** Bounded ARI WebSocket event transport. The host supplies a header-capable WebSocket factory. */
+export class AriEventTransport {
+  readonly #baseUrl: string;
+  readonly #credentialKey: string;
+  readonly #vault: CredentialVault;
+  readonly #factory?: AriWebSocketFactory;
+  readonly #queueLimit: number;
+  readonly #reconnectLimit: number;
+  readonly #now: () => Date;
+  #socket: AriWebSocketLike | undefined;
+  #stopped = false;
+  #dropped = 0;
+
+  constructor(options: AriTransportOptions & { webSocketFactory?: AriWebSocketFactory; queueLimit?: number; reconnectLimit?: number }) {
+    const parsed = new URL(options.baseUrl);
+    if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && isLoopback(parsed.hostname))) throw new Error("ARI events require HTTPS, or HTTP on loopback");
+    this.#baseUrl = options.baseUrl;
+    this.#credentialKey = options.credentialKey;
+    this.#vault = options.vault;
+    this.#factory = options.webSocketFactory;
+    this.#queueLimit = options.queueLimit ?? 256;
+    this.#reconnectLimit = options.reconnectLimit ?? 3;
+    this.#now = options.now ?? (() => new Date());
+  }
+
+  async start(listener: (event: AriEventEnvelope) => void, signal?: AbortSignal): Promise<{ state: TransportState; dropped: number; reason?: string }> {
+    if (!this.#factory) return { state: "unavailable", dropped: 0, reason: "No header-capable WebSocket factory is mounted in this host." };
+    const credential = await this.#vault.read(this.#credentialKey, signal);
+    if (!credential) return { state: "unavailable", dropped: 0, reason: "The ARI event credential is unavailable in the OS vault." };
+    this.#stopped = false;
+    signal?.addEventListener("abort", () => this.stop(), { once: true });
+    for (let attempt = 0; attempt <= this.#reconnectLimit && !this.#stopped; attempt += 1) {
+      try {
+        await this.#connect(credential, listener, signal);
+      } catch (error) {
+        if (this.#stopped || signal?.aborted) return { state: "cancelled", dropped: this.#dropped, reason: "ARI event stream cancelled." };
+        if (attempt === this.#reconnectLimit) return { state: "unavailable", dropped: this.#dropped, reason: error instanceof Error ? error.message : "ARI event stream failed." };
+        await new Promise((resolve) => setTimeout(resolve, Math.min(2 ** (attempt + 1) * 250, 2_000)));
+      }
+    }
+    return { state: "cancelled", dropped: this.#dropped };
+  }
+
+  stop(): void { this.#stopped = true; this.#socket?.close(); this.#socket = undefined; }
+
+  #connect(credential: VaultCredential, listener: (event: AriEventEnvelope) => void, signal?: AbortSignal): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const queue: AriEventEnvelope[] = [];
+      const finish = (error?: Error) => { if (settled) return; settled = true; this.#socket?.close(); this.#socket = undefined; error ? reject(error) : resolve(); };
+      const url = this.#baseUrl.replace(/^http/iu, "ws") + "events";
+      this.#socket = this.#factory!(url, { Authorization: `Basic ${Buffer.from(`${credential.username}:${credential.secret}`).toString("base64")}`, "Sec-WebSocket-Protocol": "ari" });
+      this.#socket.onopen = () => undefined;
+      this.#socket.onmessage = (event) => {
+        if (typeof event.data !== "string" || event.data.length > 512 * 1024) return finish(new Error("ARI event exceeded the bounded size"));
+        try {
+          const parsed = JSON.parse(event.data) as { type?: unknown };
+          if (typeof parsed.type !== "string") return;
+          const envelope = { type: parsed.type, value: parsed, observedAt: this.#now().toISOString() };
+          if (queue.length >= this.#queueLimit) { queue.shift(); this.#dropped += 1; }
+          queue.push(envelope);
+          listener(queue.shift()!);
+        } catch { finish(new Error("ARI event was malformed JSON")); }
+      };
+      this.#socket.onerror = () => finish(new Error("ARI event socket failed"));
+      this.#socket.onclose = () => finish();
+      if (signal?.aborted) finish(new Error("ARI event stream cancelled"));
+    });
   }
 }
 
