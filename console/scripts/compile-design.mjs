@@ -168,6 +168,7 @@ const ATTR_NAMES = {
   'clip-rule': 'clipRule',
   autocomplete: 'autoComplete',
   readonly: 'readOnly',
+  autofocus: 'autoFocus',
   tabindex: 'tabIndex',
 };
 
@@ -280,7 +281,8 @@ function emit(node, scope, hovers, indent) {
       continue;
     }
     const mapped = ATTR_NAMES[name] || name;
-    props.push(`${propKey(mapped)}: ${attrValue(raw, scope)}`);
+    const value = mapped === 'autoFocus' && raw === 'true' ? 'true' : attrValue(raw, scope);
+    props.push(`${propKey(mapped)}: ${value}`);
   }
 
   const hover = node.attrs['style-hover'];

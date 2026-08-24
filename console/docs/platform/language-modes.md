@@ -8,7 +8,7 @@ The `Language` control stores `en`, `yue`, or `both`. The localized element fact
 
 ## Configuration
 
-The choice is persisted in the durable settings store and applies to every rendered screen. Missing translations keep the English source string. Technical identifiers, values and paths are not translated.
+The choice is persisted in the durable settings store and applies to every rendered screen. Missing translations keep the English source string. Dynamic toast and dialog copy is listed in `console/app/renderer/src/event-copy-inventory.ts`, where each row explicitly records a localized entry or an intentional plain-English fallback. Technical identifiers, values and paths are not translated.
 
 ## Current status
 

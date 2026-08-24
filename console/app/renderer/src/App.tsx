@@ -43,6 +43,7 @@ import {
   IDENTITY, displayName, resetDisplayName, setDisplayName,
 } from './display-name';
 import { setEmojisEnabled } from './dialog-emojis';
+import { dynamicEventCopyRecord } from './event-copy-inventory';
 import { isAttentionMode, setModeEnabled } from './attention-modes';
 import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
 import { KNOWN_EDITORS, chooseEditor, clearEditorChoice } from './external-editor';
@@ -207,13 +208,16 @@ export class App extends Base {
   private narrationStatusLine = 'No voice list loaded yet.';
   private voiceOptionIds: Record<string, string> = {};
   private voicesChangedUnsubscribe: (() => void) | undefined;
+  private platformAccessibilityTimer: ReturnType<typeof setInterval> | undefined;
   private narrationQuiet = false;
-  private narrationScreenReaderActive = false;
+  private platformScreenReaderActive = false;
+  private narrationScreenReaderOverride = false;
   private schoolCredentialOpen = false;
   private schoolCredentialKind: 'set' | 'verify' = 'set';
   private schoolCredentialValue = '';
   private schoolRecoveryLine = SCHOOL_RECOVERY_LINE;
-  private schoolRecoveryPath = '%APPDATA%\\ding-pbx-console';
+  private schoolRecoveryPath = '';
+  private schoolRecoveryReady = false;
   private schoolCredentialOrigin: HTMLElement | null = null;
   private readonly baseToast: (message: string) => void;
   private readonly baseFire: (title: string, body: string) => void;
@@ -324,6 +328,7 @@ export class App extends Base {
       this.funnyLevels = readFunnyLevels(this.vocabStorage);
       this.restoreNarrationSettings();
       void this.restorePlatformAccessibility();
+      this.platformAccessibilityTimer = setInterval(() => { void this.restorePlatformAccessibility(); }, 5000);
       this.restoreDisplayName();
       this.restoreAppearance();
       this.setState((prior: { values?: Record<string, unknown> }) => ({
@@ -364,6 +369,8 @@ export class App extends Base {
     this.narrator = undefined;
     this.voicesChangedUnsubscribe?.();
     this.voicesChangedUnsubscribe = undefined;
+    if (this.platformAccessibilityTimer) clearInterval(this.platformAccessibilityTimer);
+    this.platformAccessibilityTimer = undefined;
     setSchoolModeNameProvider(undefined);
   }
 
@@ -634,7 +641,10 @@ ${resolution.disclosure}`);
   private currentFunnyEvent(text: string): { display: string; enText: string; yueText: string } {
     const event = localizeEventText(text, this.renameSchoolText);
     const enText = styleFunnyText(event.enText, 'en', this.funnyLevels.en);
-    const yueText = event.translated ? styleFunnyText(event.yueText, 'yue', this.funnyLevels.yue) : event.yueText;
+    const inventory = dynamicEventCopyRecord(text);
+    const yueText = event.translated && inventory?.status !== 'english-fallback'
+      ? styleFunnyText(event.yueText, 'yue', this.funnyLevels.yue)
+      : event.yueText;
     return {
       display: languageMode() === 'yue' ? yueText : languageMode() === 'both' ? `${enText} · ${yueText}` : enText,
       enText,
@@ -654,8 +664,8 @@ ${resolution.disclosure}`);
 
   private localizedSchoolDisclosure(setMode: boolean): string {
     const source = setMode
-      ? 'This credential is stored only in the desktop credential store and is shared by this app family. It never enters settings, exports, history, logs or captures.'
-      : 'The credential is checked by the desktop credential store. Winning a challenge never bypasses this credential.';
+      ? 'This credential is stored only in the operating-system credential vault under the shared account key. It never enters settings, exports, history, logs or captures.'
+      : 'The credential is checked by the operating-system credential vault. Winning a challenge never bypasses this credential.';
     return this.renameSchoolText(localizeText(source));
   }
 
@@ -692,9 +702,9 @@ ${resolution.disclosure}`);
         pitch: saved.pitch,
       });
       this.narrationQuiet = this.vocabStorage.getItem('console.narrationQuiet') === 'on';
-      this.narrationScreenReaderActive = this.vocabStorage.getItem('console.narrationScreenReader') === 'on';
+      this.narrationScreenReaderOverride = this.vocabStorage.getItem('console.narrationScreenReader') === 'on';
       this.narrator.setQuiet(this.narrationQuiet);
-      this.narrator.setScreenReaderActive(this.narrationScreenReaderActive);
+      this.narrator.setScreenReaderActive(this.platformScreenReaderActive || this.narrationScreenReaderOverride);
       this.syncNarrationStateToControls();
       this.updateNarrationStatus();
     } catch {
@@ -705,16 +715,21 @@ ${resolution.disclosure}`);
   private async restorePlatformAccessibility(): Promise<void> {
     const bridge = this.bridge() as DesktopBridge | undefined;
     try {
-      const active = await bridge?.accessibility?.isScreenReaderActive();
-      if (typeof active === 'boolean' && !this.narrationScreenReaderActive) {
-        this.narrationScreenReaderActive = active;
-        this.narrator?.setScreenReaderActive(active);
-        this.persistNarration();
+      const active = await this.boundedCall(() => bridge?.accessibility?.isScreenReaderActive() ?? Promise.resolve(undefined), 1200);
+      if (typeof active === 'boolean') {
+        this.platformScreenReaderActive = active;
+        this.narrator?.setScreenReaderActive(active || this.narrationScreenReaderOverride);
+        this.updateNarrationStatus();
       }
-      const recovery = await bridge?.school?.recoveryPath();
+      const recovery = await this.boundedCall(() => bridge?.school?.recoveryPath() ?? Promise.resolve(undefined), 1200);
       if (recovery?.ok && recovery.path) {
         this.schoolRecoveryPath = recovery.path;
+        this.schoolRecoveryReady = true;
         this.schoolRecoveryLine = `If you forget this credential, delete ${recovery.path} to reset School mode and its local settings.`;
+        this.forceUpdate();
+      } else {
+        this.schoolRecoveryReady = false;
+        this.schoolRecoveryLine = recovery?.reason ?? 'The exact application-data recovery path is unavailable.';
         this.forceUpdate();
       }
     } catch {
@@ -735,7 +750,7 @@ ${resolution.disclosure}`);
         nar_yue_voice: this.voiceLabelForId(settings.voices.zh, 'zh'),
         nar_rate: settings.rate,
         nar_pitch: settings.pitch,
-        nar_screen_reader: this.narrationScreenReaderActive,
+        nar_screen_reader: this.narrationScreenReaderOverride,
       },
     }) as never);
   }
@@ -745,13 +760,14 @@ ${resolution.disclosure}`);
     if (!settings) return;
     this.vocabStorage.setItem('console.narration', JSON.stringify(settings));
     this.vocabStorage.setItem('console.narrationQuiet', this.narrationQuiet ? 'on' : 'off');
-    this.vocabStorage.setItem('console.narrationScreenReader', this.narrationScreenReaderActive ? 'on' : 'off');
+    this.vocabStorage.setItem('console.narrationScreenReader', this.narrationScreenReaderOverride ? 'on' : 'off');
     this.updateNarrationStatus();
   }
 
   private refreshNarrationVoiceOptions(): void {
     if (!this.speechEngine) {
       this.narrationStatusLine = 'Speech synthesis is not available on this computer.';
+      this.forceUpdate();
       return;
     }
     const screens = SCREENS as unknown as { customise?: { groups?: Array<{ ctls: Array<{ id: string; options?: string[] }> }> } };
@@ -804,8 +820,8 @@ ${resolution.disclosure}`);
     if (control.id === 'nar_rate' && typeof value === 'number') this.narrator.setSettings({ rate: value });
     if (control.id === 'nar_pitch' && typeof value === 'number') this.narrator.setSettings({ pitch: value });
     if (control.id === 'nar_screen_reader' && typeof value === 'boolean') {
-      this.narrationScreenReaderActive = value;
-      this.narrator.setScreenReaderActive(value);
+      this.narrationScreenReaderOverride = value;
+      this.narrator.setScreenReaderActive(this.platformScreenReaderActive || value);
     }
     this.persistNarration();
   }
@@ -842,16 +858,20 @@ ${resolution.disclosure}`);
     }
   }
 
-  private async requestWithDeadline(action: string, timeoutMs: number): Promise<ControlPlaneResponse | undefined> {
+  private async boundedCall<T>(call: () => Promise<T>, timeoutMs: number): Promise<T | undefined> {
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       return await Promise.race([
-        this.request(action),
+        call(),
         new Promise<undefined>((resolve) => { timer = setTimeout(() => resolve(undefined), timeoutMs); }),
       ]);
     } finally {
       if (timer) clearTimeout(timer);
     }
+  }
+
+  private async requestWithDeadline(action: string, timeoutMs: number): Promise<ControlPlaneResponse | undefined> {
+    return this.boundedCall(() => this.request(action), timeoutMs);
   }
 
   private applySchoolMode(enabled: boolean, persist: boolean): void {
@@ -862,7 +882,7 @@ ${resolution.disclosure}`);
       const narration = this.narrator ? {
         ...this.narrator.getSettings(),
         quiet: this.narrationQuiet,
-        screenReaderActive: this.narrationScreenReaderActive,
+        screenReaderOverride: this.narrationScreenReaderOverride,
       } : undefined;
       savePreviousSettings(storage, languageMode(), this.funnyLevels, narration);
       if (persist) writeSchoolMode(storage, true);
@@ -906,6 +926,10 @@ ${resolution.disclosure}`);
 
   private configureSchoolCredential = async (): Promise<void> => {
     if (this.schoolCredentialPromptOpen) return;
+    if (!this.schoolRecoveryReady) {
+      this.fire('School mode recovery path unavailable', this.schoolRecoveryLine);
+      return;
+    }
     this.schoolCredentialKind = 'set';
     this.schoolCredentialValue = '';
     this.schoolCredentialOrigin = typeof document !== 'undefined' && document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -915,6 +939,10 @@ ${resolution.disclosure}`);
 
   private unlockSchoolMode = async (): Promise<void> => {
     if (this.schoolCredentialPromptOpen) return;
+    if (!this.schoolRecoveryReady) {
+      this.fire('School mode recovery path unavailable', this.schoolRecoveryLine);
+      return;
+    }
     this.schoolCredentialKind = 'verify';
     this.schoolCredentialValue = '';
     this.schoolCredentialOrigin = typeof document !== 'undefined' && document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -935,17 +963,22 @@ ${resolution.disclosure}`);
     this.forceUpdate();
   };
 
-  private onSchoolCredentialKeyDown = (event: { key?: string; preventDefault?: () => void }): void => {
+  private onSchoolCredentialKeyDown = (event: { key?: string; shiftKey?: boolean; currentTarget?: { id?: string }; preventDefault?: () => void }): void => {
     if (event.key === 'Escape') {
       event.preventDefault?.();
       this.cancelSchoolCredential();
     } else if (event.key === 'Enter') {
       event.preventDefault?.();
-      void this.submitSchoolCredential();
+      if (event.currentTarget?.id === 'school-credential-cancel') this.cancelSchoolCredential();
+      else void this.submitSchoolCredential();
     } else if (event.key === 'Tab') {
-      // Keep keyboard focus inside the app-owned credential dialog until it closes.
       event.preventDefault?.();
-      if (typeof document !== 'undefined') document.getElementById('school-credential-input')?.focus();
+      if (typeof document !== 'undefined') {
+        const focusOrder = ['school-credential-input', 'school-credential-cancel', 'school-credential-submit'];
+        const current = focusOrder.indexOf(event.currentTarget?.id ?? 'school-credential-input');
+        const next = (current + (event.shiftKey ? -1 : 1) + focusOrder.length) % focusOrder.length;
+        document.getElementById(focusOrder[next]!)?.focus();
+      }
     }
   };
 
@@ -956,10 +989,10 @@ ${resolution.disclosure}`);
     try {
       const bridge = this.bridge() as DesktopBridge | undefined;
       const result = this.schoolCredentialKind === 'set'
-        ? await bridge?.school?.setCredential(value)
-        : await bridge?.school?.verifyCredential(value);
+        ? await this.boundedCall(() => bridge?.school?.setCredential(value) ?? Promise.resolve(undefined), 1800)
+        : await this.boundedCall(() => bridge?.school?.verifyCredential(value) ?? Promise.resolve(undefined), 1800);
       if (!result?.ok) {
-        this.fire(this.schoolCredentialKind === 'set' ? 'School mode credential not saved' : 'School mode remains on', result?.reason ?? 'The desktop credential store is unavailable.');
+        this.fire(this.schoolCredentialKind === 'set' ? 'School mode credential not saved' : 'School mode remains on', result?.reason ?? 'The operating-system credential vault is unavailable.');
         return;
       }
       this.schoolCredentialOpen = false;
@@ -989,9 +1022,9 @@ ${resolution.disclosure}`);
       pitch: Number.isFinite(Number(previous.pitch)) ? Number(previous.pitch) : undefined,
     });
     this.narrationQuiet = previous.quiet === true;
-    this.narrationScreenReaderActive = previous.screenReaderActive === true;
+    this.narrationScreenReaderOverride = previous.screenReaderOverride === true;
     this.narrator.setQuiet(this.narrationQuiet);
-    this.narrator.setScreenReaderActive(this.narrationScreenReaderActive);
+    this.narrator.setScreenReaderActive(this.platformScreenReaderActive || this.narrationScreenReaderOverride);
     this.persistNarration();
   }
 

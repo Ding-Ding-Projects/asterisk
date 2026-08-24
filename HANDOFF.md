@@ -376,7 +376,7 @@ levels, a persisted dialog-emoji switch, a shared renamable School mode, and an 
 group. The renderer mounts the existing localization boundary, applies bounded funny wrappers to app
 notifications and dialogs, polls the shared settings snapshot once per second, and hides Cantonese,
 funny, vocabulary, dialog-emoji and narration controls while School mode is active. Electron stores
-the School unlock credential through `safeStorage`; the plain settings snapshot never receives it.
+the School unlock credential through the operating-system credential vault under a stable account key using the `keytar` adapter; the plain settings snapshot and application-data files never receive it.
 
 The browser speech adapter enumerates the installed voice list late through `voiceschanged`, persists
 stable voice URI identities, reports missing and network-backed choices, and serializes English then

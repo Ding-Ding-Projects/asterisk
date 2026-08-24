@@ -2521,16 +2521,16 @@ function Template(v: any) {
             h("label", { htmlFor: `school-credential-input`, style: sty(`display:block; font-size:12px; color:#C4CBC2; margin-top:18px;`) },
               "Shared credential"
             ),
-            h("input", { id: `school-credential-input`, type: `password`, value: v.schoolCredentialValue, onChange: fn(v.onSchoolCredential), onInput: fn(v.onSchoolCredential), onKeyDown: fn(v.onSchoolCredentialKeyDown), autofocus: `true`, autoComplete: `new-password`, style: sty(`width:100%; box-sizing:border-box; margin-top:7px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:11px 12px; color:#DFE4DC; font:inherit; font-family:'Roboto Mono',monospace;`) }),
+            h("input", { id: `school-credential-input`, type: `password`, value: v.schoolCredentialValue, onChange: fn(v.onSchoolCredential), onInput: fn(v.onSchoolCredential), onKeyDown: fn(v.onSchoolCredentialKeyDown), autoFocus: true, autoComplete: `new-password`, style: sty(`width:100%; box-sizing:border-box; margin-top:7px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:11px 12px; color:#DFE4DC; font:inherit; font-family:'Roboto Mono',monospace;`) }),
             h("div", { style: sty(`font-size:11.5px; color:#8FA394; line-height:1.5; margin-top:10px;`) },
               S(v.schoolRecoveryLine)
             ),
             h("div", { style: sty(`display:flex; gap:8px; margin-top:18px;`) },
-              h("button", { onClick: fn(v.cancelSchoolCredential), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; cursor:pointer;`) },
+              h("button", { id: `school-credential-cancel`, onClick: fn(v.cancelSchoolCredential), onKeyDown: fn(v.onSchoolCredentialKeyDown), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; cursor:pointer;`) },
                 "Cancel"
               ),
               h("div", { style: sty(`flex:1;`) }),
-              h("button", { onClick: fn(v.submitSchoolCredential), style: sty(`background:#82D9A5; border:0; border-radius:999px; padding:10px 20px; color:#00391F; font:inherit; font-weight:600; cursor:pointer;`) },
+              h("button", { id: `school-credential-submit`, onClick: fn(v.submitSchoolCredential), onKeyDown: fn(v.onSchoolCredentialKeyDown), style: sty(`background:#82D9A5; border:0; border-radius:999px; padding:10px 20px; color:#00391F; font:inherit; font-weight:600; cursor:pointer;`) },
                 S(v.schoolCredentialAction)
               )
             )
@@ -3406,7 +3406,7 @@ const SCREENS = {
     ]},{ title:'School mode', desc:'A shared, renamable switch for plain English presentation. It hides Cantonese, funny-level, vocabulary and dim-sum capabilities while active, and restores your earlier choices after a verified unlock.', ctls:[
       ctl('school_mode','School mode','switch',false,{ info:'This is a shared presentation mode, not a security boundary. Turning it on forces English and removes playful or optional controls everywhere this console runs.' }),
       ctl('school_name','School mode name','text','',{ placeholder:'School mode', info:'Rename the mode shown in every surface. The chosen name is shared and updates live.' }),
-      ctl('school_set_credential','Set unlock credential','switch',false,{ info:'Opens a local credential prompt. The credential is kept by the desktop credential store, never in settings, exports or history.' }),
+      ctl('school_set_credential','Set unlock credential','switch',false,{ info:'Opens an app-owned credential dialog. The credential is kept by the operating-system credential vault, never in settings, exports or history.' }),
       ctl('school_unlock','Unlock School mode','switch',false,{ info:'Verifies the shared credential before restoring the previous language and funny levels. The ladder never bypasses this credential.' }),
       ctl('school_status','School mode status','text','Unknown',{ action:'school-status', info:'Shows the shared state and whether the last cross-process refresh answered.' })
     ]},{ title:'Fun', desc:'Two independent settings style every message without changing its facts. Both start at level 5, and each can be reset separately.', ctls:[

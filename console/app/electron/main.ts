@@ -1,6 +1,6 @@
-import { app, BrowserWindow, ipcMain, safeStorage } from 'electron';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'node:path';
+import * as keytar from 'keytar';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
 import type { ControlPlaneRequest, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
@@ -171,32 +171,30 @@ ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindo
 ipcMain.on('window:close', () => mainWindow?.close());
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
 
-/** School mode's shared unlock value belongs in Electron's encrypted credential
- * store, not the plain settings snapshot. Only success or a neutral reason crosses
- * the renderer boundary, never the stored value or its encrypted bytes. */
-const schoolCredentialPath = (): string => join(app.getPath('userData'), 'school-mode-credential.bin');
+/** School mode's shared unlock value belongs in the operating-system credential vault,
+ * not the settings snapshot or application data. Only success or a neutral reason
+ * crosses the renderer boundary, never the stored value. */
 const SCHOOL_CREDENTIAL_ACCOUNT = 'ding-pbx-console:school-mode-shared-unlock';
+const SCHOOL_CREDENTIAL_SERVICE = 'ding-pbx-console';
 ipcMain.handle('school:set-credential', async (_event, candidate: unknown) => {
   if (typeof candidate !== 'string' || candidate.length < 4 || candidate.length > 256) return { ok: false, reason: 'The unlock credential must be between 4 and 256 characters.' };
-  if (!safeStorage.isEncryptionAvailable()) return { ok: false, reason: 'The desktop credential store is unavailable.' };
   try {
-    writeFileSync(schoolCredentialPath(), safeStorage.encryptString(JSON.stringify({ account: SCHOOL_CREDENTIAL_ACCOUNT, credential: candidate })));
+    await keytar.setPassword(SCHOOL_CREDENTIAL_SERVICE, SCHOOL_CREDENTIAL_ACCOUNT, candidate);
     return { ok: true };
   } catch {
-    return { ok: false, reason: 'The desktop credential store could not save the credential.' };
+    return { ok: false, reason: 'The operating-system credential vault could not save the credential.' };
   }
 });
 ipcMain.handle('school:verify-credential', async (_event, candidate: unknown) => {
-  if (typeof candidate !== 'string' || !safeStorage.isEncryptionAvailable()) return { ok: false, reason: 'The desktop credential store is unavailable.' };
+  if (typeof candidate !== 'string') return { ok: false, reason: 'The operating-system credential vault is unavailable.' };
   try {
-    const file = schoolCredentialPath();
-    if (!existsSync(file)) return { ok: false, reason: 'No School mode unlock credential has been set yet.' };
-    const record = JSON.parse(safeStorage.decryptString(readFileSync(file))) as { account?: string; credential?: string };
-    return record.account === SCHOOL_CREDENTIAL_ACCOUNT && record.credential === candidate
+    const stored = await keytar.getPassword(SCHOOL_CREDENTIAL_SERVICE, SCHOOL_CREDENTIAL_ACCOUNT);
+    if (stored === null) return { ok: false, reason: 'No School mode unlock credential has been set yet.' };
+    return stored === candidate
       ? { ok: true }
       : { ok: false, reason: 'The shared credential was not accepted.' };
   } catch {
-    return { ok: false, reason: 'The desktop credential store could not verify the credential.' };
+    return { ok: false, reason: 'The operating-system credential vault could not verify the credential.' };
   }
 });
 ipcMain.handle('school:recovery-path', () => ({ ok: true, path: app.getPath('userData') }));

@@ -18,7 +18,7 @@ The picker begins with `Choose automatically`, then refreshes from voices curren
 
 ## Failure modes
 
-If a voice is missing or does not match its selected language, the saved choice is retained and the first compatible voice is used when available. A machine with no compatible voice reports that state, and a machine with no speech engine renders that state explicitly. Speech errors are reported per utterance and the next queued line continues. Quiet hours and the explicit `Screen reader active` control suppress the queue through the narrator API.
+If a voice is missing or does not match its selected language, the saved choice is retained and the first compatible voice is used when available. A machine with no compatible voice reports that state, and a machine with no speech engine renders that state explicitly and keeps the enabled control off. Speech errors are reported per utterance and the next queued line continues. Platform screen-reader state is read separately from the persisted `Screen reader active` override. Quiet hours and either screen-reader state suppress the queue through the narrator API.
 
 ## Accessibility and localization
 

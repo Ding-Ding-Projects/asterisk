@@ -67,7 +67,7 @@ export function browserSpeechEngine(): SpeechEngine | undefined {
     id: `web-speech:${voice.voiceURI || `name:${voice.name}`}:${voice.localService ? 'local' : 'network'}`,
     name: voice.name,
     lang: voice.lang,
-    engine: voice.voiceURI || undefined,
+    engine: voice.voiceURI ? `web-speech:${voice.voiceURI}` : 'web-speech',
     localService: voice.localService,
   }));
   return {
