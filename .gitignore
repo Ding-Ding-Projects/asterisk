@@ -54,6 +54,9 @@ compile_commands.json
 /console/tsconfig.tsbuildinfo
 /console/resources/asterisk-wsl-rootfs.tar
 /console/resources/asterisk-wsl-rootfs.json
+/console/resources/asterisk-wsl-trusted-manifest.json
+/console/resources/asterisk-wsl-release-manifest.json
+/console/resources/asterisk-wsl-installer-binding.json
 
 # Compiled output emitted beside sources. A stray typecheck with the wrong
 # settings drops these into the source tree, where they shadow the real

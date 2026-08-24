@@ -37,8 +37,9 @@ $dockerfileSha = File-Sha256 $dockerfile
 $consoleLockSha = File-Sha256 $consoleLockfile
 $inputManifestSha = File-Sha256 $inputManifest
 $inputRecord = Get-Content -Raw -LiteralPath $inputManifest | ConvertFrom-Json
-$archivePath = Join-Path ([System.IO.Path]::GetTempPath()) "ding-pbx-source-$PID.tar"
-$contextRoot = Join-Path ([System.IO.Path]::GetTempPath()) "ding-pbx-source-context-$PID"
+$resourceId = ([guid]::NewGuid().ToString('N'))
+$archivePath = Join-Path ([System.IO.Path]::GetTempPath()) "ding-pbx-source-$resourceId.tar"
+$contextRoot = Join-Path ([System.IO.Path]::GetTempPath()) "ding-pbx-source-context-$resourceId"
 try {
     New-Item -ItemType Directory -Force -Path $contextRoot | Out-Null
     & git -C $repoRoot archive --format=tar --output=$archivePath HEAD
@@ -86,7 +87,7 @@ $imageId = (& docker image inspect $Tag --format '{{.Id}}').Trim()
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($imageId)) {
     throw 'Docker did not return an immutable local image identifier.'
 }
-$container = "ding-pbx-provenance-$PID"
+$container = "ding-pbx-provenance-$resourceId"
 $provenancePath = Join-Path ([System.IO.Path]::GetTempPath()) "$container.json"
 $sbomPath = Join-Path ([System.IO.Path]::GetTempPath()) "$container-sbom.txt"
 $sbomHashPath = Join-Path ([System.IO.Path]::GetTempPath()) "$container-sbom.sha256"
@@ -98,7 +99,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "docker cp provenance exited with $LASTEXITCODE" }
     $provenance = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
     Assert-ProvenanceRecord -Record $provenance -ExpectedCommit $sourceCommit -ExpectedVersion $Version -ExpectedDockerfileSha256 $dockerfileSha -ExpectedConsoleLockSha256 $consoleLockSha -ExpectedInputManifestSha256 $inputManifestSha -ExpectedUbuntuSnapshot $inputRecord.ubuntuSnapshot -ExpectedRuntimeBaseImage $inputRecord.ubuntuBase -ExpectedNodeBuildBaseImage $inputRecord.nodeBuildBase | Out-Null
-    if ($provenance.sourceTreeSha256 -ne $sourceTreeSha -or $provenance.imageDigest -ne $ImageDigest -or $provenance.ubuntuSnapshot -ne '20260824T000000Z') { throw 'Embedded provenance has an unexpected digest, source-tree hash, or package snapshot.' }
+    if ($provenance.sourceTreeSha256 -ne $sourceTreeSha -or $provenance.dockerfileSha256 -ne $dockerfileSha -or $provenance.consoleLockSha256 -ne $consoleLockSha -or $provenance.inputManifestSha256 -ne $inputManifestSha -or $provenance.imageDigest -ne $ImageDigest -or $provenance.ubuntuSnapshot -ne $inputRecord.ubuntuSnapshot -or $provenance.baseImages.runtime -ne $inputRecord.ubuntuBase -or $provenance.baseImages.nodeBuild -ne $inputRecord.nodeBuildBase) { throw 'Embedded provenance has an unexpected source-tree, Dockerfile, lockfile, input, image, base-image, or package snapshot digest.' }
     & docker cp "${container}:/opt/ding-pbx-console/sbom-apt.txt" $sbomPath | Out-Null
     & docker cp "${container}:/opt/ding-pbx-console/sbom-apt.sha256" $sbomHashPath | Out-Null
     & docker cp "${container}:/opt/ding-pbx-console/node-runtime-version.txt" $nodeVersionPath | Out-Null

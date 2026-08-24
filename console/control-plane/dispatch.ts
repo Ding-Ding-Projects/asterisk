@@ -168,11 +168,13 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     const provenance = join(root, 'asterisk-wsl-rootfs.json');
     const trustedManifest = join(root, 'asterisk-wsl-trusted-manifest.json');
     const releaseManifest = join(root, 'asterisk-wsl-release-manifest.json');
-    if (!existsSync(rootfs) || !existsSync(provenance) || !existsSync(trustedManifest) || !existsSync(releaseManifest)) return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime or its trusted release manifest is missing.' };
+    const installerBinding = join(root, 'asterisk-wsl-installer-binding.json');
+    if (!existsSync(rootfs) || !existsSync(provenance) || !existsSync(trustedManifest) || !existsSync(releaseManifest) || !existsSync(installerBinding)) return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime or its external installer release binding is missing.' };
     try {
       const record = JSON.parse(readFileSync(provenance, 'utf8')) as Record<string, unknown>;
       const trusted = JSON.parse(readFileSync(trustedManifest, 'utf8')) as Record<string, unknown>;
       const release = JSON.parse(readFileSync(releaseManifest, 'utf8')) as Record<string, unknown>;
+      const binding = JSON.parse(readFileSync(installerBinding, 'utf8')) as Record<string, unknown>;
       const sourceCommit = typeof record.sourceCommit === 'string' && /^[0-9a-f]{40}$/iu.test(record.sourceCommit);
       const digest = typeof record.sha256 === 'string' && /^[0-9a-f]{64}$/iu.test(record.sha256);
       const bytes = typeof record.bytes === 'number' && Number.isSafeInteger(record.bytes) && record.bytes > 0;
@@ -197,7 +199,8 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       const actualDigest = hash.digest('hex');
       const trustedBytes = readFileSync(trustedManifest);
       const trustedHash = createHash('sha256').update(trustedBytes).digest('hex');
-      if (release.schemaVersion !== 1 || release.releaseKind !== 'asterisk-wsl-runtime' || release.sourceCommit !== record.sourceCommit || release.trustedManifestSha256 !== trustedHash || release.rootfsSha256 !== record.sha256 || release.rootfsBytes !== record.bytes || release.baseDigest !== TRUSTED_WSL_BASE_DIGEST || release.runtime !== 'wsl2-linux-amd64' || trusted.schemaVersion !== 1 || trusted.sourceCommit !== record.sourceCommit || trusted.baseDigest !== TRUSTED_WSL_BASE_DIGEST || trusted.rootfsSha256 !== record.sha256 || trusted.rootfsBytes !== record.bytes || record.trustedManifestSha256 !== trustedHash || record.schemaVersion !== 1 || !sourceCommit || !digest || !bytes || !runtime || record.baseDigest !== TRUSTED_WSL_BASE_DIGEST || actualBytes !== record.bytes || actualDigest !== record.sha256) {
+      const releaseManifestHash = createHash('sha256').update(readFileSync(releaseManifest)).digest('hex');
+      if (binding.schemaVersion !== 1 || binding.bindingKind !== 'packaged-installer-wsl-release' || binding.candidateCommit !== record.sourceCommit || typeof binding.packageVersion !== 'string' || binding.releaseManifestSha256 !== releaseManifestHash || release.schemaVersion !== 1 || release.releaseKind !== 'asterisk-wsl-runtime' || release.sourceCommit !== record.sourceCommit || release.trustedManifestSha256 !== trustedHash || release.rootfsSha256 !== record.sha256 || release.rootfsBytes !== record.bytes || release.baseDigest !== TRUSTED_WSL_BASE_DIGEST || release.runtime !== 'wsl2-linux-amd64' || trusted.schemaVersion !== 1 || trusted.sourceCommit !== record.sourceCommit || trusted.baseDigest !== TRUSTED_WSL_BASE_DIGEST || trusted.rootfsSha256 !== record.sha256 || trusted.rootfsBytes !== record.bytes || record.trustedManifestSha256 !== trustedHash || record.schemaVersion !== 1 || !sourceCommit || !digest || !bytes || !runtime || record.baseDigest !== TRUSTED_WSL_BASE_DIGEST || actualBytes !== record.bytes || actualDigest !== record.sha256) {
         return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime provenance does not match the rootfs bytes.' };
       }
       return { state: 'available', rootfs, provenance, record };
@@ -368,7 +371,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (hosted) {
           return { ok: true, requestId: request.requestId, data: {
             observedAt: new Date().toISOString(),
-            targets: [{ id: 'hosted-local-asterisk', displayName: 'Hosted local Asterisk', connectionKind: 'local', capability: 'read-only CLI and PBX readings' }],
+            targets: [{ id: 'hosted-local-asterisk', displayName: 'Hosted local Asterisk', connectionKind: 'local', hosted: true, transport: 'local', host: 'local', port: Number(process.env.DING_PORT ?? 8088), capability: 'read-only CLI and PBX readings' }],
             unsupported: [...HOSTED_UNSUPPORTED_ACTIONS],
           } };
         }

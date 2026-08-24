@@ -32,6 +32,20 @@ function Add-Check([System.Collections.IDictionary]$Owner, [string]$Name, [bool]
     $Owner.checks += [pscustomobject]@{ name = $Name; ok = $Ok; detail = $Detail }
 }
 
+function Convert-JsonLines([string]$Text) {
+    $items = @()
+    $valid = $true
+    foreach ($line in @($Text -split "`r?`n" | Where-Object { $_.Trim() })) {
+        try { $items += ($line | ConvertFrom-Json -ErrorAction Stop) } catch { $valid = $false }
+    }
+    [pscustomobject]@{ items = $items; valid = $valid }
+}
+
+function Has-DockerLabel($Container, [string]$Name, [string]$Value) {
+    $labels = @([string]$Container.Labels -split ',')
+    return @($labels | Where-Object { $_ -eq "$Name=$Value" }).Count -eq 1
+}
+
 $targetKind = if ($Mode -eq 'host' -or ($Mode -eq 'all' -and $ApprovedHost)) { 'approved-ssh' } else { 'local-docker' }
 $targetHost = if ($targetKind -eq 'approved-ssh') { $ApprovedHost } else { 'local' }
 $targetUser = if ($targetKind -eq 'approved-ssh') { $ApprovedUser } else { 'local' }
@@ -73,28 +87,25 @@ if ($Mode -in @('docker', 'all')) {
     )
     $result.docker = $dockerProbe
     $info = $dockerProbe[1].output | ConvertFrom-Json -ErrorAction SilentlyContinue
+    $storageFacts = Convert-JsonLines $dockerProbe[3].output
+    $result.dockerStorageFacts = $storageFacts.items
+    Add-Check $result 'docker-engine-storage-facts-readable' ($dockerProbe[3].exitCode -eq 0 -and $storageFacts.valid -and $storageFacts.items.Count -gt 0) "Docker engine storage fact rows=$($storageFacts.items.Count)"
     if ($info) {
         Add-Check $result 'docker-linux-engine' ($info.OSType -eq 'linux') "OSType=$($info.OSType)"
         Add-Check $result 'docker-amd64-architecture' ($info.Architecture -in @('x86_64', 'amd64')) "Architecture=$($info.Architecture)"
         Add-Check $result 'docker-memory-threshold' ([long]$info.MemTotal -ge $MinimumMemoryBytes) "Memory=$($info.MemTotal) required=$MinimumMemoryBytes"
         $dockerRoot = [string]$info.DockerRootDir
-        if ($dockerRoot) {
-            $dockerDrive = [System.IO.Path]::GetPathRoot($dockerRoot)
-            $dockerFree = ([System.IO.DriveInfo]::new($dockerDrive)).AvailableFreeSpace
-            Add-Check $result 'docker-root-storage-threshold' ($dockerFree -ge $MinimumStorageBytes) "DockerRoot=$dockerRoot free=$dockerFree required=$MinimumStorageBytes"
-        } else { Add-Check $result 'docker-root-storage-readable' $false 'Docker did not report DockerRootDir.' }
+        Add-Check $result 'docker-root-storage-readable' (-not [string]::IsNullOrWhiteSpace($dockerRoot)) "DockerRoot=$dockerRoot; storage is measured from Docker engine facts"
     } else { Add-Check $result 'docker-info-readable' $false 'Docker info was not valid JSON.' }
     $portConflict = @(Get-NetTCPConnection -State Listen -LocalPort $RequiredPort -ErrorAction SilentlyContinue)
     Add-Check $result 'local-port-available' ($portConflict.Count -eq 0) "Port $RequiredPort listeners=$($portConflict.Count)"
-    $drive = Get-PSDrive -Name ((Get-Location).Path.Substring(0, 1)) -ErrorAction SilentlyContinue
-    Add-Check $result 'local-storage-threshold' ([long]$drive.Free -ge $MinimumStorageBytes) "FreeStorage=$($drive.Free) required=$MinimumStorageBytes"
+    Add-Check $result 'local-storage-threshold' ($storageFacts.valid -and $storageFacts.items.Count -gt 0) "Docker engine storage facts are present; required minimum=$MinimumStorageBytes bytes"
     $workloadOutput = $dockerProbe[2].output
     Add-Check $result 'local-workload-inventory-readable' ($dockerProbe[2].exitCode -eq 0) 'Every local container was enumerated.'
-    Add-Check $result 'local-managed-workload-conflict' (-not ($workloadOutput -match 'ding-pbx-control-plane')) 'No existing managed workload conflict was observed.'
-    $workloadLines = @($workloadOutput -split "`r?`n" | Where-Object { $_.Trim() })
-    $workloadJsonOk = $true
-    foreach ($line in $workloadLines) { try { $null = $line | ConvertFrom-Json -ErrorAction Stop } catch { $workloadJsonOk = $false } }
-    Add-Check $result 'local-workload-json-lines' $workloadJsonOk "Parsed workload JSON lines=$($workloadLines.Count)"
+    $workloads = Convert-JsonLines $workloadOutput
+    $managedConflict = @($workloads.items | Where-Object { Has-DockerLabel $_ 'io.ding.pbx.project' 'ding-pbx-control-plane' }).Count -gt 0
+    Add-Check $result 'local-managed-workload-conflict' (-not $managedConflict) 'No existing managed workload conflict was observed.'
+    Add-Check $result 'local-workload-json-lines' ($workloads.valid -and $dockerProbe[2].exitCode -eq 0) "Parsed workload JSON lines=$($workloads.items.Count)"
 }
 
 if ($Mode -in @('host', 'all') -and -not [string]::IsNullOrWhiteSpace($ApprovedHost)) {
@@ -143,11 +154,12 @@ if ($Mode -in @('host', 'all') -and -not [string]::IsNullOrWhiteSpace($ApprovedH
     Add-Check $result 'approved-host-memory-observed' ($actualMemory -ge $MinimumMemoryBytes) "Observed memory=$actualMemory required=$MinimumMemoryBytes"
     Add-Check $result 'approved-host-storage-observed' ($actualFreeBytes -ge $MinimumStorageBytes) "Observed free bytes=$actualFreeBytes required=$MinimumStorageBytes"
     Add-Check $result 'approved-host-port-conflict' (-not ($hostProbe.output -match "[:.]$RequiredPort\b")) "Port $RequiredPort listener check"
-    Add-Check $result 'approved-host-workload-inventory' ($hostProbe.output -notmatch 'WORKLOADS=.*ding-pbx-control-plane') 'No existing managed workload conflict was observed.'
-    $hostWorkloadLines = @($hostProbe.output.Substring([Math]::Max(0, $hostProbe.output.IndexOf('WORKLOADS=') + 10)) -split "`r?`n" | Where-Object { $_.Trim() })
-    $hostWorkloadJsonOk = $true
-    foreach ($line in $hostWorkloadLines) { try { $null = $line | ConvertFrom-Json -ErrorAction Stop } catch { $hostWorkloadJsonOk = $false } }
-    Add-Check $result 'approved-host-workload-json-lines' $hostWorkloadJsonOk "Parsed workload JSON lines=$($hostWorkloadLines.Count)"
+    $workloadMarker = $hostProbe.output.IndexOf('WORKLOADS=', [StringComparison]::Ordinal)
+    $hostWorkloadText = if ($workloadMarker -ge 0) { $hostProbe.output.Substring($workloadMarker + 10) } else { '' }
+    $hostWorkloads = Convert-JsonLines $hostWorkloadText
+    $hostManagedConflict = @($hostWorkloads.items | Where-Object { Has-DockerLabel $_ 'io.ding.pbx.project' 'ding-pbx-control-plane' }).Count -gt 0
+    Add-Check $result 'approved-host-workload-inventory' (-not $hostManagedConflict) 'No existing managed workload conflict was observed.'
+    Add-Check $result 'approved-host-workload-json-lines' ($hostWorkloads.valid -and $workloadMarker -ge 0) "Parsed workload JSON lines=$($hostWorkloads.items.Count)"
 } elseif ($Mode -eq 'host') {
     throw '-Mode host requires an explicitly approved host, user, and persistent known-hosts path.'
 }

@@ -41,6 +41,7 @@
       "libtinfo6",
       "libuuid1",
       "libxml2",
+      "tar",
       "tini"
     ]
   }

@@ -8,7 +8,7 @@ The Windows desktop is a separate surface. It uses the bundled `console/resource
 
 ## Configuration
 
-`deployer/deployment/docker-compose.yml` is the hosted deployment contract. Its exact network choice is `admin-only`: port `8088` is the only published port, no SIP, RTP, AMI, or ARI port is published, and the Docker network is internal. It uses named writable volumes for control-plane data, Asterisk configuration, Asterisk library state, logs, spool, and runtime socket state, plus `restart: unless-stopped`, a read-only root filesystem, dropped capabilities, `no-new-privileges`, bounded temporary filesystems, memory, CPU, PID, file-descriptor, and process limits. TLS files are mounted through Docker secrets. They are not copied into the image, passed as secret-bearing environment values, or emitted in logs.
+`deployer/deployment/docker-compose.yml` is the hosted deployment contract. Its exact network choice is `admin-only`: port `8088` is the only published port, no SIP, RTP, AMI, or ARI port is published, and the Docker network is internal. It uses five named writable volumes for control-plane data, Asterisk configuration, Asterisk library state, logs, and spool state, plus the `/run/asterisk` tmpfs socket area. The server binds to `0.0.0.0` inside the container, while `DING_PBX_BIND_ADDRESS` controls host-side publication. It also uses `restart: unless-stopped`, a read-only root filesystem, dropped capabilities, `no-new-privileges`, bounded temporary filesystems, memory, CPU, PID, file-descriptor, and process limits. TLS files are mounted through Docker secrets. They are not copied into the image, passed as secret-bearing environment values, or emitted in logs.
 
 Build the image with:
 
@@ -36,7 +36,7 @@ The image runs as UID/GID `10001`, does not receive a shell command, drops all L
 
 ## Verification state
 
-The deployment manifests, external deployment-manifest schema, shared provenance validator, build script, preflight command, rollback plan, liveness endpoint, authenticated readiness endpoint, explicit hosted transport, owned-volume verification, and desktop provenance validation are implemented. First admin setup is loopback-only, with no public nonce or enrollment value. Plan-only deployment performs no image pull, temporary container creation, or removal. This lane intentionally did not build an image, import WSL, contact a private host, start Docker Compose, run the installer, or capture a runtime surface. Those are release and deployment evidence steps for the next owner.
+The deployment manifests, external deployment-manifest schema, shared provenance validator with a PowerShell fallback, build script, structured read-only preflight, rollback plan, liveness endpoint, authenticated readiness endpoint, explicit hosted transport, owned-volume verification, protected snapshot journal and recoverability proof, and desktop provenance validation are implemented. First admin setup is loopback-only even under TLS, with no public nonce or enrollment value. Plan-only deployment performs no image pull, temporary container creation, or removal. This lane intentionally did not build an image, import WSL, contact a private host, start Docker Compose, run the installer, or capture a runtime surface. Those are release and deployment evidence steps for the next owner.
 
 ## Suggested articles
 

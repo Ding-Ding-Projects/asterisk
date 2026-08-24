@@ -9,6 +9,7 @@ param(
     [Parameter(Mandatory)] [string]$PreflightEvidencePath,
     [string]$SessionCookieFile = '',
     [string]$SnapshotDirectory = '',
+    [string]$TlsCertificateSha256 = '',
     [string]$ComposeFile = "$PSScriptRoot\docker-compose.yml",
     [string]$ProjectName = 'ding-pbx-control-plane',
     [switch]$Execute
@@ -27,6 +28,7 @@ $currentManifest = Get-Content -Raw -LiteralPath $CurrentManifestPath | ConvertF
 Assert-ExternalDeploymentManifest -Manifest $previousManifest -ManifestPath $PreviousManifestPath -ImageReference $PreviousImage -ProjectName $ProjectName -Port 8088 | Out-Null
 Assert-ExternalDeploymentManifest -Manifest $currentManifest -ManifestPath $CurrentManifestPath -ImageReference $CurrentImage -ProjectName $ProjectName -Port 8088 | Out-Null
 if ($currentManifest.preflightEvidencePath -ne $PreflightEvidencePath) { throw 'Current manifest does not bind to the supplied fresh preflight evidence.' }
+if ($previousManifest.volumeSchemaVersion -ne $currentManifest.volumeSchemaVersion -or $currentManifest.volumeSchemaVersion -ne 1 -or (@($previousManifest.mountInventory) -join '|') -ne (@($currentManifest.mountInventory) -join '|')) { throw 'Rollback is blocked because the previous and current manifests do not declare the same compatible volume schema.' }
 
 $command = @('compose', '--project-name', $ProjectName, '--file', $ComposeFile, 'up', '--detach', '--no-build')
 Write-Host "Rollback plan: inspect provenance for $PreviousImage, then run: docker $($command -join ' ')"
@@ -48,6 +50,7 @@ if (-not $Execute) {
     -PreflightEvidencePath $PreflightEvidencePath `
     -SessionCookieFile $SessionCookieFile `
     -SnapshotDirectory $SnapshotDirectory `
+    -TlsCertificateSha256 $TlsCertificateSha256 `
     -ComposeFile $ComposeFile `
     -ProjectName $ProjectName `
     -Execute

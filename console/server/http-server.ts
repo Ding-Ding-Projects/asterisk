@@ -74,6 +74,13 @@ export function createServerModeHandler(options: ServerModeOptions) {
   const tlsEnabled = Boolean(options.tls);
   const boundToLoopback = ['127.0.0.1', '::1', 'localhost'].includes(options.host ?? '127.0.0.1');
 
+  function isLoopbackClient(address: string | undefined): boolean {
+    const value = (address ?? '').trim().toLowerCase();
+    if (value === '::1' || value === 'localhost') return true;
+    if (/^127\.(?:\d{1,3}\.){2}\d{1,3}$/u.test(value)) return true;
+    return /^::ffff:127\.(?:\d{1,3}\.){2}\d{1,3}$/u.test(value);
+  }
+
   function readCookie(req: IncomingMessage): string | undefined {
     const header = req.headers.cookie;
     if (!header) return undefined;
@@ -178,8 +185,11 @@ export function createServerModeHandler(options: ServerModeOptions) {
         return sendJson(res, 200, { needsSetup, tlsEnabled, setupTransport: boundToLoopback ? 'loopback-only' : 'disabled-until-loopback' });
       }
       if (path === '/api/setup' && req.method === 'POST') {
-        if (!boundToLoopback && !tlsEnabled) {
-          return sendJson(res, 400, { error: 'SETUP_REQUIRES_TLS', message: 'First-time setup over a non-loopback connection requires TLS.' });
+        // TLS protects the transport, not the unconfigured account boundary. The
+        // first administrator can only be created by a loopback client, regardless
+        // of whether this server is serving HTTP or HTTPS.
+        if (!isLoopbackClient(req.socket.remoteAddress)) {
+          return sendJson(res, 403, { error: 'SETUP_REQUIRES_LOOPBACK', message: 'First-time setup is accepted only from a loopback client.' });
         }
         if (hasAdminAccount(accountStore)) return sendJson(res, 409, { error: 'ALREADY_SET_UP', message: 'An administrator account already exists.' });
         const body = await readJsonBody(req) as { username?: string; password?: string };

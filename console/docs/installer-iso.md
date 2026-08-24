@@ -53,14 +53,13 @@ autoinstall answer file is the locked sentinel `"!"`, which refuses interactive 
 that local Unix account entirely — it exists only so the installer has an account to run under,
 never as an administrative credential.
 
-The actual admin account is created by the Ding PBX Console server itself, the first time anyone
-visits it: `console/server/auth.ts`'s `createAdminAccount` gates every other request behind the
-first-run setup screen until an account exists. Whoever reaches the printed LAN address first
-creates the admin account. Because the service binds to the LAN rather than loopback by default so
-that an operator can reach it at all, **the operative security boundary during the first-boot
-window is the network the machine is plugged into**, not a credential — treat that window (from
-first boot until an admin account is created) the way you would treat an unconfigured switch port:
-keep the machine off an untrusted network, or firewall port 8443 to the operator's own address,
+The actual admin account is created by the Ding PBX Console server itself, the first time an
+operator visits it: `console/server/auth.ts`'s `createAdminAccount` gates every other request
+behind the first-run setup screen until an account exists. The server may bind to the LAN so an
+operator can reach its page, but the first-admin POST is accepted only from a loopback client,
+regardless of whether TLS is enabled. Complete setup in a browser on the machine itself or through
+a reviewed local port-forward, then use the printed LAN address for ordinary signed-in access.
+Keep the machine off an untrusted network, or firewall port 8443 to the operator's own address,
 until setup is done.
 
 ## Requirements
@@ -98,8 +97,9 @@ before writing it to a USB drive or booting it in a VM.
 
 - The ISO itself is unsigned; Secure Boot refuses it.
 - No credential is embedded anywhere on the ISO or in its build.
-- The admin surface binds to the LAN by default during the first-boot window, before any account
-  exists — see **First-boot credential flow** above for the mitigation.
+- The admin surface may bind to the LAN during the first-boot window, before any account exists,
+  but first-admin creation is loopback-only even under TLS. See **First-boot credential flow**
+  above for the local setup route.
 - `late-commands`' package list (`packages:` in the autoinstall answer file) is installed from
   whatever apt sources the target machine reaches at install time; only the Asterisk, Node.js, and
   Ding PBX Console payload itself is fully offline and reproducible from the ISO's own contents.

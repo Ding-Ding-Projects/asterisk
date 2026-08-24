@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, writeFileSync, unlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,6 +24,25 @@ if (publishing) {
   if (tag !== `ding-pbx-console-v0.0.${runNumberText}-r${runAttempt}`) throw new Error('DING_PBX_RELEASE_TAG must use the legacy-compatible tag shape for this package version.');
 }
 
+const digest = (path) => createHash('sha256').update(readFileSync(path)).digest('hex');
+const wslResourceRoot = join(consoleRoot, 'resources');
+const wslReleaseManifestPath = join(wslResourceRoot, 'asterisk-wsl-release-manifest.json');
+const wslInstallerBindingPath = join(wslResourceRoot, 'asterisk-wsl-installer-binding.json');
+if (!statSync(wslReleaseManifestPath, { throwIfNoEntry: false })) throw new Error('The WSL release manifest is missing before packaging.');
+const wslReleaseManifest = JSON.parse(readFileSync(wslReleaseManifestPath, 'utf8'));
+if (wslReleaseManifest.schemaVersion !== 1 || wslReleaseManifest.releaseKind !== 'asterisk-wsl-runtime' || wslReleaseManifest.sourceCommit !== candidateCommit) {
+  throw new Error('The WSL release manifest is not bound to the exact installer candidate.');
+}
+const wslReleaseManifestSha256 = digest(wslReleaseManifestPath);
+writeFileSync(wslInstallerBindingPath, JSON.stringify({
+  schemaVersion: 1,
+  bindingKind: 'packaged-installer-wsl-release',
+  candidateCommit,
+  packageVersion: version,
+  releaseManifestSha256: wslReleaseManifestSha256,
+}, null, 2) + '\n', 'utf8');
+process.on('exit', () => { try { unlinkSync(wslInstallerBindingPath); } catch {} });
+
 const head = spawnSync('git', ['-C', repoRoot, 'rev-parse', 'HEAD'], { encoding: 'utf8', shell: false });
 if (head.status !== 0 || head.stdout.trim() !== candidateCommit) throw new Error(`Candidate commit ${candidateCommit} does not match checkout HEAD ${head.stdout.trim()}.`);
 const cli = join(consoleRoot, 'node_modules', 'electron-builder', 'cli.js');
@@ -41,8 +60,13 @@ if (setup.length !== 1 || releases.length !== 1 || fullPackages.length < 1) thro
 for (const entry of fullPackages) if (!entry.name.includes(`-${version}-full.nupkg`)) throw new Error(`Full package ${entry.name} does not carry version ${version}.`);
 const releaseText = readFileSync(releases[0].path, 'utf8');
 for (const entry of [...fullPackages, ...deltaPackages]) if (!releaseText.includes(entry.name)) throw new Error(`RELEASES does not reference ${entry.name}.`);
-const digest = (path) => createHash('sha256').update(readFileSync(path)).digest('hex');
 const record = (entry) => ({ name: entry.name, size: statSync(entry.path).size, sha256: digest(entry.path) });
+const packagedBindingPath = join(consoleRoot, 'dist', 'squirrel-windows', 'win-unpacked', 'resources', 'asterisk', 'asterisk-wsl-installer-binding.json');
+if (!statSync(packagedBindingPath, { throwIfNoEntry: false })) throw new Error('The packaged installer is missing the WSL release binding.');
+const packagedBinding = JSON.parse(readFileSync(packagedBindingPath, 'utf8'));
+if (packagedBinding.schemaVersion !== 1 || packagedBinding.bindingKind !== 'packaged-installer-wsl-release' || packagedBinding.candidateCommit !== candidateCommit || packagedBinding.packageVersion !== version || packagedBinding.releaseManifestSha256 !== wslReleaseManifestSha256) {
+  throw new Error('The packaged installer WSL release binding does not match the exact candidate and release manifest.');
+}
 writeFileSync(join(output, 'release-identity.json'), JSON.stringify({
   schemaVersion: 1,
   product: 'ding-pbx-console',
@@ -50,6 +74,7 @@ writeFileSync(join(output, 'release-identity.json'), JSON.stringify({
   candidateCommit,
   tag,
   published: Boolean(tag),
+  wslReleaseManifestSha256,
   artifacts: {
     setup: record(setup[0]),
     releases: record(releases[0]),

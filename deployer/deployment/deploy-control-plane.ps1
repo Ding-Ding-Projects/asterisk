@@ -13,6 +13,10 @@ param(
     [int]$AdminPort = 8088,
     [string]$SessionCookieFile = '',
     [string]$SnapshotDirectory = '',
+    [string]$TlsCertificateSha256 = '',
+    [int]$SessionCredentialMaxAgeMinutes = 15,
+    [long]$MinimumSnapshotFreeBytes = 8589934592,
+    [int]$SnapshotRetentionDays = 14,
     [switch]$Execute
 )
 
@@ -28,6 +32,49 @@ if (-not (Test-Path -LiteralPath $ManifestPath)) { throw "External deployment ma
 if (-not (Test-Path -LiteralPath $PreflightEvidencePath)) { throw "Preflight evidence does not exist: $PreflightEvidencePath" }
 if ($Execute -and ([string]::IsNullOrWhiteSpace($SessionCookieFile) -or -not (Test-Path -LiteralPath $SessionCookieFile))) { throw 'Execute requires a protected operator session cookie file for authenticated readiness.' }
 if ($Execute -and ([string]::IsNullOrWhiteSpace($SnapshotDirectory))) { throw 'Execute requires an external directory for pre-change volume snapshots.' }
+$repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
+
+function Assert-ProtectedExternalPath([string]$Path, [string]$Kind) {
+    if ([string]::IsNullOrWhiteSpace($Path)) { throw "$Kind path is required." }
+    if (-not [System.IO.Path]::IsPathRooted($Path)) { throw "$Kind path must be absolute and outside the repository." }
+    $full = [System.IO.Path]::GetFullPath($Path)
+    $rootWithSeparator = $repoRoot.TrimEnd('\') + '\'
+    if ($full.StartsWith($rootWithSeparator, [StringComparison]::OrdinalIgnoreCase) -or $full.Equals($repoRoot, [StringComparison]::OrdinalIgnoreCase)) { throw "$Kind path must be outside the repository." }
+    return $full
+}
+
+function Assert-ProtectedSessionCredentialFile([string]$Path) {
+    $full = Assert-ProtectedExternalPath $Path 'Session credential file'
+    if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { throw 'Execute requires an existing session credential file.' }
+    $item = Get-Item -LiteralPath $full
+    if ($item.Length -lt 1 -or $item.Length -gt 1024) { throw 'Session credential file must be between 1 and 1024 bytes.' }
+    if ($SessionCredentialMaxAgeMinutes -lt 1 -or ([DateTimeOffset]::UtcNow - $item.LastWriteTimeUtc) -gt [TimeSpan]::FromMinutes($SessionCredentialMaxAgeMinutes)) { throw 'Session credential file is not a fresh short-lived readiness credential.' }
+    $acl = Get-Acl -LiteralPath $full
+    if ([string]::IsNullOrWhiteSpace([string]$acl.Owner)) { throw 'Session credential file has no readable owner ACL.' }
+    if (@($acl.Access | Where-Object { $_.AccessControlType -eq 'Allow' -and $_.IdentityReference -match 'Everyone|BUILTIN\\Users|Authenticated Users|^Users$' }).Count -gt 0) { throw 'Session credential file is readable by a broad group and is not protected.' }
+    $value = [System.IO.File]::ReadAllText($full)
+    if ($value -match '[\r\n]') { throw 'Session credential file must contain exactly one cookie line with no newline.' }
+    if ($value -notmatch '^ding_session=[A-Za-z0-9._~-]{16,512}$') { throw 'Session credential file does not contain exactly one valid short-lived session cookie.' }
+    return $full
+}
+
+function Assert-ProtectedSnapshotDirectory([string]$Path) {
+    $full = Assert-ProtectedExternalPath $Path 'Snapshot directory'
+    New-Item -ItemType Directory -Force -Path $full | Out-Null
+    $acl = Get-Acl -LiteralPath $full
+    if ([string]::IsNullOrWhiteSpace([string]$acl.Owner)) { throw 'Snapshot directory has no readable owner ACL.' }
+    if (@($acl.Access | Where-Object { $_.AccessControlType -eq 'Allow' -and $_.IdentityReference -match 'Everyone|BUILTIN\\Users|Authenticated Users|^Users$' }).Count -gt 0) { throw 'Snapshot directory is readable by a broad group and is not protected.' }
+    $drive = [System.IO.DriveInfo]::new([System.IO.Path]::GetPathRoot($full))
+    if ($drive.AvailableFreeSpace -lt $MinimumSnapshotFreeBytes) { throw "Snapshot destination has $($drive.AvailableFreeSpace) free bytes, but $MinimumSnapshotFreeBytes are required." }
+    return $full
+}
+
+if ($Execute) {
+    $SessionCookieFile = Assert-ProtectedSessionCredentialFile $SessionCookieFile
+    $SnapshotDirectory = Assert-ProtectedSnapshotDirectory $SnapshotDirectory
+    if ($TlsCertificateSha256 -notmatch '^[0-9a-fA-F]{64}$') { throw 'Execute requires a SHA-256 TLS certificate pin.' }
+    $TlsCertificateSha256 = $TlsCertificateSha256.ToLowerInvariant()
+}
 $manifest = Get-Content -Raw -LiteralPath $ManifestPath | ConvertFrom-Json
 Assert-ExternalDeploymentManifest -Manifest $manifest -ManifestPath $ManifestPath -ImageReference $ImageRef -ProjectName $ProjectName -Port $AdminPort | Out-Null
 if ($manifest.target -ne 'local-docker') { throw 'Hosted deployment is restricted to the local Yere Dow engine. Approved SSH inventory is read-only preflight evidence only.' }
@@ -44,10 +91,12 @@ if ($PreviousImageRef) {
     if ([string]::IsNullOrWhiteSpace($PreviousManifestPath) -or -not (Test-Path -LiteralPath $PreviousManifestPath)) { throw 'A previous image requires its own external deployment manifest.' }
     $previousManifest = Get-Content -Raw -LiteralPath $PreviousManifestPath | ConvertFrom-Json
     Assert-ExternalDeploymentManifest -Manifest $previousManifest -ManifestPath $PreviousManifestPath -ImageReference $PreviousImageRef -ProjectName $ProjectName -Port $AdminPort | Out-Null
+    if ($previousManifest.volumeSchemaVersion -ne $manifest.volumeSchemaVersion -or [string]::IsNullOrWhiteSpace([string]$manifest.volumeSchemaVersion)) { throw 'Automatic rollback is blocked because the previous image does not declare the same compatible volume schema.' }
+    if ((@($previousManifest.mountInventory) -join '|') -ne (@($manifest.mountInventory) -join '|')) { throw 'Automatic rollback is blocked because the previous image has an incompatible mount inventory.' }
 }
 
 function Read-Provenance([string]$Reference, [bool]$InspectEmbedded, $ExpectedManifest) {
-    $container = "ding-pbx-deploy-inspect-$PID"
+    $container = "ding-pbx-deploy-inspect-$([guid]::NewGuid().ToString('N'))"
     $path = $null
     $created = $false
     try {
@@ -80,6 +129,8 @@ function Read-Provenance([string]$Reference, [bool]$InspectEmbedded, $ExpectedMa
         }
         if ($labelRevision -ne $record.sourceCommit -or $labelVersion -ne $record.imageVersion) { throw 'The final image labels do not match embedded provenance.' }
         if ($record.sourceCommit -ne $ExpectedManifest.sourceCommit -or $record.imageVersion -ne $ExpectedManifest.version) { throw 'Embedded provenance does not match the external deployment manifest.' }
+        $expectedImageDigest = ([string]$ExpectedManifest.image -split '@')[-1]
+        if ($record.imageDigest -ne $expectedImageDigest) { throw 'Embedded provenance image digest does not match the external immutable image identity.' }
         return $record
     } finally {
         if ($created) {
@@ -98,8 +149,6 @@ function Set-ComposeEnvironment([string]$Reference, $Record, $ComposeManifest) {
     $env:DING_PBX_TLS_KEY_FILE = (Resolve-Path -LiteralPath $TlsKeyFile).Path
     $env:DING_PBX_BIND_ADDRESS = $BindAddress
     $env:DING_PBX_PORT = [string]$AdminPort
-    $env:DING_PBX_INTERNAL_HOST = '0.0.0.0'
-    if ($BindAddress -in @('127.0.0.1', '::1', 'localhost')) { $env:DING_PBX_INTERNAL_HOST = $BindAddress }
 }
 
 function Get-OwnedContainerId {
@@ -131,40 +180,163 @@ function Wait-TargetReady([string]$ContainerId) {
     return $false
 }
 
+function Wait-HostReachable {
+    $probeAddress = if ($BindAddress -in @('0.0.0.0', '::', '[::]', '*')) { '127.0.0.1' } else { $BindAddress }
+    for ($attempt = 1; $attempt -le 30; $attempt++) {
+        $client = [System.Net.Sockets.TcpClient]::new()
+        try {
+            $task = $client.ConnectAsync($probeAddress, $AdminPort)
+            if ($task.Wait(1000) -and $client.Connected) { return $true }
+        } catch { }
+        finally { $client.Dispose() }
+        Start-Sleep -Seconds 2
+    }
+    return $false
+}
+
 function Wait-AuthenticatedReady {
-    $cookie = (Get-Content -Raw -LiteralPath $SessionCookieFile).Trim()
-    if ([string]::IsNullOrWhiteSpace($cookie) -or $cookie -notmatch '^ding_session=') { throw 'Session cookie file does not contain the expected protected operator cookie.' }
+    $cookie = [System.IO.File]::ReadAllText($SessionCookieFile)
+    if ($cookie -match '[\r\n]' -or $cookie -notmatch '^ding_session=[A-Za-z0-9._~-]{16,512}$') { throw 'Session credential file does not contain exactly one protected short-lived session cookie.' }
     $handler = [System.Net.Http.HttpClientHandler]::new()
-    $handler.ServerCertificateCustomValidationCallback = { $true }
+    $handler.ServerCertificateCustomValidationCallback = {
+        param($request, $certificate, $chain, $errors)
+        if ($null -eq $certificate) { return $false }
+        $actual = ([System.BitConverter]::ToString($certificate.GetCertHash([System.Security.Cryptography.HashAlgorithmName]::SHA256))).Replace('-', '').ToLowerInvariant()
+        return $actual -eq $TlsCertificateSha256
+    }
     $client = [System.Net.Http.HttpClient]::new($handler)
     $client.Timeout = [TimeSpan]::FromSeconds(5)
+    $probeAddress = if ($BindAddress -in @('0.0.0.0', '::', '[::]', '*')) { '127.0.0.1' } else { $BindAddress }
     try {
         $client.DefaultRequestHeaders.Add('Cookie', $cookie)
-        $response = $client.GetAsync("https://127.0.0.1:$AdminPort/api/v1/ready").GetAwaiter().GetResult()
+        $response = $client.GetAsync("https://$probeAddress`:$AdminPort/api/v1/ready").GetAwaiter().GetResult()
         $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json
         if (-not $response.IsSuccessStatusCode -or $body.status -ne 'ready' -or [string]$body.asteriskVersion -notmatch '^[0-9]+\.[0-9]+(?:\.[0-9]+)?') { return $false }
         return $true
     } finally { $client.Dispose(); $handler.Dispose() }
 }
 
+function Get-TarExecutable {
+    if ($env:SystemRoot) {
+        $windowsTar = Join-Path $env:SystemRoot 'System32\tar.exe'
+        if (Test-Path -LiteralPath $windowsTar) { return $windowsTar }
+    }
+    $command = Get-Command tar.exe -ErrorAction SilentlyContinue
+    if ($command) { return $command.Source }
+    throw 'A tar executable is required to reopen and validate volume snapshots.'
+}
+
+function Write-SnapshotJournal($Journal) {
+    $path = Join-Path $SnapshotDirectory 'snapshot-journal.json'
+    $temporary = Join-Path $SnapshotDirectory ("snapshot-journal.{0}.tmp" -f ([guid]::NewGuid().ToString('N')))
+    [System.IO.File]::WriteAllText($temporary, ($Journal | ConvertTo-Json -Depth 8), [System.Text.UTF8Encoding]::new($false))
+    Move-Item -LiteralPath $temporary -Destination $path -Force
+}
+
+function Read-AndValidateSnapshotTar([string]$Path) {
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Snapshot archive does not exist: $Path" }
+    $tar = Get-TarExecutable
+    $entries = @(& $tar -tf $Path 2>&1)
+    if ($LASTEXITCODE -ne 0 -or $entries.Count -eq 0) { throw "Snapshot archive could not be reopened: $Path" }
+    $safeEntries = @()
+    foreach ($entry in $entries) {
+        $text = ([string]$entry).Trim()
+        if ([string]::IsNullOrWhiteSpace($text)) { continue }
+        $normalized = ($text -replace '^\./', '').TrimEnd('/')
+        if ($normalized -match '(^/|^[A-Za-z]:|(^|/)\.\.(?:/|$))') { throw "Snapshot archive contains an unsafe path: $text" }
+        $safeEntries += $normalized
+    }
+    if ($safeEntries.Count -eq 0) { throw "Snapshot archive contains no usable entries: $Path" }
+    $item = Get-Item -LiteralPath $Path
+    [pscustomobject]@{ bytes = [long]$item.Length; sha256 = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant(); entries = $safeEntries }
+}
+
 function Snapshot-Volumes {
-    New-Item -ItemType Directory -Force -Path $SnapshotDirectory | Out-Null
+    $SnapshotDirectory = Assert-ProtectedSnapshotDirectory $SnapshotDirectory
+    $snapshotRunId = ([guid]::NewGuid().ToString('N'))
     $volumes = @('ding-pbx-control-plane-data', 'ding-pbx-control-plane-asterisk-etc', 'ding-pbx-control-plane-asterisk-lib', 'ding-pbx-control-plane-asterisk-log', 'ding-pbx-control-plane-asterisk-spool')
+    $journal = [ordered]@{ schemaVersion = 1; snapshotId = $snapshotRunId; state = 'started'; createdAt = [DateTimeOffset]::UtcNow.ToString('o'); volumeResults = @(); retention = [ordered]@{ keepDays = $SnapshotRetentionDays; cleanup = 'Remove only complete snapshot directories older than keepDays after verifying the recorded restore command.' } }
+    Write-SnapshotJournal $journal
     foreach ($volume in $volumes) {
         $safe = $volume.Replace('-', '_')
-        $name = "ding-pbx-snapshot-$PID-$safe"
+        $name = "ding-pbx-snapshot-$snapshotRunId-$safe"
         $destination = Join-Path $SnapshotDirectory "$safe.tar"
-        $snapshotId = (& docker run --detach --label io.ding.pbx.snapshot=true --name $name --user 10001 --entrypoint /bin/tar -v "${volume}:/source:ro" -v "${SnapshotDirectory}:/backup" $ImageRef -cf "/backup/$safe.tar" -C /source .).Trim()
-        if ($LASTEXITCODE -ne 0 -or $snapshotId -notmatch '^[0-9a-f]{12,64}$') { throw "Could not start owned volume snapshot for $volume." }
-        do { Start-Sleep -Milliseconds 250; $state = (& docker inspect --format '{{.State.Status}}' $snapshotId 2>$null).Trim() } while ($state -eq 'running')
-        $exitCode = (& docker inspect --format '{{.State.ExitCode}}' $snapshotId 2>$null).Trim()
-        $owned = (& docker inspect --format '{{index .Config.Labels "io.ding.pbx.snapshot"}}' $snapshotId 2>$null).Trim()
-        if ($owned -ne 'true') { throw "Snapshot helper $name is not owned." }
-        & docker rm $snapshotId | Out-Null
-        if ($exitCode -ne '0' -or -not (Test-Path -LiteralPath $destination)) { throw "Volume snapshot failed for $volume." }
+        $helperId = $null
+        try {
+            $helperId = (& docker run --detach --label io.ding.pbx.snapshot=true --label "io.ding.pbx.snapshot-id=$snapshotRunId" --label "io.ding.pbx.snapshot-volume=$volume" --name $name --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --pids-limit 64 --memory 256m --cpus 0.50 --tmpfs /tmp:rw,noexec,nosuid,size=8m --user 10001:10001 --entrypoint /bin/tar -v "${volume}:/source:ro" -v "${SnapshotDirectory}:/backup:rw" $ImageRef -cf "/backup/$safe.tar" -C /source .).Trim()
+            if ($LASTEXITCODE -ne 0 -or $helperId -notmatch '^[0-9a-f]{12,64}$') { throw "Could not start owned volume snapshot for $volume." }
+            do { Start-Sleep -Milliseconds 250; $state = (& docker inspect --format '{{.State.Status}}' $helperId 2>$null).Trim() } while ($state -eq 'running')
+            $exitCode = (& docker inspect --format '{{.State.ExitCode}}' $helperId 2>$null).Trim()
+            $owned = (& docker inspect --format '{{index .Config.Labels "io.ding.pbx.snapshot"}}' $helperId 2>$null).Trim()
+            $ownedRun = (& docker inspect --format '{{index .Config.Labels "io.ding.pbx.snapshot-id"}}' $helperId 2>$null).Trim()
+            if ($owned -ne 'true' -or $ownedRun -ne $snapshotRunId) { throw "Snapshot helper $name is not owned by this exact snapshot run." }
+            if ($exitCode -ne '0') { throw "Volume snapshot helper failed for $volume." }
+            $archive = Read-AndValidateSnapshotTar $destination
+            $journal.volumeResults += [ordered]@{ volume = $volume; archive = [System.IO.Path]::GetFileName($destination); bytes = $archive.bytes; sha256 = $archive.sha256; entries = $archive.entries; state = 'complete' }
+            $journal.state = 'in-progress'
+            Write-SnapshotJournal $journal
+        } catch {
+            $journal.state = 'failed'
+            $journal.failure = $_.Exception.Message
+            Write-SnapshotJournal $journal
+            throw
+        } finally {
+            if ($helperId -and $helperId -match '^[0-9a-f]{12,64}$') {
+                $owned = (& docker inspect --format '{{index .Config.Labels "io.ding.pbx.snapshot"}}' $helperId 2>$null).Trim()
+                if ($owned -eq 'true') { & docker rm --force $helperId | Out-Null }
+            }
+        }
     }
-    $snapshotRecord = [ordered]@{ schemaVersion = 1; sourceImage = $ImageRef; sourceCommit = $manifest.sourceCommit; sourceVersion = $manifest.version; volumes = $volumes; createdAt = [DateTimeOffset]::UtcNow.ToString('o'); compatibility = 'restore only into the same mount profile and a manifest with matching volume names' }
-    [System.IO.File]::WriteAllText((Join-Path $SnapshotDirectory 'snapshot-record.json'), ($snapshotRecord | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))
+    $snapshotRecord = [ordered]@{ schemaVersion = 1; snapshotId = $snapshotRunId; sourceImage = $ImageRef; sourceCommit = $manifest.sourceCommit; sourceVersion = $manifest.version; volumeSchemaVersion = $manifest.volumeSchemaVersion; mountProfile = $manifest.mountProfile; volumes = $volumes; archives = $journal.volumeResults; createdAt = [DateTimeOffset]::UtcNow.ToString('o'); compatibility = 'restore only into the same volume schema, mount profile, and ordered volume names'; restoreCommand = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\restore-volume-snapshots.ps1`" -SnapshotDirectory `"$SnapshotDirectory`" -Execute"; retention = $journal.retention }
+    [System.IO.File]::WriteAllText((Join-Path $SnapshotDirectory 'snapshot-record.json'), ($snapshotRecord | ConvertTo-Json -Depth 8), [System.Text.UTF8Encoding]::new($false))
+    $journal.state = 'complete'
+    $journal.snapshotRecordSha256 = (Get-FileHash -LiteralPath (Join-Path $SnapshotDirectory 'snapshot-record.json') -Algorithm SHA256).Hash.ToLowerInvariant()
+    Write-SnapshotJournal $journal
+    Test-SnapshotRecoverability
+    $journal.recoverability = 'verified'
+    Write-SnapshotJournal $journal
+}
+
+function Test-SnapshotRecoverability {
+    $recordPath = Join-Path $SnapshotDirectory 'snapshot-record.json'
+    $record = Get-Content -Raw -LiteralPath $recordPath | ConvertFrom-Json
+    if ($record.schemaVersion -ne 1 -or $record.volumeSchemaVersion -ne $manifest.volumeSchemaVersion -or @($record.volumes).Count -ne 5 -or @($record.archives).Count -ne 5) { throw 'Snapshot recoverability is blocked by an incomplete or incompatible record.' }
+    foreach ($archive in @($record.archives)) {
+        $path = Join-Path $SnapshotDirectory $archive.archive
+        $actual = Read-AndValidateSnapshotTar $path
+        if ($actual.bytes -ne [long]$archive.bytes -or $actual.sha256 -ne $archive.sha256) { throw "Snapshot archive digest or byte count changed for $($archive.volume)." }
+        $volumeName = ("ding-pbx-snapshot-recovery-{0}-{1}" -f $record.snapshotId, ([guid]::NewGuid().ToString('N')))
+        $volumeId = (& docker volume create --label io.ding.pbx.snapshot-recovery=$record.snapshotId $volumeName).Trim()
+        if ($LASTEXITCODE -ne 0 -or $volumeId -ne $volumeName) { throw "Could not create a temporary recovery volume for $($archive.volume)." }
+        try {
+            $helperName = "ding-pbx-recover-$([guid]::NewGuid().ToString('N'))"
+            $helperId = (& docker run --detach --name $helperName --label io.ding.pbx.snapshot-recovery=$record.snapshotId --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --pids-limit 64 --memory 256m --cpus 0.50 --tmpfs /tmp:rw,noexec,nosuid,size=8m --user 10001:10001 --entrypoint /bin/tar -v "${volumeId}:/restore:rw" -v "${SnapshotDirectory}:/backup:ro" $ImageRef -xf "/backup/$($archive.archive)" -C /restore).Trim()
+            if ($LASTEXITCODE -ne 0 -or $helperId -notmatch '^[0-9a-f]{12,64}$') { throw "Could not start snapshot recoverability helper for $($archive.volume)." }
+            do { Start-Sleep -Milliseconds 250; $state = (& docker inspect --format '{{.State.Status}}' $helperId 2>$null).Trim() } while ($state -eq 'running')
+            $exitCode = (& docker inspect --format '{{.State.ExitCode}}' $helperId 2>$null).Trim()
+            if ($exitCode -ne '0') { throw "Snapshot recovery extraction failed for $($archive.volume)." }
+        } finally {
+            if ($helperId -and $helperId -match '^[0-9a-f]{12,64}$') { & docker rm --force $helperId | Out-Null }
+            if ($volumeId -eq $volumeName) { & docker volume rm $volumeId | Out-Null }
+        }
+    }
+}
+
+function Restore-VolumeSnapshots([string]$RestoreImageRef = $ImageRef) {
+    $record = Get-Content -Raw -LiteralPath (Join-Path $SnapshotDirectory 'snapshot-record.json') | ConvertFrom-Json
+    if ($record.schemaVersion -ne 1 -or $record.volumeSchemaVersion -ne $manifest.volumeSchemaVersion -or $record.mountProfile -ne $manifest.mountProfile) { throw 'Volume restore is blocked because the snapshot is incompatible with the rollback image.' }
+    foreach ($archive in @($record.archives)) {
+        $path = Join-Path $SnapshotDirectory $archive.archive
+        $actual = Read-AndValidateSnapshotTar $path
+        if ($actual.bytes -ne [long]$archive.bytes -or $actual.sha256 -ne $archive.sha256) { throw "Volume restore is blocked because $($archive.volume) failed its archive integrity check." }
+        $helperName = "ding-pbx-restore-$([guid]::NewGuid().ToString('N'))"
+        $helperId = (& docker run --detach --name $helperName --label io.ding.pbx.snapshot-restore=$record.snapshotId --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --pids-limit 64 --memory 256m --cpus 0.50 --tmpfs /tmp:rw,noexec,nosuid,size=8m --user 10001:10001 --entrypoint /bin/tar -v "$($archive.volume):/restore:rw" -v "${SnapshotDirectory}:/backup:ro" $RestoreImageRef -xf "/backup/$($archive.archive)" -C /restore).Trim()
+        if ($LASTEXITCODE -ne 0 -or $helperId -notmatch '^[0-9a-f]{12,64}$') { throw "Could not start volume restore helper for $($archive.volume)." }
+        do { Start-Sleep -Milliseconds 250; $state = (& docker inspect --format '{{.State.Status}}' $helperId 2>$null).Trim() } while ($state -eq 'running')
+        $exitCode = (& docker inspect --format '{{.State.ExitCode}}' $helperId 2>$null).Trim()
+        & docker rm --force $helperId | Out-Null
+        if ($exitCode -ne '0') { throw "Volume restore failed for $($archive.volume)." }
+    }
 }
 
 function Assert-OwnedDeployment([string]$ContainerId, [string]$ExpectedImageRef) {
@@ -204,14 +376,18 @@ try {
     $ownershipOk = $false
     Write-Warning "Original rollout ownership validation failed: $($_.Exception.Message)"
 }
-$liveOk = if ($ownershipOk) { Wait-Healthy $containerId } else { $false }
+$hostReachable = if ($ownershipOk) { Wait-HostReachable } else { $false }
+$liveOk = if ($ownershipOk -and $hostReachable) { Wait-Healthy $containerId } else { $false }
 $cliReady = if ($liveOk) { Wait-TargetReady $containerId } else { $false }
 $serverReady = if ($liveOk -and $cliReady) { Wait-AuthenticatedReady } else { $false }
 if (-not ($liveOk -and $cliReady -and $serverReady)) {
-    Write-Warning "Original rollout outcome: failed. liveness=$liveOk localCliReady=$cliReady authenticatedServerReady=$serverReady image=$ImageRef"
+    Write-Warning "Original rollout outcome: failed. hostReachability=$hostReachable liveness=$liveOk localCliReady=$cliReady authenticatedServerReady=$serverReady image=$ImageRef"
     if (-not $PreviousImageRef) { throw 'Deployment stopped without an automatic rollback image.' }
     $previous = Read-Provenance $PreviousImageRef $true $previousManifest
     Set-ComposeEnvironment $PreviousImageRef $previous $previousManifest
+    & docker compose --project-name $ProjectName --file $ComposeFile down --remove-orphans
+    if ($LASTEXITCODE -ne 0) { throw 'Automatic rollback could not stop the failed owned Compose workload before restoring its volume state.' }
+    Restore-VolumeSnapshots $PreviousImageRef
     & docker @composeArgs
     if ($LASTEXITCODE -ne 0) { throw 'Automatic rollback Compose update failed.' }
     $rollbackOwnership = $true
@@ -223,11 +399,12 @@ if (-not ($liveOk -and $cliReady -and $serverReady)) {
         $rollbackOwnership = $false
         Write-Warning "Rollback ownership validation failed: $($_.Exception.Message)"
     }
-    $rollbackLive = if ($rollbackOwnership) { Wait-Healthy $rollbackId } else { $false }
+    $rollbackReachable = if ($rollbackOwnership) { Wait-HostReachable } else { $false }
+    $rollbackLive = if ($rollbackOwnership -and $rollbackReachable) { Wait-Healthy $rollbackId } else { $false }
     $rollbackCli = if ($rollbackLive) { Wait-TargetReady $rollbackId } else { $false }
     $rollbackServer = if ($rollbackLive -and $rollbackCli) { Wait-AuthenticatedReady } else { $false }
-    if (-not ($rollbackLive -and $rollbackCli -and $rollbackServer)) { throw "Original rollout failed and rollback failed. rollbackLiveness=$rollbackLive rollbackLocalCliReady=$rollbackCli rollbackAuthenticatedServerReady=$rollbackServer image=$PreviousImageRef" }
-    Write-Host "Rollback outcome: restored previous image successfully. liveness=$rollbackLive localCliReady=$rollbackCli authenticatedServerReady=$rollbackServer image=$PreviousImageRef"
+    if (-not ($rollbackLive -and $rollbackCli -and $rollbackServer)) { throw "Original rollout failed and rollback failed. rollbackHostReachability=$rollbackReachable rollbackLiveness=$rollbackLive rollbackLocalCliReady=$rollbackCli rollbackAuthenticatedServerReady=$rollbackServer image=$PreviousImageRef" }
+    Write-Host "Rollback outcome: restored previous image and compatible volume state successfully. hostReachability=$rollbackReachable liveness=$rollbackLive localCliReady=$rollbackCli authenticatedServerReady=$rollbackServer image=$PreviousImageRef"
     throw 'The new image was rolled back after liveness or readiness failure.'
 }
 Write-Host 'The immutable image reached healthy liveness. Target readiness remains authenticated at /api/v1/ready.'

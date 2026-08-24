@@ -37,10 +37,11 @@ if ($LASTEXITCODE -ne 0) { throw 'Docker is installed but its Linux engine is un
 New-Item -ItemType Directory -Force -Path $resourceRoot | Out-Null
 $suffix = $sourceCommit.Substring(0, 12)
 $image = "ding-pbx-asterisk-runtime:$suffix"
-$container = "ding-pbx-asterisk-export-$suffix-$PID"
-$temporary = Join-Path $resourceRoot "asterisk-wsl-rootfs.$PID.tmp.tar"
-$archive = Join-Path ([System.IO.Path]::GetTempPath()) "ding-pbx-wsl-source.$PID.tar"
-$contextRoot = Join-Path ([System.IO.Path]::GetTempPath()) "ding-pbx-wsl-context.$PID"
+$resourceId = ([guid]::NewGuid().ToString('N'))
+$container = "ding-pbx-asterisk-export-$resourceId"
+$temporary = Join-Path $resourceRoot "asterisk-wsl-rootfs.$resourceId.tmp.tar"
+$archive = Join-Path ([System.IO.Path]::GetTempPath()) "ding-pbx-wsl-source.$resourceId.tar"
+$contextRoot = Join-Path ([System.IO.Path]::GetTempPath()) "ding-pbx-wsl-context.$resourceId"
 $containerCreated = $false
 
 try {

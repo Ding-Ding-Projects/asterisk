@@ -68,8 +68,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN sed -i "s|archive.ubuntu.com/ubuntu|snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT}|g; s|security.ubuntu.com/ubuntu|snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT}|g" /etc/apt/sources.list.d/ubuntu.sources && \
     apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates libcap2 libcurl4t64 libedit2 libgcc-s1 libjansson4 \
-    libncurses6 libsqlite3-0 libssl3t64 libstdc++6 libtinfo6 libuuid1 libxml2 \
-    tini && \
+     libncurses6 libsqlite3-0 libssl3t64 libstdc++6 libtinfo6 libuuid1 libxml2 \
+     tar tini && \
     rm -rf /var/lib/apt/lists/* && \
     groupadd --system --gid 10001 ding-pbx && \
     useradd --system --uid 10001 --gid 10001 --home-dir /var/lib/ding-pbx-console \

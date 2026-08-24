@@ -11,6 +11,12 @@ extraResources:
     to: asterisk/asterisk-wsl-rootfs.tar
   - from: resources/asterisk-wsl-rootfs.json
     to: asterisk/asterisk-wsl-rootfs.json
+  - from: resources/asterisk-wsl-trusted-manifest.json
+    to: asterisk/asterisk-wsl-trusted-manifest.json
+  - from: resources/asterisk-wsl-release-manifest.json
+    to: asterisk/asterisk-wsl-release-manifest.json
+  - from: resources/asterisk-wsl-installer-binding.json
+    to: asterisk/asterisk-wsl-installer-binding.json
   - from: resources/update-manifest.json
     to: update-manifest.json
 win:

@@ -23,6 +23,9 @@ services:
       - /run:rw,noexec,nosuid,size=16m
       - /run/asterisk:rw,noexec,nosuid,size=16m,uid=10001,gid=10001,mode=0750
     ports:
+      # The host-side address controls publication. The process always listens on
+      # every container interface so an explicitly published host address cannot
+      # accidentally create a split-brain bind inside the container.
       - "${DING_PBX_BIND_ADDRESS:-127.0.0.1}:${DING_PBX_PORT:-8088}:8088"
     volumes:
       - ding-pbx-data:/var/lib/ding-pbx-console
@@ -31,7 +34,7 @@ services:
       - ding-pbx-asterisk-log:/var/log/asterisk
       - ding-pbx-asterisk-spool:/var/spool/asterisk
     environment:
-      DING_HOST: ${DING_PBX_INTERNAL_HOST:-0.0.0.0}
+      DING_HOST: 0.0.0.0
       DING_PORT: 8088
       DING_DATA_DIR: /var/lib/ding-pbx-console
       DING_ASTERISK_TRANSPORT: local
