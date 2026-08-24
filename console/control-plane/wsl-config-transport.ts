@@ -20,6 +20,7 @@
  */
 import type { ProcessExecutor } from "./executor.js";
 import type { ConfigDocument, ConfigTransport } from "./config-transaction.js";
+import { randomUUID } from "node:crypto";
 
 const CONFIG_DIRECTORY = "/etc/asterisk";
 
@@ -182,6 +183,94 @@ export interface ConfigSection {
 
 export type ConfigValue = ReadonlyArray<ConfigSection>;
 
+/** Renderer-visible marker for a value that exists but must never cross the control-plane boundary. */
+export const HIDDEN_CONFIG_VALUE = "[hidden value]";
+
+export type RawConfigReadResult =
+  | { state: "present"; text: string }
+  | { state: "absent" };
+
+export type RawConfigReader = (
+  distribution: string,
+  resource: ConfigurableResource,
+  signal?: AbortSignal,
+) => Promise<RawConfigReadResult>;
+
+const SECRET_KEY = /(?:secret|password|passwd|token|private[_-]?key|userpwd|ssl_keypasswd|api[_-]?key)/iu;
+
+function isSecretEntry(key: string): boolean {
+  return SECRET_KEY.test(key.trim());
+}
+
+function hideSecretValues(value: ConfigValue): ConfigValue {
+  return value.map((section) => ({
+    name: section.name,
+    entries: section.entries.map((entry) => ({
+      key: entry.key,
+      value: isSecretEntry(entry.key) ? HIDDEN_CONFIG_VALUE : entry.value,
+    })),
+  }));
+}
+
+function validateConfigValue(value: unknown): ConfigValue {
+  if (!Array.isArray(value)) throw new Error("Configuration must be a section list.");
+  return value.map((candidate, sectionIndex) => {
+    if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) {
+      throw new Error(`Configuration section ${sectionIndex + 1} is invalid.`);
+    }
+    const section = candidate as { name?: unknown; entries?: unknown };
+    if (typeof section.name !== "string" || !Array.isArray(section.entries)) {
+      throw new Error(`Configuration section ${sectionIndex + 1} needs a name and entry list.`);
+    }
+    if (section.name.includes("\n") || section.name.includes("\r") || section.name.includes("]")) {
+      throw new Error(`Configuration section ${sectionIndex + 1} has an unsafe name.`);
+    }
+    return {
+      name: section.name,
+      entries: section.entries.map((candidateEntry, entryIndex) => {
+        if (typeof candidateEntry !== "object" || candidateEntry === null || Array.isArray(candidateEntry)) {
+          throw new Error(`Configuration entry ${entryIndex + 1} in [${section.name}] is invalid.`);
+        }
+        const entry = candidateEntry as { key?: unknown; value?: unknown };
+        if (typeof entry.key !== "string" || typeof entry.value !== "string") {
+          throw new Error(`Configuration entry ${entryIndex + 1} in [${section.name}] needs string key and value fields.`);
+        }
+        if (entry.key.length === 0 || /[\r\n=]/u.test(entry.key) || /[\r\n]/u.test(entry.value)) {
+          throw new Error(`Configuration entry ${entryIndex + 1} in [${section.name}] contains unsafe line data.`);
+        }
+        return { key: entry.key, value: entry.value };
+      }),
+    };
+  });
+}
+
+function materializeHiddenValues(desired: ConfigValue, current: ConfigValue): ConfigValue {
+  const sectionSeen = new Map<string, number>();
+  return desired.map((section) => {
+    const sectionOccurrence = sectionSeen.get(section.name) ?? 0;
+    sectionSeen.set(section.name, sectionOccurrence + 1);
+    const existing = current.filter((candidate) => candidate.name === section.name)[sectionOccurrence];
+    const seen = new Map<string, number>();
+    return {
+      name: section.name,
+      entries: section.entries.map((entry) => {
+        const occurrence = seen.get(entry.key) ?? 0;
+        seen.set(entry.key, occurrence + 1);
+        if (entry.value !== HIDDEN_CONFIG_VALUE) return entry;
+        if (!isSecretEntry(entry.key)) {
+          throw new Error(`A hidden-value reference was supplied for non-secret key ${section.name}.${entry.key}.`);
+        }
+        const matches = existing?.entries.filter((candidate) => candidate.key === entry.key) ?? [];
+        const currentEntry = matches[occurrence];
+        if (!currentEntry) {
+          throw new Error(`The hidden value for ${section.name}.${entry.key} no longer exists on the target.`);
+        }
+        return { key: entry.key, value: currentEntry.value };
+      }),
+    };
+  });
+}
+
 export function assertConfigurable(resource: string): ConfigurableResource {
   if (!ALLOWED.has(resource)) {
     throw new Error(`"${resource}" is not a configurable resource, so it was not touched.`);
@@ -240,6 +329,9 @@ export function renderConfig(value: ConfigValue): string {
 export interface WslConfigTransportOptions {
   executor: ProcessExecutor;
   distribution: string;
+  targetId?: string;
+  /** Privileged raw reader used only inside this transport. Raw bytes never enter a response or log. */
+  rawRead?: RawConfigReader;
   now?: () => Date;
 }
 
@@ -249,15 +341,23 @@ function looksAbsent(error: unknown): boolean {
 }
 
 export class WslConfigTransport implements ConfigTransport {
+  readonly targetId: string;
+  readonly requiresRuntimeVerification = true;
   readonly #executor: ProcessExecutor;
   readonly #distribution: string;
+  readonly #rawRead?: RawConfigReader;
   readonly #now: () => Date;
   /** Maps a staged path back to the resource it belongs to, so apply cannot be misaimed. */
   readonly #staged = new Map<string, ConfigurableResource>();
+  /** Exact materialized bytes expected after apply, retained only inside the privileged transport. */
+  readonly #stagedValues = new Map<string, ConfigValue>();
+  readonly #appliedValues = new Map<ConfigurableResource, ConfigValue>();
 
   constructor(options: WslConfigTransportOptions) {
+    this.targetId = options.targetId ?? options.distribution;
     this.#executor = options.executor;
     this.#distribution = options.distribution;
+    this.#rawRead = options.rawRead;
     this.#now = options.now ?? (() => new Date());
   }
 
@@ -280,20 +380,47 @@ export class WslConfigTransport implements ConfigTransport {
     return result.stdout;
   }
 
-  async read(resource: string): Promise<ConfigValue> {
+  async readState(resource: string, signal?: AbortSignal): Promise<{ state: "present" | "absent"; value: ConfigValue }> {
     const allowed = assertConfigurable(resource);
+    if (this.#rawRead) {
+      const result = await this.#rawRead(this.#distribution, allowed, signal);
+      if (result.state === "absent") return { state: "absent", value: [] };
+      return { state: "present", value: hideSecretValues(parseConfig(result.text)) };
+    }
     try {
-      return parseConfig(await this.#run(["cat", this.#path(allowed)]));
+      const text = await this.#run(["cat", this.#path(allowed)]);
+      return { state: "present", value: hideSecretValues(parseConfig(text)) };
     } catch (error) {
-      if (looksAbsent(error)) return [];
+      if (looksAbsent(error)) return { state: "absent", value: [] };
       throw error;
     }
+  }
+
+  async read(resource: string, signal?: AbortSignal): Promise<ConfigValue> {
+    return (await this.readState(resource, signal)).value;
+  }
+
+  projectForRead(resource: string, value: unknown): ConfigValue {
+    assertConfigurable(resource);
+    return hideSecretValues(validateConfigValue(value));
+  }
+
+  async #readRawValue(resource: ConfigurableResource, signal?: AbortSignal): Promise<ConfigValue> {
+    if (!this.#rawRead) {
+      const text = await this.#run(["cat", resource]);
+      if (text.includes("[REDACTED]")) {
+        throw new Error(`Secret-preserving writes to ${resource} require the privileged raw configuration reader.`);
+      }
+      return parseConfig(text);
+    }
+    const result = await this.#rawRead(this.#distribution, resource, signal);
+    return result.state === "absent" ? [] : parseConfig(result.text);
   }
 
   async backup(resource: string): Promise<string> {
     const allowed = assertConfigurable(resource);
     const stamp = this.#now().toISOString().replaceAll(/[:.]/gu, "-");
-    const backup = this.#path(allowed, `.backup-${stamp}`);
+    const backup = this.#path(allowed, `.backup-${stamp}-${randomUUID()}`);
     try {
       await this.#run(["cp", "--preserve=mode,ownership,timestamps", this.#path(allowed), backup]);
       return backup;
@@ -305,11 +432,17 @@ export class WslConfigTransport implements ConfigTransport {
     }
   }
 
-  async stage(resource: string, value: unknown): Promise<string> {
+  async stage(resource: string, value: unknown, signal?: AbortSignal): Promise<string> {
     const allowed = assertConfigurable(resource);
-    const staged = this.#path(allowed, ".staged");
-    await this.#run(["tee", staged], renderConfig(value as ConfigValue));
+    const desired = validateConfigValue(value);
+    const carriesHiddenValues = desired.some((section) => section.entries.some((entry) => entry.value === HIDDEN_CONFIG_VALUE));
+    const materialized = carriesHiddenValues
+      ? materializeHiddenValues(desired, await this.#readRawValue(allowed, signal))
+      : desired;
+    const staged = this.#path(allowed, `.staged-${randomUUID()}`);
+    await this.#run(["tee", staged], renderConfig(materialized));
     this.#staged.set(staged, allowed);
+    this.#stagedValues.set(staged, materialized);
     return staged;
   }
 
@@ -324,9 +457,25 @@ export class WslConfigTransport implements ConfigTransport {
 
   async apply(stagedHandle: string): Promise<void> {
     const resource = this.#staged.get(stagedHandle);
+    const expected = this.#stagedValues.get(stagedHandle);
     if (!resource) throw new Error("That staged file was not created by this transaction.");
+    if (!expected) throw new Error("That staged file has no retained verification value.");
     await this.#run(["mv", stagedHandle, this.#path(resource)]);
+    this.#appliedValues.set(resource, expected);
     this.#staged.delete(stagedHandle);
+    this.#stagedValues.delete(stagedHandle);
+  }
+
+  /** Exact privileged post-read. Renderer-visible reads cannot verify generated secrets. */
+  async verifyApplied(resource: string, _expected: unknown, signal?: AbortSignal): Promise<void> {
+    const allowed = assertConfigurable(resource);
+    const expected = this.#appliedValues.get(allowed);
+    if (!expected) throw new Error(`No applied verification value is retained for ${allowed}.`);
+    const actual = await this.#readRawValue(allowed, signal);
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+      throw new Error(`Exact post-read mismatch for ${allowed}.`);
+    }
+    this.#appliedValues.delete(allowed);
   }
 
   async rollback(backupHandle: string): Promise<void> {
