@@ -31,9 +31,12 @@
       ]
     },
     "school-mode": {
-      "state": "absent",
-      "note": "No School mode setting, rename, or shared-credential unlock exists. The per-element lock mechanism in the compiled console (tryUnlock, PIN/password) is unrelated to School mode.",
-      "files": []
+      "state": "partial",
+      "note": "Implemented 2026-08-24 as app/renderer/src/school-mode.ts: the shared switch, rename with validation, the visibility filter that OMITS rather than disables a gated capability, credential verification against a stored hash, and restoration of the user's prior choices unchanged. A test asserts no output anywhere leaks the shipped name after a rename. Honest about being a presentation lock rather than a security boundary, including that deleting the shared local record resets it. 32 tests. NOTE: this lane also added five controls to the design and recompiled the renderer, which was outside the file boundary it was given; the edit inserted cleanly ahead of the Fun group and destroyed nothing, and the drift guard passes, so it is kept. Its school-status control declares action:'school-status' which App does not answer yet, so the control is present and inert.The module is complete and its guards are proven, but NOTHING IMPORTS IT YET -- no surface in the renderer calls it, so today it constrains nothing that ships. Recorded as partial rather than implemented for exactly that reason: a module wired at one end and consumed at neither is the defect this project has shipped a dozen times, and marking it done would be that same claim.",
+      "files": [
+        "app/renderer/src/school-mode.ts",
+        "tests/ui/school-mode.test.tsx"
+      ]
     },
     "narration": {
       "state": "partial",
@@ -43,9 +46,12 @@
       ]
     },
     "scheduled-settings": {
-      "state": "absent",
-      "note": "No scheduled-settings surface, date/time rule editor, or external source integration exists anywhere in the renderer or control-plane.",
-      "files": []
+      "state": "partial",
+      "note": "Implemented 2026-08-24 as app/renderer/src/scheduled-settings.ts: rules with optional date and time windows and either every day or explicit weekdays, validated with every problem reported at once, matched against an explicit instant rather than a clock, with deterministic precedence when several match and base settings recoverable when a temporary override ends. Cross-midnight windows, equal start and end values, partial input and an empty schedule all have tested semantics rather than silent guesses. 38 tests. The module is complete and its guards are proven, but NOTHING IMPORTS IT YET -- no surface in the renderer calls it, so today it constrains nothing that ships. Recorded as partial rather than implemented for exactly that reason: a module wired at one end and consumed at neither is the defect this project has shipped a dozen times, and marking it done would be that same claim.",
+      "files": [
+        "app/renderer/src/scheduled-settings.ts",
+        "tests/ui/scheduled-settings.test.tsx"
+      ]
     },
     "external-settings-sources": {
       "state": "absent",
@@ -181,9 +187,12 @@
       ]
     },
     "accessibility": {
-      "state": "absent",
-      "note": "No dedicated accessibility mechanism (focus management beyond default DOM behavior, ARIA audit, reduced-motion handling) was found in App.tsx or the compiled console source.",
-      "files": []
+      "state": "partial",
+      "note": "Implemented 2026-08-24 as app/renderer/src/accessibility-contract.ts: WCAG relative luminance and contrast ratio from hex with the AA and AAA thresholds, target-size checking including a visually small control with adequate padded hit area, accessible-name resolution refusing a name whose only source is a decorative glyph, focus-indicator and positive-tabindex checks, and a reduced-motion resolver where either the platform preference or the app setting asking for less motion wins. Every threshold is a named constant citing its source. 37 tests. The module is complete and its guards are proven, but NOTHING IMPORTS IT YET -- no surface in the renderer calls it, so today it constrains nothing that ships. Recorded as partial rather than implemented for exactly that reason: a module wired at one end and consumed at neither is the defect this project has shipped a dozen times, and marking it done would be that same claim.",
+      "files": [
+        "app/renderer/src/accessibility-contract.ts",
+        "tests/ui/accessibility-contract.test.tsx"
+      ]
     },
     "responsive-sizing": {
       "state": "partial",
@@ -282,19 +291,28 @@
       ]
     },
     "bounded-overlays": {
-      "state": "absent",
-      "note": "No dedicated overlay-bounding/viewport-clamping logic was found; overlays in the compiled console use plain fixed-position styling with no evidence of viewport-boundary handling.",
-      "files": []
+      "state": "partial",
+      "note": "Implemented 2026-08-24 as app/renderer/src/bounded-overlays.ts: a pure placement calculator returning position, constrained size, whether the overlay scrolls internally, and which side of the anchor it landed on, plus a surface check that refuses an overlay declaring no background, border, elevation or shape. An overlay capped in height with its overflow hidden DELETES the content past the cap with no scrollbar to say so; bounding to available space and scrolling inside that bound is what prevents it. 18 tests. The module is complete and its guards are proven, but NOTHING IMPORTS IT YET -- no surface in the renderer calls it, so today it constrains nothing that ships. Recorded as partial rather than implemented for exactly that reason: a module wired at one end and consumed at neither is the defect this project has shipped a dozen times, and marking it done would be that same claim.",
+      "files": [
+        "app/renderer/src/bounded-overlays.ts",
+        "tests/ui/bounded-overlays.test.tsx"
+      ]
     },
     "context-menu-shortcuts": {
-      "state": "absent",
-      "note": "The compiled console context menu (ctxOpen/ctxSub) renders labels and icons only; no keyboard-shortcut column was found alongside its menu items.",
-      "files": []
+      "state": "partial",
+      "note": "Implemented 2026-08-24 as app/renderer/src/menu-shortcuts.ts: a registry that resolves the binding which actually fires a command IN THAT CONTEXT, so a shortcut from another surface is never displayed and one is never inferred from a similarly named command. An item with no binding shows nothing rather than a placeholder, the chord is exposed as a shortcut rather than glued into the label, and two commands sharing a chord in one context is reported as a conflict rather than silently resolved. 17 tests. Its conflict grouping compares context and chord directly rather than joining them into a string key: the first version used a separator that reached the file as a literal NUL. The module is complete and its guards are proven, but NOTHING IMPORTS IT YET -- no surface in the renderer calls it, so today it constrains nothing that ships. Recorded as partial rather than implemented for exactly that reason: a module wired at one end and consumed at neither is the defect this project has shipped a dozen times, and marking it done would be that same claim.",
+      "files": [
+        "app/renderer/src/menu-shortcuts.ts",
+        "tests/ui/menu-shortcuts.test.tsx"
+      ]
     },
     "long-operation-progress": {
-      "state": "absent",
-      "note": "No dialog reporting real long-operation progress (queue/index/clone-style progress inside a start dialog) was found; ceremony.ts runs a bounded confirmation flow, not a progress-reporting operation.",
-      "files": []
+      "state": "partial",
+      "note": "Implemented 2026-08-24 as app/renderer/src/long-operation-progress.ts: weighted phases producing real fractional progress, a re-entry guard that refuses a second start and says it refused, determinate versus indeterminate state distinguishable from stalled, a stall detector, and cancellation reporting partial completion honestly. A disabled submit button is the visible guard and not the real one -- a keyboard submit walks past it -- so the handler refuses re-entry itself. 38 tests. The module is complete and its guards are proven, but NOTHING IMPORTS IT YET -- no surface in the renderer calls it, so today it constrains nothing that ships. Recorded as partial rather than implemented for exactly that reason: a module wired at one end and consumed at neither is the defect this project has shipped a dozen times, and marking it done would be that same claim.",
+      "files": [
+        "app/renderer/src/long-operation-progress.ts",
+        "tests/ui/long-operation-progress.test.tsx"
+      ]
     },
     "in-context-recovery": {
       "state": "absent",
@@ -315,9 +333,12 @@
       "files": []
     },
     "collapsible-filters": {
-      "state": "absent",
-      "note": "No evidence of a collapsible filter/statistics row was found; the compiled console tab filter (tabFilterOpen) is a modal overlay, not a collapsible inline row.",
-      "files": []
+      "state": "partial",
+      "note": "Implemented 2026-08-24 as app/renderer/src/collapsible-filters.ts: panel kinds with their default collapsed state (statistics start collapsed, since a view whose controls occupy more space than its content has buried the content), persistence, and the rule that matters most -- a collapsed panel currently EXCLUDING results must say so, because a quietly filtering collapsed row is how somebody comes to believe their data is missing. 30 tests. The module is complete and its guards are proven, but NOTHING IMPORTS IT YET -- no surface in the renderer calls it, so today it constrains nothing that ships. Recorded as partial rather than implemented for exactly that reason: a module wired at one end and consumed at neither is the defect this project has shipped a dozen times, and marking it done would be that same claim.",
+      "files": [
+        "app/renderer/src/collapsible-filters.ts",
+        "tests/ui/collapsible-filters.test.tsx"
+      ]
     },
     "automatic-updates": {
       "state": "implemented",

@@ -2549,8 +2549,15 @@ const SCREENS = {
     ]},
     { title:'Language', desc:'Which language the console speaks. Bilingual keeps English primary and adds the Cantonese beside it. Technical identifiers -- codecs, config keys, section names, SIP URIs -- stay literal in every mode, because they have to survive being read back and typed.', ctls:[
       ctl('lang_mode','Language','segmented','English',{ options:['English','廣東話','English + 廣東話'], info:'A string with no translation yet renders as English rather than as a placeholder, so an incomplete catalog looks unfinished instead of broken.' }),
-    ]},{ title:'Fun', desc:'How playful the console is allowed to be. This is a real setting, not a joke — it scales celebrations, copy and randomness together.', ctls:[
-      ctl('fun_level','Fun level','slider',2,{ min:0, max:4, info:'0 is a bank. 1 is polite. 2 is the default — celebrations on meaningful wins. 3 adds jokes and bolder motion. 4 is confetti for changing a slider, rainbow fills and an app that will not stop congratulating you.' }),
+    ]},{ title:'School mode', desc:'A shared, renamable switch for plain English presentation. It hides Cantonese, funny-level, vocabulary and dim-sum capabilities while active, and restores your earlier choices after a verified unlock.', ctls:[
+      ctl('school_mode','School mode','switch',false,{ info:'This is a shared presentation mode, not a security boundary. Turning it on forces English and removes playful or optional controls everywhere this console runs.' }),
+      ctl('school_name','School mode name','text','',{ placeholder:'School mode', info:'Rename the mode shown in every surface. The chosen name is shared and updates live.' }),
+      ctl('school_set_credential','Set unlock credential','switch',false,{ info:'Opens a local credential prompt. The credential is kept by the desktop credential store, never in settings, exports or history.' }),
+      ctl('school_unlock','Unlock School mode','switch',false,{ info:'Verifies the shared credential before restoring the previous language and funny levels. The ladder never bypasses this credential.' }),
+      ctl('school_status','School mode status','text','Unknown',{ action:'school-status', info:'Shows the shared state and whether the last cross-process refresh answered.' })
+    ]},{ title:'Fun', desc:'Two independent settings style every message without changing its facts. Both start at level 5, and each can be reset separately.', ctls:[
+      ctl('fun_english','English funny level','slider',5,{ min:1, max:5, info:'Level 1 is fully serious. Level 5 is maximum playfulness. This only styles English voice; it never changes facts or technical values.' }),
+      ctl('fun_cantonese','Cantonese funny level','slider',5,{ min:1, max:5, info:'Level 1 is fully serious. Level 5 is maximum playfulness. This only styles Hong Kong Cantonese voice; it never changes facts or technical values.' }),
       ctl('fun_copy','Copy tone','segmented','Warm',{ options:['Terse','Neutral','Warm','Comedian'] }),
       ctl('fun_celebrate','Celebrate on','chips',['Big wins','Security improvements'],{ options:['Every change','Big wins','Security improvements','Minigame wins','Nothing'] }),
       ctl('fun_confetti','Confetti density','slider',90,{ min:0, max:300, unit:' pieces' }),
@@ -2562,6 +2569,14 @@ const SCREENS = {
       ctl('fun_random_scope','Randomise','chips',['Colour','Radius','Shadow'],{ options:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'] }),
       ctl('fun_random_strength','How wild','slider',40,{ min:5, max:100, unit:'%' }),
       ctl('fun_random_reroll','Reroll on every screen change','switch',false)
+    ]},{ title:'Narration', desc:'An off-by-default spoken narrator for app events. English and Cantonese voices are independent, both is serialized English then Cantonese, and quiet or screen-reader states suppress speech.', ctls:[
+      ctl('nar_enabled','Narration','switch',false,{ info:'Narration is off until you turn it on. It reads app events through the platform speech engine and never blocks the interface.' }),
+      ctl('nar_language','Narrated language','segmented','English',{ options:['English','廣東話','Both'], info:'Both speaks English first and Cantonese second, one utterance at a time.' }),
+      ctl('nar_en_voice','English voice','select','Choose automatically',{ options:['Choose automatically'], info:'The list is populated from voices installed on this computer. The saved value is the stable voice identity, not its display name.' }),
+      ctl('nar_yue_voice','Cantonese voice','select','Choose automatically',{ options:['Choose automatically'], info:'The list is populated from voices installed on this computer. A missing choice is retained and clearly reported rather than silently replaced.' }),
+      ctl('nar_rate','Narration rate','slider',1,{ min:0.5, max:2, step:0.1, info:'The platform rate, from 0.5 to 2.0. The voice normal is the default.' }),
+      ctl('nar_pitch','Narration pitch','slider',1,{ min:0, max:2, step:0.1, info:'The platform pitch, from 0 to 2. The voice normal is the default.' }),
+      ctl('nar_status','Narration status','text','No voice list loaded yet.',{ action:'narration-status', info:'Reports the effective voice, missing voice fallback, network-backed status and offline behavior.' })
     ]},{ title:'Motion', desc:'Global timing. Individual elements can still set their own.', ctls:[
       ctl('mo_speed','Animation speed','slider',100,{ min:0, max:300, unit:'%' }),
       ctl('mo_curve','Default easing','segmented','Emphasised',{ options:['Linear','Standard','Emphasised','Springy'] }),
