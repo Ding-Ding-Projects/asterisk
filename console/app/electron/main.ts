@@ -278,6 +278,7 @@ async function registerNativeHost(): Promise<NativeHostStatus> {
     if (!['ready', 'error', 'unavailable'].includes(nativeHostStatus.state)) return { state: 'error', message: 'Native ingress registration did not settle on a terminal readiness state.', retryable: true };
     return nativeHostStatus;
   } catch (error) {
+    downloadTransfers.setSecureTempHelperPath(undefined);
     const status = { state: 'error' as const, message: error instanceof Error ? error.message : 'Native extension ingress registration failed.', retryable: true };
     publishNativeHostStatus(status);
     return status;
@@ -290,13 +291,16 @@ ipcMain.handle('native-host:register', async () => registerNativeHost());
 
 async function startNativeDownloadIngress(): Promise<void> {
   if (process.platform !== 'win32' || nativeIngressBroker) return;
+  downloadTransfers.setSecureTempHelperPath(undefined);
   nativeIngressConfig = readNativeIngressConfig();
-  if (!nativeIngressConfig) { downloadTransfers.setSecureTempHelperPath(undefined); publishNativeHostStatus({ state: 'unavailable', message: 'The native ingress configuration or executable proof is unavailable.', retryable: true }); return; }
-  downloadTransfers.setSecureTempHelperPath(nativeIngressConfig.secureHelperPath);
+  if (!nativeIngressConfig) { publishNativeHostStatus({ state: 'unavailable', message: 'The native ingress configuration or executable proof is unavailable.', retryable: true }); return; }
   const paths = [nativeIngressConfig.configPath, nativeIngressConfig.manifestPath, nativeIngressConfig.executablePath, nativeIngressConfig.brokerPath, nativeIngressConfig.secureHelperPath];
   const aclVerified = await Promise.all(paths.map((path) => verifyNativeIngressAcl(path)));
-  if (aclVerified.some((verified) => !verified)) { nativeIngressConfig = undefined; publishNativeHostStatus({ state: 'error', message: 'The native ingress configuration, manifest, executable, broker, or helper owner and ACL could not be verified.', retryable: true }); return; }
-  const broker = spawn(nativeIngressConfig.brokerPath, ['--listen', nativeIngressConfig.pipeName], { stdio: 'pipe', windowsHide: true });
+  if (aclVerified.some((verified) => !verified)) { nativeIngressConfig = undefined; downloadTransfers.setSecureTempHelperPath(undefined); publishNativeHostStatus({ state: 'error', message: 'The native ingress configuration, manifest, executable, broker, or helper owner and ACL could not be verified.', retryable: true }); return; }
+  downloadTransfers.setSecureTempHelperPath(nativeIngressConfig.secureHelperPath);
+  let broker: ChildProcessWithoutNullStreams;
+  try { broker = spawn(nativeIngressConfig.brokerPath, ['--listen', nativeIngressConfig.pipeName], { stdio: 'pipe', windowsHide: true }); }
+  catch (error) { nativeIngressConfig = undefined; downloadTransfers.setSecureTempHelperPath(undefined); publishNativeHostStatus({ state: 'error', message: error instanceof Error ? error.message : 'The native ingress broker could not start.', retryable: true }); return; }
   nativeIngressBroker = broker;
   let buffer = '';
   let ready = false;
@@ -305,7 +309,9 @@ async function startNativeDownloadIngress(): Promise<void> {
   const startup = new Promise<void>((resolve, reject) => { settleStartup = (error) => { startupSettled = true; error ? reject(error) : resolve(); }; });
   const startupTimer = setTimeout(() => {
     if (startupSettled) return;
-    if (nativeIngressBroker === broker) { broker.kill(); nativeIngressBroker = undefined; }
+    if (nativeIngressBroker === broker) broker.kill();
+    downloadTransfers.setSecureTempHelperPath(undefined);
+    nativeIngressConfig = undefined;
     const error = new Error('The native ingress broker did not become ready before its startup deadline.');
     publishNativeHostStatus({ state: 'error', message: error.message, retryable: true });
     settleStartup(error);
@@ -313,18 +319,20 @@ async function startNativeDownloadIngress(): Promise<void> {
   broker.stdout.setEncoding('utf8');
   broker.stdout.on('data', (chunk: string) => {
     buffer += chunk;
-    if (Buffer.byteLength(buffer, 'utf8') > DOWNLOAD_NATIVE_MESSAGE_LIMIT * 2) { broker.kill(); return; }
+    if (Buffer.byteLength(buffer, 'utf8') > DOWNLOAD_NATIVE_MESSAGE_LIMIT * 2) { downloadTransfers.setSecureTempHelperPath(undefined); broker.kill(); return; }
     for (;;) {
       const newline = buffer.indexOf('\n');
       if (newline < 0) return;
       const text = buffer.slice(0, newline);
       buffer = buffer.slice(newline + 1);
       if (text === 'READY') {
+        if (!nativeIngressConfig || startupSettled) { downloadTransfers.setSecureTempHelperPath(undefined); broker.kill(); continue; }
         ready = true;
         publishNativeHostStatus({ state: 'ready', message: 'The native extension ingress is ready.', retryable: true, executablePath: nativeIngressConfig?.executablePath, executableSha256: nativeIngressConfig?.executableSha256, browsers: ['chrome', 'edge'] });
         if (!startupSettled) { clearTimeout(startupTimer); settleStartup(); }
         continue;
       }
+      if (!nativeIngressConfig) { downloadTransfers.setSecureTempHelperPath(undefined); broker.kill(); continue; }
       try {
         const envelope = JSON.parse(text) as { challenge?: unknown; payload?: unknown };
         if (envelope.challenge !== nativeIngressConfig?.challenge || !isNativeDownloadIngressMessage(envelope.payload)) {
@@ -335,12 +343,13 @@ async function startNativeDownloadIngress(): Promise<void> {
       } catch { broker.stdin.write(`${JSON.stringify({ accepted: false, detail: 'The native ingress message was not valid JSON.' })}\n`); }
     }
   });
-  broker.on('error', (error) => { if (nativeIngressBroker === broker) nativeIngressBroker = undefined; if (!startupSettled) { clearTimeout(startupTimer); publishNativeHostStatus({ state: 'error', message: error.message, retryable: true }); settleStartup(error); } else publishNativeHostStatus({ state: 'error', message: error.message, retryable: true }); });
-  broker.on('close', () => { if (stoppingNativeIngressBroker === broker) { stoppingNativeIngressBroker = undefined; if (nativeIngressBroker === broker) nativeIngressBroker = undefined; return; } if (nativeIngressBroker === broker) nativeIngressBroker = undefined; if (!startupSettled) { clearTimeout(startupTimer); const error = new Error('The native ingress broker stopped before readiness.'); publishNativeHostStatus({ state: 'unavailable', message: error.message, retryable: true }); settleStartup(error); } else if (ready) publishNativeHostStatus({ state: 'error', message: 'The native ingress broker stopped before another handoff could be accepted.', retryable: true }); });
+  broker.on('error', (error) => { downloadTransfers.setSecureTempHelperPath(undefined); nativeIngressConfig = undefined; if (nativeIngressBroker === broker) nativeIngressBroker = undefined; if (!startupSettled) { clearTimeout(startupTimer); publishNativeHostStatus({ state: 'error', message: error.message, retryable: true }); settleStartup(error); } else publishNativeHostStatus({ state: 'error', message: error.message, retryable: true }); });
+  broker.on('close', () => { if (stoppingNativeIngressBroker === broker) { stoppingNativeIngressBroker = undefined; if (nativeIngressBroker === broker) nativeIngressBroker = undefined; return; } downloadTransfers.setSecureTempHelperPath(undefined); nativeIngressConfig = undefined; if (nativeIngressBroker === broker) nativeIngressBroker = undefined; if (!startupSettled) { clearTimeout(startupTimer); const error = new Error('The native ingress broker stopped before readiness.'); publishNativeHostStatus({ state: 'unavailable', message: error.message, retryable: true }); settleStartup(error); } else if (ready) publishNativeHostStatus({ state: 'error', message: 'The native ingress broker stopped before another handoff could be accepted.', retryable: true }); });
   await startup.catch(() => undefined);
 }
 
 async function stopNativeDownloadIngress(): Promise<boolean> {
+  downloadTransfers.setSecureTempHelperPath(undefined);
   const broker = nativeIngressBroker;
   if (!broker) return true;
   stoppingNativeIngressBroker = broker;
