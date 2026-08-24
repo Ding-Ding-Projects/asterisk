@@ -79,12 +79,26 @@ The whole IVR screen — digit timeout, retries, invalid action, direct dial, pr
 barge-in — describes what an IVR does. `extensions.conf` has no keys for these; it has
 `exten =>` lines. Generating dialplan from a form is a real feature and a different one.
 
-### A control whose values Asterisk does not accept
+### A control whose values cannot be confirmed from this checkout
 
-Caller ID **presentation** offers Allowed, Prohibited and Unavailable. Those are the
-human-readable names; the key wants its own spelling. This one is closest to bindable of
-anything here: it needs a value map, and the map has to be right, because getting it wrong
-changes what a telephone exchange tells the far end about who is calling.
+Caller ID **presentation** offers Allowed, Prohibited and Unavailable, and `pjsip.conf` does
+have `callerid_privacy`. It needs a value map, and this is the closest to bindable of
+anything here — but the only accepted value evidenced anywhere in the sample files is
+`allowed_not_screened`. The spellings for the prohibited and unavailable cases are not in
+this checkout to check against, and the difference between `prohib`, `prohibited` and
+`prohib_not_screened` is not a guess worth taking: it changes what a telephone exchange
+tells the far end about who is calling.
+
+Binding it needs the accepted values confirmed against Asterisk itself, not inferred.
+
+### A control whose key does not exist in the file its screen edits
+
+The **RFC2833 payload** stepper and the **DTLS for WebRTC** switch sit on a screen editing
+`codecs.conf` and `rtp.conf`. `rtp.conf` has no payload key at all — `dtmftimeout` is a
+timeout, not a payload number — and the DTLS keys are `dtls_verify`, `dtls_rekey` and their
+siblings in `pjsip.conf`, per endpoint rather than globally. **Global codec order**,
+**transcoding**, **Opus bitrate** and **preferred ptime** have no key in either file: the
+one `bitrate` that exists is inside a `[silk24]` section.
 
 ## Configuration
 
