@@ -91,7 +91,7 @@ function Template(v: any) {
         )
       ),
       h("div", { role: `tablist`, "aria-label": `Open destinations`, "aria-orientation": v.tabOrientation, style: sty(`height:38px; flex:0 0 38px; display:flex; align-items:flex-end; gap:2px; background:#0B0F0C; padding:0 6px; overflow-x:auto;`) },
-        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { role: `group`, "aria-label": `Tab group ${S($g.name)}`, onClick: fn($g.toggle), onContextMenu: fn($g.ctx), onKeyDown: fn($g.keyDown), tabIndex: `0`, style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
+        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { role: `group`, "data-group-id": $g.id, "aria-label": `Tab group ${S($g.name)}`, "aria-expanded": $g.expanded, onClick: fn($g.toggle), onContextMenu: fn($g.ctx), onKeyDown: fn($g.keyDown), tabIndex: `0`, style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
             h("span", { style: sty(`width:9px; height:9px; border-radius:50%; background:${S($g.colour)};`) }),
             h("span", { style: sty(`font-size:12px; font-weight:500; color:#DFE4DC; white-space:nowrap;`) },
               S($g.name)
@@ -104,7 +104,7 @@ function Template(v: any) {
             )
           ))),
         A(v.tabs).map(($t, $t$i) => R($t$i, F(
-          ($t.on ? h("div", { role: `tab`, "aria-selected": `true`, "aria-controls": `panel-${S($t.key)}`, tabIndex: $t.tabIndex, draggable: `true`, onKeyDown: fn($t.keyDown), onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), id: `tab-${S($t.key)}` },
+          ($t.on ? h("div", { role: `tab`, "data-tab-id": $t.key, "aria-selected": `true`, "aria-controls": `panel-${S($t.key)}`, tabIndex: $t.tabIndex, draggable: `true`, onKeyDown: fn($t.keyDown), onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), id: `tab-${S($t.key)}` },
               ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
               h("span", { style: sty(`width:7px; height:7px; border-radius:50%; background:${S($t.colour)}; flex:0 0 auto;`) }),
               h("span", { style: sty(`font-size:16px; color:#82D9A5; flex:0 0 auto;`), className: "msym" },
@@ -122,7 +122,7 @@ function Template(v: any) {
                 )
               )
             ) : null),
-          ($t.off ? h("div", { role: `tab`, "aria-selected": `false`, "aria-controls": `panel-${S($t.key)}`, tabIndex: $t.tabIndex, draggable: `true`, onKeyDown: fn($t.keyDown), onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), id: `tab-${S($t.key)}`, className: "k-h7" },
+          ($t.off ? h("div", { role: `tab`, "data-tab-id": $t.key, "aria-selected": `false`, "aria-controls": `panel-${S($t.key)}`, tabIndex: $t.tabIndex, draggable: `true`, onKeyDown: fn($t.keyDown), onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), id: `tab-${S($t.key)}`, className: "k-h7" },
               ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
               h("span", { style: sty(`font-size:16px; color:#8FA394; flex:0 0 auto;`), className: "msym" },
                 S($t.icon)
@@ -3621,7 +3621,7 @@ const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes'
 /* Handwritten command-palette inventory. A palette route disappearing from ORDER
  * must fail review here instead of silently disappearing from the user's search. */
 const PALETTE_INVENTORY = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','httpd','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
-const PALETTE_CONTROL_INVENTORY = ['lang_mode','school_mode','fun_english','fun_cantonese','nar_enabled','mo_reduce','p_motion','att_focus','att_low','att_time','att_one','att_momentum','nt_toast','nt_quiet','id_name','ed_choice','ap_family','ap_weight','ap_size','cp_hue','cp_sat','cp_light','cp_rainbow','cp_speed','cp_ease','cp_dir'];
+const PALETTE_CONTROL_INVENTORY = ["a_deny","a_http","a_origin","a_port","a_read","a_timeout","a_tls","a_tlsport","a_write","ap_align","ap_alpha","ap_anim","ap_blend","ap_blur","ap_bright","ap_bs","ap_bw","ap_case","ap_celebrate","ap_contrast","ap_deco","ap_dur","ap_ease","ap_family","ap_fill","ap_gap","ap_grey","ap_hrot","ap_hue","ap_lead","ap_light","ap_num","ap_pb","ap_pl","ap_pr","ap_pt","ap_r1","ap_r2","ap_r3","ap_r4","ap_rainbow","ap_rbdir","ap_rbease","ap_rblight","ap_rbrange","ap_rbsat","ap_rbspeed","ap_rot","ap_sat","ap_satf","ap_sb","ap_scale","ap_sin","ap_size","ap_skew","ap_sop","ap_ss","ap_sx","ap_sy","ap_track","ap_transition","ap_tx","ap_ty","ap_weight","att_focus","att_low","att_momentum","att_one","att_time","b_close","b_notify","b_poll","b_report","bh_commit","bh_confirm","bh_explain","bh_lockdefault","bh_start","bh_tour","bh_wizard","bs_hours","bs_menu","bs_phones","bs_tls","c_announce","c_denoise","c_dtmf","c_jitter","c_marked","c_max","c_mixing","c_music","c_rate","c_talker","c_video","cp_dir","cp_ease","cp_hue","cp_light","cp_rainbow","cp_sat","cp_speed","cr_cap","cr_cost","cr_danger","cr_enable","cr_expire","cw_attest","cw_reload","d_backend","d_batch","d_congestion","d_enable","d_size","d_unanswered","da_restart","da_start","da_status","da_stop","dlg_emoji","dp_after","dp_barge","dp_box","dp_cid","dp_ctx","dp_days","dp_from","dp_greet","dp_hol","dp_moh","dp_msg","dp_opts","dp_pat","dp_prompt","dp_q","dp_qt","dp_skip","dp_to","dp_wait","e_aggregate_mwi","e_busy_at","e_callerid","e_codecs","e_context","e_direct","e_dtmf","e_encryption","e_expiry","e_forcerport","e_ice","e_mailboxes","e_maxaudio","e_maxcontacts","e_maxvideo","e_mwi_replaces","e_optimistic","e_outbound_auth","e_outbound_proxy","e_qualify","e_refer_blind","e_removeexisting","e_rewrite","e_rtp_hold","e_rtp_timeout","e_symmetric","e_timers","e_timers_min_se","e_timers_sess","e_transport","e_trust","e_voicemail_ext","ed_choice","ed_clear","ed_custom_name","ed_custom_path","fc_atxfer","fc_atxferabort","fc_atxfercomplete","fc_atxferdropcall","fc_atxfernoanswertimeout","fc_atxferswap","fc_atxferthreeway","fc_automixmon","fc_blindxfer","fc_disconnect","fc_featuredigittimeout","fc_parkcall","fc_pickupexten","fc_transferdigittimeout","fun_celebrate","fun_confetti","fun_copy","fun_easter","fun_level","fun_mascot","fun_random","fun_random_reroll","fun_random_scope","fun_random_seed","fun_random_strength","fun_sound","g_colour","g_console","g_count","g_file","g_queue","g_rotate","g_size","g_verbose","h_announce","h_application","h_directory","h_mode","h_sort","h_upload","h_volume","hi_author","hi_branch","hi_commit","hi_diff","hi_gc","hi_hook","hi_keep","hi_msg","hi_push","hi_reload","hi_sign","ht_bindaddr","ht_bindport","ht_enabled","ht_notls1","ht_notls11","ht_notls12","ht_prefix","ht_sessinact","ht_sesskeep","ht_sesslimit","ht_static","ht_status","ht_tlsaddr","ht_tlscert","ht_tlsenable","ht_tlskey","ht_tlsport","i_barge","i_direct","i_invalid","i_lang","i_retries","i_timeout","id_name","id_name_reset","ix_accountcode","ix_calltoken","ix_codecs","ix_context","ix_host","ix_mailbox","ix_port","ix_qualify","ix_secret_set","ix_transfer","ix_trunk","ix_type","ix_username","k_opusbr","k_order","k_ptime","k_transcode","l_apps","l_date","l_enable","l_events","lang_mode","lk_dur","lk_hide","ly_density","ly_dock","ly_gap","ly_mono","ly_radius","ly_sidebar","ly_tabs","m_beep","m_format","m_retain","m_spy","mo_auto","mo_curve","mo_dialog","mo_hover","mo_noload","mo_preload","mo_reduce","mo_require","mo_screen","mo_speed","n_drift","n_guard","n_lock","n_mode","n_scan","nt_keep","nt_levels","nt_quiet","nt_sound","nt_toast","o_channel","o_check","o_hash","o_restart","o_stage","ob_ease","ob_gates","ob_host","ob_hours","ob_intent","ob_log","ob_menu","ob_phones","ob_tls","ob_tour","ob_where","p_confirm","p_density","p_mono","p_motion","p_scale","p_start","p_theme","p_tour","p_tray","pr_active","pr_export","pr_perscreen","pr_sync","q_autopause","q_joinempty","q_leave","q_maxlen","q_periodic","q_position","q_retry","q_ringinuse","q_service","q_strategy","q_timeout","q_wrapup","r_dtls","r_dtmf","r_end","r_ice","r_start","r_strict","s_acl","s_bantime","s_cert","s_ciphers","s_failaction","s_failban","s_guest","s_level","s_method","s_permit","s_stir","s_verify","s_verifyin","sup_category","sup_description","sup_open","sup_severity","sv_amiport","sv_amiuser","sv_auth","sv_conf","sv_container","sv_default","sv_forward","sv_host","sv_hostkey","sv_iface","sv_key","sv_kind","sv_paths","sv_probe","sv_profile","sv_readonly","sv_sounds","sv_sshport","sv_sudo","sv_tls","sv_user","sv_watch","t_100rel","t_fatal","t_forbidden","t_from","t_order","t_pai","t_privacy","t_retry","ta_auto","ta_expire","ta_log","ta_mutual","ta_notify","ta_sign","th_contrast","th_hue","th_mode","th_rainbow","th_rbspeed","th_sat","th_tint","u_destruct","u_isolate","u_lanes","u_model","u_verify","v_attach","v_delete","v_envelope","v_format","v_maxmsg","v_maxsecs","v_minsecs","v_operator","v_review","v_saycid","va_clear","va_file","va_status","w_acl","w_attest","w_auth","w_busy","w_codecs","w_context","w_dir","w_direct","w_display","w_dtmf","w_encrypt","w_ext","w_kind","w_maxcontacts","w_name","w_nat","w_noanswer","w_qualify","w_reload","w_ringfor","w_secret","w_transport","w_users","w_vm","w_where","wc_area","wc_attest","wc_confirm","wc_dry","wc_filter","wc_goal","wc_log","wc_target","wd_attest","wd_goal","wd_level","wd_log","wd_notify","wd_scope","wi_0","wi_1","wi_2","wi_3","wi_attest","wi_barge","wi_close","wi_closed","wi_direct","wi_file","wi_hours","wi_invalid","wi_lang","wi_open","wi_prompt","wi_retries","wi_timeout","wm_action","wm_attest","wm_force","wm_module","wm_persist","wm_preload","wm_when","wq_attest","wq_auto","wq_hours","wq_kind","wq_maxwait","wq_members","wq_moh","wq_penalty","wq_periodic","wq_position","wq_ringinuse","wq_strategy","wq_then","wq_timeout","wq_wrapup","ws_acl","ws_alert","ws_attest","ws_ban","ws_bantime","ws_cap","ws_carriers","ws_cert","ws_exposed","ws_fail","ws_intl","ws_level","ws_media","ws_method","ws_nets","ws_night","ws_stir","ws_users","ws_verify","ws_vin","wv_attach","wv_attest","wv_box","wv_busy","wv_count","wv_delete","wv_email","wv_ext","wv_format","wv_full","wv_greet","wv_kind","wv_max","wv_min","wv_name","wy_attest","wy_case","wy_depth","wy_guard","wy_limit","wy_out","wy_scope","wy_whole","x_export","x_mask","x_rotate","x_store","y_attest","y_auto","y_backup","y_every","y_retain","z_crash","z_installer","z_sign","z_telemetry"];
 /* Fail-closed inventories for the universal command and appearance contracts.
  * A new setting or action must be named here before it can claim palette or
  * context-menu coverage. */
@@ -3633,6 +3633,24 @@ for (const [name, list] of Object.entries({ PALETTE_CONTROL_INVENTORY, APPEARANC
   if (!list.length || new Set(list).size !== list.length) throw new Error(name + ' must be a non-empty exact inventory without duplicates');
 }
 const PALETTE_DOC_INVENTORY = ['e_transport','e_context','e_direct','e_symmetric','e_forcerport','e_rewrite','e_encryption','e_dtmf','e_maxcontacts','e_qualify','q_strategy','q_wrapup','q_ringinuse','q_joinempty','q_service','v_delete','v_maxsecs','s_guest','s_stir','s_level','k_order','r_start','d_backend','a_read','mo_auto','g_rotate','sv_kind','sv_hostkey','hi_commit','fun_random','fun_level'];
+const assertExactInventory = (name, declared, expected) => {
+  const actual = [...declared].sort();
+  const unique = [...new Set(declared)].sort();
+  if (declared.length !== unique.length || JSON.stringify(actual) !== JSON.stringify(expected)) {
+    const missing = expected.filter((id) => !actual.includes(id));
+    const extra = actual.filter((id) => !expected.includes(id));
+    throw new Error(name + ' inventory mismatch: missing=' + missing.join(',') + ' extra=' + extra.join(','));
+  }
+};
+assertExactInventory('documentation', PALETTE_DOC_INVENTORY, Object.keys(DOCS).sort());
+const EXPECTED_APPEARANCE_PROPERTIES = ['colour','fontFamily','fontWeight','fontSize','hue','saturation','lightness','rainbow','cycleSpeed','easing','direction','radius','elevation','density','motion'];
+const EXPECTED_TAB_ACTIONS = ['rename','colour','appearance','close-containing','close-not-containing','pin','unpin','duplicate','move','group','export','import','dock'];
+const EXPECTED_GROUP_ACTIONS = ['rename','colour','behaviour','tabs','save-restore','collapse','ungroup','close','appearance','lock'];
+const EXPECTED_COMMANDS = ['open-palette','open-notifications','open-settings','open-docs','open-changelog','open-history','open-regex-builder','close-containing-tabs','close-not-containing-tabs','reset-tabs'];
+assertExactInventory('appearance-property', APPEARANCE_PROPERTY_INVENTORY, EXPECTED_APPEARANCE_PROPERTIES);
+assertExactInventory('tab-action', TAB_ACTION_INVENTORY, EXPECTED_TAB_ACTIONS);
+assertExactInventory('group-action', GROUP_ACTION_INVENTORY, EXPECTED_GROUP_ACTIONS);
+assertExactInventory('command', COMMAND_INVENTORY, EXPECTED_COMMANDS);
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },
@@ -4097,6 +4115,22 @@ const CLI_STEPS = [
   { id:'target', label:'Target', options:['endpoints','channels','contacts','registrations'] }
 ];
 
+const collectDeclaredControlIds = (value, output = []) => {
+  if (!value || typeof value !== 'object') return output;
+  if (typeof value.id === 'string' && typeof value.kind === 'string' && typeof value.label === 'string') output.push(value.id);
+  if (Array.isArray(value)) value.forEach((item) => collectDeclaredControlIds(item, output));
+  else Object.values(value).forEach((item) => collectDeclaredControlIds(item, output));
+  return output;
+};
+const declaredControlIds = [...new Set([
+  ...collectDeclaredControlIds(SCREENS),
+  ...collectDeclaredControlIds(APPEAR_GROUPS),
+  ...collectDeclaredControlIds(NODE_CTLS),
+  ...collectDeclaredControlIds(WIZARDS),
+  ...collectDeclaredControlIds(ONBOARD),
+])].sort();
+assertExactInventory('control', PALETTE_CONTROL_INVENTORY, declaredControlIds);
+
 class ConsoleShell extends DCLogic {
   state = {
     railId:'pbx', screen:'dash', mode:'Beginner', values:{},
@@ -4112,7 +4146,7 @@ class ConsoleShell extends DCLogic {
      * remain as a migration shape, but no field reads another field's query,
      * pattern, flags, or sample. */
     regexFields:{ nav:{ query:'', pattern:[], flags:['i'], sample:'' }, table:{ query:'', pattern:[], flags:['i'], sample:'' }, memory:{ query:'', pattern:[], flags:['i'], sample:'' }, palette:{ query:'', pattern:[], flags:['i'], sample:'' }, ctx:{ query:'', pattern:[], flags:['i'], sample:'' }, sub:{ query:'', pattern:[], flags:['i'], sample:'' } },
-    regexOpen:false, regexTarget:'nav', regexX:'300px', regexY:'120px', regexFlags:['i'], regexSamples:{},
+    regexOpen:false, regexTarget:'nav', regexX:'300px', regexY:'120px', regexSamples:{},
     ctxOpen:false, ctxX:'0px', ctxY:'0px', ctxTarget:'', ctxKind:'screen', ctxReturnFocus:null, ctxFilter:'', ctxRegexOn:false, subFilter:'', subRegexOn:false, recoveryOpen:false, recoveryAction:null, recoveryTitle:'', recoveryBody:'', recoveryStatus:'No retry or re-authentication has run yet.',
     locks:{}, lockOpen:false, lockTarget:'', lockKey:'', lockStep:0, lockMethod:'PIN', pin:'', password:'', pinReveal:false, lockX:'40%', lockY:'22%',
     credits:3, game:'whack', gameScore:0, gameTime:0, gameCell:-1, gamePlaying:false,
@@ -4120,7 +4154,7 @@ class ConsoleShell extends DCLogic {
     sortList:['ulaw · 64 kbps','opus · 128 kbps','g729 · 8 kbps','g722 · 64 kbps','gsm · 13 kbps'],
     matchSel:'', matchDone:[], spotFound:-1, reflexNum:'1004', selected:[], authAnswers:{},
     sureOpen:false, sureTitle:'', sureBody:'', sureHits:0, sureNeed:3, sureCell:-1, sureAction:null,
-    tabs:['dash', 'endpoints', 'canvas'], pinned:['dash'], dock:'left',
+    tabs:['dash', 'endpoints', 'canvas'], pinned:['dash'], dock:'left', paletteRevealTab:'',
     tabUnsaved:{},
     nodePos:{}, edgeList:EDGES.map(e => e.slice()), nodeDrag:null, fullscreen:false,
     canvasTool:'select', grid:true, snap:true, guides:true, minimap:true, layer:'Dialplan',
@@ -4207,8 +4241,8 @@ class ConsoleShell extends DCLogic {
       const controls = (SCREENS[k].groups || []).flatMap(group => (group.ctls || []).map(control => ({ key:k, icon:'tune', label:control.label, hint:k + ' · setting', kind:'setting', isSetting:true, inline:this.buildCtl(control), controlId:control.id, inventoried:PALETTE_CONTROL_INVENTORY.indexOf(control.id) >= 0 })));
       return [screen].concat(controls);
     }).concat(PALETTE_DOC_INVENTORY.map(id => ({ key:'docs', icon:'menu_book', label:'Article · ' + id, hint:id, kind:'article', articleId:id })))
-      .concat((state.tabs || []).map(tab => ({ key:tab, icon:'tab', label:'Tab · ' + (state.tabNames?.[tab] || tab), hint:'tab', kind:'tab' })))
-      .concat((state.groups || []).map(group => ({ key:state.screen, icon:'folder', label:'Group · ' + String(group.name || group.id), hint:'group', kind:'group' })));
+      .concat((state.tabs || []).map(tab => ({ key:tab, tabId:tab, icon:'tab', label:'Tab · ' + (state.tabNames?.[tab] || tab), hint:'tab', kind:'tab' })))
+      .concat((state.groups || []).map(group => ({ key:state.screen, groupId:group.id, icon:'folder', label:'Group · ' + String(group.name || group.id), hint:'group', kind:'group' })));
     if (!query) return all;
     if (!state.paletteRegexOn) return all.filter(item => item.label.toLowerCase().includes(query.toLowerCase()) || item.hint.toLowerCase().includes(query.toLowerCase()));
     try { const re = new RegExp(query, 'i'); return all.filter(item => re.test(item.label) || re.test(item.hint)); }
@@ -4223,7 +4257,20 @@ class ConsoleShell extends DCLogic {
   setRegexField = (target, patch) => this.setState(st => ({ regexFields:Object.assign({}, st.regexFields, { [target]:Object.assign({}, this.regexField(target), patch) }) }));
   openPalette = () => { this.paletteReturnFocus = document.activeElement; this.setState({ paletteOpen:true, paletteCursor:0 }); setTimeout(() => document.getElementById('palette-search')?.focus(), 0); };
   closePalette = () => this.closeOverlay('palette');
-  activatePaletteItem = (item) => { this.closeOverlay('palette'); this.openScreen(item.key); setTimeout(() => { const target = item.controlId ? document.querySelector('[data-control-id="' + item.controlId + '"]') : null; target?.focus?.(); }, 0); };
+  activatePaletteItem = (item) => {
+    this.closeOverlay('palette');
+    if (item.kind === 'article') this.setState({ docsSelectedId:item.articleId });
+    if (item.kind === 'group') this.setState({ ctxGroupId:item.groupId });
+    if (item.kind === 'tab') this.setState({ paletteRevealTab:item.tabId });
+    this.openScreen(item.kind === 'article' ? 'docs' : item.key);
+    setTimeout(() => {
+      const target = item.kind === 'setting' && item.controlId
+        ? document.querySelector('[data-control-id="' + item.controlId + '"]')
+        : (item.kind === 'tab' ? document.querySelector('[data-tab-id="' + item.tabId + '"]') : (item.kind === 'group' ? document.querySelector('[data-group-id="' + item.groupId + '"]') : null));
+      target?.focus?.();
+      if (item.kind === 'tab') this.setState({ paletteRevealTab:'' });
+    }, 0);
+  };
   activatePaletteCursor = () => { const item = this.filteredPalette(this.state)[this.state.paletteCursor]; if (item) this.activatePaletteItem(item); };
   persistNotifications = (items) => { this.persistDesktopState?.({ notifications:items.slice(0, 200) }); };
   updateNotifications = (update) => { const next = update(this.state.notifications || []); this.persistNotifications(next); this.setState({ notifications:next }); };
@@ -4598,12 +4645,12 @@ class ConsoleShell extends DCLogic {
   tryUnlock = () => {
     const s = this.state;
     const L = s.locks[s.unlockKey];
-    if (!L) return this.setState({ unlockOpen:false });
+    if (!L) return this.closeOverlay('unlock');
     const m = L.method || 'PIN';
     if (m.indexOf('PIN') >= 0 && s.unlockPin !== L.pin) { this.setState({ unlockPin:'' }); return this.toast('Wrong PIN — the surface stays locked'); }
     if (m.indexOf('Password') >= 0 && (s.unlockPw || '') !== L.password) { this.setState({ unlockPw:'' }); return this.toast('Wrong passphrase — the surface stays locked'); }
     const n = Object.assign({}, s.locks); delete n[s.unlockKey];
-    this.setState({ locks:n, unlockOpen:false, unlockPin:'', unlockPw:'' });
+    this.closeOverlay('unlock', { locks:n, unlockPin:'', unlockPw:'' });
     this.fire('Unlocked', 'Welcome back.');
   };
 
@@ -4773,7 +4820,7 @@ class ConsoleShell extends DCLogic {
       const q = String(s.tabFilterText || (s.patterns.nav || []).join('')).trim();
       if (!q) return { blocked:'Enter text or a valid pattern before closing tabs.', rows:[], keep:s.tabs.slice(), excluded:[] };
       let re = null;
-      if (s.tabFilterRegexOn) { try { re = new RegExp(q, s.regexFlags.filter(f => f !== 'g').join('')); } catch (error) { return { blocked:'The pattern is invalid. Fix it before closing tabs.', rows:[], keep:s.tabs.slice(), excluded:[] }; } }
+      if (s.tabFilterRegexOn) { try { re = new RegExp(q, this.regexField('nav').flags.filter(f => f !== 'g').join('')); } catch (error) { return { blocked:'The pattern is invalid. Fix it before closing tabs.', rows:[], keep:s.tabs.slice(), excluded:[] }; } }
       const excluded = s.tabs.filter(k => s.pinned.indexOf(k) >= 0 || !!s.locks[k] || !!s.tabUnsaved[k]);
       const close = s.tabs.filter(k => { const label = s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k); const hit = re ? re.test(label) : label.toLowerCase().includes(q.toLowerCase()); return (s.tabFilterMode === 'not' ? !hit : hit) && excluded.indexOf(k) < 0; });
       return { blocked:'', rows:s.tabs.map(k => ({ label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), close:close.indexOf(k) >= 0, excluded:excluded.indexOf(k) >= 0 })), keep:s.tabs.filter(k => close.indexOf(k) < 0), excluded };
@@ -5110,7 +5157,7 @@ class ConsoleShell extends DCLogic {
       })),
 
       tabGroups:s.groups.map(g => ({
-        name:g.name, colour:g.colour, count:g.tabs.length + '', bg:'#141A15',
+        id:g.id, name:g.name, colour:g.colour, count:g.tabs.length + '', expanded:!g.collapsed, bg:'#141A15',
         chevron:g.collapsed ? 'chevron_right' : 'expand_more',
         toggle:() => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, { collapsed:!x.collapsed }) : x) }),
         keyDown:(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, { collapsed:!x.collapsed }) : x) }); } },
@@ -5186,19 +5233,22 @@ class ConsoleShell extends DCLogic {
         if (count < 1) return this.toast('No unprotected tabs match this filter. Nothing closed.');
          const plannedTabs = s.tabs.slice();
          const plannedLabels = tabClosePlan.rows.filter(r => r.close).map(r => r.label);
+         const plannedPredicateInputs = JSON.stringify({ tabs:plannedTabs, pinned:s.pinned, locks:s.locks, unsaved:s.tabUnsaved, mode:s.tabFilterMode, text:s.tabFilterText, colour:s.tabFilterColour, regexOn:s.tabFilterRegexOn, flags:this.regexField('nav').flags, pattern:(s.patterns.nav || []).slice() });
          this.areYouSure('Close matching tabs', count + ' tab(s) will close: ' + plannedLabels.join(', ') + '. Pinned, locked, and unsaved tabs are excluded.', 3, () => {
            const currentTabs = this.state.tabs || [];
-           if (JSON.stringify(currentTabs) !== JSON.stringify(plannedTabs)) {
-             this.toast('The tab-close plan is stale because the tab list changed. Review it again.');
+           const currentPredicateInputs = JSON.stringify({ tabs:currentTabs, pinned:this.state.pinned, locks:this.state.locks, unsaved:this.state.tabUnsaved, mode:this.state.tabFilterMode, text:this.state.tabFilterText, colour:this.state.tabFilterColour, regexOn:this.state.tabFilterRegexOn, flags:this.regexField('nav').flags, pattern:(this.state.patterns.nav || []).slice() });
+           if (currentPredicateInputs !== plannedPredicateInputs) {
+             this.toast('The tab-close plan is stale because its predicate inputs changed. Review it again.');
              return;
            }
-           this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false });
+           this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash') });
+           this.closeOverlay('tabFilter');
           this.toast(count + ' tab(s) closed. Protected tabs stayed open.');
         });
       },
       closeTabFilter:() => this.closeOverlay('tabFilter'),
       closeTabColour:() => this.closeOverlay('tabColour'),
-      tabs:s.tabs.filter(k => { const g = s.groups.find(x => x.tabs.indexOf(k) >= 0); return !(g && (g.collapsed || g.hidden)); }).map((k) => {
+      tabs:s.tabs.filter(k => { const g = s.groups.find(x => x.tabs.indexOf(k) >= 0); return s.paletteRevealTab === k || !(g && (g.collapsed || g.hidden)); }).map((k) => {
         const i = s.tabs.indexOf(k);
         return {
         key:k, label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), icon:SCREENS[k] ? SCREENS[k].icon : 'tab',
@@ -5494,7 +5544,7 @@ class ConsoleShell extends DCLogic {
       regexTargetLabel:s.regexTarget === 'nav' ? 'section list' : (s.regexTarget === 'table' ? 'row filter' : (s.regexTarget === 'palette' ? 'command palette' : (s.regexTarget === 'ctx' ? 'context menu' : (s.regexTarget === 'sub' ? 'submenu' : 'memory search')))),
       rxText:s.rxText || (s.patterns[s.regexTarget] || []).join(''),
       onRxText:(e) => { const v = e.target.value; const p = Object.assign({}, s.patterns); p[s.regexTarget] = v ? [v] : []; this.setState({ rxText:v, patterns:p }); },
-      regexFlagStr:s.regexFlags.join(''),
+      regexFlagStr:this.regexField(s.regexTarget).flags.join(''),
       regexValid:(() => { const v = s.rxText || (s.patterns[s.regexTarget] || []).join(''); if (!v) return 'empty'; try { new RegExp(v); return 'valid'; } catch (e) { return 'invalid'; } })(),
       regexValidColor:(() => { const v = s.rxText || (s.patterns[s.regexTarget] || []).join(''); if (!v) return '#8FA394'; try { new RegExp(v); return '#82D9A5'; } catch (e) { return '#FFB4AB'; } })(),
       regexExplain:(() => {
@@ -5512,7 +5562,7 @@ class ConsoleShell extends DCLogic {
         if (/\{\d/.test(v)) parts.push('a counted repeat');
         if (/\(\?!/.test(v)) parts.push('a negative lookahead — must NOT be followed by that');
         if (/\[.*\]/.test(v)) parts.push('any one character from the bracketed set');
-        if (s.regexFlags.indexOf('i') >= 0) parts.push('case is ignored');
+        if (this.regexField(s.regexTarget).flags.indexOf('i') >= 0) parts.push('case is ignored');
         return parts.length ? ('Matches text that ' + parts.join(', and ') + '.') : ('Matches the literal text “' + v + '” anywhere in the value.');
       })(),
       rxTools:[
@@ -5529,22 +5579,22 @@ class ConsoleShell extends DCLogic {
       regexFlags:[['i', 'ignore case'], ['g', 'all matches'], ['m', 'multiline'], ['s', 'dot matches newline']].map(([f, l]) => { const flags = this.regexField(s.regexTarget).flags; return { label:f + ' · ' + l, on:flags.indexOf(f) >= 0, off:flags.indexOf(f) < 0, toggle:() => this.setRegexField(s.regexTarget, { flags:flags.indexOf(f) >= 0 ? flags.filter(x => x !== f) : flags.concat([f]) }) }; }),
       regexSample:this.regexField(s.regexTarget).sample,
       onRegexSample:(e) => { const sample = String(e.target.value).slice(0, 2000); const samples = Object.assign({}, s.regexSamples, { [s.regexTarget]:sample }); this.setState({ regexSamples:samples }); this.setRegexField(s.regexTarget, { sample }); },
-      regexMatchesLabel:(() => { const sample = s.regexSamples[s.regexTarget] || ''; const pattern = (s.patterns[s.regexTarget] || []).join(''); if (!pattern) return 'No pattern. Plain text remains the default in the originating field.'; try { const re = new RegExp(pattern, s.regexFlags.filter(f => f !== 'g').join('')); const matches = sample ? Array.from(sample.matchAll(new RegExp(pattern, s.regexFlags.includes('g') ? s.regexFlags.join('') : s.regexFlags.concat(['g']).join('')))).length : 0; return `Pattern valid. ${matches} match(es) in the sample.`; } catch (e) { return 'Pattern invalid. No matches are applied.'; } })(),
-      regexCaptures:(() => { const sample = s.regexSamples[s.regexTarget] || ''; const pattern = (s.patterns[s.regexTarget] || []).join(''); if (!sample || !pattern) return []; try { const re = new RegExp(pattern, s.regexFlags.filter(f => f !== 'g').join('')); const match = re.exec(sample); return match ? match.slice(1, 9).map((value, i) => ({ label:'$' + (i + 1), value:value === undefined ? 'not captured' : value })) : []; } catch (e) { return []; } })(),
+      regexMatchesLabel:(() => { const field = this.regexField(s.regexTarget); const sample = field.sample; const pattern = field.pattern.join(''); if (!pattern) return 'No pattern. Plain text remains the default in the originating field.'; try { const re = new RegExp(pattern, field.flags.filter(f => f !== 'g').join('')); const matches = sample ? Array.from(sample.matchAll(new RegExp(pattern, field.flags.includes('g') ? field.flags.join('') : field.flags.concat(['g']).join('')))).length : 0; return `Pattern valid. ${matches} match(es) in the sample.`; } catch (e) { return 'Pattern invalid. No matches are applied.'; } })(),
+      regexCaptures:(() => { const field = this.regexField(s.regexTarget); const sample = field.sample; const pattern = field.pattern.join(''); if (!sample || !pattern) return []; try { const re = new RegExp(pattern, field.flags.filter(f => f !== 'g').join('')); const match = re.exec(sample); return match ? match.slice(1, 9).map((value, i) => ({ label:'$' + (i + 1), value:value === undefined ? 'not captured' : value })) : []; } catch (e) { return []; } })(),
       copyRegex:() => { void navigator.clipboard?.writeText((s.patterns[s.regexTarget] || []).join('')).then(() => this.toast('Pattern copied'), () => this.toast('Pattern could not be copied')); },
-      exportRegex:() => { const pattern = (s.patterns[s.regexTarget] || []).join(''); const sample = s.regexSamples[s.regexTarget] || ''; let captures = []; try { const match = pattern && sample ? new RegExp(pattern, s.regexFlags.filter(f => f !== 'g').join('')).exec(sample) : null; captures = match ? match.slice(1, 9) : []; } catch (e) {} const blob = new Blob([JSON.stringify({ schemaVersion:1, target:s.regexTarget, pattern, flags:s.regexFlags, sample, captures }, null, 2)], { type:'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'regex-result.json'; link.click(); URL.revokeObjectURL(url); },
+      exportRegex:() => { const field = this.regexField(s.regexTarget); const pattern = field.pattern.join(''); const sample = field.sample; let captures = []; try { const match = pattern && sample ? new RegExp(pattern, field.flags.filter(f => f !== 'g').join('')).exec(sample) : null; captures = match ? match.slice(1, 9) : []; } catch (e) {} const blob = new Blob([JSON.stringify({ schemaVersion:1, target:s.regexTarget, query:field.query, pattern, flags:field.flags, sample, captures }, null, 2)], { type:'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'regex-result.json'; link.click(); URL.revokeObjectURL(url); },
       regexCount:(() => { const pat = (s.patterns[s.regexTarget] || []).join(''); if (!pat) return 'no filter'; try { new RegExp(pat); return 'valid pattern'; } catch (e) { return 'invalid pattern'; } })(),
       regexPreview:(() => {
         const pat = (s.patterns[s.regexTarget] || []).join('');
         const pool = s.regexTarget === 'nav' ? ORDER.map(k => SCREENS[k].label) : (s.regexTarget === 'palette' ? PALETTE_INVENTORY.map(k => SCREENS[k].title) : (s.regexTarget === 'ctx' ? (this._ctxItems || []).map(i => i.label) : (s.regexTarget === 'sub' ? (this._subItems || []).map(i => i.label) : (sc.table ? sc.table.rows.map(r => r[0]) : ORDER.map(k => SCREENS[k].label)))));
-        let re = null; try { re = pat ? new RegExp(pat, s.regexFlags.filter(f => f !== 'g').join('')) : null; } catch (e) { return [{ text:'pattern is not valid yet', icon:'error', color:'#FFB4AB' }]; }
+        let re = null; try { re = pat ? new RegExp(pat, this.regexField(s.regexTarget).flags.filter(f => f !== 'g').join('')) : null; } catch (e) { return [{ text:'pattern is not valid yet', icon:'error', color:'#FFB4AB' }]; }
         return pool.slice(0, 6).map(x => ({ text:x, icon:(!re || re.test(x)) ? 'check_circle' : 'remove_circle_outline', color:(!re || re.test(x)) ? '#82D9A5' : '#778078' }));
       })(),
       clearRegex:() => { const p = Object.assign({}, s.patterns); p[s.regexTarget] = []; this.setState({ patterns:p }); },
       closeRegex:() => {
-        if (s.regexTarget === 'palette') this.setState({ paletteQuery:(s.patterns.palette || []).join(''), paletteRegexOn:true, regexOpen:false });
-        else if (s.regexTarget === 'ctx') this.setState({ ctxFilter:(s.patterns.ctx || []).join(''), ctxRegexOn:true, regexOpen:false });
-        else if (s.regexTarget === 'sub') this.setState({ subFilter:(s.patterns.sub || []).join(''), subRegexOn:true, regexOpen:false });
+        if (s.regexTarget === 'palette') { const query = (s.patterns.palette || []).join(''); this.setRegexField('palette', { query, pattern:s.patterns.palette || [] }); this.closeOverlay('regex', { paletteQuery:query, paletteRegexOn:true }); }
+        else if (s.regexTarget === 'ctx') { const query = (s.patterns.ctx || []).join(''); this.setRegexField('ctx', { query, pattern:s.patterns.ctx || [] }); this.closeOverlay('regex', { ctxFilter:query, ctxRegexOn:true }); }
+        else if (s.regexTarget === 'sub') { const query = (s.patterns.sub || []).join(''); this.setRegexField('sub', { query, pattern:s.patterns.sub || [] }); this.closeOverlay('regex', { subFilter:query, subRegexOn:true }); }
         else this.closeOverlay('regex');
       },
 
@@ -5561,8 +5611,8 @@ class ConsoleShell extends DCLogic {
            return filtered;
         };
         const g = s.groups.find(x => x.id === s.ctxGroupId) || { id:'', tabs:[], name:'', colour:'#82D9A5' };
-        const upd = (patch) => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, patch) : x), ctxOpen:false, ctxSub:'' });
-        if (s.ctxSub === 'gcolour') return filterSub([{ icon:'colorize', label:'Open colour picker…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabColourOpen:true, renameKey:'group:' + g.id }) }]
+         const upd = (patch) => { this.closeOverlay('ctx', { ctxSub:'' }); this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, patch) : x) }); };
+         if (s.ctxSub === 'gcolour') return filterSub([{ icon:'colorize', label:'Open colour picker…', run:() => { close(); this.setState({ tabColourOpen:true, renameKey:'group:' + g.id }); } }]
           .concat(['#82D9A5', '#FFD68A', '#FFB4AB', '#8AB4F8', '#D8A9F0', '#DFE4DC'].map(c => ({ icon:'circle', label:c, run:() => upd({ colour:c }) }))));
         if (s.ctxSub === 'gbehave') return filterSub([
           { icon:'unfold_less', label:g.collapsed ? 'Expand' : 'Collapse', run:() => upd({ collapsed:!g.collapsed }) },
@@ -5591,9 +5641,9 @@ class ConsoleShell extends DCLogic {
           { icon:'first_page', label:'To the left', run:() => { close(); this.setState({ tabs:s.tabs.slice(i) }); } },
           { icon:'last_page', label:'To the right', run:() => { close(); this.setState({ tabs:s.tabs.slice(0, i + 1) }); } },
           { icon:'tab_close_right', label:'All others', run:() => { close(); this.setState({ tabs:[k], screen:k }); } },
-          { icon:'search', label:'Containing…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabFilterOpen:true, tabFilterMode:'has', tabFilterText:'' }) },
-          { icon:'search_off', label:'Not containing…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabFilterOpen:true, tabFilterMode:'not', tabFilterText:'' }) },
-          { icon:'format_color_fill', label:'By colour…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabFilterOpen:true, tabFilterMode:'colour', tabFilterText:'' }) },
+           { icon:'search', label:'Containing…', run:() => { close(); this.setState({ tabFilterOpen:true, tabFilterMode:'has', tabFilterText:'' }); } },
+           { icon:'search_off', label:'Not containing…', run:() => { close(); this.setState({ tabFilterOpen:true, tabFilterMode:'not', tabFilterText:'' }); } },
+           { icon:'format_color_fill', label:'By colour…', run:() => { close(); this.setState({ tabFilterOpen:true, tabFilterMode:'colour', tabFilterText:'' }); } },
           { icon:'label_off', label:'All uncoloured', run:() => { close(); this.setState({ tabs:s.tabs.filter(t => s.tabColours[t] || t === k) }); } },
            { icon:'push_pin', label:'All unpinned', run:() => { close(); this.setState({ tabs:s.tabs.filter(t => s.pinned.indexOf(t) >= 0 || t === k) }); } }
          ]);
@@ -5620,14 +5670,14 @@ class ConsoleShell extends DCLogic {
         };
         this._dec = decorate;
         const common = [
-          { icon:'lock', label:'Lock this element…', hint:'⌃L', run:() => this.setState({ ctxOpen:false, lockOpen:true, lockTarget:s.ctxTarget, lockKey:s.screen, lockStep:0, pin:'', password:'', lockX:s.ctxX, lockY:s.ctxY }) },
-          { icon:'brush', label:'Edit appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:s.ctxTarget }) },
+          { icon:'lock', label:'Lock this element…', hint:'⌃L', run:() => { close(); this.setState({ lockOpen:true, lockTarget:s.ctxTarget, lockKey:s.screen, lockStep:0, pin:'', password:'', lockX:s.ctxX, lockY:s.ctxY }); } },
+          { icon:'brush', label:'Edit appearance…', hint:'⌃E', run:() => { close(); this.setState({ appearOpen:true, appearTarget:s.ctxTarget }); } },
           { icon:'help', label:'Explain this…', hint:'F1', run:() => { close(); this.showInfo(s.ctxTarget, sc.sub, null, s.ctxX, s.ctxY); } },
-          { icon:'key', label:'Recover or re-authenticate…', hint:'', run:() => this.setState({ ctxOpen:false, recoveryOpen:true, recoveryAction:{ target:String(s.ctxTarget).slice(0, 128), kind:String(s.ctxKind).slice(0, 32), action:'pbx.read', view:s.screen, source:String(sc.file || 'console').slice(0, 128), screen:s.screen }, recoveryTitle:'Recovery for ' + s.ctxTarget, recoveryBody:'The failed action stays unchanged. Choose Retry to run the recorded screen reading again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus:'No retry or re-authentication has run yet.' }) }
+          { icon:'key', label:'Recover or re-authenticate…', hint:'', run:() => { close(); this.setState({ recoveryOpen:true, recoveryAction:{ target:String(s.ctxTarget).slice(0, 128), kind:String(s.ctxKind).slice(0, 32), action:'pbx.read', view:s.screen, source:String(sc.file || 'console').slice(0, 128), screen:s.screen }, recoveryTitle:'Recovery for ' + s.ctxTarget, recoveryBody:'The failed action stays unchanged. Choose Retry to run the recorded screen reading again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus:'No retry or re-authentication has run yet.' }); } }
         ];
         if (s.ctxKind === 'group') {
           const g = s.groups.find(x => x.id === s.ctxGroupId) || { tabs:[], name:'' };
-          const upd = (patch) => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, patch) : x), ctxOpen:false, ctxSub:'' });
+          const upd = (patch) => { this.closeOverlay('ctx', { ctxSub:'' }); this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, patch) : x) }); };
           return decorate([
             { icon:'edit', label:'Rename group…', hint:'F2', run:() => { close(); this.setState({ renameOpen:true, renameKey:'group:' + g.id, renameValue:g.name }); } },
             { icon:'palette', label:'Group colour', hint:'▸', sub:'gcolour' },
@@ -5637,7 +5687,7 @@ class ConsoleShell extends DCLogic {
             { icon:'unfold_less', label:g.collapsed ? 'Expand group' : 'Collapse group', hint:'', run:() => upd({ collapsed:!g.collapsed }) },
             { icon:'link_off', label:'Ungroup', hint:'', run:() => { close(); this.setState({ groups:s.groups.filter(x => x.id !== g.id) }); this.toast('Group dissolved — tabs kept'); } },
             { icon:'close', label:'Close group and its tabs', hint:'', run:() => { close(); this.areYouSure('Close ' + g.name, 'Every tab in this group closes. Unsaved staged changes in them are discarded.', 3, () => { const keep = s.tabs.filter(t => g.tabs.indexOf(t) < 0); this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep[0] || 'dash', groups:s.groups.filter(x => x.id !== g.id) }); }); } },
-            { icon:'brush', label:'Edit group appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:'group · ' + g.name }) },
+            { icon:'brush', label:'Edit group appearance…', hint:'⌃E', run:() => { close(); this.setState({ appearOpen:true, appearTarget:'group · ' + g.name }); } },
             { icon:'lock', label:'Lock this group…', hint:'⌃L', run:common[0].run },
             common[3]
           ]);
@@ -5648,7 +5698,7 @@ class ConsoleShell extends DCLogic {
           return decorate([
             { icon:'edit', label:'Rename tab…', hint:'F2', run:() => { close(); this.setState({ renameOpen:true, renameKey:k, renameValue:(s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)) }); } },
             { icon:'palette', label:'Tab colour…', hint:'', run:() => { close(); this.setState({ tabColourOpen:true, renameKey:k }); } },
-            { icon:'brush', label:'Edit tab appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:'tab · ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)) }) },
+            { icon:'brush', label:'Edit tab appearance…', hint:'⌃E', run:() => { close(); this.setState({ appearOpen:true, appearTarget:'tab · ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)) }); } },
             { icon:'tab_close', label:'Close tabs', hint:'▸', sub:'closetabs' },
             { icon:'push_pin', label:s.pinned.indexOf(k) >= 0 ? 'Unpin tab' : 'Pin tab', hint:'', run:() => { close(); this.set('pinned', s.pinned.indexOf(k) >= 0 ? s.pinned.filter(x => x !== k) : s.pinned.concat([k])); } },
             { icon:'content_copy', label:'Duplicate tab', hint:'⌃D', run:() => { close(); this.setState({ tabs:s.tabs.concat([k]) }); } },
@@ -5676,8 +5726,8 @@ class ConsoleShell extends DCLogic {
         }
         if (s.ctxKind === 'search') {
           return decorate([
-            { icon:'data_object', label:'Open regex builder…', hint:'⌃R', run:() => this.setState({ ctxOpen:false, regexOpen:true, regexTarget:'table', regexX:s.ctxX, regexY:s.ctxY }) },
-            { icon:'match_case', label:'Match case', hint:'', run:() => { close(); this.set('regexFlags', s.regexFlags.filter(f => f !== 'i')); } },
+          { icon:'data_object', label:'Open regex builder…', hint:'⌃R', run:() => { close(); this.setState({ regexOpen:true, regexTarget:'table', regexX:s.ctxX, regexY:s.ctxY }); } },
+            { icon:'match_case', label:'Match case', hint:'', run:() => { close(); this.setRegexField('table', { flags:this.regexField('table').flags.filter(f => f !== 'i') }); } },
             { icon:'select_all', label:'Whole word only', hint:'', run:() => { close(); this.toast('Whole-word matching on'); } },
             { icon:'bookmark_add', label:'Save this search', hint:'', run:() => { close(); this.fire('Search saved', 'It is in the palette now.'); } },
             { icon:'clear', label:'Clear search', hint:'⎋', run:() => { close(); const p = Object.assign({}, s.patterns); p.table = []; p.nav = []; this.setState({ patterns:p }); } },
@@ -5695,8 +5745,8 @@ class ConsoleShell extends DCLogic {
           ]);
         }
         return decorate([
-          { icon:'data_object', label:'Search this screen with regex…', hint:'⌃R', run:() => this.setState({ ctxOpen:false, regexOpen:true, regexTarget:'nav', regexX:s.ctxX, regexY:s.ctxY }) },
-          { icon:'auto_fix_high', label:'Guided wizard for this screen', hint:'', run:() => this.setState({ ctxOpen:false, wizardOpen:true, wizardStep:0 }) },
+          { icon:'data_object', label:'Search this screen with regex…', hint:'⌃R', run:() => { close(); this.setState({ regexOpen:true, regexTarget:'nav', regexX:s.ctxX, regexY:s.ctxY }); } },
+          { icon:'auto_fix_high', label:'Guided wizard for this screen', hint:'', run:() => { close(); this.setState({ wizardOpen:true, wizardStep:0 }); } },
           { icon:'checklist', label:'Select all rows', hint:'⌃A', run:() => { close(); this.set('selected', (sc.table ? sc.table.rows.map(r => r[0]) : [])); } },
           { icon:'add', label:'New tab here', hint:'⌃T', run:() => { close(); this.setState({ tabs:s.tabs.concat([s.screen]) }); } },
           { icon:'history', label:'Version history', hint:'', run:() => { close(); this.openScreen('history'); } },
@@ -5809,7 +5859,7 @@ class ConsoleShell extends DCLogic {
         if (needsPw && (s.password || '').length < 4) return this.toast('Set a passphrase first');
         const L = Object.assign({}, s.locks);
         L[s.lockKey] = { method:s.lockMethod, pin:s.pin, password:s.password, target:s.lockTarget };
-        this.setState({ locks:L, lockOpen:false });
+        this.closeOverlay('lock', { locks:L });
         this.toast(s.lockTarget + ' is locked with ' + s.lockMethod + ' — the surface is now disabled');
       },
       closeLock:() => this.closeOverlay('lock'),
@@ -5908,7 +5958,7 @@ class ConsoleShell extends DCLogic {
         else if (e.key === 'Escape') { e.preventDefault(); this.closePalette(); }
       },
       openPaletteRegex:() => this.setState({ regexOpen:true, regexTarget:'palette', regexX:'34%', regexY:'150px' }),
-       paletteItems:this.filteredPalette(s).map((item, index) => ({ icon:item.icon, label:item.label, hint:item.hint, kind:item.kind, isSetting:!!item.isSetting, inline:item.inline, controlId:item.controlId, selected:index === s.paletteCursor, tabIndex:index === s.paletteCursor ? 0 : -1, bg:index === s.paletteCursor ? '#1B4D33' : 'transparent', go:() => this.activatePaletteItem(item), keyDown:(e) => { if (e.key === 'Enter') { e.preventDefault(); this.activatePaletteItem(item); } } })),
+       paletteItems:this.filteredPalette(s).map((item, index) => ({ icon:item.icon, label:item.label, hint:item.hint, kind:item.kind, articleId:item.articleId, tabId:item.tabId, groupId:item.groupId, isSetting:!!item.isSetting, inline:item.inline, controlId:item.controlId, selected:index === s.paletteCursor, tabIndex:index === s.paletteCursor ? 0 : -1, bg:index === s.paletteCursor ? '#1B4D33' : 'transparent', go:() => this.activatePaletteItem(item), keyDown:(e) => { if (e.key === 'Enter') { e.preventDefault(); this.activatePaletteItem(item); } } })),
 
       ceremonyOpen:s.ceremonyOpen, ceremonyTitle:s.ceremonyTitle, ceremonyCmd:s.ceremonyCmd,
       ceremonySteps:['Operator key', 'Arming switch', 'Slide to commit', 'Attention check'].map((l, i) => ({ label:l, bg:i <= s.cStep ? '#82D9A5' : '#333B34', fg:i <= s.cStep ? '#9FF7C4' : '#778078' })),

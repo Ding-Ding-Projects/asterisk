@@ -174,6 +174,7 @@ export class App extends Base {
   private oneClickCancelled = false;
   private oneClickGeneration = 0;
   private oneClickAbort: AbortController | undefined;
+  private readonly rendererCancellationMode = 'invalidation-only' as const;
   private attentionFocusHandler: (() => void) | undefined;
   private refreshTimer: ReturnType<typeof setInterval> | undefined;
   private readStartedAt = new Map<string, number>();
@@ -206,6 +207,7 @@ export class App extends Base {
     'att_time': 'timeAwareness',
     'att_one': 'oneThing',
     'att_momentum': 'momentum',
+    'mo_reduce': 'reducedMotion',
     'p_motion': 'reducedMotion',
   };
 
@@ -258,6 +260,8 @@ export class App extends Base {
 
   private readonly universalDockValues = new Set(['left', 'right', 'top', 'bottom', 'compact']);
   private readonly universalDialogDockValues = new Set(['float', 'left', 'right', 'top', 'bottom', 'centre']);
+  private readonly universalSchemaVersion = 2;
+  private readonly universalSnapshotMaxBytes = 262144;
   private readonly universalOverlayKeys = new Set(['info', 'wizard', 'palette', 'ceremony', 'regex', 'ctx', 'recovery', 'lock', 'unlock', 'appear', 'sure', 'tabFilter', 'tabColour', 'rename', 'onboard', 'tour', 'toast']);
 
   private universalGeometryValue(value: unknown): number | undefined {
@@ -279,6 +283,22 @@ export class App extends Base {
     return result;
   }
 
+  private universalSizeMap(candidate: unknown): Record<string, { w: number; h: number }> {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return {};
+    const result: Record<string, { w: number; h: number }> = {};
+    for (const [key, raw] of Object.entries(candidate as Record<string, unknown>).slice(0, 32)) {
+      if (!(this.universalOverlayKeys.has(key) || /^overlay-(?:55|60|61|70|71|75|78|79|80|81|82|83|84|85|86|88|90|96|97)-\d{1,4}$/u.test(key))) continue;
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+      const row = raw as Record<string, unknown>;
+      const width = typeof row.w === 'number' ? row.w : NaN;
+      const height = typeof row.h === 'number' ? row.h : NaN;
+      if (Number.isFinite(width) && Number.isFinite(height) && width >= 300 && width <= 2400 && height >= 220 && height <= 1600) {
+        result[key] = { w: Math.round(width), h: Math.round(height) };
+      }
+    }
+    return result;
+  }
+
   private universalStringMap(candidate: unknown, maxValue: number, knownKeys?: Set<string>): Record<string, string> {
     if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return {};
     const result: Record<string, string> = {};
@@ -296,7 +316,7 @@ export class App extends Base {
   private validateUniversalSnapshot(value: unknown): Record<string, unknown> | undefined {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
     const candidate = value as Record<string, unknown>;
-    if (candidate.schemaVersion !== 1) return undefined;
+    if (candidate.schemaVersion !== 1 && candidate.schemaVersion !== this.universalSchemaVersion) return undefined;
     const knownTabs = new Set(ORDER as readonly string[]);
     const listOfTabs = (input: unknown): string[] | undefined => {
       if (!Array.isArray(input) || input.length > 64) return undefined;
@@ -330,10 +350,13 @@ export class App extends Base {
     const groups = candidate.groups;
     if (!Array.isArray(groups) || groups.length > 64) return undefined;
     const ownedTabs = new Set<string>();
+    const groupIds = new Set<string>();
     const safeGroups = groups.map((item) => {
       if (!item || typeof item !== 'object' || Array.isArray(item)) return undefined;
       const group = item as Record<string, unknown>;
       if (typeof group.id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/u.test(group.id)) return undefined;
+      if (groupIds.has(group.id)) return undefined;
+      groupIds.add(group.id);
       if (typeof group.name !== 'string' || group.name.length > 128 || !Array.isArray(group.tabs) || group.tabs.length > 64) return undefined;
       const groupTabs = listOfTabs(group.tabs);
       const colour = this.universalColour(group.colour);
@@ -344,11 +367,25 @@ export class App extends Base {
     if (safeGroups.some((group) => !group)) return undefined;
     const dlgDock = this.universalStringMap(candidate.dlgDock, 16, this.universalOverlayKeys);
     if (Object.values(dlgDock).some((dock) => !this.universalDialogDockValues.has(dock))) return undefined;
+    const rawSize = candidate.dlgSize && typeof candidate.dlgSize === 'object' ? candidate.dlgSize as Record<string, unknown> : {};
+    /* Schema 1 stored dialog dimensions through the generic geometry helper in
+     * some builds. Migrate only an unambiguous {x,y} pair to {w,h}; reject all
+     * other shapes instead of guessing which number was intended. */
+    const migratedSize: Record<string, unknown> = {};
+    for (const [key, raw] of Object.entries(rawSize)) {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+      const row = raw as Record<string, unknown>;
+      if (typeof row.w === 'number' && typeof row.h === 'number') migratedSize[key] = row;
+      else if (candidate.schemaVersion === 1 && typeof row.x === 'number' && typeof row.y === 'number') migratedSize[key] = { w: row.x, h: row.y };
+      else if (Object.keys(row).length > 0) return undefined;
+    }
+    const dlgSize = this.universalSizeMap(migratedSize);
+    if (Object.keys(migratedSize).length !== Object.keys(dlgSize).length) return undefined;
     const safe = {
-      schemaVersion: 1,
+      schemaVersion: this.universalSchemaVersion,
       notifications,
       dlgPos: this.universalGeometryMap(candidate.dlgPos),
-      dlgSize: this.universalGeometryMap(candidate.dlgSize),
+      dlgSize,
       dlgDock,
       tabs,
       pinned,
@@ -373,10 +410,10 @@ export class App extends Base {
     const safeGroups = (groups as unknown[]).filter((item): item is Record<string, unknown> => !!item && typeof item === 'object').slice(0, 64).map((group) => ({ id: String(group.id || '').slice(0, 64), name: String(group.name || '').slice(0, 128), colour: this.universalColour(group.colour) || '#82D9A5', collapsed: group.collapsed === true, hidden: group.hidden === true, tabs: Array.isArray(group.tabs) ? (group.tabs as unknown[]).filter((tab): tab is string => typeof tab === 'string' && knownTabs.has(tab) && safeTabs.includes(tab)).slice(0, 64) : [] }));
     const safeDock = this.universalDockValues.has(String(patch.dock ?? state.dock ?? 'left')) ? String(patch.dock ?? state.dock ?? 'left') : 'left';
     return {
-      schemaVersion: 1,
+      schemaVersion: this.universalSchemaVersion,
       notifications: safeNotifications,
       dlgPos: this.universalGeometryMap(patch.dlgPos ?? state.dlgPos ?? {}),
-      dlgSize: this.universalGeometryMap(patch.dlgSize ?? state.dlgSize ?? {}),
+      dlgSize: this.universalSizeMap(patch.dlgSize ?? state.dlgSize ?? {}),
       dlgDock: Object.fromEntries(Object.entries(this.universalStringMap(patch.dlgDock ?? state.dlgDock ?? {}, 16, this.universalOverlayKeys)).filter(([, dock]) => this.universalDialogDockValues.has(dock))),
       tabs: safeTabs,
       pinned: safePinned,
@@ -391,6 +428,11 @@ export class App extends Base {
     if (!this.universalStateReady) return;
     const raw = this.durableStorage.storage.getItem(this.UNIVERSAL_STATE_KEY);
     if (!raw) return;
+    if (new TextEncoder().encode(raw).byteLength > this.universalSnapshotMaxBytes) {
+      this.durableStorage.storage.removeItem(this.UNIVERSAL_STATE_KEY);
+      this.universalPersistenceStatus = 'Durable UI state was refused because its UTF-8 snapshot exceeded the byte limit.';
+      return;
+    }
     try {
       const value = JSON.parse(raw) as Record<string, unknown>;
       const validated = this.validateUniversalSnapshot(value);
@@ -412,6 +454,11 @@ export class App extends Base {
       return;
     }
     const serialized = JSON.stringify(this.universalSnapshot(patch));
+    if (new TextEncoder().encode(serialized).byteLength > this.universalSnapshotMaxBytes) {
+      this.universalPersistenceStatus = 'Durable UI state was refused because its UTF-8 snapshot exceeded the byte limit.';
+      this.forceUpdate();
+      return;
+    }
     if (serialized === this.universalStateLastSerialized) return;
     this.universalStateLastSerialized = serialized;
     this.durableStorage.storage.setItem(this.UNIVERSAL_STATE_KEY, serialized);
@@ -494,10 +541,10 @@ export class App extends Base {
     let abortHandler: (() => void) | undefined;
     const cancelled = new Promise<undefined>((resolve) => {
       abortHandler = () => {
-        /* Newer preload bridges can cancel by the same request id. Older ones
-         * cannot, so the UI keeps the pending boundary honest and only drops
-         * stale results locally. */
-        void bridge.controlPlane.cancel?.(requestId);
+        /* The shipped bridge has no cancellation IPC. This is deliberately a
+         * renderer invalidation boundary: the request id stays useful for
+         * rejecting a late reply, while the underlying request is reported as
+         * still pending rather than pretending it was terminated. */
         resolve(undefined);
       };
       signal.addEventListener('abort', abortHandler, { once: true });
@@ -507,6 +554,24 @@ export class App extends Base {
     } finally {
       if (abortHandler) signal.removeEventListener('abort', abortHandler);
     }
+  }
+
+  private recordFailedAction(action: string, extra: Record<string, unknown>, message: string): void {
+    const screen = (this.state as { screen?: string }).screen || 'unknown';
+    const view = typeof extra.view === 'string' ? extra.view : undefined;
+    const resource = typeof (extra.payload as { resource?: unknown } | undefined)?.resource === 'string'
+      ? String((extra.payload as { resource: string }).resource).slice(0, 128)
+      : undefined;
+    this.setState({
+      recoveryAction: {
+        target: String(this.target.id || screen).slice(0, 128),
+        kind: 'control-plane', action, source: 'live control-plane request', screen,
+        ...(view ? { view } : {}), ...(resource ? { resource } : {}),
+      },
+      recoveryTitle: `Recovery for ${screen}`,
+      recoveryBody: 'The failed action stays unchanged. Retry runs the exact recorded action, or Re-authenticate refreshes the local connection path.',
+      recoveryStatus: `The recorded action is pending recovery: ${action}. ${message}`,
+    } as never);
   }
 
   /** Bounded, allowlisted discovery through the preload bridge. Never a shell command. */
@@ -536,6 +601,7 @@ export class App extends Base {
     const response = await this.request('server.list', {}, abort.signal);
     if (!current()) return;
     if (!response?.ok) {
+      this.recordFailedAction('server.list', {}, response?.message || 'The control plane did not answer.');
       this.target = { ...NO_TARGET, detail: response?.message ?? 'the control plane did not answer' };
       this.forceUpdate();
       return;
@@ -550,6 +616,7 @@ export class App extends Base {
       const detail = Array.isArray(data.wsl) ? 'no WSL distribution discovered' : data.wsl?.unavailable ?? 'no local target discovered';
       const runtime = await this.request('runtime.status', {}, abort.signal);
       if (!current()) return;
+      if (!runtime?.ok) this.recordFailedAction('runtime.status', {}, runtime?.message || 'The runtime status request did not answer.');
       this.runtime = runtime?.ok ? (runtime.data as RuntimeStatus) : undefined;
       this.target = { ...NO_TARGET, detail: `${detail}${runtimeHint(this.runtime)}` };
       this.oneClickStage = 'No local target is available';
@@ -583,6 +650,7 @@ export class App extends Base {
       connectionReason = connectionFailureReason(connected);
     }
     if (!connectionVerified(connected)) {
+      this.recordFailedAction('server.connect', { serverId: distribution }, connectionReason);
       const reason = connectionReason;
       this.target = { id: distribution, label: distribution, detail: reason, connected: false };
       this.oneClickStage = 'Target connection unavailable';
@@ -622,7 +690,7 @@ export class App extends Base {
     this.oneClickAbort?.abort();
     this.oneClickAbort = undefined;
     this.oneClickCancelled = true;
-    this.oneClickStatus = 'Cancellation requested. The current bounded control-plane request is still settling; completed observations remain visible.';
+    this.oneClickStatus = `Cancellation requested. Renderer invalidation only; the current control-plane request remains pending. Completed observations remain visible.`;
     this.forceUpdate();
   };
 
@@ -649,6 +717,7 @@ export class App extends Base {
     if (recordedAction === 'pbx.config') extra.payload = { resource: action?.resource };
     const response = await this.request(recordedAction, { serverId: this.target.id, ...extra });
     if (!response?.ok) {
+      this.recordFailedAction(recordedAction, extra, response?.message || 'The recorded action did not answer.');
       this.setState({ recoveryStatus: `Retry refused by the control plane: ${response?.message || 'no response'}.` } as never);
       return;
     }
@@ -673,7 +742,10 @@ export class App extends Base {
   private ensureDaemon = async (isCurrent: () => boolean = () => true, signal?: AbortSignal) => {
     const answer = await this.request('daemon.status', {}, signal);
     if (!isCurrent()) return;
-    if (!answer?.ok) return;
+    if (!answer?.ok) {
+      this.recordFailedAction('daemon.status', {}, answer?.message || 'The daemon status request did not answer.');
+      return;
+    }
     const state = (answer.data as { status?: { state?: string } }).status?.state;
     /* This is the same reading the Deploy & servers status line shows, so it is
      * seeded from it rather than issuing a second `daemon.status` request. */
@@ -685,6 +757,7 @@ export class App extends Base {
     const started = await this.request('daemon.start', {}, signal);
     if (!isCurrent()) return;
     if (!started?.ok) {
+      this.recordFailedAction('daemon.start', {}, started?.message || 'The daemon did not start.');
       this.fire('The phone system did not start', started?.message ?? 'Asterisk did not answer after it was started.');
       return;
     }
@@ -742,6 +815,7 @@ export class App extends Base {
     this.toast(`${verb === 'start' ? 'Starting' : verb === 'stop' ? 'Stopping' : 'Restarting'} the phone system…`);
     const response = await this.request(`daemon.${verb}`);
     if (!response?.ok) {
+      this.recordFailedAction(`daemon.${verb}`, {}, response?.message || `The daemon did not ${verb}.`);
       this.fire('Not done', response?.message ?? `The phone system did not ${verb}.`);
       await this.refreshDaemonStatus();
       return;
@@ -859,7 +933,7 @@ ${resolution.disclosure}`);
       this.fileSupportTicket();
       return;
     }
-    if ((control?.id?.startsWith('att_') || control?.id === 'p_motion') && typeof value === 'boolean') {
+    if ((control?.id?.startsWith('att_') || control?.id === 'mo_reduce' || control?.id === 'p_motion') && typeof value === 'boolean') {
       const mode = App.ATTENTION_CONTROLS[control.id];
       if (mode === 'reducedMotion') {
         this.durableStorage.storage.setItem('console.attention.reducedMotion', value ? 'on' : 'off');
@@ -1029,6 +1103,7 @@ ${resolution.disclosure}`);
       this.toast('Creating the Asterisk runtime for the wizard — this takes a while.');
       const provisioned = await this.request('runtime.provision');
       if (!provisioned?.ok) {
+        this.recordFailedAction('runtime.provision', {}, provisioned?.message || 'The runtime could not be created.');
         this.fire('Not created', provisioned?.message ?? 'Creating the runtime did not succeed, so there is nothing to deploy to.');
         return;
       }
@@ -1068,6 +1143,7 @@ ${resolution.disclosure}`);
           const response = await this.request('pbx.apply', { serverId: this.target.id, payload: { documents: plan.documents } });
           const result = (response as { data?: { result?: { status: string; message?: string } }; message?: string } | undefined);
           if (!response?.ok) {
+            this.recordFailedAction('pbx.apply', { payload: { documents: plan.documents } }, response?.message || 'The deploy plan was refused.');
             this.fire('Deploy not applied', `${response?.message ?? result?.data?.result?.message ?? 'The target refused the change.'}`);
             return;
           }
@@ -1420,9 +1496,9 @@ It is shown once. The phone needs it to register.`);
   private async writePjsip(document: { resource: string; value: ConfigValue }, summary: string[], done: string): Promise<boolean> {
     const payload = { documents: [{ resource: document.resource, value: document.value }] };
     const planned = await this.request('pbx.plan', { serverId: this.target.id, payload });
-    if (!planned?.ok) { this.fire('Not written', planned?.message ?? 'The control plane did not answer.'); return false; }
+    if (!planned?.ok) { this.recordFailedAction('pbx.plan', { payload }, planned?.message || 'The plan request did not answer.'); this.fire('Not written', planned?.message ?? 'The control plane did not answer.'); return false; }
     const applied = await this.request('pbx.apply', { serverId: this.target.id, payload });
-    if (!applied?.ok) { this.fire('Not written', applied?.message ?? 'The change was planned but not applied.'); return false; }
+    if (!applied?.ok) { this.recordFailedAction('pbx.apply', { payload }, applied?.message || 'The planned change was not applied.'); this.fire('Not written', applied?.message ?? 'The change was planned but not applied.'); return false; }
     /* The reading is now stale, and a stale reading is how the next edit gets built on a
      * value that is no longer there. */
     delete this.configs.endpoints;
@@ -1449,6 +1525,7 @@ It is shown once. The phone needs it to register.`);
       this.canvasPending = true;
       const response = await this.request('pbx.read', { serverId: this.target.id, view: 'canvas' as PbxReadView });
       this.canvasPending = false;
+      if (!response?.ok) this.recordFailedAction('pbx.read', { view: 'canvas' }, response?.message || 'The canvas reading did not answer.');
       this.canvasReadings = response?.ok
         ? (response.data as CanvasReadings)
         : { dialplan: { command: 'pbx.read', result: { state: 'unavailable', observedAt: new Date().toISOString(), reason: response?.message ?? 'the control plane did not answer' } } };
@@ -1463,6 +1540,7 @@ It is shown once. The phone needs it to register.`);
       this.configPending = screen;
       const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
       this.configPending = '';
+      if (!response?.ok) this.recordFailedAction('pbx.config', { payload: { resource } }, response?.message || 'The configuration reading did not answer.');
       this.configs[screen] = response?.ok
         ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
         : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
@@ -1495,6 +1573,7 @@ It is shown once. The phone needs it to register.`);
     const token = this.servers.begin(serverId);
     const response = await this.request('pbx.read', { serverId, view: screen as PbxReadView });
     this.pending = '';
+    if (!response?.ok) this.recordFailedAction('pbx.read', { view: screen }, response?.message || 'The screen reading did not answer.');
     const data: ViewReadings = response?.ok
       ? (response.data as ViewReadings)
       : { channels: { command: 'pbx.read', result: { state: 'unavailable', observedAt: new Date().toISOString(), reason: response?.message ?? 'the control plane did not answer' } } };
@@ -2566,6 +2645,5 @@ interface DesktopBridge {
   window: { minimize: () => void; toggleMaximize: () => void; close: () => void };
   controlPlane: {
     request: (request: Record<string, unknown>) => Promise<ControlPlaneResponse | undefined>;
-    cancel?: (requestId: string) => Promise<void> | void;
   };
 }

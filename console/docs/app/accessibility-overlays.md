@@ -1,6 +1,6 @@
 # Accessibility, overlays, and recovery
 
-The desktop Console's shared design source now supplies the cross-surface interaction contract used by every destination. Geometry, notification history, tabs, groups, pins, and docking are stored through `DurableStorageHandle` under one bounded versioned snapshot, with deep schema validation, corruption recovery, and explicit reset paths. This lane's implementation is **implemented-unverified** until runtime interaction evidence exists.
+The desktop Console's shared design source now supplies the cross-surface interaction contract used by every destination. Geometry, notification history, tabs, groups, pins, and docking are stored through `DurableStorageHandle` under one bounded versioned snapshot, with deep schema validation, a separate dialog-size schema migration, a UTF-8 byte cap, corruption recovery, and explicit reset paths. This lane's implementation is **implemented-unverified** until runtime interaction evidence exists.
 
 ## Keyboard and assistive technology
 
@@ -12,7 +12,7 @@ Context menus, submenus, regex builders, and recovery panels paint their own bac
 
 ## Long operations
 
-One-click deployment reports the active stage, percentage, completed steps, and current status inside its start surface. The progress element exposes a semantic progressbar. Starting again while active is ignored. Cancellation uses a request id and an AbortSignal, calls the bridge cancellation route when available, invalidates stale replies after every asynchronous boundary, and preserves the completed observation count while stating that the bridge request is still settling when it cannot be terminated. The settled progress card remains visible after completion or cancellation. Runtime interaction remains unverified in this lane.
+One-click deployment reports the active stage, percentage, completed steps, and current status inside its start surface. The progress element exposes a semantic progressbar. Starting again while active is ignored. Cancellation uses a request id and an AbortSignal for renderer invalidation only because the shipped bridge has no cancellation IPC. Late replies are rejected, while the UI states that the underlying request remains pending. The settled progress card remains visible after completion or cancellation. Runtime interaction remains unverified in this lane.
 
 ## Recovery
 
@@ -28,11 +28,11 @@ The tab strip exposes `tablist`, `tab`, `tabpanel`, and `group` semantics, with 
 
 The command palette inventory is hand-written and includes every destination, declared setting, article id, open tab, and tab group. Setting results render the same rich control used by the owning screen, while destination and setting results teleport to their screen and return focus to the matching labelled control. The palette traps Tab focus while open and announces its result set through the live result list.
 
-The compiled design also carries explicit fail-closed inventories for palette controls, appearance properties, commands, tab actions, group actions, and bundled article ids. A missing or duplicated inventory entry throws during compilation rather than silently shrinking the surface.
+The compiled design carries exact fail-closed inventories for every declared control, documentation article, command, appearance property, tab action, and group action. Missing, extra, or duplicate entries throw during initialization rather than silently shrinking the surface. Palette results teleport by stable article, tab, group, and control ids.
 
 Low stimulation is consumed at the root: non-essential celebration and toast presentation is suppressed while the notification record is still retained in durable history. Focus and reduced-motion classes are reapplied after durable bootstrap. Persistence refusal is surfaced in the toolbar status, while pre-bootstrap writes queue and flush after the snapshot is ready.
 
-The regex builder keeps an independent `{query, pattern, flags, sample}` tuple per originating field, reports match counts, exposes capture groups, copies the pattern, and exports a bounded JSON result containing the exact pattern, flags, sample, and captures. Plain text remains the default until the user opens regex mode.
+The regex builder keeps an independent `{query, pattern, flags, sample}` tuple per originating field, with no global flags value. It reports match counts, exposes capture groups, copies the pattern, and exports a bounded JSON result containing the exact query, pattern, flags, sample, and captures. Plain text remains the default until the user opens regex mode.
 
 ## Verification boundary
 
