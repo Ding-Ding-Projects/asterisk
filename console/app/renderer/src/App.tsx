@@ -1326,7 +1326,10 @@ What you can do: ${offered}.` : ''}`);
       const preset = LOGO_PRESETS.find((candidate) => candidate.label === value);
       if (preset) choosePreset(this.durableStorage.storage, preset.id);
       this.refreshLogoStatus();
-      return;
+      /* Falls through to baseSetVal deliberately. Returning here would apply the change and
+       * leave the picker showing the old value -- a control you operate that visibly does
+       * not move reads as broken, whatever it did underneath. The action-style switches
+       * below DO return, because their value is a press rather than a state. */
     }
     if (control?.id === 'logo_reset' && value === true) {
       resetLogo(this.durableStorage.storage);
@@ -1335,8 +1338,9 @@ What you can do: ${offered}.` : ''}`);
       return;
     }
     if (control?.id?.startsWith('nar_')) {
+      /* Same as the mark picker above: apply, then fall through so the switch, the two voice
+       * pickers and both sliders actually show what was chosen. */
       this.applyNarrationControl(control.id, value);
-      return;
     }
     if (control?.id === 'src_add' && value === true) {
       this.addSettingsSource();

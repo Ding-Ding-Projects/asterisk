@@ -85,3 +85,41 @@ test('the palette can actually reach the control it names', () => {
   assert.match(app, /this\.paletteOverlay\(\)/, 'the overlay is never rendered');
   assert.match(app, /^\s*window\.addEventListener\('keydown', handler, true\);/m, 'no global chord listener');
 });
+
+test('a control that carries a value still records it, so the picker moves', () => {
+  /* languageAwareSetVal ends by calling baseSetVal, which is what puts the chosen value into
+   * the shell's state and therefore what makes a switch look switched. A branch that returns
+   * early applies its side effect and leaves the control showing the OLD value -- you click
+   * it, something happens underneath, and the control visibly does not move. That reads as
+   * broken however correct the code beneath it is, and nothing else catches it: the type
+   * checks pass, the handler runs, and only a human looking at the screen would ever know.
+   *
+   * The action-style switches are the deliberate exception. Their value is a press rather
+   * than a state, so not persisting is what makes them behave like buttons. They are listed
+   * by name rather than detected, so adding one is a decision somebody writes down. */
+  const app = readFileSync(new URL('../../app/renderer/src/App.tsx', import.meta.url), 'utf8');
+  const start = app.indexOf('languageAwareSetVal');
+  assert.ok(start > 0, 'languageAwareSetVal has been renamed');
+  const body = app.slice(start, app.indexOf('this.baseSetVal(control, value);', start));
+  assert.ok(body.length > 0, 'languageAwareSetVal no longer ends at baseSetVal');
+
+  const PRESS_NOT_STATE = ['logo_reset', 'src_add', 'src_clear'];
+  const VALUE_CONTROLS = ['logo_preset', 'nar_'];
+
+  for (const id of VALUE_CONTROLS) {
+    const at = body.indexOf(`'${id}'`);
+    assert.ok(at > 0, `no branch handles ${id}`);
+    /* Only as far as the end of that branch: a return further down belongs to another
+     * control and would make this pass or fail for the wrong reason. */
+    const branch = body.slice(at, at + body.slice(at).indexOf('\n    }') + 6);
+    assert.doesNotMatch(branch, /^\s*return;/m,
+      `the ${id} branch returns before baseSetVal, so its control will never show the value chosen`);
+  }
+  for (const id of PRESS_NOT_STATE) {
+    const at = body.indexOf(`'${id}'`);
+    assert.ok(at > 0, `no branch handles ${id}`);
+    const branch = body.slice(at, at + body.slice(at).indexOf('\n    }') + 6);
+    assert.match(branch, /^\s*return;/m,
+      `${id} is listed as a press rather than a state, but its branch falls through and would leave the switch stuck on`);
+  }
+});
