@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { DimSumSurprise } from './dim-sum-surprise';
+import { readStartupContext, subscribeStartupContext } from './startup-context';
+import { createDimSumCacheReader } from '../../../control-plane/dim-sum-cache-reader';
 import { ConverterSurface, type ConverterClient } from './converter-surface';
 import { OllamaSuite, type OllamaSuiteClient } from './ollama-suite';
 import { DocsSurface } from './docs-surface';
@@ -152,15 +155,34 @@ function routeFromHash(): SurfaceRoute | undefined {
 
 export function SurfaceMounts() {
   const [route, setRoute] = useState<SurfaceRoute | undefined>(() => routeFromHash());
+  const [startupContext, setStartupContext] = useState(() => readStartupContext());
   useEffect(() => {
     const onHash = () => setRoute(routeFromHash());
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
+  useEffect(() => subscribeStartupContext(() => setStartupContext(readStartupContext())), []);
+
+  const dimSumCacheReader = useMemo(() => createDimSumCacheReader(async () => {
+      const bridge = window.dingDesktop;
+      if (!bridge) return null;
+      try {
+        return await bridge.dimSum.readCache();
+      } catch {
+        return null;
+      }
+    }), []);
+
   const links = useMemo(() => (['converter', 'ollama', 'docs', 'changelog'] as const), []);
   return (
     <aside className="surface-mount-host" aria-label="Mounted feature surfaces">
+      {startupContext.ready ? (
+        <DimSumSurprise
+          cacheReader={dimSumCacheReader}
+          context={startupContext}
+        />
+      ) : null}
       <nav aria-label="Mounted feature surfaces">
         {links.map((item) => <a key={item} href={`#surface=${item}`} aria-current={route === item ? 'page' : undefined}>{item}</a>)}
         {route ? <a href="#" aria-label="Close mounted feature surface">Close</a> : null}

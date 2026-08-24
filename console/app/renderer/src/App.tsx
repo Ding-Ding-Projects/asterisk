@@ -44,6 +44,13 @@ import {
   type AppearanceProperty, type AppearanceTheme,
 } from './appearance';
 import { COLOUR_FORMATS, formatColour, parseColour, translate as translateColour } from './colour';
+import { resolveAppearanceValue } from './appearance';
+import { APPEARANCE_RUNTIME_STYLES, bindAppearanceRuntime, detectAppearanceCapabilities, type BoundAppearanceRuntime } from './appearance-runtime';
+import { createAppearanceStore, type AppearanceStore } from './appearance-store';
+import { createRichControlRegistration, type RichControlRegistration } from './rich-control-registration';
+import { publishStartupContext } from './startup-context';
+import { validateDesktopSettings } from '../../../shared/settings-schema';
+import { DESKTOP_SETTINGS_STORAGE_KEY } from './settings-store';
 import {
   encodeBase32, pairingUri, verifyCode, type TotpParameters,
 } from './totp';
@@ -203,6 +210,17 @@ export class App extends Base {
     super(props);
     this.baseSetVal = this.setVal as (control: ControlRef, value: unknown) => void;
     this.setVal = this.languageAwareSetVal;
+    this.richControlRegistration = createRichControlRegistration({
+      readControlValue: (controlId) => ((this.state as { values?: Record<string, unknown> }).values ?? {})[controlId],
+      writeControlValue: (controlId, value) => this.setVal({ id: controlId }, value),
+      openDestination: (destinationId) => {
+        const openScreen = (this as unknown as { openScreen?: (id: string) => void }).openScreen;
+        if (openScreen) openScreen(destinationId);
+        else this.setState({ screen: destinationId });
+      },
+      readAppearanceValue: (property) => this.readMountedAppearanceValue(property),
+      writeAppearanceValue: (property, value) => this.writeMountedAppearanceValue(property, value),
+    });
   }
   /** The chosen file's own name, kept only for display — never its contents. */
   private pickedFileNames = new Map<string, string>();
@@ -220,6 +238,9 @@ export class App extends Base {
   /** The last JSON actually written to storage, so `renderVals` (called on every
    *  paint) does not re-write `localStorage` when nothing changed. */
   private appearanceLastSerialised = '';
+  private appearanceStore: AppearanceStore | undefined;
+  private appearanceRuntime: BoundAppearanceRuntime | undefined;
+  private readonly richControlRegistration: RichControlRegistration;
   /** The unlock ladder (unlock-ladder.ts) for the per-element lock's unlock dialog.
    *  Renderer-only: this app's per-element lock has no server-enforced attempt budget
    *  or time-based lockout of its own, so this in-memory instance -- like the PIN and
@@ -239,6 +260,7 @@ export class App extends Base {
 
   componentDidMount() {
     super.componentDidMount?.();
+    this.publishDimSumContext(true);
     /* The durable-storage snapshot has to load before anything reads or restores
      * persisted state from it (the appearance editor's restore below), so the whole
      * bootstrap-then-restore sequence is awaited before touching either. Everything
@@ -251,6 +273,7 @@ export class App extends Base {
     void this.durableStorage.bootstrap().then(() => {
       this.restoreLanguageMode();
       this.restoreAppearance();
+      this.mountSharedAppearanceRuntime();
       this.forceUpdate();
     });
     /* The configured server list is not a reading from any PBX — it exists before
@@ -283,13 +306,95 @@ export class App extends Base {
   };
 
   componentWillUnmount() {
+    this.appearanceRuntime?.unbind();
+    this.appearanceRuntime = undefined;
+    this.appearanceStore = undefined;
+    publishStartupContext({ ready: false, schoolMode: false, firstRun: false, errorActive: false, updateActive: false, taskActive: false, reducedMotion: false });
     super.componentWillUnmount?.();
     if (this.refreshTimer) clearInterval(this.refreshTimer);
     this.refreshTimer = undefined;
   }
 
   componentDidUpdate() {
+    this.publishDimSumContext(true);
     void this.refresh();
+  }
+
+  private publishDimSumContext(ready: boolean): void {
+    const state = this.state as Record<string, unknown>;
+    let sharedSchoolMode = false;
+    const rawSettings = this.durableStorage.storage.getItem(DESKTOP_SETTINGS_STORAGE_KEY);
+    if (rawSettings) {
+      try {
+        const parsed = validateDesktopSettings(JSON.parse(rawSettings));
+        sharedSchoolMode = parsed.ok && parsed.value.schoolMode.enabled;
+      } catch {
+        sharedSchoolMode = false;
+      }
+    }
+    const reducedMotion = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
+    publishStartupContext({
+      ready,
+      schoolMode: sharedSchoolMode || Boolean(state.schoolMode || state.schoolModeEnabled),
+      firstRun: Boolean(state.onboardOpen),
+      errorActive: Boolean(state.errorActive || state.errorOpen),
+      updateActive: typeof document !== 'undefined' && document.documentElement.dataset.dimSumUpdateActive === 'true',
+      taskActive: Boolean(this.oneClickRunning || this.discoveryPending || this.onboardBusy),
+      reducedMotion: reducedMotion || Boolean(state.reducedMotion),
+    });
+  }
+
+  private mountSharedAppearanceRuntime(): void {
+    if (this.appearanceRuntime || typeof document === 'undefined') return;
+    const styleId = 'appearance-runtime-styles';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = APPEARANCE_RUNTIME_STYLES;
+      document.head.appendChild(style);
+    }
+    this.appearanceStore = createAppearanceStore(this.durableStorage.storage, detectAppearanceCapabilities());
+    const mark = (element: HTMLElement, id: string): void => {
+      if (!element.hasAttribute('data-appearance-id')) element.setAttribute('data-appearance-id', id);
+    };
+    mark(document.documentElement, 'global-root');
+    Array.from(document.querySelectorAll<HTMLElement>('button, input, select, textarea, [role="button"]')).forEach((element, index) => {
+      const stable = element.id || element.getAttribute('aria-label') || element.textContent?.trim().slice(0, 48) || `element-${index + 1}`;
+      mark(element, `ui-${stable.replace(/[^A-Za-z0-9._:-]/gu, '-').slice(0, 120)}`);
+    });
+    this.appearanceRuntime = bindAppearanceRuntime(document, this.appearanceStore, () => ({
+      reducedMotion: document.documentElement.dataset.dimSumReducedMotion === 'true',
+    }));
+  }
+
+  private readMountedAppearanceValue(property: AppearanceProperty): unknown {
+    const model = this.appearanceStore?.getModel();
+    const resolved = model ? resolveAppearanceValue(model, WILDCARD_ELEMENT, 'default', property) : undefined;
+    if (resolved) return resolved.value.kind === 'rainbow' ? resolved.value : resolved.value.value;
+    const values = this.currentAppearanceValues();
+    if (property === 'fontFamily') return values.family;
+    if (property === 'fontWeight') return values.weight;
+    if (property === 'fontSize') return values.size;
+    if (property === 'colour') return `hsl(${values.hue} ${values.sat}% ${values.light}%)`;
+    return undefined;
+  }
+
+  private writeMountedAppearanceValue(property: AppearanceProperty, value: unknown): void {
+    const store = this.appearanceStore;
+    if (!store) {
+      this.toast('The shared appearance editor is not hydrated yet. The value was not changed.');
+      return;
+    }
+    const colourProperties = new Set<AppearanceProperty>(['colour', 'background', 'highlight', 'borderColour', 'underlineColour']);
+    const candidate = colourProperties.has(property)
+      ? { kind: 'colour' as const, value: String(value ?? '') }
+      : { kind: 'literal' as const, value: String(value ?? '') };
+    const draft = store.setDraft({ scope: 'global' }, 'default', property, candidate);
+    if (!draft.ok) { this.toast(draft.reason); return; }
+    const applied = store.applyDraft({ scope: 'global' }, 'default', property);
+    if (!applied.ok) this.toast(applied.reason);
   }
 
   private async request(action: string, extra: Record<string, unknown> = {}): Promise<ControlPlaneResponse | undefined> {
@@ -1856,6 +1961,19 @@ It is shown once. The phone needs it to register.`);
       // The "Edit appearance..." panel's real colour translator and real actions
       // (appearance.ts + colour.ts) -- see the Appearance section above renderVals.
       ...this.appearanceVals(),
+      paletteItems: this.richControlRegistration.registry.entries.map((entry) => ({
+        icon: entry.kind === 'destination' ? ((SCREENS as Record<string, { icon: string }>)[entry.target.destinationId]?.icon ?? 'open_in_new') : 'tune',
+        label: entry.label,
+        hint: entry.shortcut ?? entry.target.destinationId,
+        go: () => {
+          this.setState({ paletteOpen: false });
+          const openScreen = (this as unknown as { openScreen?: (id: string) => void }).openScreen;
+          if (openScreen) openScreen(entry.target.destinationId);
+          else this.setState({ screen: entry.target.destinationId });
+        },
+      })),
+      richControlRegistry: this.richControlRegistration.registry,
+      richControlDefinitions: this.richControlRegistration.definitions,
       __window: {
         minimize: () => bridge?.window.minimize(),
         toggleMaximize: () => bridge?.window.toggleMaximize(),

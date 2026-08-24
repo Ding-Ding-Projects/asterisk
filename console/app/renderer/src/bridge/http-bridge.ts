@@ -108,6 +108,14 @@ export function installHttpBridge(): void {
       pickDestination: async () => { throw new Error('The hosted server cannot open a desktop destination picker.'); },
       confirmOverwrite: async () => ({ approved: false, detail: 'The hosted server does not overwrite local desktop paths.' }),
     },
+    dimSum: {
+      async readCache(): Promise<string | null> {
+        const response = await window.dingDesktop?.controlPlane.request({ requestId: `dim-sum-${Date.now().toString(36)}`, action: 'dim-sum.cache.read' });
+        if (!response || !response.ok) return null;
+        const text = (response.data as { text?: unknown } | undefined)?.text;
+        return typeof text === 'string' ? text : null;
+      },
+    },
     auth,
     updater: {
       // Server mode does not self-update the way the desktop installer does — the

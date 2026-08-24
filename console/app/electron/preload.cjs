@@ -15,6 +15,9 @@ const api = Object.freeze({
     pickDestination: () => ipcRenderer.invoke('converter:pick-destination'),
     confirmOverwrite: request => ipcRenderer.invoke('converter:confirm-overwrite', request),
   }),
+  dimSum: Object.freeze({
+    readCache: () => ipcRenderer.invoke('dim-sum:read-cache'),
+  }),
   updater: Object.freeze({
     getStatus: () => ipcRenderer.invoke('updater:get-status'),
     checkNow: () => ipcRenderer.invoke('updater:check-now'),

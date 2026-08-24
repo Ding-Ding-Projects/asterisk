@@ -16,6 +16,9 @@ const api: DingDesktopApi = {
     pickDestination: () => ipcRenderer.invoke('converter:pick-destination'),
     confirmOverwrite: (request: { destinationPath: string }) => ipcRenderer.invoke('converter:confirm-overwrite', request),
   },
+  dimSum: {
+    readCache: () => ipcRenderer.invoke('dim-sum:read-cache') as Promise<string | null>,
+  },
   updater: {
     getStatus: () => ipcRenderer.invoke('updater:get-status') as Promise<UpdaterStatusForRenderer>,
     checkNow: () => ipcRenderer.invoke('updater:check-now') as Promise<UpdaterStatusForRenderer>,

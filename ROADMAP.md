@@ -2,6 +2,8 @@
 
 ## 2026-08-23 integration lane
 
+- [x] Mount the local dim-sum startup surprise through a typed private-cache bridge and a live startup-context seam; leave cache absence unavailable and suppression honest. Built-artifact proof remains unrun.
+- [x] Register design settings and every appearance property with the shared rich-control and palette registry, persist appearance changes through the durable store, and bind the appearance runtime. Built-artifact proof remains unrun.
 - [x] Mount addressable converter, Ollama, offline docs, and changelog surfaces through `console/app/renderer/src/main.tsx` and `surface-mounts.tsx`.
 - [x] Register the converter catalog and PDF capability read seam in the local control plane, with unavailable picker and queue operations reported explicitly.
 - [x] Keep the Ollama mount honest when its privileged dispatcher is not registered, with no model, health, pull, chat, harness, or sample values assumed.

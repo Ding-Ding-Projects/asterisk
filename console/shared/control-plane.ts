@@ -95,6 +95,10 @@ export interface DingDesktopApi {
     pickDestination(): Promise<string | undefined>;
     confirmOverwrite(request: { destinationPath: string }): Promise<{ approved: boolean; detail: string }>;
   };
+  dimSum: {
+    /** Returns the validated local cache text, or null when this installation has none. */
+    readCache(): Promise<string | null>;
+  };
   updater: {
     /** Current state, read once (e.g. on mount) without waiting for the next push. */
     getStatus(): Promise<UpdaterStatusForRenderer>;

@@ -456,15 +456,33 @@
       }
     },
     "dim-sum-surprise": {
-      "status": "absent",
-      "note": "No startup dim-sum surprise, bundled dish assets, or 10% draw exists.",
+      "status": "implemented-unverified",
+      "note": "SurfaceMounts mounts DimSumSurprise through the typed dimSum.readCache bridge and the startup-context event seam. The component performs one secure ten-percent draw, validates the private cache asynchronously, and reports suppression or unavailable state without inventing a dish. No tests, build, runtime interaction, or capture was run in this lane.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "app/renderer/src/dim-sum-surprise.tsx",
+          "app/renderer/src/surface-mounts.tsx",
+          "app/renderer/src/startup-context.ts",
+          "shared/dim-sum.ts",
+          "control-plane/dim-sum-cache-reader.ts"
+        ],
+        "symbols": [
+          { "path": "app/renderer/src/dim-sum-surprise.tsx", "name": "DimSumSurprise", "kind": "function" },
+          { "path": "app/renderer/src/surface-mounts.tsx", "name": "dimSumCacheReader", "kind": "mount" }
+        ]
       },
       "registration": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "shared/control-plane.ts",
+          "app/electron/preload.ts",
+          "app/electron/preload.cjs",
+          "app/electron/main.ts",
+          "app/renderer/src/surface-mounts.tsx"
+        ],
+        "symbols": [
+          { "path": "shared/control-plane.ts", "name": "dim-sum.cache.read", "kind": "action" },
+          { "path": "app/electron/preload.ts", "name": "dimSum.readCache", "kind": "bridge" }
+        ]
       },
       "route": "desktop://console/main",
       "documentation": {
@@ -477,9 +495,14 @@
         "symbols": []
       },
       "persistence": {
-        "state": "unverified",
-        "paths": [],
-        "symbols": []
+        "state": "implemented-unverified",
+        "paths": [
+          "control-plane/dispatch.ts",
+          "app/electron/main.ts"
+        ],
+        "symbols": [
+          { "path": "control-plane/dispatch.ts", "name": "dim-sum.cache.read", "kind": "application-data-read" }
+        ]
       },
       "focusedChecks": {
         "state": "not-run",
@@ -770,8 +793,8 @@
       }
     },
     "material-appearance": {
-      "status": "partial",
-      "note": "app/renderer/src/appearance.ts and colour.ts implement Material appearance tokens, an infinite-colour-picker translator (colour.ts, 743 lines) and per-element editing logic, covered by tests/ui/appearance.test.tsx and colour.test.tsx, but neither module is imported by App.tsx/PbxAdminApp.tsx. The compiled console separately implements its own tab-colour picker and a rainbow colour cycle (generated/console.tsx applyColour, tabColourOpts) which is real and wired, but narrower (tab colour only) than the appearance.ts/colour.ts module set.",
+      "status": "implemented-unverified",
+      "note": "App.tsx now creates the persisted AppearanceStore after durable storage hydrates, installs APPEARANCE_RUNTIME_STYLES, marks real controls with stable data-appearance-id values, and binds AppearanceRuntime. The shared rich-control registration exposes every appearance property to the palette and uses the store for live draft/apply writes. The generated appearance panel remains a legacy global preview path, so built-artifact interaction and full typography proof are still unverified.",
       "implementation": {
         "paths": [
           "app/renderer/src/appearance.ts",
@@ -792,8 +815,16 @@
         ]
       },
       "registration": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "app/renderer/src/App.tsx",
+          "app/renderer/src/appearance-runtime.ts",
+          "app/renderer/src/appearance-store.ts",
+          "app/renderer/src/rich-control-registration.ts"
+        ],
+        "symbols": [
+          { "path": "app/renderer/src/App.tsx", "name": "mountSharedAppearanceRuntime", "kind": "method" },
+          { "path": "app/renderer/src/rich-control-registration.ts", "name": "createRichControlRegistration", "kind": "function" }
+        ]
       },
       "route": "desktop://console/main",
       "documentation": {
@@ -1280,11 +1311,14 @@
       }
     },
     "command-palette": {
-      "status": "partial",
-      "note": "app/renderer/src/catalog.ts builds a searchable command/settings catalogue (61 lines) but is never imported by App.tsx or any mounted component. No Ctrl+Shift+F activation exists in App.tsx or the compiled console.",
+      "status": "implemented-unverified",
+      "note": "App.tsx now mounts a command registry built from the design destination and setting catalogue plus every appearance property, and exposes its entries as the compiled paletteItems list with exact destination callbacks. The shared palette-index and shortcut behavior remain separate integration surfaces; no tests, build, runtime interaction, or capture was run in this lane.",
       "implementation": {
         "paths": [
-          "app/renderer/src/catalog.ts"
+          "app/renderer/src/catalog.ts",
+          "app/renderer/src/command-registry.ts",
+          "app/renderer/src/palette-index.ts",
+          "app/renderer/src/rich-control-registration.ts"
         ],
         "symbols": [
           {
@@ -1300,8 +1334,13 @@
         ]
       },
       "registration": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "app/renderer/src/App.tsx"
+        ],
+        "symbols": [
+          { "path": "app/renderer/src/App.tsx", "name": "richControlRegistry", "kind": "render-value" },
+          { "path": "app/renderer/src/App.tsx", "name": "paletteItems", "kind": "render-value" }
+        ]
       },
       "route": "desktop://console/main",
       "documentation": {

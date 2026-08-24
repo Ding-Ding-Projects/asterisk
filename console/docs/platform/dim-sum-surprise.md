@@ -12,13 +12,13 @@ There is deliberately no setting to turn this off; the only configurable aspect 
 
 ## Current status
 
-**Desktop application:** Not implemented. No such surprise, no bundled dish imagery, and no random-draw logic exist in the product.
+**Desktop application:** Mounted but unverified. `SurfaceMounts` mounts the real `DimSumSurprise` component through a typed `dimSum.readCache()` bridge and a startup-context event seam. The component performs one secure ten-percent draw per launch, validates local cache bytes and digests, suppresses during first run, School mode, active errors, updates, and work, and never offers an opt-out.
 
 **Documentation website:** Not implemented. A static documentation site has no startup event to attach this to.
 
 ## Failure modes
 
-If the bundled image set were ever missing an entry, the intended behavior is to skip that draw rather than show a broken image; nothing implements the draw today.
+If the private cache is missing, refused, malformed, or fails digest validation, the renderer shows an honest unavailable diagnostic and no image. The renderer never fetches the public catalogue or invents a dish. A cache entry is selected only after the complete envelope and every local image digest are validated.
 
 ## Accessibility and localization
 
@@ -26,8 +26,8 @@ This feature is expected to follow the product's standing accessibility contract
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+No automated test, build, runtime interaction, or capture was run in this lane. The next verification must drive the built desktop through each suppression state, a missing cache, an invalid cache, a winning draw with a real private cache, reduced motion, auto-dismissal, and the no-opt-out surface.
 
 ## Suggested articles
 
-[School mode](school-mode.md), [Platform feature index](README.md).
+[Dim-sum startup runtime cache](dim-sum-startup-runtime.md), [School mode](school-mode.md), [Non-blocking notifications](non-blocking-notifications.md), and [Platform feature index](README.md).

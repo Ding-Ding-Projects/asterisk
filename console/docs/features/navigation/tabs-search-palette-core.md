@@ -7,9 +7,11 @@ as the control it describes.
 
 The current implementation supplies persistent state, reducers, bounded search
 evaluation, capability models, close previews, a command registry, a palette
-index, and exact teleport instructions. Rendering, shortcut registration,
-overlay placement, local-history events, and central application wiring remain
-with the owning renderer changes and are not claimed by this core lane.
+index, and exact teleport instructions. The central renderer now mounts the
+registry for design settings and appearance properties and exposes those entries
+to its palette surface. Rendering, shortcut registration, overlay placement, and
+local-history events remain owned by the surrounding renderer and are not claimed
+as built-artifact proof by this contract.
 
 ## Browser-style tabs
 

@@ -6,6 +6,14 @@ The integration lane added `console/app/renderer/src/surface-mounts.tsx` and mou
 
 The desktop and Pages feature registries, plus `console/inventories/surface-completeness.json`, record the converter and Ollama rows as `implemented-unverified`. No tests, lint, type checks, builds, packaging, UI runs, captures, or Lowlevel work ran in this lane. The next owner must register the remaining converter and Ollama handlers, then run the focused checks and built-artifact interaction proof.
 
+## Dim-sum and rich-control mount, 2026-08-23
+
+This lane mounted `DimSumSurprise` from `surface-mounts.tsx` through the typed `dimSum.readCache()` Electron and hosted bridge. `startup-context.ts` carries live School-mode, first-run, error, update, active-work, and reduced-motion state from the renderer and updater into the mount. The component still draws once with cryptographic randomness, validates the complete private cache, auto-dismisses without focus theft, and reports missing, refused, invalid, or suppressed states honestly. No dish values or cache bytes were added.
+
+The same lane added `rich-control-registration.ts`. It registers design destinations, writable component settings, and every appearance property with stable command ids, value readers, option providers, exact teleport targets, and handlers that reuse the generated setter or persisted appearance store. `App.tsx` exposes the registry as palette entries, creates and binds the persisted appearance runtime after durable hydration, installs its stylesheet, and marks real controls with stable appearance ids. The app registry plus the navigation and appearance documentation record this as `implemented-unverified`.
+
+No tests, lint, type checks, build, packaging, runtime interaction, captures, Lowlevel work, push, or release ran in this lane. The next owner must run the focused registry and renderer checks, then exercise the built desktop through startup suppression, missing-cache diagnostics, palette activation, every registered setting, appearance edits, and relaunch persistence before promoting any evidence.
+
 ## Scope
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.

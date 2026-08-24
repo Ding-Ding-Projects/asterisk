@@ -170,6 +170,12 @@ ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindow.unmaximize() : mainWindow?.maximize());
 ipcMain.on('window:close', () => mainWindow?.close());
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
+ipcMain.handle('dim-sum:read-cache', async () => {
+  const response = await controlPlaneRequest({ requestId: `dim-sum-${Date.now().toString(36)}`, action: 'dim-sum.cache.read' });
+  if (!response.ok) return null;
+  const text = (response.data as { text?: unknown } | undefined)?.text;
+  return typeof text === 'string' ? text : null;
+});
 ipcMain.handle('converter:pick-file', async () => {
   const result = await dialog.showOpenDialog(mainWindow ?? undefined, { properties: ['openFile'], title: 'Choose a local source file' });
   const sourcePath = result.canceled ? undefined : result.filePaths[0];

@@ -12,13 +12,13 @@ Colors would be chosen through a continuous picker with bidirectional conversion
 
 ## Current status
 
-**Desktop application:** Partial. A dark/light theme toggle exists in settings, but accent color, density, typography customization, the continuous color picker, and the per-element appearance editor are all absent.
+**Desktop application:** Partial but mounted. The central renderer now creates the persisted `AppearanceStore`, installs the appearance runtime stylesheet, marks rendered controls with stable appearance ids, and exposes every appearance property through the shared rich-control and palette registration. The existing generated panel still supplies its legacy global preview values, so built-artifact interaction and the complete word-processor editor remain unverified in this lane.
 
 **Documentation website:** Partial. Every page exposes persisted dark, light, and high-contrast themes, density, accent, font scale, navigation docking, logo presets, and a broad color translator. These values apply live. Per-element editors and full word-processor typography remain incomplete.
 
 ## Failure modes
 
-An appearance change that fails to persist (for example, a write to a locked settings file) is meant to notify the user and keep the prior appearance in effect rather than silently reverting after the fact; there is little to test that against today, since most controls do not exist yet.
+An appearance change that fails to persist (for example, a write to a locked settings file) reports the exact store refusal and keeps the previous mounted model active. A missing or unsupported capability remains visible in the capability record instead of being silently discarded.
 
 ## Accessibility and localization
 

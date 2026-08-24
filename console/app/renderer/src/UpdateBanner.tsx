@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { UpdaterStatusForRenderer } from '../../../shared/control-plane';
+import { publishStartupContext, readStartupContext } from './startup-context';
 
 /**
  * The Chrome/GitHub-Desktop-style "an update is ready" banner.
@@ -26,6 +27,8 @@ export function UpdateBanner() {
     const newer = revision > acceptedRevision.current;
     acceptedRevision.current = revision;
     setStatus(next);
+    const current = readStartupContext();
+    publishStartupContext({ ...current, updateActive: next.state === 'available' || next.state === 'downloading' || next.state === 'ready' });
     if (newer && next.state === 'ready' && !next.restartPending) setRestartError(undefined);
   };
 

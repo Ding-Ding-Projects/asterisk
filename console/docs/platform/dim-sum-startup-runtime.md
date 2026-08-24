@@ -1,6 +1,6 @@
 # Dim-sum startup runtime cache
 
-This article describes the mount-ready runtime contract for the dim-sum startup surprise. The parent surface still owns the final mount and the package step owns cache production.
+This article describes the mounted runtime contract for the dim-sum startup surprise. `main.tsx` mounts `SurfaceMounts`, which supplies the validated application-data cache reader and the startup suppression context. The package or application-data step still owns cache production.
 
 ## Behavior
 
@@ -16,7 +16,7 @@ The renderer reads only through the `DimSumCacheReader` seam. A missing or inval
 
 ## Mount seam
 
-`DIM_SUM_SURPRISE_REGISTRATION` identifies the `startup-overlay` mount, its non-blocking and focus-neutral behavior, its automatic dismissal, its no-opt-out contract, its cache boundary, and its cryptographically secure ten-percent draw. The host supplies `context`, including the shared School-mode state, and a `cacheReader` that returns the private JSON text.
+`DIM_SUM_SURPRISE_REGISTRATION` identifies the `startup-overlay` mount, its non-blocking and focus-neutral behavior, its automatic dismissal, its no-opt-out contract, its cache boundary, and its cryptographically secure ten-percent draw. `SurfaceMounts` supplies `context` from the live startup-context event seam, including School-mode, first-run onboarding, active errors, update activity, active work, and reduced-motion state. It supplies a typed `dimSum.readCache()` bridge that returns only private cache text or `null`; a missing or refused cache remains unavailable.
 
 ## Suggested articles
 
