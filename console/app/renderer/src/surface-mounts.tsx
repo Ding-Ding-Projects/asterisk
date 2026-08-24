@@ -5,10 +5,17 @@ import { DocsSurface } from './docs-surface';
 import { ChangelogSurface } from './changelog-surface';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
 import { CHANGELOG_MARKDOWN, CHANGELOG_REPOSITORY_URL } from './generated/changelog-bundle';
+import { StatusHubSurface } from './status-hub-surface';
+import { createStatusHubClient, type StatusHubFetch } from '../../../control-plane/status-hub-client';
+import { createStatusHubStore } from '../../../control-plane/status-hub-store';
+import { DownloadStartSurface } from './download-start-surface';
+import { DownloadProgressSurface } from './download-progress-surface';
+import { DownloadCompleteSurface } from './download-complete-surface';
+import type { DownloadTransferSnapshot, ExtensionDownloadHandoff } from '../../../shared/download-transfer';
 import type { BackendResponse, ChatSession, OllamaRuntimeEvidence, OllamaSuiteSnapshot, PullQueueEvidence } from './ollama-suite-model';
 import type { ConverterBackendHandlers } from '../../../shared/converter';
 
-type SurfaceRoute = 'converter' | 'ollama' | 'docs' | 'changelog';
+type SurfaceRoute = 'converter' | 'ollama' | 'docs' | 'changelog' | 'status' | 'download/start' | 'download/progress' | 'download/complete';
 
 function unavailable<T>(surface: string, operation: string): Promise<T> {
   return Promise.reject(new Error(`${surface} ${operation} is not registered in the privileged bridge. No value was assumed and no operation was attempted.`));
@@ -147,18 +154,50 @@ function routeFromHash(): SurfaceRoute | undefined {
   const value = window.location.hash.slice(1);
   if (!value.startsWith('surface=')) return undefined;
   const route = value.slice('surface='.length);
-  return route === 'converter' || route === 'ollama' || route === 'docs' || route === 'changelog' ? route : undefined;
+  return route === 'converter' || route === 'ollama' || route === 'docs' || route === 'changelog' || route === 'status' || route === 'download/start' || route === 'download/progress' || route === 'download/complete' ? route : undefined;
 }
+
+const statusHubBridgeFetch: StatusHubFetch = async (input, init) => {
+  const url = new URL(input.toString());
+  const path = url.pathname.replace(/\/$/u, '');
+  const body = typeof init?.body === 'string' ? JSON.parse(init.body) as Record<string, unknown> : {};
+  let action: string;
+  let payload: Record<string, unknown> = body;
+  if (path === '/api/status-hub/projects' && init?.method === 'POST') action = 'status-hub.register';
+  else if (/^\/api\/status-hub\/projects\/[^/]+$/u.test(path)) { action = 'status-hub.project'; payload = { projectId: decodeURIComponent(path.split('/').at(-1) ?? '') }; }
+  else if (/^\/api\/status-hub\/projects\/[^/]+\/sessions$/u.test(path)) { action = 'status-hub.sessions'; payload = { projectId: decodeURIComponent(path.split('/').at(-2) ?? '') }; }
+  else if (/^\/api\/status-hub\/sessions\/[^/]+$/u.test(path)) { action = 'status-hub.session'; payload = { sessionId: decodeURIComponent(path.split('/').at(-1) ?? '') }; }
+  else if (/^\/api\/status-hub\/sessions\/[^/]+\/replies$/u.test(path)) { action = 'status-hub.replies'; payload = { sessionId: decodeURIComponent(path.split('/').at(-2) ?? ''), cursor: url.searchParams.get('cursor') ?? undefined }; }
+  else if (/^\/api\/status-hub\/sessions\/[^/]+\/questions\/[^/]+\/answers$/u.test(path)) { action = 'status-hub.answer'; const parts = path.split('/'); payload = { sessionId: decodeURIComponent(parts[4] ?? ''), questionId: decodeURIComponent(parts[6] ?? ''), answer: body.answer }; }
+  else return new Response(JSON.stringify({ message: 'The Status Hub route is unavailable.' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+  const bridge = window.dingDesktop;
+  if (!bridge) return new Response(JSON.stringify({ message: 'The desktop control-plane bridge is unavailable.' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+  const response = await bridge.controlPlane.request({ requestId: crypto.randomUUID(), action: action as never, payload });
+  const status = response.ok ? 200 : response.code === 'STATUS_HUB_UNAVAILABLE' ? 503 : response.code === 'AUTH_REQUIRED' ? 401 : 502;
+  return new Response(JSON.stringify(response.ok ? { data: response.data } : { message: response.message }), { status, headers: { 'Content-Type': 'application/json' } });
+};
 
 export function SurfaceMounts() {
   const [route, setRoute] = useState<SurfaceRoute | undefined>(() => routeFromHash());
+  const [handoff, setHandoff] = useState<ExtensionDownloadHandoff | undefined>();
+  const [transferId, setTransferId] = useState<string | undefined>();
+  const [completeSnapshot, setCompleteSnapshot] = useState<DownloadTransferSnapshot | undefined>();
+  const statusStore = useMemo(() => createStatusHubStore({ client: createStatusHubClient({ baseUrl: 'http://127.0.0.1:8099/', fetchImpl: statusHubBridgeFetch }), projectId: 'asterisk', pollReplies: true }), []);
+  const downloadClient = window.dingDesktop?.downloads;
   useEffect(() => {
     const onHash = () => setRoute(routeFromHash());
     window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
+    const unsubscribe = downloadClient?.onHandoff((next) => { setHandoff(next); window.location.hash = '#surface=download/start'; });
+    void window.dingDesktop?.controlPlane.request({ requestId: crypto.randomUUID(), action: 'download.handoffs' }).then((response) => {
+      if (response?.ok && Array.isArray(response.data) && response.data.length > 0) setHandoff(response.data[response.data.length - 1] as ExtensionDownloadHandoff);
+    });
+    return () => { window.removeEventListener('hashchange', onHash); unsubscribe?.(); };
   }, []);
 
-  const links = useMemo(() => (['converter', 'ollama', 'docs', 'changelog'] as const), []);
+  const links = useMemo(() => (['converter', 'ollama', 'docs', 'changelog', 'status', 'download/start'] as const), []);
+  const startReceipt = (receipt: { accepted: boolean; transferId?: string }) => {
+    if (receipt.accepted && receipt.transferId) { setTransferId(receipt.transferId); window.location.hash = '#surface=download/progress'; }
+  };
   return (
     <aside className="surface-mount-host" aria-label="Mounted feature surfaces">
       <nav aria-label="Mounted feature surfaces">
@@ -169,6 +208,12 @@ export function SurfaceMounts() {
       {route === 'ollama' ? <OllamaSuite client={ollamaClient} /> : null}
       {route === 'docs' ? <DocsSurface bundle={DOCS_BUNDLE} /> : null}
       {route === 'changelog' ? <ChangelogSurface markdown={CHANGELOG_MARKDOWN} repositoryUrl={CHANGELOG_REPOSITORY_URL} /> : null}
+      {route === 'status' ? <StatusHubSurface store={statusStore} /> : null}
+      {route === 'download/start' ? (handoff && downloadClient
+        ? <DownloadStartSurface handoff={handoff} client={downloadClient} onReceipt={startReceipt} />
+        : <section className="surface-mount-unavailable" role="status"><h2>Start download unavailable</h2><p>No browser-extension handoff has reached the privileged boundary.</p></section>) : null}
+      {route === 'download/progress' && transferId && downloadClient ? <DownloadProgressSurface client={downloadClient} transferId={transferId} onComplete={(snapshot) => { setCompleteSnapshot(snapshot); window.location.hash = '#surface=download/complete'; }} /> : null}
+      {route === 'download/complete' && completeSnapshot ? <DownloadCompleteSurface snapshot={completeSnapshot} onDismiss={() => { setCompleteSnapshot(undefined); window.location.hash = '#surface=status'; }} /> : null}
     </aside>
   );
 }

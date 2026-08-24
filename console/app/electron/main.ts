@@ -3,7 +3,10 @@ import { stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
+import { createVaultReference } from '../../control-plane/status-hub-client.js';
 import type { ControlPlaneRequest, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
+import type { DownloadCommand, ExtensionDownloadHandoff } from '../../shared/download-transfer.js';
+import { isExtensionDownloadHandoff } from '../../shared/download-transfer.js';
 import {
   parseVersion, resolveLatestUpdate, validateReleaseIdentity, initialUpdaterState, beganChecking, checkSucceeded,
   updateFailed, beganDownloading, downloadReady, dismissedForNow, verifyDownload, findDigestForAsset,
@@ -15,8 +18,23 @@ import {
 } from './updater-runtime.js';
 
 let mainWindow: BrowserWindow | null = null;
-const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false });
-const { controlPlaneRequest } = dispatcher;
+function vaultReferenceFromEnvironment(name: string) {
+  const value = process.env[name];
+  if (!value) return undefined;
+  try { return createVaultReference(value); } catch { return undefined; }
+}
+
+const dispatcher = createControlPlaneDispatcher({
+  userDataPath: app.getPath('userData'),
+  resourcesPath: process.resourcesPath,
+  hosted: false,
+  statusHubBaseUrl: process.env.STATUS_HUB_URL,
+  statusHubCredentials: {
+    enrollment: vaultReferenceFromEnvironment('STATUS_HUB_ENROLLMENT_REF'),
+    reply: vaultReferenceFromEnvironment('STATUS_HUB_REPLY_REF'),
+  },
+});
+const { controlPlaneRequest, downloadTransfers } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let updateCheckInFlight: Promise<void> | undefined;
 let updateGeneration = 0;
@@ -170,6 +188,18 @@ ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindow.unmaximize() : mainWindow?.maximize());
 ipcMain.on('window:close', () => mainWindow?.close());
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
+ipcMain.handle('download:submit-handoff', async (_event, handoff: ExtensionDownloadHandoff) => {
+  if (!isExtensionDownloadHandoff(handoff)) return { accepted: false, detail: 'The extension handoff failed its bounded validation.' };
+  const result = downloadTransfers.registerHandoff(handoff);
+  if (result.accepted) mainWindow?.webContents.send('download:handoff', handoff);
+  return result;
+});
+ipcMain.handle('download:handoffs', async () => downloadTransfers.listHandoffs());
+ipcMain.handle('download:start', async (_event, handoff: ExtensionDownloadHandoff) => downloadTransfers.start(handoff));
+ipcMain.handle('download:cancel-handoff', async (_event, handoffId: string) => downloadTransfers.cancelHandoff(handoffId));
+ipcMain.handle('download:command', async (_event, transferId: string, command: Exclude<DownloadCommand, 'start'>) => downloadTransfers.command(transferId, command));
+ipcMain.handle('download:snapshot', async (_event, transferId: string) => downloadTransfers.getSnapshot(transferId));
+downloadTransfers.subscribeGlobal((snapshot) => mainWindow?.webContents.send('download:snapshot', snapshot));
 ipcMain.handle('converter:pick-file', async () => {
   const result = await dialog.showOpenDialog(mainWindow ?? undefined, { properties: ['openFile'], title: 'Choose a local source file' });
   const sourcePath = result.canceled ? undefined : result.filePaths[0];

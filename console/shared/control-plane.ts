@@ -1,3 +1,5 @@
+import type { DownloadTransferClient, DownloadTransferSnapshot, ExtensionDownloadHandoff } from './download-transfer.js';
+
 /**
  * `runtime.*` manage the console's own WSL distribution, created from the Asterisk
  * payload inside the installer. They replace an earlier `server.provision-bundled`
@@ -37,6 +39,12 @@ export type ControlPlaneAction =
   | 'ollama.pulls.list' | 'ollama.pulls.enqueue' | 'ollama.pulls.cancel' | 'ollama.pulls.retry' | 'ollama.pulls.reconcile'
   | 'ollama.chat.sessions' | 'ollama.chat.create' | 'ollama.chat.rename' | 'ollama.chat.delete' | 'ollama.chat.send'
   | 'ollama.chat.retry' | 'ollama.chat.regenerate' | 'ollama.chat.stop'
+  /* Live Status Hub observations and receipt-backed question delivery. */
+  | 'status-hub.register' | 'status-hub.project' | 'status-hub.sessions' | 'status-hub.session'
+  | 'status-hub.replies' | 'status-hub.answer'
+  /* Browser-extension download handoff and privileged transfer observations. */
+  | 'download.handoff' | 'download.handoffs' | 'download.start' | 'download.snapshot'
+  | 'download.cancel-handoff' | 'download.command'
   /* Dim-sum cache is local-only. A missing cache is an honest unavailable result. */
   | 'dim-sum.cache.read';
 
@@ -90,6 +98,12 @@ export interface DingDesktopApi {
   platform: string;
   window: { minimize(): void; toggleMaximize(): void; close(): void };
   controlPlane: { request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> };
+  statusHub: { baseUrl?: string };
+  downloads: DownloadTransferClient & {
+    getSnapshot(transferId: string): Promise<DownloadTransferSnapshot | undefined>;
+    submitHandoff(handoff: ExtensionDownloadHandoff): Promise<{ accepted: boolean; detail: string }>;
+    onHandoff(listener: (handoff: ExtensionDownloadHandoff) => void): () => void;
+  };
   converter: {
     pickFile(): Promise<{ sourcePath: string; name: string; bytes: number; lastModified?: string } | undefined>;
     pickDestination(): Promise<string | undefined>;

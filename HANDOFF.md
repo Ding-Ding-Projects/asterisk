@@ -1,5 +1,13 @@
 # Ding PBX delivery handoff
 
+## Status Hub and browser-extension transfer mount, 2026-08-23
+
+The `codex/mount-status-downloads` lane mounts `#surface=status` plus `#surface=download/start`, `#surface=download/progress`, and `#surface=download/complete`. The Status Hub client and store remain receipt-led and derive rows only from the configured external service. The privileged dispatcher exposes `status-hub.*` actions and accepts the non-secret `STATUS_HUB_URL` origin configuration. An absent or unreachable service remains a typed unavailable or offline state.
+
+The browser-extension handoff enters through `download:submit-handoff`, is bounded by `isExtensionDownloadHandoff`, and is persisted with transfer snapshots in the installation data file `download-transfers.json`. The privileged `DownloadTransferManager` streams HTTPS bytes to the selected destination, emits observed bytes, rate, ETA, cancellation, partial, failure, and completion states, and refuses to invent a result. The preload exposes start, cancel, command, snapshot, subscription, and handoff listeners. The companion extension is not part of this Oak Kay, so no extension source or fake handoff was added.
+
+This lane intentionally ran no tests, lint, type checks, builds, packaging, runtime interaction, external service calls, extension launch, or captures. The next owner must run the focused control-plane and renderer checks, then verify the built desktop routes with a real configured Status Hub and a real extension handoff. The feature registry and platform articles record this unverified boundary.
+
 ## Surface mount integration, 2026-08-23
 
 The integration lane added `console/app/renderer/src/surface-mounts.tsx` and mounted it from `main.tsx` as an addressable hash route. `#surface=converter` renders the real converter component and reads its catalog and PDF capability evidence through the local control-plane dispatcher. Picker, queue mutation, and packaged-worker proof operations still return explicit unavailable receipts because those handlers are not registered. `#surface=ollama` renders the real Ollama component and reports a typed `bridge-not-registered` state until its privileged dispatcher is registered. `#surface=docs` and `#surface=changelog` render the bundled documentation and changelog components.

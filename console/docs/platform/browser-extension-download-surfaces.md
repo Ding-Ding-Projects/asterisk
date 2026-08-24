@@ -12,21 +12,21 @@ Both dialogs would reflect the actual queued and in-flight transfer rather than 
 
 ## Current status
 
-**Desktop application:** Not implemented. The desktop application is not a browser and has no browser-extension download surface of this kind.
+**Desktop application:** Implemented as three explicit routes: `#surface=download/start`, `#surface=download/progress`, and `#surface=download/complete`. The preload accepts an extension handoff, the privileged transfer manager persists it, and each surface reads real receipts or transfer snapshots. There is no extension package in this Oak Kay, so an external extension remains an integration input rather than simulated content.
 
-**Documentation website:** Not implemented. The documentation website is not a browser extension and has no download-capture flow of this kind.
+**Documentation website:** Unavailable. The hosted bridge exposes a typed unavailable receipt because a static documentation surface cannot own a desktop file transfer or an always-on-top window.
 
 ## Failure modes
 
-N/A — with no extension or capture flow implemented, there is no failure path to describe.
+Malformed or non-HTTPS handoffs are refused before transfer. Missing source bodies, HTTP errors, destination conflicts, cancellation, short responses, bounded-size violations, and transfer failures remain visible as failure or partial outcomes. Hosted mode reports the exact unavailable boundary.
 
 ## Accessibility and localization
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.
+The desktop surfaces use semantic headings, status and alert regions, visible focus, keyboard-sized controls, overflow-safe URLs and paths, reduced-motion CSS, and an always-on-top window intent. This lane was not run through tests, builds, type checks, lint, runtime interaction, or captures. Copy remains host-localized work for a later lane, while bytes, timestamps, paths, URLs, and status values remain factual.
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+Verification remains pending for the built desktop artifact and a real extension handoff. The implementation paths are `console/control-plane/download-transfer-manager.ts`, `console/shared/download-transfer.ts`, `console/app/renderer/src/download-start-surface.tsx`, `console/app/renderer/src/download-progress-surface.tsx`, `console/app/renderer/src/download-complete-surface.tsx`, `console/app/electron/main.ts`, and `console/app/electron/preload.ts`.
 
 ## Suggested articles
 

@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { ControlPlaneRequest, ControlPlaneResponse, DingDesktopApi, UpdaterStatusForRenderer, UpdaterRestartResult } from '../../shared/control-plane.js';
+import type { DownloadCommand, DownloadTransferReceipt, DownloadTransferSnapshot, ExtensionDownloadHandoff } from '../../shared/download-transfer.js';
 
 const api: DingDesktopApi = {
   platform: process.platform,
@@ -10,6 +11,25 @@ const api: DingDesktopApi = {
   },
   controlPlane: {
     request: (request: ControlPlaneRequest) => ipcRenderer.invoke('control-plane:request', request) as Promise<ControlPlaneResponse>,
+  },
+  statusHub: { baseUrl: process.env.STATUS_HUB_URL },
+  downloads: {
+    start: (handoff: ExtensionDownloadHandoff) => ipcRenderer.invoke('download:start', handoff) as Promise<DownloadTransferReceipt>,
+    cancelHandoff: (handoffId: string) => ipcRenderer.invoke('download:cancel-handoff', handoffId) as Promise<DownloadTransferReceipt>,
+    command: (transferId: string, command: Exclude<DownloadCommand, 'start'>) => ipcRenderer.invoke('download:command', transferId, command) as Promise<DownloadTransferReceipt>,
+    getSnapshot: (transferId: string) => ipcRenderer.invoke('download:snapshot', transferId) as Promise<DownloadTransferSnapshot | undefined>,
+    subscribe: (transferId: string, listener: (snapshot: DownloadTransferSnapshot) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, snapshot: DownloadTransferSnapshot) => { if (snapshot.transferId === transferId) listener(snapshot); };
+      ipcRenderer.on('download:snapshot', handler);
+      void ipcRenderer.invoke('download:snapshot', transferId).then((snapshot: DownloadTransferSnapshot | undefined) => { if (snapshot) listener(snapshot); });
+      return () => ipcRenderer.removeListener('download:snapshot', handler);
+    },
+    submitHandoff: (handoff: ExtensionDownloadHandoff) => ipcRenderer.invoke('download:submit-handoff', handoff),
+    onHandoff: (listener: (handoff: ExtensionDownloadHandoff) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, handoff: ExtensionDownloadHandoff) => listener(handoff);
+      ipcRenderer.on('download:handoff', handler);
+      return () => ipcRenderer.removeListener('download:handoff', handler);
+    },
   },
   converter: {
     pickFile: () => ipcRenderer.invoke('converter:pick-file'),

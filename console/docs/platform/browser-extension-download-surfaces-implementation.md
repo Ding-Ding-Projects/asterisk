@@ -10,7 +10,7 @@ This implementation adds three mount-ready renderer surfaces for a browser-exten
 
 `console/shared/download-transfer.ts` is the boundary contract. An extension handoff is bounded and must have an HTTPS source, a file name, a destination, an ISO timestamp, an explicit unsaved-work state, and an optional known byte total. `isExtensionDownloadHandoff()` rejects malformed or unbounded messages before they reach a transfer client.
 
-The transfer client is intentionally injected. The renderer therefore knows only the typed `start`, `cancelHandoff`, `command`, and `subscribe` operations. Preload or control-plane wiring can implement that client later without changing the three surfaces or making renderer code own file I/O.
+The desktop preload now supplies that client. A browser extension submits a bounded handoff through `download:submit-handoff`; the privileged transfer manager persists the handoff and broadcasts it to the renderer. Confirmation calls `download:start`, commands call `download:command`, and progress reads snapshots through `download:snapshot` plus the observed snapshot event. File and network I/O remain in the privileged manager. Hosted mode returns an explicit unavailable receipt because it cannot accept a desktop extension handoff.
 
 ## Window and accessibility intent
 
@@ -20,7 +20,7 @@ Language and funny-copy selection remain host-owned: labels are ordinary strings
 
 ## Failure and verification boundaries
 
-The client must provide real snapshots and real command receipts. A missing first snapshot is shown as a waiting state. A rejected command, deadline, non-retryable error, cancellation, and partial result stay visible and are not converted into success. This lane intentionally contains no test or extension launch wiring; integration owners must connect the exported contract to the preload/control-plane boundary and add built-artifact interaction evidence there.
+The transfer manager stores `download-transfers.json` beneath the installation data directory, writes each observed snapshot atomically, streams the HTTPS response to the user-selected destination, and reports exact bytes, rate, ETA, cancellation, partial, failure, and completion states. A missing first snapshot is shown as a waiting state. A rejected command, deadline, non-retryable error, cancellation, and partial result stay visible and are not converted into success. This lane intentionally did not run tests, builds, runtime interaction, or captures, so built-artifact evidence remains pending.
 
 ## Suggested articles
 

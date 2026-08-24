@@ -27,7 +27,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "desktop://console/main",
+      "route": "desktop://console/#surface=status",
       "documentation": {
         "path": "console/docs/platform/funny-levels.md",
         "state": "present"
@@ -98,7 +98,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "desktop://console/main",
+      "route": "desktop://console/#surface=download/start",
       "documentation": {
         "path": "console/docs/platform/dialog-emojis.md",
         "state": "present"
@@ -699,17 +699,17 @@
       }
     },
     "status-hub": {
-      "status": "absent",
-      "note": "No live status-hub project, session card, or question-card surface exists. The single textual match for status-hub in the compiled console is a rail/menu label, not a working status surface.",
+      "status": "implemented-unverified",
+      "note": "The desktop surface is mounted at #surface=status and reads observed project, session, evidence, question, inbox, and receipt data through the typed Status Hub client and store. The external service remains unavailable until STATUS_HUB_URL is configured.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/shared/status-hub.ts", "console/control-plane/status-hub-client.ts", "console/control-plane/status-hub-store.ts", "console/app/renderer/src/status-hub-state.ts", "console/app/renderer/src/status-hub-surface.tsx", "console/app/electron/main.ts", "console/app/electron/preload.ts"],
+        "symbols": ["StatusHubClient", "StatusHubStore", "StatusHubSurface", "status-hub.project", "status-hub.sessions", "status-hub.session", "status-hub.replies", "status-hub.answer"]
       },
       "registration": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/shared/control-plane.ts", "console/control-plane/dispatch.ts", "console/app/renderer/src/surface-mounts.tsx"],
+        "symbols": ["ControlPlaneAction", "createControlPlaneDispatcher", "SurfaceMounts"]
       },
-      "route": "desktop://console/main",
+      "route": "desktop://console/#surface=status",
       "documentation": {
         "path": "console/docs/platform/status-hub.md",
         "state": "present"
@@ -720,8 +720,8 @@
         "symbols": []
       },
       "persistence": {
-        "state": "unverified",
-        "paths": [],
+        "state": "external-service",
+        "paths": ["console/control-plane/status-hub-store.ts"],
         "symbols": []
       },
       "focusedChecks": {
@@ -2415,17 +2415,17 @@
       }
     },
     "browser-extension-download-surfaces": {
-      "status": "absent",
-      "note": "This is a desktop console for an Asterisk PBX; there is no browser extension in this repository and no Start-download/Downloading/complete dialog surfaces.",
+      "status": "implemented-unverified",
+      "note": "Three desktop routes now mount the real Start, Downloading, and completion clients. The extension handoff remains an explicit external input because this Oak Kay does not ship the companion extension.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/shared/download-transfer.ts", "console/control-plane/download-transfer-manager.ts", "console/app/renderer/src/download-state.ts", "console/app/renderer/src/download-start-surface.tsx", "console/app/renderer/src/download-progress-surface.tsx", "console/app/renderer/src/download-complete-surface.tsx", "console/app/electron/main.ts", "console/app/electron/preload.ts"],
+        "symbols": ["DownloadTransferManager", "DownloadStartSurface", "DownloadProgressSurface", "DownloadCompleteSurface", "download:submit-handoff", "download:snapshot"]
       },
       "registration": {
-        "paths": [],
-        "symbols": []
+        "paths": ["console/shared/control-plane.ts", "console/control-plane/dispatch.ts", "console/app/renderer/src/surface-mounts.tsx"],
+        "symbols": ["ControlPlaneAction", "createControlPlaneDispatcher", "SurfaceMounts"]
       },
-      "route": "desktop://console/main",
+      "route": "desktop://console/#surface=download/start",
       "documentation": {
         "path": "console/docs/platform/browser-extension-download-surfaces.md",
         "state": "present"
@@ -2436,8 +2436,8 @@
         "symbols": []
       },
       "persistence": {
-        "state": "unverified",
-        "paths": [],
+        "state": "implemented-unverified",
+        "paths": ["console/control-plane/download-transfer-manager.ts"],
         "symbols": []
       },
       "focusedChecks": {
