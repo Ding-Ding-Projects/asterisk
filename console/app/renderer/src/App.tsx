@@ -39,6 +39,9 @@ import {
   schoolModeActive, schoolModeName, setCredential, type CredentialMethod,
 } from './school-mode';
 import { attemptMessage, consumeCredential } from './credential-field';
+import {
+  AA_LARGE_TEXT_RATIO, AA_NORMAL_TEXT_RATIO, contrastLevel, contrastRatioFromHex,
+} from './accessibility-contract';
 import { EMPTY_RUNNER_STATE, statusLine, tick, type RunnerState } from './schedule-runner';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
 import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
@@ -203,6 +206,11 @@ export class App extends Base {
 
   /** Read by the compiled `text`-kind control marked `action:'school-status'`. */
   private schoolStatusLine = 'Off.';
+
+  /** The console's own surface, which every accent is read against. Taken from the
+   *  compiled design's root background rather than guessed, so the measurement is
+   *  against what is actually behind the text. */
+  private static readonly SURFACE_HEX = '#0B0F0C';
 
   /** What the runner is holding between ticks: the base value of every key it has
    *  overridden, and what it last applied. */
@@ -557,6 +565,38 @@ ${resolution.consequence}
 ${resolution.disclosure}`);
   }
 
+  // ---------------------------------------------------------------- readability
+
+  /**
+   * The WCAG contrast of the accent currently being chosen, against the surface behind it.
+   *
+   * Reports and never refuses. A colour that fails AA is still the person's to keep -- it
+   * is their console -- but they should not have to discover it is unreadable by trying to
+   * read it. The ratio is stated as well as the level, because "fail" alone does not say
+   * whether the colour is slightly short or hopeless.
+   */
+  private contrastStatus(): string {
+    const vals = this.currentAppearanceValues();
+    /* Reuses the same translator the colour panel itself uses two methods down, so the
+     * measured value is exactly the one the person is being shown rather than a second
+     * conversion that could round differently. */
+    const translated = translateColour(`hsl(${vals.hue} ${vals.sat}% ${vals.light}%)`);
+    const hex = translated?.hex;
+    if (!hex) return 'Not measured yet.';
+    const ratio = contrastRatioFromHex(hex, App.SURFACE_HEX);
+    if (ratio === undefined) return 'Not measured yet.';
+    const rounded = Math.round(ratio * 100) / 100;
+    const normal = contrastLevel(ratio, false);
+    const large = contrastLevel(ratio, true);
+    if (normal !== 'fail') {
+      return `${hex} on ${App.SURFACE_HEX} is ${rounded}:1 -- ${normal} for ordinary text.`;
+    }
+    if (large !== 'fail') {
+      return `${hex} on ${App.SURFACE_HEX} is ${rounded}:1 -- ${large} for large text only. Ordinary text needs ${AA_NORMAL_TEXT_RATIO}:1.`;
+    }
+    return `${hex} on ${App.SURFACE_HEX} is ${rounded}:1, below the ${AA_LARGE_TEXT_RATIO}:1 floor even for large text. It is yours to keep, but it will be hard to read.`;
+  }
+
   // ---------------------------------------------------------------- school mode
 
   /** Turning it ON needs nothing. Turning it OFF needs the credential, which is the whole
@@ -758,6 +798,7 @@ ${resolution.disclosure}`);
     if (action === 'daemon-status') return this.daemonStatusLine;
     if (action === 'schedule-status') return this.scheduleStatusLine;
     if (action === 'school-status') return this.schoolStatusLine;
+    if (action === 'contrast-status') return this.contrastStatus();
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
     return '';
   };

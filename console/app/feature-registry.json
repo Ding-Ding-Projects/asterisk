@@ -193,13 +193,13 @@
       ]
     },
     "accessibility": {
-      "state": "partial",
-      "note": "Implemented 2026-08-24 as app/renderer/src/accessibility-contract.ts: WCAG relative luminance and contrast ratio from hex with the AA and AAA thresholds, target-size checking including a visually small control with adequate padded hit area, accessible-name resolution refusing a name whose only source is a decorative glyph, focus-indicator and positive-tabindex checks, and a reduced-motion resolver where either the platform preference or the app setting asking for less motion wins. Every threshold is a named constant citing its source. 37 tests. The module is complete and its guards are proven, but NOTHING IMPORTS IT YET -- no surface in the renderer calls it, so today it constrains nothing that ships. Recorded as partial rather than implemented for exactly that reason: a module wired at one end and consumed at neither is the defect this project has shipped a dozen times, and marking it done would be that same claim.",
+      "state": "implemented",
+      "note": "Implemented 2026-08-24 as app/renderer/src/accessibility-contract.ts: WCAG relative luminance and contrast ratio from hex with the AA and AAA thresholds, target-size checking including a visually small control with adequate padded hit area, accessible-name resolution refusing a name whose only source is a decorative glyph, focus-indicator and positive-tabindex checks, and a reduced-motion resolver where either the platform preference or the app setting asking for less motion wins. Every threshold is a named constant citing its source. 37 tests. Wired 2026-08-24 into the appearance editor, which is where a person picks a colour and therefore where a contrast measurement is worth having. The ap_contrast readout reports the real WCAG ratio for the accent being chosen against the console’s own surface, taken from the compiled design’s root background rather than guessed, and it reuses the same colour translator the panel itself shows so the measured value is the one on screen rather than a second conversion. It reports the ratio as well as the level, because \"fail\" alone does not say whether a colour is slightly short or hopeless, and it distinguishes passing for large text only. It reports and never refuses: a colour that fails AA is still the person’s to keep, but they should not have to discover it is unreadable by trying to read it.",
       "files": [
+        "app/renderer/src/App.tsx",
         "app/renderer/src/accessibility-contract.ts",
         "tests/ui/accessibility-contract.test.tsx"
-      ],
-      "blockedBy": "BLOCKED ON A CONSUMER. The contract is complete -- contrast, target size, accessible naming, focus, reduced motion -- and nothing calls it. Real consumption means the appearance editor checking a chosen colour pair before accepting it, and the capture harness asserting the shipped surfaces against it. Neither exists yet."
+      ]
     },
     "responsive-sizing": {
       "state": "partial",

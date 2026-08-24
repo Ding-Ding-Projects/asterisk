@@ -3358,6 +3358,9 @@ const SCREENS = {
       ctl('sup_description','What happened','text','',{ placeholder:'I cannot remember the PIN', info:'Nobody will read it, but the form insists.' }),
       ctl('sup_open','Open a ticket','switch',false,{ info:'Files the ticket locally and shows the resolution: this console opens your application-data folder so you can delete it yourself. Deleting it clears every toy lock on this machine, not only the one you are locked out of, along with your saved settings. Toy locks were never security, and this is the reset that was always available.' })
     ]},
+    { title:'Readability', desc:'Whether the colour you have chosen can actually be read against the console’s own surface. Measured, not guessed: this is the WCAG contrast ratio for the current accent, and it changes as you move the colour.', ctls:[
+      ctl('ap_contrast','Contrast of the current accent','text','Not measured yet.',{ action:'contrast-status', info:'The ratio and the level it reaches. AA needs 4.5 for ordinary text and 3 for large text; AAA needs 7 and 4.5. A colour that fails is still yours to keep -- this reports, it does not refuse.' })
+    ]},
     { title:'Scheduled settings', desc:'Settings that change themselves at a time you choose, and change back when the window ends. A scheduled change goes through exactly the same path as one you make by hand, so it is validated and recorded the same way.', ctls:[
       ctl('sch_status','What is in force now','text','No schedule is in force; your own settings are in effect.',{ action:'schedule-status', info:'Names the rules currently applying and the settings they are overriding. Your own values are never overwritten -- they are put back when the window ends, including if you delete the rule while it is running.' })
     ]},
