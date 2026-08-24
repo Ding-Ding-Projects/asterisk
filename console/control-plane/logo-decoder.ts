@@ -1,6 +1,7 @@
 import { execFile, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import type { LogoInspection, LogoInspectionResult, LogoTarget } from '../shared/logo.js';
 import type { IsolatedLogoDecoder, IsolatedLogoDecoderHealth, IsolatedLogoDecoderOutput } from './logo-converter.js';
 
@@ -80,14 +81,22 @@ export function createIsolatedLogoDecoder(options: IsolatedLogoDecoderOptions): 
     },
     async health(): Promise<IsolatedLogoDecoderHealth> {
       const result = await runWorker(options, { operation: 'health' });
-      if (typeof result.workerVersion !== 'string' || typeof result.workerRevision !== 'string' || typeof result.sharpVersion !== 'string' || typeof result.peakWorkingSetBytes !== 'number' || !Array.isArray(result.formats) || result.formats.some((format) => !['png', 'jpeg', 'webp'].includes(String(format)))) throw new Error('The isolated decoder health handshake was incomplete.');
-      const manifest = JSON.parse(await readFile(options.manifestPath, 'utf8')) as { schemaVersion?: unknown; workerRevision?: unknown; workerSha256?: unknown; sharpVersion?: unknown; sharpIntegrity?: unknown };
+      if (typeof result.workerVersion !== 'string' || typeof result.workerRevision !== 'string' || typeof result.sharpVersion !== 'string' || typeof result.nativePlatform !== 'string' || typeof result.nativeArch !== 'string' || typeof result.peakWorkingSetBytes !== 'number' || !Array.isArray(result.formats) || result.formats.length !== 3 || new Set(result.formats.map(String)).size !== 3 || result.formats.some((format) => !['png', 'jpeg', 'webp'].includes(String(format)))) throw new Error('The isolated decoder health handshake was incomplete.');
+      const manifest = JSON.parse(await readFile(options.manifestPath, 'utf8')) as { schemaVersion?: unknown; workerRevision?: unknown; workerSha256?: unknown; sharpVersion?: unknown; sharpIntegrity?: unknown; platform?: unknown; arch?: unknown; nativeFiles?: unknown };
       const lock = JSON.parse(await readFile(options.packageLockPath, 'utf8')) as { packages?: Record<string, { version?: unknown; integrity?: unknown }> };
       const lockedSharp = lock.packages?.['node_modules/sharp'];
-      if (manifest.schemaVersion !== 1 || manifest.workerRevision !== result.workerRevision || manifest.sharpVersion !== result.sharpVersion || lockedSharp?.version !== manifest.sharpVersion || typeof manifest.sharpIntegrity !== 'string' || lockedSharp?.integrity !== manifest.sharpIntegrity) throw new Error('The isolated decoder does not match the checked-in worker and sharp lock manifest.');
+      if (manifest.schemaVersion !== 1 || manifest.workerRevision !== result.workerRevision || manifest.sharpVersion !== result.sharpVersion || lockedSharp?.version !== manifest.sharpVersion || typeof manifest.sharpIntegrity !== 'string' || lockedSharp?.integrity !== manifest.sharpIntegrity || manifest.platform !== result.nativePlatform || manifest.arch !== result.nativeArch || !Array.isArray(manifest.nativeFiles) || manifest.nativeFiles.length === 0) throw new Error('The isolated decoder does not match the checked-in worker, native binding, and sharp lock manifest.');
       const workerDigest = createHash('sha256').update(await readFile(options.workerPath)).digest('hex');
       if (manifest.workerSha256 !== workerDigest) throw new Error('The packaged decoder worker digest does not match its checked-in manifest.');
-      return { workerVersion: result.workerVersion, workerRevision: result.workerRevision, sharpVersion: result.sharpVersion, peakMemoryBytes: result.peakWorkingSetBytes, formats: result.formats.map(String), sharpIntegrity: manifest.sharpIntegrity };
+      const nativeFiles: string[] = [];
+      for (const entry of manifest.nativeFiles as Array<{ path?: unknown; sha256?: unknown }>) {
+        if (typeof entry.path !== 'string' || typeof entry.sha256 !== 'string' || !/^node_modules\/(?:sharp|@img)\/.+\.(?:js|node)$/u.test(entry.path)) throw new Error('The decoder native-file manifest is malformed.');
+        const path = resolve(dirname(options.packageLockPath), entry.path);
+        const digest = createHash('sha256').update(await readFile(path)).digest('hex');
+        if (digest !== entry.sha256) throw new Error(`The packaged decoder native file digest does not match: ${entry.path}`);
+        nativeFiles.push(entry.path);
+      }
+      return { workerVersion: result.workerVersion, workerRevision: result.workerRevision, sharpVersion: result.sharpVersion, peakMemoryBytes: result.peakWorkingSetBytes, formats: result.formats.map(String), sharpIntegrity: manifest.sharpIntegrity, nativePlatform: result.nativePlatform, nativeArch: result.nativeArch, nativeFiles };
     },
     async reopen(input): Promise<LogoInspectionResult> {
       const result = await runWorker(options, { operation: 'reopen', bytesBase64: Buffer.from(input.bytes).toString('base64'), target: input.target });

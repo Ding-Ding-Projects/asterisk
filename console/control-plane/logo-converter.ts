@@ -54,6 +54,9 @@ export interface IsolatedLogoDecoderHealth {
   readonly peakMemoryBytes: number;
   readonly formats: readonly string[];
   readonly sharpIntegrity: string;
+  readonly nativePlatform: string;
+  readonly nativeArch: string;
+  readonly nativeFiles: readonly string[];
 }
 
 export interface IsolatedLogoDecoder {

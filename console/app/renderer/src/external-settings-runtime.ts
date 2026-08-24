@@ -58,6 +58,8 @@ function parseWireState(value: unknown): ExternalRuleState | undefined {
 export class ExternalSettingsRuntime {
   private readonly states = new Map<string, ExternalRuleState>();
   private readonly inFlight = new Map<string, Promise<ExternalRuleState>>();
+  private readonly generations = new Map<string, number>();
+  private readonly fingerprints = new Map<string, string>();
   private readonly listeners = new Set<(states: ReadonlyArray<ExternalRuleState>) => void>();
   constructor(private readonly bridge: ExternalSettingsRuntimeBridge) {}
 
@@ -77,12 +79,17 @@ export class ExternalSettingsRuntime {
   }
 
   async refresh(ruleId: string, source: ExternalSettingsSource, baseAssignments: readonly ScheduleAssignment[], force = false): Promise<ExternalRuleState> {
+    const fingerprint = JSON.stringify({ source, baseAssignments });
     const active = this.inFlight.get(ruleId);
-    if (active) return active;
+    if (active && this.fingerprints.get(ruleId) === fingerprint) return active;
+    const generation = (this.generations.get(ruleId) ?? 0) + 1;
+    this.generations.set(ruleId, generation);
+    this.fingerprints.set(ruleId, fingerprint);
     const task = (async () => {
       const response = await this.bridge.controlPlane.request({ requestId: requestId(), action: 'external-settings.refresh', payload: { ruleId, source, baseAssignments, force } });
       const parsed = response.ok ? parseWireState(response.data) : undefined;
       const state = parsed ?? { ruleId, status: 'failed' as const, active: false, isFallback: true, isStale: false, assignmentCount: 0, lastError: response.message ?? 'The external settings source did not answer.' };
+      if (this.generations.get(ruleId) !== generation) return this.states.get(ruleId) ?? state;
       this.states.set(ruleId, state);
       this.emit();
       return state;
@@ -107,6 +114,10 @@ export class ExternalSettingsRuntime {
   }
 
   async cancel(ruleIds: readonly string[] = [...new Set([...this.states.keys(), ...this.inFlight.keys()])]): Promise<void> {
-    await Promise.all(ruleIds.map((ruleId) => this.bridge.controlPlane.request({ requestId: requestId(), action: 'external-settings.cancel', payload: { ruleId } })));
+    await Promise.all(ruleIds.map(async (ruleId) => {
+      this.generations.set(ruleId, (this.generations.get(ruleId) ?? 0) + 1);
+      this.inFlight.delete(ruleId);
+      await this.bridge.controlPlane.request({ requestId: requestId(), action: 'external-settings.cancel', payload: { ruleId } });
+    }));
   }
 }

@@ -31,7 +31,7 @@ async function health() {
     await reopen(bytes, { format: target.format, width: 1, height: 1, alpha: target.alpha });
     formats.push(target.format);
   }
-  return { ok: true, workerVersion: process.version, workerRevision: WORKER_REVISION, sharpVersion: sharp.versions.sharp ?? 'unknown', peakMemoryBytes: Math.max(0, peakRss - baselineRss), formats };
+  return { ok: true, workerVersion: process.version, workerRevision: WORKER_REVISION, sharpVersion: sharp.versions.sharp ?? 'unknown', nativePlatform: process.platform, nativeArch: process.arch, peakMemoryBytes: Math.max(0, peakRss - baselineRss), formats };
 }
 
 async function convert(input) {

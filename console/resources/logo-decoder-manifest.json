@@ -1,7 +1,10 @@
 {
   "schemaVersion": 1,
   "workerRevision": "logo-worker-2026-08-23-v4",
-  "workerSha256": "e5d272b80abfb5f722976caa0975338a1b6b8d46ea24808917b5ebd8da4e67db",
+  "workerSha256": "4a4744f3306edbdffc8436240c190b4b3b53944e295f6c1288efcb20163c6638",
   "sharpVersion": "0.33.5",
-  "sharpIntegrity": "sha512-haPVm1EkS9pgvHrQ/F3Xy+hgcuMV0Wm9vfIBSiwZ05k+xgb0PkBQpGsAA/oWdDobNaZTH5ppvHtzCFbnSEwHVw=="
+  "sharpIntegrity": "sha512-haPVm1EkS9pgvHrQ/F3Xy+hgcuMV0Wm9vfIBSiwZ05k+xgb0PkBQpGsAA/oWdDobNaZTH5ppvHtzCFbnSEwHVw==",
+  "platform": "win32",
+  "arch": "x64",
+  "nativeFiles": []
 }

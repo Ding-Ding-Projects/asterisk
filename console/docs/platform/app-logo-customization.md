@@ -12,7 +12,7 @@ The shared logo contract defines three shipped presets, a local picker, crop, fi
 
 ## Current status
 
-**Desktop application:** Privileged logo inspection, conversion, decoder-status, cache read/asset-read/clear actions, desktop local-file picker, `LogoRuntime`, and the reachable `#surface=settings` route are wired. `sharp` runs in the packaged isolated worker, with CPU, Windows Job Object memory, monitored working-set, input/output, frame, pixel, target, aggregate, and full-pixel-reopen bounds enforced before cache replacement. The worker health status carries its revision, runtime version, native version, format capabilities, and locked-package integrity.
+**Desktop application:** Privileged logo inspection, conversion, decoder-status, cache read/asset-read/clear actions, desktop local-file picker, `LogoRuntime`, and the reachable `#surface=settings` route are wired. `sharp` runs in the packaged isolated worker, with CPU, Windows Job Object memory, monitored working-set, input/output, frame, pixel, target, aggregate, and full-pixel-reopen bounds enforced before cache replacement. The worker health status carries its revision, runtime version, native version, format capabilities, active native-file digests, and locked-package integrity. The checked-in manifest remains partial until the build path generates and verifies the active native binding hashes.
 
 **Documentation website:** Partial. Every page exposes three presets, contain/fill choice, and local PNG/JPEG upload. The loader verifies the byte signature, bounds encoded bytes and decoded pixels, revalidates the cache, applies the mark live, and retains the prior valid mark after rejection. Crop, focal point, background treatment, and multi-size output remain incomplete.
 
