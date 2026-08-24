@@ -1443,6 +1443,92 @@ function Template(v: any) {
                     ) : null)
                 )
               ) : null),
+            (v.isChangelog ? h("div", { style: sty(`display:flex; flex-direction:column; gap:12px;`) },
+                h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:14px 16px; display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px;`) },
+                  h("div", { style: sty(`display:flex; flex-direction:column; gap:4px;`) },
+                    h("span", { style: sty(`font-size:11px; color:#8FA394; text-transform:uppercase; letter-spacing:.6px;`) },
+                      "From"
+                    ),
+                    h("input", { value: v.changelogFrom, onChange: fn(v.setChangelogFrom), placeholder: `YYYY-MM-DD`, style: sty(`width:130px; background:#0C110D; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-family:'Roboto Mono',monospace; font-size:12px;`) })
+                  ),
+                  h("div", { style: sty(`display:flex; flex-direction:column; gap:4px;`) },
+                    h("span", { style: sty(`font-size:11px; color:#8FA394; text-transform:uppercase; letter-spacing:.6px;`) },
+                      "To"
+                    ),
+                    h("input", { value: v.changelogTo, onChange: fn(v.setChangelogTo), placeholder: `YYYY-MM-DD`, style: sty(`width:130px; background:#0C110D; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-family:'Roboto Mono',monospace; font-size:12px;`) })
+                  ),
+                  h("div", { style: sty(`display:flex; gap:6px; flex-wrap:wrap;`) },
+                    A(v.changelogPresets).map(($pr, $pr$i) => R($pr$i, h("button", { onClick: fn($pr.apply), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:6px 12px; color:#C4CBC2; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h1" },
+                        S($pr.label)
+                      )))
+                  ),
+                  h("div", { style: sty(`flex:1; min-width:220px; display:flex; align-items:center; gap:8px;`) },
+                    h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
+                      "search"
+                    ),
+                    h("input", { value: v.changelogQuery, onChange: fn(v.setChangelogQuery), placeholder: `Search changelog text`, style: sty(`flex:1; background:#0C110D; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-size:12.5px;`) }),
+                    h("button", { onClick: fn(v.toggleChangelogRegex), title: `Regular expression`, style: sty(`width:28px; height:28px; border-radius:8px; border:1px solid #414942; background:${S(v.changelogRegexBg)}; color:${S(v.changelogRegexColor)}; cursor:pointer; display:flex; align-items:center; justify-content:center;`) },
+                      h("span", { style: sty(`font-size:15px;`), className: "msym" },
+                        "regular_expression"
+                      )
+                    )
+                  ),
+                  h("div", { style: sty(`display:flex; gap:8px;`) },
+                    h("button", { onClick: fn(v.changelogCopy), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 14px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h1" },
+                      h("span", { style: sty(`font-size:15px; color:#82D9A5;`), className: "msym" },
+                        "content_copy"
+                      ),
+                      "Copy"
+                    ),
+                    h("button", { onClick: fn(v.changelogExport), style: sty(`display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:999px; padding:7px 14px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h1" },
+                      h("span", { style: sty(`font-size:15px; color:#82D9A5;`), className: "msym" },
+                        "download"
+                      ),
+                      "Export"
+                    )
+                  )
+                ),
+                (v.changelogRegexOn ? h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px;`) },
+                    A(v.changelogRegexPalette).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`), className: "k-h26" },
+                        S($p.label)
+                      )))
+                  ) : null),
+                (v.changelogQueryError ? h("div", { style: sty(`font-size:11.5px; color:#FFB4AB;`) },
+                    S(v.changelogQueryError)
+                  ) : null),
+                (v.changelogDateError ? h("div", { style: sty(`font-size:11.5px; color:#FFB4AB;`) },
+                    S(v.changelogDateError)
+                  ) : null),
+                h("div", { style: sty(`display:flex; align-items:center; justify-content:space-between; padding:0 4px;`) },
+                  h("span", { style: sty(`font-size:12px; color:#9AA39B;`) },
+                    S(v.changelogResultsLabel)
+                  ),
+                  h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394;`) },
+                    S(v.changelogRangeLabel)
+                  )
+                ),
+                A(v.changelogEntries).map(($e, $e$i) => R($e$i, h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:16px 20px;`) },
+                    h("div", { style: sty(`display:flex; align-items:baseline; gap:12px; margin-bottom:8px;`) },
+                      h("span", { style: sty(`font-size:16.5px; font-weight:500; color:#E2E9E1;`) },
+                        S($e.version)
+                      ),
+                      h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11.5px; color:#8FA394;`) },
+                        S($e.date)
+                      )
+                    ),
+                    A($e.changes).map(($c, $c$i) => R($c$i, h("div", { style: sty(`display:flex; align-items:baseline; gap:8px; padding:4px 0; font-size:12.5px;`) },
+                        h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10px; color:#82D9A5; text-transform:uppercase; min-width:70px;`) },
+                          S($c.category)
+                        ),
+                        h("span", { style: sty(`color:#C4CBC2; flex:1;`) },
+                          S($c.summary)
+                        ),
+                        h("a", { href: $c.commitUrl, target: `_blank`, rel: `noreferrer`, style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#9FF7C4; text-decoration:none;`) },
+                          S($c.commitShort)
+                        )
+                      )))
+                  )))
+              ) : null),
             A(v.groups).map(($g, $g$i) => R($g$i, h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:18px 20px; margin-bottom:12px; animation:m3Rise .36s cubic-bezier(.2,0,0,1) both; ${S($g.rnd)}`) },
                 h("div", { style: sty(`display:flex; align-items:flex-start; gap:12px; margin-bottom:16px;`) },
                   h("div", { style: sty(`flex:1;`) },
@@ -3173,7 +3259,9 @@ const SCREENS = {
       ctl('z_crash','Send crash reports','switch',false)
     ]}] },
   docs:{ rail:'app', icon:'menu_book', label:'Documentation', badge:'', title:'Documentation', file:'docs/', kind:'docs',
-    sub:'Every bundled feature article, searchable offline. Links between articles resolve inside this browser.', groups:[] }
+    sub:'Every bundled feature article, searchable offline. Links between articles resolve inside this browser.', groups:[] },
+  changelog:{ rail:'app', icon:'history_edu', label:'Changelog', badge:'', title:'Changelog', file:'', kind:'changelog',
+    sub:'Every released version of this console, built from the tag history of this repository. Every change links to the real commit that made it.', groups:[] }
 };
 
 
@@ -3213,7 +3301,7 @@ const DOCS = {
 
 const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
-const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs'];
+const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },
@@ -4266,7 +4354,7 @@ class ConsoleShell extends DCLogic {
       openInfoScreen:() => this.showInfo(sc.title, sc.sub, 'This screen edits ' + (sc.file || 'the console itself') + '. Every row you see is a real object in the running system, and every control writes one option.', '46%', '150px'),
       openWizard:() => (sc.kind === 'servers' && this.onAddServer ? this.onAddServer() : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null })),
 
-      isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory', isDocs:sc.kind === 'docs',
+      isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory', isDocs:sc.kind === 'docs', isChangelog:sc.kind === 'changelog',
       /* The servers screen has its own hero (One Click Setup) above this, but its
        * configured connections are a real table too, so it shares the generic table
        * markup — search, filters, the add button, and every row's own context menu. */
@@ -4483,6 +4571,33 @@ class ConsoleShell extends DCLogic {
       docsOutline:[],
       docsHasSuggested:false,
       docsSuggested:[],
+
+      changelogQuery:'',
+      setChangelogQuery:(e) => this.set('changelogQuery', e.target.value),
+      changelogRegexOn:false,
+      toggleChangelogRegex:() => this.set('changelogRegexOn', !s.changelogRegexOn),
+      changelogRegexBg:s.changelogRegexOn ? '#005230' : 'transparent',
+      changelogRegexColor:s.changelogRegexOn ? '#9FF7C4' : '#778078',
+      changelogRegexPalette:['^', '$', '\d+', '[a-z]+', '.*', 'fix'].map(p => ({ label:p, add:() => this.set('changelogQuery', (s.changelogQuery || '') + p) })),
+      changelogQueryError:'',
+      changelogFrom:'',
+      setChangelogFrom:(e) => this.set('changelogFrom', e.target.value),
+      changelogTo:'',
+      setChangelogTo:(e) => this.set('changelogTo', e.target.value),
+      changelogDateError:'',
+      changelogPresets:[
+        { label:'All time', apply:() => this.setState({ changelogFrom:'', changelogTo:'' }) },
+        { label:'Last 30 days', apply:() => this.applyChangelogPreset(30) },
+        { label:'Last 90 days', apply:() => this.applyChangelogPreset(90) },
+        { label:'This year', apply:() => this.applyChangelogYear() }
+      ],
+      changelogResultsLabel:'0 versions',
+      changelogRangeLabel:'',
+      changelogEntries:[
+        { version:'0.1.0', date:'2026-08-23', changes:[{ category:'General', summary:'Select a version to read its changes here.', commitShort:'', commitUrl:'' }] }
+      ],
+      changelogCopy:() => this.copyChangelog(),
+      changelogExport:() => this.exportChangelog(),
 
       groups:(sc.groups || []).map((g, gi) => ({
         rnd:this.rnd(gi + 1),

@@ -22,6 +22,10 @@ import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type Onboard
 import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
 import { parseMarkdown, plainTextExcerpt, type DocsBlock } from './docs-markdown';
+import {
+  commitUrl, filterAndSearch, parseChangelogDetailed, toMarkdown, toPlainText, type ChangelogEntry,
+} from './changelog';
+import { CHANGELOG_MARKDOWN, CHANGELOG_REPOSITORY_URL } from './generated/changelog-bundle';
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -1067,6 +1071,10 @@ It is shown once. The phone needs it to register.`);
       // selected article rendered as blocks (not raw Markdown source), and real
       // in-browser navigation for article-to-article links.
       ...(screen === 'docs' ? this.docsVals() : {}),
+
+      // The changelog viewer: every released version, built from this repository's
+      // own tag history (see scripts/bundle-changelog.mjs), never invented.
+      ...(screen === 'changelog' ? this.changelogVals() : {}),
     };
   }
 
@@ -1155,6 +1163,116 @@ It is shown once. The phone needs it to register.`);
       docsBlocks: article ? parseMarkdown(article.body).map(blockToVals) : [{ isParagraph: true, spans: [{ isPlain: true, text: 'No documentation article is bundled.' }] }],
       docsHasSuggested: suggested.length > 0,
       docsSuggested: suggested,
+    };
+  }
+
+  private readonly changelogAllEntries: ReadonlyArray<ChangelogEntry> = parseChangelogDetailed(CHANGELOG_MARKDOWN).entries;
+
+  private static isValidIsoDate(value: string): boolean {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const d = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+  }
+
+  private applyChangelogPreset(days: number): void {
+    const to = new Date();
+    const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    this.setState({ changelogFrom: iso(from), changelogTo: iso(to) });
+  }
+
+  private applyChangelogYear(): void {
+    const year = new Date().getUTCFullYear();
+    this.setState({ changelogFrom: `${year}-01-01`, changelogTo: `${year}-12-31` });
+  }
+
+  private copyChangelog(): void {
+    const { entries } = this.changelogFilterResult();
+    const text = toPlainText(entries);
+    void navigator.clipboard.writeText(text).then(
+      () => this.toast('Changelog copied to the clipboard'),
+      () => this.toast('Could not reach the clipboard'),
+    );
+  }
+
+  private exportChangelog(): void {
+    const { entries } = this.changelogFilterResult();
+    const markdown = toMarkdown(entries);
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'changelog-export.md';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /** Applies the current date range and search query to the real bundled changelog. */
+  private changelogFilterResult(): { entries: ReadonlyArray<ChangelogEntry>; error?: string } {
+    const state = this.state as { changelogFrom?: string; changelogTo?: string; changelogQuery?: string; changelogRegexOn?: boolean };
+    const from = state.changelogFrom ?? '';
+    const to = state.changelogTo ?? '';
+    const fromValid = from === '' || App.isValidIsoDate(from);
+    const toValid = to === '' || App.isValidIsoDate(to);
+    return filterAndSearch(this.changelogAllEntries, {
+      from: fromValid && from !== '' ? from : undefined,
+      to: toValid && to !== '' ? to : undefined,
+      query: state.changelogQuery ?? '',
+      regex: !!state.changelogRegexOn,
+    });
+  }
+
+  /** Real values for the `changelog` screen — every released version of this console,
+   *  parsed from a Markdown body built at build time from this repository's own tag
+   *  history (scripts/bundle-changelog.mjs). Nothing here is invented: a version with
+   *  no recorded changes says so plainly rather than inventing an entry. */
+  private changelogVals(): Record<string, unknown> {
+    const state = this.state as { changelogFrom?: string; changelogTo?: string };
+    const from = state.changelogFrom ?? '';
+    const to = state.changelogTo ?? '';
+    const fromValid = from === '' || App.isValidIsoDate(from);
+    const toValid = to === '' || App.isValidIsoDate(to);
+    const dateError = !fromValid
+      ? 'From date must be a valid calendar date in YYYY-MM-DD form.'
+      : !toValid
+        ? 'To date must be a valid calendar date in YYYY-MM-DD form.'
+        : '';
+
+    const { entries, error } = this.changelogFilterResult();
+
+    const rangeLabel = entries.length === 0
+      ? ''
+      : (() => {
+          const dates = entries.map((e) => e.date).sort();
+          const first = dates[0];
+          const last = dates[dates.length - 1];
+          return first === last ? `Range: ${first}` : `Range: ${first} to ${last}`;
+        })();
+
+    const rawState = this.state as { changelogQuery?: string; changelogRegexOn?: boolean };
+    return {
+      // The compiled design defaults these to a literal placeholder; mirror the
+      // real state back so the controlled fields actually reflect what was typed.
+      changelogFrom: from,
+      changelogTo: to,
+      changelogQuery: rawState.changelogQuery ?? '',
+      changelogRegexOn: !!rawState.changelogRegexOn,
+      changelogQueryError: error ?? '',
+      changelogDateError: dateError,
+      changelogResultsLabel: `${entries.length} version${entries.length === 1 ? '' : 's'}`,
+      changelogRangeLabel: rangeLabel,
+      changelogEntries: entries.map((entry) => ({
+        version: entry.version,
+        date: entry.date,
+        changes: entry.changes.length > 0
+          ? entry.changes.map((change) => ({
+              category: change.category,
+              summary: change.summary,
+              commitShort: change.commit.slice(0, 10),
+              commitUrl: commitUrl(change.commit, CHANGELOG_REPOSITORY_URL),
+            }))
+          : [{ category: '', summary: 'No changes recorded for this version.', commitShort: '', commitUrl: '' }],
+      })),
     };
   }
 

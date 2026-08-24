@@ -130,9 +130,14 @@
     },
     "changelog-viewer": {
       "state": "partial",
-      "note": "app/renderer/src/changelog.ts (263 lines, tested by tests/ui/changelog.test.tsx) implements changelog entries, date filtering and commit-link rendering, but is never imported by any mounted component, so it never renders in the running app.",
+      "note": "Wired and reachable: App rail > App > Changelog renders every version parsed from a real build-time bundle of this repository's own tag history (scripts/bundle-changelog.mjs -> generated/changelog-bundle.ts), with search (plain text + regex toggle), a date range filter, copy and Markdown export, and per-change commit links validated against real commits (tests/ui/changelog-wired.test.tsx). Confirmed rendering real entries in the built Electron app via headless CDP. Remaining gap: the date filter is typed ISO fields plus range presets, not the full month/year-jump calendar grid the contract describes.",
       "files": [
-        "app/renderer/src/changelog.ts"
+        "app/renderer/src/changelog.ts",
+        "app/renderer/src/App.tsx",
+        "app/renderer/src/generated/changelog-bundle.ts",
+        "design/Asterisk Console M3.dc.html",
+        "scripts/bundle-changelog.mjs",
+        "tests/ui/changelog-wired.test.tsx"
       ]
     },
     "external-editor-handoff": {
