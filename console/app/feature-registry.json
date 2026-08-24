@@ -240,7 +240,7 @@
     },
     "attention-modes": {
       "state": "partial",
-      "note": "Implemented-unverified 2026-08-23. app/renderer/src/attention-modes.ts defines five independent off-by-default switches, exact ATTENTION_WIRING rows, ATTENTION_MUTATION_ACTIONS, redacted versioned notice history, and verifyAttentionWiring. App.tsx restores att_focus, att_low, att_time, att_one, att_momentum, att_next, and notice history from durable storage after mount. The application-lifetime runtime uses stable semantic design markers to dim inactive chrome without hiding work, applies quiet color and motion consumers, composes with prefers-reduced-motion, shows session and since-last-change values in the current work region, and gives Momentum a factual 20-minute prompt with a persisted 30-minute snooze bounded to the declared interval. Attention writes use per-key serialized durable-storage calls and newest-generation handling, visibly reporting each affected key as pending, session-only, retry, or saved. All App and generated notification producers route through typed notifyInfo, notifyWarning, notifyError, notifyInfoEvent, notifyWarningEvent, or notifyErrorEvent helpers. Warning and error history is bounded, redacted, versioned, durably restored, searchable, clearable, and exportable. One generated onUserMutation callback covers controls, steppers, appearance, canvas, layout, tabs, groups, presets, and direct App-owned endpoint, server, settings, file, ticket, lock, and authenticator mutations, excluding passive reads and navigation. SettingsRegistry rolls back its in-memory map when atomic host persistence fails and dispatch returns the typed failure. The checked-in design adds the att_next text control, stable semantic markers, exact mutation actions, real Group tabs by area, and an honest unavailable new-window action. No UI, accessibility, browser, or built-artifact verification was run in this lane, so this remains partial until the owning integration lane supplies that evidence. Nothing is medical, scored, or judgemental.",
+      "note": "Implemented-unverified 2026-08-23. app/renderer/src/attention-modes.ts defines five independent off-by-default switches, exact ATTENTION_WIRING rows, ATTENTION_MUTATION_ACTIONS, redacted versioned notice history, and verifyAttentionWiring. App.tsx restores att_focus, att_low, att_time, att_one, att_momentum, att_next, and notice history from durable storage after mount. The application-lifetime runtime uses stable semantic design markers to dim inactive chrome without hiding work, applies quiet color and motion consumers, composes with prefers-reduced-motion, shows session and since-last-change values in the current work region, and gives Momentum a factual 20-minute prompt with a persisted 30-minute snooze bounded to the declared interval. Mode-key persistence and notice-history persistence have separate per-key pending, session-only, retry, and saved states. All App and generated notification producers route through typed notifyInfo, notifyWarning, notifyError, notifyInfoEvent, notifyWarningEvent, or notifyErrorEvent helpers, with no raw toast or fire producer calls. Warning and error history is bounded, redacted, versioned, durably restored, searchable, clearable, and exportable. One generated onUserMutation callback covers controls, steppers, appearance, canvas, layout, tabs, groups, presets, and direct App-owned endpoint, server, settings, file, ticket, lock, and authenticator mutations, excluding passive reads and navigation. SettingsRegistry rolls back its in-memory map when atomic host persistence fails and dispatch returns the typed failure. The checked-in design adds the att_next text control, stable semantic markers, exact mutation actions, real Group tabs by area, and an honest unavailable new-window action. No UI, accessibility, browser, or built-artifact verification was run in this lane, so this remains partial until the owning integration lane supplies that evidence. Nothing is medical, scored, or judgemental.",
       "files": [
         "app/renderer/src/attention-modes.ts",
         "app/renderer/src/App.tsx",
@@ -252,6 +252,7 @@
         "control-plane/dispatch.ts",
         "design/Asterisk Console M3.dc.html",
         "app/renderer/src/generated/console.tsx",
+        "scripts/verify-inventories.mjs",
         "docs/platform/attention-modes.md",
         "tests/ui/attention-modes.test.tsx"
       ],
@@ -277,8 +278,8 @@
         "key": "console.attention.noticeHistory",
         "schemaVersion": 1,
         "maxEntries": 200,
-        "redaction": "redactNoticeText removes paths, URLs, and credential-shaped values before durable write",
-        "actions": ["search", "clear", "export", "restore"]
+        "redaction": "redactNoticeText removes Windows, UNC, POSIX, relative, and PBX configuration paths, URLs, and credential-shaped values before durable write or export",
+        "actions": ["search", "clear", "export", "restore", "show-corrupt-state", "reset-corrupt-state"]
       },
       "mutationPaths": [
         "App.languageAwareSetVal",

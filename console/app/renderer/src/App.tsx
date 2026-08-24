@@ -227,13 +227,15 @@ export class App extends Base {
   private attentionStatus: HTMLElement | undefined;
   private attentionMotionQuery: MediaQueryList | undefined;
   private attentionSyncing = false;
-  private attentionPersistenceState: 'saved' | 'pending' | 'session-only' | 'retry' = 'saved';
+  private attentionModePersistenceState: 'saved' | 'pending' | 'session-only' | 'retry' = 'saved';
+  private attentionHistoryPersistenceState: 'saved' | 'pending' | 'session-only' | 'retry' = 'saved';
   private attentionPendingWrites = new Map<string, { value: string | null; generation: number }>();
   private attentionWriteGenerations = new Map<string, number>();
   private attentionFailedKeys = new Set<string>();
   private attentionSessionOnlyKeys = new Set<string>();
   private attentionNoticeHistory: Array<{ severity: 'warning' | 'error'; title: string; body: string }> = [];
   private attentionHistoryQuery = '';
+  private attentionHistoryCorrupt = false;
 
   /** Single generated-renderer mutation callback. Direct App-owned mutation paths
    * call this too, so the last-change clock has one source rather than a scattered
@@ -337,7 +339,10 @@ export class App extends Base {
     if (!raw) return;
     try {
       const parsed = JSON.parse(raw) as { schemaVersion?: number; entries?: unknown };
-      if (parsed.schemaVersion !== NOTICE_HISTORY_SCHEMA_VERSION || !Array.isArray(parsed.entries)) return;
+      if (parsed.schemaVersion !== NOTICE_HISTORY_SCHEMA_VERSION || !Array.isArray(parsed.entries)) {
+        this.attentionHistoryCorrupt = true;
+        return;
+      }
       this.attentionNoticeHistory = parsed.entries.filter((entry): entry is { severity: 'warning' | 'error'; title: string; body: string } => {
         if (!entry || typeof entry !== 'object') return false;
         const value = entry as Record<string, unknown>;
@@ -349,13 +354,14 @@ export class App extends Base {
         body: redactNoticeText(entry.body),
       }));
     } catch {
-      this.attentionNoticeHistory = [];
+      this.attentionHistoryCorrupt = true;
     }
   }
 
   private attentionClearHistory(): void {
     this.attentionNoticeHistory = [];
     this.attentionHistoryQuery = '';
+    this.attentionHistoryCorrupt = false;
     this.attentionPersistHistory();
     this.onUserMutation('attention-history-clear');
     this.attentionRender();
@@ -376,10 +382,14 @@ export class App extends Base {
     const pending = [...this.attentionPendingWrites.keys()].join(', ');
     const failed = [...this.attentionFailedKeys.keys()].join(', ');
     const sessionOnly = [...this.attentionSessionOnlyKeys.keys()].join(', ');
-    if (this.attentionPersistenceState === 'pending') return `Saving attention keys: ${pending}.`;
-    if (this.attentionPersistenceState === 'session-only') return `Session-only attention keys: ${sessionOnly || pending}. The desktop bridge is unavailable.`;
-    if (this.attentionPersistenceState === 'retry') return `Attention keys needing retry: ${failed || pending}. Current values remain active.`;
-    return '';
+    const notices: string[] = [];
+    if (this.attentionModePersistenceState === 'pending') notices.push(`Saving attention keys: ${pending || 'mode settings'}.`);
+    if (this.attentionModePersistenceState === 'session-only') notices.push(`Session-only attention keys: ${sessionOnly || pending || 'mode settings'}. The desktop bridge is unavailable.`);
+    if (this.attentionModePersistenceState === 'retry') notices.push(`Attention keys needing retry: ${failed || pending || 'mode settings'}. Current values remain active.`);
+    if (this.attentionHistoryPersistenceState === 'pending') notices.push('Saving warning and error history.');
+    if (this.attentionHistoryPersistenceState === 'session-only') notices.push('Warning and error history is session-only because the desktop bridge is unavailable.');
+    if (this.attentionHistoryPersistenceState === 'retry') notices.push('Warning and error history needs retry. Current history remains visible.');
+    return notices.join(' ');
   }
 
   private attentionWrite(key: string, value: string | null): void {
@@ -388,7 +398,12 @@ export class App extends Base {
     this.attentionPendingWrites.set(key, { value, generation });
     this.attentionFailedKeys.delete(key);
     this.attentionSessionOnlyKeys.delete(key);
-    this.attentionPersistenceState = this.bridge() ? 'pending' : 'session-only';
+    const isHistory = key === NOTICE_HISTORY_SETTING_KEY;
+    const setPersistenceState = (state: 'saved' | 'pending' | 'session-only' | 'retry') => {
+      if (isHistory) this.attentionHistoryPersistenceState = state;
+      else this.attentionModePersistenceState = state;
+    };
+    setPersistenceState(this.bridge() ? 'pending' : 'session-only');
     this.attentionRender();
     const result = value === null
       ? this.durableStorage.removeItem(key)
@@ -397,14 +412,14 @@ export class App extends Base {
       if (!outcome.durable) {
         if (this.attentionPendingWrites.get(key)?.generation !== generation) return;
         this.attentionSessionOnlyKeys.add(key);
-        this.attentionPersistenceState = 'session-only';
+        setPersistenceState('session-only');
         this.attentionRender();
         return;
       }
       if (!outcome.ok) {
         if (this.attentionPendingWrites.get(key)?.generation !== generation) return;
         this.attentionFailedKeys.add(key);
-        this.attentionPersistenceState = 'retry';
+        setPersistenceState('retry');
         this.attentionRender();
         return;
       }
@@ -412,7 +427,8 @@ export class App extends Base {
       this.attentionPendingWrites.delete(key);
       this.attentionFailedKeys.delete(key);
       this.attentionSessionOnlyKeys.delete(key);
-      if (this.attentionPendingWrites.size === 0) this.attentionPersistenceState = 'saved';
+      if (isHistory) this.attentionHistoryPersistenceState = 'saved';
+      else if (this.attentionPendingWrites.size === 0) this.attentionModePersistenceState = 'saved';
       this.attentionRender();
     });
   }
@@ -536,7 +552,8 @@ export class App extends Base {
       this.attentionSnoozedUntil > 0 ? Math.max(0, now - (this.attentionSnoozedUntil - SNOOZE_MS)) : undefined,
     );
     const shouldShow = presentation.showElapsedTime || presentation.showNextAction || prompt.show
-      || this.attentionPersistenceState !== 'saved' || this.attentionNoticeHistory.length > 0;
+      || this.attentionModePersistenceState !== 'saved' || this.attentionHistoryPersistenceState !== 'saved'
+      || this.attentionNoticeHistory.length > 0 || this.attentionHistoryCorrupt;
     status.hidden = !shouldShow;
     status.replaceChildren();
     if (!shouldShow) return;
@@ -568,7 +585,7 @@ export class App extends Base {
       const notice = document.createElement('div');
       notice.textContent = persistence;
       status.append(notice);
-      if (this.attentionPersistenceState === 'retry') {
+      if (this.attentionModePersistenceState === 'retry' || this.attentionHistoryPersistenceState === 'retry') {
         const retry = document.createElement('button');
         retry.type = 'button';
         retry.textContent = 'Retry saving attention settings';
@@ -576,7 +593,17 @@ export class App extends Base {
         status.append(retry);
       }
     }
-    if (this.attentionNoticeHistory.length > 0) {
+    if (this.attentionNoticeHistory.length > 0 || this.attentionHistoryCorrupt) {
+      if (this.attentionHistoryCorrupt) {
+        const corrupt = document.createElement('div');
+        corrupt.textContent = 'Saved warning and error history could not be read. It remains untouched until you reset it.';
+        status.append(corrupt);
+        const reset = document.createElement('button');
+        reset.type = 'button';
+        reset.textContent = 'Reset unreadable history';
+        reset.addEventListener('click', () => this.attentionClearHistory(), { once: true });
+        status.append(reset);
+      }
       const search = document.createElement('input');
       search.type = 'search';
       search.placeholder = 'Search warnings and errors';

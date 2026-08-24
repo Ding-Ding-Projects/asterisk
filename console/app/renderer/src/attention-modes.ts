@@ -41,10 +41,21 @@ export const MODE_DESCRIPTIONS: readonly ModeDescription[] = [
 ];
 
 export const MODE_SETTING_PREFIX = 'console.attention.';
-export const NEXT_ACTION_SETTING_KEY = `${MODE_SETTING_PREFIX}nextAction`;
-export const LAST_CHANGED_SETTING_KEY = `${MODE_SETTING_PREFIX}lastChangedAt`;
-export const SNOOZED_UNTIL_SETTING_KEY = `${MODE_SETTING_PREFIX}snoozedUntil`;
-export const NOTICE_HISTORY_SETTING_KEY = `${MODE_SETTING_PREFIX}noticeHistory`;
+export const ATTENTION_STORAGE_KEYS = {
+  focus: 'console.attention.focus',
+  lowStimulation: 'console.attention.lowStimulation',
+  timeAwareness: 'console.attention.timeAwareness',
+  oneThing: 'console.attention.oneThing',
+  momentum: 'console.attention.momentum',
+  nextAction: 'console.attention.nextAction',
+  lastChangedAt: 'console.attention.lastChangedAt',
+  snoozedUntil: 'console.attention.snoozedUntil',
+  noticeHistory: 'console.attention.noticeHistory',
+} as const;
+export const NEXT_ACTION_SETTING_KEY = ATTENTION_STORAGE_KEYS.nextAction;
+export const LAST_CHANGED_SETTING_KEY = ATTENTION_STORAGE_KEYS.lastChangedAt;
+export const SNOOZED_UNTIL_SETTING_KEY = ATTENTION_STORAGE_KEYS.snoozedUntil;
+export const NOTICE_HISTORY_SETTING_KEY = ATTENTION_STORAGE_KEYS.noticeHistory;
 export const NOTICE_HISTORY_SCHEMA_VERSION = 1;
 export const NOTICE_HISTORY_MAX_ENTRIES = 200;
 export const NEXT_ACTION_MAX_LENGTH = 140;
@@ -84,6 +95,7 @@ export interface RedactedNotice {
 export function redactNoticeText(value: string): string {
   return value
     .replace(/(?:[A-Za-z]:\\|\\\\)[^\s)]+/g, '[path omitted]')
+    .replace(/(^|[\s("'`])(?:\.{1,2}[\\/][^\s)"'`]+|\/(?:etc|var|home|tmp|opt|srv|mnt|usr)\/[^\s)"'`]+|(?:pjsip|extensions|queues|http|acl|asterisk|modules|logger|rtp|cdr|cel|features|musiconhold|voicemail)\.conf\b)/gm, '$1[path omitted]')
     .replace(/\b(?:https?|file):\/\/[^\s]+/gi, '[url omitted]')
     .replace(/\b(password|passphrase|secret|token|pin|code)\s*[:=]\s*[^\s,.;]+/gi, '$1: [redacted]')
     .slice(0, 500);
@@ -93,7 +105,7 @@ export function redactNoticeText(value: string): string {
  * control, control absent from the design, or consumer absent from the runtime fails
  * closed. Callers provide the checked-in source text, so a negative regression can
  * remove one exact assertion and observe the Chut turn red. */
-export function verifyAttentionWiring(sources: { design: string; app: string; generated: string }): void {
+export function verifyAttentionWiring(sources: { design: string; app: string; generated: string; module: string }): void {
   if (ATTENTION_WIRING.length !== ATTENTION_MODES.length + 1) throw new Error('Attention wiring inventory must contain exactly six rows.');
   const controls = new Set<string>();
   for (const row of ATTENTION_WIRING) {
@@ -102,7 +114,7 @@ export function verifyAttentionWiring(sources: { design: string; app: string; ge
     const controlBoundary = new RegExp(`\\b${row.control}\\b`);
     if (!controlBoundary.test(sources.design)) throw new Error(`Missing design control: ${row.control}`);
     if (!sources.app.includes(`'${row.control}'`)) throw new Error(`Missing App control construction: ${row.control}`);
-    if (!sources.app.includes(row.storageKey)) throw new Error(`Missing durable key: ${row.storageKey}`);
+    if (!sources.module.includes(row.storageKey)) throw new Error(`Missing exact durable key construction: ${row.storageKey}`);
     const writerSource = `${sources.app}\n${sources.generated}`;
     if (!writerSource.includes('onUserMutation')) throw new Error(`Missing mutation writer for ${row.control}`);
     if (row.control === 'att_next' ? !sources.app.includes('setNextAction') : !sources.app.includes('setModeEnabled')) {
