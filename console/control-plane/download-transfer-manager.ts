@@ -246,17 +246,19 @@ export class DownloadTransferManager implements DownloadTransferClient {
       if (['completed'].includes(snapshot.status)) return this.receipt(command, snapshot.handoffId, false, at, 'DOWNLOAD_CANCEL_UNAVAILABLE', 'The transfer is no longer cancellable.', transferId);
       if (task) task.controller.abort();
       const helperClosed = await this.waitForHelperClose(task);
-      const cleanup = !helperClosed ? { cleanupCompleted: false, cleanupError: { code: 'SECURE_TEMP_CLOSE_TIMEOUT', message: 'The native secure writer did not close before the cancellation cleanup deadline.', retryable: true, observedAt: observedAt() } as DownloadTransferSnapshot['error'] } : task ? await this.cleanTemp(task.tempPath) : await this.cleanTemp(`${snapshot.destinationPath}.${transferId}.part`);
+      const latePublication = existsSync(snapshot.destinationPath);
+      const cleanup = !helperClosed ? { cleanupCompleted: false, cleanupError: { code: 'SECURE_TEMP_CLOSE_TIMEOUT', message: 'The native secure writer did not close before the cancellation cleanup deadline.', retryable: true, observedAt: observedAt() } as DownloadTransferSnapshot['error'] } : latePublication ? { cleanupCompleted: false, cleanupError: { code: 'DOWNLOAD_LATE_PUBLICATION_CONFLICT', message: 'The destination appeared after cancellation, so cleanup was refused and the late publication requires review.', retryable: true, observedAt: observedAt() } as DownloadTransferSnapshot['error'] } : task ? await this.cleanTemp(task.tempPath) : await this.cleanTemp(`${snapshot.destinationPath}.${transferId}.part`);
       this.emit({ ...snapshot, ...cleanup, status: 'cancelled', canPause: false, canResume: false, canCancel: false, canRetry: !cleanup.cleanupCompleted, observedAt: at });
-      return this.receipt(command, snapshot.handoffId, cleanup.cleanupCompleted, at, cleanup.cleanupCompleted ? undefined : 'DOWNLOAD_CLEANUP_FAILED', cleanup.cleanupCompleted ? 'Cancellation was recorded and the temporary file was removed.' : cleanup.cleanupError?.message, transferId);
+      return this.receipt(command, snapshot.handoffId, cleanup.cleanupCompleted, at, cleanup.cleanupCompleted ? undefined : cleanup.cleanupError?.code === 'DOWNLOAD_LATE_PUBLICATION_CONFLICT' ? 'DOWNLOAD_LATE_PUBLICATION_CONFLICT' : 'DOWNLOAD_CLEANUP_FAILED', cleanup.cleanupCompleted ? 'Cancellation was recorded and the temporary file was removed.' : cleanup.cleanupError?.message, transferId);
     }
     if (command === 'discard') {
       if (!['failed', 'partial', 'cancelled'].includes(snapshot.status)) return this.receipt(command, snapshot.handoffId, false, at, 'DOWNLOAD_DISCARD_UNAVAILABLE', 'Discard is available only for a failed, partial, or cancelled transfer.', transferId);
       if (task) task.controller.abort();
       const helperClosed = await this.waitForHelperClose(task);
-      const cleanup = !helperClosed ? { cleanupCompleted: false, cleanupError: { code: 'SECURE_TEMP_CLOSE_TIMEOUT', message: 'The native secure writer did not close before the discard cleanup deadline.', retryable: true, observedAt: observedAt() } as DownloadTransferSnapshot['error'] } : await this.cleanTemp(task?.tempPath ?? `${snapshot.destinationPath}.${transferId}.part`);
+      const latePublication = existsSync(snapshot.destinationPath);
+      const cleanup = !helperClosed ? { cleanupCompleted: false, cleanupError: { code: 'SECURE_TEMP_CLOSE_TIMEOUT', message: 'The native secure writer did not close before the discard cleanup deadline.', retryable: true, observedAt: observedAt() } as DownloadTransferSnapshot['error'] } : latePublication ? { cleanupCompleted: false, cleanupError: { code: 'DOWNLOAD_LATE_PUBLICATION_CONFLICT', message: 'The destination appeared after discard, so cleanup was refused and the late publication requires review.', retryable: true, observedAt: observedAt() } as DownloadTransferSnapshot['error'] } : await this.cleanTemp(task?.tempPath ?? `${snapshot.destinationPath}.${transferId}.part`);
       this.emit({ ...snapshot, ...cleanup, status: 'cancelled', bodyComplete: false, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: !cleanup.cleanupCompleted, observedAt: at, error: undefined, partial: undefined });
-      return this.receipt(command, snapshot.handoffId, cleanup.cleanupCompleted, at, cleanup.cleanupCompleted ? undefined : 'DOWNLOAD_CLEANUP_FAILED', cleanup.cleanupCompleted ? 'The transfer and its temporary file were discarded.' : cleanup.cleanupError?.message, transferId);
+      return this.receipt(command, snapshot.handoffId, cleanup.cleanupCompleted, at, cleanup.cleanupCompleted ? undefined : cleanup.cleanupError?.code === 'DOWNLOAD_LATE_PUBLICATION_CONFLICT' ? 'DOWNLOAD_LATE_PUBLICATION_CONFLICT' : 'DOWNLOAD_CLEANUP_FAILED', cleanup.cleanupCompleted ? 'The transfer and its temporary file were discarded.' : cleanup.cleanupError?.message, transferId);
     }
     if (command === 'pause') {
       if (!task || snapshot.status !== 'downloading' || !snapshot.canPause) return this.receipt(command, snapshot.handoffId, false, at, 'DOWNLOAD_PAUSE_UNAVAILABLE', snapshot.resumeDisabledReason ?? 'Pause is unavailable because the source does not support resumable ranges.', transferId);
@@ -310,12 +312,30 @@ export class DownloadTransferManager implements DownloadTransferClient {
     if (!Number.isSafeInteger(info.size) || info.size < recordedBytes || info.size > MAX_DOWNLOAD_BYTES) throw new Error('SECURE_TEMP_SIZE_RECONCILIATION_FAILED: The durable temporary size was not compatible with the last acknowledged byte count.');
     return info.size;
   }
-  private async publishSecureTemp(parentPath: string, tempPath: string, destinationPath: string, expectedSize: number, expectedSha256?: string): Promise<{ size: number; sha256: string; destination: string }> {
+  private async publishSecureTemp(parentPath: string, tempPath: string, destinationPath: string, expectedSize: number, expectedSha256: string | undefined, task: TransferTask, signal: AbortSignal): Promise<{ size: number; sha256: string; destination: string }> {
     if (process.platform !== 'win32' || !this.secureTempHelperPath || !existsSync(this.secureTempHelperPath)) throw new Error('SECURE_TEMP_PUBLISH_HELPER_UNAVAILABLE: The native secure publication helper is unavailable.');
-    const result = await execFileAsync(this.secureTempHelperPath, ['--publish', parentPath, basename(tempPath), basename(destinationPath), String(expectedSize), expectedSha256 ?? ''], { windowsHide: true, timeout: 30_000, maxBuffer: 32 * 1024 });
-    const receipt = JSON.parse(String(result.stdout).trim()) as { accepted?: unknown; code?: unknown; bytes?: unknown; sha256?: unknown; destination?: unknown };
-    if (receipt.accepted !== true || receipt.code !== 'SECURE_TEMP_PUBLISHED' || receipt.bytes !== expectedSize || typeof receipt.sha256 !== 'string' || (expectedSha256 && receipt.sha256.toLowerCase() !== expectedSha256.toLowerCase()) || receipt.destination !== basename(destinationPath)) throw new Error(`SECURE_TEMP_PUBLISH_FAILED: The native publication receipt did not match the recorded complete file, code=${String(receipt.code ?? 'unknown')}.`);
-    return { size: expectedSize, sha256: receipt.sha256, destination: receipt.destination };
+    if (signal.aborted) throw new Error('SECURE_TEMP_PUBLISH_CANCELLED: Native publication was cancelled before start.');
+    const child: ChildProcessWithoutNullStreams = spawn(this.secureTempHelperPath, ['--publish', parentPath, basename(tempPath), basename(destinationPath), String(expectedSize), expectedSha256 ?? ''], { windowsHide: true, stdio: 'pipe' });
+    let output = '';
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', (value: string) => { output += value; });
+    const finished = new Promise<void>((resolveFinished, rejectFinished) => {
+      child.once('error', rejectFinished);
+      child.once('close', (code) => code === 0 ? resolveFinished() : rejectFinished(new Error(`SECURE_TEMP_PUBLISH_FAILED: Native publication exited with ${code ?? 'unknown'}, ${output || 'no typed receipt'}.`)));
+    });
+    task.helperClose = finished;
+    const abort = () => { if (!child.killed) child.kill(); };
+    signal.addEventListener('abort', abort, { once: true });
+    try {
+      await finished;
+      if (signal.aborted) throw new Error('SECURE_TEMP_PUBLISH_CANCELLED: Native publication was cancelled while the helper was closing.');
+      const receipt = JSON.parse(output.trim()) as { accepted?: unknown; code?: unknown; bytes?: unknown; sha256?: unknown; destination?: unknown };
+      if (receipt.accepted !== true || receipt.code !== 'SECURE_TEMP_PUBLISHED' || receipt.bytes !== expectedSize || typeof receipt.sha256 !== 'string' || (expectedSha256 && receipt.sha256.toLowerCase() !== expectedSha256.toLowerCase()) || receipt.destination !== basename(destinationPath)) throw new Error(`SECURE_TEMP_PUBLISH_FAILED: The native publication receipt did not match the recorded complete file, code=${String(receipt.code ?? 'unknown')}.`);
+      return { size: expectedSize, sha256: receipt.sha256, destination: receipt.destination };
+    } finally {
+      signal.removeEventListener('abort', abort);
+      if (!child.killed) child.kill();
+    }
   }
   private async waitForHelperClose(task: TransferTask | undefined): Promise<boolean> {
     if (!task?.helperClose) return true;
@@ -409,7 +429,7 @@ export class DownloadTransferManager implements DownloadTransferClient {
       if (existsSync(snapshot.destinationPath)) throw new Error('DOWNLOAD_DESTINATION_EXISTS: The destination appeared before retry publication.');
       let published: { size: number; sha256: string; destination?: string };
       if (process.platform === 'win32' && this.secureTempHelperPath) {
-        published = await this.publishSecureTemp(dirname(snapshot.destinationPath), tempPath, snapshot.destinationPath, snapshot.publicationSize, snapshot.publicationSha256);
+        published = await this.publishSecureTemp(dirname(snapshot.destinationPath), tempPath, snapshot.destinationPath, snapshot.publicationSize, snapshot.publicationSha256, integrityTask, integrityTask.controller.signal);
       } else {
         const inspected = await this.inspectCompleteTemp(tempPath, snapshot.publicationSize, integrityTask.controller.signal);
         if (inspected.sha256.toLowerCase() !== snapshot.publicationSha256.toLowerCase()) throw new Error('PUBLISH_INTEGRITY_FAILED: The complete temporary file digest changed before publication.');
@@ -420,7 +440,7 @@ export class DownloadTransferManager implements DownloadTransferClient {
       return this.receipt('retry', snapshot.handoffId, true, at, undefined, 'The complete temporary file was published after destination revalidation.', transferId);
     } catch (error) {
       const latest = this.snapshots.get(transferId);
-      if (latest?.status === 'cancelled') return this.receipt('retry', snapshot.handoffId, false, at, 'DOWNLOAD_CANCELLED', 'Publication retry was cancelled.', transferId);
+      if (latest?.status === 'cancelled') return this.receipt('retry', snapshot.handoffId, false, at, existsSync(snapshot.destinationPath) ? 'DOWNLOAD_LATE_PUBLICATION_CONFLICT' : 'DOWNLOAD_CANCELLED', existsSync(snapshot.destinationPath) ? 'The destination appeared after publication cancellation and requires review.' : 'Publication retry was cancelled.', transferId);
       const integrity = error instanceof Error && error.message.startsWith('PUBLISH_INTEGRITY_FAILED');
       const integrityRead = error instanceof IntegrityReadError;
       const cleanup: { cleanupCompleted?: boolean; cleanupError?: DownloadTransferSnapshot['error'] } = integrity ? await this.cleanTemp(tempPath) : {};
@@ -476,7 +496,7 @@ export class DownloadTransferManager implements DownloadTransferClient {
         this.emit(snapshot);
         await this.assertNoReparseComponents(dirname(snapshot.destinationPath));
         if (existsSync(snapshot.destinationPath)) throw new Error('DOWNLOAD_DESTINATION_EXISTS: The destination appeared before native publication.');
-        const published = await this.publishSecureTemp(dirname(snapshot.destinationPath), task.tempPath, snapshot.destinationPath, completeSize, snapshot.publicationSha256 ?? '');
+        const published = await this.publishSecureTemp(dirname(snapshot.destinationPath), task.tempPath, snapshot.destinationPath, completeSize, undefined, task, controller.signal);
         snapshot = { ...snapshot, publicationSha256: published.sha256, status: 'completed', publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: false, observedAt: observedAt() };
         this.emit(snapshot);
         return;
