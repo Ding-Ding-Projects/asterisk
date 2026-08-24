@@ -5,17 +5,9 @@
   "features": {
     "language-modes": {
       "status": "absent",
-      "note": "Implemented 2026-08-23, replacing an \"absent\" row. The mechanism is app/renderer/src/text-boundary.ts, mounted as `h` in app/renderer/src/dc-runtime.tsx -- the element factory every compiled template is built from -- so all three modes (en/yue/both) reach the compiled renderer without any generated file being edited. The `lang_mode` control went into the design and recompiled byte-identically; App.tsx intercepts it in setVal, applies it live and persists it through durable storage, restoring it on mount. PARTIAL rather than implemented, and deliberately so: the catalog covers 187 of roughly 217 design labels, so 21 of the 44 canonical features still render English in every mode. See app/locales/feature-registry.json for the per-feature breakdown, which is recomputed from the catalog by tests/contracts/language-modes.test.mjs and cannot be edited into agreement. An untranslated string renders English rather than a placeholder.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/text-boundary.ts",
-          "app/renderer/src/locale-yue.ts",
-          "app/renderer/src/dc-runtime.tsx",
-          "app/renderer/src/App.tsx",
-          "app/locales/feature-registry.json",
-          "tests/ui/text-boundary.test.tsx",
-          "tests/contracts/language-modes.test.mjs"
-        ],
+        "paths": [],
         "symbols": []
       },
       "registration": {
@@ -84,7 +76,7 @@
     },
     "funny-levels": {
       "status": "absent",
-      "note": "No funny-level slider or copy-styling mechanism exists. Notification and dialog copy in App.tsx and the compiled console (this.fire/this.toast) is fixed text with no tone variation.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -155,12 +147,9 @@
     },
     "dialog-emojis": {
       "status": "absent",
-      "note": "app/renderer/src/dialog-emojis.ts implements a persisted toggle that defaults off and decorates only dialog headings and bodies. The dlg_emoji control is compiled into the real design and App.languageAwareSetVal persists its value. No built-artifact interaction or current capture has verified the complete route yet.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/App.tsx",
-          "app/renderer/src/dialog-emojis.ts"
-        ],
+        "paths": [],
         "symbols": []
       },
       "registration": {
@@ -229,7 +218,7 @@
     },
     "school-mode": {
       "status": "absent",
-      "note": "No School mode setting, rename, or shared-credential unlock exists. The per-element lock mechanism in the compiled console (tryUnlock, PIN/password) is unrelated to School mode.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -300,11 +289,9 @@
     },
     "narration": {
       "status": "partial",
-      "note": "app/renderer/src/narration.ts implements TTS narration logic (queue, per-category cooldown, language selection) and is covered by tests/ui/narration.test.tsx, but the module is never imported by App.tsx, PbxAdminApp.tsx, or PbxAdminIntegratedApp.tsx, so it never runs inside the mounted application.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/narration.ts"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "app/renderer/src/narration.ts",
@@ -384,7 +371,7 @@
     },
     "scheduled-settings": {
       "status": "absent",
-      "note": "No scheduled-settings surface, date/time rule editor, or external source integration exists anywhere in the renderer or control-plane.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -455,7 +442,7 @@
     },
     "external-settings-sources": {
       "status": "absent",
-      "note": "No external settings source (validated HTTPS API or Home Assistant boolean entity) is wired anywhere; same gap as scheduled-settings.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -526,7 +513,7 @@
     },
     "dim-sum-surprise": {
       "status": "absent",
-      "note": "No startup dim-sum surprise, bundled dish assets, or 10% draw exists.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -597,13 +584,9 @@
     },
     "regex-builder": {
       "status": "partial",
-      "note": "A real regex-capable control is wired: App.tsx binds readings.regexMatchLabel() to a live regex-match count (App.tsx line 889, readings.ts lines 356-360), and the compiled console tab-close filter (generated/console.tsx applyTabFilter, near line 4459) evaluates typed text as new RegExp(q, \"i\") with a plain-text fallback. Neither is the full guided builder (literal/class/anchor/group construction, flags UI, capture-group display) the contract requires; it is a single pattern field with live match feedback.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/App.tsx",
-          "app/renderer/src/readings.ts",
-          "app/renderer/src/generated/console.tsx"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "app/renderer/src/generated/console.tsx",
@@ -678,12 +661,9 @@
     },
     "non-blocking-notifications": {
       "status": "partial",
-      "note": "The compiled console (ConsoleShell, generated/console.tsx) implements this.fire()/this.toast() as the notification primitives, called extensively from App.tsx (lines 292, 325, 327, 342...) and the compiled UI itself. These read as corner toasts in the design, but there is no reviewable notification centre or history for dismissed notifications.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/App.tsx",
-          "app/renderer/src/generated/console.tsx"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "app/renderer/src/generated/console.tsx",
@@ -769,18 +749,9 @@
     },
     "status-hub": {
       "status": "absent",
-      "note": "The desktop surface is mounted at #surface=status and reads observed project, session, evidence, question, inbox, and receipt data through the typed Status Hub client and store. The external service remains unavailable until STATUS_HUB_URL is configured.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "console/shared/status-hub.ts",
-          "console/control-plane/status-hub-client.ts",
-          "console/control-plane/status-hub-store.ts",
-          "console/app/renderer/src/status-hub-state.ts",
-          "console/app/renderer/src/status-hub-surface.tsx",
-          "console/app/renderer/src/surface-mounts.tsx",
-          "console/app/electron/main.ts",
-          "console/app/electron/preload.ts"
-        ],
+        "paths": [],
         "symbols": []
       },
       "registration": {
@@ -849,13 +820,9 @@
     },
     "material-appearance": {
       "status": "partial",
-      "note": "app/renderer/src/appearance.ts and colour.ts implement Material appearance tokens, an infinite-colour-picker translator (colour.ts, 743 lines) and per-element editing logic, covered by tests/ui/appearance.test.tsx and colour.test.tsx, but neither module is imported by App.tsx/PbxAdminApp.tsx. The compiled console separately implements its own tab-colour picker and a rainbow colour cycle (generated/console.tsx applyColour, tabColourOpts) which is real and wired, but narrower (tab colour only) than the appearance.ts/colour.ts module set.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/appearance.ts",
-          "app/renderer/src/colour.ts",
-          "app/renderer/src/generated/console.tsx"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "app/renderer/src/appearance.ts",
@@ -935,7 +902,7 @@
     },
     "app-logo-customization": {
       "status": "absent",
-      "note": "No logo preset picker, custom-image upload, or icon-generation pipeline exists.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -1184,11 +1151,9 @@
     },
     "browser-style-tabs": {
       "status": "implemented-unverified",
-      "note": "The compiled console (generated/console.tsx) implements a real tab strip with groups, docking (state.dock), colours, rename, pin (state.pinned / $t.pinned), and a bulk close-by-text/regex/colour filter (tabFilterOpen/applyTabFilter, near line 4437). This is live, wired UI, not a stub, though it is compiled from the checked-in design reference rather than hand-authored.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/generated/console.tsx"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "app/renderer/src/generated/console.tsx",
@@ -1274,11 +1239,9 @@
     },
     "tab-groups-and-searches": {
       "status": "partial",
-      "note": "Tab groups (state.groups, tabGroups, group colours/collapse), a per-strip filter with Containing/Not-containing/By-colour modes (generated/console.tsx near line 4829), and pinning are real and wired. Missing: a dedicated group-name search, an in-group search, and a master cross-window tab search - only the single strip filter exists, so the four-search contract is not met.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/generated/console.tsx"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "app/renderer/src/generated/console.tsx",
@@ -1359,11 +1322,9 @@
     },
     "command-palette": {
       "status": "partial",
-      "note": "app/renderer/src/catalog.ts builds a searchable command/settings catalogue (61 lines) but is never imported by App.tsx or any mounted component. No Ctrl+Shift+F activation exists in App.tsx or the compiled console.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/catalog.ts"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "app/renderer/src/catalog.ts",
@@ -1443,13 +1404,9 @@
     },
     "destructive-action-confirmation": {
       "status": "implemented-unverified",
-      "note": "app/renderer/src/ceremony.ts (runCeremonyCommand) is imported and invoked by App.tsx (lines 8, 788) to run a confirmation ceremony before a destructive PBX command executes; the compiled console additionally implements areYouSure() as a timed confirm used for other destructive UI actions (tab-partner approval, dialplan-step delete). Genuinely wired end to end.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/ceremony.ts",
-          "app/renderer/src/App.tsx",
-          "app/renderer/src/generated/console.tsx"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "app/renderer/src/ceremony.ts",
@@ -1535,12 +1492,9 @@
     },
     "local-version-history": {
       "status": "absent",
-      "note": "control-plane/local-history.ts and control-plane/config-history.ts implement Git-backed local history server-side, but nothing in the renderer surfaces a history/versions panel, restore action, or diff view to the user. The feature exists as backend plumbing with no reachable UI.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "control-plane/local-history.ts",
-          "control-plane/config-history.ts"
-        ],
+        "paths": [],
         "symbols": []
       },
       "registration": {
@@ -1609,16 +1563,9 @@
     },
     "changelog-viewer": {
       "status": "partial",
-      "note": "Wired and reachable: App rail > App > Changelog renders every version parsed from a real build-time bundle of this repository's own tag history (scripts/bundle-changelog.mjs -> generated/changelog-bundle.ts), with search (plain text + regex toggle), a date range filter, copy and Markdown export, and per-change commit links validated against real commits (tests/ui/changelog-wired.test.tsx). Confirmed rendering real entries in the built Electron app via headless CDP. Remaining gap: the date filter is typed ISO fields plus range presets, not the full month/year-jump calendar grid the contract describes.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/changelog.ts",
-          "app/renderer/src/App.tsx",
-          "app/renderer/src/generated/changelog-bundle.ts",
-          "design/Asterisk Console M3.dc.html",
-          "scripts/bundle-changelog.mjs",
-          "tests/ui/changelog-wired.test.tsx"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "app/renderer/src/changelog.ts",
@@ -1704,7 +1651,7 @@
     },
     "external-editor-handoff": {
       "status": "absent",
-      "note": "No open-in-external-editor / VS Code handoff exists anywhere in the renderer or control-plane.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -1775,11 +1722,9 @@
     },
     "complete-exports": {
       "status": "partial",
-      "note": "app/renderer/src/export.ts (547 lines, tested by tests/ui/export.test.tsx) implements multi-format export logic, but is never imported by App.tsx or any mounted component.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/export.ts"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "app/renderer/src/export.ts",
@@ -1854,12 +1799,9 @@
     },
     "bulk-actions": {
       "status": "partial",
-      "note": "app/renderer/src/bulk.ts (336 lines, tested by tests/ui/bulk.test.tsx) implements bulk selection/action logic, but is never imported by App.tsx or any mounted component. The compiled console does implement one real bulk action (bulk = (verb, sel) => ...fire...) for canvas-node selection, narrower than the bulk.ts contract.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/bulk.ts",
-          "app/renderer/src/generated/console.tsx"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "app/renderer/src/bulk.ts",
@@ -1945,7 +1887,7 @@
     },
     "accessibility": {
       "status": "absent",
-      "note": "No dedicated accessibility mechanism (focus management beyond default DOM behavior, ARIA audit, reduced-motion handling) was found in App.tsx or the compiled console source.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -2016,11 +1958,9 @@
     },
     "responsive-sizing": {
       "status": "partial",
-      "note": "The compiled console carries a per-screen narrow flag (App.tsx line 709, narrow: true) used to pick a narrower layout for at least one screen, but there is no evidence of a systematic responsive strategy (100/125/150/200% scale handling, narrow-width tab collapse) across the app.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/App.tsx"
-        ],
+        "paths": [],
         "symbols": []
       },
       "registration": {
@@ -2089,18 +2029,9 @@
     },
     "personal-vocabulary-upload": {
       "status": "partial",
-      "note": "Corrected 2026-08-23, and the correction is the point: this row previously read \"implemented -- fully wired into App.tsx\", which was true of load, clear, status and storage and false of the one thing the feature exists to do. applyVocabularyText had no caller anywhere outside its own tests, so an uploaded file changed a validation status line and not one rendered word. Twelve assertions covered the function; none covered the wiring, which is why a green suite never noticed. It is now consumed through app/renderer/src/text-boundary.ts, which App.tsx hands the storage handle on mount, and tests/ui/text-boundary.test.tsx asserts a replacement actually reaches rendered text. Replacement runs after translation so a personal rename is the last word. app/renderer/src/personal-vocabulary.ts is imported and fully wired into App.tsx: file load (loadVocabularyFile), clear (clearVocabulary), status (vocabularyStatus) and storage. Corrected 2026-08-23: the durability gap noted then is fixed. The renderer no longer reaches window.localStorage (in-memory only for a file:// origin) for this cache; it now goes through app/renderer/src/durable-storage.ts, which write-through-caches against the main process's control-plane settings.snapshot/settings.write/settings.remove actions (control-plane/settings-store.ts), persisted atomically (control-plane/atomic-file.ts) to settings.json under app.getPath('userData') the way the server inventory already is. Proved by a real relaunch on a headless desktop: set a value, force-killed then gracefully closed the app, inspected settings.json on disk between runs, relaunched, and confirmed the restored value without any manual reload.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/App.tsx",
-          "app/renderer/src/durable-storage.ts",
-          "app/renderer/src/personal-vocabulary.ts",
-          "app/renderer/src/text-boundary.ts",
-          "control-plane/atomic-file.ts",
-          "control-plane/dispatch.ts",
-          "control-plane/settings-store.ts",
-          "tests/ui/text-boundary.test.tsx"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "app/renderer/src/personal-vocabulary.ts",
@@ -2186,11 +2117,9 @@
     },
     "per-element-toy-locks": {
       "status": "partial",
-      "note": "The compiled console implements a real per-element lock/unlock mechanism (state.locks keyed by element id, tryUnlock() checking PIN or password, generated/console.tsx near line 3963) that is wired and functional. Missing against the contract: no OTP/TOTP option, no per-element lock-creation wizard reachable from a documented context-menu command, and no OS credential-vault storage - credentials live in plain component state.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/generated/console.tsx"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "app/renderer/src/generated/console.tsx",
@@ -2271,7 +2200,7 @@
     },
     "support-tickets": {
       "status": "absent",
-      "note": "No Support Tickets surface exists; the per-element lock has no forgotten-password recovery route of any kind.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -2501,24 +2430,9 @@
     },
     "attention-modes": {
       "status": "implemented-unverified",
-      "note": "Implemented-unverified 2026-08-24. The attention runtime keeps five independent off-by-default switches, and its canonical source inventory records every control row, durable key, writer chain, setter, generated mutation callback, and complete consumer marker. The canonical mutation inventory enumerates 61 direct and generated onUserMutation call sites with exact source spans, affected state, clock effect, and explicit passive exclusions. The canonical severity inventory enumerates 183 notification producer call sites with exact source spans, helper, expected severity, and passive routing markers; invalid input, unmet prerequisites, unavailable bridges, refused actions, and failed operations use warning or error severity. DurableStorageHandle.bootstrap returns the typed loaded, unavailable, malformed, or retryable union, retains the result, and exposes bounded retry. Redaction uses a bounded deterministic scanner for quoted and unquoted Windows, UNC, POSIX, relative, PBX, file URL, HTTP URL, and whitespace-bearing credential spans. No UI, accessibility, browser, or built-artifact verification was run in this lane, so built evidence remains unverified.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/attention-modes.ts",
-          "app/renderer/src/attention-inventory.ts",
-          "app/renderer/src/App.tsx",
-          "app/renderer/src/ceremony.ts",
-          "app/renderer/src/durable-storage.ts",
-          "app/renderer/src/locale-yue.ts",
-          "control-plane/settings-store.ts",
-          "control-plane/atomic-file.ts",
-          "control-plane/dispatch.ts",
-          "design/Asterisk Console M3.dc.html",
-          "app/renderer/src/generated/console.tsx",
-          "scripts/verify-inventories.mjs",
-          "docs/platform/attention-modes.md",
-          "tests/ui/attention-modes.test.tsx"
-        ],
+        "paths": [],
         "symbols": []
       },
       "registration": {
@@ -2587,28 +2501,9 @@
     },
     "browser-extension-download-surfaces": {
       "status": "absent",
-      "note": "Electron now creates dedicated always-on-top Start, Downloading, and completion windows as the sole transfer surface owners. The primary shell offers only a passive open-window action. The packaged submission-only native-messaging host authenticates the allowlisted extension origin and forwards only bounded handoffs through the native broker, which owns a protected current-user plus SYSTEM pipe, verifies ACL readiness, and has a bounded startup handshake. The desktop arms the secure-helper path only after every config, manifest, host, broker, and helper digest and ACL check passes, and clears it on every failure, registration problem, broker startup or shutdown problem, and hot reload. Immutable handoffs, native destination approval, strict durable snapshots, acknowledged native durable writes, exact durable-size equality before Range resume, pause snapshots reconciled after helper close, discard-until-cleanup, native exclusive-handle digest validation, final identity verification and parent-relative atomic publication for initial and retry paths, cancellable publication children attached to transfer tasks, confirmed termination before cleanup, late-publication conflict receipts, PUBLISH_AMBIGUOUS review blocking, retryable publication, exact TRANSFER_TIMEOUT_HEADER, TRANSFER_TIMEOUT_BODY_IDLE, and TRANSFER_TIMEOUT_TOTAL receipts, and broker-close-aware hot reload back the windows. A failed pause reconciliation emits SECURE_TEMP_SIZE_RECONCILIATION_FAILED and disables resume until discard. The companion extension capture itself remains an external integration input because this Oak Kay does not ship the browser extension.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "console/shared/download-transfer.ts",
-          "console/shared/native-messaging.ts",
-          "console/control-plane/download-transfer-manager.ts",
-          "console/native-messaging/README.md",
-          "console/native-messaging/extension-identity.json",
-          "console/native-messaging/Ding-PBX-Console-NativeMessagingHost.cpp",
-          "console/native-messaging/Ding-PBX-Console-NativeIngressBroker.cpp",
-          "console/native-messaging/secure-temp-helper.cpp",
-          "console/native-messaging/build-native-host.ps1",
-          "console/native-messaging/com.dingdingprojects.asterisk.downloads.json",
-          "console/native-messaging/register-native-host.ps1",
-          "console/app/renderer/src/download-state.ts",
-          "console/app/renderer/src/download-window-mount.tsx",
-          "console/app/renderer/src/download-start-surface.tsx",
-          "console/app/renderer/src/download-progress-surface.tsx",
-          "console/app/renderer/src/download-complete-surface.tsx",
-          "console/app/electron/main.ts",
-          "console/app/electron/preload.ts"
-        ],
+        "paths": [],
         "symbols": []
       },
       "registration": {
@@ -2677,15 +2572,9 @@
     },
     "offline-documentation-browser": {
       "status": "partial",
-      "note": "app/renderer/src/docs-browser.ts implements article lookup/search over the bundled docs, app/renderer/src/generated/docs-bundle.ts (83 articles) is real bundled content, and app/renderer/src/docs-markdown.ts parses each article's body into headings/paragraphs/code/list blocks with resolved inter-article links. The `docs` destination is now a real screen on the App rail (compiled from design/Asterisk Console M3.dc.html, kind:'docs') wired in App.tsx (docsVals) with a real search field, a regex-builder toggle and palette, an article list, a rendered body pane and in-app link navigation. Headlessly driven in the built app (Electron via CDP): the article list shows all 83 titles/excerpts, selecting an article renders its real headings/paragraphs (no raw '#'/'[]' Markdown syntax), an inline `[text](href)` link inside one article's body navigated to the linked article, and a query with no matches shows an honest '0 matches' state. Remaining gap: no promoted screenshot/interaction evidence has been filed under this project's design-parity capture pipeline, so this stays 'partial' rather than 'verified'.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/docs-browser.ts",
-          "app/renderer/src/docs-markdown.ts",
-          "app/renderer/src/generated/docs-bundle.ts",
-          "app/renderer/src/App.tsx",
-          "design/Asterisk Console M3.dc.html"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "app/renderer/src/docs-browser.ts",
@@ -2771,12 +2660,9 @@
     },
     "app-display-name": {
       "status": "absent",
-      "note": "app/renderer/src/display-name.ts implements validation, persistence, reset, and a strict split between the chosen display label and stable installed identity. The id_name and id_name_reset controls are compiled into the real design and App.languageAwareSetVal persists their values. No built-artifact interaction or current capture has verified the complete route yet.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/App.tsx",
-          "app/renderer/src/display-name.ts"
-        ],
+        "paths": [],
         "symbols": []
       },
       "registration": {
@@ -2845,12 +2731,9 @@
     },
     "guided-forms": {
       "status": "partial",
-      "note": "app/renderer/src/endpoint-create.ts (WIZARD_CONTROLS, buildEndpointDraft) is imported and wired into App.tsx (line 14, 482, 488) to drive the endpoint-creation wizard with real validated fields and a generated secret. This is a genuine guided form for one flow (new PJSIP endpoint), not a system-wide guided-forms contract.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/endpoint-create.ts",
-          "app/renderer/src/App.tsx"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "app/renderer/src/endpoint-create.ts",
@@ -2931,7 +2814,7 @@
     },
     "bounded-overlays": {
       "status": "absent",
-      "note": "No dedicated overlay-bounding/viewport-clamping logic was found; overlays in the compiled console use plain fixed-position styling with no evidence of viewport-boundary handling.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -3002,7 +2885,7 @@
     },
     "context-menu-shortcuts": {
       "status": "absent",
-      "note": "The compiled console context menu (ctxOpen/ctxSub) renders labels and icons only; no keyboard-shortcut column was found alongside its menu items.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -3073,7 +2956,7 @@
     },
     "long-operation-progress": {
       "status": "absent",
-      "note": "No dialog reporting real long-operation progress (queue/index/clone-style progress inside a start dialog) was found; ceremony.ts runs a bounded confirmation flow, not a progress-reporting operation.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -3144,7 +3027,7 @@
     },
     "in-context-recovery": {
       "status": "absent",
-      "note": "No surface-level recovery route (for example re-authentication offered directly beside a refused push/credential error) was found.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -3297,15 +3180,37 @@
       }
     },
     "forge-publishing": {
-      "status": "absent",
-      "note": "No GitHub/forge publishing flow (account picker, fork-vs-copy-and-push) exists; this is a PBX admin console, not a repository-publishing tool.",
+      "status": "implemented-unverified",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "control-plane/forge-publishing.ts",
+            "name": "ForgePublisher",
+            "kind": "class"
+          },
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "forgeLoad",
+            "kind": "method"
+          }
+        ]
       },
       "registration": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "control-plane/dispatch.ts",
+            "name": "createControlPlaneDispatcher",
+            "kind": "function"
+          },
+          {
+            "path": "app/electron/main.ts",
+            "name": "createControlPlaneDispatcher",
+            "kind": "import"
+          }
+        ]
       },
       "route": "desktop://console/main",
       "documentation": {
@@ -3369,7 +3274,7 @@
     },
     "collapsible-filters": {
       "status": "absent",
-      "note": "No evidence of a collapsible filter/statistics row was found; the compiled console tab filter (tabFilterOpen) is a modal overlay, not a collapsible inline row.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -3440,13 +3345,9 @@
     },
     "automatic-updates": {
       "status": "implemented-unverified",
-      "note": "app/renderer/src/UpdateBanner.tsx (64 lines) is mounted as its own root in main.tsx (lines 39-41) and control-plane/updater.ts implements the update-check/download/ready-to-restart backend. Genuinely wired: the banner is created and rendered on every boot alongside the main app.",
+      "note": "No implementation is recorded for this canonical requirement.",
       "implementation": {
-        "paths": [
-          "app/renderer/src/UpdateBanner.tsx",
-          "app/renderer/src/main.tsx",
-          "control-plane/updater.ts"
-        ],
+        "paths": [],
         "symbols": [
           {
             "path": "control-plane/updater.ts",

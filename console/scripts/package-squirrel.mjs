@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -32,6 +32,15 @@ if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
 
 const output = join(consoleRoot, 'dist', 'squirrel-windows', 'squirrel-windows');
+const digest = (path) => createHash('sha256').update(readFileSync(path)).digest('hex');
+const forgeGh = join(consoleRoot, 'dist', 'squirrel-windows', 'win-unpacked', 'resources', 'forge', 'gh.exe');
+const forgeHelper = join(consoleRoot, 'dist', 'squirrel-windows', 'win-unpacked', 'resources', 'forge', 'forge-device-signin.ps1');
+const dependencyManifest = JSON.parse(readFileSync(join(repoRoot, 'dependency-manifest.json'), 'utf8'));
+const forgeGhRecord = dependencyManifest.dependencies.find((entry) => entry.id === 'github-cli-win-x64');
+const forgeHelperRecord = dependencyManifest.dependencies.find((entry) => entry.id === 'forge-conpty-helper');
+if (!forgeGhRecord || !forgeHelperRecord) throw new Error('Forge publishing dependencies are missing from dependency-manifest.json.');
+if (!existsSync(forgeGh) || digest(forgeGh) !== forgeGhRecord.sha256) throw new Error('Packaged gh.exe is missing or does not match the pinned SHA-256.');
+if (!existsSync(forgeHelper) || digest(forgeHelper) !== forgeHelperRecord.sha256) throw new Error('Packaged forge-device-signin.ps1 ConPTY helper is missing or does not match the pinned SHA-256.');
 const files = readdirSync(output).map((name) => ({ name, path: join(output, name) })).filter((entry) => statSync(entry.path).isFile());
 const setup = files.filter((entry) => /Setup\.exe$/iu.test(entry.name));
 const releases = files.filter((entry) => entry.name === 'RELEASES');
@@ -41,7 +50,6 @@ if (setup.length !== 1 || releases.length !== 1 || fullPackages.length < 1) thro
 for (const entry of fullPackages) if (!entry.name.includes(`-${version}-full.nupkg`)) throw new Error(`Full package ${entry.name} does not carry version ${version}.`);
 const releaseText = readFileSync(releases[0].path, 'utf8');
 for (const entry of [...fullPackages, ...deltaPackages]) if (!releaseText.includes(entry.name)) throw new Error(`RELEASES does not reference ${entry.name}.`);
-const digest = (path) => createHash('sha256').update(readFileSync(path)).digest('hex');
 const record = (entry) => ({ name: entry.name, size: statSync(entry.path).size, sha256: digest(entry.path) });
 writeFileSync(join(output, 'release-identity.json'), JSON.stringify({
   schemaVersion: 1,

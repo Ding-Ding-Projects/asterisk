@@ -8,7 +8,9 @@
   "main": "dist-electron/app/electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "npm run compile:design && npm run bundle:docs && npm run bundle:changelog && npm run write:update-manifest && tsc -b && vite build",
+    "build": "npm run check:forge-contracts && npm run generate:forge-digests && npm run compile:design && npm run bundle:docs && npm run bundle:changelog && npm run write:update-manifest && tsc -b && vite build",
+    "check:forge-contracts": "node scripts/check-forge-keyring-fixture.mjs && node scripts/check-forge-digest-manifest.mjs",
+    "generate:forge-digests": "node scripts/generate-forge-digests.mjs",
     "write:update-manifest": "node scripts/write-update-manifest.mjs",
     "start": "electron .",
     "test:ui": "node --test tests/ui/*.test.mjs",

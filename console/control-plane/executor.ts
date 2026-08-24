@@ -13,6 +13,8 @@ export interface CommandRequest {
   maxOutputBytes?: number;
   signal?: AbortSignal;
   redactedValues?: ReadonlyArray<string>;
+  /** Remove inherited authentication and prompt variables before spawning the child. */
+  clearEnvironmentKeys?: ReadonlyArray<string>;
 }
 
 export interface CommandResult {
@@ -61,9 +63,11 @@ export class NodeProcessExecutor implements ProcessExecutor {
 
     const started = Date.now();
     return await new Promise<CommandResult>((resolve, reject) => {
+      const environment = request.environment ? { ...process.env, ...request.environment } : { ...process.env };
+      for (const key of request.clearEnvironmentKeys ?? []) delete environment[key];
       const child = spawn(request.executable, [...request.args], {
         cwd: request.cwd,
-        env: request.environment ? { ...process.env, ...request.environment } : process.env,
+        env: environment,
         shell: false,
         windowsHide: true,
         stdio: ["pipe", "pipe", "pipe"],

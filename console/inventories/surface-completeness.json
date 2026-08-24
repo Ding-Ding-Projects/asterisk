@@ -5165,7 +5165,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -5176,12 +5176,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/main",
           "documentation": {
@@ -9007,7 +9029,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -9018,12 +9040,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/login",
           "documentation": {
@@ -12849,7 +12893,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -12860,12 +12904,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/setup",
           "documentation": {
@@ -16691,7 +16757,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -16702,12 +16768,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/dash",
           "documentation": {
@@ -20533,7 +20621,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -20544,12 +20632,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/live",
           "documentation": {
@@ -24375,7 +24485,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -24386,12 +24496,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/endpoints",
           "documentation": {
@@ -28217,7 +28349,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -28228,12 +28360,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/trunks",
           "documentation": {
@@ -32059,7 +32213,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -32070,12 +32224,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/trunkauth",
           "documentation": {
@@ -35901,7 +36077,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -35912,12 +36088,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/canvas",
           "documentation": {
@@ -39743,7 +39941,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -39754,12 +39952,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/ivr",
           "documentation": {
@@ -43585,7 +43805,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -43596,12 +43816,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/queues",
           "documentation": {
@@ -47427,7 +47669,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -47438,12 +47680,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/voicemail",
           "documentation": {
@@ -51269,7 +51533,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -51280,12 +51544,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/confbridge",
           "documentation": {
@@ -55111,7 +55397,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -55122,12 +55408,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/moh",
           "documentation": {
@@ -58953,7 +59261,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -58964,12 +59272,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/codecs",
           "documentation": {
@@ -62795,7 +63125,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -62806,12 +63136,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/cdr",
           "documentation": {
@@ -66637,7 +66989,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -66648,12 +67000,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/ami",
           "documentation": {
@@ -70479,7 +70853,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -70490,12 +70864,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/modules",
           "documentation": {
@@ -74321,7 +74717,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -74332,12 +74728,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/logger",
           "documentation": {
@@ -78163,7 +78581,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -78174,12 +78592,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/security",
           "documentation": {
@@ -82005,7 +82445,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -82016,12 +82456,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/cli",
           "documentation": {
@@ -85847,7 +86309,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -85858,12 +86320,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/memory",
           "documentation": {
@@ -89689,7 +90173,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -89700,12 +90184,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/sync",
           "documentation": {
@@ -93531,7 +94037,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -93542,12 +94048,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/skills",
           "documentation": {
@@ -97373,7 +97901,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -97384,12 +97912,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/hub",
           "documentation": {
@@ -101215,7 +101765,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -101226,12 +101776,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/vocab",
           "documentation": {
@@ -105057,7 +105629,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -105068,12 +105640,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/ops",
           "documentation": {
@@ -108899,7 +109493,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -108910,12 +109504,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/secrets",
           "documentation": {
@@ -112741,7 +113357,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -112752,12 +113368,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/servers",
           "documentation": {
@@ -116583,7 +117221,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -116594,12 +117232,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/arcade",
           "documentation": {
@@ -120425,7 +121085,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -120436,12 +121096,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/notifications",
           "documentation": {
@@ -124267,7 +124949,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -124278,12 +124960,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/history",
           "documentation": {
@@ -128109,7 +128813,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -128120,12 +128824,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/customise",
           "documentation": {
@@ -131951,7 +132677,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -131962,12 +132688,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/appearance",
           "documentation": {
@@ -135793,7 +136541,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -135804,12 +136552,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/destination/about",
           "documentation": {
@@ -139635,7 +140405,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -139646,12 +140416,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/appearOpen",
           "documentation": {
@@ -143477,7 +144269,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -143488,12 +144280,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/ceremonyOpen",
           "documentation": {
@@ -147319,7 +148133,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -147330,12 +148144,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/ctxOpen",
           "documentation": {
@@ -151161,7 +151997,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -151172,12 +152008,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/infoOpen",
           "documentation": {
@@ -155003,7 +155861,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -155014,12 +155872,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/lockOpen",
           "documentation": {
@@ -158845,7 +159725,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -158856,12 +159736,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/onboardOpen",
           "documentation": {
@@ -162687,7 +163589,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -162698,12 +163600,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/paletteOpen",
           "documentation": {
@@ -166529,7 +167453,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -166540,12 +167464,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/regexOpen",
           "documentation": {
@@ -170371,7 +171317,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -170382,12 +171328,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/renameOpen",
           "documentation": {
@@ -174213,7 +175181,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -174224,12 +175192,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/subOpen",
           "documentation": {
@@ -178055,7 +179045,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -178066,12 +179056,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/sureOpen",
           "documentation": {
@@ -181897,7 +182909,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -181908,12 +182920,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/tabColourOpen",
           "documentation": {
@@ -185739,7 +186773,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -185750,12 +186784,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/tabFilterOpen",
           "documentation": {
@@ -189581,7 +190637,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -189592,12 +190648,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/toastOpen",
           "documentation": {
@@ -193423,7 +194501,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -193434,12 +194512,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/tourOpen",
           "documentation": {
@@ -197265,7 +198365,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -197276,12 +198376,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/unlockOpen",
           "documentation": {
@@ -201107,7 +202229,7 @@
         },
         {
           "featureId": "forge-publishing",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -201118,12 +202240,34 @@
           "implementation": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": "console/app/feature-registry.json#features.forge-publishing",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "desktop://console/overlay/wizardOpen",
           "documentation": {
@@ -227838,12 +228982,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/README.html",
           "documentation": {
@@ -231680,12 +232846,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/agent/README.html",
           "documentation": {
@@ -235522,12 +236710,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/agent/hub.html",
           "documentation": {
@@ -239364,12 +240574,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/agent/memory.html",
           "documentation": {
@@ -243206,12 +244438,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/agent/ops.html",
           "documentation": {
@@ -247048,12 +248302,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/agent/secrets.html",
           "documentation": {
@@ -250890,12 +252166,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/agent/skills.html",
           "documentation": {
@@ -254732,12 +256030,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/agent/sync.html",
           "documentation": {
@@ -258574,12 +259894,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/app/README.html",
           "documentation": {
@@ -262416,12 +263758,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/app/about.html",
           "documentation": {
@@ -266258,12 +267622,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/app/appearance.html",
           "documentation": {
@@ -270100,12 +271486,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/app/arcade.html",
           "documentation": {
@@ -273942,12 +275350,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/app/customise.html",
           "documentation": {
@@ -277784,12 +279214,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/app/history.html",
           "documentation": {
@@ -281626,12 +283078,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/app/notifications.html",
           "documentation": {
@@ -285468,12 +286942,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/app/servers.html",
           "documentation": {
@@ -289310,12 +290806,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/data/README.html",
           "documentation": {
@@ -293152,12 +294670,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/data/ami.html",
           "documentation": {
@@ -296994,12 +298534,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/data/cdr.html",
           "documentation": {
@@ -300836,12 +302398,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/installer-iso.html",
           "documentation": {
@@ -304678,12 +306262,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/media/README.html",
           "documentation": {
@@ -308520,12 +310126,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/media/codecs.html",
           "documentation": {
@@ -312362,12 +313990,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/media/confbridge.html",
           "documentation": {
@@ -316204,12 +317854,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/media/moh.html",
           "documentation": {
@@ -320046,12 +321718,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/media/voicemail.html",
           "documentation": {
@@ -323888,12 +325582,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/pbx/README.html",
           "documentation": {
@@ -327730,12 +329446,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/pbx/canvas.html",
           "documentation": {
@@ -331572,12 +333310,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/pbx/dash.html",
           "documentation": {
@@ -335414,12 +337174,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/pbx/endpoints.html",
           "documentation": {
@@ -339256,12 +341038,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/pbx/ivr.html",
           "documentation": {
@@ -343098,12 +344902,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/pbx/live.html",
           "documentation": {
@@ -346940,12 +348766,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/pbx/queues.html",
           "documentation": {
@@ -350782,12 +352630,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/pbx/trunkauth.html",
           "documentation": {
@@ -354624,12 +356494,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/pbx/trunks.html",
           "documentation": {
@@ -358466,12 +360358,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/README.html",
           "documentation": {
@@ -362308,12 +364222,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/accessibility.html",
           "documentation": {
@@ -366150,12 +368086,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/app-display-name.html",
           "documentation": {
@@ -369992,12 +371950,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/app-logo-customization.html",
           "documentation": {
@@ -373834,12 +375814,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/attention-modes.html",
           "documentation": {
@@ -377676,12 +379678,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/automatic-updates.html",
           "documentation": {
@@ -381518,12 +383542,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/bounded-overlays.html",
           "documentation": {
@@ -385360,12 +387406,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/browser-extension-download-surfaces.html",
           "documentation": {
@@ -389202,12 +391270,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/browser-style-tabs.html",
           "documentation": {
@@ -393044,12 +395134,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/built-in-authenticator.html",
           "documentation": {
@@ -396886,12 +398998,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/bulk-actions.html",
           "documentation": {
@@ -400728,12 +402862,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/changelog-viewer.html",
           "documentation": {
@@ -404570,12 +406726,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/collapsible-filters.html",
           "documentation": {
@@ -408412,12 +410590,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/command-palette.html",
           "documentation": {
@@ -412254,12 +414454,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/complete-exports.html",
           "documentation": {
@@ -416096,12 +418318,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/context-menu-shortcuts.html",
           "documentation": {
@@ -419938,12 +422182,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/destructive-action-confirmation.html",
           "documentation": {
@@ -423780,12 +426046,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/dialog-emojis.html",
           "documentation": {
@@ -427622,12 +429910,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/dim-sum-surprise.html",
           "documentation": {
@@ -431464,12 +433774,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/external-editor-handoff.html",
           "documentation": {
@@ -435306,12 +437638,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/external-settings-sources.html",
           "documentation": {
@@ -439148,12 +441502,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/forge-publishing.html",
           "documentation": {
@@ -442990,12 +445366,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/funny-levels.html",
           "documentation": {
@@ -446832,12 +449230,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/guided-forms.html",
           "documentation": {
@@ -450674,12 +453094,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/in-context-recovery.html",
           "documentation": {
@@ -454516,12 +456958,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/language-modes.html",
           "documentation": {
@@ -458358,12 +460822,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/local-version-history.html",
           "documentation": {
@@ -462200,12 +464686,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/long-operation-progress.html",
           "documentation": {
@@ -466042,12 +468550,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/material-appearance.html",
           "documentation": {
@@ -469884,12 +472414,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/narration.html",
           "documentation": {
@@ -473726,12 +476278,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/non-blocking-notifications.html",
           "documentation": {
@@ -477568,12 +480142,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/offline-documentation-browser.html",
           "documentation": {
@@ -481410,12 +484006,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/per-element-toy-locks.html",
           "documentation": {
@@ -485252,12 +487870,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/personal-vocabulary-upload.html",
           "documentation": {
@@ -489094,12 +491734,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/provider-markup-rendering.html",
           "documentation": {
@@ -492936,12 +495598,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/regex-builder.html",
           "documentation": {
@@ -496778,12 +499462,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/responsive-sizing.html",
           "documentation": {
@@ -500620,12 +503326,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/scheduled-settings.html",
           "documentation": {
@@ -504462,12 +507190,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/school-mode.html",
           "documentation": {
@@ -508304,12 +511054,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/status-hub.html",
           "documentation": {
@@ -512146,12 +514918,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/support-tickets.html",
           "documentation": {
@@ -515988,12 +518782,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/tab-groups-and-searches.html",
           "documentation": {
@@ -519830,12 +522646,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/platform/unlock-ladder.html",
           "documentation": {
@@ -523672,12 +526510,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/system/README.html",
           "documentation": {
@@ -527514,12 +530374,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/system/cli.html",
           "documentation": {
@@ -531356,12 +534238,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/system/logger.html",
           "documentation": {
@@ -535198,12 +538102,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/system/modules.html",
           "documentation": {
@@ -539040,12 +541966,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/docs/system/security.html",
           "documentation": {
@@ -542882,12 +545830,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "extension://capture/start-download",
           "documentation": {
@@ -546724,12 +549694,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "extension://capture/downloading",
           "documentation": {
@@ -550566,12 +553558,34 @@
           "implementation": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/forge-publishing.ts",
+                "name": "ForgePublisher",
+                "kind": "class"
+              },
+              {
+                "path": "app/renderer/src/App.tsx",
+                "name": "forgeLoad",
+                "kind": "method"
+              }
+            ]
           },
           "registration": {
             "registry": null,
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "control-plane/dispatch.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "function"
+              },
+              {
+                "path": "app/electron/main.ts",
+                "name": "createControlPlaneDispatcher",
+                "kind": "import"
+              }
+            ]
           },
           "route": "extension://capture/download-complete",
           "documentation": {

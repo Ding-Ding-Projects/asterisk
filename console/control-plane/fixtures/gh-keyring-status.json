@@ -1,0 +1,12 @@
+{
+  "hosts": {
+    "github.com": [
+      {
+        "user": "fixture-user",
+        "state": "logged_in",
+        "tokenSource": "keyring",
+        "active": true
+      }
+    ]
+  }
+}

@@ -67,7 +67,7 @@ const desktopStatus = {
   'support-tickets': 'absent', 'unlock-ladder': 'partial', 'built-in-authenticator': 'partial', 'attention-modes': 'implemented-unverified',
   'browser-extension-download-surfaces': 'absent', 'offline-documentation-browser': 'partial', 'app-display-name': 'absent',
   'guided-forms': 'partial', 'bounded-overlays': 'absent', 'context-menu-shortcuts': 'absent', 'long-operation-progress': 'absent',
-  'in-context-recovery': 'absent', 'provider-markup-rendering': 'partial', 'forge-publishing': 'absent',
+  'in-context-recovery': 'absent', 'provider-markup-rendering': 'partial', 'forge-publishing': 'implemented-unverified',
   'collapsible-filters': 'absent', 'automatic-updates': 'implemented-unverified',
 };
 
@@ -151,6 +151,7 @@ const implementationSymbols = {
   'guided-forms': [{ path: 'app/renderer/src/endpoint-create.ts', name: 'buildEndpointDraft', kind: 'function' }],
   'provider-markup-rendering': [{ path: 'app/renderer/src/docs-markdown.ts', name: 'parseMarkdown', kind: 'function' }],
   'automatic-updates': [{ path: 'control-plane/updater.ts', name: 'resolveLatestUpdate', kind: 'function' }, { path: 'app/renderer/src/UpdateBanner.tsx', name: 'UpdateBanner', kind: 'function' }],
+  'forge-publishing': [{ path: 'control-plane/forge-publishing.ts', name: 'ForgePublisher', kind: 'class' }, { path: 'app/renderer/src/App.tsx', name: 'forgeLoad', kind: 'method' }],
 };
 
 const registrationSymbols = {
@@ -166,6 +167,7 @@ const registrationSymbols = {
   'built-in-authenticator': [], 'offline-documentation-browser': [{ path: 'app/renderer/src/App.tsx', name: 'docsVals', kind: 'method' }],
   'guided-forms': [{ path: 'app/renderer/src/App.tsx', name: 'onboardDeploy', kind: 'method' }], 'provider-markup-rendering': [{ path: 'app/renderer/src/App.tsx', name: 'docsVals', kind: 'method' }],
   'automatic-updates': [{ path: 'app/renderer/src/main.tsx', name: 'UpdateBanner', kind: 'mount' }],
+  'forge-publishing': [{ path: 'control-plane/dispatch.ts', name: 'createControlPlaneDispatcher', kind: 'function' }, { path: 'app/electron/main.ts', name: 'createControlPlaneDispatcher', kind: 'import' }],
 };
 
 const siteImplementationSymbols = {

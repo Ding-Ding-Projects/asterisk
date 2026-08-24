@@ -78,6 +78,7 @@ export function installHttpBridge(): void {
       toggleMaximize: () => {},
       close: () => {},
     },
+    dialog: { pickFolder: async () => undefined },
     controlPlane: {
       async request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> {
         try {

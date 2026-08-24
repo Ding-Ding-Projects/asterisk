@@ -39,6 +39,7 @@ import { DownloadTransferManager } from './download-transfer-manager.js';
 import { createStatusHubClient, createVaultReference, type StatusHubClient } from './status-hub-client.js';
 import type { StatusHubCredentialReferences, StatusHubProjectRegistrationRequest } from '../shared/status-hub.js';
 import type { ConverterRequest, ConverterSniffResult } from '../shared/converter.js';
+import { FORGE_CONPTY_HELPER_SHA256, FORGE_GH_SHA256, FileForgeStateStore, ForgePublisher } from './forge-publishing.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
 import type { ChangePlan, ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
@@ -130,6 +131,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     await queue.initialize();
     return queue;
   });
+  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker', 'git', 'gh', 'powershell.exe'] });
   const targetDiscovery = new TargetDiscovery(processExecutor);
   const cliGateway = new LocalAsteriskCliGateway(processExecutor);
   const readings = new AsteriskReadings(cliGateway);
@@ -523,6 +525,31 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     }
   }
 
+  let cachedForgePublisher: ForgePublisher | undefined;
+  let forgeHistoryReady: Promise<import('./local-history.js').LocalHistory> | undefined;
+  async function forgePublisher(): Promise<ForgePublisher> {
+    if (cachedForgePublisher) return cachedForgePublisher;
+    if (!forgeHistoryReady) {
+      forgeHistoryReady = (async () => {
+        const history = new LocalHistory({ executor: processExecutor, repositoryPath: join(userDataPath, 'history') });
+        await history.initialize();
+        return history;
+      })();
+    }
+    const history = await forgeHistoryReady;
+    cachedForgePublisher = new ForgePublisher({
+      executor: processExecutor,
+      store: new FileForgeStateStore(join(userDataPath, 'forge-publishing.json')),
+      history,
+      conptyHelperPath: join(resourcesPath, 'forge', 'forge-device-signin.ps1'),
+      conptyStatePath: join(userDataPath, 'forge-device-state.json'),
+      bundledGhPath: join(resourcesPath, 'forge', 'gh.exe'),
+      bundledGhSha256: FORGE_GH_SHA256,
+      conptyHelperSha256: FORGE_CONPTY_HELPER_SHA256,
+    });
+    return cachedForgePublisher;
+  }
+
   async function controlPlaneRequest(request: ControlPlaneRequest): Promise<ControlPlaneResponse> {
     try {
       const schemaError = validateRequestSchema(request);
@@ -760,6 +787,69 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           return { ok: true, requestId: request.requestId, data: { key } };
         } catch (error) {
           return { ok: false, requestId: request.requestId, code: 'SETTING_REMOVE_FAILED', message: error instanceof Error ? error.message : 'Could not remove the setting.' };
+        }
+      }
+      if (hosted && request.action.startsWith('forge.')) {
+        return { ok: false, requestId: request.requestId, code: 'FORGE_UNSUPPORTED_HOSTED', message: `"${request.action}" is available only in the desktop application because it uses the local provider sign-in store and local git checkout.` };
+      }
+      if (request.action.startsWith('forge.')) {
+        const forge = await forgePublisher();
+        if (request.action === 'forge.capabilities') {
+          return { ok: true, requestId: request.requestId, data: { providers: forge.capabilities(), state: forge.state() } };
+        }
+        if (request.action === 'forge.accounts.list') {
+          const result = await forge.listAccounts();
+          return { ok: result.status === 'succeeded' || result.status === 'pending', requestId: request.requestId, code: result.status === 'succeeded' || result.status === 'pending' ? undefined : `FORGE_${result.status.toUpperCase().replaceAll('-', '_')}`, message: result.message, data: { accounts: result.data ?? forge.state().accounts, activeAccountId: forge.state().activeAccountId, receipts: forge.state().receipts, operation: forge.state().operation, device: forge.state().device, corruption: forge.state().corruption, receipt: result.receipt, reauthAction: result.reauthAction } } as ControlPlaneResponse;
+        }
+        if (request.action === 'forge.account.add') {
+          const result = await forge.addAccount((request.payload ?? {}) as import('./forge-publishing.js').ForgeAccountRequest);
+          return { ok: result.status === 'succeeded', requestId: request.requestId, code: result.status === 'succeeded' ? undefined : `FORGE_${result.status.toUpperCase().replaceAll('-', '_')}`, message: result.status === 'succeeded' ? undefined : result.message, data: { account: result.data, reauthAction: result.reauthAction } } as ControlPlaneResponse;
+        }
+        if (request.action === 'forge.account.refresh') {
+          const accountId = typeof request.payload?.accountId === 'string' ? request.payload.accountId : '';
+          const result = await forge.refreshAccount(accountId);
+          return { ok: result.status === 'succeeded', requestId: request.requestId, code: result.status === 'succeeded' ? undefined : `FORGE_${result.status.toUpperCase().replaceAll('-', '_')}`, message: result.status === 'succeeded' ? undefined : result.message, data: { account: result.data, reauthAction: result.reauthAction } } as ControlPlaneResponse;
+        }
+        if (request.action === 'forge.account.activate') {
+          const accountId = typeof request.payload?.accountId === 'string' ? request.payload.accountId : '';
+          const result = await forge.activateAccount(accountId);
+          return { ok: result.status === 'succeeded', requestId: request.requestId, code: result.status === 'succeeded' ? undefined : `FORGE_${result.status.toUpperCase().replaceAll('-', '_')}`, message: result.status === 'succeeded' ? undefined : result.message, data: { account: result.data, activeAccountId: forge.state().activeAccountId, reauthAction: result.reauthAction } } as ControlPlaneResponse;
+        }
+        if (request.action === 'forge.account.sign-out') {
+          const accountId = typeof request.payload?.accountId === 'string' ? request.payload.accountId : '';
+          const result = await forge.signOut(accountId);
+          return { ok: result.status === 'succeeded', requestId: request.requestId, code: result.status === 'succeeded' ? undefined : `FORGE_${result.status.toUpperCase().replaceAll('-', '_')}`, message: result.status === 'succeeded' ? undefined : result.message, data: { result: result.data } } as ControlPlaneResponse;
+        }
+        if (request.action === 'forge.owners.list') {
+          const accountId = typeof request.payload?.accountId === 'string' ? request.payload.accountId : undefined;
+          const result = await forge.listOwners(accountId);
+          return { ok: result.status === 'succeeded' || result.status === 'partial', requestId: request.requestId, code: result.status === 'succeeded' || result.status === 'partial' ? undefined : `FORGE_${result.status.toUpperCase().replaceAll('-', '_')}`, message: result.message, data: { owners: result.data ?? [], reauthAction: result.reauthAction, operation: forge.state().operation } } as ControlPlaneResponse;
+        }
+        if (request.action === 'forge.publish') {
+          const result = await forge.publish((request.payload ?? {}) as import('./forge-publishing.js').ForgePublishRequest);
+          return { ok: result.status === 'succeeded', requestId: request.requestId, code: result.status === 'succeeded' ? undefined : `FORGE_${result.status.toUpperCase().replaceAll('-', '_')}`, message: result.status === 'succeeded' ? undefined : result.message, data: { receipt: result.receipt ?? result.data, operation: forge.state().operation, reauthAction: result.reauthAction } } as ControlPlaneResponse;
+        }
+        if (request.action === 'forge.receipts.list') {
+          return { ok: true, requestId: request.requestId, data: { receipts: forge.state().receipts, operation: forge.state().operation, corruption: forge.state().corruption } };
+        }
+        if (request.action === 'forge.operation.status') {
+          const requestedOperationId = typeof request.payload?.operationId === 'string' ? request.payload.operationId : undefined;
+          if (requestedOperationId && requestedOperationId !== forge.state().operation.id) {
+            return { ok: false, requestId: request.requestId, code: 'FORGE_STALE_OPERATION', message: 'The requested forge operation id is stale; the current operation was not returned.' } as ControlPlaneResponse;
+          }
+          return { ok: true, requestId: request.requestId, data: { operation: forge.state().operation, device: forge.state().device } };
+        }
+        if (request.action === 'forge.state.reset-corruption') {
+          const result = forge.resetCorruption();
+          return { ok: result.status === 'succeeded', requestId: request.requestId, code: result.status === 'succeeded' ? undefined : 'FORGE_CORRUPTION_RESET_FAILED', message: result.status === 'succeeded' ? undefined : result.message, data: { state: result.data } } as ControlPlaneResponse;
+        }
+        if (request.action === 'forge.operation.cancel') {
+          const result = forge.cancel();
+          return { ok: result.status === 'cancelled', requestId: request.requestId, code: result.status === 'cancelled' ? undefined : 'FORGE_CANCEL_FAILED', message: result.status === 'cancelled' ? undefined : result.message, data: { operation: result.data } } as ControlPlaneResponse;
+        }
+        if (request.action === 'forge.auth.sign-in') {
+          const result = await forge.signIn((request.payload ?? {}) as import('./forge-publishing.js').ForgeSignInRequest);
+          return { ok: result.status === 'succeeded' || result.status === 'pending', requestId: request.requestId, code: result.status === 'succeeded' || result.status === 'pending' ? undefined : `FORGE_${result.status.toUpperCase().replaceAll('-', '_')}`, message: result.message, data: { accounts: result.data ?? forge.state().accounts, activeAccountId: forge.state().activeAccountId, receipt: result.receipt, operation: forge.state().operation, device: forge.state().device, reauthAction: result.reauthAction } } as ControlPlaneResponse;
         }
       }
       if (request.action === 'server.connect' || request.action === 'pbx.snapshot') {

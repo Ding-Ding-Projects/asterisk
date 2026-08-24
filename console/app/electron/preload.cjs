@@ -7,6 +7,9 @@ const api = Object.freeze({
     toggleMaximize: () => ipcRenderer.send('window:toggle-maximize'),
     close: () => ipcRenderer.send('window:close'),
   }),
+  dialog: Object.freeze({
+    pickFolder: () => ipcRenderer.invoke('dialog:pick-folder'),
+  }),
   controlPlane: Object.freeze({
     request: request => ipcRenderer.invoke('control-plane:request', request),
   }),

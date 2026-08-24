@@ -15,6 +15,10 @@ extraResources:
     to: update-manifest.json
   - from: native-messaging
     to: native-messaging
+  - from: resources/forge/gh.exe
+    to: forge/gh.exe
+  - from: scripts/forge-device-signin.ps1
+    to: forge/forge-device-signin.ps1
 win:
   target: squirrel
   icon: assets/icon.png

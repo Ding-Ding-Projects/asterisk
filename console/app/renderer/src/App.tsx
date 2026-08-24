@@ -317,6 +317,26 @@ export class App extends Base {
    *  repeated failures rather than on the first typo. */
   private wrongUnlockCounts: Record<string, number> = {};
 
+  private forgeStatus = 'Forge publishing has not loaded provider data yet.';
+  private forgeCorruption = '';
+  private forgeSearch = '';
+  private forgeAccounts: Array<Record<string, string | boolean>> = [];
+  private forgeCapabilities: Array<Record<string, string>> = [];
+  private forgeOperation: Record<string, string | number | boolean> = { id: 'idle', status: 'idle', progress: 0, message: 'No forge operation is running.', cancellable: false };
+  private forgeDevice: Record<string, string> = { status: 'idle', operationId: 'idle', sessionId: '', revision: '0', message: 'No device sign-in is running.' };
+  private forgePollTimer: ReturnType<typeof setInterval> | undefined;
+  private forgeLoadGeneration = 0;
+  private forgePublishGeneration = 0;
+  private forgeOwners: Array<Record<string, string>> = [];
+  private forgeReceipts: Array<Record<string, string>> = [];
+  private forgeActiveAccountId = '';
+  private forgeOwnerId = '';
+  private forgeOwnerCanFork = false;
+  private forgeOwnerCanCreate = false;
+  private forgeRepositoryName = '';
+  private forgeSourceRemote = '';
+  private forgeSourcePath = '';
+
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
   }
@@ -753,6 +773,8 @@ export class App extends Base {
     this.attentionStyle = undefined;
     this.attentionStatus?.remove();
     this.attentionStatus = undefined;
+    if (this.forgePollTimer) clearInterval(this.forgePollTimer);
+    this.forgePollTimer = undefined;
   }
 
   componentDidUpdate() {
@@ -765,6 +787,177 @@ export class App extends Base {
     if (!bridge) return undefined;
     return await bridge.controlPlane.request({ requestId: crypto.randomUUID(), action, ...extra } as never);
   }
+
+  private forgeLoad = async (): Promise<void> => {
+    const generation = ++this.forgeLoadGeneration;
+    this.forgeStatus = 'Reading the local provider sign-in store.';
+    this.forceUpdate();
+    const capabilityResponse = await this.request('forge.capabilities');
+    if (generation !== this.forgeLoadGeneration) return;
+    if (capabilityResponse?.ok) {
+      this.forgeCapabilities = ((capabilityResponse.data as { providers?: Array<Record<string, unknown>> }).providers ?? []).map((provider) => ({
+        label: String(provider.displayName ?? provider.provider ?? ''),
+        state: provider.apiState === 'available' ? 'Fork and copy and push available' : `Unavailable: ${String(provider.reason ?? 'No adapter configured')}`,
+      }));
+    } else {
+      this.forgeCapabilities = [];
+      this.forgeLoadGeneration += 1;
+      this.forgeAccounts = [];
+      this.forgeOwners = [];
+      this.forgeActiveAccountId = '';
+      this.forgeOwnerId = '';
+      this.forgeOwnerCanFork = false;
+      this.forgeOwnerCanCreate = false;
+      this.forgeReceipts = [];
+      this.forgeCorruption = '';
+      this.forgeSearch = '';
+      this.forgeRepositoryName = '';
+      this.forgeSourceRemote = '';
+      this.forgeSourcePath = '';
+      if (this.forgePollTimer) clearInterval(this.forgePollTimer);
+      this.forgePollTimer = undefined;
+      this.forgeOperation = { id: 'idle', status: 'idle', progress: 0, message: capabilityResponse?.message ?? 'Forge publishing is unavailable on this surface.', cancellable: false };
+      this.forgeDevice = { status: 'idle', operationId: 'idle', sessionId: '', revision: '0', message: capabilityResponse?.message ?? 'Forge publishing is unavailable on this surface.' };
+      this.forgeStatus = capabilityResponse?.message ?? 'Forge publishing is unavailable on this surface.';
+      this.forceUpdate();
+      return;
+    }
+    const response = await this.request('forge.accounts.list');
+    if (generation !== this.forgeLoadGeneration) return;
+    const data = response?.data as { accounts?: Array<Record<string, unknown>>; activeAccountId?: string; receipts?: Array<Record<string, unknown>>; operation?: Record<string, unknown>; device?: Record<string, unknown>; corruption?: string; reauthAction?: string } | undefined;
+    this.forgeCorruption = data?.corruption ?? '';
+    this.forgeActiveAccountId = typeof data?.activeAccountId === 'string' ? data.activeAccountId : '';
+    this.forgeAccounts = (data?.accounts ?? []).map((account) => {
+      const id = String(account.id ?? '');
+      const login = String(account.login ?? '');
+      const active = id === this.forgeActiveAccountId;
+      const storage = String(account.credentialStorage ?? 'unknown');
+      return { id, login, state: storage === 'keyring' ? String(account.state ?? 'unknown') : 're-auth required: secure keyring not proven', credentialStorage: storage, tokenRef: typeof account.tokenRef === 'string' ? account.tokenRef : 'Provider vault reference unavailable', active, activeLabel: active ? 'Active' : 'Use this', activeBg: active ? '#005230' : '#1B211C' };
+    });
+    this.forgeReceipts = (data?.receipts ?? []).map((receipt) => ({ status: String(receipt.status ?? 'unknown'), message: String(receipt.message ?? ''), when: String(receipt.observedAt ?? '') })).slice(0, 12);
+    if (data?.operation) this.forgeOperation = { id: String(data.operation.id ?? 'idle'), status: String(data.operation.status ?? 'idle'), progress: Number(data.operation.progress ?? 0), message: String(data.operation.message ?? ''), cancellable: Boolean(data.operation.cancellable) };
+    if (data?.device) this.forgeDevice = { status: String(data.device.status ?? 'idle'), operationId: String(data.device.operationId ?? 'idle'), sessionId: String(data.device.sessionId ?? ''), revision: String(data.device.revision ?? '0'), exitCode: String(data.device.exitCode ?? ''), credentialRotation: String(data.device.credentialRotation ?? ''), userCode: String(data.device.userCode ?? ''), verificationUri: String(data.device.verificationUri ?? ''), expiresAt: String(data.device.expiresAt ?? ''), message: String(data.device.message ?? '') };
+    if (data?.corruption) this.forgeStatus = data.corruption;
+    if (!response?.ok) {
+      this.forgeStatus = data?.corruption ? `${data.corruption} ${response?.message ?? ''}`.trim() : (response?.message ?? 'The forge bridge did not answer.');
+      this.forceUpdate();
+      return;
+    }
+    this.forgeStatus = this.forgeAccounts.length > 0 ? `${this.forgeAccounts.length} provider account${this.forgeAccounts.length === 1 ? '' : 's'} loaded. Secure keyring storage is shown only after gh proves it.` : (data?.reauthAction ? 'No account is signed in. Re-authenticate beside this surface.' : 'No provider account was returned.');
+    if (data?.corruption) this.forgeStatus = `${data.corruption} ${this.forgeStatus}`;
+    if (this.forgeOperation.status === 'running') this.startForgeProgressPolling();
+    else if (this.forgeActiveAccountId) await this.forgeLoadOwners();
+    this.forceUpdate();
+  };
+
+  private startForgeProgressPolling(): void {
+    if (this.forgePollTimer) return;
+    this.forgePollTimer = setInterval(() => { void this.pollForgeProgress(); }, 1000);
+  }
+
+  private async pollForgeProgress(): Promise<void> {
+    const generation = this.forgeLoadGeneration;
+    const expectedOperationId = String(this.forgeOperation.id ?? 'idle');
+    const response = await this.request('forge.operation.status', { payload: { operationId: expectedOperationId } });
+    if (generation !== this.forgeLoadGeneration) return;
+    if (!response?.ok) {
+      if (String(response?.code ?? '') === 'FORGE_STALE_OPERATION') {
+        if (this.forgePollTimer) clearInterval(this.forgePollTimer);
+        this.forgePollTimer = undefined;
+        await this.forgeLoad();
+        if (this.forgeOperation.status === 'running') this.startForgeProgressPolling();
+      }
+      return;
+    }
+    const operation = (response.data as { operation?: Record<string, unknown> }).operation;
+    const device = (response.data as { device?: Record<string, unknown> }).device;
+    if (device && (expectedOperationId === 'idle' || String(device.operationId ?? expectedOperationId) === expectedOperationId)) this.forgeDevice = { status: String(device.status ?? 'idle'), operationId: String(device.operationId ?? expectedOperationId), sessionId: String(device.sessionId ?? ''), revision: String(device.revision ?? '0'), exitCode: String(device.exitCode ?? ''), credentialRotation: String(device.credentialRotation ?? ''), userCode: String(device.userCode ?? ''), verificationUri: String(device.verificationUri ?? ''), expiresAt: String(device.expiresAt ?? ''), message: String(device.message ?? '') };
+    if (!operation) return;
+    const operationId = String(operation.id ?? 'idle');
+    if (expectedOperationId !== 'idle' && operationId !== expectedOperationId) return;
+    this.forgeOperation = { id: operationId, status: String(operation.status ?? 'idle'), progress: Number(operation.progress ?? 0), message: String(operation.message ?? ''), cancellable: Boolean(operation.cancellable) };
+    this.forceUpdate();
+    if (this.forgeOperation.status !== 'running') {
+      if (this.forgePollTimer) clearInterval(this.forgePollTimer);
+      this.forgePollTimer = undefined;
+      await this.forgeLoad();
+    }
+  }
+
+  private forgeLoadOwners = async (): Promise<void> => {
+    const generation = this.forgeLoadGeneration;
+    const response = await this.request('forge.owners.list', { payload: { accountId: this.forgeActiveAccountId } });
+    if (generation !== this.forgeLoadGeneration) return;
+    if (!response?.ok) {
+      this.forgeStatus = response?.message ?? 'Owners could not be loaded. Re-authenticate beside this surface if requested.';
+      this.forceUpdate();
+      return;
+    }
+    const owners = ((response.data as { owners?: Array<Record<string, unknown>> }).owners ?? []).map((owner) => {
+      const fork = owner.canForkRepository === true ? 'fork proven' : 'fork unknown';
+      const create = owner.canCreateRepository === true ? 'create proven' : 'create unknown';
+      const reason = owner.capabilities && typeof owner.capabilities === 'object' ? String((owner.capabilities as Record<string, unknown>).reason ?? '') : '';
+      return { id: String(owner.id ?? ''), label: `${String(owner.displayName ?? owner.login ?? '')} · ${String(owner.kind ?? '')} · ${fork}, ${create}${reason ? ` · ${reason}` : ''}`, login: String(owner.login ?? ''), kind: String(owner.kind ?? ''), fork: owner.canForkRepository === true ? 'true' : 'false', create: owner.canCreateRepository === true ? 'true' : 'false' };
+    });
+    this.forgeOwners = owners;
+    this.forgeOwnerId = owners.some((owner) => owner.id === this.forgeOwnerId) ? this.forgeOwnerId : owners[0]?.id ?? '';
+    const selectedOwner = owners.find((owner) => owner.id === this.forgeOwnerId);
+    this.forgeOwnerCanFork = selectedOwner?.fork === 'true';
+    this.forgeOwnerCanCreate = selectedOwner?.create === 'true';
+    this.forgeStatus = response.message ?? `${owners.length} personal and organization owner${owners.length === 1 ? '' : 's'} loaded from provider data.`;
+    this.forceUpdate();
+  };
+
+  private forgeWithAccount = async (accountId: string): Promise<void> => {
+    const response = await this.request('forge.account.activate', { payload: { accountId } });
+    this.forgeStatus = response?.ok ? 'The selected account is active.' : (response?.message ?? 'The account could not be activated. Re-authenticate beside this surface if requested.');
+    if (response?.ok) { this.forgeActiveAccountId = accountId; await this.forgeLoadOwners(); }
+    await this.forgeLoad();
+  };
+
+  private forgeRefreshAccount = async (accountId: string): Promise<void> => {
+    const response = await this.request('forge.account.refresh', { payload: { accountId } });
+    this.forgeStatus = response?.ok ? 'The account was refreshed from the provider sign-in store.' : (response?.message ?? 'The account needs re-authentication.');
+    await this.forgeLoad();
+  };
+
+  private forgeSignOut = async (accountId: string): Promise<void> => {
+    const response = await this.request('forge.account.sign-out', { payload: { accountId } });
+    this.forgeStatus = response?.ok ? 'The account was signed out.' : (response?.message ?? 'The account was not signed out.');
+    await this.forgeLoad();
+  };
+
+  private forgeCancel = async (): Promise<void> => {
+    const response = await this.request('forge.operation.cancel');
+    this.forgeStatus = response?.ok ? 'The forge operation was cancelled and its receipt was retained.' : (response?.message ?? 'No cancellable forge operation is running.');
+    await this.forgeLoad();
+  };
+
+  private forgeResetCorruption = async (): Promise<void> => {
+    const response = await this.request('forge.state.reset-corruption');
+    this.forgeStatus = response?.ok ? 'The corruption marker was reset. Retained receipts were not deleted.' : (response?.message ?? 'The corruption marker was not reset.');
+    await this.forgeLoad();
+  };
+
+  private forgeAdd = async (): Promise<void> => {
+    this.forgeStatus = 'Starting the provider device sign-in flow. No token is entered here.';
+    const response = await this.request('forge.auth.sign-in', { payload: { provider: 'github', hostname: 'github.com' } });
+    this.forgeStatus = response?.ok ? 'Device sign-in completed. Refreshing provider accounts.' : (response?.message ?? 'Provider sign-in did not complete.');
+    await this.forgeLoad();
+  };
+
+  private forgePublish = async (route: 'fork' | 'copy-and-push'): Promise<void> => {
+    const generation = ++this.forgePublishGeneration;
+    const response = await this.request('forge.publish', { payload: { provider: 'github', route, accountId: this.forgeActiveAccountId, ownerId: this.forgeOwnerId, repositoryName: this.forgeRepositoryName, sourceRemote: this.forgeSourceRemote, sourcePath: this.forgeSourcePath, visibility: 'private', defaultBranch: 'main' } });
+    if (generation !== this.forgePublishGeneration) return;
+    const data = response?.ok ? response.data as { receipt?: { message?: string; status?: string }; operation?: Record<string, unknown> } : undefined;
+    if (data?.operation && String(data.operation.id ?? '') === String(this.forgeOperation.id ?? '')) {
+      this.forgeOperation = { id: String(data.operation.id ?? 'idle'), status: String(data.operation.status ?? 'idle'), progress: Number(data.operation.progress ?? 0), message: String(data.operation.message ?? ''), cancellable: Boolean(data.operation.cancellable) };
+    }
+    this.forgeStatus = data?.receipt?.message ?? response?.message ?? 'The provider did not confirm publication.';
+    if (data?.receipt) this.forgeReceipts = [{ status: String(data.receipt.status ?? 'unknown'), message: String(data.receipt.message ?? ''), when: new Date().toISOString() }, ...this.forgeReceipts].slice(0, 12);
+    this.forceUpdate();
+  };
 
   /** Bounded, allowlisted discovery through the preload bridge. Never a shell command. */
   private discover = async () => {
@@ -1135,6 +1328,7 @@ ${resolution.disclosure}`);
     if (action === 'daemon-start') { void this.daemonAction('start'); return; }
     if (action === 'daemon-stop') { void this.daemonAction('stop'); return; }
     if (action === 'daemon-restart') { void this.daemonAction('restart'); return; }
+    if (action === 'forge-load') { void this.forgeLoad(); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -2427,6 +2621,20 @@ It is shown once. The phone needs it to register.`;
     const bridge = this.bridge();
     const readings = this.readings[screen];
     const note = this.note(screen);
+    const forgeShellState = this.state as { patterns?: Record<string, string[]>; regexTarget?: string; regexFlags?: string[] };
+    const forgePattern = forgeShellState.regexTarget === 'forge' ? (forgeShellState.patterns?.forge ?? []).join('') : '';
+    let forgeSearchError = '';
+    let forgeMatcher: (value: string) => boolean = (value) => value.toLocaleLowerCase().includes(this.forgeSearch.trim().toLocaleLowerCase());
+    if (forgePattern) {
+      try {
+        const regex = new RegExp(forgePattern.slice(0, 256), (forgeShellState.regexFlags ?? ['i']).filter((flag, index, all) => flag !== 'g' && all.indexOf(flag) === index).join(''));
+        forgeMatcher = (value) => regex.test(value);
+      } catch (error) {
+        forgeSearchError = error instanceof Error ? error.message : 'Invalid regular expression.';
+        forgeMatcher = () => false;
+      }
+    }
+    const forgeSearchText = forgePattern || this.forgeSearch;
 
     return {
       ...values,
@@ -2584,6 +2792,46 @@ It is shown once. The phone needs it to register.`;
         commits: [], commitRows: [], diffLines: [], diffFile: 'no commit selected', blameRows: [],
         branches: [], branchName: '', commitCount: '0 commits',
         compareLabel: NO_HISTORY,
+        forgeStatus: this.forgeStatus,
+        forgeHostedUnavailable: bridge?.platform === 'web',
+        forgeCorrupt: Boolean(this.forgeCorruption),
+        forgeOperation: this.forgeOperation,
+        forgeDevice: this.forgeDevice,
+        forgeSearch: this.forgeSearch,
+        forgeSearchDisplay: forgeSearchText,
+        forgeAccounts: this.forgeAccounts.filter((account) => {
+          const query = String(forgeSearchText).trim();
+          return !query || forgeMatcher(`${String(account.login)} ${String(account.state)} ${String(account.tokenRef)}`);
+        }).map((account) => ({ ...account, activate: () => void this.forgeWithAccount(String(account.id)), refresh: () => void this.forgeRefreshAccount(String(account.id)), signOut: () => void this.forgeSignOut(String(account.id)) })),
+        forgeSearchStatus: forgeSearchError || `${this.forgeAccounts.filter((account) => !forgeSearchText || forgeMatcher(`${String(account.login)} ${String(account.state)} ${String(account.tokenRef)}`)).length} account match${this.forgeAccounts.filter((account) => !forgeSearchText || forgeMatcher(`${String(account.login)} ${String(account.state)} ${String(account.tokenRef)}`)).length === 1 ? '' : 'es'}`,
+        regexTargetLabel: forgePattern ? 'forge accounts' : values.regexTargetLabel,
+        regexCount: forgePattern ? (forgeSearchError || 'forge account pattern bound') : values.regexCount,
+        regexPreview: forgePattern ? this.forgeAccounts.slice(0, 6).map((account) => { const hit = forgeMatcher(`${String(account.login)} ${String(account.state)} ${String(account.tokenRef)}`); return { text: `${String(account.login)} · ${String(account.state)}`, icon: hit ? 'check_circle' : 'remove_circle_outline', color: hit ? '#82D9A5' : '#778078' }; }) : values.regexPreview,
+        forgeCapabilities: this.forgeCapabilities,
+        forgeOwners: this.forgeOwners,
+        forgeOwnerId: this.forgeOwnerId,
+        forgeForkDisabled: bridge?.platform === 'web' || !this.forgeOwnerCanFork,
+        forgeCopyPushDisabled: bridge?.platform === 'web' || !this.forgeOwnerCanCreate,
+        forgeRepositoryName: this.forgeRepositoryName,
+        forgeSourceRemote: this.forgeSourceRemote,
+        forgeSourcePath: this.forgeSourcePath,
+        forgeReceipts: this.forgeReceipts,
+        forgeCancel: () => void this.forgeCancel(),
+        forgeResetCorruption: () => void this.forgeResetCorruption(),
+        forgeLoad: () => void this.forgeLoad(),
+         forgeAdd: () => void this.forgeAdd(),
+         forgeReauthDisabled: bridge?.platform === 'web' || (this.forgeAccounts.length > 0 && this.forgeAccounts.every((account) => String(account.credentialStorage) === 'keyring' && String(account.state) === 'available')),
+         forgeReauth: () => void this.forgeAdd(),
+        forgeOwnersLoad: () => void this.forgeLoadOwners(),
+        forgeFork: () => void this.forgePublish('fork'),
+        forgeCopyPush: () => void this.forgePublish('copy-and-push'),
+        onForgeSearch: (event: { target: { value: string } }) => { this.forgeSearch = event.target.value.slice(0, 256); const prior = this.state as { patterns?: Record<string, string[]>; regexFlags?: string[] }; this.setState({ patterns: { ...(prior.patterns ?? {}), forge: [] }, regexFlags: (prior.regexFlags ?? ['i']).filter((flag) => flag !== 'g'), rxText: '' } as never); this.forceUpdate(); },
+        onForgeOwner: (event: { target: { value: string } }) => { this.forgeOwnerId = event.target.value; const owner = this.forgeOwners.find((candidate) => candidate.id === this.forgeOwnerId); this.forgeOwnerCanFork = owner?.fork === 'true'; this.forgeOwnerCanCreate = owner?.create === 'true'; this.forceUpdate(); },
+        onForgeRepositoryName: (event: { target: { value: string } }) => { this.forgeRepositoryName = event.target.value.slice(0, 100); this.forceUpdate(); },
+        onForgeSourceRemote: (event: { target: { value: string } }) => { this.forgeSourceRemote = event.target.value.slice(0, 4096); this.forceUpdate(); },
+        onForgeSourcePath: (event: { target: { value: string } }) => { this.forgeSourcePath = event.target.value.slice(0, 4096); this.forceUpdate(); },
+        forgePickSource: async () => { const path = await bridge?.dialog?.pickFolder?.(); if (path) { this.forgeSourcePath = path; this.forceUpdate(); } },
+        openForgeRegex: () => this.setState({ regexOpen: true, regexTarget: 'forge', regexX: '42%', regexY: '180px', regexFlags: ((this.state as { regexFlags?: string[] }).regexFlags ?? ['i']).filter((flag) => flag !== 'g') }),
       } : {}),
 
       // The agent rail has no local memory store wired in, so its rows and metrics stay empty.
@@ -2962,5 +3210,6 @@ It is shown once. The phone needs it to register.`;
 interface DesktopBridge {
   platform: string;
   window: { minimize: () => void; toggleMaximize: () => void; close: () => void };
+  dialog: { pickFolder: () => Promise<string | undefined> };
   controlPlane: { request: (request: Record<string, unknown>) => Promise<ControlPlaneResponse | undefined> };
 }

@@ -9,6 +9,9 @@ const api: DingDesktopApi = {
     toggleMaximize: () => ipcRenderer.send('window:toggle-maximize'),
     close: () => ipcRenderer.send('window:close'),
   },
+  dialog: {
+    pickFolder: () => ipcRenderer.invoke('dialog:pick-folder') as Promise<string | undefined>,
+  },
   controlPlane: {
     request: (request: ControlPlaneRequest) => ipcRenderer.invoke('control-plane:request', request) as Promise<ControlPlaneResponse>,
   },

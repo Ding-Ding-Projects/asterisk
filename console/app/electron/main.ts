@@ -200,6 +200,11 @@ function createWindow(): void {
 ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindow.unmaximize() : mainWindow?.maximize());
 ipcMain.on('window:close', () => mainWindow?.close());
+ipcMain.handle('dialog:pick-folder', async () => {
+  if (!mainWindow) return undefined;
+  const result = await dialog.showOpenDialog(mainWindow, { properties: ['openDirectory', 'createDirectory'] });
+  return result.canceled ? undefined : result.filePaths[0];
+});
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
 async function acceptExtensionHandoff(handoff: ExtensionDownloadHandoff, senderWindow: BrowserWindow | null): Promise<{ accepted: boolean; detail: string }> {
   if (!isExtensionDownloadHandoff(handoff)) return { accepted: false, detail: 'The extension handoff failed its bounded validation.' };

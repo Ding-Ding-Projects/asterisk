@@ -52,7 +52,12 @@ export type ControlPlaneAction =
   | 'status-hub.register' | 'status-hub.project' | 'status-hub.sessions' | 'status-hub.session'
   | 'status-hub.replies' | 'status-hub.answer'
   /* Dim-sum cache is local-only. A missing cache is an honest unavailable result. */
-  | 'dim-sum.cache.read';
+  | 'dim-sum.cache.read'
+  /* Desktop forge publishing uses gh/git through the typed privileged bridge. */
+  | 'forge.capabilities' | 'forge.accounts.list' | 'forge.account.add'
+  | 'forge.account.refresh' | 'forge.account.activate' | 'forge.account.sign-out'
+  | 'forge.owners.list' | 'forge.publish' | 'forge.receipts.list'
+  | 'forge.auth.sign-in' | 'forge.operation.cancel' | 'forge.operation.status' | 'forge.state.reset-corruption';
 
 /** The screens a `pbx.read` can answer, each backed by read-only Asterisk CLI output. */
 export type PbxReadView =
@@ -103,6 +108,7 @@ export interface UpdaterRestartResult {
 export interface DingDesktopApi {
   platform: string;
   window: { minimize(): void; toggleMaximize(): void; close(): void };
+  dialog: { pickFolder(): Promise<string | undefined> };
   controlPlane: { request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> };
   statusHub: { baseUrl?: string };
   nativeHost: {

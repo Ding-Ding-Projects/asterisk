@@ -18,3 +18,4 @@ export * from "./server-inventory.js";
 export * from "./settings-store.js";
 export * from "./atomic-file.js";
 export * from "./download-transfer-manager.js";
+export * from "./forge-publishing.js";

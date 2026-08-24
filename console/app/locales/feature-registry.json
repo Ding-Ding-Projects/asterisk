@@ -601,11 +601,41 @@
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
       "labels": [
         "Push to mirror",
-        "History & git"
+        "History & git",
+        "Forge publishing",
+        "Refresh forge data",
+        "Search forge accounts",
+        "Search accounts",
+        "Add account",
+        "Re-authenticate",
+        "Cancel operation",
+        "Owner from provider data",
+        "Destination name",
+        "Source remote for fork",
+        "Local source folder for copy and push",
+        "Browse",
+        "Load personal and organization owners",
+        "Fork to selected owner",
+        "Copy and push to selected owner"
       ],
       "localizedLabels": [
         "Push to mirror",
-        "History & git"
+        "History & git",
+        "Forge publishing",
+        "Refresh forge data",
+        "Search forge accounts",
+        "Search accounts",
+        "Add account",
+        "Re-authenticate",
+        "Cancel operation",
+        "Owner from provider data",
+        "Destination name",
+        "Source remote for fork",
+        "Local source folder for copy and push",
+        "Browse",
+        "Load personal and organization owners",
+        "Fork to selected owner",
+        "Copy and push to selected owner"
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."
