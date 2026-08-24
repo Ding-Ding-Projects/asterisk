@@ -4,7 +4,9 @@ param(
   [Parameter(Mandatory = $true)][long]$MemoryBytes,
   [Parameter(Mandatory = $true)][string]$ManifestPath,
   [Parameter(Mandatory = $true)][string]$PackageLockPath,
-  [Parameter(Mandatory = $true)][long]$WorkerTimeoutMs
+  [Parameter(Mandatory = $true)][long]$WorkerTimeoutMs,
+  [Parameter(Mandatory = $true)][string]$ProfileName,
+  [Parameter(Mandatory = $true)][string]$RecoveryPath
 )
 
 function Read-ProvenPath([string]$Path) {
@@ -39,6 +41,17 @@ try {
     $actual = (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($actual -ne $expected) { throw "The decoder native runtime digest does not match the manifest: $($entry.path)" }
   }
+  $resourceRoot = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($WorkerPath))
+  $record = [ordered]@{
+    profileName = $ProfileName
+    supervisorPid = $PID
+    acl = @(
+      [ordered]@{ path = $resourceRoot; sddl = (Get-Acl -LiteralPath $resourceRoot).Sddl }
+      [ordered]@{ path = [IO.Path]::GetFullPath($NodePath); sddl = (Get-Acl -LiteralPath ([IO.Path]::GetFullPath($NodePath))).Sddl }
+    )
+  }
+  New-Item -ItemType Directory -Force -Path ([IO.Path]::GetDirectoryName($RecoveryPath)) | Out-Null
+  $record | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $RecoveryPath -Encoding UTF8 -NoNewline
 } catch {
   Write-Output "ERROR:STARTUP:$($_.Exception.Message)"
   exit 1
@@ -92,8 +105,8 @@ public static class LogoWorkerAppContainerLauncher {
   }
   static void RestoreResourceDacl(string path,IntPtr originalDacl){ var result=SetNamedSecurityInfo(path,SE_FILE_OBJECT,DACL_SECURITY_INFORMATION,IntPtr.Zero,IntPtr.Zero,originalDacl,IntPtr.Zero); if(result!=0) throw new Win32Exception((int)result,"Restoring decoder resource ACL failed"); }
   static void Capture(ref Exception first,Action action){ try{action();}catch(Exception error){if(first==null)first=error;} }
-  public static int Run(string node,string worker,long memoryBytes,long workerTimeoutMs){
-    var profile="DingLogoDecoder_"+Guid.NewGuid().ToString("N"); IntPtr sid=IntPtr.Zero,job=IntPtr.Zero,attributes=IntPtr.Zero,resourceDescriptor=IntPtr.Zero,addedDacl=IntPtr.Zero,originalDacl=IntPtr.Zero,nodeDescriptor=IntPtr.Zero,nodeAddedDacl=IntPtr.Zero,nodeOriginalDacl=IntPtr.Zero; var resourceRoot=System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(worker)); if(String.IsNullOrEmpty(resourceRoot)) throw new InvalidOperationException("The decoder resource directory is unavailable"); PROCESS_INFORMATION pi=new PROCESS_INFORMATION(); int workerExit=1; Exception setupError=null,cleanupError=null;
+  public static int Run(string profile,string node,string worker,long memoryBytes,long workerTimeoutMs){
+    IntPtr sid=IntPtr.Zero,job=IntPtr.Zero,attributes=IntPtr.Zero,resourceDescriptor=IntPtr.Zero,addedDacl=IntPtr.Zero,originalDacl=IntPtr.Zero,nodeDescriptor=IntPtr.Zero,nodeAddedDacl=IntPtr.Zero,nodeOriginalDacl=IntPtr.Zero; var resourceRoot=System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(worker)); if(String.IsNullOrEmpty(resourceRoot)) throw new InvalidOperationException("The decoder resource directory is unavailable"); PROCESS_INFORMATION pi=new PROCESS_INFORMATION(); int workerExit=1; Exception setupError=null,cleanupError=null;
     try{
       var hr=CreateAppContainerProfile(profile,profile,"Ding PBX Console local logo decoder",IntPtr.Zero,0,out sid);
       if(hr!=0 && hr!=unchecked((int)0x800700B7)) throw new Win32Exception(hr,"CreateAppContainerProfile failed");
@@ -139,5 +152,6 @@ public static class LogoWorkerAppContainerLauncher {
 }
 "@
 
-$exitCode = [LogoWorkerAppContainerLauncher]::Run($NodePath, $WorkerPath, $MemoryBytes, $WorkerTimeoutMs)
+$exitCode = [LogoWorkerAppContainerLauncher]::Run($ProfileName, $NodePath, $WorkerPath, $MemoryBytes, $WorkerTimeoutMs)
+if ($exitCode -eq 0) { Remove-Item -LiteralPath $RecoveryPath -Force -ErrorAction SilentlyContinue }
 exit $exitCode

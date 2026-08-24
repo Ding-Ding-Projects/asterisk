@@ -20,6 +20,8 @@ const worker = join(root, 'logo-decoder-worker.mjs');
 if (!existsSync(worker) || createHash('sha256').update(readFileSync(worker)).digest('hex') !== manifest.workerSha256) throw new Error('The copied packaged decoder worker does not match its manifest.');
 const launcher = join(root, 'logo-worker-job.ps1');
 if (!existsSync(launcher) || createHash('sha256').update(readFileSync(launcher)).digest('hex') !== manifest.launcherSha256) throw new Error('The copied packaged decoder launcher does not match its manifest.');
+const recovery = join(root, 'logo-worker-recovery.ps1');
+if (!existsSync(recovery) || createHash('sha256').update(readFileSync(recovery)).digest('hex') !== manifest.recoverySha256) throw new Error('The copied packaged decoder recovery helper does not match its manifest.');
 const packageLock = join(root, 'package-lock.json');
 if (!existsSync(packageLock) || createHash('sha256').update(readFileSync(packageLock)).digest('hex') !== manifest.packageLockSha256) throw new Error('The copied decoder package lock does not match its manifest.');
 const expectedPaths = manifest.nativeFiles.map((entry) => entry.path).sort();

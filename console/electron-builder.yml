@@ -23,6 +23,8 @@ extraResources:
     to: logo-decoder/logo-decoder-manifest.json
   - from: control-plane/logo-worker-job.ps1
     to: logo-decoder/logo-worker-job.ps1
+  - from: control-plane/logo-worker-recovery.ps1
+    to: logo-decoder/logo-worker-recovery.ps1
   - from: package-lock.json
     to: logo-decoder/package-lock.json
 win:

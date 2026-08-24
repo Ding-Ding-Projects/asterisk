@@ -151,6 +151,7 @@ export interface ControlPlaneDispatcherOptions {
   logoDecoderPackageLockPath?: string;
   logoDecoderIdentityManifestPath?: string;
   logoDecoderJobScriptPath?: string;
+  logoDecoderRecoveryScriptPath?: string;
 }
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
@@ -172,9 +173,9 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
   const candidateManifestPath = options.logoDecoderManifestPath ?? join(import.meta.dirname, 'logo-decoder-manifest.json');
   const candidatePackageLockPath = options.logoDecoderPackageLockPath ?? join(import.meta.dirname, 'package-lock.json');
   const candidateIdentityManifestPath = options.logoDecoderIdentityManifestPath ?? join(import.meta.dirname, '..', 'update-manifest.json');
-  const boundaryReady = process.platform === 'win32' && Boolean(options.logoDecoderJobScriptPath) && existsSync(options.logoDecoderJobScriptPath!);
+  const boundaryReady = process.platform === 'win32' && Boolean(options.logoDecoderJobScriptPath) && existsSync(options.logoDecoderJobScriptPath!) && Boolean(options.logoDecoderRecoveryScriptPath) && existsSync(options.logoDecoderRecoveryScriptPath!);
   const logoDecoder = boundaryReady && existsSync(candidateDecoderPath) && existsSync(candidateManifestPath) && existsSync(candidatePackageLockPath)
-    ? createIsolatedLogoDecoder({ workerPath: candidateDecoderPath, manifestPath: candidateManifestPath, packageLockPath: candidatePackageLockPath, identityManifestPath: candidateIdentityManifestPath, jobScriptPath: options.logoDecoderJobScriptPath })
+    ? createIsolatedLogoDecoder({ workerPath: candidateDecoderPath, manifestPath: candidateManifestPath, packageLockPath: candidatePackageLockPath, identityManifestPath: candidateIdentityManifestPath, jobScriptPath: options.logoDecoderJobScriptPath, recoveryScriptPath: options.logoDecoderRecoveryScriptPath })
     : undefined;
   const logoStore = new LogoStore({ rootPath: join(userDataPath, 'logo-cache'), reopen: logoDecoder?.reopen });
   const logoHandlers = createLogoConversionHandlers(logoDecoder, logoStoreHandlers(logoStore));

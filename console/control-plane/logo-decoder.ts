@@ -1,11 +1,11 @@
 import { execFile, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import type { LogoInspection, LogoInspectionResult, LogoTarget } from '../shared/logo.js';
 import type { IsolatedLogoDecoder, IsolatedLogoDecoderHealth, IsolatedLogoDecoderOutput } from './logo-converter.js';
 
-export interface IsolatedLogoDecoderOptions { readonly workerPath: string; readonly jobScriptPath?: string; readonly manifestPath: string; readonly packageLockPath: string; readonly identityManifestPath?: string; readonly timeoutMs?: number }
+export interface IsolatedLogoDecoderOptions { readonly workerPath: string; readonly jobScriptPath?: string; readonly recoveryScriptPath?: string; readonly manifestPath: string; readonly packageLockPath: string; readonly identityManifestPath?: string; readonly timeoutMs?: number }
 const MAX_WORKER_RESPONSE_BYTES = Math.ceil((16 * 1024 * 1024) * 4 / 3) + 64 * 1024;
 const MAX_DECODE_ALLOWANCE_BYTES = 64 * 1024 * 1024;
 const MAX_WORKER_OS_BYTES = 128 * 1024 * 1024;
@@ -68,8 +68,10 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
   return new Promise((resolve, reject) => {
     const minimalEnv: NodeJS.ProcessEnv = { ELECTRON_RUN_AS_NODE: '1', PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, TEMP: process.env.TEMP, TMP: process.env.TMP };
     const launcher = process.platform === 'win32' && options.jobScriptPath;
+    const profileName = `DingLogoDecoder_${randomUUID().replaceAll('-', '')}`;
+    const recoveryPath = join(process.env.TEMP ?? process.env.TMP ?? '.', `${profileName}.json`);
     const child = launcher
-      ? spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', options.jobScriptPath!, '-NodePath', process.execPath, '-WorkerPath', options.workerPath, '-MemoryBytes', String(MAX_WORKER_OS_BYTES), '-ManifestPath', options.manifestPath, '-PackageLockPath', options.packageLockPath, '-WorkerTimeoutMs', String(options.timeoutMs ?? 2_000)], { windowsHide: true, shell: false, env: minimalEnv, stdio: ['pipe', 'pipe', 'ignore'] })
+      ? spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', options.jobScriptPath!, '-NodePath', process.execPath, '-WorkerPath', options.workerPath, '-MemoryBytes', String(MAX_WORKER_OS_BYTES), '-ManifestPath', options.manifestPath, '-PackageLockPath', options.packageLockPath, '-WorkerTimeoutMs', String(options.timeoutMs ?? 2_000), '-ProfileName', profileName, '-RecoveryPath', recoveryPath], { windowsHide: true, shell: false, env: minimalEnv, stdio: ['pipe', 'pipe', 'ignore'] })
       : spawn(process.execPath, ['--max-old-space-size=64', options.workerPath, '--no-network'], { windowsHide: true, shell: false, env: minimalEnv, stdio: ['pipe', 'pipe', 'ignore'] });
     const limit = MAX_WORKER_RESPONSE_BYTES;
     let output = '';
@@ -119,7 +121,11 @@ function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, 
           if (launcher && (!readySeen || !workerExitAcknowledged || !jobCleanupAcknowledged || !cleanupComplete || cleanupFailure)) throw new Error(cleanupFailure ?? 'The isolated decoder cleanup acknowledgement was incomplete.');
         } catch (cause) {
           cleanupError = cause instanceof Error ? cause : new Error('The isolated decoder cleanup failed.');
-          if (!(await waitForChildExit(child, 2_000)) && child.exitCode === null) cleanupError = new Error('The isolated decoder launcher termination could not be proven by its supervisor receipt.', { cause: cleanupError });
+          if (!(await waitForChildExit(child, 2_000)) && child.exitCode === null) {
+            if (options.recoveryScriptPath) {
+              try { await new Promise<void>((resolveRecovery, rejectRecovery) => { const recovery = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', options.recoveryScriptPath!, '-RecoveryPath', recoveryPath], { windowsHide: true, stdio: 'ignore' }); recovery.once('error', rejectRecovery); recovery.once('exit', (code) => code === 0 ? resolveRecovery() : rejectRecovery(new Error(`Decoder recovery exited with ${code}.`))); }); } catch (recoveryError) { cleanupError = new Error('The isolated decoder launcher termination and independent recovery could not be proven.', { cause: recoveryError }); }
+            } else cleanupError = new Error('The isolated decoder launcher termination could not be proven by its supervisor receipt.', { cause: cleanupError });
+          }
         }
         if (error) reject(error); else if (cleanupError) reject(cleanupError); else if (launcher && (workerPid === undefined || baselinePid !== workerPid)) reject(new Error('The isolated decoder working-set baseline was not bound to the worker PID.')); else resolve({ ...value!, workerPid, baselinePid, peakWorkingSetBytes, baselineWorkingSetBytes, workingSetIncrementBytes: baselineWorkingSetBytes === undefined ? undefined : peakWorkingSetBytes - baselineWorkingSetBytes });
       })();
@@ -194,7 +200,7 @@ export function createIsolatedLogoDecoder(options: IsolatedLogoDecoderOptions): 
       if (typeof result.workerPid !== 'number' || typeof result.baselinePid !== 'number' || result.workerPid !== result.baselinePid || typeof result.workerVersion !== 'string' || typeof result.workerRevision !== 'string' || typeof result.sharpVersion !== 'string' || typeof result.nativePlatform !== 'string' || typeof result.nativeArch !== 'string' || typeof result.nativeBindingPath !== 'string' || !/^[0-9a-f]{64}$/iu.test(String(result.nativeBindingSha256)) || typeof result.baselineWorkingSetBytes !== 'number' || typeof result.peakWorkingSetBytes !== 'number' || typeof result.workingSetIncrementBytes !== 'number' || !Array.isArray(result.formats) || result.formats.length !== 3 || new Set(result.formats.map(String)).size !== 3 || result.formats.some((format) => !['png', 'jpeg', 'webp'].includes(String(format)))) throw new Error('The isolated decoder health handshake was incomplete or its baseline PID was not the worker PID.');
       const manifestBytes = await readFile(options.manifestPath);
       const manifestSha256 = createHash('sha256').update(manifestBytes).digest('hex');
-      const manifest = JSON.parse(manifestBytes.toString('utf8')) as { schemaVersion?: unknown; sourceCommit?: unknown; workerRevision?: unknown; workerSha256?: unknown; launcherSha256?: unknown; packageLockSha256?: unknown; sharpVersion?: unknown; sharpIntegrity?: unknown; platform?: unknown; arch?: unknown; nativeFiles?: unknown };
+      const manifest = JSON.parse(manifestBytes.toString('utf8')) as { schemaVersion?: unknown; sourceCommit?: unknown; workerRevision?: unknown; workerSha256?: unknown; launcherSha256?: unknown; recoverySha256?: unknown; packageLockSha256?: unknown; sharpVersion?: unknown; sharpIntegrity?: unknown; platform?: unknown; arch?: unknown; nativeFiles?: unknown };
       if (!options.identityManifestPath) throw new Error('The packaged product identity path is missing.');
       const identity = JSON.parse(await readFile(options.identityManifestPath, 'utf8')) as { schemaVersion?: unknown; product?: unknown; candidateCommit?: unknown; logoDecoderManifestSha256?: unknown };
       if (identity.schemaVersion !== 1 || identity.product !== 'ding-pbx-console' || identity.candidateCommit !== manifest.sourceCommit || identity.logoDecoderManifestSha256 !== manifestSha256) throw new Error('The decoder manifest is not bound to the packaged product identity.');
@@ -206,7 +212,9 @@ export function createIsolatedLogoDecoder(options: IsolatedLogoDecoderOptions): 
       if (!options.jobScriptPath) throw new Error('The packaged decoder launcher path is missing.');
       const launcherDigest = createHash('sha256').update(await readFile(options.jobScriptPath)).digest('hex');
       const packageLockDigest = createHash('sha256').update(await readFile(options.packageLockPath)).digest('hex');
-      if (manifest.launcherSha256 !== launcherDigest || manifest.packageLockSha256 !== packageLockDigest) throw new Error('The packaged launcher or package lock digest does not match its manifest.');
+      if (!options.recoveryScriptPath) throw new Error('The packaged decoder recovery path is missing.');
+      const recoveryDigest = createHash('sha256').update(await readFile(options.recoveryScriptPath)).digest('hex');
+      if (manifest.launcherSha256 !== launcherDigest || manifest.recoverySha256 !== recoveryDigest || manifest.packageLockSha256 !== packageLockDigest) throw new Error('The packaged launcher, recovery helper, or package lock digest does not match its manifest.');
       const nativeFiles: string[] = [];
       for (const entry of manifest.nativeFiles as Array<{ path?: unknown; sha256?: unknown }>) {
         if (typeof entry.path !== 'string' || typeof entry.sha256 !== 'string' || !/^node_modules\/(?:sharp|@img)\/.+\.(?:js|mjs|cjs|node|dll|exe|so|dylib|wasm)$/iu.test(entry.path)) throw new Error('The decoder native-file manifest is malformed.');

@@ -77,7 +77,7 @@ ipcMain.handle('external-settings:remove-vault-reference', async (_event, refere
   catch { return { ok: false, reason: 'The credential reference could not be removed.' }; }
 });
 
-const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false, externalSettingsVault: externalSettingsVault(), logoDecoderWorkerPath: join(process.resourcesPath, 'logo-decoder', 'logo-decoder-worker.mjs'), logoDecoderManifestPath: join(process.resourcesPath, 'logo-decoder', 'logo-decoder-manifest.json'), logoDecoderPackageLockPath: join(process.resourcesPath, 'logo-decoder', 'package-lock.json'), logoDecoderIdentityManifestPath: join(process.resourcesPath, 'update-manifest.json'), logoDecoderJobScriptPath: join(process.resourcesPath, 'logo-decoder', 'logo-worker-job.ps1') });
+const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false, externalSettingsVault: externalSettingsVault(), logoDecoderWorkerPath: join(process.resourcesPath, 'logo-decoder', 'logo-decoder-worker.mjs'), logoDecoderManifestPath: join(process.resourcesPath, 'logo-decoder', 'logo-decoder-manifest.json'), logoDecoderPackageLockPath: join(process.resourcesPath, 'logo-decoder', 'package-lock.json'), logoDecoderIdentityManifestPath: join(process.resourcesPath, 'update-manifest.json'), logoDecoderJobScriptPath: join(process.resourcesPath, 'logo-decoder', 'logo-worker-job.ps1'), logoDecoderRecoveryScriptPath: join(process.resourcesPath, 'logo-decoder', 'logo-worker-recovery.ps1') });
 const { controlPlaneRequest } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let updateCheckInFlight: Promise<void> | undefined;
