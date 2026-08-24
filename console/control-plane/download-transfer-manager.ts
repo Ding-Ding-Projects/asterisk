@@ -310,6 +310,13 @@ export class DownloadTransferManager implements DownloadTransferClient {
     if (!Number.isSafeInteger(info.size) || info.size < recordedBytes || info.size > MAX_DOWNLOAD_BYTES) throw new Error('SECURE_TEMP_SIZE_RECONCILIATION_FAILED: The durable temporary size was not compatible with the last acknowledged byte count.');
     return info.size;
   }
+  private async publishSecureTemp(parentPath: string, tempPath: string, destinationPath: string, expectedSize: number, expectedSha256?: string): Promise<{ size: number; sha256: string; destination: string }> {
+    if (process.platform !== 'win32' || !this.secureTempHelperPath || !existsSync(this.secureTempHelperPath)) throw new Error('SECURE_TEMP_PUBLISH_HELPER_UNAVAILABLE: The native secure publication helper is unavailable.');
+    const result = await execFileAsync(this.secureTempHelperPath, ['--publish', parentPath, basename(tempPath), basename(destinationPath), String(expectedSize), expectedSha256 ?? ''], { windowsHide: true, timeout: 30_000, maxBuffer: 32 * 1024 });
+    const receipt = JSON.parse(String(result.stdout).trim()) as { accepted?: unknown; code?: unknown; bytes?: unknown; sha256?: unknown; destination?: unknown };
+    if (receipt.accepted !== true || receipt.code !== 'SECURE_TEMP_PUBLISHED' || receipt.bytes !== expectedSize || typeof receipt.sha256 !== 'string' || (expectedSha256 && receipt.sha256.toLowerCase() !== expectedSha256.toLowerCase()) || receipt.destination !== basename(destinationPath)) throw new Error(`SECURE_TEMP_PUBLISH_FAILED: The native publication receipt did not match the recorded complete file, code=${String(receipt.code ?? 'unknown')}.`);
+    return { size: expectedSize, sha256: receipt.sha256, destination: receipt.destination };
+  }
   private async waitForHelperClose(task: TransferTask | undefined): Promise<boolean> {
     if (!task?.helperClose) return true;
     return Promise.race([task.helperClose.then(() => true).catch(() => true), new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 5_000))]);
@@ -397,13 +404,19 @@ export class DownloadTransferManager implements DownloadTransferClient {
     if (!existingTask) this.tasks.set(transferId, integrityTask);
     try {
       if (snapshot.publicationSize === undefined || !snapshot.publicationSha256) throw new Error('PUBLISH_INTEGRITY_FAILED: The complete temporary file has no recorded size and digest.');
-      const inspected = await this.inspectCompleteTemp(tempPath, snapshot.publicationSize, integrityTask.controller.signal);
-      if (inspected.sha256.toLowerCase() !== snapshot.publicationSha256.toLowerCase()) throw new Error('PUBLISH_INTEGRITY_FAILED: The complete temporary file digest changed before publication.');
       await this.assertSafeDestination(snapshot.destinationPath);
       await this.assertNoReparseComponents(dirname(snapshot.destinationPath));
       if (existsSync(snapshot.destinationPath)) throw new Error('DOWNLOAD_DESTINATION_EXISTS: The destination appeared before retry publication.');
-      renameWithRetrySync(tempPath, snapshot.destinationPath);
-      this.emit({ ...snapshot, status: 'completed', bodyComplete: true, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: false, observedAt: at, error: undefined, partial: undefined });
+      let published: { size: number; sha256: string; destination?: string };
+      if (process.platform === 'win32' && this.secureTempHelperPath) {
+        published = await this.publishSecureTemp(dirname(snapshot.destinationPath), tempPath, snapshot.destinationPath, snapshot.publicationSize, snapshot.publicationSha256);
+      } else {
+        const inspected = await this.inspectCompleteTemp(tempPath, snapshot.publicationSize, integrityTask.controller.signal);
+        if (inspected.sha256.toLowerCase() !== snapshot.publicationSha256.toLowerCase()) throw new Error('PUBLISH_INTEGRITY_FAILED: The complete temporary file digest changed before publication.');
+        published = inspected;
+        renameWithRetrySync(tempPath, snapshot.destinationPath);
+      }
+      this.emit({ ...snapshot, status: 'completed', bodyComplete: true, publicationPending: false, publicationSize: published.size, publicationSha256: published.sha256, canPause: false, canResume: false, canCancel: false, canRetry: false, observedAt: at, error: undefined, partial: undefined });
       return this.receipt('retry', snapshot.handoffId, true, at, undefined, 'The complete temporary file was published after destination revalidation.', transferId);
     } catch (error) {
       const latest = this.snapshots.get(transferId);
@@ -458,6 +471,16 @@ export class DownloadTransferManager implements DownloadTransferClient {
       }
       bodyComplete = true;
       const completeSize = snapshot.totalBytes ?? snapshot.bytesTransferred;
+      if (process.platform === 'win32' && this.secureTempHelperPath) {
+        snapshot = { ...snapshot, bodyComplete: true, publicationPending: true, publicationSize: completeSize, observedAt: observedAt() };
+        this.emit(snapshot);
+        await this.assertNoReparseComponents(dirname(snapshot.destinationPath));
+        if (existsSync(snapshot.destinationPath)) throw new Error('DOWNLOAD_DESTINATION_EXISTS: The destination appeared before native publication.');
+        const published = await this.publishSecureTemp(dirname(snapshot.destinationPath), task.tempPath, snapshot.destinationPath, completeSize, snapshot.publicationSha256 ?? '');
+        snapshot = { ...snapshot, publicationSha256: published.sha256, status: 'completed', publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: false, observedAt: observedAt() };
+        this.emit(snapshot);
+        return;
+      }
       const completeDigest = await this.inspectCompleteTemp(task.tempPath, completeSize, controller.signal);
       snapshot = { ...snapshot, bodyComplete: true, publicationPending: true, publicationSize: completeDigest.size, publicationSha256: completeDigest.sha256, observedAt: observedAt() };
       this.emit(snapshot);

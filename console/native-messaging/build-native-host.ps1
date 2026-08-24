@@ -19,7 +19,7 @@ $brokerExit = 0
 if ($compiler) {
   & $compiler.Source /nologo /std:c++17 /EHsc /O2 /DUNICODE /D_UNICODE $source /Fe:$output /link /SUBSYSTEM:CONSOLE
   $hostExit = $LASTEXITCODE
-  & $compiler.Source /nologo /std:c++17 /EHsc /O2 /DUNICODE /D_UNICODE $helperSource /Fe:$secureOutput /link /SUBSYSTEM:CONSOLE
+  & $compiler.Source /nologo /std:c++17 /EHsc /O2 /DUNICODE /D_UNICODE $helperSource /Fe:$secureOutput /link /SUBSYSTEM:CONSOLE bcrypt.lib
   $helperExit = $LASTEXITCODE
   & $compiler.Source /nologo /std:c++17 /EHsc /O2 /DUNICODE /D_UNICODE $brokerSource /Fe:$brokerOutput /link /SUBSYSTEM:CONSOLE advapi32.lib
   $brokerExit = $LASTEXITCODE
@@ -29,7 +29,7 @@ if ($compiler) {
   $compilerKind = 'MinGW'
   & $compiler.Source -std=c++17 -O2 $source -o $output
   $hostExit = $LASTEXITCODE
-  & $compiler.Source -std=c++17 -O2 $helperSource -o $secureOutput
+  & $compiler.Source -std=c++17 -O2 $helperSource -lbcrypt -o $secureOutput
   $helperExit = $LASTEXITCODE
   & $compiler.Source -std=c++17 -O2 $brokerSource -ladvapi32 -o $brokerOutput
   $brokerExit = $LASTEXITCODE
