@@ -110,7 +110,7 @@
         "themeDesc"
       ],
       "missingCopyKeys": [],
-      "note": "The settings description, appearance editor labels, named preset status, font status, and colour evidence have English and Cantonese paths with funny-level styling. Full option-by-option localization and runtime proof remain unverified."
+      "note": "The settings description, appearance editor labels, axis labels, named preset status, font status, and colour evidence have English and Cantonese paths with funny-level styling. Full option-by-option localization and runtime proof remain unverified."
     },
     "app-logo-customization": {
       "state": "not-localized",

@@ -869,7 +869,7 @@
     },
     "material-appearance": {
       "status": "partial",
-      "note": "site/app.js implements a genuine infinite-colour-picker/translator with source-space and clipping evidence, WCAG contrast, theme/density/accent/font-scale controls, group colour metadata, and a local per-tab or per-element appearance editor with colour-space selection, rainbow sentinel, reduced-motion freeze, typography, decoration, spacing, direction, alignment, reset, JSON import/export, and history wiring. Named theme presets and verified bundled or generic font choices with document.fonts availability checks are also wired. Variable-font axes and runtime proof remain incomplete.",
+      "note": "site/app.js implements a genuine infinite-colour-picker/translator with source-space and clipping evidence, WCAG contrast, theme/density/accent/font-scale controls, group colour metadata, and a local per-tab or per-element appearance editor with colour-space selection, rainbow sentinel, reduced-motion freeze, typography, decoration, spacing, direction, alignment, reset, JSON import/export, and history wiring. Named theme presets and verified bundled or generic font choices with document.fonts availability checks are also wired. The bundled Material Symbols face has bounded wght axis metadata and controls; other static or unknown typed faces honestly report unavailable axis metadata. Runtime proof remains incomplete.",
       "implementation": {
         "paths": [
           "console/site/app.js",
