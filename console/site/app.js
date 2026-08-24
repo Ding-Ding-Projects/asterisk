@@ -1056,7 +1056,7 @@
   window.__dingSiteReady=true;
   window.DingSiteRegex={open:target=>openRegex(typeof target==='string'?target:target?.id)};
   document.dispatchEvent(new CustomEvent('site:ready'));
-  const loadDelivery=()=>{const deliveryScript=document.createElement('script');deliveryScript.src=new URL('history-delivery.js',document.currentScript?.src||location.href).href;deliveryScript.defer=true;document.head.append(deliveryScript)};
+  const loadDelivery=()=>{const builderScript=document.createElement('script');builderScript.src=new URL('full-builder.js',document.currentScript?.src||location.href).href;builderScript.onload=()=>{const deliveryScript=document.createElement('script');deliveryScript.src=new URL('history-delivery.js',document.currentScript?.src||location.href).href;deliveryScript.defer=true;document.head.append(deliveryScript)};document.head.append(builderScript)};
   const loadManifest=()=>{const manifestScript=document.createElement('script');manifestScript.src=new URL('release-manifest.js',document.currentScript?.src||location.href).href;manifestScript.onload=loadDelivery;document.head.append(manifestScript)};
   if(document.body?.dataset.page==='history'){const changelogScript=document.createElement('script');changelogScript.src=new URL('changelog-data.js',document.currentScript?.src||location.href).href;changelogScript.onload=loadManifest;document.head.append(changelogScript)}else loadDelivery();
   init();

@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { copyFile, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,8 +7,28 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(fileURLToPath(import.meta.url));
 const docs = resolve(root, '..', 'docs');
 const output = join(root, 'dist');
-const assets = ['index.html', 'product.html', 'documentation.html', 'downloads.html', 'status.html', 'settings.html', 'history.html', 'styles.css', 'app.js', 'history-delivery.js', 'changelog-data.js', 'release-manifest.js'];
+const assets = ['index.html', 'product.html', 'documentation.html', 'downloads.html', 'status.html', 'settings.html', 'history.html', 'styles.css', 'app.js', 'history-delivery.js', 'full-builder.js', 'changelog-data.js', 'release-manifest.js'];
 const socialPreview = resolve(root, '..', '..', 'social-preview.png');
+
+function parseGeneratedChangelog(source) {
+  const start = source.indexOf('=');
+  if (start < 0) throw new Error('The committed changelog generator output has no assignment.');
+  const records = JSON.parse(source.slice(start + 1).replace(/;\s*$/, ''));
+  if (!Array.isArray(records)) throw new Error('The committed changelog generator output is not an array.');
+  return records;
+}
+function validateChangelog(records) {
+  const tags = execFileSync('git', ['tag'], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
+  const versions = new Set(records.map(record => record.version));
+  if (records.length !== tags.length || tags.some(tag => !versions.has(tag))) throw new Error(`Changelog completeness mismatch: ${records.length} records for ${tags.length} tags.`);
+  if (records.some(record => !record || !record.version || !/^\d{4}-\d{2}-\d{2}$/.test(record.date || '') || !/^[0-9a-f]{40}$/.test(record.commit || '') || !record.summary)) throw new Error('Changelog contains a record without a date, summary, or full commit SHA.');
+  const releases = records.filter(record => record.version.startsWith('ding-pbx-console-'));
+  if (releases.length !== 89 || releases.some(record => record.category !== 'Release')) throw new Error(`Expected 89 product release records, found ${releases.length}.`);
+}
+const changelogRecords = parseGeneratedChangelog((await readFile(join(root, 'changelog-data.js'))).toString('utf8'));
+validateChangelog(changelogRecords);
+const releaseManifestSource = (await readFile(join(root, 'release-manifest.js'))).toString('utf8');
+if (!releaseManifestSource.includes("schemaVersion: 1") || !releaseManifestSource.includes("state: 'unavailable'") || !releaseManifestSource.includes("channel: 'stable'") || !releaseManifestSource.includes('version:') || !releaseManifestSource.includes('tag:') || !releaseManifestSource.includes('commit:') || !releaseManifestSource.includes('checkedAt:') || !releaseManifestSource.includes('assets: []')) throw new Error('Release manifest schema is missing a required version, identity, state, or asset field.');
 
 if (process.argv.includes('--clean')) {
   await rm(output, { recursive: true, force: true });
@@ -76,7 +97,7 @@ async function composeDocs(sourceRelative='') {
     if(!entry.name.endsWith('.md'))continue;
     const markdown=await readFile(join(docs,child),'utf8'), title=markdown.match(/^#\s+(.+)$/m)?.[1]||'Ding PBX Console documentation';
     const htmlRelative=child.replace(/\.md$/,'.html'), destination=join(output,'docs',htmlRelative), depth=htmlRelative.split(/[\\/]/).length;
-    const back='../'.repeat(depth), sections=[...markdown.matchAll(/^##\s+(.+)$/gm)].map(match=>({title:match[1],id:match[1].toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')})), sectionNav=sections.map(section=>`<a href="#${section.id}">${escapeHtml(section.title)}</a>`).join(''), page=`<!doctype html>\n<html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${escapeHtml(title)} documentation for Ding PBX Console."><meta property="og:title" content="${escapeHtml(title)} · Ding PBX Console"><meta property="og:description" content="Focused Ding PBX Console feature documentation."><meta property="og:url" content="https://ding-ding-projects.github.io/asterisk/docs/${htmlRelative.replaceAll('\\','/')}"><meta property="og:image" content="https://ding-ding-projects.github.io/asterisk/social-preview.png"><meta name="twitter:card" content="summary_large_image"><title>${escapeHtml(title)} · Ding PBX Console</title><link rel="stylesheet" href="${back}styles.css"></head><body><a class="skip-link" href="#article-content">Skip to article</a><main class="documentation-page"><nav aria-label="Documentation breadcrumb"><a href="${back}index.html">Ding PBX Console</a> · <a href="${back}documentation.html">Documentation map</a> · <a href="${back}docs/README.html">Category index</a></nav><div class="article-shell"><nav class="article-nav" aria-label="Article sections">${sectionNav||'<a href="#article-content">Article</a>'}</nav><article id="article-content">${renderMarkdown(markdown)}</article></div><footer><p>This documentation website is not the installed desktop application and is not a PBX runtime.</p></footer></main></body></html>\n`;
+    const back='../'.repeat(depth), sections=[...markdown.matchAll(/^##\s+(.+)$/gm)].map(match=>({title:match[1],id:match[1].toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')})), sectionNav=sections.map(section=>`<a href="#${section.id}">${escapeHtml(section.title)}</a>`).join(''), page=`<!doctype html>\n<html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${escapeHtml(title)} documentation for Ding PBX Console."><meta property="og:title" content="${escapeHtml(title)} · Ding PBX Console"><meta property="og:description" content="Focused Ding PBX Console feature documentation."><meta property="og:url" content="https://ding-ding-projects.github.io/asterisk/docs/${htmlRelative.replaceAll('\\','/')}"><meta property="og:image" content="https://ding-ding-projects.github.io/asterisk/social-preview.png"><meta name="twitter:card" content="summary_large_image"><title>${escapeHtml(title)} · Ding PBX Console</title><link rel="stylesheet" href="${back}styles.css"></head><body data-page="documentation"><a class="skip-link" href="#article-content">Skip to article</a><main class="documentation-page"><nav aria-label="Documentation breadcrumb"><a href="${back}index.html">Ding PBX Console</a> · <a href="${back}documentation.html">Documentation map</a> · <a href="${back}docs/README.html">Category index</a></nav><div class="article-shell"><nav class="article-nav" aria-label="Article sections">${sectionNav||'<a href="#article-content">Article</a>'}</nav><article id="article-content">${renderMarkdown(markdown)}</article></div><div id="history-delivery-mount" data-delivery-host></div><footer><p>This documentation website is not the installed desktop application and is not a PBX runtime.</p></footer></main><script src="${back}changelog-data.js" defer></script><script src="${back}release-manifest.js" defer></script><script src="${back}full-builder.js" defer></script><script src="${back}app.js" defer></script><script src="${back}history-delivery.js" defer></script></body></html>\n`;
     await mkdir(dirname(destination),{recursive:true});await writeFile(destination,page,'utf8');
   }
 }
@@ -89,9 +110,10 @@ async function wireGeneratedDelivery(relative) {
   const depth = relative.split(/[\\/]/).length;
   const back = '../'.repeat(depth);
   const source = await readFile(file, 'utf8');
-  if (source.includes('history-delivery.js')) return;
-  const mounted = source.replace('</main>', '<div id="history-delivery-mount" data-delivery-host></div></main>');
-  await writeFile(file, mounted.replace('</body></html>', `<script src="${back}history-delivery.js" defer></script></body></html>`), 'utf8');
+  let mounted = source.replace('<html lang="en" data-theme="dark">', `<html lang="en" data-theme="dark" data-base="${back}">`);
+  if (!mounted.includes('history-delivery-mount')) mounted = mounted.replace('</main>', '<div id="history-delivery-mount" data-delivery-host></div></main>');
+  if (!mounted.includes('history-delivery.js')) mounted = mounted.replace('</body></html>', `<script src="${back}changelog-data.js" defer></script><script src="${back}release-manifest.js" defer></script><script src="${back}full-builder.js" defer></script><script src="${back}app.js" defer></script><script src="${back}history-delivery.js" defer></script></body></html>`);
+  await writeFile(file, mounted, 'utf8');
 }
 async function wireGeneratedTree(relative = '') {
   for (const entry of await readdir(join(output, relative), { withFileTypes: true })) {

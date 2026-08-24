@@ -124,13 +124,13 @@
     },
     "local-version-history": {
       "state": "implemented",
-      "note": "history-delivery.js renders a local append-only visitor history panel with search, anchored regex, date and action filters, restore-as-new-event, and redacted JSON/Markdown export. The history.html route and delivery rail make it reachable from every primary page; browser storage is bounded and credentials and personal vocabulary are omitted.",
+      "note": "history-delivery.js renders a schema-versioned local append-only visitor history panel with strict recursive redaction, search, anchored regex, date and action filters, validated presets, retention preview, prune-event reservation, restore-as-new-event, and redacted JSON/Markdown export. The history.html route and delivery rail make it reachable from every primary page.",
       "files": ["site/history-delivery.js", "site/history.html", "site/app.js", "site/build.mjs"]
     },
     "changelog-viewer": {
       "state": "implemented",
       "note": "history-delivery.js renders dated categorized changes with full commit URLs, date filtering, plain or regex search, copy, and filtered Markdown export. Entries are recorded changes, never an inferred release claim.",
-      "files": ["site/history-delivery.js", "site/history.html", "site/changelog-data.js"]
+      "files": ["site/history-delivery.js", "site/history.html", "site/changelog-data.js", "site/generate-changelog.mjs", "site/build.mjs"]
     },
     "external-editor-handoff": {
       "state": "implemented",
@@ -233,7 +233,7 @@
     "context-menu-shortcuts": {
       "state": "implemented",
       "note": "The shared delivery rail exposes a keyboard-accessible context menu with a local filter field and the actual Ctrl+Shift+F, Ctrl+Enter, and Escape labels. Actions close safely and preserve the existing palette and history behavior.",
-      "files": ["site/history-delivery.js", "site/styles.css"]
+      "files": ["site/history-delivery.js", "site/full-builder.js", "site/styles.css"]
     },
     "long-operation-progress": {
       "state": "implemented",
@@ -251,8 +251,8 @@
       "files": ["site/history-delivery.js", "site/history.html", "docs/platform/site-history-and-delivery.md"]
     },
     "forge-publishing": {
-      "state": "implemented",
-      "note": "The browser-mediated forge flow lets the visitor choose account mode, owner, repository, and copy or fork route, then opens the provider flow without collecting credentials or claiming that publication happened. Recovery remains beside the action.",
+      "state": "partial",
+      "note": "The browser-mediated forge flow provides a required source, destination, account, owner, repository, and copy or fork preview before opening the provider flow. The static page does not publish, fork, authenticate, or store credentials, and the registry marks the provider handoff as partial.",
       "files": ["site/history-delivery.js", "site/history.html", "docs/platform/site-history-and-delivery.md"]
     },
     "collapsible-filters": {
@@ -265,7 +265,7 @@
     },
     "automatic-updates": {
       "state": "implemented",
-      "note": "The static delivery workspace records a local published-page check and offers a normal reload. It explicitly states that static hosting cannot install or restart the desktop application and never claims an update was applied.",
+      "note": "The static delivery workspace validates the versioned release-manifest schema, immutable HTTPS asset URLs, hashes, byte sizes, and full commit identity when a manifest is available. It reports unavailable, available, downloading, ready, or failed states without claiming installation on a static page.",
       "files": ["site/history-delivery.js", "site/history.html", "site/release-manifest.js", "docs/platform/site-history-and-delivery.md"]
     }
   }

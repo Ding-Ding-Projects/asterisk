@@ -2,8 +2,11 @@
   'use strict';
 
   const STORAGE_KEY = 'ding-pbx-site-history-delivery-v1';
+  const STATE_SCHEMA_VERSION = 2;
   const MAX_HISTORY = 250;
   const CHANGELOG = (Array.isArray(window.DING_SITE_CHANGELOG) ? window.DING_SITE_CHANGELOG : []).filter(entry => entry && /^[0-9a-f]{40}$/.test(entry.commit || '') && entry.version && entry.date && entry.summary);
+  const PRODUCT_CHANGELOG = CHANGELOG.filter(entry => entry.category === 'Release');
+  const UPSTREAM_HISTORY = CHANGELOG.filter(entry => entry.category !== 'Release');
   const RELEASE_MANIFEST = window.DING_SITE_RELEASE_MANIFEST && typeof window.DING_SITE_RELEASE_MANIFEST === 'object' ? window.DING_SITE_RELEASE_MANIFEST : null;
 
   const COPY = {
@@ -27,26 +30,29 @@
     return new URL(name, document.baseURI).href;
   }
 
+  function defaultState() {
+    return { schemaVersion: STATE_SCHEMA_VERSION, history: [], tabs: TAB_ROUTES.map(([idValue], index) => ({ id: idValue, pinned: index < 2 })), forge: { account: 'browser', owner: '', repository: '', route: 'copy', source: 'current-site', destination: 'new-repository' }, editor: { lastExport: '' }, transfer: { status: 'idle', name: '', startedAt: '', completedAt: '', totalBytes: 0, bytesWritten: 0, interruptionRecorded: false }, update: { status: 'ready', checkedAt: '' } };
+  }
   function readState() {
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      return {
-        schemaVersion: 1,
-        history: Array.isArray(parsed.history) ? parsed.history.slice(-MAX_HISTORY) : [],
-        tabs: Array.isArray(parsed.tabs) ? parsed.tabs : TAB_ROUTES.map(([idValue], index) => ({ id: idValue, pinned: index < 2 })),
-        forge: { account: 'browser', owner: '', repository: '', route: 'copy', source: 'current-site', destination: 'new-repository', ...(parsed.forge || {}) },
-        editor: { lastExport: '', ...(parsed.editor || {}) },
-        transfer: { status: 'idle', name: '', startedAt: '', completedAt: '', ...(parsed.transfer || {}) },
-        update: { status: 'ready', checkedAt: '', ...(parsed.update || {}) },
-      };
+      const defaults = defaultState();
+      const history = Array.isArray(parsed.history) ? parsed.history.filter(event => event && typeof event === 'object' && typeof event.id === 'string' && typeof event.timestamp === 'string' && typeof event.action === 'string' && typeof event.summary === 'string').slice(-MAX_HISTORY).map(event => ({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: text(event.action).slice(0, 80), summary: scrubSummary(event.summary), details: redactDetails(event.details || {}) })) : [];
+      const allowedTabs = new Set(TAB_ROUTES.map(([idValue]) => idValue));
+      const tabs = Array.isArray(parsed.tabs) ? parsed.tabs.filter(tab => tab && allowedTabs.has(tab.id)).map(tab => ({ id: tab.id, pinned: Boolean(tab.pinned) })) : defaults.tabs;
+      const forge = parsed.forge && typeof parsed.forge === 'object' ? { account: ['browser', 'manual'].includes(parsed.forge.account) ? parsed.forge.account : 'browser', owner: text(parsed.forge.owner).slice(0, 80), repository: text(parsed.forge.repository).slice(0, 100), route: ['copy', 'fork'].includes(parsed.forge.route) ? parsed.forge.route : 'copy', source: ['current-site', 'local-export', 'selected-file'].includes(parsed.forge.source) ? parsed.forge.source : 'current-site', destination: ['new-repository', 'existing-repository'].includes(parsed.forge.destination) ? parsed.forge.destination : 'new-repository' } : defaults.forge;
+      const transferStatus = ['idle', 'started', 'complete', 'cancelled', 'unavailable', 'interrupted'].includes(parsed.transfer?.status) ? parsed.transfer.status : 'idle';
+      const updateStatus = ['ready', 'unavailable', 'available', 'downloading', 'failed'].includes(parsed.update?.status) ? parsed.update.status : 'ready';
+      return { schemaVersion: STATE_SCHEMA_VERSION, history, tabs: tabs.length ? tabs : defaults.tabs, forge, editor: { lastExport: text(parsed.editor?.lastExport).slice(0, 120) }, transfer: { status: transferStatus === 'started' ? 'interrupted' : transferStatus, name: text(parsed.transfer?.name).slice(0, 160), startedAt: text(parsed.transfer?.startedAt).slice(0, 40), completedAt: text(parsed.transfer?.completedAt).slice(0, 40), totalBytes: Number.isFinite(parsed.transfer?.totalBytes) ? Math.max(0, parsed.transfer.totalBytes) : 0, bytesWritten: Number.isFinite(parsed.transfer?.bytesWritten) ? Math.max(0, parsed.transfer.bytesWritten) : 0, interruptionRecorded: transferStatus === 'started' ? false : parsed.transfer?.interruptionRecorded === true }, update: { status: updateStatus, checkedAt: text(parsed.update?.checkedAt).slice(0, 40) } };
     } catch {
-      return { schemaVersion: 1, history: [], tabs: TAB_ROUTES.map(([idValue], index) => ({ id: idValue, pinned: index < 2 })), forge: { account: 'browser', owner: '', repository: '', route: 'copy', source: 'current-site', destination: 'new-repository' }, editor: { lastExport: '' }, transfer: { status: 'idle', name: '' }, update: { status: 'ready', checkedAt: '' } };
+      return defaultState();
     }
   }
 
-  let state = readState();
+  let state;
   let historyQuery = { text: '', from: '', to: '', action: 'all', regex: false, pattern: '', flags: 'iu' };
   let changelogQuery = { text: '', from: '', to: '', regex: false, pattern: '', flags: 'iu' };
+  let includeUpstreamHistory = false;
   let activeRegexTarget = null;
   let contextOrigin = null;
   let transferAbort = null;
@@ -55,6 +61,10 @@
 
   function persist() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* local storage can be unavailable in private browsing */ }
+  }
+
+  function scrubSummary(value) {
+    return text(value).replace(/(?:bearer|token|password|passwd|secret|api[-_]?key)\s*[:=]\s*\S+/gi, '[redacted]').replace(/\b[0-9a-f]{32,}\b/gi, '[redacted]').slice(0, 240);
   }
 
   const REDACTED_DETAIL_KEYS = new Set(['source', 'route', 'action', 'bytes', 'progress', 'owner', 'repository', 'protocol', 'restore', 'completion', 'installation', 'content', 'privateVocabulary', 'credentials', 'mode', 'status', 'name', 'tag', 'commit', 'provider', 'account', 'destination', 'eventCount', 'sourceEvent']);
@@ -74,12 +84,14 @@
     return result;
   }
 
+  state = readState();
+
   function record(action, summary, details = {}) {
     const event = {
       id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       timestamp: new Date().toISOString(),
       action: text(action).slice(0, 80),
-      summary: text(summary).slice(0, 240),
+      summary: scrubSummary(summary),
       details: redactDetails({ ...details, privateVocabulary: 'omitted', credentials: 'omitted' }),
     };
     state.history = [...state.history, event].slice(-MAX_HISTORY);
@@ -112,6 +124,12 @@
     return valid && (!query.from || !query.to || query.from <= query.to);
   }
 
+  function validReleaseManifest(manifest) {
+    if (!manifest || manifest.schemaVersion !== 1 || !['unavailable', 'available', 'downloading', 'ready', 'failed'].includes(manifest.state) || !['stable', 'beta', 'nightly'].includes(manifest.channel) || !Array.isArray(manifest.assets)) return false;
+    if (manifest.state === 'unavailable') return manifest.assets.length === 0;
+    return /^[0-9a-f]{40}$/.test(manifest.commit || '') && typeof manifest.version === 'string' && typeof manifest.tag === 'string' && manifest.assets.every(asset => asset && typeof asset.name === 'string' && /^https:\/\//.test(asset.url || '') && /^[0-9a-f]{64}$/.test(asset.sha256 || '') && Number.isInteger(asset.bytes) && asset.bytes > 0);
+  }
+
   function filterHistory() {
     if (!validDateRange(historyQuery)) return [];
     return state.history.filter(event => withinDate(event.timestamp, historyQuery.from, historyQuery.to)
@@ -121,7 +139,8 @@
 
   function filterChangelog() {
     if (!validDateRange(changelogQuery)) return [];
-    return CHANGELOG.filter(entry => withinDate(entry.date, changelogQuery.from, changelogQuery.to)
+    const records = includeUpstreamHistory ? [...PRODUCT_CHANGELOG, ...UPSTREAM_HISTORY] : PRODUCT_CHANGELOG;
+    return records.filter(entry => withinDate(entry.date, changelogQuery.from, changelogQuery.to)
       && matchesQuery(`${entry.version} ${entry.category} ${entry.summary} ${entry.commit}`, changelogQuery));
   }
 
@@ -151,6 +170,17 @@
     });
   }
 
+  function bindDateRange(query, fromId, toId, render) {
+    const from = document.querySelector(`#${fromId}`); const to = document.querySelector(`#${toId}`);
+    const validate = () => {
+      query.from = from?.value || ''; query.to = to?.value || '';
+      const valid = validDateRange(query);
+      [from, to].forEach(input => { if (!input) return; input.setCustomValidity(valid ? '' : 'Use valid ISO dates with From on or before To.'); input.setAttribute('aria-invalid', valid ? 'false' : 'true'); });
+      render();
+    };
+    from?.addEventListener('input', validate); to?.addEventListener('input', validate); validate();
+  }
+
   function ensureDatePreset(idValue, afterId) {
     if (document.querySelector(`#${idValue}`)) return;
     const after = document.querySelector(`#${afterId}`);
@@ -172,7 +202,9 @@
     search.type = 'search'; search.id = `${select.id}-search`; search.dataset.label = `${select.id} options`; search.placeholder = 'Find option';
     const composite = document.createElement('div'); composite.className = 'search-composite';
     const regex = document.createElement('button'); regex.type = 'button'; regex.className = 'regex-trigger'; regex.textContent = '.*'; regex.setAttribute('aria-label', `Build a regular expression for ${select.id} options`); regex.dataset.deliveryRegexFor = search.id;
-    composite.append(search, regex); wrapper.append(label, composite, select); select.replaceWith(wrapper);
+    composite.append(search, regex); wrapper.append(label, composite, select);
+    const parentLabel = select.closest('label');
+    if (parentLabel && parentLabel.contains(select)) parentLabel.replaceWith(wrapper); else select.replaceWith(wrapper);
     const query = { text: '', pattern: '', flags: 'iu', regex: false };
     const refresh = () => { query.text = search.value.slice(0, 160); query.pattern = search.dataset.regexPattern || ''; query.flags = search.dataset.regexFlags || 'iu'; query.regex = Boolean(query.pattern); [...select.options].forEach(option => { option.hidden = !matchesQuery(option.textContent, query); }); };
     search.addEventListener('input', refresh);
@@ -181,8 +213,9 @@
   }
 
   function ensureDropdownSearches() {
-    document.querySelectorAll('select').forEach(ensureDropdownSearch);
-    document.querySelectorAll('select').forEach(select => select._deliveryRefresh?.());
+    const owned = [...document.querySelectorAll('#history-delivery-page select'), ...document.querySelectorAll('#forge-form select')];
+    owned.forEach(ensureDropdownSearch);
+    owned.forEach(select => select._deliveryRefresh?.());
   }
 
   function ensureRetentionControls() {
@@ -193,9 +226,9 @@
     panel.innerHTML = '<label for="history-retention-value">Retention<select id="history-retention-value"><option value="all">Keep all events</option><option value="100">Keep newest 100</option><option value="50">Keep newest 50</option><option value="20">Keep newest 20</option></select></label><button id="history-prune-preview" type="button" class="text-button">Preview prune</button><button id="history-prune-apply" type="button" class="danger-button" disabled>Apply prune</button><span id="history-prune-status" role="status"></span>';
     list.before(panel);
     const select = panel.querySelector('#history-retention-value'); const status = panel.querySelector('#history-prune-status'); const apply = panel.querySelector('#history-prune-apply');
-    const preview = () => { const keep = select.value === 'all' ? state.history.length : Number(select.value); const remove = Math.max(0, state.history.length - keep); status.textContent = remove ? `Preview: ${remove} older event${remove === 1 ? '' : 's'} will be removed. The prune event will remain.` : 'Preview: nothing will be removed.'; apply.disabled = remove === 0; };
+    const preview = () => { const keep = select.value === 'all' ? state.history.length : Number(select.value); const remove = select.value === 'all' ? 0 : Math.max(0, state.history.length - Math.max(0, keep - 1)); status.textContent = remove ? `Preview: ${remove} older event${remove === 1 ? '' : 's'} will be removed, reserving one slot for the prune event.` : 'Preview: nothing will be removed.'; apply.disabled = remove === 0; };
     panel.querySelector('#history-prune-preview').addEventListener('click', preview);
-    apply.addEventListener('click', () => { const keep = Number(select.value); const remove = Math.max(0, state.history.length - keep); if (!remove) return; state.history = state.history.slice(-keep); persist(); record('pruned', `Pruned ${remove} older local history event${remove === 1 ? '' : 's'} under the selected retention`, { eventCount: remove, mode: 'explicit-retention' }); status.textContent = `Pruned ${remove} older event${remove === 1 ? '' : 's'} and recorded the action.`; apply.disabled = true; });
+    apply.addEventListener('click', () => { const keep = Number(select.value); const retain = Math.max(0, keep - 1); const remove = Math.max(0, state.history.length - retain); if (!remove) return; state.history = state.history.slice(-retain); persist(); record('pruned', `Pruned ${remove} older local history event${remove === 1 ? '' : 's'} under the selected retention`, { eventCount: remove, mode: 'explicit-retention' }); status.textContent = `Pruned ${remove} older event${remove === 1 ? '' : 's'} and recorded the action. The prune event occupies the reserved slot.`; apply.disabled = true; });
   }
 
   function downloadFile(name, body, type) {
@@ -242,7 +275,7 @@
       actionSelect.value = current;
       actionSelect._deliveryRefresh?.();
     }
-    host.innerHTML = rows.length ? rows.map(event => `<article class="delivery-history-row" data-event-id="${escapeHtml(event.id)}"><div><span class="card-kicker">${escapeHtml(event.action)}</span><h3>${escapeHtml(event.summary)}</h3><p>${escapeHtml(formatDate(event.timestamp))}</p></div><div class="delivery-row-actions"><button type="button" class="text-button" data-restore-event="${escapeHtml(event.id)}">Restore as new event</button><details><summary>Redacted details</summary><pre>${escapeHtml(JSON.stringify(event.details, null, 2))}</pre></details></div></article>`).join('') : '<p class="empty-state">No local events match this filter. Changes made on this page will appear here.</p>';
+    host.innerHTML = rows.length ? rows.map(event => `<article class="delivery-history-row" data-event-id="${escapeHtml(event.id)}" data-delivery-context="history-row"><div><span class="card-kicker">${escapeHtml(event.action)}</span><h3>${escapeHtml(event.summary)}</h3><p>${escapeHtml(formatDate(event.timestamp))}</p></div><div class="delivery-row-actions"><button type="button" class="text-button" data-restore-event="${escapeHtml(event.id)}">Restore as new event</button><details><summary>Redacted details</summary><pre>${escapeHtml(JSON.stringify(event.details, null, 2))}</pre></details></div></article>`).join('') : '<p class="empty-state">No local events match this filter. Changes made on this page will appear here.</p>';
     host.querySelectorAll('[data-restore-event]').forEach(button => button.addEventListener('click', () => {
       const source = state.history.find(event => event.id === button.dataset.restoreEvent);
       if (!source) return;
@@ -250,6 +283,7 @@
       const status = document.querySelector('#history-status');
       if (status) status.textContent = 'Restore recorded as a new event. The earlier event remains unchanged.';
     }));
+    bindContextTargets(host);
     const status = document.querySelector('#history-count');
     if (status) status.textContent = validDateRange(historyQuery) ? `${rows.length} of ${state.history.length} local events shown` : 'Invalid date range. Use ISO dates and ensure From is not after To.';
   }
@@ -297,6 +331,11 @@
       progress.value = 0;
       cancel.hidden = true;
       if (complete) complete.hidden = true;
+    } else if (transfer.status === 'interrupted') {
+      status.textContent = `An earlier local write for ${transfer.name || 'the selected file'} was interrupted before completion. Select the source again and restart it.`;
+      progress.value = 0;
+      cancel.hidden = true;
+      if (complete) complete.hidden = true;
     } else {
       status.textContent = 'No local file write is active. Choose a file and a browser-supported output destination to open the real Start decision surface.';
       progress.value = 0;
@@ -308,8 +347,9 @@
   function renderUpdate() {
     const status = document.querySelector('#update-status');
     if (status) {
-      const manifestState = !RELEASE_MANIFEST ? 'unavailable' : RELEASE_MANIFEST.state;
-      const detail = !RELEASE_MANIFEST ? 'No verified release manifest is bundled with this page.' : `Manifest state: ${manifestState}.`;
+      const manifestValid = validReleaseManifest(RELEASE_MANIFEST);
+      const manifestState = manifestValid ? RELEASE_MANIFEST.state : 'unavailable';
+      const detail = !RELEASE_MANIFEST ? 'No verified release manifest is bundled with this page.' : manifestValid ? `Manifest state: ${manifestState}.` : `The bundled release manifest is unavailable because its schema or integrity fields did not validate.`;
       status.textContent = state.update.checkedAt ? `Checked locally at ${formatDate(state.update.checkedAt)}. ${detail} A static page does not install updates.` : `State: ${manifestState}. ${detail}`;
     }
   }
@@ -346,6 +386,7 @@
   }
 
   function openRegex(target) {
+    if (window.DingSiteFullRegexBuilder?.open && target?.id) { window.DingSiteFullRegexBuilder.open(target); return; }
     if (window.DingSiteRegex?.open && target?.id) { window.DingSiteRegex.open(target); return; }
     const dialog = document.querySelector('#delivery-regex-dialog');
     if (!dialog) return;
@@ -384,11 +425,8 @@
   }
 
   function bindHistory() {
-    const from = document.querySelector('#history-from');
-    const to = document.querySelector('#history-to');
     const action = document.querySelector('#history-action');
-    from?.addEventListener('input', () => { historyQuery.from = from.value; renderHistory(); });
-    to?.addEventListener('input', () => { historyQuery.to = to.value; renderHistory(); });
+    bindDateRange(historyQuery, 'history-from', 'history-to', renderHistory);
     action?.addEventListener('change', () => { historyQuery.action = action.value; renderHistory(); });
     bindDatePreset('history-preset', historyQuery, renderHistory);
     attachFilter('history-search', historyQuery, renderHistory);
@@ -407,10 +445,13 @@
   }
 
   function bindChangelog() {
-    const from = document.querySelector('#changelog-from');
-    const to = document.querySelector('#changelog-to');
-    from?.addEventListener('input', () => { changelogQuery.from = from.value; renderChangelog(); });
-    to?.addEventListener('input', () => { changelogQuery.to = to.value; renderChangelog(); });
+    const changelogPanel = document.querySelector('#changelog');
+    if (changelogPanel && !document.querySelector('#changelog-upstream')) {
+      const toggle = document.createElement('label'); toggle.className = 'delivery-checkbox'; toggle.innerHTML = '<input id="changelog-upstream" type="checkbox"> Include optional upstream tag history';
+      changelogPanel.querySelector('.delivery-filter-row')?.append(toggle);
+      toggle.querySelector('input').addEventListener('change', event => { includeUpstreamHistory = event.target.checked; renderChangelog(); });
+    }
+    bindDateRange(changelogQuery, 'changelog-from', 'changelog-to', renderChangelog);
     bindDatePreset('changelog-preset', changelogQuery, renderChangelog);
     attachFilter('changelog-search', changelogQuery, renderChangelog);
     document.querySelector('#changelog-export')?.addEventListener('click', () => downloadFile('ding-pbx-changelog.md', `# Changelog export\n\n${filterChangelog().map(entry => `- ${entry.version} · ${entry.date} · ${entry.summary} ([${entry.commit.slice(0, 12)}](https://github.com/Ding-Ding-Projects/asterisk/commit/${entry.commit}))`).join('\n')}\n`, 'text/markdown'));
@@ -424,8 +465,6 @@
       const status = document.querySelector('#editor-status');
       if (!file) return;
       status.textContent = `Selected ${file.name}. The browser can read this file for local actions, but it does not expose a verified local path for an external editor.`;
-      state.editor.lastFileName = file.name;
-      persist();
     });
     document.querySelector('#editor-download')?.addEventListener('click', () => window.open('https://code.visualstudio.com/download', '_blank', 'noopener'));
     renderEditorStatus();
@@ -520,13 +559,26 @@
     const fields = document.createElement('div'); fields.className = 'delivery-form'; fields.innerHTML = '<label>Source<select id="forge-source"><option value="current-site">Current published site</option><option value="local-export">A downloaded local export</option><option value="selected-file">A selected local file</option></select></label><label>Destination<select id="forge-destination"><option value="new-repository">New repository</option><option value="existing-repository">Existing repository</option></select></label>';
     form.prepend(fields);
     ensureDropdownSearches();
+    const preview = document.createElement('div'); preview.id = 'forge-preview'; preview.className = 'delivery-preview'; preview.setAttribute('role', 'status');
+    const previewButton = document.createElement('button'); previewButton.id = 'forge-preview-button'; previewButton.type = 'button'; previewButton.className = 'secondary-button'; previewButton.textContent = 'Preview provider handoff';
+    document.querySelector('#forge-open').before(previewButton); document.querySelector('#forge-open').disabled = true; document.querySelector('#forge-open').before(preview);
     ['forge-account', 'forge-owner', 'forge-repository', 'forge-route', 'forge-source', 'forge-destination'].forEach(idValue => document.querySelector(`#${idValue}`)?.addEventListener('input', () => {
       state.forge = { account: document.querySelector('#forge-account').value, owner: text(document.querySelector('#forge-owner').value), repository: text(document.querySelector('#forge-repository').value), route: document.querySelector('#forge-route').value, source: document.querySelector('#forge-source').value, destination: document.querySelector('#forge-destination').value };
+      document.querySelector('#forge-open').disabled = true;
       persist();
     }));
+    previewButton.addEventListener('click', () => {
+      const owner = state.forge.owner.trim(), repository = state.forge.repository.trim();
+      const status = document.querySelector('#forge-status');
+      if (!owner || !repository) { status.textContent = 'Enter the destination owner and repository name before previewing the provider handoff.'; document.querySelector('#forge-owner').focus(); return; }
+      preview.textContent = `Preview: source ${state.forge.source}; destination ${state.forge.destination}; account ${state.forge.account}; owner ${owner}; repository ${repository}; route ${state.forge.route}. Credentials stay in the provider flow.`;
+      document.querySelector('#forge-open').disabled = false;
+      record('forge-preview', `Prepared a provider handoff preview for ${owner}/${repository}`, { owner, repository, source: state.forge.source, destination: state.forge.destination, account: state.forge.account, route: state.forge.route });
+    });
     document.querySelector('#forge-open')?.addEventListener('click', () => {
       const owner = state.forge.owner.trim(), repository = state.forge.repository.trim();
       const status = document.querySelector('#forge-status');
+      if (document.querySelector('#forge-open').disabled) { status.textContent = 'Preview the provider handoff before opening it.'; return; }
       if (!owner || !repository) { status.textContent = 'Enter the destination owner and repository name. No credentials are requested or stored here.'; document.querySelector('#forge-owner').focus(); return; }
       if (state.forge.route === 'fork' && state.forge.source !== 'current-site') { status.textContent = 'The provider fork route requires a real source repository. Select the current published site or use copy and publish.'; return; }
       const url = state.forge.route === 'fork' ? `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/fork` : `https://github.com/new?name=${encodeURIComponent(repository)}&owner=${encodeURIComponent(owner)}`;
@@ -539,7 +591,7 @@
 
   function bindUpdate() {
     document.querySelector('#update-check')?.addEventListener('click', () => {
-      const valid = RELEASE_MANIFEST && ['unavailable', 'available', 'downloading', 'ready', 'failed'].includes(RELEASE_MANIFEST.state) && /^[0-9a-f]{40}$/.test(RELEASE_MANIFEST.commit || '');
+      const valid = validReleaseManifest(RELEASE_MANIFEST);
       state.update = { status: valid ? RELEASE_MANIFEST.state : 'unavailable', checkedAt: new Date().toISOString() };
       persist(); renderUpdate();
       record('update-check', `Checked the bundled release manifest: ${valid ? RELEASE_MANIFEST.state : 'unavailable'}`, { installation: 'not supported by a static page', status: valid ? RELEASE_MANIFEST.state : 'unavailable' });
@@ -565,6 +617,14 @@
     event.preventDefault();
   }
 
+  function bindContextTargets(root = document) {
+    root.querySelectorAll?.('[data-delivery-context]').forEach(target => {
+      if (target.dataset.deliveryContextBound === 'true') return;
+      target.dataset.deliveryContextBound = 'true';
+      target.addEventListener('contextmenu', showContextMenu);
+    });
+  }
+
   function ensureNavigation() {
     document.querySelectorAll('.site-nav').forEach(nav => {
       if (!nav.querySelector('a[href$="history.html"]')) { const link = document.createElement('a'); link.href = siteAsset('history.html'); link.textContent = 'Delivery'; nav.append(link); }
@@ -583,14 +643,14 @@
     const known = new Set(state.tabs.map(tab => tab.id));
     TAB_ROUTES.forEach(([idValue]) => { if (!known.has(idValue)) state.tabs.push({ id: idValue, pinned: false }); });
     const ordered = [...state.tabs].sort((a, b) => Number(b.pinned) - Number(a.pinned));
-    host.innerHTML = `<span class="delivery-tabs-note">Shared browser-style tabs. Route switching and pinning persist locally; grouping and reordering are unavailable on this static host.</span>${ordered.map(tab => { const route = TAB_ROUTES.find(item => item[0] === tab.id); if (!route) return ''; return `<span class="delivery-tab" role="presentation"><a role="tab" aria-selected="${tab.id === current}" href="${siteAsset(route[2])}">${escapeHtml(route[1])}</a><button type="button" data-tab-pin="${escapeHtml(tab.id)}" aria-label="${tab.pinned ? 'Unpin' : 'Pin'} ${escapeHtml(route[1])} tab">${tab.pinned ? '★' : '☆'}</button></span>`; }).join('')}`;
+    host.innerHTML = `<span class="delivery-tabs-note">Shared route navigation. Route switching and pinning persist locally; grouping and reordering are unavailable on this static host.</span>${ordered.map(tab => { const route = TAB_ROUTES.find(item => item[0] === tab.id); if (!route) return ''; return `<span class="delivery-tab"><a href="${siteAsset(route[2])}" aria-current="${tab.id === current ? 'page' : 'false'}">${escapeHtml(route[1])}</a><button type="button" data-tab-pin="${escapeHtml(tab.id)}" aria-label="${tab.pinned ? 'Unpin' : 'Pin'} ${escapeHtml(route[1])} route">${tab.pinned ? '★' : '☆'}</button></span>`; }).join('')}`;
     host.querySelectorAll('[data-tab-pin]').forEach(button => button.addEventListener('click', () => { const tab = state.tabs.find(item => item.id === button.dataset.tabPin); if (!tab) return; tab.pinned = !tab.pinned; persist(); renderTabs(); record('tab-pin', `${tab.pinned ? 'Pinned' : 'Unpinned'} the ${button.dataset.tabPin} delivery tab`, { mode: 'shared-global-tabs', status: tab.pinned ? 'pinned' : 'unpinned' }); }));
     persist();
   }
 
   function ensureTabs() {
     if (document.querySelector('#delivery-tabs')) { renderTabs(); return; }
-    const host = document.createElement('div'); host.id = 'delivery-tabs'; host.className = 'delivery-tabs'; host.setAttribute('role', 'tablist'); host.setAttribute('aria-label', 'Shared browser-style delivery tabs');
+    const host = document.createElement('nav'); host.id = 'delivery-tabs'; host.className = 'delivery-tabs'; host.setAttribute('aria-label', 'Shared delivery navigation');
     document.querySelector('#delivery-rail')?.after(host);
     renderTabs();
   }
@@ -612,7 +672,7 @@
   }
 
   function renderPage() {
-    const host = document.querySelector('#history-delivery-page');
+    const host = document.querySelector('#history-delivery-page') || document.querySelector('#history-delivery-mount');
     if (!host) return;
     host.innerHTML = `<div class="page-intro"><div><span class="eyebrow">DELIVERY WORKSPACE</span><h1>${escapeHtml(COPY.title)}.<br><em>Nothing invented.</em></h1></div><p>${escapeHtml(COPY.subtitle)} ${escapeHtml(COPY.staticBoundary)}</p></div>
       <nav class="local-tabs" aria-label="Delivery sections"><a href="#history" aria-current="page">History</a><a href="#changelog">Changelog</a><a href="#downloads">Download handoff</a><a href="#editor">Editor</a><a href="#publishing">Forge flow</a><a href="#updates">Updates</a></nav>
@@ -624,6 +684,9 @@
       <article class="surface-card delivery-panel" id="publishing"><div class="section-heading"><div><span class="card-kicker">FORGE BOUNDARY</span><h2>Publish through the browser</h2><p>Choose a visible account and owner, then open the provider's own flow. This page never stores a credential, signs in, publishes, or silently substitutes a fork for a copy-and-publish flow.</p></div><span class="status-chip">User mediated</span></div><form id="forge-form" class="delivery-form"><label>Account<select id="forge-account"><option value="browser">Use an already signed-in browser account</option><option value="manual">Choose account in the provider flow</option></select></label><label>Owner<input id="forge-owner" maxlength="80" autocomplete="organization" placeholder="Personal account or organization"></label><label>Repository<input id="forge-repository" maxlength="100" autocomplete="off" placeholder="Repository name"></label><label>Route<select id="forge-route"><option value="copy">Copy and publish</option><option value="fork">Provider fork flow</option></select></label><button id="forge-open" class="primary-button" type="button">Open provider flow</button></form><p id="forge-status" class="export-loss" role="status"></p><div class="delivery-recovery" data-recovery><strong>Recovery beside a refused flow</strong><p>Retry the browser handoff or return to local settings. Credentials remain in the provider's own sign-in surface.</p><button type="button" class="text-button" data-recovery-action="retry">Retry</button><span data-recovery-status role="status"></span></div></article>
       <article class="surface-card delivery-panel" id="updates"><div class="section-heading"><div><span class="card-kicker">STATIC UPDATE EQUIVALENT</span><h2>Update and download status</h2><p>A hosted page cannot install software or restart an application. It can record a local check and offer a normal browser reload without claiming that an update was applied.</p></div><span class="status-chip">No install claim</span></div><div class="delivery-actions"><button id="update-check" class="secondary-button" type="button">Check this published page</button><button id="update-reload" class="text-button" type="button">Reload page</button></div><p id="update-status" class="export-loss" role="status"></p></article>
       <article class="surface-card delivery-panel"><div class="section-heading"><div><span class="card-kicker">PROVIDER MARKUP</span><h2>Safe Markdown preview</h2><p>Provider-authored text is escaped first, then only headings, emphasis, code, and plain list rows are rendered. Links, scripts, images, and raw HTML are not executed.</p></div><span class="status-chip">Local preview</span></div><label>Paste provider-authored Markdown<textarea id="provider-markdown" rows="6" placeholder="No provider-authored text is loaded. Paste text here to preview it locally."></textarea></label><div class="delivery-actions"><button id="provider-render" class="secondary-button" type="button">Render safe preview</button><button id="provider-clear" class="text-button" type="button">Clear preview</button></div><div id="provider-preview" class="provider-markdown" aria-live="polite"><p>No provider-authored text is loaded.</p></div></article></section>`;
+    const editorLead = host.querySelector('#editor .section-heading p'); if (editorLead) editorLead.textContent = 'Select a local file or download an export. A normal browser does not expose a verified local path for external-editor opening, so this route remains explicitly unavailable.';
+    const transferLead = host.querySelector('#downloads .section-heading p'); if (transferLead) transferLead.textContent = 'When File System Access is available, this page writes a selected local file to a user-chosen destination in measured chunks. Unsupported browsers remain unavailable.';
+    host.querySelector('#transfer-complete')?.remove();
     ensureDatePreset('history-preset', 'history-to'); ensureDatePreset('changelog-preset', 'changelog-to'); ensureRetentionControls(); ensureDropdownSearches();
     bindHistory(); bindChangelog(); bindEditor(); bindTransfer(); bindOperation(); bindRecovery(); bindForge(); bindUpdate();
     document.querySelector('#provider-render')?.addEventListener('click', () => { const value = document.querySelector('#provider-markdown').value.slice(0, 20000); document.querySelector('#provider-preview').innerHTML = parseProviderMarkdown(value) || '<p>No provider-authored text is loaded.</p>'; record('provider-preview', 'Rendered provider-authored Markdown in the isolated local preview', { content: 'omitted' }); });
@@ -634,9 +697,13 @@
     if (document.documentElement.dataset.historyDeliveryReady === 'true') return;
     document.documentElement.dataset.historyDeliveryReady = 'true';
     ensureNavigation(); ensureRail(); ensureRegexDialog(); ensureDropdownSearches();
-    document.querySelectorAll('[data-delivery-context]').forEach(target => target.addEventListener('contextmenu', showContextMenu));
+    bindContextTargets();
     document.addEventListener('keydown', event => { if (event.key === 'Escape') closeContextMenu(); if (event.ctrlKey && event.shiftKey && event.key.toLocaleLowerCase() === 'f') document.querySelector('#palette-open')?.click(); if (event.ctrlKey && event.key === 'Enter' && document.activeElement?.id === 'history-event-summary') { event.preventDefault(); document.querySelector('#history-record')?.click(); } });
     renderPage();
+    ensureRail();
+    if (state.transfer.status === 'interrupted' && !state.transfer.interruptionRecorded) { state.transfer.interruptionRecorded = true; persist(); record('download-interrupted', `Recovered an interrupted local write for ${state.transfer.name || 'the selected file'}`, { status: 'interrupted', completion: 'not-complete' }); }
+    document.querySelectorAll('#history-delivery-page .delivery-panel, #history-delivery-mount .delivery-panel').forEach(panel => { panel.dataset.deliveryContext = 'panel'; });
+    bindContextTargets();
     ensureTabs();
     if (document.querySelector('#delivery-rail')) bindRecovery();
   }
