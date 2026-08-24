@@ -61,7 +61,9 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // value: deny=no is a line Asterisk tries to read as a network.
   // And 130 with the two whose keys live in asterisk.conf rather than the file their
   // screen edits: logger verbosity and global transcoding.
-  assert.equal(controlCount, 130);
+  // And 131 with the permitted-networks list, which needed two shapes at once: a key that
+  // repeats, and a section chosen by another control rather than named in the table.
+  assert.equal(controlCount, 131);
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -381,9 +383,9 @@ test('unmappedControls reflects the two controls bound on this second look', () 
   /* a_deny left the list too, once a binding could mean the key is absent. Both it and
    * a_tlsport were recorded as refused when what was really missing was a shape. */
   assert.ok(!unmappedControls('ami').includes('a_deny'));
+  /* s_permit left this list once a section could be a choice and a key could repeat. */
   for (const stillUnbound of [
-    's_acl', 's_permit', 's_failban', 's_bantime', 's_guest', 's_cert', 's_method', 's_verify', 's_ciphers',
-  ]) {
+    's_acl',]) {
     assert.ok(unmappedControls('security').includes(stillUnbound), `expected ${stillUnbound} to remain unmapped`);
   }
   /* k_transcode left this list once a binding could name its own file: transcode_via_sln is
@@ -632,4 +634,63 @@ test('without that file the control is absent, never read from the wrong one', (
 test('global transcoding is the same story on a different screen', () => {
   const asterisk: ConfigValue = [{ name: 'options', entries: [{ key: 'transcode_via_sln', value: 'yes' }] }];
   assert.equal(readControlValues('codecs', [], { 'asterisk.conf': asterisk }).k_transcode, true);
+});
+
+// ---------------------------------------------------------------- a section somebody picks
+
+/** acl.conf as it really is: each ACL a named section, order deciding which rule wins. */
+const acls: ConfigValue = [
+  { name: 'trusted-nets', entries: [
+    { key: 'deny', value: '0.0.0.0/0' },
+    { key: 'permit', value: '10.0.0.0/8' },
+    { key: 'permit', value: '192.168.0.0/16' },
+  ] },
+  { name: 'branch-offices', entries: [{ key: 'permit', value: '172.16.0.0/12' }] },
+];
+
+test('the list belongs to whichever ACL is picked', () => {
+  assert.deepEqual(readControlValues('security', acls, {}, { s_acl: 'trusted-nets' }).s_permit,
+    ['10.0.0.0/8', '192.168.0.0/16']);
+  assert.deepEqual(readControlValues('security', acls, {}, { s_acl: 'branch-offices' }).s_permit,
+    ['172.16.0.0/12']);
+});
+
+test('with nothing picked the list is absent, not read from whichever came first', () => {
+  /* Editing whichever ACL happens to be written first is not what somebody picking one meant. */
+  assert.equal(readControlValues('security', acls).s_permit, undefined);
+});
+
+test('a section name that could break the file is refused', () => {
+  /* A bracket would close the section early and put the rest somewhere nobody intended. */
+  for (const name of ['acl]evil', '[acl', 'two words', '']) {
+    assert.equal(readControlValues('security', acls, {}, { s_acl: name }).s_permit, undefined, name);
+  }
+});
+
+test('writing replaces the whole run rather than the first line', () => {
+  /* A list means "these, in this order". Leaving the old entries behind would combine two
+   * lists into one that permits more than either -- in an ACL, that is a security failure
+   * rather than a formatting one. */
+  const after = applyControlValues('security', acls, { s_acl: 'trusted-nets', s_permit: ['10.1.0.0/16'] });
+  const edited = after.find((section) => section.name === 'trusted-nets');
+  assert.deepEqual(edited.entries.filter((e) => e.key === 'permit'), [{ key: 'permit', value: '10.1.0.0/16' }]);
+});
+
+test('the run stays where it was, and its neighbours with it', () => {
+  /* In a file whose order decides which rule wins, moving a block to the end is not a
+   * formatting detail. */
+  const after = applyControlValues('security', acls, { s_acl: 'trusted-nets', s_permit: ['10.1.0.0/16', '10.2.0.0/16'] });
+  const edited = after.find((section) => section.name === 'trusted-nets');
+  assert.deepEqual(edited.entries.map((e) => e.key), ['deny', 'permit', 'permit']);
+});
+
+test('the ACL nobody picked is left exactly as it was', () => {
+  const after = applyControlValues('security', acls, { s_acl: 'trusted-nets', s_permit: ['10.1.0.0/16'] });
+  assert.deepEqual(after.find((section) => section.name === 'branch-offices'), acls[1]);
+});
+
+test('an empty list clears the run rather than leaving the old one', () => {
+  const after = applyControlValues('security', acls, { s_acl: 'branch-offices', s_permit: [] });
+  const edited = after.find((section) => section.name === 'branch-offices');
+  assert.deepEqual(edited.entries, []);
 });

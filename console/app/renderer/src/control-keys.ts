@@ -95,6 +95,33 @@ export interface ControlBinding {
    * here could never become one.
    */
   file?: string;
+  /**
+   * Set when the key appears many times in one section rather than carrying a list.
+   *
+   * Asterisk writes an ACL as `permit=` once per network, in order, because the order
+   * decides which rule wins. Reading collects every occurrence in file order; writing
+   * replaces the whole run, since a list control means "these, in this order" and leaving
+   * the old entries behind would combine two lists into one that permits more than either.
+   */
+  repeated?: true;
+  /**
+   * Set when the section is whichever one another control currently names.
+   *
+   * The security screen picks an ACL and then edits the networks inside it; acl.conf names
+   * each ACL by its section, so the list belongs to the chosen one. Naming a fixed section
+   * would have meant editing whichever ACL happened to be written here first, which is not
+   * what the person picking one meant.
+   *
+   * The value of that control is used as the section name, so it is checked before use --
+   * a name with a bracket in it would close the section early and put the rest somewhere
+   * nobody intended.
+   */
+  sectionFrom?: string;
+}
+
+/** A section name that cannot break the file it is written into. */
+function usableSectionName(value: unknown): string | undefined {
+  return typeof value === 'string' && /^[A-Za-z0-9_-]{1,79}$/u.test(value) ? value : undefined;
 }
 
 /**
@@ -584,6 +611,13 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   // client certificates" is a distinct TLS-mTLS concept from stir_shaken.conf's own
   // certificate-loading options, not the same setting under a different name.
   security: [
+    // configs/samples/acl.conf.sample lines 34-36: an ACL is a named section holding one
+    // permit= or deny= line per network, in order, because the order decides which rule
+    // wins. The section is whichever ACL s_acl currently names; s_acl itself stays unbound,
+    // since choosing which object to edit is navigation rather than a setting, and writing
+    // its value into a key would put the name of a section inside that section.
+    { control: 's_permit', section: 'named-acl', key: 'permit', kind: 'list',
+      repeated: true, sectionFrom: 's_acl' },
     b('s_stir', 'attestation', 'global_disable', true),
     s('s_level', 'attestation', 'attest_level'),
     b('s_verifyin', 'verification', 'global_disable', true),
@@ -605,6 +639,8 @@ export function readControlValues(
   value: ConfigValue | undefined,
   /** Other files this screen's controls reach, keyed by bare filename. */
   elsewhere: Readonly<Record<string, ConfigValue>> = {},
+  /** The controls' current values, for a binding whose section is chosen by one of them. */
+  chosen: Readonly<Record<string, unknown>> = {},
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const binding of bindingsFor(screen)) {
@@ -613,9 +649,15 @@ export function readControlValues(
      * would report one setting's value under another's name. */
     const source = binding.file ? elsewhere[binding.file] : value;
     if (!source) continue;
+    const wanted = binding.sectionFrom === undefined
+      ? binding.section
+      : usableSectionName(chosen[binding.sectionFrom]);
+    /* Nothing chosen, or a name that could break the file: the control is absent rather than
+     * read from a section nobody picked. */
+    if (wanted === undefined) continue;
     const section = binding.sectionType
       ? sectionOfType(source, binding.sectionType)
-      : source.find((candidate) => candidate.name === binding.section);
+      : source.find((candidate) => candidate.name === wanted);
     const entry = section?.entries.find((e) => e.key === binding.key);
     if (!entry) {
       /* A presence control reports false for a missing key rather than staying silent: the
@@ -628,6 +670,14 @@ export function readControlValues(
       /* Present means true whatever it carries, because the value is the network being
        * denied rather than a yes or a no. */
       out[binding.control] = true;
+      continue;
+    }
+    if (binding.repeated) {
+      /* Every occurrence, in file order, because the order is the setting. */
+      if (!section) continue;
+      out[binding.control] = section.entries
+        .filter((candidate) => candidate.key === binding.key)
+        .map((candidate) => candidate.value.trim());
       continue;
     }
     const rawValue = binding.composite
@@ -652,6 +702,12 @@ export function applyControlValues(
   current: ConfigValue,
   changes: Record<string, unknown>,
 ): ConfigValue {
+  /* A section chosen by another control is read from the same changes, since that is where
+   * the picker's current value lives. */
+  const chosenSection = (binding: ControlBinding): string | undefined => (
+    binding.sectionFrom === undefined
+      ? binding.section
+      : usableSectionName(changes[binding.sectionFrom]));
   const bindings = bindingsFor(screen);
   if (bindings.length === 0) return current;
 
@@ -666,16 +722,18 @@ export function applyControlValues(
     const own = toRaw(changes[binding.control], binding.kind, binding.invert, binding.valueMap);
     if (own === undefined) continue;
 
+    const wantedSection = chosenSection(binding);
+    if (wantedSection === undefined) continue;
     let section = binding.sectionType
       ? sectionOfType(sections, binding.sectionType)
-      : sections.find((sec) => sec.name === binding.section);
+      : sections.find((sec) => sec.name === wantedSection);
     if (!section) {
       /* A type-matched binding does not invent a section. Creating [endpoint] because no
        * endpoint exists yet would write a section Asterisk reads as an object literally
        * called "endpoint", which is not what anybody meant. Making one is the endpoint
        * editor's job, and it names it after the extension. */
       if (binding.sectionType) continue;
-      section = { name: binding.section, entries: [] };
+      section = { name: wantedSection, entries: [] };
       sections.push(section);
     }
 
@@ -687,6 +745,20 @@ export function applyControlValues(
     const raw = binding.composite
       ? joinComposite(idx === -1 ? '' : entries[idx].value, binding.composite.separator, binding.composite.part, own)
       : own;
+    if (binding.repeated) {
+      const wanted = changes[binding.control];
+      if (!Array.isArray(wanted) || !wanted.every((item) => typeof item === 'string')) continue;
+      /* Replaced where the run started, so a rewritten list stays where it was rather than
+       * moving to the end of the section. In a file whose order decides which rule wins,
+       * moving a block is not a formatting detail. */
+      const first = entries.findIndex((candidate) => candidate.key === binding.key);
+      const kept = entries.filter((candidate) => candidate.key !== binding.key);
+      const written = (wanted as string[]).map((value) => ({ key: binding.key, value }));
+      const at = first === -1 ? kept.length : first;
+      entries.length = 0;
+      entries.push(...kept.slice(0, at), ...written, ...kept.slice(at));
+      continue;
+    }
     if (binding.presence) {
       /* The off state is the key not being there. Removing rather than writing "no" is the
        * whole point: "no" is a line Asterisk would try to read as a value. */
