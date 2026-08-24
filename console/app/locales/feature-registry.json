@@ -78,24 +78,18 @@
       "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
       "labels": [
-        "Spoken narration",
-        "Speak what happens",
-        "Spoken language",
+        "Narration",
+        "Narrated language",
         "English voice",
-        "廣東話 voice",
-        "Speaking rate",
-        "Pitch",
-        "Voice status"
+        "Cantonese voice",
+        "Pitch"
       ],
       "localizedLabels": [
-        "Spoken narration",
-        "Speak what happens",
-        "Spoken language",
+        "Narration",
+        "Narrated language",
         "English voice",
-        "廣東話 voice",
-        "Speaking rate",
-        "Pitch",
-        "Voice status"
+        "Cantonese voice",
+        "Pitch"
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."

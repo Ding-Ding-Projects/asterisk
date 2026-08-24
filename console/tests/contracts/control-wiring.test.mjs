@@ -36,7 +36,7 @@ const WIRED = [
   { id: 'src_add', acts: 'buildSource(' },
   { id: 'src_clear', acts: 'saveSources(' },
   { id: 'nar_enabled', acts: 'applyNarrationControl(' },
-  { id: 'nar_voice_en', acts: 'resolveVoiceStatus(' },
+  { id: 'nar_en_voice', acts: 'resolveVoiceStatus(' },
   { id: 'logo_preset', acts: 'choosePreset(' },
   { id: 'logo_pick', acts: 'acceptLogo(' },
 ];
@@ -121,5 +121,34 @@ test('a control that carries a value still records it, so the picker moves', () 
     const branch = body.slice(at, at + body.slice(at).indexOf('\n    }') + 6);
     assert.match(branch, /^\s*return;/m,
       `${id} is listed as a press rather than a state, but its branch falls through and would leave the switch stuck on`);
+  }
+});
+
+test('no control id is defined twice on one screen', () => {
+  /* Two controls sharing an id both render and both write the same value, with whatever
+   * labels each was given -- so the screen shows one setting twice, disagreeing with itself,
+   * and whichever the person did not touch looks stuck. It happens when somebody adds a
+   * group without checking whether the thing already exists, which is how a settings screen
+   * turns into a catalogue of near-duplicates rather than one integrated surface.
+   *
+   * The server ids are the deliberate exception: one connection is described once and shown
+   * in both the servers screen and its wizard, sharing a single value on purpose. They are
+   * named here so adding another shared id is a decision somebody writes down. */
+  const design = readFileSync(new URL('../../../design/Asterisk Console M3.dc.html', import.meta.url), 'utf8');
+  const counts = new Map();
+  for (const match of design.matchAll(/ctl\('([a-z0-9_]+)'/g)) {
+    counts.set(match[1], (counts.get(match[1]) ?? 0) + 1);
+  }
+  const SHARED_ON_PURPOSE = new Set([
+    'sv_amiport', 'sv_container', 'sv_forward', 'sv_host', 'sv_hostkey', 'sv_iface',
+    'sv_kind', 'sv_readonly', 'sv_sshport', 'sv_tls', 'sv_user', 'sv_watch', 'ap_contrast',
+  ]);
+  const unexpected = [...counts].filter(([id, n]) => n > 1 && !SHARED_ON_PURPOSE.has(id));
+  assert.deepEqual(unexpected, [],
+    `these ids are defined more than once and are not recorded as deliberately shared: ${unexpected.map(([id]) => id).join(', ')}`);
+  /* And the exception list stays honest: an id that stops being duplicated should leave it,
+   * or the list becomes a place stale names accumulate unchallenged. */
+  for (const id of SHARED_ON_PURPOSE) {
+    assert.ok((counts.get(id) ?? 0) > 1, `${id} is listed as deliberately shared but is no longer duplicated`);
   }
 });

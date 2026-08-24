@@ -1067,13 +1067,18 @@ What you can do: ${offered}.` : ''}`);
   private applyNarrationControl(id: string, value: unknown): void {
     const next: NarrationSettings = { ...this.narration, voices: { ...this.narration.voices } };
     if (id === 'nar_enabled' && typeof value === 'boolean') next.enabled = value;
-    if (id === 'nar_language' && typeof value === 'string') next.language = value as NarrationLanguage;
+    /* The design offers these in the words somebody reads, so they are mapped here rather
+     * than stored as typed. Storing the label would tie the saved profile to the wording. */
+    if (id === 'nar_language' && typeof value === 'string') {
+      const byLabel: Record<string, NarrationLanguage> = { English: 'en', '廣東話': 'zh', Both: 'both' };
+      next.language = byLabel[value] ?? next.language;
+    }
     /* "Choose automatically" is stored as no choice at all rather than as a voice named
      * that, so a machine gaining a better voice starts using it. */
-    if (id === 'nar_voice_en' && typeof value === 'string') {
+    if (id === 'nar_en_voice' && typeof value === 'string') {
       next.voices.en = value === 'Choose automatically' ? undefined : this.voiceIdByName(value);
     }
-    if (id === 'nar_voice_zh' && typeof value === 'string') {
+    if (id === 'nar_yue_voice' && typeof value === 'string') {
       next.voices.zh = value === 'Choose automatically' ? undefined : this.voiceIdByName(value);
     }
     /* Clamped rather than refused: a slider cannot produce an out-of-range value through
