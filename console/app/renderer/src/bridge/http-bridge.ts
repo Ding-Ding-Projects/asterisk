@@ -1,66 +1,124 @@
-/**
- * The same `window.dingDesktop` shape the Electron preload bridge exposes, backed by
- * `fetch` against the hosted server's `/api/*` routes instead of `ipcRenderer`.
- *
- * `App.tsx` and every other renderer module read `window.dingDesktop` and nothing
- * else — see `App.tsx`'s `bridge()` method — so installing this before the app mounts
- * is the entire integration. There is exactly one compiled renderer; this file is what
- * lets it run unmodified inside a browser tab instead of only inside Electron.
- */
+/** Fetch-backed hosted bridge. Authentication failures remain server decisions. */
 import type { ControlPlaneRequest, ControlPlaneResponse } from '../../../../shared/control-plane';
+import type {
+  HostedAuthBridge,
+  HostedAuthMutationResult,
+  HostedSessionStatus,
+} from '../../../../shared/hosted-auth';
 
-async function postJson(path: string, body: unknown): Promise<Response> {
-  return fetch(path, {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+const REQUEST_TIMEOUT_MS = 10_000;
+
+interface ApiProblem {
+  error?: string;
+  message?: string;
+}
+
+async function requestJson<T>(path: string, init?: RequestInit): Promise<{ response: Response; body: T | ApiProblem }> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(path, {
+      ...init,
+      credentials: 'same-origin',
+      signal: controller.signal,
+      headers: init?.body ? { 'Content-Type': 'application/json', ...init.headers } : init?.headers,
+    });
+    let body: T | ApiProblem = {};
+    try { body = await response.json() as T | ApiProblem; } catch { /* Preserve status when a proxy returns no JSON. */ }
+    return { response, body };
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error(`The hosted server did not answer within ${REQUEST_TIMEOUT_MS / 1000} seconds.`);
+    }
+    throw new Error('The hosted server is unavailable.');
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+function problemMessage(body: unknown, fallback: string): string {
+  return body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+    ? body.message
+    : fallback;
+}
+
+async function postMutation(path: string): Promise<HostedAuthMutationResult> {
+  const { response, body } = await requestJson<HostedAuthMutationResult>(path, { method: 'POST' });
+  if (!response.ok) throw new Error(problemMessage(body, `The server refused ${path}.`));
+  return body as HostedAuthMutationResult;
 }
 
 export function installHttpBridge(): void {
+  const auth: HostedAuthBridge = {
+    async getSession(): Promise<HostedSessionStatus> {
+      const { response, body } = await requestJson<HostedSessionStatus>('/api/session');
+      if (!response.ok) throw new Error(problemMessage(body, 'The server refused the session status request.'));
+      return body as HostedSessionStatus;
+    },
+    async signOut(): Promise<HostedAuthMutationResult> {
+      const result = await postMutation('/api/logout');
+      window.location.assign('/login.html');
+      return result;
+    },
+    async revokeAllSessions(): Promise<HostedAuthMutationResult> {
+      const result = await postMutation('/api/sessions/revoke');
+      window.location.assign('/login.html');
+      return result;
+    },
+  };
+
   const api = {
     platform: 'web',
-    // A browser tab has no native window frame to control; these are deliberate no-ops
-    // rather than missing behaviour — the compiled renderer's three window controls
-    // simply do nothing hosted, which is honest given there is nothing to minimize.
     window: {
       minimize: () => {},
       toggleMaximize: () => {},
       close: () => {},
     },
     controlPlane: {
-      async request(request: ControlPlaneRequest): Promise<ControlPlaneResponse | undefined> {
-        const res = await postJson('/api/control-plane', request);
-        if (res.status === 401) {
-          window.location.assign('/login.html');
-          return undefined;
+      async request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> {
+        try {
+          const { response, body } = await requestJson<ControlPlaneResponse>('/api/control-plane', {
+            method: 'POST',
+            body: JSON.stringify(request),
+          });
+          if (response.status === 401) {
+            window.location.assign('/login.html');
+            return { ok: false, requestId: request.requestId, code: 'UNAUTHENTICATED', message: problemMessage(body, 'Sign in first.') };
+          }
+          if (response.status === 503) {
+            window.location.assign('/login.html');
+            return { ok: false, requestId: request.requestId, code: 'ACCOUNT_STORE_CORRUPT', message: problemMessage(body, 'Account storage needs recovery.') };
+          }
+          if (!response.ok) {
+            return { ok: false, requestId: request.requestId, code: 'HOSTED_REQUEST_REFUSED', message: problemMessage(body, 'The hosted server refused the request.') };
+          }
+          return body as ControlPlaneResponse;
+        } catch (error) {
+          return {
+            ok: false,
+            requestId: request.requestId,
+            code: 'SERVER_UNAVAILABLE',
+            message: error instanceof Error ? error.message : 'The hosted server is unavailable.',
+          };
         }
-        return (await res.json()) as ControlPlaneResponse;
       },
     },
+    auth,
     updater: {
-      // Server mode does not self-update the way the desktop installer does — the
-      // operator updates the VM's package the way they update any other server
-      // software. Reporting a fixed "idle" state is honest: there is never anything to
-      // check for from inside the running process.
-      async getStatus() {
-        return { state: 'idle' as const };
-      },
-      async checkNow() {
-        return { state: 'idle' as const };
-      },
+      async getStatus() { return { state: 'idle' as const }; },
+      async checkNow() { return { state: 'idle' as const }; },
       restartToInstall: () => {},
       dismiss: () => {},
       onStatus: () => () => {},
     },
   };
+
   (window as unknown as { dingDesktop: typeof api }).dingDesktop = api;
+  window.dingHostedAuth = auth;
 }
 
-/** True when there is no Electron preload bridge — i.e. this bundle is running in an
- *  ordinary browser tab, whether or not it is actually being server-hosted. Electron
- *  always installs `window.dingDesktop` before the renderer's own scripts run. */
+/** Electron installs its own bridge before renderer scripts execute. */
 export function isHostedRuntime(): boolean {
-  return typeof window !== 'undefined' && !(window as unknown as { dingDesktop?: unknown }).dingDesktop;
+  return typeof window !== 'undefined' && !window.dingDesktop;
 }
+
