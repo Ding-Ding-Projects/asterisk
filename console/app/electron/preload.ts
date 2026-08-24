@@ -15,7 +15,11 @@ const api: DingDesktopApi = {
     setCredential: (value: string) => ipcRenderer.invoke('school:set-credential', value) as Promise<{ ok: boolean; reason?: string }>,
     verifyCredential: (value: string) => ipcRenderer.invoke('school:verify-credential', value) as Promise<{ ok: boolean; reason?: string }>,
     recoveryPath: () => ipcRenderer.invoke('school:recovery-path') as Promise<{ ok: boolean; path?: string; reason?: string }>,
-    packagedVaultProbe: (expected: { product: string; packageVersion: string; candidateCommit: string; appId: string }) => ipcRenderer.invoke('school:packaged-vault-probe', expected) as Promise<{ provenanceMatched: boolean; writeSucceeded: boolean; readMatched: boolean; deleteSucceeded: boolean; absentAfterDelete: boolean }>,
+    packagedVaultProbe: async (expected: { product: string; packageVersion: string; candidateCommit: string; appId: string }) => {
+      const authorization = await ipcRenderer.invoke('school:probe-authorize') as string | undefined;
+      if (!authorization) return { provenanceMatched: false, writeSucceeded: false, readMatched: false, deleteSucceeded: false, absentAfterDelete: false, rejected: true };
+      return ipcRenderer.invoke('school:packaged-vault-probe', authorization, expected) as Promise<{ provenanceMatched: boolean; writeSucceeded: boolean; readMatched: boolean; deleteSucceeded: boolean; absentAfterDelete: boolean; rejected?: boolean; artifact?: Record<string, string> }>;
+    },
   },
   accessibility: {
     isScreenReaderActive: () => ipcRenderer.invoke('accessibility:screen-reader') as Promise<boolean>,
@@ -33,5 +37,7 @@ const api: DingDesktopApi = {
     },
   },
 };
+
+if (!process.argv.some((argument) => argument === '--school-vault-probe-mode' || argument.startsWith('--school-vault-probe-result='))) delete api.school.packagedVaultProbe;
 
 contextBridge.exposeInMainWorld('dingDesktop', api);

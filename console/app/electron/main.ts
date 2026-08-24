@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import * as keytar from 'keytar';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
@@ -18,6 +18,8 @@ import {
 } from './updater-runtime.js';
 
 let mainWindow: BrowserWindow | null = null;
+let probeAuthorization: string | undefined;
+let probeAuthorizationConsumed = false;
 const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false });
 const { controlPlaneRequest } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
@@ -159,7 +161,26 @@ ipcMain.handle('updater:restart-to-install', async (): Promise<UpdaterRestartRes
   return result;
 });
 
+function createProbeWindow(): void {
+  probeAuthorization = randomUUID();
+  mainWindow = new BrowserWindow({
+    width: 1, height: 1, show: false, skipTaskbar: true,
+    webPreferences: {
+      preload: join(import.meta.dirname, '../../../app/electron/preload.cjs'),
+      contextIsolation: true, nodeIntegration: false, sandbox: true,
+      partition: 'temp:ding-pbx-school-vault-probe', backgroundThrottling: false,
+      additionalArguments: ['--school-vault-probe-mode'],
+    },
+  });
+  runPackagedProbeWhenRequested();
+  void mainWindow.loadURL('data:text/html,<html><body></body></html>');
+}
+
 function createWindow(): void {
+  if (packagedProbeResultPath()) {
+    createProbeWindow();
+    return;
+  }
   mainWindow = new BrowserWindow({
     width: 1440, height: 920, minWidth: 920, minHeight: 640, frame: false, backgroundColor: '#101510', show: false, title: 'Ding PBX Console',
     webPreferences: { preload: join(import.meta.dirname, '../../../app/electron/preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
@@ -200,12 +221,24 @@ ipcMain.handle('school:verify-credential', async (_event, candidate: unknown) =>
   }
 });
 ipcMain.handle('school:recovery-path', () => ({ ok: true, path: app.getPath('userData') }));
-ipcMain.handle('school:packaged-vault-probe', async (_event, expected: unknown) => {
+ipcMain.handle('school:probe-authorize', () => {
+  const resultPath = packagedProbeResultPath();
+  if (!resultPath || !probeAuthorization || probeAuthorizationConsumed) return undefined;
+  return probeAuthorization;
+});
+ipcMain.handle('school:packaged-vault-probe', async (_event, authorization: unknown, expected: unknown) => {
+  if (!probeAuthorization || probeAuthorizationConsumed || authorization !== probeAuthorization || !packagedProbeResultPath()) {
+    return { provenanceMatched: false, writeSucceeded: false, readMatched: false, deleteSucceeded: false, absentAfterDelete: false, rejected: true };
+  }
+  probeAuthorizationConsumed = true;
   const candidate = expected as { product?: unknown; packageVersion?: unknown; candidateCommit?: unknown; appId?: unknown };
   const provenancePath = join(process.resourcesPath, 'school-mode-provenance.json');
   let provenanceMatched = false;
+  let provenanceSha256 = '';
   try {
-    const provenance = JSON.parse(readFileSync(provenancePath, 'utf8')) as Record<string, unknown>;
+    const provenanceBytes = readFileSync(provenancePath);
+    provenanceSha256 = createHash('sha256').update(provenanceBytes).digest('hex');
+    const provenance = JSON.parse(provenanceBytes.toString('utf8')) as Record<string, unknown>;
     provenanceMatched = provenance.schemaVersion === 1
       && provenance.product === candidate.product
       && provenance.packageVersion === candidate.packageVersion
@@ -230,7 +263,10 @@ ipcMain.handle('school:packaged-vault-probe', async (_event, expected: unknown) 
   } finally {
     if (!deleteSucceeded) await keytar.deletePassword(service, account).catch(() => false);
   }
-  return { provenanceMatched, writeSucceeded, readMatched, deleteSucceeded, absentAfterDelete };
+  return {
+    provenanceMatched, writeSucceeded, readMatched, deleteSucceeded, absentAfterDelete,
+    artifact: { product: String(candidate.product ?? ''), packageVersion: String(candidate.packageVersion ?? ''), candidateCommit: String(candidate.candidateCommit ?? ''), appId: String(candidate.appId ?? ''), provenanceSha256 },
+  };
 });
 
 function packagedProbeResultPath(): string | undefined {
@@ -261,7 +297,7 @@ ipcMain.handle('accessibility:screen-reader', () => app.isAccessibilitySupportEn
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();
 } else {
-  app.whenReady().then(createWindow).then(scheduleUpdateChecks);
+  app.whenReady().then(createWindow).then(() => { if (!packagedProbeResultPath()) scheduleUpdateChecks(); });
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 }

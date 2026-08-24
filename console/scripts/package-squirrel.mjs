@@ -30,6 +30,9 @@ const head = spawnSync('git', ['-C', repoRoot, 'rev-parse', 'HEAD'], { encoding:
 if (head.status !== 0 || head.stdout.trim() !== candidateCommit) throw new Error(`Candidate commit ${candidateCommit} does not match checkout HEAD ${head.stdout.trim()}.`);
 process.env.DING_PBX_VERSION = version;
 process.env.DING_PBX_CANDIDATE_COMMIT = candidateCommit;
+process.env.DING_PBX_EXPECTED_VERSION = version;
+process.env.DING_PBX_EXPECTED_COMMIT = candidateCommit;
+process.env.DING_PBX_EXPECTED_APP_ID = 'org.dingdingprojects.dingpbxconsole';
 if (existsSync(unpackedOutput)) rmSync(unpackedOutput, { recursive: true, force: true });
 if (existsSync(sourceProvenance)) throw new Error('The provenance staging file already exists. Refusing to overwrite user content.');
 writeFileSync(sourceProvenance, JSON.stringify({ schemaVersion: 1, product: packageJson.name, packageVersion: version, candidateCommit, appId: 'org.dingdingprojects.dingpbxconsole' }, null, 2) + '\n', 'utf8');
@@ -41,10 +44,6 @@ if (native.status !== 0) process.exit(native.status ?? 1);
 const result = spawnSync(process.execPath, [cli, '--win', 'squirrel', '--config', 'electron-builder.yml', `--config.extraMetadata.version=${version}`], { cwd: consoleRoot, env: process.env, stdio: 'inherit', shell: false });
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
-
-const packagedProbe = spawnSync(process.execPath, [join(consoleRoot, 'scripts', 'verify-keytar-packaged.mjs')], { cwd: consoleRoot, env: process.env, stdio: 'inherit', shell: false });
-if (packagedProbe.error) throw packagedProbe.error;
-if (packagedProbe.status !== 0) process.exit(packagedProbe.status ?? 1);
 
 const output = join(consoleRoot, 'dist', 'squirrel-windows', 'squirrel-windows');
 const files = readdirSync(output).map((name) => ({ name, path: join(output, name) })).filter((entry) => statSync(entry.path).isFile());
@@ -74,3 +73,7 @@ writeFileSync(join(output, 'release-identity.json'), JSON.stringify({
     identity: 'release-identity.json',
   },
 }, null, 2) + '\n', 'utf8');
+
+const packagedProbe = spawnSync(process.execPath, [join(consoleRoot, 'scripts', 'verify-keytar-packaged.mjs')], { cwd: consoleRoot, env: process.env, stdio: 'inherit', shell: false });
+if (packagedProbe.error) throw packagedProbe.error;
+if (packagedProbe.status !== 0) process.exit(packagedProbe.status ?? 1);

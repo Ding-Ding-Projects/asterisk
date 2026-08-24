@@ -1,5 +1,19 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+const probeMode = process.argv.some(argument => argument === '--school-vault-probe-mode' || argument.startsWith('--school-vault-probe-result='));
+const school = {
+  setCredential: value => ipcRenderer.invoke('school:set-credential', value),
+  verifyCredential: value => ipcRenderer.invoke('school:verify-credential', value),
+  recoveryPath: () => ipcRenderer.invoke('school:recovery-path'),
+};
+if (probeMode) {
+  school.packagedVaultProbe = async expected => {
+    const authorization = await ipcRenderer.invoke('school:probe-authorize');
+    if (!authorization) return { provenanceMatched: false, writeSucceeded: false, readMatched: false, deleteSucceeded: false, absentAfterDelete: false, rejected: true };
+    return ipcRenderer.invoke('school:packaged-vault-probe', authorization, expected);
+  };
+}
+
 const api = Object.freeze({
   platform: process.platform,
   window: Object.freeze({
@@ -10,12 +24,7 @@ const api = Object.freeze({
   controlPlane: Object.freeze({
     request: request => ipcRenderer.invoke('control-plane:request', request),
   }),
-  school: Object.freeze({
-    setCredential: value => ipcRenderer.invoke('school:set-credential', value),
-    verifyCredential: value => ipcRenderer.invoke('school:verify-credential', value),
-    recoveryPath: () => ipcRenderer.invoke('school:recovery-path'),
-    packagedVaultProbe: expected => ipcRenderer.invoke('school:packaged-vault-probe', expected),
-  }),
+  school: Object.freeze(school),
   accessibility: Object.freeze({
     isScreenReaderActive: () => ipcRenderer.invoke('accessibility:screen-reader'),
   }),

@@ -28,7 +28,7 @@
       "command": "node scripts/verify-keytar-packaged.mjs",
       "source": "console/scripts/verify-keytar-packaged.mjs",
       "status": "implemented-unverified",
-      "evidence": "Loads keytar from app.asar.unpacked and checks the vault API."
+      "evidence": "Launches the final artifact in probe mode and loads keytar through the packaged preload and main-process IPC handler, with the native binary presence checked before launch."
     },
     {
       "id": "candidate-provenance",

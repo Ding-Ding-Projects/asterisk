@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { validateReleaseValidationInventory, validateSurfaceInventory, validateParityInventory } from './inventory-validation.mjs';
 import { verifyEvidenceOnDisk, verifyExemptions } from './evidence-on-disk.mjs';
@@ -15,6 +16,8 @@ try {
   const evidence = verifyEvidenceOnDisk(inventory, { root });
   const exemptions = verifyExemptions(inventory, readJson('console/inventories/exemptions.json'));
   const release = validateReleaseValidationInventory(readJson('console/inventories/release-validation.json'));
+  const eventCensus = spawnSync(process.execPath, [resolve(root, 'console', 'scripts', 'verify-event-copy-inventory.mjs')], { cwd: resolve(root, 'console'), encoding: 'utf8', shell: false });
+  if (eventCensus.status !== 0) throw new Error(`event-copy census failed: ${(eventCensus.stderr || eventCensus.stdout).trim()}`);
   const packageJson = readJson('console/package.json');
   for (const check of readJson('console/inventories/release-validation.json').checks) {
     if (!existsSync(resolve(root, check.source))) throw new Error(`release validation ${check.id}: source path missing: ${check.source}`);
@@ -25,6 +28,7 @@ try {
   console.log(`PASS: ${evidence.verifiedRows}/${rows} rows claim verified; ${evidence.checked} claimed evidence artifacts resolved on disk.`);
   console.log(`PASS: ${exemptions.exemptRows} row(s) exempt, each with a recorded reason, decider and date.`);
   console.log(`PASS: ${release.checks} release-equivalent native-vault checks are inventoried with exact source paths and commands.`);
+  console.log(`PASS: dynamic event census invoked: ${eventCensus.stdout.trim()}`);
 } catch (error) {
   console.error(`FAIL: ${error.message}`);
   process.exitCode = 1;
