@@ -571,7 +571,7 @@ body.attn-focus .topbar:hover,body.attn-focus .topbar:focus-within,body.attn-foc
 .global-settings-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid var(--outline-variant);padding-bottom:14px;margin-bottom:14px}
 .global-settings-header h2{margin:.2em 0 .35em}
 .global-settings-header p{margin:0;color:var(--muted);font-size:.82rem;max-width:54ch}
-.global-settings-search-wrap{margin-bottom:4px}
+.global-settings-search-wrap{position:relative;margin-bottom:4px}
 .global-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0;border-bottom:1px solid var(--outline-variant)}
 .global-tabs [role=tab]{border:0;border-bottom:3px solid transparent;border-radius:0;background:transparent;color:var(--muted);padding:10px 12px;font:inherit;font-size:.8rem;cursor:pointer}
 .global-tabs [role=tab][aria-selected=true]{border-color:var(--primary);color:var(--on-surface);font-weight:700}
@@ -593,7 +593,7 @@ body.attn-focus .topbar:hover,body.attn-focus .topbar:focus-within,body.attn-foc
 .global-setting fieldset legend{color:var(--muted);font-size:.78rem}
 .weekday{display:flex!important;align-items:center;gap:4px;min-width:95px}
 .weekday input{accent-color:var(--primary)}
-.global-regex-popover{margin-top:14px;padding:14px;border:1px solid var(--primary);border-radius:var(--radius);background:var(--surface-2);display:grid;gap:8px}
+.global-regex-popover{position:relative;margin-top:8px;padding:14px;border:1px solid var(--primary);border-radius:var(--radius);background:var(--surface-2);display:grid;gap:8px}
 .global-regex-popover[hidden]{display:none}
 .global-regex-popover h3{margin:0;font-size:.95rem}
 .global-regex-popover label{display:grid;gap:5px;font-size:.78rem;color:var(--muted)}
@@ -614,7 +614,7 @@ body.attn-focus .topbar:hover,body.attn-focus .topbar:focus-within,body.attn-foc
 .global-dimsum-toast>div{display:grid;gap:3px}
 .global-dimsum-toast strong{font-size:.86rem}
 .global-dimsum-toast div span{color:var(--muted);font-size:.74rem}
-.global-dimsum-plate{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:var(--surface-3);font-size:1.35rem}
+.global-dimsum-image{display:block;width:96px;height:72px;object-fit:cover;border-radius:var(--radius-sm);background:var(--surface-3);border:1px solid var(--outline-variant)}
 body.global-school-mode [data-school-hidden]{display:none!important}
 @keyframes global-toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.global-dimsum-toast{animation:none}}

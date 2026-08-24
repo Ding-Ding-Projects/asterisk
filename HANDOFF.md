@@ -462,3 +462,33 @@ The static update panel remains partial because no verified release manifest or 
 available for this page. No download control is invented. Verification remained limited to
 `node --check` for the changed JavaScript files and `git diff --check`; no tests, lint, build,
 browser, UI, capture, hosting, release, or cleanup work ran.
+
+## Pages global settings second refutation repair, 2026-08-24
+
+Generated article markup now receives a direct `data-global-settings` script marker and the
+module has a one-load window sentinel, so an article that also loads the shared page script does
+not initialize two narrator queues or two observers. The dim-sum cache now records five actual
+published public catalog image assets, immutable release tags, catalog revisions, URLs, and
+SHA-256 values. The surprise consumer renders the matching remote catalog image and bilingual alt
+text, with the former CSS plate removed.
+
+The schedule layer now separates base settings from effective values, consumes theme and density
+through root data attributes, resolves rule dates, weekdays, and times in each rule's timezone,
+handles all-day and cross-midnight windows, applies precedence, refreshes at boundaries and on
+visibility, and super-confirms rule removal. Display-name reset also uses the same anchored
+confirmation surface and leaves the shipped identity boundary untouched. The settings record has
+a schema version, a pre-parse byte bound, and exact rule reconstruction without copying unknown
+fields.
+
+External validation now rejects private production hosts, URL credentials, query strings,
+fragments, redirects, oversized bodies, deep or unknown response fields, and applies only an
+explicit reduced Home Assistant proxy shape. Remote values update the effective layer only and
+never become permanent base settings. School filtering uses one predicate for page rows,
+destination cards, palette results, and counts. The palette indexes exact global controls, every
+dropdown receives its own filter and regex control, and the main regex builder carries an
+explicit anchor and focus return. The update readout remains partial with no refresh or download
+control until a verified release manifest exists.
+
+Verification remained limited to `node --check` for the changed JavaScript files and
+`git diff --check`; no tests, lint, build, browser, UI, capture, hosting, release, or cleanup
+work ran.

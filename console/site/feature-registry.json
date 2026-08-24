@@ -4,7 +4,7 @@
   "features": {
     "language-modes": {
       "state": "implemented",
-      "note": "global-settings.js renders an independently reachable language-mode control on every page, persists English, playful Hong Kong-style Cantonese, or bilingual selection in ding-pbx-site-global-settings-v1, and applies the selection to page-owned settings, notices, surprise copy, and narrator text. School mode forces English and suppresses optional controls live.",
+      "note": "global-settings.js renders an independently reachable language-mode control on every page, persists English, playful Hong Kong-style Cantonese, or bilingual selection in ding-pbx-site-global-settings-v1, and applies the selection through a hand-written page copy inventory to panel labels, notices, surprise copy, and separate narrator tracks. School mode forces English and suppresses optional controls live.",
       "files": [
         "site/app.js",
         "site/global-settings.js",
@@ -38,7 +38,7 @@
     },
     "scheduled-settings": {
       "state": "implemented",
-      "note": "global-settings.js provides a visitor-local schedule editor with enabled state, local datetime values, weekdays, source selection, deterministic persistence, and explicit source checking. External values never silently become permanent base settings.",
+      "note": "global-settings.js provides a versioned bounded visitor-local rule list with target/value, date/time, weekdays or Every day, timezone-aware matching, cross-midnight handling, precedence, apply/remove, boundary timer, visibility refresh, and separate base/effective values. Theme and density rules consume document root data attributes. External values never silently become permanent base settings.",
       "files": [
         "site/app.js",
         "site/global-settings.js",
@@ -47,13 +47,13 @@
     },
     "external-settings-sources": {
       "state": "implemented",
-      "note": "The page equivalent in global-settings.js accepts local, validated HTTPS, loopback development, or Home Assistant endpoint choices. It performs no automatic request, bounds an explicit check, rejects unsafe URLs and redirects, validates one bounded JSON object, and states the browser credential-vault boundary.",
+      "note": "The page equivalent in global-settings.js accepts local, validated HTTPS, loopback development, or Home Assistant endpoint choices. It rejects credentials, query strings, fragments, unsafe hosts, private production hosts, redirects, oversized or deeply nested responses, and unknown fields. Home Assistant accepts only on or off state shapes and applies effective values without writing remote values into the permanent base record. The browser credential-vault limitation is explicit.",
       "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     },
     "dim-sum-surprise": {
       "state": "implemented",
-      "note": "global-settings.js implements a fresh ten-percent later-visit draw from local bilingual dish data, one draw per load, first-visit and School suppression, local visitor count, no opt-out, non-blocking dismissal, and a local CSS plate illustration with accessible bilingual naming.",
-      "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
+      "note": "global-settings.js consumes the versioned dim-sum-cache.json records, including authoritative bilingual names, immutable catalog release tags, public image URLs, and SHA-256 values. It performs a fresh ten-percent later-visit draw, one draw per load, with first-visit, School, quiet, error, update, active-work, hidden-page, and screen-reader suppression. The rendered card uses the sanctioned public catalog image and accessible bilingual alt text, with no CSS substitute or opt-out.",
+      "files": ["site/global-settings.js", "site/dim-sum-cache.json", "docs/app/site-global-settings.md"]
     },
     "regex-builder": {
       "state": "implemented",
@@ -218,7 +218,7 @@
     },
     "app-display-name": {
       "state": "implemented",
-      "note": "global-settings.js exposes a renameable visitor-local display name on every page, updates the visible brand and title, and provides a reset action. It never changes package identity, storage location, installer identity, or update feed.",
+      "note": "global-settings.js exposes a renameable visitor-local display name on every page, updates the document title, brand labels, data-display-name labels, and body consumer inventory, and provides a super-confirmed reset action. An explicit identity boundary keeps shipped package identity, data directory, installer identity, and update feed fixed.",
       "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     },
     "guided-forms": {
@@ -268,7 +268,7 @@
     },
     "automatic-updates": {
       "state": "partial",
-      "note": "The static-page equivalent in global-settings.js reports the truthful local state that no verified release manifest or installer is published for this page. Its refresh action records a local timestamp only, performs no network request, and never fabricates a download. It remains partial until a verified release manifest can drive a real download control.",
+      "note": "The static-page equivalent in global-settings.js reports the truthful local state that no verified release manifest or installer is published for this page. It intentionally exposes no refresh or download control until a manifest can drive a real action, so there is no inert update affordance.",
       "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     }
   }

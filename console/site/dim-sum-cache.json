@@ -1,15 +1,13 @@
 {
-  "schemaVersion": 1,
-  "source": "Ding-Ding-Projects/dim-sum-photos catalog names, cached locally for the static page equivalent",
+  "schemaVersion": 2,
+  "source": "Ding-Ding-Projects/dim-sum-photos catalog names and published photo assets",
   "sourceUrl": "https://raw.githubusercontent.com/Ding-Ding-Projects/dim-sum-photos/main/catalog/index.json",
-  "sourceRevision": "main",
-  "imagePolicy": "local CSS plate illustration only; no copied photo or network image",
-  "localImage": "CSS .global-dimsum-plate",
+  "imagePolicy": "public published catalog release assets referenced by immutable release tag; no copied photo",
   "dishes": [
-    { "name": { "en": "Shrimp dumpling", "zhHant": "蝦餃" }, "image": "local-plate" },
-    { "name": { "en": "Barbecue pork bun", "zhHant": "叉燒包" }, "image": "local-plate" },
-    { "name": { "en": "Steamed rice noodle roll", "zhHant": "腸粉" }, "image": "local-plate" },
-    { "name": { "en": "Egg custard tart", "zhHant": "蛋撻" }, "image": "local-plate" },
-    { "name": { "en": "Turnip cake", "zhHant": "蘿蔔糕" }, "image": "local-plate" }
+    { "id": "hk-dish-0067", "name": { "en": "Scallion Flower Roll", "zhHant": "蔥花卷" }, "catalogRevision": "2541e4f85d4eb28509789eb9697e4323b9ba55c5", "releaseTag": "desktop-67-2541e4f8", "imageUrl": "https://github.com/Ding-Ding-Projects/dim-sum-photos/releases/download/desktop-67-2541e4f8/hk-dish-0067-scallion-flower-roll.png", "sha256": "0d5d4372e96f297aa6b40b6c86178f6b0d2c9df1c399c94e31d46004b1323119" },
+    { "id": "hk-dish-0066", "name": { "en": "Steamed Sausage Roll", "zhHant": "腸仔包" }, "catalogRevision": "83613a99439225c13a05a9769ca64f28843e4be4", "releaseTag": "desktop-66-83613a99", "imageUrl": "https://github.com/Ding-Ding-Projects/dim-sum-photos/releases/download/desktop-66-83613a99/hk-dish-0066-steamed-sausage-roll.png", "sha256": "0a725a63d2b5ef154acce3db60af7f6b445d109c0dd2210a8516def02a756329" },
+    { "id": "hk-dish-0065", "name": { "en": "Silver Thread Roll", "zhHant": "銀絲卷" }, "catalogRevision": "ddef13ca23eaa5bf7aef49bebcb8efee1ed0ef27", "releaseTag": "desktop-65-ddef13ca", "imageUrl": "https://github.com/Ding-Ding-Projects/dim-sum-photos/releases/download/desktop-65-ddef13ca/hk-dish-0065-silver-thread-roll.png", "sha256": "5f7ed2d9779c204437905f9b9426142d1732cff5b9ec5d8ef7f5c96bcd79b3dc" },
+    { "id": "hk-dish-0064", "name": { "en": "Plain Mantou", "zhHant": "白饅頭" }, "catalogRevision": "4d6dc73ccfec77e32610840db872102cbb6e6ece", "releaseTag": "desktop-64-4d6dc73c", "imageUrl": "https://github.com/Ding-Ding-Projects/dim-sum-photos/releases/download/desktop-64-4d6dc73c/hk-dish-0064-plain-mantou.png", "sha256": "98eaa1d43a8b9aa6055a46bb3b17cb07fc360502d9220ce6f22d6d37445f9834" },
+    { "id": "hk-dish-0063", "name": { "en": "Brown Sugar Mantou", "zhHant": "黑糖饅頭" }, "catalogRevision": "d299b10dcab0542ea5d475179a956f7a0fc8800d", "releaseTag": "desktop-63-d299b10d", "imageUrl": "https://github.com/Ding-Ding-Projects/dim-sum-photos/releases/download/desktop-63-d299b10d/hk-dish-0063-brown-sugar-mantou.png", "sha256": "c17fc901233fc5abec67e5f49da5b2c506f2a5a71d7bcb38518da94581344a22" }
   ]
 }
