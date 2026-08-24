@@ -371,6 +371,39 @@
               <button onClick="{{ a.run }}" style="display:flex; align-items:center; gap:6px; background:#1B211C; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:16px;">{{ a.icon }}</span>{{ a.label }}</button>
             </sc-for>
           </div>
+          <div style="background:#1B211C; border:1px solid #333B34; border-radius:16px; padding:14px 16px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <span class="msym" style="font-size:20px; color:#82D9A5;">import_export</span>
+              <div style="min-width:180px; flex:1;">
+                <div style="font-size:14px; font-weight:600;">Migration and verified backups</div>
+                <div style="font-size:12px; color:#9AA39B; margin-top:3px;">{{ migrationStatus }}</div>
+              </div>
+              <sc-for list="{{ migrationActions }}" as="a" hint-placeholder-count="5">
+                <button onClick="{{ a.run }}" style="display:flex; align-items:center; gap:6px; min-height:44px; background:{{ a.bg }}; border:1px solid {{ a.border }}; border-radius:999px; padding:9px 14px 9px 11px; color:{{ a.fg }}; font:inherit; font-size:12px; font-weight:500; cursor:pointer;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:16px;">{{ a.icon }}</span>{{ a.label }}</button>
+              </sc-for>
+              <label style="display:flex; align-items:center; justify-content:center; min-height:44px; background:transparent; border:1px dashed #414942; border-radius:999px; padding:9px 14px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;">
+                <span class="msym" style="font-size:16px; margin-right:6px;">upload_file</span>Import bundle
+                <input type="file" accept="application/json,.json" onChange="{{ importMigrationFile }}" aria-label="Import migration manifest" style="position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;" />
+              </label>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;">
+              <sc-for list="{{ backupRows }}" as="b" hint-placeholder-count="3">
+                <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:{{ b.color }}; background:#141A15; border-radius:8px; padding:5px 8px;">{{ b.label }}</span>
+              </sc-for>
+            </div>
+            <div style="font-size:11px; color:#778078; margin-top:10px;">{{ migrationOmissions }}</div>
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid #333B34;">
+              <span class="msym" style="font-size:18px; color:#82D9A5;">link</span>
+              <input value="{{ remoteNameText }}" onInput="{{ remoteNameInput }}" aria-label="Remote name" placeholder="origin" style="width:120px; min-height:44px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:8px 10px; color:#DFE4DC; font:inherit; font-family:'Roboto Mono',monospace;" />
+              <input value="{{ remoteUrlText }}" onInput="{{ remoteUrlInput }}" aria-label="Remote URL" placeholder="https:// or ssh:// or local bare path" style="flex:1; min-width:220px; min-height:44px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:8px 10px; color:#DFE4DC; font:inherit; font-family:'Roboto Mono',monospace;" />
+              <label style="display:flex; align-items:center; min-height:44px; background:transparent; border:1px solid #414942; border-radius:10px; padding:8px 12px; color:#C4CBC2; font:inherit; cursor:pointer;">Browse local bare repo
+                <input type="file" webkitdirectory="" onChange="{{ remoteDirectoryInput }}" aria-label="Browse for a local bare repository" style="position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;" />
+              </label>
+              <button onClick="{{ remoteSet }}" style="min-height:44px; background:#1B4D33; border:0; border-radius:10px; padding:8px 12px; color:#9FF7C4; font:inherit; cursor:pointer;">Set remote</button>
+              <button onClick="{{ remoteRemove }}" style="min-height:44px; background:transparent; border:1px solid #414942; border-radius:10px; padding:8px 12px; color:#FFB4AB; font:inherit; cursor:pointer;">Remove remote</button>
+              <button onClick="{{ remoteFetch }}" style="min-height:44px; background:transparent; border:1px solid #414942; border-radius:10px; padding:8px 12px; color:#C4CBC2; font:inherit; cursor:pointer;">Fetch</button>
+            </div>
+          </div>
           <div style="display:grid; grid-template-columns:1fr 420px; gap:12px; margin-bottom:12px;">
             <div style="background:#1B211C; border-radius:16px; overflow:hidden;">
               <div style="display:flex; align-items:center; gap:8px; padding:12px 16px;">

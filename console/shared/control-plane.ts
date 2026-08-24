@@ -26,7 +26,12 @@ export type ControlPlaneAction =
   /* Durable renderer settings (appearance, personal vocabulary) -- see
    * `control-plane/settings-store.ts`. The renderer's own `localStorage` is in-memory
    * only for a `file://` origin and never survives a relaunch. */
-  | 'settings.snapshot' | 'settings.write' | 'settings.remove';
+  | 'settings.snapshot' | 'settings.write' | 'settings.remove'
+  /* The desktop's complete local migration and Git history surface. */
+  | 'migration.export' | 'migration.validate' | 'migration.import'
+  | 'backup.create' | 'backup.list'
+  | 'git.history.status' | 'git.remote.set' | 'git.remote.remove'
+  | 'git.remote.fetch' | 'git.remote.push';
 
 /** The screens a `pbx.read` can answer, each backed by read-only Asterisk CLI output. */
 export type PbxReadView =

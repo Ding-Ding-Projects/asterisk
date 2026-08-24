@@ -25,6 +25,7 @@ The two surfaces referenced throughout are the desktop application (the installe
 - [In-app changelog viewer](changelog-viewer.md)
 - [External editor handoff](external-editor-handoff.md)
 - [Complete data export](complete-exports.md)
+- [Migration, verified backups, and local Git management](migration-backups-git.md)
 - [Bulk actions](bulk-actions.md)
 - [Accessibility](accessibility.md)
 - [Responsive and high-scale sizing](responsive-sizing.md)

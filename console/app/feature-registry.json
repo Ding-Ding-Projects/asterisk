@@ -327,6 +327,19 @@
         "app/renderer/src/main.tsx",
         "control-plane/updater.ts"
       ]
+    },
+    "migration-backups-git": {
+      "state": "partial",
+      "note": "The control plane implements a versioned non-secret migration manifest, explicit machine-readable omissions, verified Git bundle export/import, pre-import backup, staged replacement with rollback, durable operation records, retention inventory, validated HTTPS/SSH/local-bare remotes, and redacted fetch/push receipts in control-plane/migration-backup-git.ts. The real compiled History & git destination mounts migration and backup controls from the checked-in design and App.tsx loads local history and Git status. Narrow compilation and design generation are verified; packaged import and actual remote mutation evidence remain open.",
+      "files": [
+        "control-plane/migration-backup-git.ts",
+        "control-plane/dispatch.ts",
+        "shared/control-plane.ts",
+        "app/renderer/src/App.tsx",
+        "design/Asterisk Console M3.dc.html",
+        "app/renderer/src/generated/console.tsx",
+        "docs/platform/migration-backups-git.md"
+      ]
     }
   }
 }

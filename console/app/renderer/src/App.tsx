@@ -245,6 +245,25 @@ export class App extends Base {
    *  repeated failures rather than on the first typo. */
   private wrongUnlockCounts: Record<string, number> = {};
 
+  /** Real local history and migration state for the mounted History & git screen. */
+  private historyPending = false;
+  private historyLoaded = false;
+  private historyData: {
+    branch: string;
+    clean: boolean;
+    ahead: number;
+    behind: number;
+    divergence: boolean;
+    refs: Array<{ name: string; object: string; kind: string }>;
+    remotes: Array<{ name: string; url: string; fetchUrl: string; pushUrl: string }>;
+    entries: Array<{ id: string; timestamp: string; action: string; subject: string }>;
+    backups: Array<{ path: string; createdAt: string; bytes: number; verified: boolean }>;
+  } = { branch: '', clean: false, ahead: 0, behind: 0, divergence: false, refs: [], remotes: [], entries: [], backups: [] };
+  private migrationStatus = 'Reading local history and backup state.';
+  private migrationImportSource = '';
+  private migrationRemoteName = 'origin';
+  private migrationRemoteUrl = '';
+
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
   }
@@ -270,6 +289,7 @@ export class App extends Base {
      * anything is reachable and must be on screen whether or not discovery finds a
      * target, so it is loaded independently of it. */
     void this.servers.load().then(() => this.forceUpdate());
+    void this.loadMigrationState();
     void this.discover();
     this.refreshTimer = setInterval(() => {
       if (this.target.connected) {
@@ -294,6 +314,112 @@ export class App extends Base {
     if (!bridge) return undefined;
     return await bridge.controlPlane.request({ requestId: crypto.randomUUID(), action, ...extra } as never);
   }
+
+  private async loadMigrationState(): Promise<void> {
+    if (this.historyPending) return;
+    this.historyPending = true;
+    try {
+      const [git, history, backups] = await Promise.all([
+        this.request('git.history.status'),
+        this.request('local-history.list', { payload: { limit: 400 } }),
+        this.request('backup.list'),
+      ]);
+      if (git?.ok) {
+        const value = git.data as Partial<typeof this.historyData>;
+        this.historyData = { ...this.historyData, ...value, refs: value.refs ?? [], remotes: value.remotes ?? [] };
+      }
+      if (history?.ok) this.historyData.entries = ((history.data as { entries?: Array<{ id: string; timestamp: string; action: string; subject: string }> }).entries ?? []).map((entry) => ({ id: entry.id, timestamp: entry.timestamp, action: entry.action, subject: entry.subject }));
+      if (backups?.ok) this.historyData.backups = ((backups.data as { backups?: typeof this.historyData.backups }).backups ?? []);
+      this.historyLoaded = true;
+      this.migrationStatus = `${this.historyData.entries.length} local history records, ${this.historyData.backups.length} verified backups, ${this.historyData.clean ? 'clean' : 'local changes pending'}.`;
+    } catch (error) {
+      this.migrationStatus = error instanceof Error ? error.message : 'Local history state is unavailable.';
+    } finally {
+      this.historyPending = false;
+      this.forceUpdate();
+    }
+  }
+
+  private migrationExport = async (): Promise<void> => {
+    this.migrationStatus = 'Export running: hashing records and creating a verified Git bundle.'; this.forceUpdate();
+    const response = await this.request('migration.export');
+    if (!response?.ok) this.fire('Migration export not completed', response?.message ?? 'The desktop control plane did not answer.');
+    else this.fire('Migration export ready', `The verified bundle is at ${(response.data as { path?: string }).path ?? 'the local export folder'}.`);
+    await this.loadMigrationState();
+  };
+
+  private migrationBackup = async (): Promise<void> => {
+    this.migrationStatus = 'Backup running: staging every movable record before it is retained.'; this.forceUpdate();
+    const response = await this.request('backup.create');
+    if (!response?.ok) this.fire('Backup not completed', response?.message ?? 'The desktop control plane did not answer.');
+    else this.fire('Backup verified', `The backup is at ${(response.data as { path?: string }).path ?? 'the local backup folder'}.`);
+    await this.loadMigrationState();
+  };
+
+  private gitPush = async (): Promise<void> => {
+    const remote = this.historyData.remotes[0];
+    const branch = this.historyData.branch;
+    if (!remote || !branch) { this.fire('Push not available', 'Add a validated HTTPS, SSH, or local bare-repository remote first.'); return; }
+    const response = await this.request('git.remote.push', { payload: { name: remote.name, branch } });
+    const receipt = (response as { data?: { receipt?: { status?: string; detail?: string } } } | undefined)?.data?.receipt;
+    if (!response?.ok) this.fire('Push not completed', receipt?.detail ?? response?.message ?? 'The remote did not accept the normal push.');
+    else this.fire('Push verified', receipt?.detail ?? 'The remote accepted the normal push.');
+    await this.loadMigrationState();
+  };
+
+  private remoteSet = async (): Promise<void> => {
+    const response = await this.request('git.remote.set', { payload: { name: this.migrationRemoteName, url: this.migrationRemoteUrl } });
+    if (!response?.ok) this.fire('Remote not saved', response?.message ?? 'The remote URL was rejected.');
+    else this.fire('Remote saved', 'The validated remote is now listed for explicit fetch and push.');
+    await this.loadMigrationState();
+  };
+
+  private remoteRemove = async (): Promise<void> => {
+    const response = await this.request('git.remote.remove', { payload: { name: this.migrationRemoteName } });
+    if (!response?.ok) this.fire('Remote not removed', response?.message ?? 'The remote was not removed.');
+    else this.fire('Remote removed', 'No remote URL was rewritten or retained.');
+    await this.loadMigrationState();
+  };
+
+  private remoteFetch = async (): Promise<void> => {
+    const response = await this.request('git.remote.fetch', { payload: { name: this.migrationRemoteName } });
+    const receipt = (response as { data?: { receipt?: { detail?: string } } } | undefined)?.data?.receipt;
+    if (!response?.ok) this.fire('Fetch not completed', receipt?.detail ?? response?.message ?? 'The remote did not answer.');
+    else this.fire('Fetch receipt recorded', receipt?.detail ?? 'Fetch completed without changing checked-out state.');
+    await this.loadMigrationState();
+  };
+
+  private remoteDirectoryInput = (event: unknown): void => {
+    const file = ((event as { target?: { files?: FileList } }).target?.files?.[0] as (File & { path?: string }) | undefined);
+    const path = file?.path;
+    if (!path) { this.toast('The local bare-repository path was not exposed by this picker.'); return; }
+    this.migrationRemoteUrl = path;
+    this.forceUpdate();
+  };
+
+  private validateMigrationImport = async (): Promise<void> => {
+    if (!this.migrationImportSource) { this.toast('Choose a migration manifest first.'); return; }
+    const response = await this.request('migration.validate', { payload: { source: this.migrationImportSource } });
+    if (!response?.ok) { this.fire('Migration rejected', response?.message ?? 'The bundle did not pass validation.'); return; }
+    const manifest = response.data as { manifest?: { files?: Array<{ path: string }>; omissions?: Array<{ path: string }> } };
+    this.fire('Migration preview ready', `${manifest.manifest?.files?.length ?? 0} files are valid. ${manifest.manifest?.omissions?.length ?? 0} sensitive categories remain omitted.`);
+    this.areYouSure('Replace local state from migration', 'The current state will be backed up first. The two-key confirmation must finish before the validated bundle replaces live data.', 3, () => { void this.confirmMigrationImport(); });
+  };
+
+  private confirmMigrationImport = async (): Promise<void> => {
+    const response = await this.request('migration.import', { payload: { source: this.migrationImportSource, confirmReplace: true } });
+    if (!response?.ok) this.fire('Migration not applied', response?.message ?? 'The validated bundle was not applied.');
+    else this.fire('Migration applied', response.message ?? 'The verified backup was retained and local state switched atomically.');
+    await this.loadMigrationState();
+  };
+
+  private importMigrationFile = (event: unknown): void => {
+    const file = ((event as { target?: { files?: FileList } }).target?.files?.[0] as (File & { path?: string }) | undefined);
+    const path = file?.path;
+    if (!path) { this.fire('Migration path unavailable', 'Choose the manifest from the desktop file picker so the app can validate its sibling Git bundle.'); return; }
+    this.migrationImportSource = path;
+    void this.validateMigrationImport();
+  };
 
   /** Bounded, allowlisted discovery through the preload bridge. Never a shell command. */
   private discover = async () => {
@@ -613,6 +739,11 @@ ${resolution.disclosure}`);
     if (action === 'daemon-start') { void this.daemonAction('start'); return; }
     if (action === 'daemon-stop') { void this.daemonAction('stop'); return; }
     if (action === 'daemon-restart') { void this.daemonAction('restart'); return; }
+    if (action === 'migration-export') { void this.migrationExport(); return; }
+    if (action === 'migration-backup') { void this.migrationBackup(); return; }
+    if (action === 'migration-validate') { void this.validateMigrationImport(); return; }
+    if (action === 'git-refresh') { this.historyLoaded = false; void this.loadMigrationState(); return; }
+    if (action === 'git-push') { void this.gitPush(); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -1872,13 +2003,59 @@ It is shown once. The phone needs it to register.`);
       // invented per-destination numbers.
       sections: this.badges(values.sections as Array<Record<string, unknown>>),
 
-      // History & git has no real source: nothing in this app stages, applies or commits
-      // a configuration change yet, so the screen never shows the design's invented commits.
-      ...(screen === 'history' ? {
-        commits: [], commitRows: [], diffLines: [], diffFile: 'no commit selected', blameRows: [],
-        branches: [], branchName: '', commitCount: '0 commits',
-        compareLabel: NO_HISTORY,
-      } : {}),
+      ...(screen === 'history' ? (() => {
+        const entries = this.historyData.entries;
+        const commits = entries.map((entry) => ({
+          sha: entry.id.slice(0, 8), file: 'local history', screen: 'history', key: entry.action,
+          label: entry.action, from: '', to: entry.subject, when: entry.timestamp, author: 'local history',
+          branch: this.historyData.branch || 'HEAD', tag: '', id: entry.id,
+        }));
+        const selected = commits.find((entry) => entry.sha === (this.state as { histSel?: string }).histSel) ?? commits[0];
+        const refs = this.historyData.refs.filter((ref) => ref.name.startsWith('refs/heads/'));
+        return {
+          commits,
+          branches: refs.map((ref) => ({ label: ref.name.slice('refs/heads/'.length), on: ref.name.endsWith(`/${this.historyData.branch}`), off: !ref.name.endsWith(`/${this.historyData.branch}`), pick: () => this.toast('Branch selection is read-only here; no checkout or reset is performed.') })),
+          branchName: this.historyData.branch || 'HEAD',
+          commitCount: `${commits.length} local history records`,
+          commitRows: commits.map((entry) => ({
+            sha: entry.sha, tag: '', hasTag: false, msg: `${entry.label}: ${entry.to}`,
+            meta: `${entry.author} · ${entry.when} · ${entry.branch}`,
+            bg: selected?.sha === entry.sha ? '#1D2A22' : 'transparent', dot: '#82D9A5', cmpFg: '#778078',
+            pick: () => this.setState({ histSel: entry.sha } as never), ctx: () => undefined,
+            compare: () => this.toast('Comparison is available after selecting a second local history record.'),
+          })),
+          diffFile: selected ? `local history @ ${selected.sha}` : 'no commit selected',
+          diffLines: selected ? [
+            { text: `@@ ${selected.label} @@`, color: '#8AB4F8', bg: 'transparent' },
+            { text: `+ ${selected.to}`, color: '#9FF7C4', bg: 'rgba(0,82,48,.28)' },
+          ] : [{ text: 'no local history record selected', color: '#8FA394', bg: 'transparent' }],
+          blameRows: commits.slice(0, 5).map((entry) => ({ sha: entry.sha, what: entry.label, who: entry.author })),
+          compareLabel: this.historyData.clean
+            ? `Working tree is clean. ${this.historyData.ahead} ahead, ${this.historyData.behind} behind, divergence ${this.historyData.divergence ? 'detected' : 'not detected'}.`
+            : 'Local changes are present. Push remains explicit and normal; no force or history rewrite is offered.',
+          histActions: [
+            { icon: 'refresh', label: 'Refresh', run: () => { this.historyLoaded = false; void this.loadMigrationState(); }, bg: '#1B211C', border: '#333B34', fg: '#C4CBC2' },
+            { icon: 'cloud_upload', label: 'Push after review', run: () => this.onControlAction('git-push'), bg: '#1B211C', border: '#333B34', fg: '#C4CBC2' },
+          ],
+          migrationStatus: this.migrationStatus,
+          migrationActions: [
+            { icon: 'download', label: 'Export migration', run: this.migrationExport, bg: '#1B4D33', border: '#1B4D33', fg: '#9FF7C4' },
+            { icon: 'backup', label: 'Back up now', run: this.migrationBackup, bg: '#1B211C', border: '#414942', fg: '#C4CBC2' },
+            { icon: 'refresh', label: 'Refresh state', run: () => { this.historyLoaded = false; void this.loadMigrationState(); }, bg: '#1B211C', border: '#414942', fg: '#C4CBC2' },
+          ],
+          importMigrationFile: this.importMigrationFile,
+          backupRows: this.historyData.backups.slice(0, 5).map((backup) => ({ label: `${backup.createdAt || 'backup'} · ${backup.bytes} bytes · ${backup.verified ? 'verified' : 'unverified'}`, color: backup.verified ? '#9FF7C4' : '#FFD68A' })),
+          migrationOmissions: 'Omitted by design: credential-vault secrets, private vocabulary, source paths, and transient caches. Every omission is recorded in the manifest.',
+          remoteNameText: this.migrationRemoteName,
+          remoteUrlText: this.migrationRemoteUrl || (this.historyData.remotes[0]?.url ?? ''),
+          remoteNameInput: (event: unknown) => { this.migrationRemoteName = String((event as { target?: { value?: unknown } }).target?.value ?? '').slice(0, 64); },
+          remoteUrlInput: (event: unknown) => { this.migrationRemoteUrl = String((event as { target?: { value?: unknown } }).target?.value ?? '').slice(0, 512); },
+          remoteSet: this.remoteSet,
+          remoteRemove: this.remoteRemove,
+          remoteFetch: this.remoteFetch,
+          remoteDirectoryInput: this.remoteDirectoryInput,
+        };
+      })() : {}),
 
       // The agent rail has no local memory store wired in, so its rows and metrics stay empty.
       ...(screen === 'memory' ? {

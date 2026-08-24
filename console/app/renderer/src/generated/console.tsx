@@ -509,6 +509,62 @@ function Template(v: any) {
                     S($a.label)
                   )))
               ),
+              h("div", { style: sty(`background:#1B211C; border:1px solid #333B34; border-radius:16px; padding:14px 16px; margin-bottom:12px;`) },
+                h("div", { style: sty(`display:flex; align-items:center; gap:10px; flex-wrap:wrap;`) },
+                  h("span", { style: sty(`font-size:20px; color:#82D9A5;`), className: "msym" },
+                    "import_export"
+                  ),
+                  h("div", { style: sty(`min-width:180px; flex:1;`) },
+                    h("div", { style: sty(`font-size:14px; font-weight:600;`) },
+                      "Migration and verified backups"
+                    ),
+                    h("div", { style: sty(`font-size:12px; color:#9AA39B; margin-top:3px;`) },
+                      S(v.migrationStatus)
+                    )
+                  ),
+                  A(v.migrationActions).map(($a, $a$i) => R($a$i, h("button", { onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; min-height:44px; background:${S($a.bg)}; border:1px solid ${S($a.border)}; border-radius:999px; padding:9px 14px 9px 11px; color:${S($a.fg)}; font:inherit; font-size:12px; font-weight:500; cursor:pointer;`), className: "k-h13" },
+                      h("span", { style: sty(`font-size:16px;`), className: "msym" },
+                        S($a.icon)
+                      ),
+                      S($a.label)
+                    ))),
+                  h("label", { style: sty(`display:flex; align-items:center; justify-content:center; min-height:44px; background:transparent; border:1px dashed #414942; border-radius:999px; padding:9px 14px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`) },
+                    h("span", { style: sty(`font-size:16px; margin-right:6px;`), className: "msym" },
+                      "upload_file"
+                    ),
+                    "Import bundle ",
+                    h("input", { type: `file`, accept: `application/json,.json`, onChange: fn(v.importMigrationFile), "aria-label": `Import migration manifest`, style: sty(`position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;`) })
+                  )
+                ),
+                h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;`) },
+                  A(v.backupRows).map(($b, $b$i) => R($b$i, h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:${S($b.color)}; background:#141A15; border-radius:8px; padding:5px 8px;`) },
+                      S($b.label)
+                    )))
+                ),
+                h("div", { style: sty(`font-size:11px; color:#778078; margin-top:10px;`) },
+                  S(v.migrationOmissions)
+                ),
+                h("div", { style: sty(`display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid #333B34;`) },
+                  h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
+                    "link"
+                  ),
+                  h("input", { value: v.remoteNameText, onInput: fn(v.remoteNameInput), "aria-label": `Remote name`, placeholder: `origin`, style: sty(`width:120px; min-height:44px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:8px 10px; color:#DFE4DC; font:inherit; font-family:'Roboto Mono',monospace;`) }),
+                  h("input", { value: v.remoteUrlText, onInput: fn(v.remoteUrlInput), "aria-label": `Remote URL`, placeholder: `https:// or ssh:// or local bare path`, style: sty(`flex:1; min-width:220px; min-height:44px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:8px 10px; color:#DFE4DC; font:inherit; font-family:'Roboto Mono',monospace;`) }),
+                  h("label", { style: sty(`display:flex; align-items:center; min-height:44px; background:transparent; border:1px solid #414942; border-radius:10px; padding:8px 12px; color:#C4CBC2; font:inherit; cursor:pointer;`) },
+                    "Browse local bare repo ",
+                    h("input", { type: `file`, webkitdirectory: ``, onChange: fn(v.remoteDirectoryInput), "aria-label": `Browse for a local bare repository`, style: sty(`position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;`) })
+                  ),
+                  h("button", { onClick: fn(v.remoteSet), style: sty(`min-height:44px; background:#1B4D33; border:0; border-radius:10px; padding:8px 12px; color:#9FF7C4; font:inherit; cursor:pointer;`) },
+                    "Set remote"
+                  ),
+                  h("button", { onClick: fn(v.remoteRemove), style: sty(`min-height:44px; background:transparent; border:1px solid #414942; border-radius:10px; padding:8px 12px; color:#FFB4AB; font:inherit; cursor:pointer;`) },
+                    "Remove remote"
+                  ),
+                  h("button", { onClick: fn(v.remoteFetch), style: sty(`min-height:44px; background:transparent; border:1px solid #414942; border-radius:10px; padding:8px 12px; color:#C4CBC2; font:inherit; cursor:pointer;`) },
+                    "Fetch"
+                  )
+                )
+              ),
               h("div", { style: sty(`display:grid; grid-template-columns:1fr 420px; gap:12px; margin-bottom:12px;`) },
                 h("div", { style: sty(`background:#1B211C; border-radius:16px; overflow:hidden;`) },
                   h("div", { style: sty(`display:flex; align-items:center; gap:8px; padding:12px 16px;`) },

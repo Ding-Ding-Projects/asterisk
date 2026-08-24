@@ -17,7 +17,7 @@ import {
   parseTranslations, parseAclRules, parseManagerSettings, parseManagerUsers, parseAriApps,
   parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime,
 } from './asterisk-parsers.js';
-import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory } from './index.js';
+import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory, MigrationBackupService } from './index.js';
 import { ServerInventory, SettingsRegistry } from './index.js';
 import type { ServerInventoryStore, ServerRecord, SettingsSnapshotStore } from './index.js';
 import { atomicWriteFileSync } from './atomic-file.js';
@@ -50,7 +50,7 @@ export interface ControlPlaneDispatcherOptions {
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
   const { userDataPath, resourcesPath, hosted } = options;
-  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
+  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker', 'git'] });
   const asteriskService = new AsteriskService({ executor: processExecutor });
   const targetDiscovery = new TargetDiscovery(processExecutor);
   const cliGateway = new LocalAsteriskCliGateway(processExecutor);
@@ -264,6 +264,8 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     return cachedSettingsRegistry;
   }
 
+  const migration = new MigrationBackupService({ userDataPath, executor: processExecutor });
+
   async function controlPlaneRequest(request: ControlPlaneRequest): Promise<ControlPlaneResponse> {
     try {
       if (hosted && HOSTED_UNSUPPORTED_ACTIONS.has(request.action)) {
@@ -390,6 +392,51 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         } catch (error) {
           return { ok: false, requestId: request.requestId, code: 'SETTING_REMOVE_FAILED', message: error instanceof Error ? error.message : 'Could not remove the setting.' };
         }
+      }
+      if (request.action === 'migration.export') {
+        const destination = typeof request.payload?.destination === 'string' ? request.payload.destination : undefined;
+        return { ok: true, requestId: request.requestId, data: await migration.exportMigration(destination) };
+      }
+      if (request.action === 'migration.validate') {
+        const source = typeof request.payload?.source === 'string' ? request.payload.source : '';
+        if (!source) return { ok: false, requestId: request.requestId, code: 'MIGRATION_SOURCE_REQUIRED', message: 'Choose a migration manifest or export directory first.' };
+        return { ok: true, requestId: request.requestId, data: { manifest: await migration.validateImport(source) } };
+      }
+      if (request.action === 'migration.import') {
+        const source = typeof request.payload?.source === 'string' ? request.payload.source : '';
+        if (!source) return { ok: false, requestId: request.requestId, code: 'MIGRATION_SOURCE_REQUIRED', message: 'Choose a migration manifest or export directory first.' };
+        const confirmed = request.payload?.confirmReplace === true;
+        const result = await migration.importMigration(source, confirmed);
+        return { ok: result.operation.state === 'succeeded', requestId: request.requestId, code: result.operation.state === 'succeeded' ? undefined : 'MIGRATION_IMPORT_FAILED', message: result.operation.detail, data: result } as ControlPlaneResponse;
+      }
+      if (request.action === 'backup.create') {
+        const result = await migration.createBackup();
+        return { ok: result.operation.state === 'succeeded', requestId: request.requestId, code: result.operation.state === 'succeeded' ? undefined : 'BACKUP_FAILED', message: result.operation.detail, data: result } as ControlPlaneResponse;
+      }
+      if (request.action === 'backup.list') {
+        return { ok: true, requestId: request.requestId, data: { backups: await migration.listBackups() } };
+      }
+      if (request.action === 'git.history.status') {
+        return { ok: true, requestId: request.requestId, data: await migration.gitStatus() };
+      }
+      if (request.action === 'git.remote.set') {
+        const name = typeof request.payload?.name === 'string' ? request.payload.name : '';
+        const url = typeof request.payload?.url === 'string' ? request.payload.url : '';
+        return { ok: true, requestId: request.requestId, data: await migration.setRemote(name, url) };
+      }
+      if (request.action === 'git.remote.remove') {
+        const name = typeof request.payload?.name === 'string' ? request.payload.name : '';
+        return { ok: true, requestId: request.requestId, data: await migration.removeRemote(name) };
+      }
+      if (request.action === 'git.remote.fetch' || request.action === 'git.remote.push') {
+        const name = typeof request.payload?.name === 'string' ? request.payload.name : '';
+        if (request.action === 'git.remote.fetch') {
+          const result = await migration.fetchRemote(name);
+          return { ok: result.receipt.status === 'success', requestId: request.requestId, code: result.receipt.status === 'success' ? undefined : 'GIT_FETCH_FAILED', message: result.receipt.detail, data: result } as ControlPlaneResponse;
+        }
+        const branch = typeof request.payload?.branch === 'string' ? request.payload.branch : '';
+        const result = await migration.pushRemote(name, branch);
+        return { ok: result.receipt.status === 'success', requestId: request.requestId, code: result.receipt.status === 'success' ? undefined : 'GIT_PUSH_FAILED', message: result.receipt.detail, data: result } as ControlPlaneResponse;
       }
       if (request.action === 'server.connect' || request.action === 'pbx.snapshot') {
         const requested = request.serverId?.trim();
