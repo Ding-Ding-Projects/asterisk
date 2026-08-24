@@ -105,10 +105,14 @@ export interface ForgeState {
 }
 
 export interface ForgeDeviceState {
-  status: "idle" | "pending" | "installed" | "failed" | "cancelled";
+  status: "idle" | "pending" | "installed" | "failed" | "cancelled" | "unknown-side-effect";
   userCode?: string;
   verificationUri?: string;
   expiresAt?: string;
+  sessionId?: string;
+  operationId?: string;
+  revision?: number;
+  corruption?: string;
   message: string;
 }
 
@@ -129,16 +133,18 @@ export interface ForgeStateStore {
 
 export class FileForgeStateStore implements ForgeStateStore {
   readonly #path: string;
+  readonly #now: () => Date;
 
-  constructor(path: string) {
+  constructor(path: string, now: () => Date = () => new Date()) {
     this.#path = path;
+    this.#now = now;
   }
 
   read(): ForgeState | undefined {
     if (!existsSync(this.#path)) return undefined;
     try {
       const parsed = JSON.parse(readFileSync(this.#path, "utf8")) as unknown;
-      return parseForgeState(parsed);
+      return parseForgeState(parsed, this.#now);
     } catch {
       return { ...defaultState(), corruption: "The saved forge state could not be parsed, so no account or receipt data was applied." };
     }
@@ -216,6 +222,7 @@ export const PROVIDER_CAPABILITIES: Readonly<Record<ForgeProvider, ForgeProvider
 };
 
 const GITHUB_HOST = "github.com";
+const APPROVED_PUBLIC_DEVICE_CLIENT_IDS = new Set<string>();
 const MAX_RECEIPTS = 100;
 const SAFE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/u;
 const SAFE_LOGIN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,38}$/u;
@@ -236,7 +243,7 @@ function idleOperation(): ForgeOperation {
   return { id: "idle", kind: "idle", status: "idle", progress: 0, message: "No forge operation is running.", cancellable: false };
 }
 
-function parseForgeState(value: unknown): ForgeState {
+function parseForgeState(value: unknown, now: () => Date = () => new Date()): ForgeState {
   if (!value || typeof value !== "object" || Array.isArray(value)) return { ...defaultState(), corruption: "The saved forge state had an invalid shape, so no account or receipt data was applied." };
   const record = value as Record<string, unknown>;
   if (record.schemaVersion !== FORGE_SCHEMA_VERSION || !Array.isArray(record.accounts) || !Array.isArray(record.receipts)) {
@@ -257,7 +264,7 @@ function parseForgeState(value: unknown): ForgeState {
   if (!isForgeOperation(record.operation)) corruptionParts.push("The saved forge operation state was missing or invalid and was reset to idle.");
   if (!isForgeDeviceState(record.device)) corruptionParts.push("The saved device-flow state was missing or invalid and was reset to idle.");
   const corruption = corruptionParts.length > 0 ? corruptionParts.join(" ") : undefined;
-  const interrupted = wasInterrupted ? [{ kind: "interrupted" as const, operation: storedOperation.kind, id: `forge-interrupted-${storedOperation.id}`, status: "unknown-side-effect" as const, provider: "github" as const, accountId: activeAccountId ?? "github.com:unknown", message: `The ${storedOperation.kind} operation stopped before its external outcome was known. Re-read the provider and local checkout before retrying.`, observedAt: new Date().toISOString() }] : [];
+  const interrupted = wasInterrupted ? [{ kind: "interrupted" as const, operation: storedOperation.kind, id: `forge-interrupted-${storedOperation.id}`, status: "unknown-side-effect" as const, provider: "github" as const, accountId: activeAccountId ?? "github.com:unknown", message: `The ${storedOperation.kind} operation stopped before its external outcome was known. Re-read the provider and local checkout before retrying.`, observedAt: now().toISOString() }] : [];
   return { schemaVersion: FORGE_SCHEMA_VERSION, activeAccountId, accounts, receipts: [...interrupted, ...receipts], operation, device, corruption };
 }
 
@@ -309,11 +316,23 @@ function isForgeOperation(value: unknown): value is ForgeOperation {
 function isForgeDeviceState(value: unknown): value is ForgeDeviceState {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const record = value as Record<string, unknown>;
-  return ["idle", "pending", "installed", "failed", "cancelled"].includes(String(record.status))
+  let validVerificationUri = true;
+  if (record.verificationUri !== undefined) {
+    try { parseDeviceVerificationUri(record.verificationUri); } catch { validVerificationUri = false; }
+  }
+  return ["idle", "pending", "installed", "failed", "cancelled", "unknown-side-effect"].includes(String(record.status))
     && typeof record.message === "string" && record.message.length <= 2000
     && (record.userCode === undefined || (typeof record.userCode === "string" && /^[A-Z0-9 -]{4,32}$/u.test(record.userCode)))
-    && (record.verificationUri === undefined || (typeof record.verificationUri === "string" && /^https:\/\/[A-Za-z0-9.-]+\/.+/u.test(record.verificationUri)))
+    && validVerificationUri
     && (record.expiresAt === undefined || typeof record.expiresAt === "string");
+}
+
+function parseDeviceVerificationUri(value: unknown): string {
+  if (typeof value !== "string") throw new Error("The provider device response omitted a verification URL.");
+  let parsed: URL;
+  try { parsed = new URL(value); } catch { throw new Error("The provider device response returned an invalid verification URL."); }
+  if (parsed.protocol !== "https:" || parsed.hostname !== GITHUB_HOST || parsed.pathname !== "/login/device" || parsed.hash) throw new Error("The provider device response returned an unexpected verification URL.");
+  return parsed.href;
 }
 
 function parseProvider(value: unknown): ForgeProvider {
@@ -407,8 +426,8 @@ function resultFromCommand(result: CommandResult, action: string): string {
 }
 
 function receiptStatus(result: CommandResult, unknownSideEffect = false): ForgeReceiptStatus {
+  if (unknownSideEffect && (result.status === "timedOut" || result.status === "cancelled")) return "unknown-side-effect";
   if (result.status === "cancelled") return "cancelled";
-  if (unknownSideEffect && result.status === "timedOut") return "partial";
   return result.status === "succeeded" ? "succeeded" : "failed";
 }
 
@@ -445,13 +464,16 @@ export class ForgePublisher {
   #deviceCode: string | undefined;
   #deviceTask: Promise<void> | undefined;
   #conptySessionId: string | undefined;
+  #conptyRevision = 0;
+  #lastConPtyState: Record<string, unknown> | undefined;
+  #signInBaselineAccountIds = new Set<string>();
 
   constructor(options: ForgePublisherOptions) {
     this.#executor = options.executor;
     this.#store = options.store;
     this.#history = options.history;
     this.#now = options.now ?? (() => new Date());
-    this.#deviceClientId = options.deviceClientId;
+    this.#deviceClientId = options.deviceClientId && APPROVED_PUBLIC_DEVICE_CLIENT_IDS.has(options.deviceClientId) ? options.deviceClientId : undefined;
     this.#fetch = options.fetchImpl ?? fetch;
     this.#conptyHelperPath = options.conptyHelperPath;
     this.#conptyStatePath = options.conptyStatePath;
@@ -515,7 +537,7 @@ export class ForgePublisher {
   cancel(): ForgeActionResult<ForgeOperation> {
     if (this.#state.operation.status !== "running" || !this.#abortController) return { status: "failed", message: "No cancellable forge operation is running." };
     this.#abortController.abort();
-    if (this.#conptySessionId && this.#conptyHelperPath && this.#conptyStatePath) void this.execute({ executable: "powershell.exe", args: ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", this.#conptyHelperPath, "-Mode", "cancel", "-StatePath", this.#conptyStatePath, "-GhPath", this.#bundledGhPath ?? "", "-SessionId", this.#conptySessionId], timeoutMs: 10_000, maxOutputBytes: 16 * 1024, clearEnvironmentKeys: AUTH_ENVIRONMENT_KEYS });
+    if (this.#conptySessionId && this.#conptyHelperPath && this.#conptyStatePath) void this.execute({ executable: "powershell.exe", args: ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", this.#conptyHelperPath, "-Mode", "cancel", "-StatePath", this.#conptyStatePath, "-GhPath", this.#bundledGhPath ?? "", "-SessionId", this.#conptySessionId, "-OperationId", this.#state.operation.id], timeoutMs: 10_000, maxOutputBytes: 16 * 1024, clearEnvironmentKeys: AUTH_ENVIRONMENT_KEYS });
     this.finishOperation("cancelled", "The forge operation was cancelled before completion.");
     return { status: "cancelled", message: this.#state.operation.message, data: this.#state.operation };
   }
@@ -562,21 +584,34 @@ export class ForgePublisher {
     return createHash("sha256").update(readFileSync(path)).digest("hex");
   }
 
-  private readConPtyState(): Record<string, unknown> | undefined {
+  private readConPtyState(sessionId: string, operationId: string): Record<string, unknown> | undefined {
     if (!this.#conptyStatePath || !existsSync(this.#conptyStatePath)) return undefined;
     try {
       const text = readFileSync(this.#conptyStatePath, "utf8");
-      if (text.length > 64 * 1024) return undefined;
+      if (text.length > 64 * 1024) return { status: "corrupt", corruption: "The ConPTY state exceeded the bounded size." };
       const parsed = JSON.parse(text) as unknown;
-      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : undefined;
-    } catch { return undefined; }
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { status: "corrupt", corruption: "The ConPTY state had an invalid shape." };
+      const state = parsed as Record<string, unknown>;
+      if (state.sessionId !== sessionId || state.operationId !== operationId) return undefined;
+      const revision = typeof state.revision === "number" && Number.isSafeInteger(state.revision) ? state.revision : 0;
+      if (revision <= this.#conptyRevision) return undefined;
+      this.#conptyRevision = revision;
+      this.#lastConPtyState = state;
+      return state;
+    } catch { return { status: "corrupt", corruption: "The ConPTY state was not valid JSON." }; }
   }
 
   private async startConPtyDeviceFlow(): Promise<ForgeActionResult<ReadonlyArray<ForgeAccount>>> {
     if (!this.#conptyHelperPath || !this.#conptyStatePath || !this.#bundledGhPath || !this.#bundledGhSha256 || !this.#conptyHelperSha256) return { status: "unavailable", message: "The packaged ConPTY helper contract is incomplete. Device sign-in remains unavailable until gh.exe and the helper are bundled with verified digests.", reauthAction: "sign-in" };
+    if (this.fileSha256(this.#bundledGhPath) !== this.#bundledGhSha256) return { status: "unavailable", message: "The packaged gh executable digest does not match the approved manifest. Device sign-in is refused.", reauthAction: "sign-in" };
     if (this.fileSha256(this.#conptyHelperPath) !== this.#conptyHelperSha256) return { status: "unavailable", message: "The packaged ConPTY helper digest does not match the approved manifest. Device sign-in is refused.", reauthAction: "sign-in" };
     if (!this.beginOperation("sign-in", "Starting gh's bundled ConPTY device sign-in flow.")) return { status: "failed", message: "Another forge operation is already running." };
-    const result = await this.execute({ executable: "powershell.exe", args: ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", this.#conptyHelperPath, "-Mode", "start", "-StatePath", this.#conptyStatePath, "-GhPath", this.#bundledGhPath], timeoutMs: 30_000, maxOutputBytes: 16 * 1024, environment: { DING_FORGE_GH_SHA256: this.#bundledGhSha256 }, clearEnvironmentKeys: AUTH_ENVIRONMENT_KEYS });
+    this.#signInBaselineAccountIds = new Set(this.#state.accounts.map((account) => account.id));
+    this.#conptyRevision = 0;
+    this.#lastConPtyState = undefined;
+    const expiresAt = new Date(this.#now().getTime() + 300_000).toISOString();
+    const operationId = this.#state.operation.id;
+    const result = await this.execute({ executable: "powershell.exe", args: ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", this.#conptyHelperPath, "-Mode", "start", "-StatePath", this.#conptyStatePath, "-GhPath", this.#bundledGhPath, "-OperationId", operationId, "-ExpiresAt", expiresAt], timeoutMs: 30_000, maxOutputBytes: 16 * 1024, environment: { DING_FORGE_GH_SHA256: this.#bundledGhSha256 }, clearEnvironmentKeys: AUTH_ENVIRONMENT_KEYS });
     const sessionId = result.status === "succeeded" ? result.stdout.trim().split(/\r?\n/u).filter(Boolean).pop() : undefined;
     if (!sessionId || !/^[0-9a-f]{32}$/iu.test(sessionId)) {
       const status = result.status === "cancelled" ? "cancelled" : "failed";
@@ -584,7 +619,7 @@ export class ForgePublisher {
       this.addReceipt(receipt); this.finishOperation(status, receipt.message); return { status, message: receipt.message, receipt, reauthAction: "sign-in" };
     }
     this.#conptySessionId = sessionId;
-    this.#state.device = { status: "pending", message: "The bundled gh ConPTY helper is running. The user code and verification URL will appear here." };
+    this.#state.device = { status: "pending", operationId, expiresAt, sessionId, revision: 0, message: "The bundled gh ConPTY helper is running. The user code and verification URL will appear here." };
     this.updateOperation(10, this.#state.device.message); this.save();
     this.#deviceTask = this.completeConPtyDeviceFlow(sessionId);
     return { status: "pending", message: this.#state.device.message, data: this.#state.accounts };
@@ -592,31 +627,36 @@ export class ForgePublisher {
 
   private async completeConPtyDeviceFlow(sessionId: string): Promise<void> {
     try {
-      const started = Date.now();
-      while (Date.now() - started < 300_000) {
+      const deadline = Date.parse(expiresAt);
+      while (this.#now().getTime() < deadline) {
         await this.waitForDevicePoll(500);
-        const state = this.readConPtyState();
+        const state = this.readConPtyState(sessionId, this.#state.operation.id);
         if (state) {
-          this.#state.device = { status: state.status === "completed" ? "installed" : state.status === "cancelled" ? "cancelled" : state.status === "failed" ? "failed" : "pending", userCode: typeof state.userCode === "string" ? state.userCode : undefined, verificationUri: typeof state.verificationUri === "string" ? state.verificationUri : undefined, message: typeof state.message === "string" ? state.message : "The ConPTY device flow is running." };
+          const stateStatus = state.status === "completed" ? "installed" : state.status === "cancelled" ? "cancelled" : state.status === "unknown-side-effect" ? "unknown-side-effect" : state.status === "failed" ? "failed" : state.status === "corrupt" ? "unknown-side-effect" : "pending";
+          this.#state.device = { status: stateStatus, sessionId, operationId: this.#state.operation.id, revision: typeof state.revision === "number" ? state.revision : this.#conptyRevision, expiresAt, corruption: typeof state.corruption === "string" ? state.corruption : undefined, userCode: typeof state.userCode === "string" ? state.userCode : undefined, verificationUri: typeof state.verificationUri === "string" ? state.verificationUri : undefined, message: typeof state.message === "string" ? state.message : "The ConPTY device flow is running." };
           this.updateOperation(Math.min(90, this.#state.operation.progress + 2), this.#state.device.message); this.save();
-          if (state.status === "completed" || state.status === "failed" || state.status === "cancelled") break;
+          if (["completed", "failed", "cancelled", "unknown-side-effect", "corrupt"].includes(String(state.status))) break;
         }
       }
-      const state = this.readConPtyState();
+      const state = this.readConPtyState(sessionId, this.#state.operation.id) ?? this.#lastConPtyState;
       if (!state || state.status === "pending" || state.status === "starting") throw new Error("The bundled ConPTY device flow timed out with unknown external outcome.");
+      if (state.status === "corrupt") throw new Error(typeof state.corruption === "string" ? state.corruption : "The ConPTY state could not be read without corruption.");
       if (state.status !== "completed") throw new Error(typeof state.message === "string" ? state.message : "The bundled ConPTY device flow did not complete.");
       const verified = await this.gh(["auth", "status", "--hostname", GITHUB_HOST, "--json", "hosts"]);
-      const secureAccount = verified.status === "succeeded" ? parseGhAccounts(verified.stdout, this.#now().toISOString()).find((account) => account.active && account.credentialStorage === "keyring") : undefined;
-      if (!secureAccount) throw new Error("gh did not confirm secure keyring storage after ConPTY sign-in. Plain-text fallback is refused.");
-      this.#state.device = { ...this.#state.device, status: "installed", message: "gh completed the device flow and confirmed keyring storage." };
+      const discovered = verified.status === "succeeded" ? parseGhAccounts(verified.stdout, this.#now().toISOString()) : [];
+      const secureAccount = discovered.find((account) => account.active && account.credentialStorage === "keyring" && !this.#signInBaselineAccountIds.has(account.id));
+      if (!secureAccount) throw new Error("gh did not confirm a newly installed secure keyring account after ConPTY sign-in. Plain-text fallback and pre-existing accounts are refused.");
+      this.#state.accounts = discovered;
+      this.#state.activeAccountId = secureAccount.id;
+      this.#state.device = { ...this.#state.device, status: "installed", message: "gh completed the device flow and confirmed the newly installed account in keyring storage." };
       this.finishOperation("succeeded", this.#state.device.message); this.save();
     } catch (error) {
       const cancelled = this.#abortController?.signal.aborted || (error instanceof Error && /cancelled/iu.test(error.message));
-      const status = cancelled ? "cancelled" : /unknown external outcome|timed out/iu.test(error instanceof Error ? error.message : "") ? "unknown-side-effect" : "failed";
+      const status = cancelled ? "cancelled" : /unknown external outcome|timed out|corrupt/iu.test(error instanceof Error ? error.message : "") ? "unknown-side-effect" : "failed";
       const message = error instanceof Error ? error.message : "The bundled ConPTY device flow did not complete.";
       const receipt: ForgeAccountReceipt = { kind: "account", operation: "sign-in", id: `forge-account-${Date.now().toString(36)}`, status, provider: "github", accountId: "github.com:conpty", message, observedAt: this.#now().toISOString(), reauthAction: "sign-in" };
-      this.addReceipt(receipt); this.#state.device = { ...this.#state.device, status: status === "cancelled" ? "cancelled" : "failed", message }; this.finishOperation(status === "cancelled" ? "cancelled" : "failed", message); this.save();
-    } finally { this.#conptySessionId = undefined; this.#deviceTask = undefined; }
+      this.addReceipt(receipt); this.#state.device = { ...this.#state.device, status: status === "cancelled" ? "cancelled" : status === "unknown-side-effect" ? "unknown-side-effect" : "failed", message }; this.finishOperation(status === "cancelled" ? "cancelled" : "failed", message); this.save();
+    } finally { this.#conptySessionId = undefined; this.#deviceTask = undefined; this.#signInBaselineAccountIds.clear(); this.#lastConPtyState = undefined; }
   }
 
   private async verifyDestinationIdentity(ownerLogin: string, repositoryName: string, expectedUrl: string): Promise<{ ok: boolean; status: ForgeReceiptStatus; message: string }> {
@@ -697,7 +737,7 @@ export class ForgePublisher {
     let accessToken = "";
     try {
       let interval = initialInterval;
-      while (Date.now() < Date.parse(expiresAt)) {
+      while (this.#now().getTime() < Date.parse(expiresAt)) {
         await this.waitForDevicePoll(interval * 1000);
         const token = await this.devicePost("https://github.com/login/oauth/access_token", new URLSearchParams({ client_id: this.#deviceClientId!, device_code: deviceCode, grant_type: "urn:ietf:params:oauth:grant-type:device_code" }), true);
         if (typeof token.access_token === "string" && token.access_token.length > 0) { accessToken = token.access_token; break; }
@@ -712,8 +752,11 @@ export class ForgePublisher {
       const installed = await this.gh(["auth", "login", "--hostname", GITHUB_HOST, "--git-protocol", "https", "--with-token"], 30_000, false, accessToken, [accessToken]);
       if (installed.status !== "succeeded") throw new Error(resultFromCommand(installed, "Installing the provider credential"));
       const verified = await this.gh(["auth", "status", "--hostname", GITHUB_HOST, "--json", "hosts"]);
-      const secureAccount = verified.status === "succeeded" ? parseGhAccounts(verified.stdout, this.#now().toISOString()).find((account) => account.active && account.credentialStorage === "keyring") : undefined;
-      if (!secureAccount) throw new Error("gh did not confirm secure keyring storage for the newly installed credential. Plain-text fallback is refused.");
+      const discovered = verified.status === "succeeded" ? parseGhAccounts(verified.stdout, this.#now().toISOString()) : [];
+      const secureAccount = discovered.find((account) => account.active && account.credentialStorage === "keyring" && !this.#signInBaselineAccountIds.has(account.id));
+      if (!secureAccount) throw new Error("gh did not confirm a newly installed secure keyring account. Plain-text fallback and pre-existing accounts are refused.");
+      this.#state.accounts = discovered;
+      this.#state.activeAccountId = secureAccount.id;
       this.#state.device = { status: "installed", userCode, verificationUri, expiresAt, message: "The provider credential was installed in gh's credential store. The credential value was not retained." };
       this.finishOperation("succeeded", this.#state.device.message);
       this.save();
@@ -730,6 +773,7 @@ export class ForgePublisher {
       accessToken = "";
       this.#deviceCode = undefined;
       this.#deviceTask = undefined;
+      this.#signInBaselineAccountIds.clear();
     }
   }
 
@@ -739,15 +783,16 @@ export class ForgePublisher {
     if (provider !== "github" || hostname !== GITHUB_HOST) return { status: "unavailable", message: "Device sign-in is currently available for github.com only.", reauthAction: "sign-in" };
     if (!this.#deviceClientId || !/^[A-Za-z0-9_-]{20,100}$/u.test(this.#deviceClientId)) return await this.startConPtyDeviceFlow();
     if (!this.beginOperation("sign-in", "Starting the provider device sign-in flow.")) return { status: "failed", message: "Another forge operation is already running." };
+    this.#signInBaselineAccountIds = new Set(this.#state.accounts.map((account) => account.id));
     try {
       const start = await this.devicePost("https://github.com/login/device/code", new URLSearchParams({ client_id: this.#deviceClientId, scope: "repo read:org" }));
       const deviceCode = typeof start.device_code === "string" ? start.device_code : "";
       const userCode = typeof start.user_code === "string" ? start.user_code : "";
-      const verificationUri = typeof start.verification_uri === "string" ? start.verification_uri : typeof start.verification_uri_complete === "string" ? start.verification_uri_complete : "";
+      const verificationUri = parseDeviceVerificationUri(typeof start.verification_uri === "string" ? start.verification_uri : start.verification_uri_complete);
       const expiresIn = typeof start.expires_in === "number" && Number.isFinite(start.expires_in) ? Math.min(Math.max(start.expires_in, 60), 900) : 900;
-      if (!deviceCode || !/^[A-Z0-9-]{4,64}$/iu.test(userCode) || !/^https:\/\/github\.com\//u.test(verificationUri)) throw new Error("The provider device response omitted a bounded user code or verification URL.");
+      if (!/^[A-Za-z0-9._-]{4,256}$/u.test(deviceCode) || !/^[A-Z0-9-]{4,64}$/iu.test(userCode)) throw new Error("The provider device response omitted a bounded device code or user code.");
       this.#deviceCode = deviceCode;
-      const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+      const expiresAt = new Date(this.#now().getTime() + expiresIn * 1000).toISOString();
       this.#state.device = { status: "pending", userCode, verificationUri, expiresAt, message: "Open the verification URL and enter the displayed user code. This app will not open a browser automatically." };
       this.updateOperation(15, this.#state.device.message);
       this.save();
@@ -964,7 +1009,15 @@ export class ForgePublisher {
           const receipt = this.makeReceipt("failed", account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, "The forge-publish remote has more than one effective URL, so the destination cannot be proved uniquely.", observedAt);
           this.addReceipt(receipt); this.finishOperation("failed", receipt.message); return { status: "failed", message: receipt.message, receipt, data: receipt };
         }
-        effectivePushUrl = fetchUrls[0] ?? "";
+        if (fetchUrls.length === 1) {
+          const setPush = await this.git(["remote", "set-url", "--push", "forge-publish", fetchUrls[0]!], sourcePath!);
+          if (setPush.status !== "succeeded") {
+            const status = setPush.status === "cancelled" ? "cancelled" : "partial";
+            const receipt = this.makeReceipt(status, account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, resultFromCommand(setPush, "Setting the destination push URL"), observedAt);
+            this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
+            return { status, message: receipt.message, receipt, data: receipt };
+          }
+        }
       }
       if (!effectivePushUrl) {
         const add = await this.git(["remote", "add", "forge-publish", repositoryUrl], sourcePath!);
@@ -974,7 +1027,17 @@ export class ForgePublisher {
           this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
           return { status, message: receipt.message, receipt, data: receipt };
         }
-      } else if (effectivePushUrl !== repositoryUrl && effectivePushUrl !== `${repositoryUrl}.git`) {
+      }
+      const effectiveRemote = await this.git(["remote", "get-url", "--push", "forge-publish"], sourcePath!);
+      const effectiveUrls = effectiveRemote.status === "succeeded" ? effectiveRemote.stdout.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean) : [];
+      if (effectiveUrls.length !== 1) {
+        const status = effectiveRemote.status === "cancelled" ? "cancelled" : "partial";
+        const receipt = this.makeReceipt(status, account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, effectiveUrls.length > 1 ? "The forge-publish remote has more than one effective push URL, so the destination cannot be proved uniquely." : resultFromCommand(effectiveRemote, "Reading the effective destination push URL"), observedAt);
+        this.addReceipt(receipt); this.finishOperation(status === "cancelled" ? "cancelled" : "failed", receipt.message); await this.record("updated", `forge publication ${repositoryName}`, receipt);
+        return { status, message: receipt.message, receipt, data: receipt };
+      }
+      effectivePushUrl = effectiveUrls[0]!;
+      if (effectivePushUrl !== repositoryUrl && effectivePushUrl !== `${repositoryUrl}.git`) {
         const receipt = this.makeReceipt("failed", account, ownerId, route, repositoryName, repositoryUrl, sourceCommit, "The local forge-publish remote already points somewhere else, so it was not changed.", observedAt);
         this.addReceipt(receipt); this.finishOperation("failed", receipt.message); return { status: "failed", message: receipt.message, receipt, data: receipt };
       }

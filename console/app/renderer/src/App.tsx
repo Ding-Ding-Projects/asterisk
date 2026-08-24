@@ -251,7 +251,7 @@ export class App extends Base {
   private forgeAccounts: Array<Record<string, string | boolean>> = [];
   private forgeCapabilities: Array<Record<string, string>> = [];
   private forgeOperation: Record<string, string | number | boolean> = { id: 'idle', status: 'idle', progress: 0, message: 'No forge operation is running.', cancellable: false };
-  private forgeDevice: Record<string, string> = { status: 'idle', message: 'No device sign-in is running.' };
+  private forgeDevice: Record<string, string> = { status: 'idle', operationId: 'idle', sessionId: '', revision: '0', message: 'No device sign-in is running.' };
   private forgePollTimer: ReturnType<typeof setInterval> | undefined;
   private forgeOwners: Array<Record<string, string>> = [];
   private forgeReceipts: Array<Record<string, string>> = [];
@@ -338,7 +338,7 @@ export class App extends Base {
     });
     this.forgeReceipts = (data?.receipts ?? []).map((receipt) => ({ status: String(receipt.status ?? 'unknown'), message: String(receipt.message ?? ''), when: String(receipt.observedAt ?? '') })).slice(0, 12);
     if (data?.operation) this.forgeOperation = { id: String(data.operation.id ?? 'idle'), status: String(data.operation.status ?? 'idle'), progress: Number(data.operation.progress ?? 0), message: String(data.operation.message ?? ''), cancellable: Boolean(data.operation.cancellable) };
-    if (data?.device) this.forgeDevice = { status: String(data.device.status ?? 'idle'), userCode: String(data.device.userCode ?? ''), verificationUri: String(data.device.verificationUri ?? ''), expiresAt: String(data.device.expiresAt ?? ''), message: String(data.device.message ?? '') };
+    if (data?.device) this.forgeDevice = { status: String(data.device.status ?? 'idle'), operationId: String(data.device.operationId ?? 'idle'), sessionId: String(data.device.sessionId ?? ''), revision: String(data.device.revision ?? '0'), userCode: String(data.device.userCode ?? ''), verificationUri: String(data.device.verificationUri ?? ''), expiresAt: String(data.device.expiresAt ?? ''), message: String(data.device.message ?? '') };
     if (data?.corruption) this.forgeStatus = data.corruption;
     if (!response?.ok) {
       this.forgeStatus = data?.corruption ? `${data.corruption} ${response?.message ?? ''}`.trim() : (response?.message ?? 'The forge bridge did not answer.');
@@ -358,12 +358,13 @@ export class App extends Base {
   }
 
   private async pollForgeProgress(): Promise<void> {
-    const response = await this.request('forge.operation.status');
+    const expectedOperationId = String(this.forgeOperation.id ?? 'idle');
+    const response = await this.request('forge.operation.status', { payload: { operationId: expectedOperationId } });
     if (!response?.ok) return;
     const operation = (response.data as { operation?: Record<string, unknown> }).operation;
     if (!operation) return;
     const operationId = String(operation.id ?? 'idle');
-    if (String(this.forgeOperation.id ?? 'idle') !== 'idle' && operationId !== String(this.forgeOperation.id)) return;
+    if (expectedOperationId !== 'idle' && operationId !== expectedOperationId) return;
     this.forgeOperation = { id: operationId, status: String(operation.status ?? 'idle'), progress: Number(operation.progress ?? 0), message: String(operation.message ?? ''), cancellable: Boolean(operation.cancellable) };
     this.forceUpdate();
     if (this.forgeOperation.status !== 'running') {

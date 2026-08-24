@@ -464,6 +464,10 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           return { ok: true, requestId: request.requestId, data: { receipts: forge.state().receipts, operation: forge.state().operation, corruption: forge.state().corruption } };
         }
         if (request.action === 'forge.operation.status') {
+          const requestedOperationId = typeof request.payload?.operationId === 'string' ? request.payload.operationId : undefined;
+          if (requestedOperationId && requestedOperationId !== forge.state().operation.id) {
+            return { ok: false, requestId: request.requestId, code: 'FORGE_STALE_OPERATION', message: 'The requested forge operation id is stale; the current operation was not returned.' } as ControlPlaneResponse;
+          }
           return { ok: true, requestId: request.requestId, data: { operation: forge.state().operation } };
         }
         if (request.action === 'forge.state.reset-corruption') {
