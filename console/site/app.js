@@ -524,6 +524,57 @@
   const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:5,cantoneseFunny:5,tabEdge:'left',logoPreset:'default',logoFit:'contain',attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},schedule:{enabled:false,start:'09:00',end:'17:00',weekdays:[1,2,3,4,5],theme:'dark',language:'en',density:'comfortable'},notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false}};
   const STORAGE_KEY = 'ding-pbx-pages-v2';
   const regexState = new Map();
+  const regexGenerations = new Map();
+  const REGEX_WORKER_SOURCE = `
+    'use strict';
+    const LIMITS={pattern:256,sample:4096,entries:500,text:4096,matches:512,groups:32};
+    const fail=error=>self.postMessage({ok:false,error:String(error)});
+    self.onmessage=event=>{
+      const data=event.data||{},pattern=typeof data.pattern==='string'?data.pattern:'',flags=typeof data.flags==='string'?data.flags:'',sample=typeof data.sample==='string'?data.sample:'';
+      const entries=Array.isArray(data.entries)?data.entries:[];
+      if(pattern.length>LIMITS.pattern)return fail('Pattern exceeds the 256 character worker limit.');
+      if(sample.length>LIMITS.sample)return fail('Sample text exceeds the 4 KiB worker limit.');
+      if(entries.length>LIMITS.entries)return fail('Search input exceeds the 500 item worker limit.');
+      if(entries.some(item=>!item||typeof item.id!=='string'||item.id.length>128||typeof item.text!=='string'||item.text.length>LIMITS.text))return fail('Search input contains an item outside the bounded worker limits.');
+      let expression;
+      try{expression=new RegExp(pattern,flags)}catch(error){return fail(error&&error.message?error.message:'Invalid regular expression.');}
+      const globalFlags=expression.flags.includes('g')?expression.flags:expression.flags+'g';
+      const sampleExpression=new RegExp(expression.source,globalFlags),sampleMatches=[];
+      let match;
+      while((match=sampleExpression.exec(sample))&&sampleMatches.length<LIMITS.matches){
+        sampleMatches.push({full:match[0],index:match.index,groups:Array.from(match).slice(1,1+LIMITS.groups).map(value=>value===undefined?null:value)});
+        if(match[0]==='')sampleExpression.lastIndex+=1;
+      }
+      const matchedIds=[];
+      for(const item of entries){
+        const tester=new RegExp(expression.source,expression.flags);
+        if(tester.test(item.text))matchedIds.push(item.id);
+      }
+      self.postMessage({ok:true,matchedIds,sampleMatches,sampleMatchCount:sampleMatches.length,captureGroupCount:Math.max(0,...sampleMatches.map(item=>item.groups.length),0)});
+    };
+  `;
+  const regexRuns = new Map();
+  function runRegexWorker(key,config,entries=[],sample=''){
+    const prior=regexRuns.get(key);if(prior)prior.cancel();
+    const generation=(regexGenerations.get(key)||0)+1;regexGenerations.set(key,generation);
+    let worker,blobUrl,timer,settled=false,rejectPending;
+    const finish=(resolve,reject,value)=>{if(settled)return;settled=true;if(timer)clearTimeout(timer);if(worker)worker.terminate();if(blobUrl)URL.revokeObjectURL(blobUrl);if(regexRuns.get(key)?.generation===generation)regexRuns.delete(key);if(value instanceof Error||value?.ok===false)reject(value instanceof Error?value:new Error(value.error||'The local regex worker rejected the evaluation.'));else resolve(value)};
+    const promise=new Promise((resolve,reject)=>{
+      rejectPending=reject;
+      try{
+        blobUrl=URL.createObjectURL(new Blob([REGEX_WORKER_SOURCE],{type:'application/javascript'}));
+        worker=new Worker(blobUrl);
+        worker.onmessage=event=>finish(resolve,reject,event.data);
+        worker.onerror=event=>finish(resolve,reject,new Error(event.message||'The local regex worker failed.'));
+        timer=setTimeout(()=>finish(resolve,reject,new Error('The local regex worker timed out and was terminated.')),350);
+        worker.postMessage({pattern:config.pattern,flags:config.flags,entries,sample});
+      }catch(error){finish(resolve,reject,error)}
+    });
+    const run={generation,promise,cancel(){if(!settled){settled=true;if(timer)clearTimeout(timer);if(worker)worker.terminate();if(blobUrl)URL.revokeObjectURL(blobUrl);if(regexRuns.get(key)?.generation===generation)regexRuns.delete(key);rejectPending(new Error('The previous local regex evaluation was cancelled.'))}}};
+    regexRuns.set(key,run);return run;
+  }
+  function regexRunCurrent(key,run){return regexGenerations.get(key)===run.generation}
+  function regexSearchEnabled(target,query){return Boolean(query&&regexState.get(target)?.enabled)}
   let regexTarget = '';
   let destinationPage = 0;
 
@@ -859,7 +910,7 @@
   }
   function updateScheduleStatus(){const status=$('shell-schedule-status');if(!status)return;const zone=Intl.DateTimeFormat().resolvedOptions().timeZone||'local timezone';status.textContent=!state.schedule.enabled?`Off. Times use ${zone}.`:scheduleMatches(state.schedule)?`Active now in ${zone}; scheduled values are applied without replacing the base settings.`:`Waiting for the next matching window in ${zone}; base settings remain active.`}
   function saveSchedule(patch){state.schedule={...state.schedule,...patch};save();applyState()}
-  function exportSiteState(){const payload={schemaVersion:1,encoding:'UTF-8',exported:'site-owned local state',omitted:{personalVocabulary:'Private mappings and file metadata are omitted.',customLogoImage:'Custom image bytes and file metadata are omitted.'},settings:{...state,notifications:state.notifications.map(item=>({...item}))}};download('ding-pbx-site-state.json',JSON.stringify(payload,null,2),'application/json')}
+  function exportSiteState(){const payload={schemaVersion:1,encoding:'UTF-8',exported:'site-owned local state',omitted:{personalVocabulary:'Private mappings and file metadata are omitted.',customLogoImage:'Custom image bytes and file metadata are omitted.'},settings:{...state,notifications:state.notifications.map(item=>({...item}))}};download('ding-pbx-site-state.json',JSON.stringify(payload,null,2),'application/json');notify('Site state exported',applyVocabularyText('The redacted local site state download was started. Personal vocabulary and custom image bytes remain omitted.'))}
 
   function initUniversalSettings(){
     $('site-controls-open')?.addEventListener('click',()=>{$('site-controls').showModal();setTimeout(()=>$('shell-settings-search')?.focus(),0)});
@@ -897,7 +948,29 @@
   }
   function initReveals(){const items=all('.reveal');if(reduceMotion()||!('IntersectionObserver'in window)){items.forEach(item=>item.classList.add('visible'));return}const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{rootMargin:'0px 0px -8% 0px',threshold:.08});items.forEach(item=>observer.observe(item))}
 
-  function renderDestinations(query=''){const grid=$('destination-grid');if(!grid)return;const matches=DESTINATIONS.filter(item=>matchText(`${item.name} ${item.group} ${item.description}`,query,'feature-search')),pageSize=8,pageCount=Math.max(1,Math.ceil(matches.length/pageSize));destinationPage=Math.min(destinationPage,pageCount-1);const shown=matches.slice(destinationPage*pageSize,(destinationPage+1)*pageSize);grid.innerHTML=shown.map(item=>`<article class="destination-card reveal" id="destination-${item.id}" tabindex="-1"><span class="destination-icon" aria-hidden="true">${item.icon}</span><span class="card-kicker">${escapeHtml(item.group)}</span><h2>${escapeHtml(item.name)}</h2><p>${escapeHtml(item.description)}</p><a class="text-button" href="${BASE}docs/${item.article}.html">Read article <span aria-hidden="true">→</span></a></article>`).join('')||`<p class="empty-state">${escapeHtml(copyText('emptyDestinations'))}</p>`;if($('destination-count'))$('destination-count').textContent=`${matches.length} destination${matches.length===1?'':'s'} · page ${destinationPage+1} of ${pageCount}`;if($('destination-pagination'))$('destination-pagination').innerHTML=Array.from({length:pageCount},(_,index)=>`<button type="button" data-page="${index}" ${index===destinationPage?'aria-current="page"':''}>${index+1}</button>`).join('');initReveals();updateDestinationMap(matches);applyVocabulary();updateFilterStatus('documentation-filter-status','feature-search');lastDocumentationMatches=matches;lastDocumentationQuery=query;updateDocumentationExport()}
+  function renderDestinationResults(matches,query,message=''){
+    const grid=$('destination-grid');if(!grid)return;
+    const pageSize=8,pageCount=Math.max(1,Math.ceil(matches.length/pageSize));destinationPage=Math.min(destinationPage,pageCount-1);
+    const shown=matches.slice(destinationPage*pageSize,(destinationPage+1)*pageSize);
+    grid.innerHTML=shown.map(item=>`<article class="destination-card reveal" id="destination-${item.id}" tabindex="-1"><span class="destination-icon" aria-hidden="true">${item.icon}</span><span class="card-kicker">${escapeHtml(item.group)}</span><h2>${escapeHtml(item.name)}</h2><p>${escapeHtml(item.description)}</p><a class="text-button" href="${BASE}docs/${item.article}.html">Read article <span aria-hidden="true">→</span></a></article>`).join('')||(message?`<p class="empty-state">${escapeHtml(message)}</p>`:`<p class="empty-state">${escapeHtml(copyText('emptyDestinations'))}</p>`);
+    if($('destination-count'))$('destination-count').textContent=message?message:`${matches.length} destination${matches.length===1?'':'s'} · page ${destinationPage+1} of ${pageCount}`;
+    if($('destination-pagination'))$('destination-pagination').innerHTML=message?'':Array.from({length:pageCount},(_,index)=>`<button type="button" data-page="${index}" ${index===destinationPage?'aria-current="page"':''}>${index+1}</button>`).join('');
+    initReveals();updateDestinationMap(matches);applyVocabulary();updateFilterStatus('documentation-filter-status','feature-search');lastDocumentationMatches=matches;lastDocumentationQuery=query;updateDocumentationExport();
+  }
+  function renderDestinations(query=''){
+    const grid=$('destination-grid');if(!grid)return;
+    if(regexSearchEnabled('feature-search',query)){
+      grid.innerHTML='<p class="empty-state">Checking this pattern in a bounded local worker…</p>';
+      if($('destination-pagination'))$('destination-pagination').innerHTML='';
+      if($('destination-count'))$('destination-count').textContent='Checking pattern locally…';
+      updateDestinationMap([]);
+      lastDocumentationMatches=[];lastDocumentationQuery=query;updateDocumentationExport();
+      const run=runRegexWorker('search:feature-search',regexState.get('feature-search'),DESTINATIONS.map(item=>({id:item.id,text:`${item.name} ${item.group} ${item.description}`.slice(0,4096)})));
+      run.promise.then(result=>{if(!regexRunCurrent('search:feature-search',run))return;const ids=new Set(result.matchedIds);renderDestinationResults(DESTINATIONS.filter(item=>ids.has(item.id)),query)}).catch(error=>{if(!regexRunCurrent('search:feature-search',run))return;renderDestinationResults([],query,`Pattern evaluation unavailable: ${error.message}`)});
+      return;
+    }
+    renderDestinationResults(DESTINATIONS.filter(item=>!query||`${item.name} ${item.group} ${item.description}`.toLocaleLowerCase().includes(query.toLocaleLowerCase())),query);
+  }
   let lastDocumentationMatches=[],lastDocumentationQuery='';
   function documentationExportRows(){return lastDocumentationMatches.map(item=>({id:item.id,name:item.name,group:item.group,description:item.description,article:item.article}))}
   function updateDocumentationExport(){
@@ -919,24 +992,76 @@
       notify('Destinations exported',applyVocabularyText(`Exported ${rows.length} of ${DESTINATIONS.length} destinations as ${format.toUpperCase()}, covering the current search ("${lastDocumentationQuery||'no filter'}").`));
     });
   }
-  function matchText(text,query,target){if(!query)return true;const config=regexState.get(target);if(config?.enabled){try{return new RegExp(config.pattern,config.flags).test(text)}catch{return false}}return text.toLocaleLowerCase().includes(query.toLocaleLowerCase())}
-  function filter(selector,query,target){all(selector).forEach(item=>item.hidden=!matchText(item.dataset.search||item.textContent,query,target))}
+  function plainTextMatches(text,query){return !query||String(text).toLocaleLowerCase().includes(String(query).toLocaleLowerCase())}
+  function filter(selector,query,target){
+    const items=all(selector);if(!regexSearchEnabled(target,query)){items.forEach(item=>{item.hidden=!plainTextMatches(item.dataset.search||item.textContent,query)});return}
+    items.forEach((item,index)=>{item.hidden=true;item.dataset.regexStableId=item.dataset.regexStableId||`${target}:${item.id||index}`});
+    const key=`search:${target}`,run=runRegexWorker(key,regexState.get(target),items.map(item=>({id:item.dataset.regexStableId,text:(item.dataset.search||item.textContent||'').slice(0,4096)})));
+    run.promise.then(result=>{if(!regexRunCurrent(key,run))return;const ids=new Set(result.matchedIds);items.forEach(item=>{item.hidden=!ids.has(item.dataset.regexStableId)});}).catch(error=>{if(!regexRunCurrent(key,run))return;const status=target==='settings-search'?'settings-filter-status':'shell-settings-search'===target?'shell-settings-search-status':undefined;if(status&&$(status))$(status).textContent=`Pattern evaluation unavailable: ${error.message}`});
+  }
 
   function initSearch(){all('[data-filter-target]').forEach(input=>input.addEventListener('input',()=>filter(input.dataset.filterTarget,input.value,input.id)));if($('feature-search'))$('feature-search').addEventListener('input',event=>{destinationPage=0;renderDestinations(event.target.value)});$('destination-pagination')?.addEventListener('click',event=>{const button=event.target.closest('[data-page]');if(!button)return;destinationPage=Number(button.dataset.page);renderDestinations($('feature-search')?.value||'');$('destination-grid').focus?.()});all('.regex-trigger').forEach(button=>button.onclick=event=>{event.preventDefault();openRegex(button.dataset.regexFor)})}
   function openRegex(target){regexTarget=target;const dialog=$('regex-dialog');if(!dialog)return;const saved=regexState.get(target)||{pattern:'',flags:'iu'};$('regex-target-label').textContent=`Attached to: ${target}`;$('regex-pattern').value=saved.pattern;$('regex-i').checked=saved.flags.includes('i');$('regex-m').checked=saved.flags.includes('m');$('regex-u').checked=saved.flags.includes('u');if(dialog.open)dialog.close();dialog.classList.add('anchored-builder');dialog.show();const anchor=document.querySelector(`[data-regex-for="${CSS.escape(target)}"]`)||$(target);if(anchor){const rect=anchor.getBoundingClientRect();dialog.style.left=`${Math.max(8,Math.min(innerWidth-dialog.offsetWidth-8,rect.left))}px`;dialog.style.top=`${Math.max(8,Math.min(innerHeight-dialog.offsetHeight-8,rect.bottom+8))}px`}previewRegex();setTimeout(()=>$('regex-pattern').focus(),0)}
   function regexConfig(){return{pattern:$('regex-pattern').value.slice(0,256),flags:`${$('regex-i').checked?'i':''}${$('regex-m').checked?'m':''}${$('regex-u').checked?'u':''}`}}
-  function previewRegex(){if(!$('regex-feedback'))return;const config=regexConfig();if(!config.pattern){$('regex-feedback').textContent='Enter a pattern.';return}try{const re=new RegExp(config.pattern,config.flags),flags=re.flags.includes('g')?re.flags:`${re.flags}g`,matches=[...$('regex-sample').value.matchAll(new RegExp(re.source,flags))];$('regex-feedback').textContent=`Valid JavaScript regular expression · ${matches.length} sample match${matches.length===1?'':'es'}.`}catch(error){$('regex-feedback').textContent=`Invalid pattern: ${error.message}`}}
-  function applyRegex(){const config=regexConfig();try{new RegExp(config.pattern,config.flags)}catch{return}regexState.set(regexTarget,{...config,enabled:Boolean(config.pattern)});$('regex-dialog').close();$(regexTarget)?.dispatchEvent(new Event('input'));notify(copyText('notifRegexApplied'),applyVocabularyText(`${regexTarget} now uses the local JavaScript regular expression engine.`))}
+  function previewRegex(){
+    const feedback=$('regex-feedback');if(!feedback)return;const config=regexConfig();if(!config.pattern){feedback.textContent='Enter a pattern.';return}
+    feedback.textContent='Checking the pattern in a bounded local worker…';
+    const run=runRegexWorker('preview',config,[],($('regex-sample')?.value||'').slice(0,4096));
+    run.promise.then(result=>{if(!regexRunCurrent('preview',run))return;const captures=result.captureGroupCount?` ${result.captureGroupCount} capture group${result.captureGroupCount===1?'':'s'} observed.`:'';feedback.textContent=`Valid JavaScript regular expression · ${result.sampleMatchCount} sample match${result.sampleMatchCount===1?'':'es'}.${captures}`}).catch(error=>{if(regexRunCurrent('preview',run))feedback.textContent=`Pattern unavailable: ${error.message}`});
+  }
+  function applyRegex(){
+    const config=regexConfig(),button=$('regex-apply');if(!config.pattern){regexState.delete(regexTarget);$('regex-dialog').close();$(regexTarget)?.dispatchEvent(new Event('input'));return}
+    if(button)button.disabled=true;$('regex-feedback').textContent='Checking the pattern in a bounded local worker…';
+    const run=runRegexWorker('apply',config,[],($('regex-sample')?.value||'').slice(0,4096));
+    run.promise.then(()=>{if(!regexRunCurrent('apply',run))return;regexState.set(regexTarget,{...config,enabled:true});$('regex-dialog').close();$(regexTarget)?.dispatchEvent(new Event('input'));notify(copyText('notifRegexApplied'),applyVocabularyText(`${regexTarget} now uses the local JavaScript regular expression engine.`))}).catch(error=>{if(regexRunCurrent('apply',run))$('regex-feedback').textContent=`Pattern unavailable: ${error.message}`}).finally(()=>{if(button)button.disabled=false});
+  }
   function initRegex(){if(!$('regex-dialog'))return;$('regex-pattern').addEventListener('input',previewRegex);$('regex-apply').onclick=applyRegex;all('[data-insert]').forEach(button=>button.onclick=()=>{const input=$('regex-pattern'),start=input.selectionStart;input.value=`${input.value.slice(0,start)}${button.dataset.insert}${input.value.slice(input.selectionEnd)}`;input.focus();input.setSelectionRange(start+button.dataset.insert.length,start+button.dataset.insert.length);previewRegex()})}
 
   let menuTarget=null;
-  function renderMenuChoices(query=''){const list=$('menu-search-results');if(!list||!menuTarget)return;const options=[...menuTarget.options].filter(option=>matchText(`${option.textContent} ${option.value}`,query,'menu-search'));list.innerHTML=options.length?options.map(option=>`<button type="button" data-menu-value="${escapeHtml(option.value)}" ${option.disabled?'disabled aria-disabled="true"':''}><strong>${escapeHtml(option.textContent)}</strong><span>${option.disabled?'Unavailable':'Choose'}</span></button>`).join(''):'<p class="empty-state">No choices match this menu search.</p>';if($('menu-search-count'))$('menu-search-count').textContent=`${options.length} of ${menuTarget.options.length} choices shown.`}
+  function renderMenuChoiceResults(options,query,message=''){
+    const list=$('menu-search-results');if(!list||!menuTarget)return;
+    list.innerHTML=options.length?options.map(option=>`<button type="button" data-menu-value="${escapeHtml(option.value)}" ${option.disabled?'disabled aria-disabled="true"':''}><strong>${escapeHtml(option.textContent)}</strong><span>${option.disabled?'Unavailable':'Choose'}</span></button>`).join(''):`<p class="empty-state">${escapeHtml(message||'No choices match this menu search.')}</p>`;
+    if($('menu-search-count'))$('menu-search-count').textContent=message?message:`${options.length} of ${menuTarget.options.length} choices shown.`;
+  }
+  function renderMenuChoices(query=''){
+    if(!menuTarget)return;const options=[...menuTarget.options];
+    if(regexSearchEnabled('menu-search',query)){
+      renderMenuChoiceResults([],query,'Checking this pattern in a bounded local worker…');
+      const run=runRegexWorker('search:menu-search',regexState.get('menu-search'),options.map((option,index)=>({id:String(index),text:`${option.textContent} ${option.value}`.slice(0,4096)})));
+      run.promise.then(result=>{if(!regexRunCurrent('search:menu-search',run))return;const ids=new Set(result.matchedIds);renderMenuChoiceResults(options.filter((_,index)=>ids.has(String(index))),query)}).catch(error=>{if(regexRunCurrent('search:menu-search',run))renderMenuChoiceResults([],query,`Pattern evaluation unavailable: ${error.message}`)});
+      return;
+    }
+    renderMenuChoiceResults(options.filter(option=>plainTextMatches(`${option.textContent} ${option.value}`,query)),query);
+  }
   function initSearchableMenus(){all('select').forEach((select,index)=>{if(select.dataset.searchUpgraded)return;select.dataset.searchUpgraded='true';if(!select.id)select.id=`searchable-select-${index}`;const button=document.createElement('button');button.type='button';button.className='menu-search-trigger';button.dataset.menuFor=select.id;button.textContent='Search choices';button.setAttribute('aria-label',`Search choices for ${select.getAttribute('aria-label')||select.closest('label')?.textContent?.trim()||select.id}`);select.insertAdjacentElement('afterend',button);button.addEventListener('click',()=>{menuTarget=select;$('menu-search-title').textContent=`Search choices: ${select.getAttribute('aria-label')||select.id}`;$('menu-search').value='';renderMenuChoices();$('menu-search-dialog').show();setTimeout(()=>$('menu-search').focus(),0)})});$('menu-search')?.addEventListener('input',event=>renderMenuChoices(event.target.value));$('menu-search-results')?.addEventListener('click',event=>{const button=event.target.closest('[data-menu-value]');if(!button||!menuTarget)return;const option=[...menuTarget.options].find(item=>item.value===button.dataset.menuValue);if(!option||option.disabled)return;menuTarget.value=option.value;menuTarget.dispatchEvent(new Event('change',{bubbles:true}));$('menu-search-dialog').close();menuTarget.focus()})}
   const CONTEXT_ACTIONS=[{id:'controls',label:'Open site controls'},{id:'notifications',label:'Open notification history'},{id:'export',label:'Export local site state'}];
-  function renderContextActions(query=''){const list=$('context-results');if(!list)return;const actions=CONTEXT_ACTIONS.filter(action=>matchText(action.label,query,'context-search'));list.innerHTML=actions.length?actions.map(action=>`<button type="button" data-context-action="${action.id}">${escapeHtml(action.label)}</button>`).join(''):'<p class="empty-state">No page actions match this search.</p>'}
+  function renderContextActionResults(actions,message=''){
+    const list=$('context-results');if(!list)return;list.innerHTML=actions.length?actions.map(action=>`<button type="button" data-context-action="${action.id}">${escapeHtml(action.label)}</button>`).join(''):`<p class="empty-state">${escapeHtml(message||'No page actions match this search.')}</p>`;
+  }
+  function renderContextActions(query=''){
+    if(regexSearchEnabled('context-search',query)){
+      renderContextActionResults([], 'Checking this pattern in a bounded local worker…');
+      const run=runRegexWorker('search:context-search',regexState.get('context-search'),CONTEXT_ACTIONS.map(action=>({id:action.id,text:action.label})));
+      run.promise.then(result=>{if(!regexRunCurrent('search:context-search',run))return;const ids=new Set(result.matchedIds);renderContextActionResults(CONTEXT_ACTIONS.filter(action=>ids.has(action.id)))}).catch(error=>{if(regexRunCurrent('search:context-search',run))renderContextActionResults([],`Pattern evaluation unavailable: ${error.message}`)});
+      return;
+    }
+    renderContextActionResults(CONTEXT_ACTIONS.filter(action=>plainTextMatches(action.label,query)));
+  }
   function initContextMenu(){document.addEventListener('contextmenu',event=>{if(event.target.closest('input,textarea,select,[contenteditable="true"]'))return;event.preventDefault();const dialog=$('page-context-menu');if(dialog.open)dialog.close();$('context-search').value='';renderContextActions();dialog.show();dialog.style.left=`${Math.max(8,Math.min(innerWidth-dialog.offsetWidth-8,event.clientX))}px`;dialog.style.top=`${Math.max(8,Math.min(innerHeight-dialog.offsetHeight-8,event.clientY))}px`;setTimeout(()=>$('context-search').focus(),0)});$('context-search')?.addEventListener('input',event=>renderContextActions(event.target.value));$('context-results')?.addEventListener('click',event=>{const action=event.target.closest('[data-context-action]')?.dataset.contextAction;if(!action)return;$('page-context-menu').close();if(action==='controls')$('site-controls').showModal();if(action==='notifications'){$('notifications-dialog').showModal();renderNotifications()}if(action==='export')exportSiteState()})}
 
-  function renderPalette(query=''){const list=$('palette-results');if(!list)return;const pages=[['Home','index.html'],['Product','product.html'],['Documentation','documentation.html'],['Downloads','downloads.html'],['Status','status.html'],['Settings','settings.html']],controls=[['Language mode','shell-language'],['English funny level','shell-english-funny'],['Cantonese funny level','shell-cantonese-funny'],['Attention modes','shell-attention-focus'],['Scheduled settings','shell-schedule-enabled'],['Theme','shell-theme'],['Navigation edge','shell-tab-edge'],['Local logo','shell-logo-preset'],['Personal vocabulary JSON','shell-vocabulary-file'],['Export site state','shell-export']],items=[...pages.map(([name,path])=>({name,path,kind:'Page'})),...DESTINATIONS.map(item=>({name:item.name,path:`docs/${item.article}.html`,kind:'Article'})),...controls.map(([name,control])=>({name,control,kind:'Control'}))].filter(item=>matchText(item.name,query,'palette-search'));list.innerHTML=items.length?items.map(item=>item.control?`<button class="palette-result" role="option" type="button" data-palette-control="${item.control}"><strong>${escapeHtml(item.name)}</strong><span>Open exact site control</span></button>`:`<a class="palette-result" role="option" href="${BASE}${item.path}"><strong>${escapeHtml(item.name)}</strong><span>Open ${item.kind.toLowerCase()}</span></a>`).join(''):'<p class="empty-state">No matching pages, articles, or controls.</p>'}
+  function renderPaletteResults(items,message=''){
+    const list=$('palette-results');if(!list)return;list.innerHTML=items.length?items.map(item=>item.control?`<button class="palette-result" role="option" type="button" data-palette-control="${item.control}"><strong>${escapeHtml(item.name)}</strong><span>Open exact site control</span></button>`:`<a class="palette-result" role="option" href="${BASE}${item.path}"><strong>${escapeHtml(item.name)}</strong><span>Open ${item.kind.toLowerCase()}</span></a>`).join(''):`<p class="empty-state">${escapeHtml(message||'No matching pages, articles, or controls.')}</p>`;
+  }
+  function renderPalette(query=''){
+    const pages=[['Home','index.html'],['Product','product.html'],['Documentation','documentation.html'],['Downloads','downloads.html'],['Status','status.html'],['Settings','settings.html']],controls=[['Language mode','shell-language'],['English funny level','shell-english-funny'],['Cantonese funny level','shell-cantonese-funny'],['Attention modes','shell-attention-focus'],['Scheduled settings','shell-schedule-enabled'],['Theme','shell-theme'],['Navigation edge','shell-tab-edge'],['Local logo','shell-logo-preset'],['Personal vocabulary JSON','shell-vocabulary-file'],['Export site state','shell-export']],items=[...pages.map(([name,path])=>({name,path,kind:'Page',id:`page:${path}`})),...DESTINATIONS.map(item=>({name:item.name,path:`docs/${item.article}.html`,kind:'Article',id:`article:${item.id}`})),...controls.map(([name,control])=>({name,control,kind:'Control',id:`control:${control}`}))];
+    if(regexSearchEnabled('palette-search',query)){
+      renderPaletteResults([], 'Checking this pattern in a bounded local worker…');
+      const run=runRegexWorker('search:palette-search',regexState.get('palette-search'),items.map(item=>({id:item.id,text:item.name})));
+      run.promise.then(result=>{if(!regexRunCurrent('search:palette-search',run))return;const ids=new Set(result.matchedIds);renderPaletteResults(items.filter(item=>ids.has(item.id)))}).catch(error=>{if(regexRunCurrent('search:palette-search',run))renderPaletteResults([],`Pattern evaluation unavailable: ${error.message}`)});
+      return;
+    }
+    renderPaletteResults(items.filter(item=>plainTextMatches(item.name,query)));
+  }
   function openPalette(){const dialog=$('command-palette');if(!dialog)return;dialog.showModal();$('palette-search').value='';renderPalette();applyVocabulary();setTimeout(()=>$('palette-search').focus(),0)}
   let notifSeq=0;
   function notify(title,body){state.notifications.unshift({id:`n${Date.now()}-${notifSeq++}`,title,body,time:Date.now()});state.notifications=state.notifications.slice(0,30);save();renderNotifications($('notification-search')?.value||'');const region=$('toast-region');if(!region)return;const toast=document.createElement('div');toast.className='toast';toast.innerHTML=`<strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span>`;region.append(toast);setTimeout(()=>toast.remove(),state.attention.extendedTimeouts?15000:5000)}
@@ -945,18 +1070,25 @@
   let notifSelection={anchor:undefined,selected:new Set()};
   let lastNotificationOrder=[];
   function ensureNotificationIds(){let changed=false;state.notifications.forEach((item,index)=>{if(!item.id){item.id=`n${item.time||Date.now()}-legacy${index}`;changed=true}});if(changed)save()}
-  function notificationMatches(query){ensureNotificationIds();return state.notifications.filter(item=>matchText(`${item.title} ${item.body}`,query,'notification-search'))}
-  function renderNotifications(query=''){
-    if($('notification-count'))$('notification-count').textContent=state.notifications.length;
+  function renderNotificationResults(matches,query,message=''){
     if(!$('notification-history'))return;
-    const matches=notificationMatches(query);
     lastNotificationOrder=matches.map(item=>item.id);
     // A selected id that no longer matches (or was dismissed) never lingers as a phantom count.
     notifSelection={anchor:notifSelection.anchor,selected:new Set([...notifSelection.selected].filter(id=>lastNotificationOrder.includes(id)))};
-    $('notification-history').innerHTML=matches.length?matches.map(item=>`<article class="notice" data-notif-id="${item.id}"><input type="checkbox" aria-label="Select notification: ${escapeHtml(item.title)}" ${notifSelection.selected.has(item.id)?'checked':''}><div class="notice-body"><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.body)}</p><small>${new Date(item.time).toLocaleString()}</small></div></article>`).join(''):state.notifications.length?'<p class="empty-state">No notifications match the active search. Clear or change the filter to see saved history.</p>':`<p class="empty-state">${escapeHtml(copyText('emptyNotifications'))}</p>`;
+    $('notification-history').innerHTML=matches.length?matches.map(item=>`<article class="notice" data-notif-id="${item.id}"><input type="checkbox" aria-label="Select notification: ${escapeHtml(item.title)}" ${notifSelection.selected.has(item.id)?'checked':''}><div class="notice-body"><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.body)}</p><small>${new Date(item.time).toLocaleString()}</small></div></article>`).join(''):message?`<p class="empty-state">${escapeHtml(message)}</p>`:state.notifications.length?'<p class="empty-state">No notifications match the active search. Clear or change the filter to see saved history.</p>':`<p class="empty-state">${escapeHtml(copyText('emptyNotifications'))}</p>`;
     applyVocabulary();
     updateNotificationSelectionUI();
     updateNotificationExportFormats();
+  }
+  function renderNotifications(query=''){
+    ensureNotificationIds();if($('notification-count'))$('notification-count').textContent=state.notifications.length;if(!$('notification-history'))return;
+    if(regexSearchEnabled('notification-search',query)){
+      renderNotificationResults([],query,'Checking this pattern in a bounded local worker…');
+      const run=runRegexWorker('search:notification-search',regexState.get('notification-search'),state.notifications.map(item=>({id:item.id,text:`${item.title} ${item.body}`.slice(0,4096)})));
+      run.promise.then(result=>{if(!regexRunCurrent('search:notification-search',run))return;const ids=new Set(result.matchedIds);renderNotificationResults(state.notifications.filter(item=>ids.has(item.id)),query)}).catch(error=>{if(regexRunCurrent('search:notification-search',run))renderNotificationResults([],query,`Pattern evaluation unavailable: ${error.message}`)});
+      return;
+    }
+    renderNotificationResults(state.notifications.filter(item=>plainTextMatches(`${item.title} ${item.body}`,query)),query);
   }
   function updateNotificationSelectionUI(){
     const status=$('notif-selection-status');if(status)status.textContent=`${notifSelection.selected.size} selected of ${lastNotificationOrder.length} shown`;
@@ -1032,10 +1164,10 @@
     return {version:raw.version??raw.schemaVersion,replacements};
   }
   async function loadVocabularyFromInput(event,statusId){const status=$(statusId),file=event.target.files[0];if(!file)return;if(file.size>65536){if(status)status.textContent=`Rejected: the file is ${Math.round(file.size/1024)} KiB and the limit is 64 KiB.`;return}try{const parsed=validateVocabularyPayload(normaliseVocabularyInput(JSON.parse(await file.text())));localStorage.setItem('ding-pbx-vocabulary-cache',JSON.stringify(parsed));if(status)status.textContent=`Loaded ${parsed.replacements.length} local replacement${parsed.replacements.length===1?'':'s'}. No data was transmitted.`;applyVocabulary();applyState();syncLocalAssetStatuses()}catch(error){if(status)status.textContent=`Rejected: ${error.message}`}}
-  function clearVocabulary(inputId,statusId){localStorage.removeItem('ding-pbx-vocabulary-cache');if($(inputId))$(inputId).value='';if($(statusId))$(statusId).textContent='No file loaded; original wording is active.';applyVocabulary();applyState();syncLocalAssetStatuses()}
+  function clearVocabulary(inputId,statusId){localStorage.removeItem('ding-pbx-vocabulary-cache');if($(inputId))$(inputId).value='';if($(statusId))$(statusId).textContent='No file loaded; original wording is active.';applyVocabulary();applyState();syncLocalAssetStatuses();notify('Personal vocabulary cleared',applyVocabularyText('Original shipped wording is active again.'))}
   function imageDimensions(dataUrl){return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve({width:image.naturalWidth,height:image.naturalHeight});image.onerror=()=>reject(new Error('the browser could not decode the image'));image.src=dataUrl})}
   async function loadLogoFromInput(event,statusId){const status=$(statusId),file=event.target.files[0];if(!file)return;if(file.size>131072){if(status)status.textContent='Rejected: file exceeds 128 KiB.';return}try{const bytes=new Uint8Array(await file.arrayBuffer()),png=bytes.length>8&&[137,80,78,71,13,10,26,10].every((value,index)=>bytes[index]===value),jpeg=bytes.length>3&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255;if(!png&&!jpeg)throw new Error('the bytes are not a PNG or JPEG image');const mime=png?'image/png':'image/jpeg',dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('the file could not be read'));reader.readAsDataURL(new Blob([bytes],{type:mime}))}),dimensions=await imageDimensions(dataUrl);if(dimensions.width>4096||dimensions.height>4096||dimensions.width*dimensions.height>4194304)throw new Error('decoded dimensions exceed 4096 per side or 4,194,304 pixels');localStorage.setItem('ding-pbx-logo-cache',JSON.stringify({version:1,mime,bytes:file.size,width:dimensions.width,height:dimensions.height,dataUrl}));if(status)status.textContent=`Loaded ${dimensions.width}×${dimensions.height} local image (${Math.round(file.size/1024)} KiB). No data was transmitted.`;applyLogo();syncLocalAssetStatuses()}catch(error){if(status)status.textContent=`Rejected: ${error.message}`}}
-  function clearLogo(inputId,statusId){localStorage.removeItem('ding-pbx-logo-cache');if($(inputId))$(inputId).value='';if($(statusId))$(statusId).textContent='No custom image loaded; the selected preset is active.';applyLogo();syncLocalAssetStatuses()}
+  function clearLogo(inputId,statusId){localStorage.removeItem('ding-pbx-logo-cache');if($(inputId))$(inputId).value='';if($(statusId))$(statusId).textContent='No custom image loaded; the selected preset is active.';applyLogo();syncLocalAssetStatuses();notify('Custom logo cleared',applyVocabularyText('The selected shipped logo preset is active again.'))}
   function syncLocalAssetStatuses(){const replacements=vocabularyReplacements(),logo=readLogoCache(),vocabularyText=replacements?`Validated cache active: ${replacements.length} replacement${replacements.length===1?'':'s'}. No file metadata was retained.`:'No valid cache loaded; original wording is active.',logoText=logo?`Validated cache active: ${logo.width}×${logo.height}, ${Math.round(logo.bytes/1024)} KiB. No source filename was retained.`:'No valid custom image cache loaded; the selected preset is active.';['vocabulary-status','shell-vocabulary-status'].forEach(id=>{if($(id))$(id).textContent=vocabularyText});['logo-status','shell-logo-status'].forEach(id=>{if($(id))$(id).textContent=logoText})}
   function download(name,text,mime='application/json'){const link=document.createElement('a'),url=URL.createObjectURL(new Blob([text],{type:mime}));link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
   const EXPORT_MIME={json:'application/json',jsonl:'application/x-ndjson',yaml:'application/yaml',toml:'application/toml',xml:'application/xml',csv:'text/csv',tsv:'text/tab-separated-values',markdown:'text/markdown',html:'text/html',sql:'application/sql'};
@@ -1090,14 +1222,16 @@
       const total=DESTINATIONS.filter(item=>item.group===group).length;
       const matched=DESTINATIONS.filter(item=>item.group===group&&matchedIds.has(item.id)).length;
       const rail=map.querySelector(`[data-group="${group}"]`);if(!rail)return;
-      const fill=rail.querySelector('.rail-fill');if(fill)fill.style.width=`${total?Math.round((matched/total)*100):0}%`;
-      const count=rail.querySelector('.rail-count');if(count)count.textContent=`${matched}/${total}`;
+      const percent=total?Math.round((matched/total)*100):undefined;
+      const fill=rail.querySelector('.rail-fill');if(fill){if(percent===undefined)fill.style.removeProperty('--rail-percent');else fill.style.setProperty('--rail-percent',`${percent}%`)}
+      const count=rail.querySelector('.rail-count');if(count)count.textContent=percent===undefined?'Unavailable':`${matched} of ${total}`;
+      rail.setAttribute('aria-label',percent===undefined?`${group}: current catalogue coverage unavailable`:`${group}: ${matched} of ${total} destinations matched in the current catalogue (${percent} percent)`);
       rail.classList.toggle('rail-empty',matched===0);
     });
   }
   function initDestinationMap(){
     const map=$('destination-map');if(!map)return;
-    map.innerHTML=GROUPS.map(group=>{const total=DESTINATIONS.filter(item=>item.group===group).length;return `<div class="rail" data-group="${escapeHtml(group)}"><span class="rail-label">${escapeHtml(group)}</span><span class="rail-track"><span class="rail-fill" style="width:100%"></span></span><span class="rail-count mono">${total}/${total}</span></div>`}).join('');
+    map.innerHTML=GROUPS.map(group=>{const total=DESTINATIONS.filter(item=>item.group===group).length;const percent=total?100:undefined;return `<div class="rail" data-group="${escapeHtml(group)}" aria-label="${escapeHtml(percent===undefined?`${group}: current catalogue coverage unavailable`:`${group}: ${total} of ${total} destinations in the current catalogue (100 percent)`)}"><span class="rail-label">${escapeHtml(group)}</span><span class="rail-track" aria-label="Current catalogue documentation coverage"><span class="rail-fill"${percent===undefined?'':' style="--rail-percent:100%"'}></span></span><span class="rail-count mono">${percent===undefined?'Unavailable':`${total} of ${total}`}</span></div>`}).join('');
   }
 
   function initConnectionDiagram(){
@@ -1151,8 +1285,8 @@
     $('colour-translate-grid')?.addEventListener('click',event=>{
       const button=event.target.closest('[data-copy-colour]');if(!button)return;
       const value=button.dataset.copyColour;
-      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(value).catch(()=>{});
-      notify('Colour copied',applyVocabularyText(`Copied ${value} to the clipboard.`));
+      if(!navigator.clipboard||!navigator.clipboard.writeText){notify('Copy unavailable',applyVocabularyText('The browser did not provide a clipboard action, so the colour was not copied.'));return}
+      navigator.clipboard.writeText(value).then(()=>notify('Colour copied',applyVocabularyText(`Copied ${value} to the clipboard.`))).catch(()=>notify('Copy unavailable',applyVocabularyText('The browser rejected the clipboard action, so the colour was not copied.')));
     });
     input.value=accent.value;
     sync(accent.value);

@@ -480,7 +480,7 @@ meter::-webkit-meter-optimum-value{background:var(--primary);border-radius:999px
 .rail{display:grid;grid-template-columns:84px 1fr 52px;align-items:center;gap:12px}
 .rail-label{font-size:.76rem;font-weight:650;color:var(--muted)}
 .rail-track{height:8px;border-radius:999px;background:var(--surface-3);overflow:hidden}
-.rail-fill{display:block;height:100%;border-radius:999px;background:linear-gradient(to right,var(--primary),var(--secondary));transition:width .3s cubic-bezier(.2,0,0,1)}
+.rail-fill{display:block;width:var(--rail-percent,0%);height:100%;border-radius:999px;background:linear-gradient(to right,var(--primary),var(--secondary));transition:width .3s cubic-bezier(.2,0,0,1)}
 .rail-count{text-align:right;font-size:.74rem;color:var(--muted-2)}
 .rail-empty .rail-fill{background:var(--outline-variant)}
 .rail-empty .rail-count{color:var(--outline)}
