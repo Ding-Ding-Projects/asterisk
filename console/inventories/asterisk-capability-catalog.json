@@ -35,6 +35,7 @@
     "console/control-plane/ami-ari-transports.ts",
     "console/control-plane/asterisk-action-catalog.ts",
     "console/app/electron/credential-vault.ts",
+    "console/app/electron/ari-websocket.ts",
     "console/app/electron/main.ts",
     "console/app/renderer/src/App.tsx",
     "console/app/renderer/src/readings.ts"

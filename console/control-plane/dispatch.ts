@@ -673,6 +673,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const receipt = await transport.execute(operation as keyof typeof ARI_OPERATIONS, {
           parameters: (request.payload?.parameters ?? {}) as Readonly<Record<string, string | number | boolean>>,
           body: request.payload?.body,
+          headers: (request.payload?.headers ?? {}) as Readonly<Record<string, string>>,
         });
         await recordActionHistory(`ARI ${operation}`, { action: 'ari.operation', operation, state: receipt.state });
         return { ok: receipt.state === 'available', requestId: request.requestId, code: receipt.state === 'available' ? undefined : 'ARI_OPERATION_FAILED', message: receipt.reason, data: receipt } as ControlPlaneResponse;

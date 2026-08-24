@@ -207,7 +207,16 @@ export class AmiEventTransport {
   }
 }
 
-export const ARI_OPERATIONS: Record<string, { method: string; path: string }> = {
+export interface AriOperationSpec {
+  method: string;
+  path: string;
+  parameters?: ReadonlyArray<{ name?: string; paramType?: string; required?: boolean; allowMultiple?: boolean; dataType?: string }>;
+  requestSchema?: { body?: ReadonlyArray<{ name?: string; dataType?: string; required?: boolean }> };
+  responseSchema?: { responseClass?: string; errors?: ReadonlyArray<{ code?: number; reason?: string }> };
+  websocket?: { protocol?: string };
+}
+
+export const ARI_OPERATIONS: Record<string, AriOperationSpec> = {
   asteriskInfo: { method: "GET", path: "/ari/asterisk/info" },
   listChannels: { method: "GET", path: "/ari/channels" },
   listBridges: { method: "GET", path: "/ari/bridges" },
@@ -215,7 +224,7 @@ export const ARI_OPERATIONS: Record<string, { method: string; path: string }> = 
   listApplications: { method: "GET", path: "/ari/applications" },
 } as const;
 
-for (const operation of ARI_OPERATION_REGISTRY) ARI_OPERATIONS[operation.id] = { method: operation.method, path: operation.path };
+for (const operation of ARI_OPERATION_REGISTRY) ARI_OPERATIONS[operation.id] = { method: operation.method, path: operation.path, parameters: operation.parameters, requestSchema: operation.requestSchema, responseSchema: operation.responseSchema, websocket: operation.websocket };
 
 export type AriOperationName = string;
 
@@ -241,6 +250,7 @@ export interface AriTransportOptions {
 export interface AriOperationInput {
   parameters?: Readonly<Record<string, string | number | boolean>>;
   body?: unknown;
+  headers?: Readonly<Record<string, string>>;
 }
 
 /** Bounded ARI HTTP transport with an allowlisted operation catalogue. */
@@ -262,23 +272,32 @@ export class AriTransport {
     const abort = () => controller.abort();
     signal?.addEventListener("abort", abort, { once: true });
     try {
-      const spec = ARI_OPERATIONS[operation] as typeof ARI_OPERATIONS[string] & { parameters?: ReadonlyArray<{ name?: string; paramType?: string; required?: boolean }> };
+      const spec = ARI_OPERATIONS[operation];
       if (!spec) return { state: "unavailable", observedAt, operation, reason: "The ARI operation is not registered." };
       const parameters = input.parameters ?? {};
+      const declared = new Map((spec.parameters ?? []).map((parameter) => [parameter.name ?? "", parameter]));
+      const unknown = Object.keys(parameters).filter((name) => !declared.has(name) && !spec.path.includes(`{${name}}`));
+      if (unknown.length > 0) return { state: "unavailable", observedAt, operation, reason: `Unknown ARI parameters: ${unknown.join(", ")}.` };
       const unresolved = [...spec.path.matchAll(/\{([^}]+)\}/gu)].map((match) => match[1]).filter((name) => parameters[name] === undefined);
+      const missingQuery = (spec.parameters ?? []).filter((parameter) => parameter.required && parameter.paramType !== "path" && parameters[parameter.name ?? ""] === undefined).map((parameter) => parameter.name ?? "unknown");
+      if (missingQuery.length > 0) return { state: "unavailable", observedAt, operation, reason: `Missing ARI parameters: ${missingQuery.join(", ")}.` };
       if (unresolved.length > 0) return { state: "unavailable", observedAt, operation, reason: `Missing ARI path parameters: ${unresolved.join(", ")}.` };
       let path = spec.path.replace(/\{([^}]+)\}/gu, (_match, name: string) => encodeURIComponent(String(parameters[name])));
-      const query = Object.entries(parameters).filter(([name]) => !spec.path.includes(`{${name}}`));
+      const query = Object.entries(parameters).filter(([name]) => !spec.path.includes(`{${name}}`) && declared.get(name)?.paramType !== "body");
       if (query.length > 0) path += `?${new URLSearchParams(query.map(([name, value]) => [name, String(value)]))}`;
       const url = new URL(path, this.#options.baseUrl);
-      const response = await fetch(url, { method: spec.method, redirect: "error", signal: controller.signal, headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Basic ${Buffer.from(`${credential.username}:${credential.secret}`).toString("base64")}` }, body: input.body === undefined ? undefined : JSON.stringify(input.body) });
+      const bodyRequired = (spec.requestSchema?.body ?? []).some((field) => field.required === true);
+      if (bodyRequired && input.body === undefined) return { state: "unavailable", observedAt, operation, reason: "The ARI operation requires a request body." };
+      const headers = Object.fromEntries(Object.entries(input.headers ?? {}).filter(([name]) => /^(Accept|Content-Type|If-Match|X-\w+)$/u.test(name)));
+      const response = await fetch(url, { method: spec.method, redirect: "error", signal: controller.signal, headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Basic ${Buffer.from(`${credential.username}:${credential.secret}`).toString("base64")}`, ...headers }, body: input.body === undefined ? undefined : JSON.stringify(input.body) });
       const text = await boundedText(response, this.#options.maxResponseBytes);
       let value: T | undefined;
       if (text.trim()) {
         try { value = JSON.parse(text) as T; }
         catch { return { state: "unavailable", observedAt, operation, status: response.status, reason: "ARI returned malformed JSON." }; }
       }
-      return { state: response.ok ? "available" : "unavailable", observedAt, operation, status: response.status, headers: { "content-type": response.headers.get("content-type") ?? undefined, etag: response.headers.get("etag") ?? undefined }, value, reason: response.ok ? undefined : `ARI returned HTTP ${response.status}.` };
+      const schemaError = response.ok ? responseSchemaError(value, spec.responseSchema?.responseClass) : undefined;
+      return { state: response.ok && !schemaError ? "available" : "unavailable", observedAt, operation, status: response.status, headers: { "content-type": response.headers.get("content-type") ?? undefined, etag: response.headers.get("etag") ?? undefined }, value, reason: schemaError ?? (response.ok ? undefined : `ARI returned HTTP ${response.status}.`) };
     } catch (error) {
       const reason = error instanceof Error ? error.message : "ARI request failed.";
       return { state: signal?.aborted ? "cancelled" : controller.signal.aborted ? "timedOut" : "unavailable", observedAt, operation, reason };
@@ -428,6 +447,12 @@ function parseAmiHeaders(raw: string): { response?: string; message?: string; fi
     if (key.length <= 80 && value.length <= 4096) fields[key] = value;
   }
   return { response: fields.Response, message: fields.Message, fields };
+}
+
+function responseSchemaError(value: unknown, responseClass: string | undefined): string | undefined {
+  if (!responseClass || responseClass === "void") return undefined;
+  if (/^List\[/u.test(responseClass)) return Array.isArray(value) ? undefined : `ARI response schema expected ${responseClass}.`;
+  return value !== null && typeof value === "object" ? undefined : `ARI response schema expected ${responseClass}.`;
 }
 
 function safeHeader(value: string): string {
