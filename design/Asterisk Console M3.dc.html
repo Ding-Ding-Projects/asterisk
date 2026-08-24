@@ -2221,9 +2221,7 @@ const SCREENS = {
       // control for the mode, however much it looks like the helpful one.
       ctl('h_application','Streaming command','text','',{ showWhen:{ control:'h_mode', is:'custom' },
         info:'The program Asterisk runs and reads audio from. Written to musiconhold.conf as application.' }),
-      ctl('h_sort','Playback order','segmented','random',{ options:['alpha','random','randstart'], showWhen:{ control:'h_mode', is:'files' } }),
-      ctl('h_announce','Announcement every','slider',30,{ min:0, max:300, step:15, unit:'s' }),
-      ctl('h_volume','Volume trim','slider',0,{ min:-20, max:10, unit:' dB' })
+      ctl('h_sort','Playback order','segmented','random',{ options:['alpha','random','randstart'], showWhen:{ control:'h_mode', is:'files' } })
     ]}] },
   httpd:{ rail:'sys', icon:'http', label:'HTTP server', badge:'', title:'HTTP server', file:'http.conf', kind:'generic',
     sub:'Asterisk’s own mini-HTTP server, which ARI, the WebSocket transport and the status page all sit on. Three of these keys are spelled differently from the FreePBX settings that map to them, and this screen writes the spelling Asterisk actually reads.',
@@ -2308,16 +2306,12 @@ const SCREENS = {
     sub:'Transcoding, packetisation and the media port range. Drag the codec list to change preference order globally.',
     groups:[{ title:'Codec preference', desc:'The order Asterisk offers codecs in an SDP. Drag to reorder — there is no list to type.', ctls:[
       ctl('k_order','Global order','order',['opus','g722','ulaw','alaw','g729'],{ pool:['gsm','speex','ilbc','g726'] }),
-      ctl('k_transcode','Allow transcoding','switch',true),
-      ctl('k_opusbr','Opus bitrate','slider',24,{ min:6, max:64, unit:' kbps' }),
-      ctl('k_ptime','Preferred ptime','segmented','20',{ options:['10','20','30','40','60'] })
+      ctl('k_transcode','Allow transcoding','switch',true)
     ]},{ title:'RTP', desc:'Where media lands and how it survives a bad network.', ctls:[
       ctl('r_start','RTP port range start','slider',10000,{ min:1024, max:60000, step:1000 }),
       ctl('r_end','RTP port range end','slider',20000,{ min:2048, max:65000, step:1000 }),
-      ctl('r_dtmf','RFC2833 payload','stepper',101,{ min:96, max:127 }),
       ctl('r_strict','strictrtp','switch',true),
-      ctl('r_ice','ICE support','switch',false),
-      ctl('r_dtls','DTLS for WebRTC','switch',true)
+      ctl('r_ice','ICE support','switch',false)
     ]}] },
   cdr:{ rail:'data', icon:'receipt_long', label:'CDR & CEL', badge:'', title:'Call records', file:'cdr.conf · cel.conf', kind:'generic',
     sub:'Which backend stores records, what counts as an answered call, and which events are logged. Backends are picked, connection secrets come from secret intake.',
@@ -2364,13 +2358,10 @@ const SCREENS = {
     sub:'Severity per destination as a matrix of switches. Rotation is a picker, retention is a slider.',
     groups:[{ title:'Console', desc:'What the attached console prints.', ctls:[
       ctl('g_console','Console levels','chips',['notice','warning','error'],{ options:['debug','trace','notice','warning','error','verbose','dtmf','fax','security'] }),
-      ctl('g_verbose','Verbosity','slider',3,{ min:0, max:10 }),
-      ctl('g_colour','Colourise output','switch',true)
+      ctl('g_verbose','Verbosity','slider',3,{ min:0, max:10 })
     ]},{ title:'Files & rotation', desc:'Disk logging.', ctls:[
       ctl('g_file','File levels','chips',['notice','warning','error','verbose'],{ options:['debug','trace','notice','warning','error','verbose','dtmf','fax','security'] }),
       ctl('g_rotate','Rotation strategy','segmented','rotate',{ options:['sequential','rotate','timestamp','none'] }),
-      ctl('g_count','Keep files','stepper',10,{ min:1, max:100 }),
-      ctl('g_size','Rotate at','slider',50,{ min:1, max:500, unit:' MB' }),
       ctl('g_queue','Queue log','switch',true)
     ]}] },
   security:{ rail:'sys', icon:'shield', label:'Security', badge:'!', title:'Security', file:'acl.conf · stir_shaken.conf', kind:'generic',
@@ -2382,10 +2373,6 @@ const SCREENS = {
       ctl('s_bantime','Ban duration','slider',600,{ min:60, max:86400, step:60, unit:'s' }),
       ctl('s_guest','Allow guest calls','switch',false,{ info:'Off. Always off, unless you run a public conference bridge and know exactly why you turned it on.' })
     ]},{ title:'TLS', desc:'Certificates come from the system store.', ctls:[
-      ctl('s_cert','Server certificate','select','pbx.example.com',{ options:['pbx.example.com','wildcard.example.com','internal-ca-issued'] }),
-      ctl('s_method','TLS method','segmented','tlsv1_3',{ options:['tlsv1_2','tlsv1_3'] }),
-      ctl('s_verify','Verify client certificates','switch',false),
-      ctl('s_ciphers','Cipher policy','segmented','Modern',{ options:['Modern','Intermediate','Legacy'] })
     ]},{ title:'STIR/SHAKEN', desc:'Signed caller identity for outbound calls.', ctls:[
       ctl('s_stir','Attestation enabled','switch',true),
       ctl('s_level','Attestation level','segmented','A',{ options:['A','B','C'], info:'A means you know the caller and their right to that number. C means the call just passed through you.' }),
@@ -2578,7 +2565,7 @@ const SCREENS = {
       ctl('dlg_emoji','Show emojis in dialogs and message boxes','switch',false,{ info:'Adds one relevant emoji to a dialog’s heading and body. Never to a button, an action label or an accessible name: a screen reader announces an emoji by its Unicode description, so a decorated button would be heard on every focus. The wording is identical either way.' })
     ]},
     { title:'Language', desc:'Which language the console speaks. Bilingual keeps English primary and adds the Cantonese beside it. Technical identifiers -- codecs, config keys, section names, SIP URIs -- stay literal in every mode, because they have to survive being read back and typed.', ctls:[
-      ctl('lang_mode','Language','segmented','English',{ options:['English','廣東話','English + 廣東話'], info:'A string with no translation yet renders as English rather than as a placeholder, so an incomplete catalog looks unfinished instead of broken.' }),
+      ctl('lang_mode','Language','segmented','English',{ options:['English','廣東話','English + 廣東話'], info:'A string with no translation yet renders as English rather than as a placeholder, so an incomplete catalog looks unfinished instead of broken.' })
     ]},{ title:'School mode', desc:'A shared, renamable switch for plain English presentation. It hides Cantonese, funny-level, vocabulary and dim-sum capabilities while active, and restores your earlier choices after a verified unlock.', ctls:[
       ctl('school_mode','School mode','switch',false,{ info:'This is a shared presentation mode, not a security boundary. Turning it on forces English and removes playful or optional controls everywhere this console runs.' }),
       ctl('school_name','School mode name','text','',{ placeholder:'School mode', info:'Rename the mode shown in every surface. The chosen name is shared and updates live.' }),

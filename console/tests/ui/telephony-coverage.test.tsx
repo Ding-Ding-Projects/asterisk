@@ -21,9 +21,18 @@ import { ORDER, SCREENS } from '../../app/renderer/src/generated/console.tsx';
 
 const srcDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'app', 'renderer', 'src');
 
-/** The share on 2026-08-24, measured. It may rise freely and may not fall. */
-const WORKING_FLOOR = 168;
-const TELEPHONY_TOTAL = 191;
+/**
+ * The share on 2026-08-24, measured.
+ *
+ * The total fell from 191 to 178 the same day, because thirteen controls were removed rather
+ * than bound: each described a setting Asterisk does not have in the file its screen edits,
+ * and mapping one onto something else would have meant inventing behaviour. The removals are
+ * listed in docs/platform/unbound-controls.md so any of them can be put back with a real key.
+ *
+ * It may rise freely and may not fall.
+ */
+const WORKING_FLOOR = 169;
+const TELEPHONY_TOTAL = 178;
 
 function measure() {
   const files = readdirSync(srcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));

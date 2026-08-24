@@ -117,6 +117,16 @@ export interface ControlBinding {
    * nobody intended.
    */
   sectionFrom?: string;
+  /**
+   * Set when the TYPE of object this screen edits is itself a choice.
+   *
+   * The IAX screen edits a peer, and iax.conf writes one as type=peer or type=friend
+   * depending on whether it also receives calls. Its type picker was unbound because binding
+   * it to the type key would let somebody change the type through the very match that found
+   * the section. Driving the match instead is the honest version: choosing user makes the
+   * screen edit user objects, which is what picking it means.
+   */
+  sectionTypeFrom?: string;
 }
 
 /** A section name that cannot break the file it is written into. */
@@ -332,17 +342,17 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   // secret" rather than carrying one -- a secret must never travel through an ordinary
   // binding into renderer state, and from there into exports, history and screenshots.
   iaxpeers: [
-    { ...st('ix_host', 'peer', 'host'), sectionType: ['peer', 'friend'] },  // line 486 and others: host=
-    { ...st('ix_username', 'peer', 'username'), sectionType: ['peer', 'friend'] },  // username=
-    { ...nt('ix_port', 'peer', 'port'), sectionType: ['peer', 'friend'] },  // port= (IAX2 is 4569 by default)
-    { ...st('ix_transfer', 'peer', 'transfer'), sectionType: ['peer', 'friend'] },  // transfer= no/yes/mediaonly, matching the control
-    { ...st('ix_qualify', 'peer', 'qualify'), sectionType: ['peer', 'friend'] },  // qualify= yes, no, or a millisecond threshold
-    { ...bt('ix_trunk', 'peer', 'trunk'), sectionType: ['peer', 'friend'] },  // trunk=
-    { ...st('ix_calltoken', 'peer', 'requirecalltoken'), sectionType: ['peer', 'friend'] },  // requirecalltoken= no/yes/auto, matching the control
-    { ...st('ix_context', 'peer', 'context'), sectionType: ['peer', 'friend'] },  // context=
-    { ...st('ix_accountcode', 'peer', 'accountcode'), sectionType: ['peer', 'friend'] },  // accountcode=
-    { ...st('ix_mailbox', 'peer', 'mailbox'), sectionType: ['peer', 'friend'] },  // mailbox=
-    { ...lt('ix_codecs', 'peer', 'allow'), sectionType: ['peer', 'friend'] },  // allow=, written after disallow=all as the design says
+    { ...st('ix_host', 'peer', 'host'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // line 486 and others: host=
+    { ...st('ix_username', 'peer', 'username'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // username=
+    { ...nt('ix_port', 'peer', 'port'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // port= (IAX2 is 4569 by default)
+    { ...st('ix_transfer', 'peer', 'transfer'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // transfer= no/yes/mediaonly, matching the control
+    { ...st('ix_qualify', 'peer', 'qualify'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // qualify= yes, no, or a millisecond threshold
+    { ...bt('ix_trunk', 'peer', 'trunk'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // trunk=
+    { ...st('ix_calltoken', 'peer', 'requirecalltoken'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // requirecalltoken= no/yes/auto, matching the control
+    { ...st('ix_context', 'peer', 'context'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // context=
+    { ...st('ix_accountcode', 'peer', 'accountcode'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // accountcode=
+    { ...st('ix_mailbox', 'peer', 'mailbox'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // mailbox=
+    { ...lt('ix_codecs', 'peer', 'allow'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // allow=, written after disallow=all as the design says
   ],
   // configs/samples/http.conf.sample — every key below is in [general] there, checked
   // by hand against the file in this checkout rather than taken from a proposal.
@@ -655,8 +665,11 @@ export function readControlValues(
     /* Nothing chosen, or a name that could break the file: the control is absent rather than
      * read from a section nobody picked. */
     if (wanted === undefined) continue;
-    const section = binding.sectionType
-      ? sectionOfType(source, binding.sectionType)
+    const chosenType = binding.sectionTypeFrom === undefined
+      ? binding.sectionType
+      : (typeof chosen[binding.sectionTypeFrom] === 'string' ? String(chosen[binding.sectionTypeFrom]) : binding.sectionType);
+    const section = chosenType
+      ? sectionOfType(source, chosenType)
       : source.find((candidate) => candidate.name === wanted);
     const entry = section?.entries.find((e) => e.key === binding.key);
     if (!entry) {
@@ -860,10 +873,10 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'c_rate', 'c_mixing', 'c_video', 'c_denoise', 'c_jitter', 'c_talker',
     'c_max', 'c_marked', 'c_announce', 'c_music', 'c_dtmf',
   ],
-  moh: ['h_mode', 'h_sort', 'h_announce', 'h_volume'],
+  moh: ['h_mode', 'h_sort'],
   codecs: [
-    'k_order', 'k_transcode', 'k_opusbr', 'k_ptime',
-    'r_start', 'r_end', 'r_dtmf', 'r_strict', 'r_ice', 'r_dtls',
+    'k_order', 'k_transcode',
+    'r_start', 'r_end', 'r_strict', 'r_ice',
   ],
   cdr: [
     'd_enable', 'd_backend', 'd_unanswered', 'd_congestion', 'd_batch', 'd_size',
@@ -871,9 +884,9 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
   ami: ['a_http', 'a_port', 'a_tls', 'a_tlsport', 'a_origin', 'a_read', 'a_write', 'a_deny', 'a_timeout'],
   modules: ['mo_auto', 'mo_preload', 'mo_noload', 'mo_require'],
-  logger: ['g_console', 'g_verbose', 'g_colour', 'g_file', 'g_rotate', 'g_count', 'g_size', 'g_queue'],
+  logger: ['g_console', 'g_verbose', 'g_file', 'g_rotate', 'g_queue'],
   security: [
-    's_acl', 's_permit', 's_failban', 's_bantime', 's_guest', 's_cert', 's_method',
-    's_verify', 's_ciphers', 's_stir', 's_level', 's_verifyin', 's_failaction',
+    's_acl', 's_permit', 's_failban', 's_bantime', 's_guest',
+    's_stir', 's_level', 's_verifyin', 's_failaction',
   ],
 };

@@ -100,6 +100,38 @@ siblings in `pjsip.conf`, per endpoint rather than globally. **Global codec orde
 **transcoding**, **Opus bitrate** and **preferred ptime** have no key in either file: the
 one `bitrate` that exists is inside a `[silk24]` section.
 
+## Removed rather than bound
+
+Thirteen controls were taken off their screens on 2026-08-24. Each described a setting
+Asterisk does not have in the file its screen edits, and mapping it onto something else would
+have meant inventing behaviour and calling it configuration. Removing is the same call
+already made for a window control in a single-window console and for pushing a history whose
+own design says it is never pushed.
+
+Any of them can come back the moment it has a real key. That is the whole reason each reason
+is written down rather than summarised.
+
+| Control | Screen | Why it went |
+| --- | --- | --- |
+| Announcement every N seconds | Music on hold | an interval; `announcement=` is a filename |
+| Volume trim | Music on hold | no volume key in `musiconhold.conf` |
+| Opus bitrate | Codecs | the only `bitrate` is inside a `[silk24]` section |
+| Preferred ptime | Codecs | no ptime key; the matches are `rtptime`, `ftptime`, `httptime` |
+| RFC2833 payload | Codecs | `rtp.conf` has no payload key; `dtmftimeout` is a timeout |
+| DTLS for WebRTC | Codecs | the DTLS keys are per endpoint in `pjsip.conf` |
+| Colourise output | Logger | no colour key in `logger.conf` or `asterisk.conf` |
+| Keep files | Logger | no file-count key; `rotatestrategy` picks a strategy |
+| Rotate at | Logger | no size key |
+| Server certificate | Security | a hostname picker; `tlscertfile` takes a path |
+| TLS method | Security | Asterisk uses `tlsdisablev1`/`v11`/`v12` flags, not a method |
+| Verify client certificates | Security | no such key in these files |
+| Cipher policy | Security | `tlscipher` takes a cipher string; deciding what Modern means is a security decision |
+
+The last four are the ones worth being careful about. Each could be made to write something,
+and each would require this console to decide a security question on somebody's behalf --
+which certificates live where, which TLS versions a name implies, which ciphers count as
+modern. A console must not make those silently.
+
 ## Configuration
 
 Nothing here is configurable. The list is a record of design decisions still to be taken.

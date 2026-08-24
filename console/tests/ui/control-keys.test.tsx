@@ -281,10 +281,11 @@ test('unmappedControls returns the real remainder for a bound screen', () => {
   const remainder = unmappedControls('queues');
   assert.deepEqual(remainder, []); // every queues control is bound
 
+  /* k_order and r_dtmf both left this screen on 2026-08-24: k_order is wired as the order a
+   * new endpoint starts from, and r_dtmf was removed because rtp.conf has no payload key at
+   * all -- dtmftimeout is a timeout, not a number. */
   const codecsRemainder = unmappedControls('codecs');
-  assert.ok(codecsRemainder.includes('k_order'));
-  assert.ok(codecsRemainder.includes('r_dtmf'));
-  assert.ok(!codecsRemainder.includes('r_start'));
+  assert.ok(!codecsRemainder.includes('r_start'), 'a bound control is being reported unbound');
 });
 
 test('unmappedControls returns everything for a screen with no bindings at all', () => {
@@ -392,9 +393,9 @@ test('unmappedControls reflects the two controls bound on this second look', () 
    * in asterisk.conf, and this screen edits codecs.conf. k_order left it too, wired as the
    * order a new endpoint starts from, which is the only thing a global codec order can
    * honestly mean when pjsip keeps codec lists per endpoint. */
-  for (const stillUnbound of ['k_opusbr', 'k_ptime', 'r_dtmf', 'r_dtls']) {
-    assert.ok(unmappedControls('codecs').includes(stillUnbound), `expected ${stillUnbound} to remain unmapped`);
-  }
+  /* The rest of that list was removed rather than bound: none of those settings exists in
+   * the file its screen edits, and mapping one onto something else would have meant
+   * inventing behaviour. See docs/platform/unbound-controls.md. */
 });
 
 // ---------------------------------------------------------------- composite values
@@ -693,4 +694,34 @@ test('an empty list clears the run rather than leaving the old one', () => {
   const after = applyControlValues('security', acls, { s_acl: 'branch-offices', s_permit: [] });
   const edited = after.find((section) => section.name === 'branch-offices');
   assert.deepEqual(edited.entries, []);
+});
+
+test('the IAX type picker chooses which objects the screen edits', () => {
+  /* It was unbound because binding it to the type key would let somebody change the type
+   * through the very match that found the section, after which the screen edits something it
+   * can no longer see. Driving the match instead is the honest version: picking user means
+   * editing user objects, which is what choosing it means. */
+  const iax: ConfigValue = [
+    { name: 'guest', entries: [{ key: 'type', value: 'user' }, { key: 'context', value: 'public' }] },
+    { name: 'carrier', entries: [{ key: 'type', value: 'peer' }, { key: 'context', value: 'from-trunk' }] },
+  ];
+  assert.equal(readControlValues('iaxpeers', iax, {}, { ix_type: 'user' }).ix_context, 'public');
+  assert.equal(readControlValues('iaxpeers', iax, {}, { ix_type: 'peer' }).ix_context, 'from-trunk');
+});
+
+test('with nothing picked it still edits a peer, which is what the screen is for', () => {
+  const iax: ConfigValue = [{ name: 'carrier', entries: [
+    { key: 'type', value: 'friend' }, { key: 'context', value: 'from-trunk' },
+  ] }];
+  assert.equal(readControlValues('iaxpeers', iax).ix_context, 'from-trunk');
+});
+
+test('the type key itself is still never written', () => {
+  /* Driving the match is not the same as writing the type. Changing what an object IS
+   * remains a different operation from changing its settings. */
+  const iax: ConfigValue = [{ name: 'carrier', entries: [
+    { key: 'type', value: 'peer' }, { key: 'context', value: 'from-trunk' },
+  ] }];
+  const after = applyControlValues('iaxpeers', iax, { ix_type: 'user', ix_context: 'changed' });
+  assert.equal(after[0].entries.find((e) => e.key === 'type').value, 'peer');
 });
