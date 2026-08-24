@@ -439,6 +439,10 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'backup.list') {
         return { ok: true, requestId: request.requestId, data: { backups: await migration.listBackups() } };
       }
+      if (request.action === 'backup.retained.verify') {
+        const path = typeof request.payload?.path === 'string' ? request.payload.path : '';
+        return { ok: true, requestId: request.requestId, data: await migration.verifyRetainedTree(path) };
+      }
       if (request.action === 'backup.prune') {
         const keep = Number(request.payload?.keep ?? 30);
         const selectedPaths = Array.isArray(request.payload?.selectedPaths) ? request.payload.selectedPaths.filter((path): path is string => typeof path === 'string') : [];
@@ -466,14 +470,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         return { ok: true, requestId: request.requestId, data: migration.startPushRemote(name, branch) };
       }
       if (request.action === 'git.remote.fetch' || request.action === 'git.remote.push') {
-        const name = typeof request.payload?.name === 'string' ? request.payload.name : '';
-        if (request.action === 'git.remote.fetch') {
-          const result = await migration.fetchRemote(name);
-          return { ok: result.receipt.status === 'success', requestId: request.requestId, code: result.receipt.status === 'success' ? undefined : 'GIT_FETCH_FAILED', message: result.receipt.detail, data: result } as ControlPlaneResponse;
-        }
-        const branch = typeof request.payload?.branch === 'string' ? request.payload.branch : '';
-        const result = await migration.pushRemote(name, branch);
-        return { ok: result.receipt.status === 'success', requestId: request.requestId, code: result.receipt.status === 'success' ? undefined : 'GIT_PUSH_FAILED', message: result.receipt.detail, data: result } as ControlPlaneResponse;
+        return { ok: false, requestId: request.requestId, code: 'GIT_OPERATION_START_REQUIRED', message: 'Use the operation-start action so progress, cancellation, and terminal receipts remain durable.' };
       }
       if (request.action === 'server.connect' || request.action === 'pbx.snapshot') {
         const requested = request.serverId?.trim();
