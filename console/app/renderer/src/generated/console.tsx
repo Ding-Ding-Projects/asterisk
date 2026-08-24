@@ -5063,8 +5063,7 @@ class ConsoleShell extends DCLogic {
         { icon:'add_circle', label:'Commit now', run:() => this.fire('Committed', 'Working tree is clean.') },
         { icon:'call_split', label:'New branch', run:() => this.toast('Branch created from the current commit') },
         { icon:'sell', label:'Tag this state', run:() => this.fire('Tagged', 'You can restore to this exact point later.') },
-        { icon:'cloud_upload', label:'Push to mirror', run:() => this.toast('Mirror push queued') },
-        { icon:'search', label:'Search history', run:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'40%', regexY:'160px' }) },
+                { icon:'search', label:'Search history', run:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'40%', regexY:'160px' }) },
         { icon:'download', label:'Export bundle', run:() => this.toast('git bundle written to disk') }
       ],
       commitRows:s.commits.filter(c => s.histFilter === 'All' || (s.histFilter === 'This screen' ? c.screen === s.screen : c.file === s.histFilter)).map(c => ({

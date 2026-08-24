@@ -29,13 +29,12 @@ const ANNOUNCE_ONLY = /label:'([^']*)'[^}]*?run:\(\) => .{0,14}this\.(?:toast|fi
  * forgotten, and every one of them still tells the person something untrue today.
  */
 const STILL_ANNOUNCING = new Map([
-  ['Commit now', 'needs a git write through the control plane; ceremony only reaches pbx.command, which is the Asterisk CLI'],
-  ['New branch', 'needs a git write, and a name to give the branch'],
-  ['Tag this state', 'needs a git write through the control plane'],
-  ['Push to mirror', 'needs a git write and a configured mirror, neither of which exists yet'],
-  ['Export bundle', 'needs git bundle through the control plane, not a renderer download'],
-  ['Revert just this option', 'needs a per-option revert the configuration writer cannot do yet'],
-  ['Branch from here', 'needs a git write through the control plane'],
+  ['Commit now', 'the config history is timestamped backup files, not git -- ConfigHistory runs no git at all, and the screen shows /etc/asterisk/.git, which does not exist. A manual commit has nothing to commit to'],
+  ['New branch', 'no git repository exists for /etc/asterisk; the app-side LocalHistory that IS git is append-only by design and has no branch operation'],
+  ['Tag this state', 'same: no repository for /etc/asterisk, and LocalHistory records rather than tags. The nearest real thing is a named restore point in the backup list'],
+  ['Export bundle', 'a git bundle of a repository that does not exist. The backups it would really be exporting are files, so an archive of those is the honest equivalent'],
+  ['Revert just this option', 'restore replaces a whole file from a backup; there is no per-option revert, and inventing one means diffing and rewriting a single key inside a live config'],
+  ['Branch from here', 'same as New branch: no repository, and the history that is git is append-only'],
   ['Lock every tab in group', 'needs the per-element lock wizard to accept a whole group'],
   ['Restore last session', 'needs the tab session to be persisted first; nothing writes it yet'],
   ['Group tabs by area', 'needs the tab model to accept a bulk regroup'],
