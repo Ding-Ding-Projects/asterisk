@@ -2198,7 +2198,7 @@ const SCREENS = {
     ]},{ title:'Participants', desc:'What each caller may do once inside.', ctls:[
       ctl('c_max','Maximum members','stepper',50,{ min:2, max:500 }),
       ctl('c_marked','Wait for marked user','switch',true),
-      ctl('c_announce','Announce join and leave','segmented','name',{ options:['off','tone','name','count'] }),
+      ctl('c_announce','Announce join and leave','segmented','name',{ options:['off','name','count'], info:'One setting here, two in confbridge.conf: announce_join_leave and announce_user_count. A tone is not either of them -- it is a sound file, so that option was removed rather than mapped onto a boolean that means something else.' }),
       ctl('c_music','Music while alone','switch',true),
       ctl('c_dtmf','DTMF menu','select','default_menu',{ options:['default_menu','admin_menu','listen_only'] })
     ]}] },

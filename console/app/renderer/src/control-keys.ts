@@ -127,6 +127,19 @@ export interface ControlBinding {
    * screen edit user objects, which is what picking it means.
    */
   sectionTypeFrom?: string;
+  /**
+   * Set when one control is several keys to Asterisk.
+   *
+   * The conference announce picker is one setting to a person and two booleans in
+   * confbridge.conf. Binding either alone would leave the other saying something different,
+   * so this names what EVERY key it owns must say for each value the control can take.
+   *
+   * Reading finds the value whose keys all match; an arrangement matching none reads as
+   * absent rather than as the nearest one, because somebody has set those keys by hand to a
+   * combination this control cannot express and showing them the closest would misreport
+   * what their bridge does.
+   */
+  multi?: Readonly<Record<string, Readonly<Record<string, string>>>>;
 }
 
 /** A section name that cannot break the file it is written into. */
@@ -477,6 +490,15 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   // design's segmented off/tone/name/count options do not match) and c_dtmf (no menu
   // key present in the sample) are unmapped.
   confbridge: [
+    // confbridge.conf.sample lines 50 and 156. One setting to a person, two booleans to
+    // Asterisk, so both are written together: choosing count means announce the count AND do
+    // not announce names, and writing only the first would leave the second contradicting it.
+    { control: 'c_announce', section: 'default_user', key: 'announce_join_leave', kind: 'string',
+      multi: {
+        off: { announce_join_leave: 'no', announce_user_count: 'no' },
+        name: { announce_join_leave: 'yes', announce_user_count: 'no' },
+        count: { announce_join_leave: 'no', announce_user_count: 'yes' },
+      } },
     s('c_rate', 'default_bridge', 'internal_sample_rate'),
     s('c_mixing', 'default_bridge', 'mixing_interval'),
     s('c_video', 'default_bridge', 'video_mode'),
@@ -685,6 +707,17 @@ export function readControlValues(
       out[binding.control] = true;
       continue;
     }
+    if (binding.multi) {
+      if (!section) continue;
+      const holds = (key: string, value: string): boolean => {
+        const entry = section.entries.find((candidate) => candidate.key === key);
+        return entry !== undefined && entry.value.trim().toLowerCase() === value.toLowerCase();
+      };
+      const matched = Object.entries(binding.multi)
+        .find(([, keys]) => Object.entries(keys).every(([key, value]) => holds(key, value)));
+      if (matched) out[binding.control] = matched[0];
+      continue;
+    }
     if (binding.repeated) {
       /* Every occurrence, in file order, because the order is the setting. */
       if (!section) continue;
@@ -758,6 +791,19 @@ export function applyControlValues(
     const raw = binding.composite
       ? joinComposite(idx === -1 ? '' : entries[idx].value, binding.composite.separator, binding.composite.part, own)
       : own;
+    if (binding.multi) {
+      const picked = changes[binding.control];
+      const keys = typeof picked === 'string' ? binding.multi[picked] : undefined;
+      /* A value this control cannot express writes nothing at all. Writing some of the keys
+       * would leave the file in a state neither the old value nor the new one describes. */
+      if (!keys) continue;
+      for (const [key, value] of Object.entries(keys)) {
+        const at = entries.findIndex((candidate) => candidate.key === key);
+        if (at === -1) entries.push({ key, value });
+        else entries[at] = { key, value };
+      }
+      continue;
+    }
     if (binding.repeated) {
       const wanted = changes[binding.control];
       if (!Array.isArray(wanted) || !wanted.every((item) => typeof item === 'string')) continue;

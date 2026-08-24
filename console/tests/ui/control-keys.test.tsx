@@ -63,7 +63,9 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // screen edits: logger verbosity and global transcoding.
   // And 131 with the permitted-networks list, which needed two shapes at once: a key that
   // repeats, and a section chosen by another control rather than named in the table.
-  assert.equal(controlCount, 131);
+  // And 132 with the conference announce picker, which is one setting to a person and two
+  // booleans to Asterisk, written together so neither can contradict the other.
+  assert.equal(controlCount, 132);
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -724,4 +726,47 @@ test('the type key itself is still never written', () => {
   ] }];
   const after = applyControlValues('iaxpeers', iax, { ix_type: 'user', ix_context: 'changed' });
   assert.equal(after[0].entries.find((e) => e.key === 'type').value, 'peer');
+});
+
+// ---------------------------------------------------------------- one control, several keys
+
+test('one setting to a person is written as both keys it means', () => {
+  /* Choosing "count" means announce the count AND do not announce names. Writing only the
+   * first would leave the second contradicting it. */
+  const cfg: ConfigValue = [{ name: 'default_user', entries: [
+    { key: 'announce_join_leave', value: 'yes' }, { key: 'announce_user_count', value: 'no' },
+  ] }];
+  assert.equal(readControlValues('confbridge', cfg).c_announce, 'name');
+  const after = applyControlValues('confbridge', cfg, { c_announce: 'count' });
+  assert.deepEqual(after[0].entries, [
+    { key: 'announce_join_leave', value: 'no' },
+    { key: 'announce_user_count', value: 'yes' },
+  ]);
+});
+
+test('every value the control offers has a reading', () => {
+  for (const [value, keys] of [
+    ['off', { announce_join_leave: 'no', announce_user_count: 'no' }],
+    ['name', { announce_join_leave: 'yes', announce_user_count: 'no' }],
+    ['count', { announce_join_leave: 'no', announce_user_count: 'yes' }],
+  ] as const) {
+    const cfg: ConfigValue = [{ name: 'default_user', entries: Object.entries(keys).map(([key, v]) => ({ key, value: v })) }];
+    assert.equal(readControlValues('confbridge', cfg).c_announce, value);
+  }
+});
+
+test('a combination the control cannot express reads as absent, not as the nearest one', () => {
+  /* Somebody has set both keys by hand to something this picker has no word for. Showing
+   * them the closest option would misreport what their bridge actually does. */
+  const both: ConfigValue = [{ name: 'default_user', entries: [
+    { key: 'announce_join_leave', value: 'yes' }, { key: 'announce_user_count', value: 'yes' },
+  ] }];
+  assert.equal(readControlValues('confbridge', both).c_announce, undefined);
+});
+
+test('a value the control does not offer writes nothing at all', () => {
+  /* Writing some of the keys would leave the file in a state neither the old value nor the
+   * new one describes. */
+  const cfg: ConfigValue = [{ name: 'default_user', entries: [{ key: 'announce_join_leave', value: 'yes' }] }];
+  assert.deepEqual(applyControlValues('confbridge', cfg, { c_announce: 'tone' }), cfg);
 });
