@@ -33,6 +33,23 @@ export const ENDPOINT_CONTROLS = {
   qualify: 'e_qualify',
   mailboxes: 'e_mailboxes',
   voicemailExtension: 'e_voicemail_ext',
+  /* CORE-PJSIP-DEV-010/018/020/021/023/024/027/028. The model already parsed every
+   * one of these keys; only the controls were missing, which is what "backend ready,
+   * no UI" meant on the scoreboard. */
+  maxAudioStreams: 'e_maxaudio',
+  maxVideoStreams: 'e_maxvideo',
+  optimisticEncryption: 'e_optimistic',
+  timers: 'e_timers',
+  timersMinSe: 'e_timers_min_se',
+  timersSessExpires: 'e_timers_sess',
+  rtpTimeout: 'e_rtp_timeout',
+  rtpTimeoutHold: 'e_rtp_hold',
+  deviceStateBusyAt: 'e_busy_at',
+  referBlindProgress: 'e_refer_blind',
+  aggregateMwi: 'e_aggregate_mwi',
+  mwiReplacesUnsolicited: 'e_mwi_replaces',
+  outboundProxy: 'e_outbound_proxy',
+  outboundAuth: 'e_outbound_auth',
 } as const;
 
 /** Asterisk writes `yes` and `no`; the interface uses a switch. */
@@ -74,6 +91,27 @@ export function controlValuesFor(endpoint: PjsipEndpointView): Record<string, un
   put(ENDPOINT_CONTROLS.qualify, endpoint.aor.qualify_frequency !== undefined ? Number(endpoint.aor.qualify_frequency) : undefined);
   put(ENDPOINT_CONTROLS.mailboxes, endpoint.endpoint.mailboxes);
   put(ENDPOINT_CONTROLS.voicemailExtension, endpoint.endpoint.voicemail_extension);
+
+  /* Numeric keys reach steppers and sliders as numbers; a key the endpoint never set
+   * stays out entirely, so the control keeps the design's default and the screen does
+   * not imply a setting the target has never been given. */
+  const num = (raw: string | undefined) => (raw === undefined ? undefined : Number(raw));
+  put(ENDPOINT_CONTROLS.maxAudioStreams, num(endpoint.endpoint.max_audio_streams));
+  put(ENDPOINT_CONTROLS.maxVideoStreams, num(endpoint.endpoint.max_video_streams));
+  put(ENDPOINT_CONTROLS.optimisticEncryption, toSwitch(endpoint.endpoint.media_encryption_optimistic));
+  /* `timers` is not a yes/no: Asterisk accepts no/yes/required/always, so it reaches a
+   * segmented control as its literal value rather than being flattened to a switch. */
+  put(ENDPOINT_CONTROLS.timers, endpoint.endpoint.timers);
+  put(ENDPOINT_CONTROLS.timersMinSe, num(endpoint.endpoint.timers_min_se));
+  put(ENDPOINT_CONTROLS.timersSessExpires, num(endpoint.endpoint.timers_sess_expires));
+  put(ENDPOINT_CONTROLS.rtpTimeout, num(endpoint.endpoint.rtp_timeout));
+  put(ENDPOINT_CONTROLS.rtpTimeoutHold, num(endpoint.endpoint.rtp_timeout_hold));
+  put(ENDPOINT_CONTROLS.deviceStateBusyAt, num(endpoint.endpoint.device_state_busy_at));
+  put(ENDPOINT_CONTROLS.referBlindProgress, toSwitch(endpoint.endpoint.refer_blind_progress));
+  put(ENDPOINT_CONTROLS.aggregateMwi, toSwitch(endpoint.endpoint.aggregate_mwi));
+  put(ENDPOINT_CONTROLS.mwiReplacesUnsolicited, toSwitch(endpoint.endpoint.mwi_subscribe_replaces_unsolicited));
+  put(ENDPOINT_CONTROLS.outboundProxy, endpoint.endpoint.outbound_proxy);
+  put(ENDPOINT_CONTROLS.outboundAuth, endpoint.endpoint.outbound_auth);
   return values;
 }
 
@@ -150,6 +188,21 @@ export function applyControlValues(
       summary.push(`pjsip.conf: ${name} codecs ${beforeAllow.join(',') || 'unset'} to ${nextAllow.join(',')}`);
     }
   }
+
+  set('max_audio_streams', number(ENDPOINT_CONTROLS.maxAudioStreams), 'max_audio_streams');
+  set('max_video_streams', number(ENDPOINT_CONTROLS.maxVideoStreams), 'max_video_streams');
+  set('media_encryption_optimistic', fromSwitch(values[ENDPOINT_CONTROLS.optimisticEncryption]), 'media_encryption_optimistic (opportunistic SRTP)');
+  set('timers', text(ENDPOINT_CONTROLS.timers), 'timers (session timers)');
+  set('timers_min_se', number(ENDPOINT_CONTROLS.timersMinSe), 'timers_min_se');
+  set('timers_sess_expires', number(ENDPOINT_CONTROLS.timersSessExpires), 'timers_sess_expires');
+  set('rtp_timeout', number(ENDPOINT_CONTROLS.rtpTimeout), 'rtp_timeout');
+  set('rtp_timeout_hold', number(ENDPOINT_CONTROLS.rtpTimeoutHold), 'rtp_timeout_hold');
+  set('device_state_busy_at', number(ENDPOINT_CONTROLS.deviceStateBusyAt), 'device_state_busy_at');
+  set('refer_blind_progress', fromSwitch(values[ENDPOINT_CONTROLS.referBlindProgress]), 'refer_blind_progress');
+  set('aggregate_mwi', fromSwitch(values[ENDPOINT_CONTROLS.aggregateMwi]), 'aggregate_mwi');
+  set('mwi_subscribe_replaces_unsolicited', fromSwitch(values[ENDPOINT_CONTROLS.mwiReplacesUnsolicited]), 'mwi_subscribe_replaces_unsolicited');
+  set('outbound_proxy', optionalText(ENDPOINT_CONTROLS.outboundProxy), 'outbound_proxy');
+  set('outbound_auth', optionalText(ENDPOINT_CONTROLS.outboundAuth), 'outbound_auth');
 
   setAor('max_contacts', number(ENDPOINT_CONTROLS.maxContacts), 'max_contacts');
   setAor('remove_existing', fromSwitch(values[ENDPOINT_CONTROLS.removeExisting]), 'remove_existing');
