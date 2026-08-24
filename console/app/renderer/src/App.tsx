@@ -5,6 +5,8 @@ import {
   type ViewReadings,
 } from './readings';
 import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
+import { buildCodecGraph, layoutCodecs, unreachable as unreachableCodecs } from './codec-graph';
+import { buildEndpointGraph, brokenLinks as brokenEndpointLinks, layoutTopology, summarise as summariseEndpointGraph } from './endpoint-graph';
 import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
 import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, type ConfigValue } from './configuration';
 import { readControlValues, unmappedControls } from './control-keys';
@@ -1215,6 +1217,138 @@ It is shown once. The phone needs it to register.`);
     };
   }
 
+  // ---------------------------------------------------------------- Codec & endpoint graphs
+  //
+  // Two visualisations for screens that already exist, not new destinations: the codec
+  // translation graph belongs on `codecs` (drawn from the same `core show translation` /
+  // `core show codecs` readings the dispatcher already fetches for that screen -- see
+  // `control-plane/dispatch.ts`), and the endpoint reachability graph belongs on
+  // `endpoints` (drawn from `pjsip show endpoints` / `contacts` / `registrations`, the
+  // last of which the `endpoints` view now also reads for exactly this). Both engines
+  // (`codec-graph.ts`, `endpoint-graph.ts`) refuse to invent an edge the reading did not
+  // report; an empty graph here means the reading genuinely came back empty, and says so
+  // rather than rendering a blank box that reads as broken.
+
+  /** Real codec translation graph for the `codecs` screen, drawn as computed SVG edges
+   *  over a deterministic ring layout (`layoutCodecs`) rather than hand-authored path
+   *  data. Nodes are plain positioned circles (the same div-overlay idiom the dialplan
+   *  canvas already uses), offset here so the design markup never has to subtract. */
+  private codecGraphVals(): Record<string, unknown> {
+    const readings = this.readings.codecs;
+    const translations = valueOf(readings?.translations) ?? [];
+    const codecs = valueOf(readings?.codecs);
+    const reason = reasonFor(readings, ['translations', 'codecs']);
+
+    if (translations.length === 0) {
+      return {
+        codecGraphHasData: false,
+        codecGraphStatus: reason || 'No codec translation paths have been read from this target yet.',
+        codecGraphNodes: [],
+        codecGraphEdges: [],
+        codecGraphUnreachableLabel: '',
+      };
+    }
+
+    const graph = buildCodecGraph(translations, codecs);
+    const laidOut = layoutCodecs(graph.nodes, { radius: 118, centerX: 230, centerY: 150 });
+    const byId = new Map(laidOut.map((node) => [node.id, node]));
+
+    const edges = graph.edges.map((edge) => {
+      const a = byId.get(edge.from);
+      const b = byId.get(edge.to);
+      if (!a || !b) return { d: '' };
+      return { d: `M${a.x.toFixed(1)} ${a.y.toFixed(1)} L${b.x.toFixed(1)} ${b.y.toFixed(1)}` };
+    });
+
+    const strandedIds = new Set(unreachableCodecs(graph).map((node) => node.id));
+    const NODE_SIZE = 72;
+    const nodes = laidOut.map((node) => ({
+      id: node.id,
+      label: node.name,
+      x: `${(node.x - NODE_SIZE / 2).toFixed(1)}px`,
+      y: `${(node.y - NODE_SIZE / 2).toFixed(1)}px`,
+      fill: strandedIds.has(node.id) ? '#FFB4AB' : '#82D9A5',
+    }));
+
+    const unreachableNames = unreachableCodecs(graph).map((node) => node.name);
+
+    return {
+      codecGraphHasData: true,
+      codecGraphStatus: `${graph.nodes.length} codec${graph.nodes.length === 1 ? '' : 's'} - ${graph.edges.length} translation path${graph.edges.length === 1 ? '' : 's'}${strandedIds.size ? ` - ${strandedIds.size} stranded` : ''}`,
+      codecGraphNodes: nodes,
+      codecGraphEdges: edges,
+      codecGraphUnreachableLabel: unreachableNames.length
+        ? `Stranded (no translation path in or out): ${unreachableNames.join(', ')}`
+        : '',
+    };
+  }
+
+  /** Real endpoint reachability graph for the `endpoints` screen, drawn as computed SVG
+   *  edges over a deterministic layered layout (`layoutTopology`) rather than hand-
+   *  authored path data. Every broken link `brokenLinks` reports is surfaced as its own
+   *  line, not merely absent from the picture. */
+  private endpointGraphVals(): Record<string, unknown> {
+    const readings = this.readings.endpoints;
+    const endpoints = valueOf(readings?.endpoints) ?? [];
+    const contacts = valueOf(readings?.contacts) ?? [];
+    const registrations = valueOf(readings?.registrations) ?? [];
+    const reason = reasonFor(readings, ['endpoints', 'contacts', 'registrations']);
+
+    if (endpoints.length === 0) {
+      return {
+        endpointGraphHasData: false,
+        endpointGraphStatus: reason || 'No endpoints have been read from this target yet.',
+        endpointGraphWidth: '0px',
+        endpointGraphHeight: '0px',
+        endpointGraphNodes: [],
+        endpointGraphEdges: [],
+        endpointGraphBroken: [],
+      };
+    }
+
+    const graph = buildEndpointGraph({ endpoints, contacts, registrations });
+    const laidOut = layoutTopology(graph.nodes, { columnWidth: 190, rowHeight: 74, originX: 20, originY: 26 });
+    const byId = new Map(laidOut.map((node) => [node.id, node]));
+    const NODE_KIND_FILL: Record<string, string> = {
+      endpoint: '#82D9A5', aor: '#9AA39B', contact: '#7FD1F0', registration: '#FFCC80',
+    };
+
+    const edges = graph.edges.map((edge) => {
+      const a = byId.get(edge.from);
+      const b = byId.get(edge.to);
+      if (!a || !b) return { d: '' };
+      const x1 = a.x + 84, y1 = a.y + 12, x2 = b.x, y2 = b.y + 12;
+      const m = (x1 + x2) / 2;
+      return { d: `M${x1} ${y1} C${m} ${y1} ${m} ${y2} ${x2} ${y2}` };
+    });
+
+    const nodes = laidOut.map((node) => ({
+      id: node.id,
+      label: node.label,
+      detail: node.detail,
+      x: `${node.x}px`,
+      y: `${node.y}px`,
+      fill: NODE_KIND_FILL[node.kind] ?? '#9AA39B',
+    }));
+
+    const summary = summariseEndpointGraph(graph);
+    const width = 20 + 4 * 190 + 168;
+    const rowsPerColumn = new Map<number, number>();
+    for (const node of laidOut) rowsPerColumn.set(node.x, (rowsPerColumn.get(node.x) ?? 0) + 1);
+    const maxRows = Math.max(1, ...rowsPerColumn.values());
+    const height = 26 + maxRows * 74 + 40;
+
+    return {
+      endpointGraphHasData: true,
+      endpointGraphStatus: `${summary.nodeCounts.endpoint} endpoint${summary.nodeCounts.endpoint === 1 ? '' : 's'} - ${summary.chainsComplete} reachable - ${summary.chainsBroken} broken`,
+      endpointGraphWidth: `${width}px`,
+      endpointGraphHeight: `${height}px`,
+      endpointGraphNodes: nodes,
+      endpointGraphEdges: edges,
+      endpointGraphBroken: brokenEndpointLinks(graph).map((link) => link.message),
+    };
+  }
+
   // ---------------------------------------------------------------- Appearance
   //
   // Wires the compiled design's "Edit appearance..." panel (context menu on any
@@ -1602,6 +1736,13 @@ It is shown once. The phone needs it to register.`);
       // The changelog viewer: every released version, built from this repository's
       // own tag history (see scripts/bundle-changelog.mjs), never invented.
       ...(screen === 'changelog' ? this.changelogVals() : {}),
+
+      // The codec translation graph (codec-graph.ts) on the codecs screen, and the
+      // endpoint reachability graph (endpoint-graph.ts) on the endpoints screen --
+      // real graphs from the readings already fetched for those screens, drawn as
+      // computed SVG, never invented edges.
+      ...(screen === 'codecs' ? this.codecGraphVals() : {}),
+      ...(screen === 'endpoints' ? this.endpointGraphVals() : {}),
 
       // Real selection mechanics and bulk-action plans (bulk.ts) plus a real file
       // export (export.ts) for every table-like screen -- see bulkSelectionVals above.

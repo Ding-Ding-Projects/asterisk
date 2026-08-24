@@ -1529,6 +1529,63 @@ function Template(v: any) {
                       )))
                   )))
               ) : null),
+            (v.isCodecGraph ? h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:16px 18px; margin-bottom:14px;`) },
+                h("div", { style: sty(`display:flex; align-items:center; gap:8px; margin-bottom:4px;`) },
+                  h("span", { style: sty(`font-size:19px; color:#82D9A5;`), className: "msym" },
+                    "hub"
+                  ),
+                  h("span", { style: sty(`font-size:14.5px; font-weight:500;`) },
+                    "Codec translation graph"
+                  )
+                ),
+                h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11.5px; color:#9AA39B; margin-bottom:10px;`) },
+                  S(v.codecGraphStatus)
+                ),
+                (v.codecGraphHasData ? h("div", { style: sty(`position:relative; width:100%; max-width:640px; height:300px;`) },
+                    h("svg", { viewBox: `0 0 460 300`, style: sty(`position:absolute; left:0; top:0; width:100%; height:300px; pointer-events:none;`) },
+                      A(v.codecGraphEdges).map(($e, $e$i) => R($e$i, h("path", { d: $e.d, fill: `none`, stroke: `#37483D`, strokeWidth: `1.4` })))
+                    ),
+                    A(v.codecGraphNodes).map(($n, $n$i) => R($n$i, h("div", { style: sty(`position:absolute; left:${S($n.x)}; top:${S($n.y)}; width:72px; height:72px; border-radius:50%; background:#1B211C; border:2px solid ${S($n.fill)}; display:flex; align-items:center; justify-content:center; text-align:center; padding:4px;`) },
+                        h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10px; color:#DFE4DC; overflow:hidden; word-break:break-all;`) },
+                          S($n.label)
+                        )
+                      )))
+                  ) : null),
+                (v.codecGraphUnreachableLabel ? h("div", { style: sty(`font-size:11.5px; color:#FFB4AB; margin-top:8px;`) },
+                    S(v.codecGraphUnreachableLabel)
+                  ) : null)
+              ) : null),
+            (v.isEndpointGraph ? h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:16px 18px; margin-bottom:14px;`) },
+                h("div", { style: sty(`display:flex; align-items:center; gap:8px; margin-bottom:4px;`) },
+                  h("span", { style: sty(`font-size:19px; color:#82D9A5;`), className: "msym" },
+                    "device_hub"
+                  ),
+                  h("span", { style: sty(`font-size:14.5px; font-weight:500;`) },
+                    "Endpoint reachability graph"
+                  )
+                ),
+                h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11.5px; color:#9AA39B; margin-bottom:10px;`) },
+                  S(v.endpointGraphStatus)
+                ),
+                (v.endpointGraphHasData ? h("div", { style: sty(`position:relative; overflow:auto; max-height:420px; border-radius:12px; background:#0C110D;`) },
+                    h("div", { style: sty(`position:relative; width:${S(v.endpointGraphWidth)}; height:${S(v.endpointGraphHeight)};`) },
+                      h("svg", { style: sty(`position:absolute; left:0; top:0; width:${S(v.endpointGraphWidth)}; height:${S(v.endpointGraphHeight)}; pointer-events:none;`) },
+                        A(v.endpointGraphEdges).map(($e, $e$i) => R($e$i, h("path", { d: $e.d, fill: `none`, stroke: `#37483D`, strokeWidth: `1.6` })))
+                      ),
+                      A(v.endpointGraphNodes).map(($n, $n$i) => R($n$i, h("div", { title: $n.detail, style: sty(`position:absolute; left:${S($n.x)}; top:${S($n.y)}; width:168px; border-radius:10px; background:#1B211C; border:2px solid ${S($n.fill)}; padding:6px 9px;`) },
+                          h("div", { style: sty(`font-size:11.5px; font-weight:500; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
+                            S($n.label)
+                          ),
+                          h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10px; color:#9AA39B; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
+                            S($n.detail)
+                          )
+                        )))
+                    )
+                  ) : null),
+                A(v.endpointGraphBroken).map(($b, $b$i) => R($b$i, h("div", { style: sty(`font-size:11.5px; color:#FFB4AB; margin-top:4px;`) },
+                    S($b)
+                  )))
+              ) : null),
             A(v.groups).map(($g, $g$i) => R($g$i, h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:18px 20px; margin-bottom:12px; animation:m3Rise .36s cubic-bezier(.2,0,0,1) both; ${S($g.rnd)}`) },
                 h("div", { style: sty(`display:flex; align-items:flex-start; gap:12px; margin-bottom:16px;`) },
                   h("div", { style: sty(`flex:1;`) },
@@ -4355,6 +4412,9 @@ class ConsoleShell extends DCLogic {
       openWizard:() => (sc.kind === 'servers' && this.onAddServer ? this.onAddServer() : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null })),
 
       isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory', isDocs:sc.kind === 'docs', isChangelog:sc.kind === 'changelog',
+      // Additive, not kind-exclusive: codecs (kind:'generic') and endpoints (kind:'table')
+      // keep their own screen, this just adds a graph panel on top of it.
+      isCodecGraph:s.screen === 'codecs', isEndpointGraph:s.screen === 'endpoints',
       /* The servers screen has its own hero (One Click Setup) above this, but its
        * configured connections are a real table too, so it shares the generic table
        * markup — search, filters, the add button, and every row's own context menu. */
@@ -4571,6 +4631,31 @@ class ConsoleShell extends DCLogic {
       docsOutline:[],
       docsHasSuggested:false,
       docsSuggested:[],
+
+      codecGraphHasData:true,
+      codecGraphStatus:'6 codecs - 9 translation paths',
+      codecGraphNodes:[
+        { id:'opus', label:'opus', x:'274px', y:'26px', fill:'#82D9A5' },
+        { id:'ulaw', label:'ulaw', x:'380px', y:'150px', fill:'#82D9A5' },
+        { id:'g729', label:'g729', x:'274px', y:'274px', fill:'#FFB4AB' }
+      ],
+      codecGraphEdges:[
+        { d:'M310 62 L380 150' },
+        { d:'M380 150 L310 238' }
+      ],
+      codecGraphUnreachableLabel:'',
+
+      endpointGraphHasData:true,
+      endpointGraphStatus:'12 endpoints - 11 reachable - 1 broken',
+      endpointGraphWidth:'948px',
+      endpointGraphHeight:'214px',
+      endpointGraphNodes:[
+        { id:'1001', label:'1001', detail:'Not in use', x:'20px', y:'26px', fill:'#82D9A5' },
+        { id:'aor:1001', label:'1001', detail:'Configured address-of-record', x:'210px', y:'26px', fill:'#9AA39B' },
+        { id:'contact:1001', label:'sip:1001@10.20.4.31', detail:'Live contact, OK', x:'400px', y:'26px', fill:'#7FD1F0' }
+      ],
+      endpointGraphEdges:[{ d:'M104 38 C157 38 157 38 210 38' }, { d:'M294 38 C347 38 347 38 400 38' }],
+      endpointGraphBroken:['Address-of-record 1003 has a contact, but it is not reachable.'],
 
       changelogQuery:'',
       setChangelogQuery:(e) => this.set('changelogQuery', e.target.value),
