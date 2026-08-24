@@ -4,29 +4,29 @@ Every record, list, and view the product owns can be exported, in whichever form
 
 ## Behavior
 
-Every list, document, log, and setting is meant to be exportable in an appropriate format — JSON, CSV, Markdown, and others depending on the data's shape — stating encoding and any fields a format cannot carry before the export runs.
+Visible table rows use the shared export engine and export the selected rows, not an unseen full collection. The engine supports JSON, JSONL, YAML, TOML, XML, CSV, TSV, Markdown, HTML, and SQL. It computes suitable formats from the real row shape and reports ragged keys, nested values, null ambiguity, and identifier limitations before the file is written. Changelog and app-data history have their own filtered exports and preserve the active range in the output.
 
 ## Configuration
 
-Exports would be complete and, where the shape allows it, re-importable, rather than a partial dump of only the currently visible rows.
+Exports are UTF-8 and carry every field represented by the selected rows. Coding formats are re-importable where their schema permits it. Archive packaging remains an explicit adapter boundary: the desktop surface must not label a JSON export as a ZIP or 7z archive until a bundled archive writer is available. When an archive adapter is unavailable, the UI reports that exact missing capability instead of pretending that a renamed text file is an archive.
 
 ## Current status
 
-**Desktop application:** Not implemented. No list, record, or setting anywhere in the desktop application can currently be exported to a file.
+**Desktop application:** Partial and mounted. Table bulk export, changelog export, appearance export, and app-data history export write real files from the current filtered or selected records. A format picker is still needed for choosing among every suitable coding format from the UI, and archive output remains unavailable until a bundled writer is added.
 
-**Documentation website:** Partial. The site's settings page includes a placeholder export button that is not wired to produce a file yet.
+**Documentation website:** Not changed in this desktop-only lane.
 
 ## Failure modes
 
-Where a chosen format cannot carry every field of a record, the intended behavior is to say so before the export runs rather than truncate silently afterward; the placeholder export button does not yet reach this decision point.
+Nested values, missing keys, null values, invalid XML names, and invalid SQL identifiers are reported by `describeLoss` or by the format validator. No export is reported as complete when the selected format cannot represent its input. Archive formats are not advertised as available without a bundled adapter.
 
 ## Accessibility and localization
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.
+The desktop export controls reuse the generated shell's keyboard and focus behavior. A broad accessibility or narrow-layout run was not performed in this implementation lane.
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+The mounted paths are `App.tsx` bulk export, `changelog.ts` export helpers, `export.ts` format conversion, and app-data History export. This lane intentionally did not run broad build, packaging, or UI capture commands.
 
 ## Suggested articles
 

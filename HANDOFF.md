@@ -4,6 +4,15 @@
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.
 
+## History, exports, and docs runtime lane, 2026-08-24
+
+- The linked Gerk Tong Hui is `C:\Users\cntow\Documents\GitHub\asterisk-mount-history-exports` on `codex/mount-history-exports`, based on `c8d5f51473368dc7e8b2bde6d58a21ca7a1607e7`.
+- `console/app/renderer/src/local-history.ts` now supplies bounded client filtering, action counts, safe search, timestamp formatting, and redacted export rows for the existing app-data Git history service.
+- `console/app/renderer/src/App.tsx` now loads `local-history.list`, records settings and server inventory mutations, exposes History refresh, action/date/search filters, metadata diff, compare selection, JSON export, and append-only restore, and uses the shared bulk/export engines for mounted table screens. `console/app/renderer/src/PbxAdminApp.tsx` records verified PBX administration applies as updated history entries.
+- `design/Asterisk Console M3.dc.html` now renders the History search and date controls. Generated renderer output was regenerated with `node console/scripts/compile-design.mjs`.
+- `node console/scripts/bundle-docs.mjs` regenerated 85 documentation articles. `node console/scripts/bundle-changelog.mjs` regenerated 20 real tag versions. No tests, lint, broad build, packaging, runtime capture, browser, or Lowlevel checks were run in this lane.
+- Open gaps remain honest: full calendar month/year navigation, a user-facing export format picker, bundled ZIP/7z archive writing, and complete per-record mutation coverage for every PBX administration path.
+
 ## Implemented
 
 - Pinned Node.js `22.23.2` for Windows x64 from the official Node.js release service with SHA-256 `1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97`.

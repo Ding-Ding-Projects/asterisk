@@ -509,6 +509,47 @@ function Template(v: any) {
                     S($a.label)
                   )))
               ),
+              h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:12px 16px; margin-bottom:12px; display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px;`) },
+                h("div", { style: sty(`display:flex; flex-direction:column; gap:4px; min-width:200px; flex:1 1 220px;`) },
+                  h("span", { style: sty(`font-size:11px; color:#8FA394; text-transform:uppercase; letter-spacing:.6px;`) },
+                    "Search app-data history"
+                  ),
+                  h("div", { style: sty(`display:flex; align-items:center; gap:7px; background:#141A15; border-radius:8px; padding:6px 8px;`) },
+                    h("span", { style: sty(`font-size:17px; color:#9AA39B;`), className: "msym" },
+                      "search"
+                    ),
+                    h("input", { value: v.historyQuery, onChange: fn(v.setHistoryQuery), placeholder: `Subject or action`, style: sty(`flex:1; min-width:0; background:transparent; border:0; outline:0; color:#E2E9E1; font:inherit; font-size:12px;`) }),
+                    h("button", { onClick: fn(v.toggleHistoryRegex), title: `Regular expression`, style: sty(`width:28px; height:28px; border-radius:8px; border:1px solid #414942; background:${S(v.historyRegexBg)}; color:${S(v.historyRegexColor)}; cursor:pointer; display:flex; align-items:center; justify-content:center;`) },
+                      h("span", { style: sty(`font-size:15px;`), className: "msym" },
+                        "regular_expression"
+                      )
+                    )
+                  )
+                ),
+                h("div", { style: sty(`display:flex; flex-direction:column; gap:4px;`) },
+                  h("span", { style: sty(`font-size:11px; color:#8FA394; text-transform:uppercase; letter-spacing:.6px;`) },
+                    "From"
+                  ),
+                  h("input", { value: v.historyFrom, onChange: fn(v.setHistoryFrom), placeholder: `YYYY-MM-DD`, style: sty(`width:125px; background:#141A15; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-family:'Roboto Mono',monospace; font-size:11.5px;`) })
+                ),
+                h("div", { style: sty(`display:flex; flex-direction:column; gap:4px;`) },
+                  h("span", { style: sty(`font-size:11px; color:#8FA394; text-transform:uppercase; letter-spacing:.6px;`) },
+                    "To"
+                  ),
+                  h("input", { value: v.historyTo, onChange: fn(v.setHistoryTo), placeholder: `YYYY-MM-DD`, style: sty(`width:125px; background:#141A15; border:1px solid #333B34; border-radius:8px; padding:8px 10px; color:#E2E9E1; font:inherit; font-family:'Roboto Mono',monospace; font-size:11.5px;`) })
+                ),
+                h("span", { style: sty(`font-size:12px; color:#9AA39B; padding:8px 2px;`) },
+                  S(v.historyResultLabel)
+                )
+              ),
+              (v.historyRegexOn ? h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px; margin:-4px 0 12px;`) },
+                  A(v.historyRegexPalette).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.add), style: sty(`background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 10px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;`) },
+                      S($p.label)
+                    )))
+                ) : null),
+              (v.historyQueryError ? h("div", { style: sty(`font-size:11.5px; color:#FFB4AB; margin:-4px 0 12px;`) },
+                  S(v.historyQueryError)
+                ) : null),
               h("div", { style: sty(`display:grid; grid-template-columns:1fr 420px; gap:12px; margin-bottom:12px;`) },
                 h("div", { style: sty(`background:#1B211C; border-radius:16px; overflow:hidden;`) },
                   h("div", { style: sty(`display:flex; align-items:center; gap:8px; padding:12px 16px;`) },

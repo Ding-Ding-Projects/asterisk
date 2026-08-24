@@ -57,6 +57,10 @@ import {
 import {
   UnlockLadder, type Challenge, type GradeResult,
 } from './unlock-ladder';
+import {
+  filterHistory, formatHistoryTimestamp, historyActionLabel, historyCounts, historyExportRows,
+  HISTORY_ACTIONS, isHistoryAction, type HistoryAction, type HistoryCommit,
+} from './local-history';
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -245,6 +249,15 @@ export class App extends Base {
    *  repeated failures rather than on the first typo. */
   private wrongUnlockCounts: Record<string, number> = {};
 
+  /** The app-data Git history is loaded through the control plane, never from a
+   *  user project folder. The screen starts empty until this real request returns. */
+  private localHistoryEntries: HistoryCommit[] = [];
+  private localHistoryCounts = historyCounts([]);
+  private localHistoryPending = false;
+  private localHistoryError = '';
+
+  private readonly localHistoryRepositoryLabel = 'App data history';
+
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
   }
@@ -270,6 +283,7 @@ export class App extends Base {
      * anything is reachable and must be on screen whether or not discovery finds a
      * target, so it is loaded independently of it. */
     void this.servers.load().then(() => this.forceUpdate());
+    void this.loadLocalHistory();
     void this.discover();
     this.refreshTimer = setInterval(() => {
       if (this.target.connected) {
@@ -294,6 +308,94 @@ export class App extends Base {
     if (!bridge) return undefined;
     return await bridge.controlPlane.request({ requestId: crypto.randomUUID(), action, ...extra } as never);
   }
+
+  /** Read the isolated app-data Git history with the current UI filter. */
+  private loadLocalHistory = async (): Promise<void> => {
+    if (this.localHistoryPending) return;
+    this.localHistoryPending = true;
+    this.localHistoryError = '';
+    this.forceUpdate();
+    try {
+      /* Fetch the bounded recent set once, then apply the current action/date/query
+       * state locally. This avoids a stale React state value racing a filter refresh. */
+      const response = await this.request('local-history.list', { payload: { limit: 500 } });
+      if (!response?.ok) {
+        this.localHistoryError = response?.message ?? 'The app-data history did not answer.';
+        this.localHistoryEntries = [];
+        this.localHistoryCounts = historyCounts([]);
+        return;
+      }
+      const data = response.data as { entries?: unknown; counts?: unknown } | undefined;
+      const entries = Array.isArray(data?.entries) ? data.entries : [];
+      this.localHistoryEntries = entries.filter((entry): entry is HistoryCommit => {
+        if (!entry || typeof entry !== 'object') return false;
+        const value = entry as Record<string, unknown>;
+        return typeof value.id === 'string'
+          && typeof value.timestamp === 'string'
+          && isHistoryAction(value.action)
+          && typeof value.subject === 'string'
+          && typeof value.message === 'string';
+      });
+      this.localHistoryCounts = historyCounts(this.localHistoryEntries);
+    } catch (error) {
+      this.localHistoryError = error instanceof Error ? error.message : 'The app-data history could not be read.';
+      this.localHistoryEntries = [];
+      this.localHistoryCounts = historyCounts([]);
+    } finally {
+      this.localHistoryPending = false;
+      this.forceUpdate();
+    }
+  };
+
+  /** Record one append-only settings event. Secrets are redacted again by the
+   * control-plane history service before anything reaches its local Git repository. */
+  protected recordLocalHistory(action: HistoryAction, subject: string, payload: unknown): void {
+    void this.request('local-history.record', {
+      payload: { action, subject, payload },
+    }).then((response) => {
+      if (!response?.ok) return;
+      if ((this.state as { screen?: string }).screen === 'history') void this.loadLocalHistory();
+    }).catch(() => {
+      /* A history failure never blocks the setting or record operation itself. */
+    });
+  }
+
+  private restoreLocalHistory = async (commitId: string): Promise<void> => {
+    if (!/^[0-9a-f]{40}$/iu.test(commitId)) {
+      this.fire('History restore unavailable', 'That history entry has an invalid commit id.');
+      return;
+    }
+    const response = await this.request('local-history.restore', { payload: { commitId } });
+    if (!response?.ok) {
+      this.fire('History restore failed', response?.message ?? 'The app-data history did not restore the selected entry.');
+      return;
+    }
+    this.fire('History restored', 'The restored state was recorded as a new append-only history entry.');
+    await this.loadLocalHistory();
+  };
+
+  private exportLocalHistory = (): void => {
+    const state = this.state as { historyQuery?: string; historyRegexOn?: boolean; historyFrom?: string; historyTo?: string };
+    const result = filterHistory(this.localHistoryEntries, {
+      query: state.historyQuery,
+      regex: !!state.historyRegexOn,
+      since: state.historyFrom,
+      until: state.historyTo,
+    });
+    if (result.error) {
+      this.fire('History export unavailable', result.error);
+      return;
+    }
+    const text = exportRows({ rows: historyExportRows(result.entries), format: 'json' });
+    const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'app-data-history.json';
+    link.click();
+    URL.revokeObjectURL(url);
+    this.toast(`Exported ${result.entries.length} history entr${result.entries.length === 1 ? 'y' : 'ies'} as JSON`);
+  };
 
   /** Bounded, allowlisted discovery through the preload bridge. Never a shell command. */
   private discover = async () => {
@@ -598,6 +700,13 @@ ${resolution.disclosure}`);
       }
     }
     this.baseSetVal(control, value);
+    if (control?.id && !control.id.startsWith('history')) {
+      this.recordLocalHistory(
+        'settings-changed',
+        control.label?.trim() || control.id,
+        { controlId: control.id, value },
+      );
+    }
   };
 
   /** Read by the compiled `text`-kind control marked `action:'daemon-status'`/`'vocab-status'`. */
@@ -636,7 +745,10 @@ ${resolution.disclosure}`);
     }
     const created = await this.servers.add(input as never);
     this.forceUpdate();
-    if (created) this.fire('Connection added', `${created.name} is now in the server list below.`);
+    if (created) {
+      this.recordLocalHistory('created', `server ${created.name}`, created);
+      this.fire('Connection added', `${created.name} is now in the server list below.`);
+    }
     else this.fire('Not added', 'The control plane did not accept that connection.');
   };
 
@@ -646,7 +758,10 @@ ${resolution.disclosure}`);
     if (!server) { this.fire('Not found', `${name} is no longer in the server list.`); return; }
     const removed = await this.servers.remove(server.id);
     this.forceUpdate();
-    if (removed) this.fire('Connection removed', `${name} was removed from the server list.`);
+    if (removed) {
+      this.recordLocalHistory('deleted', `server ${name}`, { id: server.id, name });
+      this.fire('Connection removed', `${name} was removed from the server list.`);
+    }
     else this.fire('Not removed', 'The control plane did not accept that removal.');
   };
 
@@ -1872,13 +1987,9 @@ It is shown once. The phone needs it to register.`);
       // invented per-destination numbers.
       sections: this.badges(values.sections as Array<Record<string, unknown>>),
 
-      // History & git has no real source: nothing in this app stages, applies or commits
-      // a configuration change yet, so the screen never shows the design's invented commits.
-      ...(screen === 'history' ? {
-        commits: [], commitRows: [], diffLines: [], diffFile: 'no commit selected', blameRows: [],
-        branches: [], branchName: '', commitCount: '0 commits',
-        compareLabel: NO_HISTORY,
-      } : {}),
+      // The history screen is backed by the isolated app-data Git repository. It never
+      // falls back to the design's sample commits, so an empty repository stays empty.
+      ...(screen === 'history' ? this.historyVals() : {}),
 
       // The agent rail has no local memory store wired in, so its rows and metrics stay empty.
       ...(screen === 'memory' ? {
@@ -1916,6 +2027,117 @@ It is shown once. The phone needs it to register.`);
       // see authVals below. Unconditional: the lock and unlock dialogs can open from any
       // screen's context menu.
       ...this.authVals(),
+    };
+  }
+
+  private historyVals(): Record<string, unknown> {
+    const state = this.state as {
+      historyAction?: string;
+      historyFrom?: string;
+      historyTo?: string;
+      historyQuery?: string;
+      historyRegexOn?: boolean;
+      historySelected?: string;
+      historyCompare?: string[];
+    };
+    const action = isHistoryAction(state.historyAction) ? state.historyAction : undefined;
+    const filtered = filterHistory(this.localHistoryEntries, {
+      action,
+      since: state.historyFrom,
+      until: state.historyTo,
+      query: state.historyQuery,
+      regex: !!state.historyRegexOn,
+    });
+    const selected = state.historySelected && filtered.entries.some((entry) => entry.id === state.historySelected)
+      ? state.historySelected
+      : filtered.entries[0]?.id;
+    const selectedEntry = filtered.entries.find((entry) => entry.id === selected) ?? filtered.entries[0];
+    const compare = state.historyCompare ?? [];
+    const actionFilters = [
+      { label: 'All actions', value: '' },
+      ...HISTORY_ACTIONS.map((name) => ({ label: historyActionLabel(name), value: name })),
+    ];
+    const commitRows = filtered.entries.map((entry) => ({
+      sha: entry.id.slice(0, 10),
+      tag: historyActionLabel(entry.action),
+      hasTag: true,
+      msg: `${historyActionLabel(entry.action)} ${entry.subject}`,
+      meta: `${formatHistoryTimestamp(entry.timestamp)} · app-data history`,
+      bg: entry.id === selected ? '#1D2A22' : 'transparent',
+      dot: entry.action === 'deleted' ? '#FFB4AB' : entry.action === 'restored' ? '#FFD68A' : '#82D9A5',
+      cmpFg: compare.includes(entry.id) ? '#82D9A5' : '#778078',
+      pick: () => this.setState({ historySelected: entry.id }),
+      compare: (event: { stopPropagation?: () => void }) => {
+        event?.stopPropagation?.();
+        const next = compare.includes(entry.id)
+          ? compare.filter((id) => id !== entry.id)
+          : compare.concat(entry.id).slice(-2);
+        this.setState({ historyCompare: next });
+      },
+      ctx: (event: { preventDefault?: () => void }) => {
+        event?.preventDefault?.();
+        this.setState({ ctxOpen: true, ctxSub: '', ctxTarget: `history ${entry.id}`, ctxKind: 'row' });
+      },
+    }));
+
+    const diffLines = selectedEntry
+      ? [
+          { text: `@@ ${selectedEntry.subject} @@`, color: '#8AB4F8', bg: 'transparent' },
+          { text: `  action: ${selectedEntry.action}`, color: '#C4CBC2', bg: 'transparent' },
+          { text: `  timestamp: ${selectedEntry.timestamp}`, color: '#C4CBC2', bg: 'transparent' },
+          { text: '  payload values are redacted by the history service where they are credential-shaped', color: '#8FA394', bg: 'transparent' },
+        ]
+      : [{ text: 'No history entry selected.', color: '#8FA394', bg: 'transparent' }];
+
+    return {
+      branchName: this.localHistoryRepositoryLabel,
+      commitCount: `${filtered.entries.length} entr${filtered.entries.length === 1 ? 'y' : 'ies'}`,
+      branches: [{ label: 'App data', on: true, off: false, pick: () => this.loadLocalHistory() }],
+      histFilters: actionFilters.map((filter) => ({
+        label: filter.value ? `${filter.label} (${this.localHistoryCounts[filter.value as HistoryAction] ?? 0})` : `All actions (${this.localHistoryEntries.length})`,
+        on: (action ?? '') === filter.value,
+        off: (action ?? '') !== filter.value,
+        pick: () => { this.setState({ historyAction: filter.value }); void this.loadLocalHistory(); },
+      })),
+      histActions: [
+        { icon: 'refresh', label: this.localHistoryPending ? 'Refreshing…' : 'Refresh history', run: () => void this.loadLocalHistory() },
+        { icon: 'restore', label: 'Restore selected', run: () => selectedEntry && void this.restoreLocalHistory(selectedEntry.id) },
+        { icon: 'download', label: 'Export history', run: this.exportLocalHistory },
+      ],
+      commitRows,
+      diffFile: selectedEntry ? `${selectedEntry.subject} @ ${selectedEntry.id}` : 'no entry selected',
+      diffLines,
+      diffActions: selectedEntry
+        ? [
+            { icon: 'restore', label: 'Restore this', bg: '#82D9A5', fg: '#00391F', run: () => void this.restoreLocalHistory(selectedEntry.id) },
+            { icon: 'download', label: 'Export filtered', bg: '#262B26', fg: '#9FF7C4', run: this.exportLocalHistory },
+          ]
+        : [],
+      blameRows: filtered.entries.slice(0, 5).map((entry) => ({
+        sha: entry.id.slice(0, 10),
+        what: `${historyActionLabel(entry.action)} · ${entry.subject}`,
+        who: 'Asterisk Local History',
+      })),
+      compareLabel: compare.length === 2
+        ? `Comparing ${compare[0].slice(0, 10)} with ${compare[1].slice(0, 10)}. The history service keeps both commits unchanged.`
+        : 'Select two entries with the compare buttons to compare their recorded metadata.',
+      historyQuery: state.historyQuery ?? '',
+      setHistoryQuery: (event: { target?: { value?: string } }) => this.setState({ historyQuery: event.target?.value ?? '' }),
+      historyRegexOn: !!state.historyRegexOn,
+      toggleHistoryRegex: () => this.setState({ historyRegexOn: !state.historyRegexOn }),
+      historyRegexBg: state.historyRegexOn ? '#005230' : 'transparent',
+      historyRegexColor: state.historyRegexOn ? '#9FF7C4' : '#778078',
+      historyRegexPalette: ['^', '$', '\\d+', '[a-z]+', 'settings', 'restored'].map((pattern) => ({
+        label: pattern,
+        add: () => this.setState({ historyQuery: `${state.historyQuery ?? ''}${pattern}` }),
+      })),
+      historyQueryError: filtered.error ?? '',
+      historyFrom: state.historyFrom ?? '',
+      setHistoryFrom: (event: { target?: { value?: string } }) => { this.setState({ historyFrom: event.target?.value ?? '' }); void this.loadLocalHistory(); },
+      historyTo: state.historyTo ?? '',
+      setHistoryTo: (event: { target?: { value?: string } }) => { this.setState({ historyTo: event.target?.value ?? '' }); void this.loadLocalHistory(); },
+      historyDateError: '',
+      historyResultLabel: this.localHistoryError || (this.localHistoryPending ? 'Reading app-data history…' : `${filtered.entries.length} visible entr${filtered.entries.length === 1 ? 'y' : 'ies'}`),
     };
   }
 

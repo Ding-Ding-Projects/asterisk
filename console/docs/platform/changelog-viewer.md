@@ -4,7 +4,7 @@ A browsable record of every released version, filterable by date and searchable 
 
 ## Behavior
 
-The viewer is meant to list every released version with categorized changes, a calendar-based date filter, a text search wired to the regex builder, and export to a durable text format, with each entry linked to the exact commit that made the change.
+The viewer lists every released version found by the build-time tag generator, with categorized changes, typed date-range fields and presets, plain-text or regex search, copy, Markdown export, and links to the exact commit that made each change.
 
 ## Configuration
 
@@ -12,21 +12,21 @@ Its tone would follow the funny-level and language settings while every version 
 
 ## Current status
 
-**Desktop application:** Not implemented. The desktop application has no in-app changelog viewer; release history is not browsable from within the application.
+**Desktop application:** Partial and mounted. App rail > App > Changelog renders the generated release bundle, search and date filters compose, copy and Markdown export use the filtered entries, and each real commit reference is linked. A full month and year jump calendar remains open.
 
-**Documentation website:** Not implemented. The documentation website links out to release notes rather than hosting an in-app browsable, filterable, searchable changelog view.
+**Documentation website:** Not changed in this desktop-only lane.
 
 ## Failure modes
 
-A referenced commit that no longer exists in the repository is meant to be caught and reported before publishing, not linked as a dead reference; there is no changelog viewer yet to enforce that.
+A missing commit id is not turned into a link. The generator reads actual tags and commits, and the viewer's link builder refuses anything other than a full hexadecimal commit id. A tag with no new commits is rendered as a version with no recorded changes rather than an invented summary commit.
 
 ## Accessibility and localization
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.
+The controls use the generated shell's normal keyboard and focus behavior. A broad accessibility or narrow-layout run was not performed in this implementation lane.
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+The mounted path is `changelog.ts`, `App.tsx`, `scripts/bundle-changelog.mjs`, and the generated changelog bundle. The bundle was regenerated from the repository's real tags in this lane; no broad build or runtime capture was run.
 
 ## Suggested articles
 

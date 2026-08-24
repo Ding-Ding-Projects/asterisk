@@ -137,11 +137,16 @@
       ]
     },
     "local-version-history": {
-      "state": "absent",
-      "note": "control-plane/local-history.ts and control-plane/config-history.ts implement Git-backed local history server-side, but nothing in the renderer surfaces a history/versions panel, restore action, or diff view to the user. The feature exists as backend plumbing with no reachable UI.",
+      "state": "partial",
+      "note": "Mounted 2026-08-24. App.tsx records settings changes and server additions/removals through local-history.record, loads the isolated app-data Git repository through local-history.list, and exposes action/date/search filters, metadata diff, compare selection, JSON export, and append-only restore through local-history.restore. The control-plane/local-history.ts service remains the owner of Git initialization and credential-shaped redaction. PBX administration applies still need a full per-record mutation inventory and the History screen's calendar needs a richer picker.",
       "files": [
+        "app/renderer/src/local-history.ts",
+        "app/renderer/src/App.tsx",
+        "design/Asterisk Console M3.dc.html",
+        "app/renderer/src/generated/console.tsx",
         "control-plane/local-history.ts",
-        "control-plane/config-history.ts"
+        "control-plane/config-history.ts",
+        "docs/platform/local-version-history.md"
       ]
     },
     "changelog-viewer": {
@@ -167,17 +172,21 @@
     },
     "complete-exports": {
       "state": "partial",
-      "note": "app/renderer/src/export.ts (547 lines, tested by tests/ui/export.test.tsx) implements multi-format export logic, but is never imported by App.tsx or any mounted component.",
+      "note": "Mounted 2026-08-24. App.tsx uses export.ts for selected table rows, changelog output, appearance output, and app-data History output. The engine supports JSON, JSONL, YAML, TOML, XML, CSV, TSV, Markdown, HTML, and SQL with shape-aware loss descriptions. Archive output and a user-facing format picker remain open, so no archive is mislabeled as available.",
       "files": [
-        "app/renderer/src/export.ts"
+        "app/renderer/src/export.ts",
+        "app/renderer/src/App.tsx",
+        "docs/platform/complete-exports.md"
       ]
     },
     "bulk-actions": {
       "state": "partial",
-      "note": "app/renderer/src/bulk.ts (336 lines, tested by tests/ui/bulk.test.tsx) implements bulk selection/action logic, but is never imported by App.tsx or any mounted component. The compiled console does implement one real bulk action (bulk = (verb, sel) => ...fire...) for canvas-node selection, narrower than the bulk.ts contract.",
+      "note": "Mounted 2026-08-24. App.tsx uses bulk.ts for click, range, select-all, clear, inverse selection, reviewable plans and selected-row export across table-like screens. Read-only PBX surfaces keep unsupported mutating actions honest instead of claiming a write occurred. Persistent bulk undo for future writable records remains tied to local app-data history.",
       "files": [
         "app/renderer/src/bulk.ts",
-        "app/renderer/src/generated/console.tsx"
+        "app/renderer/src/App.tsx",
+        "app/renderer/src/generated/console.tsx",
+        "docs/platform/bulk-actions.md"
       ]
     },
     "accessibility": {
@@ -254,7 +263,7 @@
     },
     "offline-documentation-browser": {
       "state": "partial",
-      "note": "app/renderer/src/docs-browser.ts implements article lookup/search over the bundled docs, app/renderer/src/generated/docs-bundle.ts (83 articles) is real bundled content, and app/renderer/src/docs-markdown.ts parses each article's body into headings/paragraphs/code/list blocks with resolved inter-article links. The `docs` destination is now a real screen on the App rail (compiled from design/Asterisk Console M3.dc.html, kind:'docs') wired in App.tsx (docsVals) with a real search field, a regex-builder toggle and palette, an article list, a rendered body pane and in-app link navigation. Headlessly driven in the built app (Electron via CDP): the article list shows all 83 titles/excerpts, selecting an article renders its real headings/paragraphs (no raw '#'/'[]' Markdown syntax), an inline `[text](href)` link inside one article's body navigated to the linked article, and a query with no matches shows an honest '0 matches' state. Remaining gap: no promoted screenshot/interaction evidence has been filed under this project's design-parity capture pipeline, so this stays 'partial' rather than 'verified'.",
+      "note": "Mounted offline bundle refreshed 2026-08-24. The generated docs bundle contains every Markdown article on disk, docs-browser.ts searches it with plain text or bounded regex, docs-markdown.ts renders safe headings/paragraphs/code/list blocks, and internal links resolve to another bundled article without leaving the desktop app. A promoted built-artifact capture remains outside this lane, so this stays partial rather than verified.",
       "files": [
         "app/renderer/src/docs-browser.ts",
         "app/renderer/src/docs-markdown.ts",
@@ -303,10 +312,13 @@
     },
     "provider-markup-rendering": {
       "state": "partial",
-      "note": "app/renderer/src/docs-markdown.ts parses bundled documentation body text (headings, paragraphs, fenced code, bullet list items, inline `[text](href)` links) into render-ready blocks, and the `docs` screen (App.tsx docsVals + the compiled `isDocs` template block) renders those blocks as real UI rather than printing raw Markdown source — confirmed by headless capture of the running app. This covers the bundled offline docs only; there is still no renderer for remote-authored text such as release notes or issue bodies.",
+      "note": "Mounted safe block rendering for bundled documentation and changelog text. docs-markdown.ts parses headings, paragraphs, fenced code, bullet items, and internal links into text-only blocks; App.tsx renders those blocks through the generated docs screen without inserting raw HTML. Remote release notes and issue bodies are still outside this desktop-only lane.",
       "files": [
         "app/renderer/src/docs-markdown.ts",
-        "app/renderer/src/App.tsx"
+        "app/renderer/src/docs-browser.ts",
+        "app/renderer/src/App.tsx",
+        "app/renderer/src/generated/docs-bundle.ts",
+        "docs/platform/provider-markup-rendering.md"
       ]
     },
     "forge-publishing": {

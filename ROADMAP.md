@@ -28,6 +28,16 @@
 - [ ] Wire real sources for the history, agent and trunk-authentication surfaces.
 - [ ] Verify every reading against a live Asterisk target.
 
+## History, exports, and offline docs
+
+- [x] Mount the isolated app-data Git history service in the desktop History screen, with action/date/search filters, metadata diff, append-only restore, and JSON export.
+- [x] Record desktop settings changes and server additions/removals as redacted local-history events without blocking the live operation when history is unavailable.
+- [x] Mount selected-row bulk selection and multi-format export for table-like surfaces, with honest shape-loss reporting and page-scoped select-all.
+- [x] Regenerate the offline documentation bundle from every Markdown article and render internal links as in-app navigation through the shared safe block parser.
+- [x] Regenerate the changelog bundle from real repository tags and mount filtered search, date range, copy, export, and commit links.
+- [ ] Add a full month/year calendar picker and a user-facing coding-format picker to the History, Changelog, and Export surfaces.
+- [ ] Add a bundled ZIP/7z writer before advertising archive downloads; a text export must never be renamed as an archive.
+
 ## Evidence and completeness
 
 - [x] Record the independent design audit's source hash and exact aggregate counts.

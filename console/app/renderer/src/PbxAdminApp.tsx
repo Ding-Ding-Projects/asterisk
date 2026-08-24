@@ -633,6 +633,12 @@ export class PbxAdminApp extends App {
     this.adminPlans.delete(context.key);
     this.adminHistory.delete(context.key);
     this.adminStatus.set(context.screen, result.message ?? `${context.resource} was applied and verified.`);
+    this.recordLocalHistory('updated', `PBX ${basename(context.resource)}`, {
+      screen: context.screen,
+      target: context.target,
+      resource: context.resource,
+      value: context.value,
+    });
     this.fire('Configuration applied', result.message ?? `${context.resource} was applied and verified by post-read.`);
     const feature = featureForAdvancedScreen(context.screen);
     if (feature) {

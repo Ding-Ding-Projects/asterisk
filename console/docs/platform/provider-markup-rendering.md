@@ -1,10 +1,10 @@
 # Provider-authored markup rendering
 
-Text authored elsewhere — release notes, imported documents — is rendered as real formatted markup rather than printed as raw source characters.
+Text authored elsewhere, such as release notes or imported documents, is rendered as real formatted markup rather than printed as raw source characters.
 
 ## Behavior
 
-Provider-authored markdown-like text is meant to be rendered through one shared, isolated renderer producing real headings, links, and lists, rather than showing literal hash marks and brackets to the reader.
+Provider-authored markdown-like text is rendered through the shared isolated `docs-markdown.ts` block parser. It produces headings, paragraphs, code blocks, lists, and internal link spans. React receives text as text nodes, so provider-authored angle brackets are not interpreted as DOM markup.
 
 ## Configuration
 
@@ -12,21 +12,21 @@ The renderer would keep an honest empty state when no content is provided, rathe
 
 ## Current status
 
-**Desktop application:** Not implemented. The desktop application does not currently render externally authored markup text in this sense.
+**Desktop application:** Implemented for bundled documentation and changelog text through the shared block parser. The parser emits safe blocks and never inserts raw HTML.
 
-**Documentation website:** Implemented. The documentation website's own articles are authored in markdown and rendered through one shared renderer, producing real headings, links, lists, and section navigation rather than raw markdown characters. This is the website's own authored content rather than third-party provider text, but the rendering mechanism itself is the one this feature describes.
+**Documentation website:** Not changed in this desktop-only lane.
 
 ## Failure modes
 
-Malformed markdown in a source article is meant to degrade to plain paragraphs rather than break the page layout; the site's renderer has not been separately stress-tested against adversarial input.
+Malformed Markdown degrades to plain paragraphs or code text. A link only becomes an in-app navigation action when it resolves to a bundled article id. Raw HTML is never inserted into the DOM by the parser.
 
 ## Accessibility and localization
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.
+The rendered blocks are reachable from the offline docs screen and use the generated shell's normal focus and text boundary behavior. A broad accessibility or narrow-layout run was not performed in this implementation lane.
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+The mounted path is `docs-markdown.ts`, `docs-browser.ts`, `App.tsx`, and the generated docs bundle. This lane intentionally did not run broad build, packaging, or UI capture commands.
 
 ## Suggested articles
 

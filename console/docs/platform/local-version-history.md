@@ -4,29 +4,29 @@ A Git-backed, browsable, restorable history of every user-managed record — doc
 
 ## Behavior
 
-Every creation, edit, and deletion of a user-owned record is meant to be recorded as a commit in a local, isolated repository, with a browsing panel offering filtering, diffing, labeling, and non-destructive restore.
+Every user-managed setting and record change is recorded through the desktop control plane in an isolated Git repository under app data. The repository is never placed inside a user project and is never synced or pushed. The History screen reads real commits, filters by action and date, searches subjects and messages with plain text or an opted-in regular expression, shows selected metadata and redaction boundaries, and restores by adding a new commit.
 
 ## Configuration
 
-Restoring would itself be recorded as a new revision rather than rewriting history, so a restore could itself be undone.
+Restoring is append-only. The selected commit remains unchanged and the restore writes a new `restored` commit. History exports are JSON and contain redacted metadata only. Credential-shaped values are removed by the control-plane service before they enter the local Git repository.
 
 ## Current status
 
-**Desktop application:** Not implemented. The desktop application keeps no local version history of any kind; settings and records are overwritten in place with no way to browse or restore a prior state.
+**Desktop application:** Implemented for the mounted desktop shell. Settings changes, server additions and removals, and PBX administration applies are recorded as local history events. The History screen has real refresh, action-count filters, date fields, search, regex mode, selection, metadata diff, restore, compare selection, and JSON export controls. An empty app-data repository is shown as empty, never filled with sample rows.
 
-**Documentation website:** Not implemented. The documentation website has no user-managed records of its own to version.
+**Documentation website:** Not changed in this desktop-only lane.
 
 ## Failure modes
 
-If the local history repository became unreadable, the intended behavior is to keep the live data intact and report the history failure separately rather than blocking the operation that triggered it; nothing implements the repository today.
+If the local history repository is unavailable, the live setting or record operation is not rolled back solely because history could not be written. The History screen reports the read failure and keeps the visible list empty until the next refresh. Restore refuses malformed or unknown commit ids and reports the exact control-plane response.
 
 ## Accessibility and localization
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.
+The controls are keyboard reachable through the generated desktop shell, expose ordinary labels and visible states, and use the same app language boundary as the rest of the screen. A broad reduced-motion, accessibility, or narrow-layout run was not performed in this implementation lane.
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+The renderer mounts `local-history.ts` and calls `local-history.list`, `local-history.record`, and `local-history.restore` through the existing control-plane bridge. The control-plane implementation is `control-plane/local-history.ts`; its append-only Git behavior and redaction boundary remain the source of truth. A broad build or runtime capture was intentionally not run in this lane.
 
 ## Suggested articles
 
