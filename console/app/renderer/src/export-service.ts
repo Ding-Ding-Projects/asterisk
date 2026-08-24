@@ -32,12 +32,12 @@ export async function deliverExport(
       : destination === 'download'
         ? await port.downloadFile({ artifact })
         : await port.copyToClipboard({ artifact });
-  } catch (error) {
+  } catch {
     return {
       status: 'failed',
       artifact,
-      code: 'platform-adapter-threw',
-      reason: error instanceof Error ? error.message : String(error),
+      code: 'platform-adapter-rejected',
+      reason: 'The platform adapter rejected without a typed failure result. Untyped details were not exposed.',
       retryable: false,
     };
   }

@@ -14,6 +14,8 @@ Selection state belongs to one collection identifier and one query key. Changing
 
 Bulk actions are discriminated as enabled or disabled. An enabled action must provide an execution handler. A disabled action must provide an exact reason and has no callable handler. Plans distinguish selected, affected, and excluded counts before execution. Runs report each item as converted, saved, exported, changed, skipped, cancelled, or failed according to the action and its confirmed result.
 
+Each execute and revert call receives a real `AbortSignal` from its own linked `AbortController` and a finite positive safe-integer per-item deadline. The default is 30 seconds. Caller cancellation actively aborts every in-flight item, while a deadline abort records a distinct timed-out result. Timers and caller-signal listeners are removed on every settle path. Untyped handler or platform-adapter rejections are reduced to fixed public-safe failure copy instead of exposing raw messages that may contain private paths.
+
 Undo is exposed only when a confirmed mutation supplies an inverse token or local-history revision and the surface registers a real inverse handler. A notification action cannot manufacture undo support.
 
 ## Platform integration contract
@@ -30,6 +32,7 @@ Saving and opening an export in Visual Studio Code is a two-stage operation. The
 - A confirmed save without a returned local path cannot proceed to editor handoff.
 - Pinned and protected records remain excluded unless the caller explicitly requests their inclusion.
 - Cancellation stops new bulk items from starting and records every unstarted item as cancelled.
+- A never-settling execute or revert handler is aborted at its finite per-item deadline and reported as timed out. Timed-out work is not automatically retryable because an abort-ignoring handler may still complete a side effect later.
 - A thrown action handler becomes a per-item failed outcome and does not turn the remaining batch green.
 
 ## Security and privacy
