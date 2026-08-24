@@ -14,11 +14,11 @@ Restoring would itself be recorded as a new revision rather than rewriting histo
 
 **Desktop application:** Not implemented. The desktop application keeps no local version history of any kind; settings and records are overwritten in place with no way to browse or restore a prior state.
 
-**Documentation website:** Not implemented. The documentation website has no user-managed records of its own to version.
+**Documentation website:** Local equivalent implemented, runtime proof unverified. Settings mounts an append-only browser timeline with stable revision IDs, bounded 500-record retention, text, action, and full-date filters, diff display, append-only restore records, bulk selection, and redacted export. It stores browser metadata rather than a Git repository and omits secrets and credential digests.
 
 ## Failure modes
 
-If the local history repository became unreadable, the intended behavior is to keep the live data intact and report the history failure separately rather than blocking the operation that triggered it; nothing implements the repository today.
+If browser history storage is unreadable, live settings remain usable and the history surface reports an empty or unavailable state. Retention is explicitly bounded to 500 records rather than described as unlimited.
 
 ## Accessibility and localization
 
@@ -26,7 +26,7 @@ This feature is expected to follow the product's standing accessibility contract
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+This source-only lane did not run tests, builds, browser checks, or captures. The site registry remains `implemented-unverified`. The desktop application row remains not implemented.
 
 ## Suggested articles
 

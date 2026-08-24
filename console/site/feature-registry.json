@@ -1527,8 +1527,8 @@
       }
     },
     "local-version-history": {
-      "status": "absent",
-      "note": "The documentation catalogue lists a \"History\" article (app/history, describing append-only local configuration revisions) as PRODUCT documentation content, but no actual history/versions panel, diff view, or restore action exists in the site itself - this is a described feature of the console product, not an implemented feature of the site.",
+      "status": "implemented-unverified",
+      "note": "settings.html now receives a local append-only browser history surface with stable revision IDs, bounded retention, text/action/date filters, diff view, append-only restore records, bulk selection, and redacted export. Runtime proof remains unverified.",
       "implementation": {
         "paths": [],
         "symbols": []
