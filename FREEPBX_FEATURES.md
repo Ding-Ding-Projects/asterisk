@@ -184,7 +184,7 @@ No item above is ticked: a model or a reader is not a rendered, validated, appli
 - [x] CORE-PJSIP-DEV-007 — Active Transport. Verified 2026-08-23: segmented control e_transport bound to endpoint.transport.
 - [ ] CORE-PJSIP-DEV-008 — AVPF, Force AVP, ICE, RTCP mux, and WebRTC defaults.
 - [ ] CORE-PJSIP-DEV-009 — RTP bundling, with separate storage from WebRTC; do not reproduce Core's `bundle` key collision.
-- [ ] CORE-PJSIP-DEV-010 — Maximum Audio Streams and Maximum Video Streams.
+- [x] CORE-PJSIP-DEV-010 — Maximum Audio Streams and Maximum Video Streams. Verified 2026-08-23: stepper controls e_maxaudio and e_maxvideo bound to endpoint.max_audio_streams and max_video_streams. Zero is written rather than dropped as falsy, so refusing video outright is expressible. Each writes only its own key, round-trips back into its control, and survives being rendered to pjsip.conf and reparsed; covered by console/tests/ui/endpoint-advanced.test.tsx.
 - [x] CORE-PJSIP-DEV-011 — Audio, video, text, and image codec enablement plus order. Verified 2026-08-23: order control e_codecs writes endpoint.allow (in order) plus disallow=["all"]; confirmed on the live target as `allow : (ulaw|alaw)` via `pjsip show endpoint`.
 - [ ] CORE-PJSIP-DEV-012 — Call Groups and Pickup Groups.
 - [ ] CORE-PJSIP-DEV-013 — Dial string. Excluded: no `dial=` key exists in pjsip.conf.sample or the PJSIP model; this is a FreePBX abstraction over the dialplan, not a native pjsip.conf field.
@@ -192,17 +192,17 @@ No item above is ticked: a model or a reader is not a rendered, validated, appli
 - [x] CORE-PJSIP-DEV-015 — Maximum Contacts and Remove Existing Contacts. Verified 2026-08-23: stepper control e_maxcontacts and switch control e_removeexisting bound to aor.max_contacts/remove_existing; confirmed on the live target via `pjsip show aor`.
 - [ ] CORE-PJSIP-DEV-016 — Media Use Received Transport.
 - [x] CORE-PJSIP-DEV-017 — RTP Symmetric, Rewrite Contact, and Force rport. Verified 2026-08-23: switch controls e_symmetric, e_rewrite and e_forcerport, round-tripped through yes and no.
-- [ ] CORE-PJSIP-DEV-018 — MWI Subscription Type and Aggregate MWI.
+- [x] CORE-PJSIP-DEV-018 — MWI Subscription Type and Aggregate MWI. Verified 2026-08-23: switch controls e_aggregate_mwi and e_mwi_replaces bound to endpoint.aggregate_mwi and mwi_subscribe_replaces_unsolicited. Each writes only its own key, round-trips back into its control, and survives being rendered to pjsip.conf and reparsed; covered by console/tests/ui/endpoint-advanced.test.tsx.
 - [x] CORE-PJSIP-DEV-019 — Media Encryption: none, SDES, or DTLS where supported. Verified 2026-08-23: select control e_encryption bound to endpoint.media_encryption.
-- [ ] CORE-PJSIP-DEV-020 — Opportunistic SRTP / allow non-encrypted media.
-- [ ] CORE-PJSIP-DEV-021 — Session Timers and Timer Expiration Period/minimum session expiration.
+- [x] CORE-PJSIP-DEV-020 — Opportunistic SRTP / allow non-encrypted media. Verified 2026-08-23: switch control e_optimistic bound to endpoint.media_encryption_optimistic. The control says plainly that opportunistic SRTP makes encryption best-effort rather than required. Each writes only its own key, round-trips back into its control, and survives being rendered to pjsip.conf and reparsed; covered by console/tests/ui/endpoint-advanced.test.tsx.
+- [x] CORE-PJSIP-DEV-021 — Session Timers and Timer Expiration Period/minimum session expiration. Verified 2026-08-23: segmented control e_timers keeping all four Asterisk values (no/yes/required/always) rather than collapsing to a switch, plus sliders e_timers_min_se and e_timers_sess. timers_sess_expires was added to the PJSIP model in the same change, verified against configs/samples/pjsip.conf.sample line 735. Each writes only its own key, round-trips back into its control, and survives being rendered to pjsip.conf and reparsed; covered by console/tests/ui/endpoint-advanced.test.tsx.
 - [ ] CORE-PJSIP-DEV-022 — Direct Media and Media Address.
-- [ ] CORE-PJSIP-DEV-023 — Blind REFER progress behavior.
-- [ ] CORE-PJSIP-DEV-024 — Device State Busy At threshold.
+- [x] CORE-PJSIP-DEV-023 — Blind REFER progress behavior. Verified 2026-08-23: switch control e_refer_blind bound to endpoint.refer_blind_progress. Each writes only its own key, round-trips back into its control, and survives being rendered to pjsip.conf and reparsed; covered by console/tests/ui/endpoint-advanced.test.tsx.
+- [x] CORE-PJSIP-DEV-024 — Device State Busy At threshold. Verified 2026-08-23: stepper control e_busy_at bound to endpoint.device_state_busy_at. Zero is written, since it means never report busy on count. Each writes only its own key, round-trips back into its control, and survives being rendered to pjsip.conf and reparsed; covered by console/tests/ui/endpoint-advanced.test.tsx.
 - [ ] CORE-PJSIP-DEV-025 — Match Permit / identify matching.
 - [ ] CORE-PJSIP-DEV-026 — Minimum and Maximum Registration Expiration.
-- [ ] CORE-PJSIP-DEV-027 — RTP Timeout and RTP Hold Timeout.
-- [ ] CORE-PJSIP-DEV-028 — Outbound Proxy and Outbound Authentication.
+- [x] CORE-PJSIP-DEV-027 — RTP Timeout and RTP Hold Timeout. Verified 2026-08-23: sliders e_rtp_timeout and e_rtp_hold bound to endpoint.rtp_timeout and rtp_timeout_hold. Zero is written, since it disables the check. Each writes only its own key, round-trips back into its control, and survives being rendered to pjsip.conf and reparsed; covered by console/tests/ui/endpoint-advanced.test.tsx.
+- [x] CORE-PJSIP-DEV-028 — Outbound Proxy and Outbound Authentication. Verified 2026-08-23: free-text controls e_outbound_proxy and e_outbound_auth bound to endpoint.outbound_proxy and outbound_auth. An empty control writes nothing rather than clearing a proxy nobody meant to touch. Each writes only its own key, round-trips back into its control, and survives being rendered to pjsip.conf and reparsed; covered by console/tests/ui/endpoint-advanced.test.tsx.
 - [ ] CORE-PJSIP-DEV-029 — Messages Context.
 - [ ] CORE-PJSIP-DEV-030 — PJSIP endpoint, AOR, auth, identify, registration, global, and transport extension points.
 - [ ] CORE-PJSIP-DEV-031 — Backend-only `md5_cred` authentication path that generates MD5 credentials instead of ordinary username/password auth.

@@ -21,6 +21,11 @@ import {
   clearVocabulary, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
 } from './personal-vocabulary';
 import { createDurableStorage, type DurableStorageHandle } from './durable-storage';
+import {
+  isLanguageMode, languageMode, setCatalog, setLanguageMode, setVocabularyStorage,
+  type LanguageMode,
+} from './text-boundary';
+import { CANTONESE } from './locale-yue';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
 import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
@@ -111,6 +116,9 @@ const TABLE_SCREENS = Object.entries(SCREENS as Record<string, { table?: { rows:
 /** The generated shell is untyped; this is the surface the console builds on. */
 interface Shell {
   renderVals(): Record<string, unknown>;
+  /** Every control change routes through here, which is why it is the one place a
+   *  cross-cutting setting can be noticed without touching a compiled file. */
+  setVal: (control: ControlRef, value: unknown) => void;
   componentDidMount?(): void;
   componentWillUnmount?(): void;
   showInfo(title: string, body: string, plain: string, x: string, y: string): void;
@@ -123,6 +131,9 @@ interface Shell {
   areYouSure(title: string, body: string, seconds: number, onConfirm: () => void): void;
   fire(title: string, body: string): void;
 }
+
+/** The shape the compiled shell hands every control callback. */
+interface ControlRef { id?: string; label?: string; kind?: string }
 
 const Base = ConsoleShell as unknown as new (props: Record<string, never>) => Component<Record<string, never>> & Shell;
 
@@ -162,6 +173,29 @@ export class App extends Base {
    *  stored yet", exactly like a missing settings file. */
   private durableStorage: DurableStorageHandle = createDurableStorage(this.bridge());
   private vocabStorage: VocabularyStorage = this.durableStorage.storage;
+
+  /* The design's `lang_mode` control, mapped to the boundary's own mode names. The
+   * control names each language in that language, which is the one label a person
+   * hunting for it can read whatever mode the console is currently in. */
+  private static readonly LANGUAGE_CHOICES: Record<string, LanguageMode> = {
+    English: 'en', '廣東話': 'yue', 'English + 廣東話': 'both',
+  };
+
+  private static readonly LANGUAGE_SETTING = 'console.languageMode';
+
+  /** The shell's own `setVal`, captured so the override below can delegate to it.
+   *  It is a class property rather than a prototype method, so `super.setVal` does not
+   *  exist and the only way to wrap it is to take a copy before replacing it. That has
+   *  to happen in the constructor: field initializers all run before the constructor
+   *  body, so by then an override declared as a field would already have replaced the
+   *  shell's and the copy would point at itself -- a recursion with no base case. */
+  private readonly baseSetVal: (control: ControlRef, value: unknown) => void;
+
+  constructor(props: Record<string, never>) {
+    super(props);
+    this.baseSetVal = this.setVal as (control: ControlRef, value: unknown) => void;
+    this.setVal = this.languageAwareSetVal;
+  }
   /** The chosen file's own name, kept only for display — never its contents. */
   private pickedFileNames = new Map<string, string>();
   /** The daemon lifecycle group on Deploy & servers has no reading of its own until a
@@ -201,7 +235,13 @@ export class App extends Base {
      * persisted state from it (the appearance editor's restore below), so the whole
      * bootstrap-then-restore sequence is awaited before touching either. Everything
      * else on mount does not depend on it and proceeds immediately. */
+    setCatalog(CANTONESE);
+    /* Until this runs the boundary applies language only. Wiring it here rather than
+     * at construction keeps the uploaded file and the rendered text reading from one
+     * storage handle instead of two that can disagree. */
+    setVocabularyStorage(this.vocabStorage);
     void this.durableStorage.bootstrap().then(() => {
+      this.restoreLanguageMode();
       this.restoreAppearance();
       this.forceUpdate();
     });
@@ -435,6 +475,30 @@ export class App extends Base {
     const label = labels[state] ?? state ?? 'Unknown';
     this.daemonStatusLine = status?.reason ? `${label} — ${status.reason}` : label;
     this.forceUpdate();
+  };
+
+  // ---------------------------------------------------------------- language mode
+
+  /** Restores the saved mode. An unrecognised or absent value leaves English in place
+   *  rather than guessing, so a hand-edited settings file cannot strand somebody in a
+   *  language they never chose. */
+  private restoreLanguageMode(): void {
+    const saved = this.durableStorage.storage.getItem(App.LANGUAGE_SETTING);
+    if (isLanguageMode(saved)) setLanguageMode(saved);
+  }
+
+  /** Every control change routes through the compiled shell's `setVal`; this notices
+   *  the language one on its way past, applies it live and persists it, then hands the
+   *  change on unchanged so the control behaves like every other control. */
+  private languageAwareSetVal = (control: ControlRef, value: unknown): void => {
+    if (control?.id === 'lang_mode') {
+      const mode = App.LANGUAGE_CHOICES[String(value)];
+      if (mode && mode !== languageMode()) {
+        setLanguageMode(mode);
+        this.durableStorage.storage.setItem(App.LANGUAGE_SETTING, mode);
+      }
+    }
+    this.baseSetVal(control, value);
   };
 
   /** Read by the compiled `text`-kind control marked `action:'daemon-status'`/`'vocab-status'`. */

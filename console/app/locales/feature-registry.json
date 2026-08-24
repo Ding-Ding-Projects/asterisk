@@ -1,0 +1,536 @@
+{
+  "surface": "windows-console",
+  "schemaVersion": 1,
+  "readme": "Localization evidence, one row per canonical feature. `labels` names the design labels this feature renders; a row is `localized` only when every one of them has a Cantonese entry, so this file is checkable against the catalog instead of asserted. The contract test in console/tests/contracts/language-modes.test.mjs recomputes each state from the catalog and fails on any row that disagrees -- a row cannot be marked localized by editing this file alone. English is always the fallback: an untranslated string renders as English rather than as a placeholder or a guess.",
+  "languageModes": [
+    "en",
+    "yue",
+    "both"
+  ],
+  "features": {
+    "language-modes": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Customise everything"
+      ],
+      "localizedLabels": [
+        "Customise everything"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "funny-levels": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Fun level"
+      ],
+      "localizedLabels": [
+        "Fun level"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "dialog-emojis": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "school-mode": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "narration": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "scheduled-settings": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "external-settings-sources": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "dim-sum-surprise": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "regex-builder": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Open regex builder…",
+        "Match case",
+        "Whole word only",
+        "Escape literals"
+      ],
+      "localizedLabels": [
+        "Open regex builder…",
+        "Match case",
+        "Whole word only",
+        "Escape literals"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "non-blocking-notifications": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Notification centre",
+        "Notifications"
+      ],
+      "localizedLabels": [
+        "Notification centre",
+        "Notifications"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "status-hub": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Status hub"
+      ],
+      "localizedLabels": [
+        "Status hub"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "material-appearance": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Appearance",
+        "Edit appearance…",
+        "Open colour picker…",
+        "Hue",
+        "Lightness",
+        "Fix contrast"
+      ],
+      "localizedLabels": [
+        "Appearance",
+        "Edit appearance…",
+        "Open colour picker…",
+        "Hue",
+        "Lightness",
+        "Fix contrast"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "app-logo-customization": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "local-file-converter": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "ollama-suite-manager": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "browser-style-tabs": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Close tab",
+        "Duplicate tab",
+        "Rename tab…",
+        "New tab here",
+        "Dock left",
+        "Dock right"
+      ],
+      "localizedLabels": [
+        "Close tab",
+        "Duplicate tab",
+        "Rename tab…",
+        "New tab here",
+        "Dock left",
+        "Dock right"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "tab-groups-and-searches": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Rename group…",
+        "Ungroup",
+        "Wrap in group",
+        "Tabs in group",
+        "Group colour",
+        "Clear search"
+      ],
+      "localizedLabels": [
+        "Rename group…",
+        "Ungroup",
+        "Wrap in group",
+        "Tabs in group",
+        "Group colour",
+        "Clear search"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "command-palette": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "destructive-action-confirmation": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Delete"
+      ],
+      "localizedLabels": [
+        "Delete"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "local-version-history": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Version history",
+        "Restore this",
+        "Tag this state"
+      ],
+      "localizedLabels": [
+        "Version history",
+        "Restore this",
+        "Tag this state"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "changelog-viewer": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Changelog"
+      ],
+      "localizedLabels": [
+        "Changelog"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "external-editor-handoff": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "complete-exports": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Export",
+        "Import",
+        "Export bundle",
+        "Export as configuration"
+      ],
+      "localizedLabels": [
+        "Export",
+        "Import",
+        "Export bundle",
+        "Export as configuration"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "bulk-actions": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Select all rows",
+        "Select this row",
+        "All others",
+        "All unpinned",
+        "Close tabs"
+      ],
+      "localizedLabels": [
+        "Select all rows",
+        "Select this row",
+        "All others",
+        "All unpinned",
+        "Close tabs"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "accessibility": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "responsive-sizing": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Compact rail",
+        "Rail on the left",
+        "Rail on the right"
+      ],
+      "localizedLabels": [
+        "Compact rail",
+        "Rail on the left",
+        "Rail on the right"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "personal-vocabulary-upload": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Add a word",
+        "Vocabulary & guard"
+      ],
+      "localizedLabels": [
+        "Add a word",
+        "Vocabulary & guard"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "per-element-toy-locks": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Lock this element…",
+        "Lock this tab…",
+        "Lock this group…",
+        "Password only",
+        "PIN only"
+      ],
+      "localizedLabels": [
+        "Lock this element…",
+        "Lock this tab…",
+        "Lock this group…",
+        "Password only",
+        "PIN only"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "support-tickets": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "unlock-ladder": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "built-in-authenticator": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "PIN + one-time code",
+        "Password + one-time code"
+      ],
+      "localizedLabels": [
+        "PIN + one-time code",
+        "Password + one-time code"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "attention-modes": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "browser-extension-download-surfaces": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "offline-documentation-browser": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Documentation",
+        "Guides",
+        "Cheatsheet"
+      ],
+      "localizedLabels": [
+        "Documentation",
+        "Guides",
+        "Cheatsheet"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "app-display-name": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "guided-forms": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Guided wizard for this screen"
+      ],
+      "localizedLabels": [
+        "Guided wizard for this screen"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "bounded-overlays": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "context-menu-shortcuts": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "long-operation-progress": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "in-context-recovery": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Explain this…"
+      ],
+      "localizedLabels": [
+        "Explain this…"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "provider-markup-rendering": {
+      "state": "not-localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [],
+      "localizedLabels": [],
+      "untranslatedLabels": [],
+      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+    },
+    "forge-publishing": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Push to mirror",
+        "History & git"
+      ],
+      "localizedLabels": [
+        "Push to mirror",
+        "History & git"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "collapsible-filters": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Containing…",
+        "Not containing…"
+      ],
+      "localizedLabels": [
+        "Containing…",
+        "Not containing…"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    },
+    "automatic-updates": {
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "labels": [
+        "Reload"
+      ],
+      "localizedLabels": [
+        "Reload"
+      ],
+      "untranslatedLabels": [],
+      "note": "Every listed label has a Cantonese entry."
+    }
+  }
+}

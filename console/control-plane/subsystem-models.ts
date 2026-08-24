@@ -865,6 +865,8 @@ export interface PjsipEndpointFields {
   timers?: string;
   /** line 127-128: "Minimum session timers expiration period". */
   timers_min_se?: string;
+  /** line 735: "Maximum session timer expiration period". */
+  timers_sess_expires?: string;
   /** line 115-116: "Authentication object used for outbound requests". */
   outbound_auth?: string;
   /** line 117-118: "Proxy through which to send requests, a full SIP URI must be
@@ -1009,6 +1011,7 @@ export function parsePjsip(value: ConfigValue): PjsipView {
         aggregate_mwi: entryValue(endpointSection, "aggregate_mwi"),
         timers: entryValue(endpointSection, "timers"),
         timers_min_se: entryValue(endpointSection, "timers_min_se"),
+        timers_sess_expires: entryValue(endpointSection, "timers_sess_expires"),
         outbound_auth: entryValue(endpointSection, "outbound_auth"),
         outbound_proxy: entryValue(endpointSection, "outbound_proxy"),
         rtp_timeout: entryValue(endpointSection, "rtp_timeout"),
@@ -1123,7 +1126,8 @@ const PJSIP_ENDPOINT_MANAGED_KEYS: readonly string[] = [
   "ice_support", "use_avpf", "media_encryption", "media_encryption_optimistic",
   "force_rport", "rewrite_contact", "rtp_symmetric", "trust_id_inbound", "send_pai",
   "identify_by", "mailboxes", "voicemail_extension", "mwi_subscribe_replaces_unsolicited",
-  "aggregate_mwi", "timers", "timers_min_se", "outbound_auth", "outbound_proxy",
+  "aggregate_mwi", "timers", "timers_min_se", "timers_sess_expires",
+  "outbound_auth", "outbound_proxy",
   "rtp_timeout", "rtp_timeout_hold", "callerid", "device_state_busy_at",
   "max_audio_streams", "max_video_streams", "refer_blind_progress", "auth", "aors",
 ];

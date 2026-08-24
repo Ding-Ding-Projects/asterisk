@@ -2880,6 +2880,30 @@ function pjsipCtls() {
       ctl('e_expiry','Registration expiry','slider',3600,{ min:60, max:7200, step:60, unit:'s' }),
       ctl('e_codecs','Allowed codecs','order',['opus','g722','ulaw','alaw'],{ pool:['opus','g722','ulaw','alaw','g729','gsm'] })
     ]},
+    { title:'Media streams', desc:'Stream ceilings and opportunistic encryption. These write pjsip.conf keys directly; a control left untouched writes nothing at all.', ctls:[
+      ctl('e_maxaudio','max_audio_streams','stepper',1,{ min:0, max:10, info:'How many simultaneous audio streams this endpoint may negotiate.' }),
+      ctl('e_maxvideo','max_video_streams','stepper',1,{ min:0, max:10, info:'The same ceiling for video. Zero refuses video outright.' }),
+      ctl('e_optimistic','media_encryption_optimistic','switch',false,{ info:'Opportunistic SRTP: offer encryption, but do not refuse the call when the far end cannot do it. Encryption becomes best-effort rather than required, which is a real downgrade and not merely a compatibility setting.' })
+    ]},
+    { title:'Session timers', desc:'Whether Asterisk keeps proving a call is still alive, and how often.', ctls:[
+      ctl('e_timers','timers','segmented','yes',{ options:['no','yes','required','always'] }),
+      ctl('e_timers_min_se','timers_min_se','slider',90,{ min:90, max:1800, step:10, unit:'s', info:'The shortest refresh interval this endpoint will accept. Asterisk refuses anything below 90.' }),
+      ctl('e_timers_sess','timers_sess_expires','slider',1800,{ min:90, max:7200, step:30, unit:'s', info:'The session expires after this long without a refresh.' })
+    ]},
+    { title:'Timeouts & device state', desc:'When Asterisk gives up on silent media, and when this endpoint counts as busy.', ctls:[
+      ctl('e_rtp_timeout','rtp_timeout','slider',0,{ min:0, max:300, step:5, unit:'s', info:'Hang up after this long with no RTP arriving. Zero disables the check entirely.' }),
+      ctl('e_rtp_hold','rtp_timeout_hold','slider',0,{ min:0, max:600, step:5, unit:'s', info:'The same, while the call is on hold, where silence is expected and the timeout usually wants to be longer.' }),
+      ctl('e_busy_at','device_state_busy_at','stepper',0,{ min:0, max:20, info:'Report this endpoint busy once it has this many calls. Zero means never report busy on count.' }),
+      ctl('e_refer_blind','refer_blind_progress','switch',true,{ info:'Whether a blind transfer reports its progress back to the transferring party.' })
+    ]},
+    { title:'MWI', desc:'How message-waiting notifications are delivered to this endpoint.', ctls:[
+      ctl('e_aggregate_mwi','aggregate_mwi','switch',true,{ info:'Send one summary for every mailbox rather than a separate notification each.' }),
+      ctl('e_mwi_replaces','mwi_subscribe_replaces_unsolicited','switch',false,{ info:'When the endpoint subscribes for MWI, stop sending it unsolicited notifications as well.' })
+    ]},
+    { title:'Outbound', desc:'Where outbound requests from this endpoint go, and what authenticates them.', ctls:[
+      ctl('e_outbound_proxy','outbound_proxy','text','',{ placeholder:'sip:proxy.example.net:5060\;lr', info:'A full SIP URI. Asterisk requires the lr parameter, and it must be escaped in the config file.' }),
+      ctl('e_outbound_auth','outbound_auth','text','',{ placeholder:'auth-section-name', info:'Names an auth section used for outbound requests. Left empty, nothing is written.' })
+    ]},
     { title:'Voicemail', desc:'Where this endpoint sends message-waiting notifications.', ctls:[
       ctl('e_mailboxes','mailboxes','text','',{ info:'Comma-separated mailbox@context pairs, e.g. 6001@default. Asterisk NOTIFYs this endpoint whenever any of them changes.' }),
       ctl('e_voicemail_ext','voicemail_extension','text','',{ info:'The extension sent in the NOTIFY Message-Account header. Leave blank to use the global default_voicemail_extension.' })
@@ -3239,7 +3263,9 @@ const SCREENS = {
     ]}] },
   customise:{ rail:'app', icon:'auto_awesome', label:'Customise everything', badge:'∞', title:'Customise everything', file:'console profile', kind:'generic',
     sub:'The global layer. Every one of these reaches across the whole console, and every individual element can still override it from its own right-click menu.',
-    groups:[{ title:'Fun', desc:'How playful the console is allowed to be. This is a real setting, not a joke — it scales celebrations, copy and randomness together.', ctls:[
+    groups:[{ title:'Language', desc:'Which language the console speaks. Bilingual keeps English primary and adds the Cantonese beside it. Technical identifiers -- codecs, config keys, section names, SIP URIs -- stay literal in every mode, because they have to survive being read back and typed.', ctls:[
+      ctl('lang_mode','Language','segmented','English',{ options:['English','廣東話','English + 廣東話'], info:'A string with no translation yet renders as English rather than as a placeholder, so an incomplete catalog looks unfinished instead of broken.' }),
+    ]},{ title:'Fun', desc:'How playful the console is allowed to be. This is a real setting, not a joke — it scales celebrations, copy and randomness together.', ctls:[
       ctl('fun_level','Fun level','slider',2,{ min:0, max:4, info:'0 is a bank. 1 is polite. 2 is the default — celebrations on meaningful wins. 3 adds jokes and bolder motion. 4 is confetti for changing a slider, rainbow fills and an app that will not stop congratulating you.' }),
       ctl('fun_copy','Copy tone','segmented','Warm',{ options:['Terse','Neutral','Warm','Comedian'] }),
       ctl('fun_celebrate','Celebrate on','chips',['Big wins','Security improvements'],{ options:['Every change','Big wins','Security improvements','Minigame wins','Nothing'] }),
