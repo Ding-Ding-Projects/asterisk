@@ -280,7 +280,7 @@
             <div style="background:#1B211C; border-radius:16px; padding:16px 18px;">
               <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
                 <span style="font-size:15px; font-weight:500;">Live channels</span>
-                <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#9AA39B;">refreshing 1s</span>
+                <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#9AA39B;">{{ dashboardRefresh }}</span>
               </div>
               <div style="display:flex; flex-direction:column; gap:6px;">
                 <sc-for list="{{ liveCalls }}" as="c" hint-placeholder-count="5">
@@ -474,7 +474,7 @@
                     <div style="display:flex; align-items:center; gap:8px; margin-top:14px; flex-wrap:wrap;">
                       <button onClick="{{ a.yes }}" style="display:flex; align-items:center; gap:7px; background:#82D9A5; border:0; border-radius:999px; padding:10px 22px 10px 16px; color:#00391F; font:inherit; font-size:13px; font-weight:600; cursor:pointer;" style-hover="background:#9FF7C4;"><span class="msym" style="font-size:18px;">thumb_up</span>Send YES</button>
                       <button onClick="{{ a.no }}" style="display:flex; align-items:center; gap:7px; background:#93000A; border:0; border-radius:999px; padding:10px 22px 10px 16px; color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer;" style-hover="background:#B3261E;"><span class="msym" style="font-size:18px;">thumb_down</span>Send NO</button>
-                      <button onClick="{{ a.ask }}" style="background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;" style-hover="background:#262B26;">Ask for detail</button>
+                      <button onClick="{{ a.ask }}" aria-disabled="{{ a.askDisabled }}" title="{{ a.askReason }}" style="background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;" style-hover="background:#262B26;">Ask for detail</button>
                       <button onClick="{{ a.defer }}" style="background:transparent; border:0; color:#9AA39B; font:inherit; font-size:12.5px; cursor:pointer; padding:10px 12px;">Defer</button>
                       <div style="flex:1;"></div>
                       <span style="font-family:'Roboto Mono',monospace; font-size:11.5px; color:{{ a.stateFg }};">{{ a.state }}</span>
@@ -497,113 +497,6 @@
                 <span style="font-family:'Roboto Mono',monospace; font-size:11.5px; color:{{ h.color }};">{{ h.answer }}</span>
                 <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#778078; text-align:right;">{{ h.when }}</span>
               </div>
-            </sc-for>
-          </div>
-        </sc-if>
-
-        <sc-if value="{{ isArcade }}">
-          <div style="display:grid; grid-template-columns:290px 1fr; gap:12px; margin-bottom:12px;">
-            <div style="background:linear-gradient(150deg,#0F3D28,#1B4D33); border-radius:20px; padding:22px; display:flex; flex-direction:column; align-items:center; text-align:center;">
-              <span class="msym" style="font-size:30px; color:#9FF7C4;">confirmation_number</span>
-              <div style="font-family:'Roboto Mono',monospace; font-size:54px; font-weight:500; color:#DFF3E5; line-height:1.05; margin-top:6px;">{{ credits }}</div>
-              <div style="font-size:12.5px; color:#9FF7C4;">confirmation credits</div>
-              <div style="font-size:12px; color:#C3EFD5; margin-top:14px; line-height:1.6;">One credit skips one ceremony. Actions above the danger line still cost all four gates, because some mistakes deserve friction.</div>
-              <button onClick="{{ spendCredit }}" style="margin-top:16px; width:100%; background:#9FF7C4; border:0; border-radius:999px; padding:11px 0; color:#00391F; font:inherit; font-size:13px; font-weight:600; cursor:pointer;" style-hover="background:#C3EFD5;">Spend one now</button>
-            </div>
-            <div style="background:#1B211C; border-radius:20px; padding:18px 20px;">
-              <div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-size:15px; font-weight:500;">{{ gameTitle }}</span>
-                <div style="flex:1;"></div>
-                <span style="font-family:'Roboto Mono',monospace; font-size:20px; color:#82D9A5;">{{ gameScore }}</span>
-                <span style="font-family:'Roboto Mono',monospace; font-size:13px; color:#FFB4AB;">{{ gameClock }}</span>
-              </div>
-              <div style="font-size:12.5px; color:#9AA39B; line-height:1.55; margin:6px 0 14px;">{{ gameBlurb }}</div>
-              <sc-if value="{{ gWhack }}" hint-placeholder-val="{{ true }}">
-                <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:8px;">
-                  <sc-for list="{{ gameCells }}" as="g" hint-placeholder-count="15">
-                    <sc-if value="{{ g.up }}" hint-placeholder-val="{{ true }}">
-                      <button onClick="{{ g.hit }}" style="height:58px; border-radius:14px; background:#005230; border:2px solid #82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; animation:m3Pop .12s ease-out;"><span class="msym" style="font-size:25px; color:#9FF7C4;">{{ g.icon }}</span></button>
-                    </sc-if>
-                    <sc-if value="{{ g.down }}">
-                      <button onClick="{{ g.miss }}" style="height:58px; border-radius:14px; background:#141A15; border:2px solid #262B26; cursor:pointer;" style-hover="border-color:#333B34;"></button>
-                    </sc-if>
-                  </sc-for>
-                </div>
-              </sc-if>
-              <sc-if value="{{ gDtmf }}">
-                <div style="background:#0C110D; border-radius:14px; padding:14px; margin-bottom:10px; text-align:center;">
-                  <div style="font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#8FA394;">{{ dtmfPhase }}</div>
-                  <div style="font-family:'Roboto Mono',monospace; font-size:32px; letter-spacing:10px; color:#9FF7C4; margin-top:8px; min-height:40px;">{{ dtmfShown }}</div>
-                </div>
-                <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:7px;">
-                  <sc-for list="{{ dtmfKeys }}" as="k" hint-placeholder-count="12">
-                    <button onClick="{{ k.press }}" style="height:50px; border-radius:12px; background:linear-gradient(#20281F,#171D18); border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:20px; cursor:pointer; box-shadow:0 2px 0 #0C110D;" style-active="transform:translateY(2px); box-shadow:none;" style-hover="background:#005230; color:#9FF7C4;">{{ k.label }}</button>
-                  </sc-for>
-                </div>
-              </sc-if>
-              <sc-if value="{{ gSort }}">
-                <div style="font-size:12px; color:#8FA394; margin-bottom:8px;">{{ sortHint }}</div>
-                <div style="display:flex; flex-direction:column; gap:6px;">
-                  <sc-for list="{{ sortItems }}" as="i" hint-placeholder-count="5">
-                    <div style="display:flex; align-items:center; gap:10px; background:{{ i.bg }}; border-radius:12px; padding:10px 12px;">
-                      <span style="font-family:'Roboto Mono',monospace; font-size:12px; color:#778078;">{{ i.pos }}</span>
-                      <span style="flex:1; font-family:'Roboto Mono',monospace; font-size:13px; color:#DFE4DC;">{{ i.label }}</span>
-                      <button onClick="{{ i.up }}" style="width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:16px;">arrow_upward</span></button>
-                      <button onClick="{{ i.down }}" style="width:28px; height:28px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:16px;">arrow_downward</span></button>
-                    </div>
-                  </sc-for>
-                </div>
-                <button onClick="{{ sortCheck }}" style="margin-top:10px; background:#262B26; border:0; border-radius:999px; padding:9px 18px; color:#9FF7C4; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;">Check my order</button>
-              </sc-if>
-              <sc-if value="{{ gMatch }}">
-                <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">
-                  <sc-for list="{{ matchTiles }}" as="t" hint-placeholder-count="12">
-                    <button onClick="{{ t.pick }}" style="min-height:62px; border-radius:12px; background:{{ t.bg }}; border:2px solid {{ t.border }}; color:{{ t.fg }}; font:inherit; font-size:11.5px; line-height:1.4; padding:9px; cursor:pointer; text-align:left;">{{ t.label }}</button>
-                  </sc-for>
-                </div>
-              </sc-if>
-              <sc-if value="{{ gSpot }}">
-                <div style="background:#0C110D; border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:4px;">
-                  <sc-for list="{{ spotLines }}" as="l" hint-placeholder-count="6">
-                    <button onClick="{{ l.pick }}" style="text-align:left; background:{{ l.bg }}; border:0; border-radius:8px; padding:7px 10px; color:{{ l.fg }}; font-family:'Roboto Mono',monospace; font-size:12.5px; cursor:pointer;" style-hover="background:#20281F;">{{ l.text }}</button>
-                  </sc-for>
-                </div>
-              </sc-if>
-              <sc-if value="{{ gReflex }}">
-                <div style="text-align:center; padding:10px 0;">
-                  <div style="font-family:'Roboto Mono',monospace; font-size:44px; color:#9FF7C4; letter-spacing:6px;">{{ reflexTarget }}</div>
-                  <div style="font-size:12px; color:#8FA394; margin:8px 0 14px;">{{ reflexHint }}</div>
-                  <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:7px;">
-                    <sc-for list="{{ reflexKeys }}" as="k" hint-placeholder-count="10">
-                      <button onClick="{{ k.press }}" style="height:50px; border-radius:12px; background:#1B211C; border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:15px; cursor:pointer;" style-hover="background:#005230; color:#9FF7C4;">{{ k.label }}</button>
-                    </sc-for>
-                  </div>
-                </div>
-              </sc-if>
-              <div style="display:flex; gap:8px; margin-top:14px;">
-                <button onClick="{{ startGame }}" style="background:#82D9A5; border:0; border-radius:999px; padding:10px 22px; color:#00391F; font:inherit; font-size:13px; font-weight:500; cursor:pointer;">{{ gameButton }}</button>
-                <button onClick="{{ stopGame }}" style="background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;">Stop</button>
-              </div>
-            </div>
-          </div>
-          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px;">
-            <sc-for list="{{ games }}" as="g" hint-placeholder-count="8">
-              <sc-if value="{{ g.on }}" hint-placeholder-val="{{ true }}">
-                <button onClick="{{ g.pick }}" style="text-align:left; background:#005230; border:2px solid #82D9A5; border-radius:16px; padding:14px 16px; cursor:pointer; display:flex; flex-direction:column; gap:6px;">
-                  <span class="msym" style="font-size:22px; color:#9FF7C4; animation:m3Bounce .4s cubic-bezier(.2,1.4,.4,1);">{{ g.icon }}</span>
-                  <span style="font-size:13.5px; font-weight:500; color:#DFF3E5;">{{ g.name }}</span>
-                  <span style="font-size:11.5px; color:#C3EFD5; line-height:1.5;">{{ g.blurb }}</span>
-                  <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#9FF7C4;">{{ g.reward }}</span>
-                </button>
-              </sc-if>
-              <sc-if value="{{ g.off }}">
-                <button onClick="{{ g.pick }}" style="text-align:left; background:#1B211C; border:2px solid transparent; border-radius:16px; padding:14px 16px; cursor:pointer; display:flex; flex-direction:column; gap:6px;" style-hover="border-color:#414942;">
-                  <span class="msym" style="font-size:22px; color:#82D9A5;">{{ g.icon }}</span>
-                  <span style="font-size:13.5px; font-weight:500; color:#DFE4DC;">{{ g.name }}</span>
-                  <span style="font-size:11.5px; color:#9AA39B; line-height:1.5;">{{ g.blurb }}</span>
-                  <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#82D9A5;">{{ g.reward }}</span>
-                </button>
-              </sc-if>
             </sc-for>
           </div>
         </sc-if>
@@ -721,8 +614,8 @@
                         <button onClick="{{ n.right }}" title="Nudge right" style="width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:15px;">chevron_right</span></button>
                         <div style="flex:1;"></div>
                         <button onClick="{{ n.connect }}" title="Connect to…" style="width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:15px;">timeline</span></button>
-                        <button onClick="{{ n.dup }}" title="Duplicate" style="width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:15px;">content_copy</span></button>
-                        <button onClick="{{ n.del }}" title="Delete" style="width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#FFB4AB; cursor:pointer;" style-hover="background:#93000A; color:#fff;"><span class="msym" style="font-size:15px;">delete</span></button>
+                        <button onClick="{{ n.dup }}" aria-disabled="{{ n.dupDisabled }}" title="{{ n.dupReason }}" style="width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#C4CBC2; cursor:pointer;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:15px;">content_copy</span></button>
+                        <button onClick="{{ n.del }}" aria-disabled="{{ n.delDisabled }}" title="{{ n.delReason }}" style="width:26px; height:26px; border-radius:7px; background:#262B26; border:0; color:#FFB4AB; cursor:pointer;" style-hover="background:#93000A; color:#fff;"><span class="msym" style="font-size:15px;">delete</span></button>
                       </div>
                     </sc-if>
                   </div>
@@ -1152,10 +1045,6 @@
           <div style="font-size:12.5px; color:#FFE7BC; line-height:1.6;">{{ docGotcha }}</div>
         </div>
       </sc-if>
-      <div style="margin-top:14px; background:#141A15; border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:8px;">
-        <div style="font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394;">Pretend you arrived yesterday</div>
-        <div style="font-size:12.5px; color:#9AA39B; line-height:1.6;">{{ infoPlain }}</div>
-      </div>
       <div style="display:flex; gap:8px; margin-top:14px;">
         <button onClick="{{ closeInfo }}" style="flex:1; background:#82D9A5; border:0; border-radius:999px; padding:10px 0; color:#00391F; font:inherit; font-size:13px; font-weight:500; cursor:pointer;">Got it</button>
         <button onClick="{{ openWizard }}" style="flex:1; background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 0; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;" style-hover="background:#1B211C;">Walk me through it</button>
@@ -1302,13 +1191,6 @@
           </div>
           <button onClick="{{ cancelCeremony }}" style="width:36px; height:36px; border-radius:50%; background:transparent; border:0; color:#C4CBC2; cursor:pointer;" style-hover="background:#333B34;"><span class="msym" style="font-size:20px;">close</span></button>
         </div>
-        <sc-if value="{{ canSkip }}" hint-placeholder-val="{{ true }}">
-          <button onClick="{{ skipCeremony }}" style="width:100%; margin-top:16px; display:flex; align-items:center; gap:10px; background:#1B4D33; border:0; border-radius:14px; padding:13px 16px; color:#9FF7C4; font:inherit; font-size:13px; cursor:pointer; text-align:left;" style-hover="background:#22633f;">
-            <span class="msym" style="font-size:20px;">confirmation_number</span>
-            <span style="flex:1;">Spend 1 confirmation credit and skip all four gates</span>
-            <span style="font-family:'Roboto Mono',monospace; font-size:12px;">{{ credits }} left</span>
-          </button>
-        </sc-if>
         <div style="display:flex; gap:8px; margin:18px 0 20px;">
           <sc-for list="{{ ceremonySteps }}" as="s" hint-placeholder-count="4">
             <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
@@ -2373,21 +2255,12 @@ const SCREENS = {
       ctl('hi_branch','Restore onto a new branch instead of main','switch',true),
       ctl('hi_reload','Reload Asterisk after a restore','switch',true)
     ]}] },
-  arcade:{ rail:'app', icon:'stadia_controller', label:'Arcade', badge:'', title:'Confirmation credits', file:'arcade', kind:'arcade',
-    sub:'This retired surface cannot authorize or bypass host operations. The semantic two-key and slider confirmation shell is the only route.',
-    groups:[{ title:'Spending rules', desc:'How credits are allowed to replace a ceremony.', ctls:[
-      ctl('cr_enable','Allow credits to skip ceremonies','switch',true),
-      ctl('cr_cost','Cost per skip','stepper',1,{ min:1, max:5 }),
-      ctl('cr_danger','High-danger actions still need the full ceremony','switch',true,{ info:'Restarting Asterisk, unloading a module and deleting an endpoint are above the danger line. Leave this on unless you enjoy explaining outages.' }),
-      ctl('cr_cap','Maximum credits held','stepper',20,{ min:1, max:99 }),
-      ctl('cr_expire','Credits expire after','slider',7,{ min:1, max:90, unit:' days' })
-    ]}] },
   customise:{ rail:'app', icon:'auto_awesome', label:'Customise everything', badge:'', title:'Customise everything', file:'console profile', kind:'generic',
     sub:'The global layer. Every one of these reaches across the whole console, and every individual element can still override it from its own right-click menu.',
     groups:[{ title:'Fun', desc:'How playful the console is allowed to be. This is a real setting, not a joke — it scales celebrations, copy and randomness together.', ctls:[
       ctl('fun_level','Fun level','slider',2,{ min:0, max:4, info:'0 is a bank. 1 is polite. 2 is the default — celebrations on meaningful wins. 3 adds jokes and bolder motion. 4 is confetti for changing a slider, rainbow fills and an app that will not stop congratulating you.' }),
       ctl('fun_copy','Copy tone','segmented','Warm',{ options:['Terse','Neutral','Warm','Comedian'] }),
-      ctl('fun_celebrate','Celebrate on','chips',['Big wins','Security improvements'],{ options:['Every change','Big wins','Security improvements','Minigame wins','Nothing'] }),
+      ctl('fun_celebrate','Celebrate on','chips',['Big wins','Security improvements'],{ options:['Every change','Big wins','Security improvements','Nothing'] }),
       ctl('fun_confetti','Confetti density','slider',90,{ min:0, max:300, unit:' pieces' }),
       ctl('fun_sound','Sound effects','switch',false),
       ctl('fun_mascot','Show the mascot','switch',false),
@@ -2422,14 +2295,14 @@ const SCREENS = {
       ctl('th_tint','Tint surfaces with the accent','slider',6,{ min:0, max:40, unit:'%' })
     ]},{ title:'Behaviour', desc:'What the console does without being asked.', ctls:[
       ctl('bh_start','Open on launch','select','Dashboard',{ options:['Dashboard','Endpoints','Last screen','Customise everything'] }),
-      ctl('bh_confirm','Confirmation','segmented','Four gates',{ options:['Four gates','Credits allowed','Single confirm'] }),
+      ctl('bh_confirm','Confirmation','segmented','Four gates',{ options:['Four gates','Single confirm'] }),
       ctl('bh_commit','Commit every change to git','switch',true),
       ctl('bh_lockdefault','Default lock method','select','PIN',{ options:['PIN','Password','Password + PIN','Password + PIN + TOTP'] }),
       ctl('bh_wizard','Offer the wizard first on every screen','switch',false),
       ctl('bh_explain','Show explain buttons','switch',true),
       ctl('bh_tour','Offer the tour on launch','switch',false)
     ]},{ title:'Profiles', desc:'Save the entire look and behaviour, then move it between machines.', ctls:[
-      ctl('pr_active','Active profile','select','Default',{ options:['Default','Night operations','Training room','Demo'] }),
+      ctl('pr_active','Active profile','select','',{ options:[], info:'The host supplies verified saved profiles. No sample profile is inserted.' }),
       ctl('pr_sync','Sync profile with agent memory','switch',true),
       ctl('pr_perscreen','Allow per-screen overrides','switch',true),
       ctl('pr_export','Include appearance overrides in exports','switch',true)
@@ -2505,35 +2378,7 @@ const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_str
 
 const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','security','cli','memory','sync','skills','hub','vocab','ops','secrets','notifications','history','customise','appearance','about','docs','changelog'];
 
-const GAMES = [
-  { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },
-  { id:'dtmf', kind:'dtmf', icon:'dialpad', name:'Tone memory', reward:3, blurb:'A sequence flashes on the display. Tap it back on the keypad. One digit longer each round.' },
-  { id:'sort', kind:'sort', icon:'swap_vert', name:'Codec sort', reward:2, blurb:'Put five codecs in bandwidth order, lowest first, then check your answer.' },
-  { id:'match', kind:'match', icon:'extension', name:'Match the option', reward:3, blurb:'Tap an option, then tap what it does. Six pairs, no penalty for thinking.' },
-  { id:'spot', kind:'spot', icon:'travel_explore', name:'Spot the misconfiguration', reward:4, blurb:'One line in this config block is wrong. Find it. Genuinely useful practice.' },
-  { id:'dial', kind:'reflex', icon:'timer', name:'Speed dial', reward:1, blurb:'An extension appears. Tap its last digit before it changes. Pure reflex.' },
-  { id:'ring', kind:'reflex', icon:'notifications_active', name:'Ring rhythm', reward:1, blurb:'Same reflex, faster cadence. Australia is harder than it sounds.' },
-  { id:'trunk', kind:'whack', icon:'cable', name:'Patch the trunk', reward:2, blurb:'Lines light up across the switchboard. Patch each one before it drops. Genuinely 1962.' }
-];
-
 const AUTH_REQS = [];
-
-const CODEC_ORDER = ['g729 · 8 kbps', 'gsm · 13 kbps', 'ulaw · 64 kbps', 'g722 · 64 kbps', 'opus · 128 kbps'];
-
-const MATCH_PAIRS = [
-  ['direct_media', 'audio skips Asterisk'],
-  ['rewrite_contact', 'fixes phones behind NAT'],
-  ['wrapuptime', 'agent rest between calls'],
-  ['qualify_frequency', 'how often we ping the phone'],
-  ['joinempty', 'may a caller enter an empty queue'],
-  ['max_contacts', 'devices sharing one identity']
-];
-
-const SPOT_LINES = [
-  { t:'[1005]', bad:false }, { t:'type = endpoint', bad:false },
-  { t:'transport = transport-tls', bad:false }, { t:'context = from-external', bad:true },
-  { t:'allow = opus,g722,ulaw', bad:false }, { t:'media_encryption = sdes', bad:false }
-];
 
 const REGEX_GROUPS = [
   { title:'Anchors', items:[['^','starts with'],['$','ends with'],['\\b','word edge']] },
@@ -2644,7 +2489,7 @@ const WIZARDS = {
        ctl('w_users','How many people share it?','stepper',1,{ min:1, max:10 })]),
     step('Identity','Give it a name','The name is the only thing typed in this whole wizard, because a name cannot be guessed for you. Extension numbers are conventional but any label works.',
       'Asterisk uses this string as the section header in pjsip.conf and as the username the phone registers with. Change it later and the phone stops registering until it is reconfigured too.',
-      [ctl('w_name','Name','text','1005'),
+       [ctl('w_name','Name','text',''),
        ctl('w_display','Caller ID name source','segmented','Directory',{ options:['Directory','Custom','Inherit trunk'] }),
        ctl('w_ext','Reachable on extension','switch',true),
        ctl('w_dir','List in the dial-by-name directory','switch',true)]),
@@ -2685,7 +2530,7 @@ const WIZARDS = {
        ctl('wq_hours','Only during business hours','switch',true)]),
     step('Members','Who answers it?','Agents are picked from the endpoint list, and their penalty decides who is tried first.',
       'Penalty is a tier number, not a punishment. Penalty 0 rings first; penalty 1 only rings if nobody at 0 picked up.',
-      [ctl('wq_members','Members','order',['1001','1002','1004'],{ pool:['1003','reception','softphone-ada'] }),
+       [ctl('wq_members','Members','order',[],{ pool:[], info:'The host supplies verified endpoint identities. No sample members are inserted.' }),
        ctl('wq_penalty','Use penalty tiers','switch',false),
        ctl('wq_auto','Pause an agent after a missed call','segmented','no',{ options:['no','yes','all'] })]),
     step('Strategy','How are calls offered?','Choose how a waiting call is handed to your members.',
@@ -2774,7 +2619,7 @@ const WIZARDS = {
     step('Owner','Whose mailbox?','A mailbox belongs to a person or a team, and that choice changes the greeting and the notifications.',
       'Team mailboxes need several notification addresses and a longer message limit. Personal ones almost never do.',
       [ctl('wv_kind','Mailbox type','segmented','Person',{ options:['Person','Team','Department','Fax'] }),
-       ctl('wv_box','Number','select','1005',{ options:['1005','1006','1011','2000'] }),
+       ctl('wv_box','Number','select','',{ options:[], info:'The host supplies verified mailbox identities. No sample mailbox is inserted.' }),
        ctl('wv_ext','Link to extension','switch',true)]),
     step('Greeting','What callers hear','Unavailable, busy and name greetings, or the default system prompt.',
       'A named greeting reassures the caller they reached the right person. Without one they leave a vaguer, longer, less useful message.',
@@ -2843,7 +2688,7 @@ const WIZARDS = {
     step('Safety','How risky is this?','The console classifies the command and tells you what it will touch.',
       'A reload is not free: it re-reads configuration and can drop calls that are mid-negotiation, which is why even read-mostly commands are classified.',
       [ctl('wc_dry','Dry run first','switch',true),
-       ctl('wc_confirm','Confirmation','segmented','Full ceremony',{ options:['Full ceremony','Spend a credit','None'] }),
+       ctl('wc_confirm','Confirmation','segmented','Full ceremony',{ options:['Full ceremony','None'] }),
        ctl('wc_log','Record the output to history','switch',true)]),
     step('Review','Run it','The assembled command, what it does, and what it will not do.',
       'Output is captured to local history so you can compare today with last week without running it twice.',
@@ -2913,7 +2758,7 @@ const ONBOARD = [
     ctl('ob_host','Host','select','',{ options:[], info:'No target is selected until the host provides a verified destination.' }),
     ctl('ob_tls','Encrypt everything','switch',true)] },
   { icon:'shield_lock', t:'Change control', b:'Destructive host actions require two independent keys, a full-range slider, and a verified operation receipt. Local intent never reports completion.', ctls:[
-    ctl('ob_gates','Confirmation','segmented','All four gates',{ options:['All four gates','Key and switch only','Credits allowed'] }),
+    ctl('ob_gates','Confirmation','segmented','All four gates',{ options:['All four gates','Key and switch only'] }),
     ctl('ob_log','Attest every change to memory','switch',true)] },
   { icon:'bolt', t:'Ready to review', b:'The host must provide an exact deployment plan, target, prerequisites, and rollback route before submission becomes available.', ctls:[
     ctl('ob_tour','Take the tour afterwards','switch',true)] }
@@ -2955,10 +2800,7 @@ class Component extends DCLogic {
     regexOpen:false, regexTarget:'nav', regexX:'300px', regexY:'120px', regexFlags:['i'],
     ctxOpen:false, ctxX:'0px', ctxY:'0px', ctxTarget:'', ctxKind:'screen',
     locks:{}, lockOpen:false, lockTarget:'', lockKey:'', lockStep:0, lockMethod:'PIN', pin:'', password:'', pinReveal:false, lockX:'40%', lockY:'22%',
-    credits:3, game:'whack', gameScore:0, gameTime:0, gameCell:-1, gamePlaying:false,
-    dtmfSeq:['4','7','2','9'], dtmfIn:[], dtmfShow:true,
-    sortList:['ulaw · 64 kbps','opus · 128 kbps','g729 · 8 kbps','g722 · 64 kbps','gsm · 13 kbps'],
-    matchSel:'', matchDone:[], spotFound:-1, reflexNum:'1004', selected:[], authAnswers:{},
+    selected:[], authAnswers:{},
     sureOpen:false, sureTitle:'', sureBody:'', sureHits:0, sureNeed:3, sureCell:-1, sureAction:null,
     tabs:['dash', 'endpoints', 'canvas'], pinned:['dash'], dock:'left',
     nodePos:{}, edgeList:EDGES.map(e => e.slice()), nodeDrag:null, fullscreen:false,
@@ -3033,6 +2875,17 @@ class Component extends DCLogic {
       return { ok:false, reason };
     });
   };
+  hostMenuAction = (icon, label, actionId, payload, close) => {
+    const cap = this.capability(actionId);
+    return {
+      icon, label, disabled:!cap.enabled, reason:cap.reason,
+      run:() => {
+        if (close) close();
+        if (!cap.enabled) return this.notify('warning', 'Action unavailable', cap.reason);
+        return this.invokeHost(actionId, payload || {});
+      }
+    };
+  };
   commit = () => this.notify('warning', 'History unavailable', 'Local intent is not a history entry. The host must return a durable history receipt.');
   setVal = (c, value) => this.invokeHost('settings.update', { screen:this.state.screen, settingId:c.id, value, expectedSource:(SCREENS[this.state.screen] || {}).file || 'console' }).then(receipt => {
     if (!receipt.ok) return receipt;
@@ -3060,15 +2913,17 @@ class Component extends DCLogic {
   areYouSure = (title, body, need, action) => this.setState({ sureOpen:true, sureTitle:title, sureBody:body, sureNeed:need || 3, sureHits:0, sureCell:Math.floor(Math.random() * 8), sureAction:action });
 
   answerAuth = (r, ans) => {
+    const submit = () => this.invokeHost('auth.answer', { requestId:r.id, answer:ans }).then(receipt => {
+      if (!receipt.ok) return receipt;
+      this.setState({ authAnswers:Object.assign({}, this.state.authAnswers, { [r.id]:ans }) });
+      return receipt;
+    });
     if (ans === 'YES' && r.risk === 'High risk') {
       return this.areYouSure('Sending YES to ' + r.partner, 'You are about to tell ' + r.partner + ' that ' + r.title.toLowerCase() + ' is approved. This widens who may deliver calls onto your PBX and it takes effect on their side within minutes.', 4, () => {
-        this.setState({ authAnswers:Object.assign({}, this.state.authAnswers, { [r.id]:'YES' }) });
-        this.fire('YES sent', r.partner + ' has been told. Signed and logged.');
+        submit();
       });
     }
-    this.setState({ authAnswers:Object.assign({}, this.state.authAnswers, { [r.id]:ans }) });
-    if (ans === 'YES') this.fire('YES sent', r.partner + ' has been told. Signed and logged.');
-    else this.toast('NO sent to ' + r.partner + ' — nothing on the link changed');
+    return submit();
   };
 
   openScreen = (k) => this.setState(st => ({ rndNonce:st.rndNonce + 1, screen:k, railId:SCREENS[k] ? SCREENS[k].rail : st.railId }));
@@ -3154,7 +3009,7 @@ class Component extends DCLogic {
 
   ownerFile(c) {
     const id = c.id || '';
-    const map = { e_:'pjsip.conf', t_:'pjsip.conf', w_:'pjsip.conf', q_:'queues.conf', wq_:'queues.conf', v_:'voicemail.conf', wv_:'voicemail.conf', i_:'extensions.conf', wi_:'extensions.conf', dp_:'extensions.conf', c_:'confbridge.conf', h_:'musiconhold.conf', k_:'codecs.conf', r_:'rtp.conf', d_:'cdr.conf', l_:'cel.conf', a_:'manager.conf', mo_:'modules.conf', g_:'logger.conf', s_:'acl.conf · stir_shaken.conf', ws_:'acl.conf · stir_shaken.conf', sv_:'connection profile', ob_:'connection profile', bs_:'provisioning', ta_:'pjsip.conf', hi_:'.git config', y_:'agent memory', u_:'skills', b_:'status hub', n_:'vocabulary', o_:'release', x_:'secret intake', cr_:'arcade', nt_:'console', p_:'console settings', z_:'console', fun_:'console profile', mo2_:'console profile', ly_:'console profile', th_:'console profile', bh_:'console profile', pr_:'console profile', ap_:'appearance overrides', cp_:'appearance overrides', lk_:'lock store' };
+    const map = { e_:'pjsip.conf', t_:'pjsip.conf', w_:'pjsip.conf', q_:'queues.conf', wq_:'queues.conf', v_:'voicemail.conf', wv_:'voicemail.conf', i_:'extensions.conf', wi_:'extensions.conf', dp_:'extensions.conf', c_:'confbridge.conf', h_:'musiconhold.conf', k_:'codecs.conf', r_:'rtp.conf', d_:'cdr.conf', l_:'cel.conf', a_:'manager.conf', mo_:'modules.conf', g_:'logger.conf', s_:'acl.conf · stir_shaken.conf', ws_:'acl.conf · stir_shaken.conf', sv_:'connection profile', ob_:'connection profile', bs_:'provisioning', ta_:'pjsip.conf', hi_:'.git config', y_:'agent memory', u_:'skills', b_:'status hub', n_:'vocabulary', o_:'release', x_:'secret intake', nt_:'console', p_:'console settings', z_:'console', fun_:'console profile', mo2_:'console profile', ly_:'console profile', th_:'console profile', bh_:'console profile', pr_:'console profile', ap_:'appearance overrides', cp_:'appearance overrides', lk_:'lock store' };
     const k = Object.keys(map).find(p => id.indexOf(p) === 0);
     return k ? map[k] : ((SCREENS[this.state.screen] || {}).file || 'the console profile');
   }
@@ -3279,7 +3134,17 @@ class Component extends DCLogic {
       ap_rainbow:wild && Math.random() > 0.55
     };
     this.setState(st => ({ values:Object.assign({}, st.values, next) }));
-    this.fire(all ? 'Everything reshuffled' : 'Reshuffled', all ? 'Every element got its own random look.' : 'One element, one new look. Undo is in the history.');
+  };
+
+  startMoles = () => {
+    clearInterval(this._mole);
+    this.setState({ moleHits:0, moleTime:15, moleIdx:Math.floor(Math.random() * 12) });
+    let t = 15;
+    this._mole = setInterval(() => {
+      t -= 1;
+      if (t <= 0) { clearInterval(this._mole); this.setState({ moleTime:0, moleIdx:-1, cStep:3 }); return; }
+      this.setState({ moleTime:t, moleIdx:Math.floor(Math.random() * 12) });
+    }, 1000);
   };
 
   applyColour = (val) => {
@@ -3291,7 +3156,6 @@ class Component extends DCLogic {
     } else {
       this.setState(st => ({ tabColours:Object.assign({}, st.tabColours, { [key]:colour }), tabColourOpen:false }));
     }
-    this.fire('Colour applied', val === 'rainbow' ? 'It cycles the whole spectrum now.' : 'Set to ' + val + '.');
   };
 
   tryUnlock = () => {
@@ -3303,7 +3167,6 @@ class Component extends DCLogic {
     if (m.indexOf('Password') >= 0 && (s.unlockPw || '') !== L.password) { this.setState({ unlockPw:'' }); return this.toast('Wrong passphrase — the surface stays locked'); }
     const n = Object.assign({}, s.locks); delete n[s.unlockKey];
     this.setState({ locks:n, unlockOpen:false, unlockPin:'', unlockPw:'' });
-    this.fire('Unlocked', 'Welcome back.');
   };
 
   addEdgeFrom = () => { this.setState(st => ({ edgeList:st.edgeList.concat([[st.nodeId, 'n4']]) })); this.toast('Connection added — pick its target in the inspector'); };
@@ -3317,20 +3180,7 @@ class Component extends DCLogic {
     this.setState({ nodePos:pos });
   };
 
-  bulk = (verb, sel) => { this.setState({ selected:[] }); this.fire(verb, sel.length + ' objects in one action.'); };
-
-  stopGameNow = () => { clearInterval(this._g); this.setState({ gamePlaying:false, gameCell:-1, gameTime:0 }); };
-
-  startMoles = () => {
-    clearInterval(this._mole);
-    this.setState({ moleHits:0, moleTime:15, moleIdx:Math.floor(Math.random() * 12) });
-    let t = 15;
-    this._mole = setInterval(() => {
-      t -= 1;
-      if (t <= 0) { clearInterval(this._mole); this.setState({ moleTime:0, moleIdx:-1, cStep:3 }); return; }
-      this.setState({ moleTime:t, moleIdx:Math.floor(Math.random() * 12) });
-    }, 1000);
-  };
+  bulk = (verb, sel) => { this.setState({ selected:[] }); };
 
   buildCtl = (c) => {
     const v = this.val(c);
@@ -3438,10 +3288,12 @@ class Component extends DCLogic {
       return L.join('\n');
     }
     if (sc === 'queues') {
-      return '[' + this.v('wq_kind', 'Support').toLowerCase() + ']\nstrategy = ' + this.v('wq_strategy', 'ringall') + '\ntimeout = ' + this.v('wq_timeout', 15) + '\nwrapuptime = ' + this.v('wq_wrapup', 15) + '\nringinuse = ' + (this.v('wq_ringinuse', false) ? 'yes' : 'no') + '\nmusicclass = ' + this.v('wq_moh', 'default') + '\n' + (this.v('wq_members', ['1001', '1002', '1004'])).map(m => 'member => PJSIP/' + m).join('\n');
+      return '[' + this.v('wq_kind', 'Support').toLowerCase() + ']\nstrategy = ' + this.v('wq_strategy', 'ringall') + '\ntimeout = ' + this.v('wq_timeout', 15) + '\nwrapuptime = ' + this.v('wq_wrapup', 15) + '\nringinuse = ' + (this.v('wq_ringinuse', false) ? 'yes' : 'no') + '\nmusicclass = ' + this.v('wq_moh', 'default') + '\n' + (this.v('wq_members', [])).map(m => 'member => PJSIP/' + m).join('\n');
     }
     if (WIZARDS[sc] === WIZARDS.endpoints || sc === 'endpoints') {
-      return '[' + this.v('w_name', '1005') + ']\ntype = endpoint\ntransport = ' + this.v('w_transport', 'transport-tls') + '\ncontext = ' + this.v('w_context', 'from-internal') + '\nallow = ' + this.v('w_codecs', ['opus', 'g722', 'ulaw']).join(',') + '\nmedia_encryption = ' + (this.v('w_encrypt', true) ? 'sdes' : 'no') + '\ndirect_media = ' + (this.v('w_direct', false) ? 'yes' : 'no') + '\ndtmf_mode = ' + this.v('w_dtmf', 'rfc4733') + '\n\n[' + this.v('w_name', '1005') + ']\ntype = aor\nmax_contacts = ' + this.v('w_maxcontacts', 1) + '\nqualify_frequency = ' + this.v('w_qualify', 60);
+      const endpointName = this.v('w_name', '');
+      if (!endpointName) return '; endpoint preview unavailable until a verified host identity is selected';
+      return '[' + endpointName + ']\ntype = endpoint\ntransport = ' + this.v('w_transport', 'transport-tls') + '\ncontext = ' + this.v('w_context', 'from-internal') + '\nallow = ' + this.v('w_codecs', ['opus', 'g722', 'ulaw']).join(',') + '\nmedia_encryption = ' + (this.v('w_encrypt', true) ? 'sdes' : 'no') + '\ndirect_media = ' + (this.v('w_direct', false) ? 'yes' : 'no') + '\ndtmf_mode = ' + this.v('w_dtmf', 'rfc4733') + '\n\n[' + endpointName + ']\ntype = aor\nmax_contacts = ' + this.v('w_maxcontacts', 1) + '\nqualify_frequency = ' + this.v('w_qualify', 60);
     }
     return '; goal = ' + this.v('wd_goal', 'Recommended defaults') + '\n; scope = ' + this.v('wd_scope', 'This object') + '\n; strictness = ' + this.v('wd_level', 3) + '/5';
   }
@@ -3468,7 +3320,6 @@ class Component extends DCLogic {
     const cur = flow[wStep];
     const last = wStep === flow.length - 1;
     const wizStep = wStep;
-    const gk = (GAMES.find(g => g.id === s.game) || GAMES[0]).kind;
     const sel = s.selected || [];
     const host = this.hostSnapshot();
     const hostScreen = (host.screens && host.screens[s.screen]) || {};
@@ -3524,6 +3375,7 @@ class Component extends DCLogic {
       isTableLike:sc.kind === 'table' || sc.kind === 'servers',
 
       stats:(host.dashboard && Array.isArray(host.dashboard.stats) ? host.dashboard.stats : []).map((k, i) => Object.assign({}, k, { value:k.value === undefined ? '—' : k.value, delta:k.delta || 'No comparison supplied', rnd:this.rnd(40 + i) })),
+      dashboardRefresh:(host.dashboard && host.dashboard.refreshLabel) || 'No verified refresh interval',
       liveCalls:(host.dashboard && Array.isArray(host.dashboard.liveCalls) ? host.dashboard.liveCalls : []).map(c => Object.assign({}, c, {
         spy:() => this.ceremony('Listen to a live call', 'calls.spy', { callId:c.id }),
         rec:() => this.ceremony('Start recording a live call', 'calls.record', { callId:c.id }),
@@ -3578,8 +3430,12 @@ class Component extends DCLogic {
           up:() => this.moveNode(n.id, 0, -20), down:() => this.moveNode(n.id, 0, 20),
           connect:() => this.addEdgeFrom(),
           ctx:(e) => { e.preventDefault(); this.rememberFocus(); this.setState({ nodeId:n.id, ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:n.title, ctxKind:'node' }); },
-          dup:() => this.toast(n.title + ' duplicated on the canvas'),
-          del:() => this.areYouSure('Delete ' + n.title, 'The step and every connection into or out of it are removed from the dialplan.', 3, () => this.fire('Step deleted', n.title + ' is gone.')) };
+          dup:() => { const cap=this.capability('canvas.duplicate-step'); if (!cap.enabled) return this.notify('warning', 'Action unavailable', cap.reason); return this.invokeHost('canvas.duplicate-step', { nodeId:n.id }); },
+          dupDisabled:!this.capability('canvas.duplicate-step').enabled,
+          dupReason:this.capability('canvas.duplicate-step').reason,
+          del:() => { const cap=this.capability('canvas.delete-step'); if (!cap.enabled) return this.notify('warning', 'Action unavailable', cap.reason); return this.areYouSure('Delete ' + n.title, 'The step and every connection into or out of it are removed from the dialplan.', 3, () => this.invokeHost('canvas.delete-step', { nodeId:n.id })); },
+          delDisabled:!this.capability('canvas.delete-step').enabled,
+          delReason:this.capability('canvas.delete-step').reason };
       }),
       canvasDrop:(e) => {
         e.preventDefault();
@@ -3608,11 +3464,11 @@ class Component extends DCLogic {
       canvasPosition:s.fullscreen ? 'fixed' : 'static',
       canvasInset:s.fullscreen ? '0' : 'auto',
       canvasZ:s.fullscreen ? 94 : 'auto',
-      toggleFullscreen:() => { this.set('fullscreen', !s.fullscreen); this.toast(s.fullscreen ? 'Editor restored' : 'Full-screen editor — press the button again or Esc to exit'); },
+      toggleFullscreen:() => { this.set('fullscreen', !s.fullscreen); },
       fsIcon:s.fullscreen ? 'fullscreen_exit' : 'fullscreen',
       paletteNodes:[
         { icon:'add_call', label:'Dial' }, { icon:'dialpad', label:'Menu' }, { icon:'groups', label:'Queue' }, { icon:'call_split', label:'Condition' }, { icon:'voicemail', label:'Voicemail' }
-      ].map(p => ({ icon:p.icon, label:p.label, add:() => this.toast(p.label + ' step added to the canvas') })),
+      ].map(p => ({ icon:p.icon, label:p.label, add:() => this.invokeHost('canvas.add-node', { nodeType:p.label }) })),
       nodeTitle:node.title, nodeApp:node.detail.split('\n')[0],
       nodeCtls:(NODE_CTLS[node.id] || []).map(c => Object.assign(this.buildCtl(c), { narrow:true })),
 
@@ -3681,14 +3537,12 @@ class Component extends DCLogic {
       docsRegexColor:s.docsRegexOn ? '#9FF7C4' : '#778078',
       docsRegexPalette:['^', '$', '\d+', '[a-z]+', '.*', '\.md$'].map(p => ({ label:p, add:() => this.set('docsQuery', (s.docsQuery || '') + p) })),
       docsQueryError:'',
-      docsResultsLabel:'12 articles',
-      docsCategories:[{ name:'platform', count:12 }, { name:'security', count:6 }],
-      docsResults:[
-        { id:'platform/overview', category:'platform', title:'Overview', excerpt:'What this console is and how it reads a PBX.', bg:'transparent', select:() => this.set('docsSelectedId', 'platform/overview') }
-      ],
-      docsSelectedTitle:'Overview',
-      docsSelectedCategory:'platform',
-      docsBlocks:[{ isParagraph:true, spans:[{ isPlain:true, text:'Select an article to read it here.' }] }],
+      docsResultsLabel:'No verified documentation index',
+      docsCategories:[],
+      docsResults:[],
+      docsSelectedTitle:'No verified article',
+      docsSelectedCategory:'',
+      docsBlocks:[{ isParagraph:true, spans:[{ isPlain:true, text:'The host did not supply a documentation index.' }] }],
       docsOutline:[],
       docsHasSuggested:false,
       docsSuggested:[],
@@ -3747,10 +3601,10 @@ class Component extends DCLogic {
         if (key.indexOf('group:') === 0) {
           const id = key.slice(6);
           this.setState(st => ({ groups:st.groups.map(g => g.id === id ? Object.assign({}, g, { name:st.renameValue }) : g), renameOpen:false }));
-          return this.toast('Group renamed');
+          return true;
         }
         this.setState(st => ({ tabNames:Object.assign({}, st.tabNames, { [key]:st.renameValue }), renameOpen:false }));
-        this.toast('Tab renamed');
+        return true;
       },
       cancelRename:() => this.set('renameOpen', false),
       tabColourOpen:s.tabColourOpen,
@@ -3871,7 +3725,6 @@ class Component extends DCLogic {
           if (existing) groups = s.groups.map(g => g === existing ? Object.assign({}, g, { tabs:g.tabs.concat([dragged]) }) : g);
           else groups = s.groups.concat([{ id:'g' + Date.now(), name:'New group', colour:s.tabColours[target] || '#8AB4F8', collapsed:false, tabs:[target, dragged] }]);
           this.setState({ groups, tabDrag:-1, tabOver:-1 });
-          this.fire('Grouped', dragged + ' and ' + target + ' are now one tab group.');
         },
         on:k === s.screen, off:k !== s.screen, pinned:s.pinned.indexOf(k) >= 0, closable:s.pinned.indexOf(k) < 0,
         go:() => this.setState({ screen:k, railId:SCREENS[k] ? SCREENS[k].rail : s.railId }),
@@ -3926,10 +3779,10 @@ class Component extends DCLogic {
       funKnobFg:this.v('fun_level', 2) > 0 ? '#9FF7C4' : '#8FA394',
       funKnobAnim:this.v('fun_level', 2) > 2 ? 'm3Wiggle 1.6s ease-in-out infinite' : 'none',
       funLabelFg:this.v('fun_level', 2) > 0 ? '#00391F' : '#9FF7C4',
-      toggleFun:() => { const on = this.v('fun_level', 2) > 0; this.setVal({ id:'fun_level', label:'Fun level' }, on ? 0 : 3); if (!on) this.fire('Fun restored', 'Level 3. Brace yourself.'); },
-      maxFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:4, fun_random:true, fun_confetti:300, fun_copy:'Comedian', th_rainbow:true, fun_random_scope:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'], fun_random_strength:100, fun_random_reroll:true }) })); this.fire('MAXIMUM FUN', 'Every element now has its own random look, rerolling as you go.'); },
+      toggleFun:() => { const on = this.v('fun_level', 2) > 0; this.setVal({ id:'fun_level', label:'Fun level' }, on ? 0 : 3); },
+      maxFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:4, fun_random:true, fun_confetti:300, fun_copy:'Comedian', th_rainbow:true, fun_random_scope:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'], fun_random_strength:100, fun_random_reroll:true }) })); },
       zeroFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:0, fun_random:false, th_rainbow:false, fun_confetti:0, fun_copy:'Terse' }) })); this.toast('Fun disabled. The console is now a spreadsheet with opinions.'); },
-      toggleRandom:() => { const on = this.v('fun_random', false); this.setVal({ id:'fun_random', label:'Random appearance for every element', kind:'switch' }, !on); if (!on) this.fire('Randomised', 'Every element just got its own look.'); },
+      toggleRandom:() => { const on = this.v('fun_random', false); this.setVal({ id:'fun_random', label:'Random appearance for every element', kind:'switch' }, !on); },
       rndBtnBg:this.v('fun_random', false) ? '#1B4D33' : 'rgba(0,0,0,.24)',
       rndBtnBorder:this.v('fun_random', false) ? '#9FF7C4' : 'rgba(159,247,196,.3)',
       rndTrack:this.v('fun_random', false) ? '#9FF7C4' : '#414942',
@@ -3937,7 +3790,7 @@ class Component extends DCLogic {
       rndKnob:this.v('fun_random', false) ? '#00391F' : '#8B938C',
       rndFg:this.v('fun_random', false) ? '#9FF7C4' : '#DFF3E5',
       rerollNow:() => { this.setState(st => ({ rndNonce:st.rndNonce + 1 })); this.toast('Rerolled — every element has a new look'); },
-      isServers:sc.kind === 'servers', isArcade:false, isTrunkAuth:sc.kind === 'trunkauth', isHistory:sc.kind === 'history',
+      isServers:sc.kind === 'servers', isTrunkAuth:sc.kind === 'trunkauth', isHistory:sc.kind === 'history',
       branchName:s.branch || 'No verified branch', commitCount:historyEntries.length + ' verified commits',
       branches:(host.history && Array.isArray(host.history.branches) ? host.history.branches : []).map(b => ({ label:b.name, on:s.branch === b.name, off:s.branch !== b.name, pick:() => this.set('branch', b.name) })),
       histFilters:['All', 'pjsip.conf', 'queues.conf', 'This screen'].map(f => ({ label:f, on:s.histFilter === f, off:s.histFilter !== f, pick:() => this.set('histFilter', f) })),
@@ -3977,7 +3830,9 @@ class Component extends DCLogic {
         stateFg:s.authAnswers[r.id] === 'Deferred' ? '#FFD68A' : '#8FA394',
         yes:() => this.answerAuth(r, 'YES'),
         no:() => this.answerAuth(r, 'NO'),
-        ask:() => this.toast('Detail request sent to ' + r.partner + ' — the request stays pending'),
+        ask:() => { const cap=this.capability('auth.request-detail'); if (!cap.enabled) return this.notify('warning', 'Action unavailable', cap.reason); return this.invokeHost('auth.request-detail', { requestId:r.id, partner:r.partner }); },
+        askDisabled:!this.capability('auth.request-detail').enabled,
+        askReason:this.capability('auth.request-detail').reason,
         defer:() => this.setState({ authAnswers:Object.assign({}, s.authAnswers, { [r.id]:'Deferred' }) })
       })),
       authHistory:(host.authRequests && Array.isArray(host.authRequests.history) ? host.authRequests.history : []).map(r => ({
@@ -3985,88 +3840,6 @@ class Component extends DCLogic {
         color:s.authAnswers[r.id] === 'YES' ? '#82D9A5' : '#FFB4AB'
       })),
       newAuthRequest:() => this.toast('Composing a request — pick the partner and what you want to change'),
-      credits:s.credits,
-      games:[],
-      gameTitle:'Unavailable',
-      gameBlurb:'Local minigames cannot authorize or bypass host operations.',
-      gameScore:s.gameScore + ' pts',
-      gameClock:s.gamePlaying ? s.gameTime + 's left' : 'ready',
-      gameButton:s.gamePlaying ? 'Playing…' : 'Start · 20s',
-      gameCells:Array.from({ length:15 }, (_, i) => ({
-        up:s.gamePlaying && i === s.gameCell, down:!(s.gamePlaying && i === s.gameCell),
-        icon:['sports_martial_arts', 'call', 'dialpad', 'cable', 'notifications_active'][i % 5],
-        hit:() => { const sc2 = this.state.gameScore + 10; this.setState({ gameScore:sc2, gameCell:Math.floor(Math.random() * 15) }); },
-        miss:() => { if (this.state.gamePlaying) this.setState({ gameScore:Math.max(0, this.state.gameScore - 2) }); }
-      })),
-      gWhack:gk === 'whack', gDtmf:gk === 'dtmf', gSort:gk === 'sort', gMatch:gk === 'match', gSpot:gk === 'spot', gReflex:gk === 'reflex',
-      dtmfPhase:s.dtmfShow ? 'watch the sequence' : 'now tap it back',
-      dtmfShown:s.dtmfShow ? s.dtmfSeq.join('') : (s.dtmfIn.join('') || '····'),
-      dtmfKeys:['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map(k => ({ label:k, press:() => {
-        if (s.dtmfShow) return;
-        const inp = s.dtmfIn.concat([k]);
-        const ok = s.dtmfSeq[inp.length - 1] === k;
-        if (!ok) { this.setState({ dtmfIn:[], gameScore:Math.max(0, s.gameScore - 5) }); return this.toast('Wrong tone — sequence restarts'); }
-        if (inp.length === s.dtmfSeq.length) { const nxt = s.dtmfSeq.concat([String(Math.floor(Math.random() * 9) + 1)]); this.setState({ gameScore:s.gameScore + 15, dtmfSeq:nxt, dtmfIn:[], dtmfShow:true }); this.fire('Correct', 'Longer sequence incoming.'); setTimeout(() => this.setState({ dtmfShow:false }), 1400); }
-        else this.setState({ dtmfIn:inp });
-      } })),
-      sortHint:'Lowest bandwidth at the top, then check your answer.',
-      sortItems:s.sortList.map((x, i) => ({ label:x, pos:String(i + 1), bg:'#141A15',
-        up:() => { if (i === 0) return; const a = s.sortList.slice(); a[i] = a[i - 1]; a[i - 1] = x; this.set('sortList', a); },
-        down:() => { if (i === s.sortList.length - 1) return; const a = s.sortList.slice(); a[i] = a[i + 1]; a[i + 1] = x; this.set('sortList', a); } })),
-      sortCheck:() => {
-        const right = s.sortList.every((x, i) => x === CODEC_ORDER[i]);
-        if (right) { this.setState({ gameScore:s.gameScore + 40, sortList:CODEC_ORDER.slice().sort(() => Math.random() - 0.5) }); this.fire('Perfect order', '+40 points. Have another.'); }
-        else this.toast('Not quite — g729 is the smallest, opus the largest');
-      },
-      matchTiles:(() => {
-        const tiles = [];
-        MATCH_PAIRS.forEach(([a, b], i) => { tiles.push({ id:'a' + i, pair:i, label:a, mono:true }); tiles.push({ id:'b' + i, pair:i, label:b, mono:false }); });
-        return tiles.sort((x, y) => (x.id.charCodeAt(1) * 7 + x.id.charCodeAt(0)) - (y.id.charCodeAt(1) * 7 + y.id.charCodeAt(0))).map(t => {
-          const done = s.matchDone.indexOf(t.pair) >= 0;
-          const sel = s.matchSel === t.id;
-          return { label:t.label,
-            bg:done ? '#005230' : (sel ? '#1B4D33' : '#141A15'),
-            border:sel ? '#82D9A5' : 'transparent',
-            fg:done ? '#9FF7C4' : '#DFE4DC',
-            pick:() => {
-              if (done) return;
-              if (!s.matchSel) return this.set('matchSel', t.id);
-              const prev = s.matchSel;
-              if (prev === t.id) return this.set('matchSel', '');
-              const prevPair = Number(prev.slice(1));
-              if (prevPair === t.pair && prev[0] !== t.id[0]) {
-                const d = s.matchDone.concat([t.pair]);
-                this.setState({ matchDone:d, matchSel:'', gameScore:s.gameScore + 20 });
-                if (d.length === MATCH_PAIRS.length) this.fire('All six matched', 'You actually know what these do.');
-              } else { this.setState({ matchSel:'', gameScore:Math.max(0, s.gameScore - 3) }); this.toast('Not a pair'); }
-            } };
-        });
-      })(),
-      spotLines:SPOT_LINES.map((l, i) => ({ text:l.t, bg:s.spotFound === i ? (l.bad ? '#005230' : '#4A1F1B') : 'transparent', fg:s.spotFound === i ? (l.bad ? '#9FF7C4' : '#FFB4AB') : '#C4CBC2',
-        pick:() => { if (l.bad) { this.setState({ spotFound:i, gameScore:s.gameScore + 30 }); this.fire('Found it', 'A desk phone should not sit in from-external.'); } else { this.setState({ spotFound:i, gameScore:Math.max(0, s.gameScore - 5) }); this.toast('That line is fine'); } } })),
-      reflexTarget:s.reflexNum,
-      reflexHint:'Tap the last digit of the number above.',
-      reflexKeys:['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].map(k => ({ label:k, press:() => {
-        if (k === s.reflexNum.slice(-1)) { this.setState({ gameScore:s.gameScore + 8, reflexNum:String(1000 + Math.floor(Math.random() * 9000)) }); }
-        else this.setState({ gameScore:Math.max(0, s.gameScore - 4) });
-      } })),
-      startGame:() => {
-        if (this.state.gamePlaying) return;
-        this.setState({ gamePlaying:true, gameScore:0, gameTime:20, gameCell:Math.floor(Math.random() * 15) });
-        clearInterval(this._g);
-        this._g = setInterval(() => {
-          const t = this.state.gameTime - 1;
-          if (t <= 0) {
-            clearInterval(this._g);
-            const g = GAMES.find(x => x.id === this.state.game) || GAMES[0];
-            const won = this.state.gameScore >= 60 ? g.reward : Math.max(1, Math.round(g.reward / 2));
-            this.setState({ gamePlaying:false, gameTime:0, gameCell:-1, credits:this.state.credits + won });
-            this.fire('+' + won + ' credits', 'Scored ' + this.state.gameScore + '. Spend them on skipping ceremonies.');
-          } else this.setState({ gameTime:t, gameCell:Math.floor(Math.random() * 15) });
-        }, 900);
-      },
-      stopGame:() => this.stopGameNow(),
-      spendCredit:() => this.notify('warning', 'Unavailable', 'Local credits cannot authorize host operations.'),
       oneClickPitch:'The host must describe the exact deployment plan, target, prerequisites, and rollback route. This shell submits nothing until that plan and handler are available.',
       oneClickButton:s.operationState === 'loading' && s.operationAction === 'deployment.run' ? 'Waiting for host receipt' : 'Review host deployment plan',
       basicCtls:[
@@ -4135,7 +3908,7 @@ class Component extends DCLogic {
         { icon:'auto_fix_high', label:'Escape literals', title:'Treat what you typed as plain text', run:() => { const v = (s.rxText || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); const p = Object.assign({}, s.patterns); p[s.regexTarget] = [v]; this.setState({ rxText:v, patterns:p }); } },
         { icon:'data_array', label:'Wrap in group', title:'Wrap the whole pattern in a capture group', run:() => { const v = '(' + (s.rxText || '') + ')'; const p = Object.assign({}, s.patterns); p[s.regexTarget] = [v]; this.setState({ rxText:v, patterns:p }); } },
         { icon:'swap_horiz', label:'Anchor both ends', title:'Require a full match', run:() => { let v = s.rxText || ''; if (v.indexOf('^') !== 0) v = '^' + v; if (v.slice(-1) !== '$') v = v + '$'; const p = Object.assign({}, s.patterns); p[s.regexTarget] = [v]; this.setState({ rxText:v, patterns:p }); } },
-        { icon:'bookmark_add', label:'Save pattern', title:'Save to the palette', run:() => this.fire('Pattern saved', 'It is in the command palette now.') },
+        { icon:'bookmark_add', label:'Save pattern', title:'Save to the palette', capability:'search.save', run:() => this.invokeHost('search.save', { target:s.regexTarget, pattern:(s.patterns[s.regexTarget] || []).join(''), flags:s.regexFlags.slice() }) },
         { icon:'library_books', label:'Cheatsheet', title:'Explain every token', run:() => this.showInfo('Regex cheatsheet', 'Anchors pin the match to the start (^) or end ($). Character classes stand in for kinds of character: \\d a digit, \\w a letter or digit, \\s a space, and a dot for anything at all. Quantifiers say how many: + is one or more, * is any number including none, ? makes the piece optional, and {2,4} means between two and four. Brackets are a set of allowed characters, parentheses group things together, and a bar between two options means either will do.', 'Think of it as a sentence describing what the text should look like, written in shorthand. You never have to write it by hand here — the buttons build it.') }
       ],
       regexValue:(s.patterns[s.regexTarget] || []).join('') || '(everything)',
@@ -4153,7 +3926,7 @@ class Component extends DCLogic {
       closeRegex:() => this.set('regexOpen', false),
 
       ctxOpen:s.ctxOpen, ctxX:s.ctxX, ctxY:s.ctxY, ctxTarget:s.ctxTarget,
-      subOpen:s.ctxSub === 'closetabs',
+      subOpen:!!s.ctxSub,
       subItems:(() => {
         const close = () => this.setState({ ctxOpen:false, ctxSub:'' });
         const g = s.groups.find(x => x.id === s.ctxGroupId) || { id:'', tabs:[], name:'', colour:'#82D9A5' };
@@ -4170,16 +3943,13 @@ class Component extends DCLogic {
         ];
         if (s.ctxSub === 'gtabs') return g.tabs.map(t => ({ icon:SCREENS[t] ? SCREENS[t].icon : 'tab', label:s.tabNames[t] || (SCREENS[t] ? SCREENS[t].title : t), run:() => { close(); this.openScreen(t); } }));
         if (s.ctxSub === 'gsave') return [
-          { icon:'download', label:'Export group as JSON', run:() => { close(); this.fire('Group exported', g.name + ' with ' + g.tabs.length + ' tabs.'); } },
-          { icon:'upload', label:'Import a group…', run:() => { close(); this.toast('Pick a group file to import'); } },
-          { icon:'bookmark_add', label:'Save as a workspace', run:() => { close(); this.fire('Workspace saved', 'Reopen it from the palette.'); } },
-          { icon:'restore', label:'Restore last session', run:() => { close(); this.toast('Previous tabs and groups restored'); } }
+          this.hostMenuAction('download', 'Export group as JSON', 'tabs.group.export', { groupId:g.id, groupName:g.name, tabIds:g.tabs.slice() }, close),
+          this.hostMenuAction('bookmark_add', 'Save as a workspace', 'workspace.save', { groupId:g.id, groupName:g.name, tabIds:g.tabs.slice() }, close)
         ];
         if (s.ctxSub === 'tabexport') return [
-          { icon:'download', label:'Export this tab', run:() => { close(); this.toast('Tab exported as JSON'); } },
-          { icon:'download_for_offline', label:'Export all tabs', run:() => { close(); this.fire('Exported', s.tabs.length + ' tabs and ' + s.groups.length + ' groups.'); } },
-          { icon:'upload', label:'Import tabs…', run:() => { close(); this.toast('Pick a tab set to import'); } },
-          { icon:'content_copy', label:'Copy tab list to clipboard', run:() => { close(); this.toast('Tab list copied'); } }
+          this.hostMenuAction('download', 'Export this tab', 'tabs.export', { tabId:s.ctxTabKey || s.screen }, close),
+          this.hostMenuAction('download_for_offline', 'Export all tabs', 'tabs.export-all', { tabIds:s.tabs.slice(), groupIds:s.groups.map(x => x.id) }, close),
+          this.hostMenuAction('content_copy', 'Copy tab list to clipboard', 'clipboard.copy-tabs', { tabIds:s.tabs.slice(), groupIds:s.groups.map(x => x.id) }, close)
         ];
         if (s.ctxSub !== 'closetabs') return [];
         const k = s.ctxTabKey || s.screen, i = s.tabs.indexOf(k);
@@ -4209,7 +3979,8 @@ class Component extends DCLogic {
         const decorate = (list) => list.filter(it => !s.contextQuery || String(it.label || '').toLowerCase().indexOf(s.contextQuery.toLowerCase()) >= 0).map(it => {
           const capabilityId = it.capability || ('context.' + String(it.label || '').toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.|\.$/g, ''));
           const cap = this.capability(capabilityId);
-          const disabled = ((externalLabel.test(it.label || '') || (it.sub && it.sub !== 'closetabs')) && !cap.enabled);
+          const requiresCapability = !!it.capability || externalLabel.test(it.label || '') || (it.sub && it.sub !== 'closetabs');
+          const disabled = requiresCapability && !cap.enabled;
           return Object.assign({}, it, {
             disabled,
             reason:disabled ? cap.reason : '',
@@ -4234,7 +4005,7 @@ class Component extends DCLogic {
             { icon:'tab', label:'Tabs in group', hint:'▸', sub:'gtabs' },
             { icon:'save', label:'Save & restore', hint:'▸', sub:'gsave' },
             { icon:'unfold_less', label:g.collapsed ? 'Expand group' : 'Collapse group', hint:'', run:() => upd({ collapsed:!g.collapsed }) },
-            { icon:'link_off', label:'Ungroup', hint:'', run:() => { close(); this.setState({ groups:s.groups.filter(x => x.id !== g.id) }); this.toast('Group dissolved — tabs kept'); } },
+            { icon:'link_off', label:'Ungroup', hint:'', run:() => { close(); this.setState({ groups:s.groups.filter(x => x.id !== g.id) }); } },
             { icon:'close', label:'Close group and its tabs', hint:'', run:() => { close(); this.areYouSure('Close ' + g.name, 'Every tab in this group closes. Unsaved staged changes in them are discarded.', 3, () => { const keep = s.tabs.filter(t => g.tabs.indexOf(t) < 0); this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep[0] || 'dash', groups:s.groups.filter(x => x.id !== g.id) }); }); } },
             { icon:'brush', label:'Edit group appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:'group · ' + g.name }) },
             { icon:'lock', label:'Lock this group…', hint:'⌃L', run:common[0].run }
@@ -4252,8 +4023,8 @@ class Component extends DCLogic {
             { icon:'content_copy', label:'Duplicate tab', hint:'⌃D', run:() => { close(); this.setState({ tabs:s.tabs.concat([k]) }); } },
             { icon:'close', label:'Close tab', hint:'⌃W', run:() => { close(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:t[0] || 'dash' }); } },
             { icon:'save', label:'Export & import', hint:'▸', sub:'tabexport' },
-            { icon:'folder', label:'Group tabs by area', hint:'', run:() => { close(); this.toast('Tabs grouped by rail area'); } },
-            { icon:'open_in_new', label:'Move to new window', hint:'', run:() => { close(); this.toast('Tab detached to its own window'); } },
+            { icon:'folder', label:'Group tabs by area', hint:'', capability:'tabs.group-by-area', run:() => { close(); return this.invokeHost('tabs.group-by-area', { tabId:k }); } },
+            { icon:'open_in_new', label:'Move to new window', hint:'', capability:'tabs.move-window', run:() => { close(); return this.invokeHost('tabs.move-window', { tabId:k }); } },
             { icon:'dock_to_right', label:'Dock this tab right', hint:'', run:() => { close(); this.set('dock', 'right'); } },
             { icon:'lock', label:'Lock this tab…', hint:'⌃L', run:common[0].run }
           ]);
@@ -4268,7 +4039,7 @@ class Component extends DCLogic {
             { icon:'data_object', label:'Open regex builder…', hint:'⌃R', run:() => this.setState({ ctxOpen:false, regexOpen:true, regexTarget:'table', regexX:s.ctxX, regexY:s.ctxY }) },
             { icon:'match_case', label:'Match case', hint:'', run:() => { close(); this.set('regexFlags', s.regexFlags.filter(f => f !== 'i')); } },
             { icon:'select_all', label:'Whole word only', hint:'', run:() => { close(); this.toast('Whole-word matching on'); } },
-            { icon:'bookmark_add', label:'Save this search', hint:'', run:() => { close(); this.fire('Search saved', 'It is in the palette now.'); } },
+            { icon:'bookmark_add', label:'Save this search', hint:'', capability:'search.save', run:() => { close(); return this.invokeHost('search.save', { target:'table', pattern:(s.patterns.table || []).join(''), flags:s.regexFlags.slice() }); } },
             { icon:'clear', label:'Clear search', hint:'⎋', run:() => { close(); const p = Object.assign({}, s.patterns); p.table = []; p.nav = []; this.setState({ patterns:p }); } },
             common[0], common[1]
           ]);
@@ -4277,9 +4048,9 @@ class Component extends DCLogic {
           return decorate([
             { icon:'edit', label:'Edit this step…', hint:'↵', run:() => close() },
             { icon:'timeline', label:'Connect to…', hint:'C', run:() => { close(); this.addEdgeFrom(); } },
-            { icon:'content_copy', label:'Duplicate step', hint:'⌃D', run:() => { close(); this.toast('Step duplicated'); } },
-            { icon:'call_split', label:'Insert condition before', hint:'', run:() => { close(); this.toast('Condition inserted'); } },
-            { icon:'delete', label:'Delete step', hint:'⌦', run:() => { close(); this.areYouSure('Delete this step', 'The step and its connections are removed from the dialplan.', 3, () => this.fire('Step deleted', 'Canvas updated.')); } },
+            { icon:'content_copy', label:'Duplicate step', hint:'⌃D', capability:'canvas.duplicate-step', run:() => { close(); return this.invokeHost('canvas.duplicate-step', { nodeId:s.nodeId }); } },
+            { icon:'call_split', label:'Insert condition before', hint:'', capability:'canvas.insert-condition', run:() => { close(); return this.invokeHost('canvas.insert-condition', { nodeId:s.nodeId }); } },
+            { icon:'delete', label:'Delete step', hint:'⌦', capability:'canvas.delete-step', run:() => { close(); this.areYouSure('Delete this step', 'The step and its connections are removed from the dialplan.', 3, () => this.invokeHost('canvas.delete-step', { nodeId:s.nodeId })); } },
             common[0], common[1]
           ]);
         }
@@ -4290,7 +4061,7 @@ class Component extends DCLogic {
           { icon:'add', label:'New tab here', hint:'⌃T', run:() => { close(); this.setState({ tabs:s.tabs.concat([s.screen]) }); } },
           { icon:'history', label:'Version history', hint:'', run:() => { close(); this.openScreen('history'); } },
           { icon:'notifications', label:'Notification centre', hint:'', run:() => { close(); this.openScreen('notifications'); } },
-          { icon:'content_copy', label:'Copy as configuration', hint:'⌃C', run:() => { close(); this.toast('Configuration block copied'); } }
+          { icon:'content_copy', label:'Copy as configuration', hint:'⌃C', capability:'clipboard.copy-config', run:() => { close(); return this.invokeHost('clipboard.copy-config', { screen:s.screen, nodeId:s.nodeId }); } }
         ].concat(common));
       })(),
 
@@ -4467,12 +4238,11 @@ class Component extends DCLogic {
       sureProgress:s.sureHits + ' / ' + s.sureNeed,
       sureReady:s.sureHits >= s.sureNeed, sureLocked:s.sureHits < s.sureNeed,
       sureCells:Array.from({ length:8 }, (_, i) => ({ up:i === s.sureCell, down:i !== s.sureCell,
-        hit:() => { const h = this.state.sureHits + 1; this.setState({ sureHits:h, sureCell:h >= this.state.sureNeed ? -1 : Math.floor(Math.random() * 8) }); if (h >= this.state.sureNeed) this.toast('Yes unlocked — you are demonstrably awake'); } })),
+        hit:() => { const h = this.state.sureHits + 1; this.setState({ sureHits:h, sureCell:h >= this.state.sureNeed ? -1 : Math.floor(Math.random() * 8) }); } })),
       closeSure:() => this.setState({ sureOpen:false, sureHits:0, sureCell:-1 }),
       sureYes:() => { const act = this.state.sureAction; this.setState({ sureOpen:false, sureHits:0, sureCell:-1 }); if (act) act(); },
       canSkip:false,
       skipCeremony:() => this.notify('warning', 'Confirmation cannot be skipped', 'The host operation requires the semantic two-key and slider contract.'),
-      goArcade:() => this.notify('warning', 'Unavailable', 'Confirmation cannot be bypassed with local credits.'),
       cancelCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.setState({ ceremonyOpen:false, confirmKeyOne:false, confirmKeyTwo:false, slideVal:0 }); this.restoreFocus(); },
       executeCeremony:() => this.notify('warning', 'Legacy action disabled', 'Use the host-backed semantic confirmation shell.'),
 
@@ -4482,7 +4252,7 @@ class Component extends DCLogic {
       onboardCtls:ob.ctls.map(this.buildCtl),
       onboardNextLabel:s.onboardStep === ONBOARD.length - 1 ? 'Deploy it all now' : 'Next',
       easyMode:this.v('ob_ease', 'Super easy') === 'Super easy',
-      superEasy:() => { this.setState(st => ({ values:Object.assign({}, st.values, { ob_intent:'Deploy a new server', ob_ease:'Super easy', ob_phones:8, ob_menu:true, ob_hours:true, ob_tls:true }), onboardOpen:false, screen:'servers', railId:'app', oneClickMode:'Funny' })); this.fire('Super easy mode', 'Three defaults taken. Press the big button and walk away.'); },
+      superEasy:() => { this.setState(st => ({ values:Object.assign({}, st.values, { ob_intent:'Deploy a new server', ob_ease:'Super easy', ob_phones:8, ob_menu:true, ob_hours:true, ob_tls:true }), onboardOpen:false, screen:'servers', railId:'app', oneClickMode:'Funny' })); },
       onboardNext:() => this.setState(st => (st.onboardStep >= ONBOARD.length - 1
         ? { onboardOpen:false, tourOpen:st.values.ob_tour !== false, tourStep:0, screen:'servers', railId:'app' }
         : { onboardStep:st.onboardStep + 1 })),

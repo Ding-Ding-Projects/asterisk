@@ -9,5 +9,8 @@
 - Added semantic tab, group, menu, dialog, keyboard, focus-cancellation, reduced-motion, responsive, and touch-target contracts.
 - Added real left, right, top, and bottom tab-strip docking, four independent tab-search slots, pinned-tab close protection, and safe bulk-close previews.
 - Removed title-bar menus and disabled context, export, history, workspace, clipboard, authenticator, and appearance actions when no real handler exists.
+- Removed the stale onboarding explainer card and the retired confirmation-credit playground, including its fake balances, sample identities, demo profiles, and invented documentation counts.
+- Rewired save, export, clipboard, rename-detail, duplicate, insert, delete, and new-window actions to explicit host capabilities with receipt verification; unavailable actions now expose the host-provided reason.
+- Removed success notifications for local intent that has no durable host result, so the shell no longer claims an operation happened merely because a button was pressed.
 
 The generated renderer is intentionally not refreshed by this change. A later integration step will compile the authoritative design after the related design-control work has landed.
