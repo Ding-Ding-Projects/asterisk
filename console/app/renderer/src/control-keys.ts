@@ -190,9 +190,10 @@ function l(control: string, section: string, key: string): ControlBinding {
 export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBinding>>> = {
   // configs/samples/http.conf.sample — every key below is in [general] there, checked
   // by hand against the file in this checkout rather than taken from a proposal.
-  // ht_bindaddr, ht_bindport, ht_status, ht_tlsaddr, ht_tlsport, ht_tlscert, ht_static,
-  // ht_notls12 and ht_sesslimit stay unbound: their keys were not confirmed, and a key
-  // guessed wrong silently steers a real exchange.
+  // ht_tlsaddr and ht_tlsport stay unbound, and not for want of looking: Asterisk spells
+  // both halves as one tlsbindaddr=address:port value, and a binding maps one control to
+  // one key, so binding either alone would drop the other half. Joining them needs a
+  // composite binding this model does not have.
   httpd: [
     b('ht_enabled', 'general', 'enabled'),  // line 29: ;enabled=yes
     s('ht_prefix', 'general', 'prefix'),  // line 45: ;prefix=asterisk
@@ -201,7 +202,14 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     b('ht_notls1', 'general', 'tlsdisablev1'),  // line 112: ; tlsdisablev1=yes
     b('ht_notls11', 'general', 'tlsdisablev11'),  // line 113: ; tlsdisablev11=yes
     n('ht_sessinact', 'general', 'session_inactivity'),  // line 56: ;session_inactivity=30000
-    n('ht_sesskeep', 'general', 'session_keep_alive'),  // line 63: ;session_keep_alive=15000
+    n('ht_sesskeep', 'general', 'session_keep_alive'),
+    s('ht_bindaddr', 'general', 'bindaddr'),  // line 35: bindaddr=127.0.0.1
+    n('ht_bindport', 'general', 'bindport'),  // line 39: ;bindport=8088
+    b('ht_static', 'general', 'enable_static'),  // line 68: ;enable_static=yes
+    b('ht_status', 'general', 'enable_status'),  // line 74: ;enable_status=yes
+    s('ht_tlscert', 'general', 'tlscertfile'),  // line 90: ;tlscertfile=</path/to/certificate.pem>
+    b('ht_notls12', 'general', 'tlsdisablev12'),  // line 114: ; tlsdisablev12=yes
+    n('ht_sesslimit', 'general', 'sessionlimit'),  // line 50: ;sessionlimit=100  // line 63: ;session_keep_alive=15000
   ],
   // configs/samples/features.conf.sample — the five transfer and parking codes live in
   // [featuremap] and the timeouts in [general]; both sections were confirmed per key,
@@ -219,7 +227,8 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     n('fc_featuredigittimeout', 'general', 'featuredigittimeout'),  // max ms between digits
     n('fc_transferdigittimeout', 'general', 'transferdigittimeout'),  // seconds between digits
     n('fc_atxfernoanswertimeout', 'general', 'atxfernoanswertimeout'),  // answer timeout, default 15s
-    b('fc_atxferdropcall', 'general', 'atxferdropcall'),  // hang up before the target answers
+    b('fc_atxferdropcall', 'general', 'atxferdropcall'),
+    s('fc_atxfercomplete', 'general', 'atxfercomplete'),  // line 37: ;atxfercomplete = *2  // hang up before the target answers
   ],
   // configs/samples/pjsip.conf.sample — [endpoint] template (~line 648) and [aor]
   // template (~line 1255). e_callerid is left unmapped: the design's segmented

@@ -46,7 +46,10 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // into the table for the first time. Each was checked against the sample file in this
   // checkout by hand -- key spelling and section both -- because a fan-out proposed
   // thirty-three and six of those were controls that were already bound.
-  assert.equal(controlCount, 105);
+  // Then eight more the same day, going through the remainder one control at a time: seven
+  // http.conf keys and the last feature code. That finished features.conf entirely and left
+  // http.conf with only the two halves of tlsbindaddr, which no single binding can carry.
+  assert.equal(controlCount, 113);
 });
 
 // ---------------------------------------------------------------- boolean parsing
