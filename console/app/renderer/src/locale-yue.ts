@@ -204,6 +204,14 @@ export const CANTONESE: Catalog = {
   'CLI builder': '指令產生器',
   'Arcade': '遊戲機',
 
+  /* The identity and dialog-decoration controls. */
+  'Identity': '身分',
+  'Display name': '顯示名稱',
+  'Restore the shipped name': '還原原本個名',
+  'Dialogs': '對話框',
+  'Show emojis in dialogs and message boxes': '喺對話框同訊息框顯示 emoji',
+  'Language': '語言',
+
   /* The destinations and controls added after the first pass: Feature codes, IAX
    * peers and the HTTP server, plus the tab and appearance labels the sweep found
    * still rendering English while their neighbours did not. */

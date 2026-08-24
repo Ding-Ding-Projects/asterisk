@@ -88,10 +88,11 @@
       }
     },
     "dialog-emojis": {
-      "status": "partial",
-      "note": "app/renderer/src/dialog-emojis.ts implements a persisted toggle that defaults off and decorates only dialog headings and bodies. buildDialog keeps emoji out of buttons, action labels, and accessible names. The behavior remains partial because no reachable design control registers or changes the setting yet.",
+      "status": "implemented-unverified",
+      "note": "app/renderer/src/dialog-emojis.ts implements a persisted toggle that defaults off and decorates only dialog headings and bodies. The dlg_emoji control is compiled into the real design and App.languageAwareSetVal persists its value. No built-artifact interaction or current capture has verified the complete route yet.",
       "implementation": {
         "paths": [
+          "app/renderer/src/App.tsx",
           "app/renderer/src/dialog-emojis.ts"
         ],
         "symbols": [
@@ -113,8 +114,22 @@
         ]
       },
       "registration": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "app/renderer/src/App.tsx",
+          "app/renderer/src/generated/console.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "languageAwareSetVal",
+            "kind": "method"
+          },
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "SCREENS",
+            "kind": "const"
+          }
+        ]
       },
       "route": "desktop://console/main",
       "documentation": {
@@ -2606,10 +2621,11 @@
       }
     },
     "app-display-name": {
-      "status": "partial",
-      "note": "app/renderer/src/display-name.ts implements validation, persistence, one-action reset, and a strict split between the chosen display label and stable installed identity. The behavior remains partial because no reachable design control registers or changes the setting yet.",
+      "status": "implemented-unverified",
+      "note": "app/renderer/src/display-name.ts implements validation, persistence, reset, and a strict split between the chosen display label and stable installed identity. The id_name and id_name_reset controls are compiled into the real design and App.languageAwareSetVal persists their values. No built-artifact interaction or current capture has verified the complete route yet.",
       "implementation": {
         "paths": [
+          "app/renderer/src/App.tsx",
           "app/renderer/src/display-name.ts"
         ],
         "symbols": [
@@ -2636,8 +2652,22 @@
         ]
       },
       "registration": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "app/renderer/src/App.tsx",
+          "app/renderer/src/generated/console.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "languageAwareSetVal",
+            "kind": "method"
+          },
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "SCREENS",
+            "kind": "const"
+          }
+        ]
       },
       "route": "desktop://console/main",
       "documentation": {
