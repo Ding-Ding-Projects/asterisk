@@ -65,6 +65,7 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'ollama.health', 'ollama.version', 'ollama.models.installed', 'ollama.models.running', 'ollama.model.show', 'ollama.model.delete', 'ollama.model.copy',
   'ollama.pulls.list', 'ollama.pulls.enqueue', 'ollama.pulls.cancel', 'ollama.pulls.retry', 'ollama.pulls.reconcile',
   'ollama.chat.sessions', 'ollama.chat.create', 'ollama.chat.rename', 'ollama.chat.delete', 'ollama.chat.send', 'ollama.chat.retry', 'ollama.chat.regenerate', 'ollama.chat.stop',
+  'dim-sum.cache.read',
 ]);
 
 function validateRequestSchema(request: ControlPlaneRequest): string | undefined {
@@ -540,6 +541,15 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           ollamaClient.health(), ollamaClient.version(), ollamaClient.installedModels(), ollamaClient.runningModels(),
         ]);
         return { ok: true, requestId: request.requestId, data: { observedAt, endpoint: ollamaClient.endpoint, health, version, installed, running } };
+      }
+      if (request.action === 'dim-sum.cache.read') {
+        const cachePath = join(userDataPath, 'dim-sum-cache.json');
+        try { return { ok: true, requestId: request.requestId, data: { text: readFileSync(cachePath, 'utf8') } }; }
+        catch (error) {
+          const code = (error as { code?: string }).code;
+          if (code === 'ENOENT') return { ok: true, requestId: request.requestId, data: { text: null } };
+          return { ok: false, requestId: request.requestId, code: 'DIM_SUM_CACHE_UNAVAILABLE', message: 'The local dim-sum cache could not be read.' };
+        }
       }
       if (request.action.startsWith('ollama.')) {
         await ollamaReady;

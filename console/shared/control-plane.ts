@@ -36,7 +36,9 @@ export type ControlPlaneAction =
   | 'ollama.model.show' | 'ollama.model.delete' | 'ollama.model.copy'
   | 'ollama.pulls.list' | 'ollama.pulls.enqueue' | 'ollama.pulls.cancel' | 'ollama.pulls.retry' | 'ollama.pulls.reconcile'
   | 'ollama.chat.sessions' | 'ollama.chat.create' | 'ollama.chat.rename' | 'ollama.chat.delete' | 'ollama.chat.send'
-  | 'ollama.chat.retry' | 'ollama.chat.regenerate' | 'ollama.chat.stop';
+  | 'ollama.chat.retry' | 'ollama.chat.regenerate' | 'ollama.chat.stop'
+  /* Dim-sum cache is local-only. A missing cache is an honest unavailable result. */
+  | 'dim-sum.cache.read';
 
 /** The screens a `pbx.read` can answer, each backed by read-only Asterisk CLI output. */
 export type PbxReadView =
