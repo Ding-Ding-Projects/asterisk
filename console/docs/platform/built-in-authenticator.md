@@ -14,7 +14,7 @@ A new pairing would be confirmed by entering one live code back before the entry
 
 **Desktop application:** Not implemented. The desktop application has no authenticator surface of any kind.
 
-**Documentation website:** Partial, local equivalent implemented and runtime proof unverified. Settings provides issuer, account, and manual Base32 registration, stores entries in browser storage, emits an `otpauth://totp/` pairing URI, and shows current and next TOTP codes generated with Web Crypto. QR rendering, platform credential-vault storage, and cloud sync remain unavailable on this static surface.
+**Documentation website:** Local equivalent implemented, runtime proof unverified. Settings provides issuer, account, manual Base32 registration, URI import, a bundled in-process QR encoder with a four-module quiet zone and fixed black-on-white contrast, encrypted browser-local storage, and current and next TOTP codes generated with Web Crypto. Platform credential-vault storage and cloud sync remain unavailable on this static surface.
 
 ## Failure modes
 
@@ -26,7 +26,7 @@ This feature is expected to follow the product's standing accessibility contract
 
 ## Verification
 
-This delegated source-only lane did not run tests, builds, browser checks, or captures. The site registry remains partial because QR rendering and platform vault storage are unavailable. The desktop application row remains not implemented.
+This delegated source-only lane did not run tests, builds, browser checks, or captures. The site registry is `implemented-unverified` for this local equivalent. Platform credential-vault storage and runtime proof remain unverified. The desktop application row remains not implemented.
 
 ## Suggested articles
 

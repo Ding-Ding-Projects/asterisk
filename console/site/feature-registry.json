@@ -2371,10 +2371,10 @@
       }
     },
     "built-in-authenticator": {
-      "status": "partial",
-      "note": "settings.html and site/app.js now provide a browser-local TOTP registration surface, otpauth pairing URI, live current and next codes through Web Crypto, and local entry storage. Secrets remain excluded from ordinary export. QR rendering, platform vault storage, and runtime proof remain unavailable in this static lane.",
+      "status": "implemented-unverified",
+      "note": "settings.html, site/app.js, and the bundled MIT QR encoder now provide browser-local TOTP registration, URI import, a scannable dark-on-light QR with a quiet zone and accessible text alternative, live current and next codes through Web Crypto, encrypted local entry storage, and ordinary-export secret omission. Platform credential-vault storage and runtime proof remain unavailable in this static lane.",
       "implementation": {
-        "paths": ["console/site/settings.html", "console/site/app.js"],
+        "paths": ["console/site/settings.html", "console/site/app.js", "console/site/qr-encoder.js"],
         "symbols": [{"path": "console/site/app.js", "name": "initAuthenticator", "kind": "function"}]
       },
       "registration": {
