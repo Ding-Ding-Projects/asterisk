@@ -1,34 +1,21 @@
 /**
- * The unlock ladder — an escalating set of small challenges that can clear a lockout WAIT.
+ * Server-owned unlock-ladder state.
  *
- * Five rules make this safe rather than merely fun (see the shared instructions for the full
- * writeup); each is called out at its enforcement point below:
- *
- *   1. Clears the WAITING, never the CREDENTIAL. `grade()` never returns anything that could be
- *      mistaken for a session token or an authentication result — `cleared: true` means "the wait
- *      is over," nothing more, and the caller still has to sign in normally.
- *   2. Never refunds the attempt budget. This module has no concept of "attempts remaining" at
- *      all — it only tracks how many times the LADDER itself has been used to skip a wait, which
- *      is rule 3's budget. It never touches whatever counter the caller uses for sign-in attempts.
- *   3. Budgeted: at most 3 skips per rolling hour. After that, `issue()` returns the clock.
- *   4. Never slows the escalation it skips: this module has no opinion about lockout duration at
- *      all. It is purely "can this particular wait be skipped," and the caller's own exponential
- *      backoff is untouched either way.
- *   5. Every challenge is graded against a single-use nonce that is consumed before grading, and
- *      challenges expire.
+ * This module is transport-neutral. It belongs behind a privileged boundary that supplies a
+ * cryptographically strong nonce source and the server clock. Public challenges never contain
+ * expected answers. A success clears only a wait and cannot be mistaken for authentication.
  */
 
-export type Rung = 'dish' | 'sums' | 'moles' | 'clock';
+export type UnlockLadderRung = "dish" | "sums" | "moles" | "clock";
 
 export interface DishChallengePayload {
   choices: readonly [string, string, string, string];
-  correctIndex: 0 | 1 | 2 | 3;
 }
 
 export interface SumProblem {
   a: number;
   b: number;
-  op: '+' | '-';
+  operator: "+" | "-";
 }
 
 export interface SumsChallengePayload {
@@ -36,403 +23,535 @@ export interface SumsChallengePayload {
 }
 
 export interface MoleSpawn {
-  /** Index into a fixed grid (e.g. 0-8 for a 3x3 board). */
+  spawnId: number;
   cell: number;
-  /** Milliseconds from round start at which this mole becomes hittable. */
-  atMs: number;
-  /** Milliseconds from round start at which this mole disappears. */
-  untilMs: number;
+  appearsAtMs: number;
+  disappearsAtMs: number;
 }
 
 export interface MolesChallengePayload {
-  grid: number;
+  gridSize: number;
   durationMs: number;
   spawns: readonly MoleSpawn[];
-  /** Minimum number of distinct spawns that must be hit to clear the round. */
   hitsRequired: number;
 }
 
-export interface ClockChallengePayload {
-  reason: string;
-}
-
-interface BaseChallenge {
+interface PublicChallengeBase {
   nonce: string;
-  lockoutId: string;
-  rung: Rung;
-  issuedAtMs: number;
-  expiresAtMs: number;
+  rung: Exclude<UnlockLadderRung, "clock">;
+  issuedAt: string;
+  expiresAt: string;
 }
 
-export interface DishChallenge extends BaseChallenge {
-  rung: 'dish';
+export interface DishChallenge extends PublicChallengeBase {
+  rung: "dish";
   payload: DishChallengePayload;
 }
 
-export interface SumsChallenge extends BaseChallenge {
-  rung: 'sums';
+export interface SumsChallenge extends PublicChallengeBase {
+  rung: "sums";
   payload: SumsChallengePayload;
 }
 
-export interface MolesChallenge extends BaseChallenge {
-  rung: 'moles';
+export interface MolesChallenge extends PublicChallengeBase {
+  rung: "moles";
   payload: MolesChallengePayload;
 }
 
-export type Challenge = DishChallenge | SumsChallenge | MolesChallenge;
+export type UnlockLadderChallenge = DishChallenge | SumsChallenge | MolesChallenge;
 
-export interface ClockResult {
-  rung: 'clock';
-  reason: string;
+export interface UnlockLadderIssueRequest {
+  lockoutId: string;
+  budgetScopeId: string;
+  schoolMode: boolean;
 }
 
-export type IssueResult = Challenge | ClockResult;
+export type UnlockLadderIssueResult =
+  | { offered: true; challenge: UnlockLadderChallenge; budgetRemaining: number }
+  | {
+      offered: false;
+      rung: "clock";
+      reason:
+        | "budget-exhausted"
+        | "lockout-clock-only"
+        | "nonce-source-unavailable"
+        | "state-store-unavailable";
+      budgetRemaining: number;
+    };
 
-export interface DishAnswer {
-  kind: 'dish';
-  choiceIndex: number;
-}
+export type UnlockLadderAnswer =
+  | { kind: "dish"; choiceIndex: number }
+  | { kind: "sums"; answers: readonly number[] }
+  | { kind: "moles"; hits: readonly { spawnId: number; cell: number; atMs: number }[] };
 
-export interface SumsAnswer {
-  kind: 'sums';
-  /** One answer per problem, in the same order as the challenge's `problems`. */
-  answers: readonly number[];
-}
-
-export interface MolesAnswer {
-  kind: 'moles';
-  /**
-   * Each hit names the cell and the time (ms from round start) it was tapped. A hit only counts
-   * when it lands on a cell that was genuinely visible (within its spawn/expiry window) at that
-   * time, and each spawn can be credited at most once.
-   */
-  hits: readonly { cell: number; atMs: number }[];
-  /** Wall-clock time (ms since epoch) the submission was made, used for the "cannot finish
-   * faster than the round lasts" check. */
-  submittedAtMs: number;
-}
-
-export type Answer = DishAnswer | SumsAnswer | MolesAnswer;
-
-export interface GradeResult {
-  cleared: boolean;
-  /** The rung the caller should be offered next. When `cleared` is true this still reports a
-   * rung for bookkeeping purposes, but the caller's job at that point is only to unlock the wait,
-   * never to keep playing. */
-  nextRung: Rung;
-  reason?: string;
+export interface UnlockLadderGradeResult {
+  waitCleared: boolean;
+  nextRung: UnlockLadderRung;
+  reason:
+    | "correct"
+    | "wrong-answer"
+    | "wrong-answer-kind"
+    | "expired"
+    | "unknown-or-consumed-nonce"
+    | "mole-round-submitted-early"
+    | "state-store-unavailable";
+  budgetRemaining: number;
+  credentialCleared: false;
+  attemptsRestored: false;
+  authenticationGranted: false;
 }
 
 export interface UnlockLadderOptions {
   now: () => number;
   random: () => number;
-  schoolMode?: boolean;
-  /** Maximum number of skipped waits allowed per rolling hour. Defaults to 3 — this is what
-   * makes the ladder safe rather than merely clever; do not raise it without re-reading rule 3. */
-  maxSkipsPerHour?: number;
+  /** Supplied by the privileged boundary. There is no predictable fallback. */
+  createNonce: () => string;
+  stateStore: UnlockLadderStateStore;
+  maxClearedWaitsPerHour?: number;
   challengeTtlMs?: number;
 }
 
-const ROLLING_WINDOW_MS = 60 * 60 * 1000;
-const DEFAULT_TTL_MS = 2 * 60 * 1000;
-const DEFAULT_MAX_SKIPS_PER_HOUR = 3;
-
-const DISH_NAMES = [
-  'Har gow',
-  'Siu mai',
-  'Char siu bao',
-  'Egg tart',
-  'Cheung fun',
-  'Lo mai gai',
-] as const;
-
-const GRID_SIZE = 9;
-const MOLE_ROUND_MS = 8000;
-const HITS_REQUIRED = 5;
-const SPAWN_COUNT = 8;
-const SPAWN_VISIBLE_MS = 1200;
-
-const WRONG_DISHES_TO_ESCALATE = 5;
-
-function startingRung(schoolMode: boolean | undefined): Rung {
-  // School mode requires every dish-related capability to behave as though it is not
-  // installed — not "skipped with a message," genuinely absent, because naming the hidden
-  // thing is exactly what that mode forbids. One function decides this so no caller can get
-  // it wrong locally.
-  return schoolMode ? 'sums' : 'dish';
+interface InternalChallengeBase {
+  publicChallenge: UnlockLadderChallenge;
+  lockoutId: string;
+  budgetScopeId: string;
 }
 
-function makeNonce(random: () => number): string {
-  let out = '';
-  for (let i = 0; i < 32; i++) {
-    out += Math.floor(random() * 16).toString(16);
+type InternalChallenge =
+  | (InternalChallengeBase & { expected: { kind: "dish"; correctIndex: number } })
+  | (InternalChallengeBase & { expected: { kind: "sums"; answers: readonly number[] } })
+  | (InternalChallengeBase & { expected: { kind: "moles" } });
+
+export interface UnlockLadderLockoutState {
+  rung: UnlockLadderRung;
+  wrongDishAnswers: number;
+}
+
+export interface UnlockLadderStateStore {
+  readonly available: boolean;
+  readLockout(lockoutId: string): Promise<UnlockLadderLockoutState | undefined>;
+  writeLockout(lockoutId: string, state: UnlockLadderLockoutState | undefined): Promise<void>;
+  readClearedWaits(budgetScopeId: string): Promise<ReadonlyArray<number>>;
+  writeClearedWaits(budgetScopeId: string, timestamps: ReadonlyArray<number>): Promise<void>;
+}
+
+const ROLLING_HOUR_MS = 60 * 60 * 1000;
+const DEFAULT_CHALLENGE_TTL_MS = 2 * 60 * 1000;
+const DEFAULT_MAX_CLEARED_WAITS_PER_HOUR = 3;
+const WRONG_DISHES_BEFORE_SUMS = 5;
+const MOLE_GRID_SIZE = 9;
+const MOLE_DURATION_MS = 8_000;
+const MOLE_SPAWN_COUNT = 8;
+const MOLE_VISIBLE_MS = 1_200;
+const MOLE_HITS_REQUIRED = 5;
+
+const DISH_NAMES = [
+  "Har gow",
+  "Siu mai",
+  "Char siu bao",
+  "Egg tart",
+  "Cheung fun",
+  "Lo mai gai",
+] as const;
+
+const STABLE_SCOPE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
+const NONCE = /^[A-Za-z0-9_-]{32,256}$/u;
+
+function assertServerTime(value: number): number {
+  if (!Number.isSafeInteger(value) || value < 0) throw new Error("The server clock is invalid.");
+  return value;
+}
+
+function assertLockoutState(value: UnlockLadderLockoutState | undefined): void {
+  if (value === undefined) return;
+  if (
+    !["dish", "sums", "moles", "clock"].includes(value.rung) ||
+    !Number.isSafeInteger(value.wrongDishAnswers) ||
+    value.wrongDishAnswers < 0 ||
+    value.wrongDishAnswers >= WRONG_DISHES_BEFORE_SUMS
+  ) {
+    throw new Error("The persisted lockout state is invalid.");
   }
-  return out;
+}
+
+function activeBudgetTimestamps(timestamps: ReadonlyArray<number>, atMs: number): number[] {
+  if (timestamps.length > 1_000 || timestamps.some((value) => !Number.isSafeInteger(value) || value < 0)) {
+    throw new Error("The persisted ladder budget is invalid or unbounded.");
+  }
+  return timestamps.filter((timestamp) => atMs - timestamp < ROLLING_HOUR_MS);
 }
 
 function pickInt(random: () => number, maxExclusive: number): number {
-  return Math.floor(random() * maxExclusive);
+  const value = random();
+  if (!Number.isFinite(value) || value < 0 || value >= 1) {
+    throw new Error("The random source must return a number from 0 up to, but not including, 1.");
+  }
+  return Math.floor(value * maxExclusive);
 }
 
-function buildDishPayload(random: () => number): DishChallengePayload {
-  const pool = [...DISH_NAMES];
-  const picked: string[] = [];
-  while (picked.length < 4 && pool.length > 0) {
-    const idx = pickInt(random, pool.length);
-    picked.push(pool.splice(idx, 1)[0]!);
+function buildDishChallenge(random: () => number): {
+  payload: DishChallengePayload;
+  correctIndex: number;
+} {
+  const available = [...DISH_NAMES];
+  const choices: string[] = [];
+  while (choices.length < 4) {
+    choices.push(available.splice(pickInt(random, available.length), 1)[0]!);
   }
-  const correctIndex = pickInt(random, 4) as 0 | 1 | 2 | 3;
   return {
-    choices: picked as unknown as [string, string, string, string],
-    correctIndex,
+    payload: { choices: choices as [string, string, string, string] },
+    correctIndex: pickInt(random, choices.length),
   };
 }
 
-function buildSumsPayload(random: () => number): SumsChallengePayload {
+function buildSumsChallenge(random: () => number): {
+  payload: SumsChallengePayload;
+  answers: readonly number[];
+} {
   const problems: SumProblem[] = [];
-  for (let i = 0; i < 10; i++) {
-    const op: '+' | '-' = random() < 0.5 ? '+' : '-';
+  const answers: number[] = [];
+  for (let index = 0; index < 10; index += 1) {
+    const operator = random() < 0.5 ? "+" : "-";
     let a = pickInt(random, 90) + 1;
     let b = pickInt(random, 90) + 1;
-    if (op === '-' && b > a) {
-      const tmp = a;
-      a = b;
-      b = tmp;
-    }
-    problems.push({ a, b, op });
+    if (operator === "-" && b > a) [a, b] = [b, a];
+    problems.push({ a, b, operator });
+    answers.push(operator === "+" ? a + b : a - b);
   }
-  return { problems };
+  return { payload: { problems }, answers };
 }
 
-function sumAnswer(p: SumProblem): number {
-  return p.op === '+' ? p.a + p.b : p.a - p.b;
-}
-
-function buildMolesPayload(random: () => number): MolesChallengePayload {
+function buildMolesChallenge(random: () => number): MolesChallengePayload {
+  const stepMs = Math.floor(MOLE_DURATION_MS / MOLE_SPAWN_COUNT);
   const spawns: MoleSpawn[] = [];
-  const step = MOLE_ROUND_MS / SPAWN_COUNT;
-  for (let i = 0; i < SPAWN_COUNT; i++) {
-    const atMs = Math.floor(i * step);
+  for (let index = 0; index < MOLE_SPAWN_COUNT; index += 1) {
+    const appearsAtMs = index * stepMs;
     spawns.push({
-      cell: pickInt(random, GRID_SIZE),
-      atMs,
-      untilMs: atMs + SPAWN_VISIBLE_MS,
+      spawnId: index,
+      cell: pickInt(random, MOLE_GRID_SIZE),
+      appearsAtMs,
+      disappearsAtMs: Math.min(MOLE_DURATION_MS, appearsAtMs + MOLE_VISIBLE_MS),
     });
   }
   return {
-    grid: GRID_SIZE,
-    durationMs: MOLE_ROUND_MS,
+    gridSize: MOLE_GRID_SIZE,
+    durationMs: MOLE_DURATION_MS,
     spawns,
-    hitsRequired: HITS_REQUIRED,
+    hitsRequired: MOLE_HITS_REQUIRED,
   };
 }
 
-interface StoredChallenge {
-  challenge: Challenge;
-  consumed: boolean;
-}
-
 export class UnlockLadder {
-  private readonly now: () => number;
-  private readonly random: () => number;
-  private readonly schoolMode: boolean;
-  private readonly maxSkipsPerHour: number;
-  private readonly ttlMs: number;
-
-  private readonly challenges = new Map<string, StoredChallenge>();
-  /** Timestamps (ms) of skips already granted, for the rolling-hour budget. */
-  private readonly skipTimestamps: number[] = [];
-  /** Per-lockout: once a rung has been lost to the clock, the ladder is not offered again. */
-  private readonly clockedOut = new Set<string>();
-  /** Per-lockout: current rung the caller is on, for escalation bookkeeping. */
-  private readonly lockoutRung = new Map<string, Rung>();
-  /** Per-lockout: consecutive wrong dish answers (5 escalates to sums). */
-  private readonly wrongDishCount = new Map<string, number>();
+  readonly #now: () => number;
+  readonly #random: () => number;
+  readonly #createNonce: () => string;
+  readonly #stateStore: UnlockLadderStateStore;
+  readonly #maxClearedWaitsPerHour: number;
+  readonly #challengeTtlMs: number;
+  readonly #challenges = new Map<string, InternalChallenge>();
 
   constructor(options: UnlockLadderOptions) {
-    this.now = options.now;
-    this.random = options.random;
-    this.schoolMode = options.schoolMode ?? false;
-    this.maxSkipsPerHour = options.maxSkipsPerHour ?? DEFAULT_MAX_SKIPS_PER_HOUR;
-    this.ttlMs = options.challengeTtlMs ?? DEFAULT_TTL_MS;
-  }
-
-  private pruneSkipWindow(atMs: number): void {
-    while (this.skipTimestamps.length > 0 && atMs - this.skipTimestamps[0]! > ROLLING_WINDOW_MS) {
-      this.skipTimestamps.shift();
+    this.#now = options.now;
+    this.#random = options.random;
+    this.#createNonce = options.createNonce;
+    this.#stateStore = options.stateStore;
+    this.#maxClearedWaitsPerHour =
+      options.maxClearedWaitsPerHour ?? DEFAULT_MAX_CLEARED_WAITS_PER_HOUR;
+    this.#challengeTtlMs = options.challengeTtlMs ?? DEFAULT_CHALLENGE_TTL_MS;
+    if (
+      !Number.isSafeInteger(this.#maxClearedWaitsPerHour) ||
+      this.#maxClearedWaitsPerHour < 1 ||
+      this.#maxClearedWaitsPerHour > 20
+    ) {
+      throw new Error("The rolling-hour ladder budget must be between 1 and 20.");
+    }
+    if (!Number.isSafeInteger(this.#challengeTtlMs) || this.#challengeTtlMs < 1_000) {
+      throw new Error("The challenge lifetime must be at least one second.");
     }
   }
 
-  /** How many skips remain in the current rolling hour. */
-  budgetRemaining(atMs: number): number {
-    this.pruneSkipWindow(atMs);
-    return Math.max(0, this.maxSkipsPerHour - this.skipTimestamps.length);
-  }
-
-  private recordSkip(atMs: number): void {
-    this.skipTimestamps.push(atMs);
-  }
-
-  issue(lockoutId: string): IssueResult {
-    const atMs = this.now();
-
-    if (this.clockedOut.has(lockoutId)) {
-      return { rung: 'clock', reason: 'this lockout already lost a round; only the clock remains' };
+  async issue(request: UnlockLadderIssueRequest): Promise<UnlockLadderIssueResult> {
+    if (!STABLE_SCOPE_ID.test(request.lockoutId) || !STABLE_SCOPE_ID.test(request.budgetScopeId)) {
+      throw new Error("The lockout and budget scope identities must be stable identifiers.");
+    }
+    let atMs: number;
+    try {
+      atMs = assertServerTime(this.#now());
+    } catch {
+      return {
+        offered: false,
+        rung: "clock",
+        reason: "state-store-unavailable",
+        budgetRemaining: 0,
+      };
+    }
+    if (!this.#stateStore.available) {
+      return {
+        offered: false,
+        rung: "clock",
+        reason: "state-store-unavailable",
+        budgetRemaining: 0,
+      };
+    }
+    let budgetRemaining: number;
+    let existing: UnlockLadderLockoutState | undefined;
+    try {
+      budgetRemaining = await this.#budgetRemaining(request.budgetScopeId, atMs);
+      existing = await this.#stateStore.readLockout(request.lockoutId);
+      assertLockoutState(existing);
+    } catch {
+      return {
+        offered: false,
+        rung: "clock",
+        reason: "state-store-unavailable",
+        budgetRemaining: 0,
+      };
+    }
+    if (existing?.rung === "clock") {
+      return { offered: false, rung: "clock", reason: "lockout-clock-only", budgetRemaining };
+    }
+    if (budgetRemaining === 0) {
+      return { offered: false, rung: "clock", reason: "budget-exhausted", budgetRemaining };
     }
 
-    if (this.budgetRemaining(atMs) <= 0) {
-      return { rung: 'clock', reason: 'ladder budget exhausted for this rolling hour' };
+    const rung = request.schoolMode && existing?.rung === "dish"
+      ? "sums"
+      : existing?.rung ?? (request.schoolMode ? "sums" : "dish");
+    try {
+      await this.#stateStore.writeLockout(request.lockoutId, {
+        rung,
+        wrongDishAnswers: existing?.wrongDishAnswers ?? 0,
+      });
+    } catch {
+      return {
+        offered: false,
+        rung: "clock",
+        reason: "state-store-unavailable",
+        budgetRemaining: 0,
+      };
     }
 
-    let rung = this.lockoutRung.get(lockoutId);
-    if (!rung) {
-      rung = startingRung(this.schoolMode);
-      this.lockoutRung.set(lockoutId, rung);
+    const nonce = this.#createNonce();
+    if (!NONCE.test(nonce) || this.#challenges.has(nonce)) {
+      return { offered: false, rung: "clock", reason: "nonce-source-unavailable", budgetRemaining };
     }
-
-    if (rung === 'clock') {
-      return { rung: 'clock', reason: 'this lockout already lost a round; only the clock remains' };
-    }
-
-    const nonce = makeNonce(this.random);
     const base = {
       nonce,
-      lockoutId,
-      issuedAtMs: atMs,
-      expiresAtMs: atMs + this.ttlMs,
+      issuedAt: new Date(atMs).toISOString(),
+      expiresAt: new Date(atMs + this.#challengeTtlMs).toISOString(),
     };
 
-    let challenge: Challenge;
-    if (rung === 'dish') {
-      challenge = { ...base, rung: 'dish', payload: buildDishPayload(this.random) };
-    } else if (rung === 'sums') {
-      challenge = { ...base, rung: 'sums', payload: buildSumsPayload(this.random) };
+    let internal: InternalChallenge;
+    if (rung === "dish") {
+      const built = buildDishChallenge(this.#random);
+      const publicChallenge: DishChallenge = { ...base, rung, payload: built.payload };
+      internal = {
+        publicChallenge,
+        lockoutId: request.lockoutId,
+        budgetScopeId: request.budgetScopeId,
+        expected: { kind: "dish", correctIndex: built.correctIndex },
+      };
+    } else if (rung === "sums") {
+      const built = buildSumsChallenge(this.#random);
+      const publicChallenge: SumsChallenge = { ...base, rung, payload: built.payload };
+      internal = {
+        publicChallenge,
+        lockoutId: request.lockoutId,
+        budgetScopeId: request.budgetScopeId,
+        expected: { kind: "sums", answers: built.answers },
+      };
+    } else if (rung === "moles") {
+      const publicChallenge: MolesChallenge = {
+        ...base,
+        rung,
+        payload: buildMolesChallenge(this.#random),
+      };
+      internal = {
+        publicChallenge,
+        lockoutId: request.lockoutId,
+        budgetScopeId: request.budgetScopeId,
+        expected: { kind: "moles" },
+      };
     } else {
-      challenge = { ...base, rung: 'moles', payload: buildMolesPayload(this.random) };
+      return { offered: false, rung: "clock", reason: "lockout-clock-only", budgetRemaining };
     }
 
-    this.challenges.set(nonce, { challenge, consumed: false });
-    return challenge;
+    this.#challenges.set(nonce, internal);
+    return { offered: true, challenge: internal.publicChallenge, budgetRemaining };
   }
 
-  private gradeDish(challenge: DishChallenge, answer: Answer): boolean {
-    if (answer.kind !== 'dish') return false;
-    return answer.choiceIndex === challenge.payload.correctIndex;
-  }
+  async grade(nonce: string, answer: UnlockLadderAnswer): Promise<UnlockLadderGradeResult> {
+    const internal = this.#challenges.get(nonce);
+    if (!internal) return this.#gradeResult(false, "clock", "unknown-or-consumed-nonce", 0);
+    this.#challenges.delete(nonce);
 
-  private gradeSums(challenge: SumsChallenge, answer: Answer): boolean {
-    if (answer.kind !== 'sums') return false;
-    const { problems } = challenge.payload;
-    if (answer.answers.length !== problems.length) return false;
-    return problems.every((p, i) => answer.answers[i] === sumAnswer(p));
-  }
+    let atMs: number;
+    try {
+      atMs = assertServerTime(this.#now());
+    } catch {
+      return this.#gradeResult(false, "clock", "state-store-unavailable", 0);
+    }
+    if (!this.#stateStore.available) {
+      return this.#gradeResult(false, "clock", "state-store-unavailable", 0);
+    }
+    if (atMs > Date.parse(internal.publicChallenge.expiresAt)) {
+      try {
+        const nextRung = await this.#escalate(internal.lockoutId, internal.publicChallenge.rung);
+        return this.#gradeResult(
+          false,
+          nextRung,
+          "expired",
+          await this.#budgetRemaining(internal.budgetScopeId, atMs),
+        );
+      } catch {
+        return this.#gradeResult(false, "clock", "state-store-unavailable", 0);
+      }
+    }
 
-  private gradeMoles(challenge: MolesChallenge, answer: Answer): boolean {
-    if (answer.kind !== 'moles') return false;
+    if (answer.kind !== internal.expected.kind) {
+      try {
+        const nextRung = await this.#escalate(internal.lockoutId, internal.publicChallenge.rung);
+        return this.#gradeResult(
+          false,
+          nextRung,
+          "wrong-answer-kind",
+          await this.#budgetRemaining(internal.budgetScopeId, atMs),
+        );
+      } catch {
+        return this.#gradeResult(false, "clock", "state-store-unavailable", 0);
+      }
+    }
 
-    const roundStartMs = challenge.issuedAtMs;
-    const elapsedMs = answer.submittedAtMs - roundStartMs;
+    let correct = false;
+    if (internal.expected.kind === "dish" && answer.kind === "dish") {
+      correct = answer.choiceIndex === internal.expected.correctIndex;
+    } else if (internal.expected.kind === "sums" && answer.kind === "sums") {
+      correct =
+        answer.answers.length === internal.expected.answers.length &&
+        internal.expected.answers.every((value, index) => answer.answers[index] === value);
+    } else if (internal.expected.kind === "moles" && answer.kind === "moles") {
+      const challenge = internal.publicChallenge as MolesChallenge;
+      if (atMs - Date.parse(challenge.issuedAt) < challenge.payload.durationMs) {
+        try {
+          const nextRung = await this.#escalate(internal.lockoutId, "moles");
+          return this.#gradeResult(
+            false,
+            nextRung,
+            "mole-round-submitted-early",
+            await this.#budgetRemaining(internal.budgetScopeId, atMs),
+          );
+        } catch {
+          return this.#gradeResult(false, "clock", "state-store-unavailable", 0);
+        }
+      }
+      correct = this.#gradeMoles(challenge, answer);
+    }
 
-    // A timed game cannot be won faster than it lasts: reject any submission arriving before
-    // the round's own duration has genuinely elapsed.
-    if (elapsedMs < challenge.payload.durationMs) return false;
+    if (!correct) {
+      try {
+        const nextRung = await this.#escalate(internal.lockoutId, internal.publicChallenge.rung);
+        return this.#gradeResult(
+          false,
+          nextRung,
+          "wrong-answer",
+          await this.#budgetRemaining(internal.budgetScopeId, atMs),
+        );
+      } catch {
+        return this.#gradeResult(false, "clock", "state-store-unavailable", 0);
+      }
+    }
 
-    const claimedSpawns = new Set<number>();
-    for (const hit of answer.hits) {
-      const spawnIndex = challenge.payload.spawns.findIndex(
-        (spawn, idx) =>
-          !claimedSpawns.has(idx) &&
-          spawn.cell === hit.cell &&
-          hit.atMs >= spawn.atMs &&
-          hit.atMs <= spawn.untilMs,
+    try {
+      await this.#recordClearedWait(internal.budgetScopeId, atMs);
+      await this.#stateStore.writeLockout(internal.lockoutId, undefined);
+      return this.#gradeResult(
+        true,
+        internal.publicChallenge.rung,
+        "correct",
+        await this.#budgetRemaining(internal.budgetScopeId, atMs),
       );
-      if (spawnIndex >= 0) {
-        claimedSpawns.add(spawnIndex);
-      }
+    } catch {
+      return this.#gradeResult(false, "clock", "state-store-unavailable", 0);
     }
-
-    return claimedSpawns.size >= challenge.payload.hitsRequired;
   }
 
-  grade(nonce: string, answer: Answer, atMs: number): GradeResult {
-    const entry = this.challenges.get(nonce);
-    if (!entry) {
-      return { cleared: false, nextRung: 'clock', reason: 'unknown or already-used nonce' };
+  #gradeMoles(
+    challenge: MolesChallenge,
+    answer: Extract<UnlockLadderAnswer, { kind: "moles" }>,
+  ): boolean {
+    if (answer.hits.length > 256) return false;
+    const credited = new Set<number>();
+    for (const hit of answer.hits) {
+      const spawn = challenge.payload.spawns.find((candidate) => candidate.spawnId === hit.spawnId);
+      if (
+        !spawn ||
+        credited.has(spawn.spawnId) ||
+        spawn.cell !== hit.cell ||
+        !Number.isSafeInteger(hit.atMs) ||
+        hit.atMs < spawn.appearsAtMs ||
+        hit.atMs > spawn.disappearsAtMs
+      ) {
+        continue;
+      }
+      credited.add(spawn.spawnId);
     }
-
-    // Single-use: consume the nonce before grading, so a wrong answer cannot be retried against
-    // the same question and a right one cannot be replayed.
-    this.challenges.delete(nonce);
-    if (entry.consumed) {
-      return { cleared: false, nextRung: 'clock', reason: 'nonce already consumed' };
-    }
-    entry.consumed = true;
-
-    const { challenge } = entry;
-
-    if (atMs > challenge.expiresAtMs) {
-      const fallback = this.escalateAfterFailure(challenge.lockoutId, challenge.rung);
-      return { cleared: false, nextRung: fallback, reason: 'challenge expired' };
-    }
-
-    let correct: boolean;
-    switch (challenge.rung) {
-      case 'dish':
-        correct = this.gradeDish(challenge, answer);
-        break;
-      case 'sums':
-        correct = this.gradeSums(challenge, answer);
-        break;
-      case 'moles':
-        correct = this.gradeMoles(challenge, answer);
-        break;
-    }
-
-    if (correct) {
-      // Winning any rung clears the wait outright and is a genuine skip, so it consumes the
-      // budget (rule 3) — rule 2 (never refunding the *attempt* budget) is a different counter
-      // entirely: this module has no notion of sign-in attempts at all.
-      this.recordSkip(atMs);
-      this.lockoutRung.delete(challenge.lockoutId);
-      this.wrongDishCount.delete(challenge.lockoutId);
-      // Rule 1: this result carries nothing that could be mistaken for authentication. It says
-      // only that the WAIT is cleared; the caller still returns to the ordinary sign-in form.
-      return { cleared: true, nextRung: challenge.rung };
-    }
-
-    const fallback = this.escalateAfterFailure(challenge.lockoutId, challenge.rung);
-    return { cleared: false, nextRung: fallback, reason: 'wrong answer' };
+    return credited.size >= challenge.payload.hitsRequired;
   }
 
-  /**
-   * Decides the next rung after a failure, per the ladder's own escalation rule: five wrong
-   * dishes before falling to sums, a single wrong sum falls to moles, and losing a mole round
-   * falls to the clock — after which the ladder is not offered again for that lockout.
-   */
-  private escalateAfterFailure(lockoutId: string, rung: Rung): Rung {
-    let next: Rung;
-
-    if (rung === 'dish') {
-      const wrongSoFar = (this.wrongDishCount.get(lockoutId) ?? 0) + 1;
-      if (wrongSoFar >= WRONG_DISHES_TO_ESCALATE) {
-        this.wrongDishCount.delete(lockoutId);
-        next = 'sums';
-      } else {
-        this.wrongDishCount.set(lockoutId, wrongSoFar);
-        next = 'dish';
-      }
-    } else if (rung === 'sums') {
-      next = 'moles';
+  async #escalate(
+    lockoutId: string,
+    rung: Exclude<UnlockLadderRung, "clock">,
+  ): Promise<UnlockLadderRung> {
+    const stored = await this.#stateStore.readLockout(lockoutId);
+    assertLockoutState(stored);
+    const current = stored ?? { rung, wrongDishAnswers: 0 };
+    let next: UnlockLadderRung;
+    let wrongDishAnswers = current.wrongDishAnswers;
+    if (rung === "dish") {
+      wrongDishAnswers += 1;
+      next = wrongDishAnswers >= WRONG_DISHES_BEFORE_SUMS ? "sums" : "dish";
+      if (next === "sums") wrongDishAnswers = 0;
+    } else if (rung === "sums") {
+      next = "moles";
     } else {
-      // Losing a mole round, or anything already at the clock, falls straight to the clock and
-      // stays there for this lockout.
-      next = 'clock';
+      next = "clock";
     }
-
-    this.lockoutRung.set(lockoutId, next);
-    if (next === 'clock') {
-      this.clockedOut.add(lockoutId);
-    }
+    await this.#stateStore.writeLockout(lockoutId, { rung: next, wrongDishAnswers });
     return next;
+  }
+
+  async #budgetRemaining(scopeId: string, atMs: number): Promise<number> {
+    const timestamps = await this.#stateStore.readClearedWaits(scopeId);
+    const active = activeBudgetTimestamps(timestamps, atMs);
+    if (active.length !== timestamps.length) {
+      await this.#stateStore.writeClearedWaits(scopeId, active);
+    }
+    return Math.max(0, this.#maxClearedWaitsPerHour - active.length);
+  }
+
+  async #recordClearedWait(scopeId: string, atMs: number): Promise<void> {
+    const timestamps = await this.#stateStore.readClearedWaits(scopeId);
+    const active = activeBudgetTimestamps(timestamps, atMs);
+    if (active.length >= this.#maxClearedWaitsPerHour) {
+      throw new Error("The rolling-hour ladder budget was exhausted before grading completed.");
+    }
+    await this.#stateStore.writeClearedWaits(scopeId, [...active, atMs]);
+  }
+
+  #gradeResult(
+    waitCleared: boolean,
+    nextRung: UnlockLadderRung,
+    reason: UnlockLadderGradeResult["reason"],
+    budgetRemaining: number,
+  ): UnlockLadderGradeResult {
+    return {
+      waitCleared,
+      nextRung,
+      reason,
+      budgetRemaining,
+      credentialCleared: false,
+      attemptsRestored: false,
+      authenticationGranted: false,
+    };
   }
 }
