@@ -82,6 +82,19 @@ export interface ControlBinding {
    * between a switch that shows its real state and one that shows nothing until touched.
    */
   presence?: { whenPresent: string };
+  /**
+   * Set when the control's key lives in a different file from the one its screen edits.
+   *
+   * Logger verbosity is `verbose` in asterisk.conf's [options]; the logger screen edits
+   * logger.conf. Global transcoding is `transcode_via_sln`, same place. Both were recorded
+   * as unbindable when what was really true is that they are on a screen reading another
+   * file.
+   *
+   * A bare filename, matched against the map of extra files a caller supplies. Never a path:
+   * the resource that gets written is resolved by the caller from this name, so a separator
+   * here could never become one.
+   */
+  file?: string;
 }
 
 /**
@@ -464,6 +477,9 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   // payload-type key) and r_dtls (DTLS is negotiated per-endpoint in pjsip.conf, not in
   // rtp.conf) are unmapped.
   codecs: [
+    // asterisk.conf.sample line 77: ;transcode_via_sln = yes, in [options]. Same story:
+    // there is no global transcoding switch in codecs.conf, because it is not kept there.
+    { control: 'k_transcode', section: 'options', key: 'transcode_via_sln', kind: 'boolean', file: 'asterisk.conf' },
     n('r_start', 'general', 'rtpstart'),
     n('r_end', 'general', 'rtpend'),
     b('r_strict', 'general', 'strictrtp'),
@@ -536,6 +552,10 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   // no corresponding key in this sample (console verbosity is a CLI/asterisk.conf
   // setting, not a logger.conf key) and are unmapped.
   logger: [
+    // asterisk.conf.sample line 20: ;verbose = 3, in [options]. Verbosity is not a
+    // logger.conf key at all -- this screen simply edits a different file from the one this
+    // setting lives in.
+    { control: 'g_verbose', section: 'options', key: 'verbose', kind: 'number', file: 'asterisk.conf' },
     l('g_console', 'logfiles', 'console'),
     l('g_file', 'logfiles', 'messages'),
     s('g_rotate', 'general', 'rotatestrategy'),
@@ -580,13 +600,22 @@ function bindingsFor(screen: string): ReadonlyArray<ControlBinding> {
 }
 
 /** Pulls the real values out of a parsed file, keyed by control id. */
-export function readControlValues(screen: string, value: ConfigValue | undefined): Record<string, unknown> {
+export function readControlValues(
+  screen: string,
+  value: ConfigValue | undefined,
+  /** Other files this screen's controls reach, keyed by bare filename. */
+  elsewhere: Readonly<Record<string, ConfigValue>> = {},
+): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  if (!value) return out;
   for (const binding of bindingsFor(screen)) {
+    /* A control whose home is another file reads from that one. When it has not been
+     * supplied, the control is left absent rather than read from the wrong file, which
+     * would report one setting's value under another's name. */
+    const source = binding.file ? elsewhere[binding.file] : value;
+    if (!source) continue;
     const section = binding.sectionType
-      ? sectionOfType(value, binding.sectionType)
-      : value.find((candidate) => candidate.name === binding.section);
+      ? sectionOfType(source, binding.sectionType)
+      : source.find((candidate) => candidate.name === binding.section);
     const entry = section?.entries.find((e) => e.key === binding.key);
     if (!entry) {
       /* A presence control reports false for a missing key rather than staying silent: the

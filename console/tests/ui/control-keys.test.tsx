@@ -59,7 +59,9 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // waiting for a key, they are shapes no single binding can carry.
   // And 128 with deny-by-default, whose off state is the key being absent rather than a
   // value: deny=no is a line Asterisk tries to read as a network.
-  assert.equal(controlCount, 128);
+  // And 130 with the two whose keys live in asterisk.conf rather than the file their
+  // screen edits: logger verbosity and global transcoding.
+  assert.equal(controlCount, 130);
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -384,7 +386,11 @@ test('unmappedControls reflects the two controls bound on this second look', () 
   ]) {
     assert.ok(unmappedControls('security').includes(stillUnbound), `expected ${stillUnbound} to remain unmapped`);
   }
-  for (const stillUnbound of ['k_order', 'k_transcode', 'k_opusbr', 'k_ptime', 'r_dtmf', 'r_dtls']) {
+  /* k_transcode left this list once a binding could name its own file: transcode_via_sln is
+   * in asterisk.conf, and this screen edits codecs.conf. k_order left it too, wired as the
+   * order a new endpoint starts from, which is the only thing a global codec order can
+   * honestly mean when pjsip keeps codec lists per endpoint. */
+  for (const stillUnbound of ['k_opusbr', 'k_ptime', 'r_dtmf', 'r_dtls']) {
     assert.ok(unmappedControls('codecs').includes(stillUnbound), `expected ${stillUnbound} to remain unmapped`);
   }
 });
@@ -599,4 +605,31 @@ test('a section that does not exist reports nothing rather than false', () => {
   /* False would claim the setting is off in a file that has no such section at all, which is
    * a different thing from knowing it is off. */
   assert.equal(readControlValues('ami', [{ name: 'other', entries: [] }]).a_deny, undefined);
+});
+
+// ---------------------------------------------------------------- keys in another file
+
+test('a control whose key lives in another file reads from that file', () => {
+  /* Logger verbosity is asterisk.conf's verbose, in [options]; the logger screen edits
+   * logger.conf. It was recorded as unbindable when what was true is that it sits on a
+   * screen reading a different file. */
+  const logger: ConfigValue = [{ name: 'general', entries: [{ key: 'queue_log', value: 'yes' }] }];
+  const asterisk: ConfigValue = [{ name: 'options', entries: [
+    { key: 'verbose', value: '5' }, { key: 'transcode_via_sln', value: 'no' },
+  ] }];
+  const values = readControlValues('logger', logger, { 'asterisk.conf': asterisk });
+  assert.equal(values.g_verbose, 5);
+  assert.equal(values.g_queue, true, 'the screen’s own file stopped being read');
+});
+
+test('without that file the control is absent, never read from the wrong one', () => {
+  /* Reading it from the screen's own file would report one setting's value under another
+   * setting's name, which is worse than reporting nothing. */
+  const logger: ConfigValue = [{ name: 'options', entries: [{ key: 'verbose', value: '9' }] }];
+  assert.equal(readControlValues('logger', logger).g_verbose, undefined);
+});
+
+test('global transcoding is the same story on a different screen', () => {
+  const asterisk: ConfigValue = [{ name: 'options', entries: [{ key: 'transcode_via_sln', value: 'yes' }] }];
+  assert.equal(readControlValues('codecs', [], { 'asterisk.conf': asterisk }).k_transcode, true);
 });
