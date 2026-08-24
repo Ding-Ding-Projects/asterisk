@@ -110,7 +110,9 @@ test('inaccessible persistence and materialization parents end with failed, non-
   writeFileSync(blocker, 'not a directory');
   try {
     const runtime = new ExternalEditorRuntime({ userDataPath: blocker });
-    await assert.rejects(() => runtime.saveCustom({ name: 'Blocked editor', executable: process.execPath }));
+    const saveStatus = await runtime.saveCustom({ name: 'Blocked editor', executable: process.execPath });
+    assert.equal(saveStatus.operation?.state, 'failed');
+    assert.equal(saveStatus.operation?.pending, false);
     assert.equal(runtime.status().operation?.state, 'failed');
     assert.equal(runtime.status().operation?.pending, false);
     const result = await runtime.openMaterializedFile({ name: 'blocked.json', content: '{}', source: 'test', editorId: 'missing' });

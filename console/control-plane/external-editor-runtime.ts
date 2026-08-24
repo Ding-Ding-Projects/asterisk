@@ -130,9 +130,9 @@ export class ExternalEditorRuntime {
     }
   }
 
-  private persist(): void {
+  private persist(): boolean {
     const operation = this.beginOperation('persist');
-    if (!operation) throw new Error('Another editor operation is already running.');
+    if (!operation) return false;
     try {
       mkdirSync(dirname(this.file), { recursive: true });
       const text = JSON.stringify(this.config, null, 2);
@@ -142,9 +142,10 @@ export class ExternalEditorRuntime {
       this.persistenceState = 'valid';
       this.persistenceMessage = undefined;
       this.finishOperation(operation, 'completed', 'Editor settings saved.');
+      return true;
     } catch (error) {
       this.finishOperation(operation, 'failed', error instanceof Error ? error.message : String(error));
-      throw error;
+      return false;
     }
   }
 
@@ -264,21 +265,21 @@ export class ExternalEditorRuntime {
     if (!candidate) throw new Error('That editor is not currently available on this computer.');
     const previous = this.config;
     this.config = { ...this.config, choiceId: editorId };
-    try { this.persist(); } catch (error) { this.config = previous; throw error; }
+    if (!this.persist()) this.config = previous;
     return this.status();
   }
 
   clearChoice(): ExternalEditorStatus {
     const previous = this.config;
     this.config = { ...this.config, choiceId: undefined };
-    try { this.persist(); } catch (error) { this.config = previous; throw error; }
+    if (!this.persist()) this.config = previous;
     return this.status();
   }
 
   resetStorage(): ExternalEditorStatus {
     const previous = this.config;
     this.config = { version: 1, customEditors: [] };
-    try { this.persist(); } catch (error) { this.config = previous; throw error; }
+    if (!this.persist()) this.config = previous;
     return this.status();
   }
 
@@ -286,7 +287,7 @@ export class ExternalEditorRuntime {
     if (!executable || !isPortableVisualStudioCodeExecutable(safePath(executable)) || extname(executable).toLowerCase() !== '.exe') throw new Error('Choose an existing Visual Studio Code executable whose Windows product metadata identifies Visual Studio Code.');
     const previous = this.config;
     this.config = { ...this.config, portableExecutable: safePath(executable), choiceId: 'vscode-portable' };
-    try { this.persist(); } catch (error) { this.config = previous; throw error; }
+    if (!this.persist()) this.config = previous;
     return this.status();
   }
 
@@ -305,14 +306,14 @@ export class ExternalEditorRuntime {
     if (rest.length >= MAX_CUSTOM_EDITORS) throw new Error(`Keep at most ${MAX_CUSTOM_EDITORS} custom editors.`);
     const previous = this.config;
     this.config = { ...this.config, customEditors: [...rest, next], choiceId: id };
-    try { this.persist(); } catch (error) { this.config = previous; throw error; }
+    if (!this.persist()) this.config = previous;
     return this.status();
   }
 
   removeCustom(editorId: string): ExternalEditorStatus {
     const previous = this.config;
     this.config = { ...this.config, customEditors: this.config.customEditors.filter((entry) => entry.id !== editorId), choiceId: this.config.choiceId === editorId ? undefined : this.config.choiceId };
-    try { this.persist(); } catch (error) { this.config = previous; throw error; }
+    if (!this.persist()) this.config = previous;
     return this.status();
   }
 
