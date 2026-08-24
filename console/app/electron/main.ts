@@ -286,12 +286,16 @@ function openNextPendingStart(origin?: BrowserWindow | null): void {
   openDownloadWindow('start', { handoffId: handoff.handoffId, origin });
   sendDownload('start', handoff.handoffId, 'download:handoff', handoff);
 }
-ipcMain.handle('download:handoffs', async () => downloadTransfers.listPendingHandoffs());
+ipcMain.handle('download:handoffs', async (_event) => {
+  const entry = windowEntryForContents(_event.sender);
+  if (entry?.[0] !== 'start' || !entry[1].handoffId) return [];
+  return downloadTransfers.listPendingHandoffs().filter((handoff) => handoff.handoffId === entry[1].handoffId);
+});
 ipcMain.handle('download:start', async (_event, handoff: ExtensionDownloadHandoff) => {
   const senderWindow = BrowserWindow.fromWebContents(_event.sender) ?? mainWindow;
   const senderRecord = windowRecordForContents(_event.sender);
   const senderEntry = windowEntryForContents(_event.sender);
-  if (senderEntry && senderEntry[0] !== 'start') return { accepted: false, handoffId: handoff.handoffId, command: 'start', observedAt: new Date().toISOString(), status: 'rejected', code: 'DOWNLOAD_WINDOW_ACTION_MISMATCH', detail: 'Only the bound Start window may start its handoff.' };
+  if (!senderEntry || senderEntry[0] !== 'start') return { accepted: false, handoffId: handoff.handoffId, command: 'start', observedAt: new Date().toISOString(), status: 'rejected', code: 'DOWNLOAD_WINDOW_CONTEXT_REQUIRED', detail: 'Only a dedicated bound Start window may start a handoff.' };
   if (senderRecord?.handoffId && senderRecord.handoffId !== handoff.handoffId) return { accepted: false, handoffId: handoff.handoffId, command: 'start', observedAt: new Date().toISOString(), status: 'rejected', code: 'DOWNLOAD_WINDOW_HANDOFF_MISMATCH', detail: 'The Start window is bound to a different handoff.' };
   const receipt = await downloadTransfers.start(handoff);
   if (receipt.accepted) { const record = windowRecordForContents(_event.sender); const startRecord = downloadWindows.get('start'); if (startRecord?.handoffId === handoff.handoffId) startRecord.handoffId = undefined; closeDownloadRecord('start', record?.handoffId); closeDownloadRecord('start', handoff.handoffId); openDownloadWindow('progress', { handoffId: handoff.handoffId, transferId: receipt.transferId, origin: senderWindow }); }
@@ -300,7 +304,7 @@ ipcMain.handle('download:start', async (_event, handoff: ExtensionDownloadHandof
 ipcMain.handle('download:cancel-handoff', async (_event, handoffId: string) => {
   const record = windowRecordForContents(_event.sender);
   const entry = windowEntryForContents(_event.sender);
-  if (entry && entry[0] !== 'start') return { accepted: false, handoffId, command: 'cancel', observedAt: new Date().toISOString(), status: 'rejected', code: 'DOWNLOAD_WINDOW_ACTION_MISMATCH', detail: 'Only the bound Start window may cancel its pending handoff.' };
+  if (!entry || entry[0] !== 'start') return { accepted: false, handoffId, command: 'cancel', observedAt: new Date().toISOString(), status: 'rejected', code: 'DOWNLOAD_WINDOW_CONTEXT_REQUIRED', detail: 'Only a dedicated bound Start window may cancel its pending handoff.' };
   if (record?.handoffId && record.handoffId !== handoffId) return { accepted: false, handoffId, command: 'cancel', observedAt: new Date().toISOString(), status: 'rejected', code: 'DOWNLOAD_WINDOW_HANDOFF_MISMATCH', detail: 'The Start window is bound to a different handoff.' };
   const receipt = await downloadTransfers.cancelHandoff(handoffId);
   if (receipt.accepted) { const startRecord = downloadWindows.get('start'); if (startRecord?.handoffId === handoffId) startRecord.handoffId = undefined; closeDownloadRecord('start', handoffId); openNextPendingStart(record?.origin); }
@@ -308,15 +312,14 @@ ipcMain.handle('download:cancel-handoff', async (_event, handoffId: string) => {
 });
 ipcMain.handle('download:command', async (_event, transferId: string, command: Exclude<DownloadCommand, 'start'>) => {
   const record = windowRecordForContents(_event.sender);
-  if (record && record.transferId !== transferId) return { accepted: false, handoffId: record.handoffId ?? '', command, observedAt: new Date().toISOString(), status: 'rejected', code: 'DOWNLOAD_WINDOW_TRANSFER_MISMATCH', detail: 'The window is bound to a different transfer.' };
+  if (!record || record.transferId !== transferId) return { accepted: false, handoffId: record?.handoffId ?? '', command, observedAt: new Date().toISOString(), status: 'rejected', code: 'DOWNLOAD_WINDOW_CONTEXT_REQUIRED', detail: 'Only the dedicated bound transfer window may issue this command.' };
   return downloadTransfers.command(transferId, command);
 });
 ipcMain.handle('download:snapshot', async (_event, transferId: string) => {
   const record = windowRecordForContents(_event.sender);
-  if (record && record.transferId !== transferId) return undefined;
+  if (!record || record.transferId !== transferId) return undefined;
   return downloadTransfers.getSnapshot(transferId);
 });
-ipcMain.handle('download:latest-snapshot', async () => downloadTransfers.getLatestSnapshot());
 ipcMain.handle('download:close-window', async (_event, kind: DownloadSurfaceKind) => { const entry = windowEntryForContents(_event.sender); if (entry?.[0] === kind) closeDownloadWindow(kind); });
 ipcMain.handle('download:open-window', async (_event, kind: DownloadSurfaceKind) => { const entry = windowEntryForContents(_event.sender); const record = entry?.[1]; if (kind === 'start' && !entry) openNextPendingStart(BrowserWindow.fromWebContents(_event.sender) ?? mainWindow); else if (entry?.[0] === kind && (record?.handoffId || record?.transferId)) openDownloadWindow(kind, { handoffId: record.handoffId, transferId: record.transferId, origin: record.origin }); });
 downloadTransfers.subscribeGlobal((snapshot) => {

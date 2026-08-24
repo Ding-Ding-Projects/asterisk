@@ -24,16 +24,11 @@ export function DownloadWindowMount({ kind }: { kind: DedicatedDownloadWindowKin
     if (!client) return;
     if (kind === 'start') {
       const unsubscribe = client.onHandoff((next) => { if (!boundHandoffId || next.handoffId === boundHandoffId) setHandoff(next); });
-      void window.dingDesktop?.controlPlane.request({ requestId: crypto.randomUUID(), action: 'download.handoffs' }).then((response) => {
-        if (response?.ok && Array.isArray(response.data)) {
-          const handoffs = response.data as ExtensionDownloadHandoff[];
-          setHandoff(handoffs.find((candidate) => !boundHandoffId || candidate.handoffId === boundHandoffId));
-        }
-      });
+      void client.listPendingHandoffs().then((handoffs) => setHandoff(handoffs.find((candidate) => !boundHandoffId || candidate.handoffId === boundHandoffId)));
       return unsubscribe;
     }
-    const snapshotPromise = boundTransferId ? client.getSnapshot(boundTransferId) : client.getLatestSnapshot();
-    void snapshotPromise.then((latest) => {
+    if (!boundTransferId) return;
+    void client.getSnapshot(boundTransferId).then((latest) => {
       if (!latest) return;
       setTransferId(latest.transferId);
       setSnapshot(latest);

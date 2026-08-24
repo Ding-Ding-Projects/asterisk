@@ -42,9 +42,6 @@ export type ControlPlaneAction =
   /* Live Status Hub observations and receipt-backed question delivery. */
   | 'status-hub.register' | 'status-hub.project' | 'status-hub.sessions' | 'status-hub.session'
   | 'status-hub.replies' | 'status-hub.answer'
-  /* Browser-extension download handoff and privileged transfer observations. */
-  | 'download.handoff' | 'download.handoffs' | 'download.start' | 'download.snapshot'
-  | 'download.cancel-handoff' | 'download.command'
   /* Dim-sum cache is local-only. A missing cache is an honest unavailable result. */
   | 'dim-sum.cache.read';
 
@@ -100,9 +97,8 @@ export interface DingDesktopApi {
   controlPlane: { request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> };
   statusHub: { baseUrl?: string };
   downloads: DownloadTransferClient & {
+    listPendingHandoffs(): Promise<ExtensionDownloadHandoff[]>;
     getSnapshot(transferId: string): Promise<DownloadTransferSnapshot | undefined>;
-    getLatestSnapshot(): Promise<DownloadTransferSnapshot | undefined>;
-    submitHandoff(handoff: ExtensionDownloadHandoff): Promise<{ accepted: boolean; detail: string }>;
     onHandoff(listener: (handoff: ExtensionDownloadHandoff) => void): () => void;
     onHandoffCancelled(listener: (handoffId: string) => void): () => void;
     closeWindow(kind: DownloadSurfaceKind): Promise<void>;

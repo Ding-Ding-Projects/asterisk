@@ -12,18 +12,17 @@ const api = Object.freeze({
   }),
   statusHub: Object.freeze({ baseUrl: process.env.STATUS_HUB_URL }),
   downloads: Object.freeze({
+    listPendingHandoffs: () => ipcRenderer.invoke('download:handoffs'),
     start: handoff => ipcRenderer.invoke('download:start', handoff),
     cancelHandoff: handoffId => ipcRenderer.invoke('download:cancel-handoff', handoffId),
     command: (transferId, command) => ipcRenderer.invoke('download:command', transferId, command),
     getSnapshot: transferId => ipcRenderer.invoke('download:snapshot', transferId),
-    getLatestSnapshot: () => ipcRenderer.invoke('download:latest-snapshot'),
     subscribe: (transferId, listener) => {
       const handler = (_event, snapshot) => { if (snapshot.transferId === transferId) listener(snapshot); };
       ipcRenderer.on('download:snapshot', handler);
       void ipcRenderer.invoke('download:snapshot', transferId).then(snapshot => { if (snapshot) listener(snapshot); });
       return () => ipcRenderer.removeListener('download:snapshot', handler);
     },
-    submitHandoff: handoff => ipcRenderer.invoke('download:submit-handoff', handoff),
     onHandoff: listener => {
       const handler = (_event, handoff) => listener(handoff);
       ipcRenderer.on('download:handoff', handler);

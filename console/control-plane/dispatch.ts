@@ -38,7 +38,6 @@ import { OllamaChat, createOllamaChatHandlers } from './ollama-chat.js';
 import { DownloadTransferManager } from './download-transfer-manager.js';
 import { createStatusHubClient, createVaultReference, type StatusHubClient } from './status-hub-client.js';
 import type { StatusHubCredentialReferences, StatusHubProjectRegistrationRequest } from '../shared/status-hub.js';
-import type { DownloadTransferReceipt, ExtensionDownloadHandoff, DownloadCommand } from '../shared/download-transfer.js';
 import type { ConverterRequest, ConverterSniffResult } from '../shared/converter.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
 import type { ChangePlan, ReadOnlyCommand, TargetProfile } from './index.js';
@@ -70,7 +69,6 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'ollama.pulls.list', 'ollama.pulls.enqueue', 'ollama.pulls.cancel', 'ollama.pulls.retry', 'ollama.pulls.reconcile',
   'ollama.chat.sessions', 'ollama.chat.create', 'ollama.chat.rename', 'ollama.chat.delete', 'ollama.chat.send', 'ollama.chat.retry', 'ollama.chat.regenerate', 'ollama.chat.stop',
   'status-hub.register', 'status-hub.project', 'status-hub.sessions', 'status-hub.session', 'status-hub.replies', 'status-hub.answer',
-  'download.handoff', 'download.handoffs', 'download.start', 'download.snapshot', 'download.cancel-handoff', 'download.command',
   'dim-sum.cache.read',
 ]);
 
@@ -334,12 +332,6 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     return result.ok
       ? { ok: true, requestId, data: result.value }
       : { ok: false, requestId, code: result.error.code, message: result.error.message };
-  }
-
-  function downloadReceiptResult(requestId: string, receipt: DownloadTransferReceipt): ControlPlaneResponse {
-    return receipt.accepted
-      ? { ok: true, requestId, data: receipt }
-      : { ok: false, requestId, code: receipt.code ?? 'DOWNLOAD_REQUEST_REFUSED', message: receipt.detail ?? 'The download request was refused.' };
   }
 
   const rootfsDownloader = {
@@ -607,32 +599,6 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           const questionId = typeof request.payload?.questionId === 'string' ? request.payload.questionId : '';
           const answer = typeof request.payload?.answer === 'string' ? request.payload.answer : '';
           return statusHubResult(request.requestId, await statusHubClient.deliverQuestion(sessionId, questionId, answer));
-        }
-      }
-      if (request.action.startsWith('download.')) {
-        await downloadTransfers.initialize();
-        if (request.action === 'download.handoff') {
-          const result = downloadTransfers.registerHandoff(request.payload as unknown as ExtensionDownloadHandoff);
-          return result.accepted
-            ? { ok: true, requestId: request.requestId, data: result }
-            : { ok: false, requestId: request.requestId, code: 'DOWNLOAD_HANDOFF_REFUSED', message: result.detail };
-        }
-        if (request.action === 'download.handoffs') return { ok: true, requestId: request.requestId, data: downloadTransfers.listPendingHandoffs() };
-        if (request.action === 'download.start') {
-          return downloadReceiptResult(request.requestId, await downloadTransfers.start(request.payload as unknown as ExtensionDownloadHandoff));
-        }
-        if (request.action === 'download.snapshot') {
-          const transferId = typeof request.payload?.transferId === 'string' ? request.payload.transferId : '';
-          return { ok: true, requestId: request.requestId, data: downloadTransfers.getSnapshot(transferId) };
-        }
-        if (request.action === 'download.cancel-handoff') {
-          const handoffId = typeof request.payload?.handoffId === 'string' ? request.payload.handoffId : '';
-          return downloadReceiptResult(request.requestId, await downloadTransfers.cancelHandoff(handoffId));
-        }
-        if (request.action === 'download.command') {
-          const transferId = typeof request.payload?.transferId === 'string' ? request.payload.transferId : '';
-          const command = request.payload?.command as Exclude<DownloadCommand, 'start'>;
-          return downloadReceiptResult(request.requestId, await downloadTransfers.command(transferId, command));
         }
       }
       if (request.action.startsWith('ollama.')) {

@@ -25,6 +25,7 @@ const BODY_IDLE_DEADLINE_MS = 30_000;
 const TOTAL_DEADLINE_MS = 2 * 60 * 60 * 1000;
 const MAX_DESTINATION_COMPONENTS = 64;
 const REPARSE_INSPECTION_DEADLINE_MS = 10_000;
+const INTEGRITY_READ_DEADLINE_MS = 30_000;
 const SNAPSHOT_STATUSES = new Set(['queued', 'downloading', 'paused', 'completed', 'failed', 'cancelled', 'partial']);
 const TIMEOUT_KINDS = new Set(['header', 'body-idle', 'total']);
 const execFileAsync = promisify(execFile);
@@ -35,6 +36,9 @@ interface TransferTask { controller: AbortController; handoff: ExtensionDownload
 
 class TransferTimeoutError extends Error {
   constructor(readonly kind: TransferTimeoutKind) { super(`The transfer exceeded its ${kind} deadline.`); this.name = 'TransferTimeoutError'; }
+}
+class IntegrityReadError extends Error {
+  constructor(readonly code: 'PUBLISH_INTEGRITY_TIMEOUT' | 'PUBLISH_INTEGRITY_FILESYSTEM', message: string) { super(message); this.name = 'IntegrityReadError'; }
 }
 
 function observedAt(): string { return new Date().toISOString(); }
@@ -291,23 +295,32 @@ export class DownloadTransferManager implements DownloadTransferClient {
       return { cleanupCompleted: false, cleanupError: { code: 'CLEANUP_FAILED', message: error instanceof Error ? error.message : 'The temporary file could not be removed.', retryable: true, observedAt: observedAt() } };
     }
   }
-  private async inspectCompleteTemp(path: string, expectedSize: number): Promise<{ size: number; sha256: string }> {
+  private async inspectCompleteTemp(path: string, expectedSize: number, signal?: AbortSignal): Promise<{ size: number; sha256: string }> {
+    const stream = createReadStream(path);
+    let timeout = false;
+    const timer = setTimeout(() => { timeout = true; stream.destroy(new IntegrityReadError('PUBLISH_INTEGRITY_TIMEOUT', 'The temporary-file integrity read exceeded its bounded deadline.')); }, INTEGRITY_READ_DEADLINE_MS);
+    const abort = () => stream.destroy(new IntegrityReadError('PUBLISH_INTEGRITY_TIMEOUT', 'The temporary-file integrity read was cancelled.'));
+    signal?.addEventListener('abort', abort, { once: true });
     try {
       const info = await stat(path, { throwIfNoEntry: true });
       if (info.size !== expectedSize) throw new Error(`PUBLISH_INTEGRITY_FAILED: The temporary file size ${info.size} does not match the recorded complete size ${expectedSize}.`);
       const hash = createHash('sha256');
-      for await (const chunk of createReadStream(path)) hash.update(chunk);
+      for await (const chunk of stream) hash.update(chunk);
       return { size: info.size, sha256: hash.digest('hex') };
     } catch (error) {
+      if (timeout || error instanceof IntegrityReadError) throw error;
       if (error instanceof Error && error.message.startsWith('PUBLISH_INTEGRITY_FAILED')) throw error;
-      throw new Error(`PUBLISH_INTEGRITY_FAILED: The complete temporary file could not be inspected: ${error instanceof Error ? error.message : String(error)}`);
-    }
+      throw new IntegrityReadError('PUBLISH_INTEGRITY_FILESYSTEM', `The complete temporary file could not be inspected: ${error instanceof Error ? error.message : String(error)}`);
+    } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); stream.destroy(); }
   }
   private async retryPublication(transferId: string, snapshot: DownloadTransferSnapshot, at: string): Promise<DownloadTransferReceipt> {
     const tempPath = `${snapshot.destinationPath}.${transferId}.part`;
+    const existingTask = this.tasks.get(transferId);
+    const integrityTask = existingTask ?? { controller: new AbortController(), handoff: this.handoffs.get(snapshot.handoffId)!, tempPath, pauseRequested: false };
+    if (!existingTask) this.tasks.set(transferId, integrityTask);
     try {
       if (snapshot.publicationSize === undefined || !snapshot.publicationSha256) throw new Error('PUBLISH_INTEGRITY_FAILED: The complete temporary file has no recorded size and digest.');
-      const inspected = await this.inspectCompleteTemp(tempPath, snapshot.publicationSize);
+      const inspected = await this.inspectCompleteTemp(tempPath, snapshot.publicationSize, integrityTask.controller.signal);
       if (inspected.sha256.toLowerCase() !== snapshot.publicationSha256.toLowerCase()) throw new Error('PUBLISH_INTEGRITY_FAILED: The complete temporary file digest changed before publication.');
       await this.assertSafeDestination(snapshot.destinationPath);
       await this.assertNoReparseComponents(dirname(snapshot.destinationPath));
@@ -316,10 +329,16 @@ export class DownloadTransferManager implements DownloadTransferClient {
       this.emit({ ...snapshot, status: 'completed', bodyComplete: true, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: false, observedAt: at, error: undefined, partial: undefined });
       return this.receipt('retry', snapshot.handoffId, true, at, undefined, 'The complete temporary file was published after destination revalidation.', transferId);
     } catch (error) {
+      const latest = this.snapshots.get(transferId);
+      if (latest?.status === 'cancelled') return this.receipt('retry', snapshot.handoffId, false, at, 'DOWNLOAD_CANCELLED', 'Publication retry was cancelled.', transferId);
       const integrity = error instanceof Error && error.message.startsWith('PUBLISH_INTEGRITY_FAILED');
+      const integrityRead = error instanceof IntegrityReadError;
       const cleanup: { cleanupCompleted?: boolean; cleanupError?: DownloadTransferSnapshot['error'] } = integrity ? await this.cleanTemp(tempPath) : {};
-      this.emit({ ...snapshot, ...cleanup, status: 'failed', bodyComplete: !integrity, publicationPending: !integrity, canPause: false, canResume: false, canCancel: false, canRetry: true, observedAt: at, error: cleanup.cleanupError ?? { code: integrity ? 'PUBLISH_INTEGRITY_FAILED' : 'PUBLISH_FAILED', message: error instanceof Error ? error.message : 'The complete temporary file could not be published.', retryable: true, observedAt: at } });
-      return this.receipt('retry', snapshot.handoffId, false, at, integrity ? 'DOWNLOAD_PUBLISH_INTEGRITY_FAILED' : 'DOWNLOAD_PUBLISH_FAILED', error instanceof Error ? error.message : 'The complete temporary file could not be published.', transferId);
+      const resultCode = integrityRead ? error.code : integrity ? 'PUBLISH_INTEGRITY_FAILED' : 'PUBLISH_FAILED';
+      this.emit({ ...snapshot, ...cleanup, status: 'failed', bodyComplete: true, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: true, observedAt: at, error: cleanup.cleanupError ?? { code: resultCode, message: error instanceof Error ? error.message : 'The complete temporary file could not be published.', retryable: true, observedAt: at } });
+      return this.receipt('retry', snapshot.handoffId, false, at, `DOWNLOAD_${resultCode}`, error instanceof Error ? error.message : 'The complete temporary file could not be published.', transferId);
+    } finally {
+      if (!existingTask && this.tasks.get(transferId) === integrityTask) this.tasks.delete(transferId);
     }
   }
 
@@ -342,7 +361,9 @@ export class DownloadTransferManager implements DownloadTransferClient {
       if (totalBytes !== undefined && totalBytes > MAX_DOWNLOAD_BYTES) throw new Error('The source exceeds the bounded transfer size.');
       if (handoff.totalBytes !== undefined && contentLength > 0 && !resume && contentLength !== handoff.totalBytes) throw new Error('DOWNLOAD_HANDOFF_SIZE_MISMATCH: The source byte total differs from the originally recorded handoff.');
       if (!response.body) throw new Error('The source did not provide a readable transfer body.');
-      await mkdir(dirname(snapshot.destinationPath), { recursive: true }); const handle = await open(task.tempPath, resume ? 'a' : 'wx'); const reader = response.body.getReader(); const started = Date.now(); const resumeSupport: DownloadResumeSupport = { acceptRanges, etag, lastModified };
+      await mkdir(dirname(snapshot.destinationPath), { recursive: true });
+      await this.assertNoReparseComponents(dirname(snapshot.destinationPath));
+      const handle = await open(task.tempPath, resume ? 'a' : 'wx'); const reader = response.body.getReader(); const started = Date.now(); const resumeSupport: DownloadResumeSupport = { acceptRanges, etag, lastModified };
       snapshot = { ...snapshot, status: 'downloading', totalBytes, resume: resumeSupport, canPause: supportsResume, canResume: false, canCancel: true, resumeDisabledReason: supportsResume ? undefined : 'The source did not provide both byte ranges and an ETag or Last-Modified validator.', deadlineAt: new Date(deadlineAtMs).toISOString(), observedAt: observedAt() }; this.emit(snapshot);
       try {
         while (true) {
@@ -357,18 +378,22 @@ export class DownloadTransferManager implements DownloadTransferClient {
       if (task.pauseRequested || latest?.status === 'paused') { this.emit({ ...snapshot, status: 'paused', canPause: false, canResume: supportsResume, canCancel: true, canRetry: false, partial: { bytesTransferred: snapshot.bytesTransferred, reason: 'Paused by the user with the resumable temporary file retained.', canResume: supportsResume }, observedAt: observedAt() }); return; }
       if (latest?.status === 'cancelled') { const cleanup = await this.cleanTemp(task.tempPath); this.emit({ ...latest, ...cleanup, canRetry: !cleanup.cleanupCompleted, observedAt: observedAt() }); return; }
       if (snapshot.totalBytes !== undefined && snapshot.bytesTransferred !== snapshot.totalBytes) {
-        if (!supportsResume) { await this.cleanTemp(task.tempPath); this.emit({ ...snapshot, status: 'failed', canPause: false, canResume: false, canCancel: false, canRetry: true, error: { code: 'TRANSFER_SHORT_BODY', message: 'The source ended before its declared byte total and cannot resume.', retryable: true, observedAt: observedAt() }, resumeDisabledReason: 'The source did not provide both byte ranges and an ETag or Last-Modified validator.', observedAt: observedAt() }); return; }
+        if (!supportsResume) { const cleanup = await this.cleanTemp(task.tempPath); this.emit({ ...snapshot, ...cleanup, status: 'failed', canPause: false, canResume: false, canCancel: false, canRetry: true, error: cleanup.cleanupError ?? { code: 'TRANSFER_SHORT_BODY', message: 'The source ended before its declared byte total and cannot resume.', retryable: true, observedAt: observedAt() }, resumeDisabledReason: 'The source did not provide both byte ranges and an ETag or Last-Modified validator.', observedAt: observedAt() }); return; }
         this.emit({ ...snapshot, status: 'partial', canPause: false, canResume: true, canCancel: false, canRetry: true, partial: { bytesTransferred: snapshot.bytesTransferred, reason: 'The source ended before its declared byte total.', canResume: true }, observedAt: observedAt() }); return;
       }
       bodyComplete = true;
       const completeSize = snapshot.totalBytes ?? snapshot.bytesTransferred;
-      const completeDigest = await this.inspectCompleteTemp(task.tempPath, completeSize);
+      const completeDigest = await this.inspectCompleteTemp(task.tempPath, completeSize, controller.signal);
       snapshot = { ...snapshot, bodyComplete: true, publicationPending: true, publicationSize: completeDigest.size, publicationSha256: completeDigest.sha256, observedAt: observedAt() };
       this.emit(snapshot);
       await this.assertNoReparseComponents(dirname(snapshot.destinationPath)); if (existsSync(snapshot.destinationPath)) throw new Error('DOWNLOAD_DESTINATION_EXISTS: The destination appeared before atomic publication.');
       renameWithRetrySync(task.tempPath, snapshot.destinationPath); this.emit({ ...snapshot, status: 'completed', bodyComplete: true, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: false, observedAt: observedAt() });
     } catch (error) {
       const latest = this.snapshots.get(snapshot.transferId) ?? snapshot; if (latest.status === 'cancelled') { await this.cleanTemp(task.tempPath); return; } if (task.pauseRequested) return;
+      if (error instanceof IntegrityReadError) {
+        this.emit({ ...latest, status: 'failed', bodyComplete: true, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: true, observedAt: observedAt(), error: { code: error.code, message: error.message, retryable: true, observedAt: observedAt() } });
+        return;
+      }
       if (error instanceof Error && error.message.startsWith('PUBLISH_INTEGRITY_FAILED')) {
         const cleanup = await this.cleanTemp(task.tempPath);
         this.emit({ ...latest, ...cleanup, status: 'failed', bodyComplete: false, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: true, observedAt: observedAt(), error: cleanup.cleanupError ?? { code: 'PUBLISH_INTEGRITY_FAILED', message: error.message, retryable: true, observedAt: observedAt() } });
