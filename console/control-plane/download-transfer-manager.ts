@@ -42,6 +42,7 @@ class IntegrityReadError extends Error {
 }
 
 function observedAt(): string { return new Date().toISOString(); }
+function timeoutReceiptCode(kind: TransferTimeoutKind): string { return `TRANSFER_TIMEOUT_${kind === 'body-idle' ? 'BODY_IDLE' : kind.toUpperCase()}`; }
 function sameHandoff(a: ExtensionDownloadHandoff, b: ExtensionDownloadHandoff): boolean {
   return a.kind === b.kind && a.handoffId === b.handoffId && a.fileName === b.fileName && a.sourceUrl === b.sourceUrl
     && a.destinationPath === b.destinationPath && a.destinationKind === b.destinationKind && a.totalBytes === b.totalBytes
@@ -466,7 +467,7 @@ export class DownloadTransferManager implements DownloadTransferClient {
       let latest = this.snapshots.get(snapshot.transferId) ?? snapshot;
       if (error instanceof Error && error.message.startsWith('SECURE_TEMP_')) {
         try { latest = { ...latest, bytesTransferred: await this.reconcileTempSize(task.tempPath, latest.bytesTransferred) }; } catch (reconcileError) {
-          const timeoutCode = timeoutKind ? `TRANSFER_TIMEOUT_${String(timeoutKind).toUpperCase()}` : 'SECURE_TEMP_SIZE_RECONCILIATION_FAILED';
+          const timeoutCode = timeoutKind ? timeoutReceiptCode(timeoutKind) : 'SECURE_TEMP_SIZE_RECONCILIATION_FAILED';
           this.emit({ ...latest, status: 'failed', canPause: false, canResume: false, canCancel: false, canRetry: true, timeoutKind, observedAt: observedAt(), error: { code: timeoutCode, message: timeoutKind ? `The transfer exceeded its ${timeoutKind} deadline while the native writer failed.` : reconcileError instanceof Error ? reconcileError.message : 'The durable temporary size could not be reconciled.', retryable: true, observedAt: observedAt() } });
           return;
         }
@@ -485,8 +486,8 @@ export class DownloadTransferManager implements DownloadTransferClient {
         this.emit({ ...latest, status: 'failed', bodyComplete: true, publicationPending: true, canPause: false, canResume: false, canCancel: false, canRetry: true, observedAt: observedAt(), error: { code: 'PUBLISH_FAILED', message: error instanceof Error ? error.message : 'The complete temporary file could not be published.', retryable: true, observedAt: observedAt() } });
         return;
       }
-      const timeout = error instanceof TransferTimeoutError ? error.kind : undefined; const canResume = Boolean(latest.resume?.acceptRanges && (latest.resume.etag || latest.resume.lastModified)); const cleanup: { cleanupCompleted?: boolean; cleanupError?: DownloadTransferSnapshot['error'] } = canResume ? {} : await this.cleanTemp(task.tempPath);
-      this.emit({ ...latest, ...cleanup, status: canResume && latest.bytesTransferred > 0 ? 'partial' : 'failed', canPause: false, canResume, canCancel: false, canRetry: true, timeoutKind: timeout, error: cleanup.cleanupError ?? { code: timeout ? `TRANSFER_TIMEOUT_${String(timeout).toUpperCase()}` : 'TRANSFER_FAILED', message: error instanceof Error ? error.message : 'The transfer failed.', retryable: true, observedAt: observedAt() }, partial: canResume && latest.bytesTransferred > 0 ? { bytesTransferred: latest.bytesTransferred, reason: timeout ? `The transfer exceeded its ${timeout} deadline.` : 'The transfer stopped before completion.', canResume: true } : undefined, observedAt: observedAt() });
+      const timeout = timeoutKind ?? (error instanceof TransferTimeoutError ? error.kind : undefined); const canResume = Boolean(latest.resume?.acceptRanges && (latest.resume.etag || latest.resume.lastModified)); const cleanup: { cleanupCompleted?: boolean; cleanupError?: DownloadTransferSnapshot['error'] } = canResume ? {} : await this.cleanTemp(task.tempPath);
+      this.emit({ ...latest, ...cleanup, status: canResume && latest.bytesTransferred > 0 ? 'partial' : 'failed', canPause: false, canResume, canCancel: false, canRetry: true, timeoutKind: timeout, error: cleanup.cleanupError ?? { code: timeout ? timeoutReceiptCode(timeout) : 'TRANSFER_FAILED', message: error instanceof Error ? error.message : 'The transfer failed.', retryable: true, observedAt: observedAt() }, partial: canResume && latest.bytesTransferred > 0 ? { bytesTransferred: latest.bytesTransferred, reason: timeout ? `The transfer exceeded its ${timeout} deadline.` : 'The transfer stopped before completion.', canResume: true } : undefined, observedAt: observedAt() });
     } finally { clearTimeout(totalTimer); }
   }
 }
