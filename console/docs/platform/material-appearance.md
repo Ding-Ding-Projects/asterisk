@@ -14,7 +14,7 @@ Colors would be chosen through a continuous picker with bidirectional conversion
 
 **Desktop application:** Partial. A dark/light theme toggle exists in settings, but accent color, density, typography customization, the continuous color picker, and the per-element appearance editor are all absent.
 
-**Documentation website:** Partial. Every page exposes persisted dark, light, and high-contrast themes, density, accent, font scale, navigation docking, logo presets, and a broad color translator. These values apply live. Context-menu appearance editors now cover route tabs and stable local element targets, with credential checks before edits and resets when a target is toy-locked. Full word-processor typography, named theme presets, and a general appearance import format remain incomplete.
+**Documentation website:** Partial. Every page exposes persisted dark, light, and high-contrast themes, density, accent, font scale, navigation docking, logo presets, and a broad colour translator. These values apply live. Context-menu appearance editors now cover route tabs and stable local element targets, with credential checks before edits and resets when a target is toy-locked. The editor also stores font family, pixel size, weight, style, underline and strike, overline, capitalization, small caps, superscript or subscript, highlight, outline, shadow, spacing, line height, direction, alignment, rainbow sentinel, reduced-motion freeze, JSON import/export, and per-mutation history. Machine-populated fonts, variable axes, gamut warnings, and named theme presets remain incomplete.
 
 ## Failure modes
 

@@ -869,20 +869,21 @@
     },
     "material-appearance": {
       "status": "partial",
-      "note": "site/app.js implements a genuine infinite-colour-picker/translator (rgbToHsl/hsvToRgb/rgbToLab/rgbToOklab/hwbToRgb/cmykToRgb and translateColour, wired via initColourTranslator), theme/density/accent/font-scale controls, group color metadata, and local per-tab or per-element appearance dialogs through the context menu. The explicit remaining controls are font family and CJK fallback, weight/style, underline and strikethrough variants, overline, capitalization/small caps, superscript/subscript, highlight, outline/shadow/glow, spacing, line height, baseline offset, text direction/alignment, per-element reset for every property, named presets, import/export of complete appearance values, and deterministic history records for each appearance mutation.",
+      "note": "site/app.js implements a genuine infinite-colour-picker/translator, theme/density/accent/font-scale controls, group colour metadata, and a local per-tab or per-element appearance editor with colour-space selection, rainbow sentinel, reduced-motion freeze, typography, decoration, spacing, direction, alignment, reset, JSON import/export, and history wiring. The remaining boundaries are machine-populated font family and CJK fallback, variable-font axes, gamut clipping warnings, named themes, and runtime proof.",
       "implementation": {
         "paths": [
-          "site/app.js",
-          "site/settings.html"
+          "console/site/app.js",
+          "console/site/settings.html",
+          "console/site/styles.css"
         ],
         "symbols": [
           {
-            "path": "site/app.js",
+            "path": "console/site/app.js",
             "name": "applyState",
             "kind": "function"
           },
           {
-            "path": "site/app.js",
+            "path": "console/site/app.js",
             "name": "initColourTranslator",
             "kind": "function"
           }
@@ -1599,10 +1600,10 @@
     },
     "changelog-viewer": {
       "status": "partial",
-      "note": "settings.html now mounts a changelog surface that consumes only validated embedded release records, supports plain-text search, an anchored regex entry, date bounds, copy, and filtered Markdown export with exact commit links. When the composer provides no record it shows an honest empty state. Locale-aware calendar presets, complete release-record composition, and runtime proof remain incomplete.",
+      "note": "settings.html now mounts a changelog surface that consumes only validated release records embedded by console/site/build.mjs, supports plain-text search, an anchored regex entry, date bounds, copy, and filtered Markdown export with exact commit links. When the composer provides no record it shows an honest empty state. Locale-aware calendar polish and runtime proof remain incomplete.",
       "implementation": {
-        "paths": ["console/site/app.js", "console/site/settings.html"],
-        "symbols": [{"path": "console/site/app.js", "name": "initChangelogViewer", "kind": "function"}]
+        "paths": ["console/site/app.js", "console/site/settings.html", "console/site/build.mjs"],
+        "symbols": [{"path": "console/site/app.js", "name": "initChangelogViewer", "kind": "function"}, {"path": "console/site/build.mjs", "name": "changelogRecord", "kind": "function"}]
       },
       "registration": {
         "paths": [],
@@ -2301,7 +2302,7 @@
     },
     "unlock-ladder": {
       "status": "partial",
-      "note": "settings.html and site/app.js now provide a lockout-bound local ladder equivalent with worker-issued dim-sum, mixed arithmetic, timed mole, clock fallback, School-mode start, nonce consumption, and a rolling local budget. Trusted server-side grading remains unavailable, so this row stays partial.",
+      "note": "settings.html and site/app.js now provide a lockout-bound local ladder equivalent with worker-issued dim-sum, guaranteed mixed-width arithmetic, timed mole, clock fallback, School-mode start, persisted visible-challenge rehydration, nonce consumption, and a rolling local budget. It clears only the local wait and cannot be a security boundary. Trusted server-side grading remains unavailable, so this row stays partial.",
       "implementation": {
         "paths": ["console/site/settings.html", "console/site/app.js"],
         "symbols": [{"path": "console/site/app.js", "name": "initUnlockLadder", "kind": "function"}]

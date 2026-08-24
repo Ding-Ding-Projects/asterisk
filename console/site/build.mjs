@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { copyFile, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +11,47 @@ const assets = ['index.html', 'product.html', 'documentation.html', 'converter.h
 const socialPreview = resolve(root, '..', '..', 'social-preview.png');
 const packageFile = resolve(root, '..', 'package.json');
 const releaseEvidenceFile = resolve(root, '..', 'release', 'evidence', 'site-release.json');
+const repoRoot = resolve(root, '..', '..');
+
+function git(args) {
+  return execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8' }).trim();
+}
+
+function changelogRecord() {
+  let tags = [];
+  try {
+    tags = git(['tag', '--sort=-creatordate', '--format=%(refname:short)'])
+      .split('\n').map(tag => tag.trim()).filter(tag => tag.startsWith('ding-pbx-console-v'));
+  } catch {
+    return [];
+  }
+  return tags.map((tag, index) => {
+    const version = tag.slice('ding-pbx-console-v'.length);
+    let date = '';
+    let tagCommit = '';
+    try {
+      date = git(['log', '-1', '--format=%cs', tag]);
+      tagCommit = git(['rev-list', '-1', tag]);
+    } catch {
+      return null;
+    }
+    const previous = tags[index + 1];
+    let rows = [];
+    try {
+      const range = previous ? `${previous}..${tag}` : tag;
+      const raw = git(['log', '--no-merges', '--format=%H%x1f%s', range]);
+      rows = raw ? raw.split('\n').map(line => {
+        const [commit, subject] = line.split('\x1f');
+        return /^[0-9a-f]{40}$/i.test(commit || '') && subject ? { text: subject.replace(/[\r\n]/g, ' ').trim(), commit: commit.toLowerCase() } : null;
+      }).filter(Boolean) : [];
+    } catch {
+      rows = [];
+    }
+    if (!rows.length && /^[0-9a-f]{40}$/i.test(tagCommit)) rows = [{ text: 'Release published; no new commits were recorded against the previous tag.', commit: tagCommit.toLowerCase() }];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version) || !rows.length) return null;
+    return { version, date, commit: rows[0].commit, changes: rows };
+  }).filter(Boolean);
+}
 
 if (process.argv.includes('--clean')) {
   await rm(output, { recursive: true, force: true });
@@ -96,7 +138,8 @@ const siteStatusRecord = {
     runtimeNetworkEntries,
     packageVersion: typeof packageMetadata.version === 'string' ? packageMetadata.version : null
   },
-  release
+  release,
+  changelog: changelogRecord()
 };
 const embeddedStatusRecord = `<script id="site-status-record" type="application/json">${JSON.stringify(siteStatusRecord).replaceAll('<', '\\u003c')}</script>`;
 

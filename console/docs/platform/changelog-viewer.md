@@ -14,11 +14,11 @@ Its tone would follow the funny-level and language settings while every version 
 
 **Desktop application:** Not implemented. The desktop application has no in-app changelog viewer; release history is not browsable from within the application.
 
-**Documentation website:** Partial, runtime proof unverified. `settings.html` now mounts a local viewer that consumes only a validated `site-changelog-record` supplied by the composer, filters by text and date, opens the anchored regex builder, copies the filtered Markdown, exports the filtered Markdown, and links each accepted record to its exact 40-character commit. Missing records remain an explicit empty state. The composer record, locale-aware calendar presets, and runtime proof remain incomplete.
+**Documentation website:** Partial, runtime proof unverified. `settings.html` now mounts a local viewer that consumes only the validated release history embedded by `console/site/build.mjs`, filters by text and date, opens the anchored regex builder, copies the filtered Markdown, exports the filtered Markdown, and links each accepted change to its exact 40-character commit. Missing records remain an explicit empty state. The calendar accepts ISO and host-locale date text, month and year jumps, presets, and range selection. Locale-specific parsing polish and runtime proof remain incomplete.
 
 ## Failure modes
 
-A referenced commit that no longer exists in the repository is meant to be caught and reported before publishing, not linked as a dead reference; there is no changelog viewer yet to enforce that.
+A referenced commit that no longer exists is rejected by the composer record shape and never rendered as a link. A missing or unavailable tag list leaves the viewer with an explicit empty state rather than a guessed release.
 
 ## Accessibility and localization
 
