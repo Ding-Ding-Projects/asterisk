@@ -7,6 +7,7 @@ $resourceRoot = Join-Path $repoRoot 'console\resources'
 $bundlePath = Join-Path $resourceRoot 'asterisk-wsl-rootfs.tar'
 $provenancePath = Join-Path $resourceRoot 'asterisk-wsl-rootfs.json'
 $trustedManifestPath = Join-Path $resourceRoot 'asterisk-wsl-trusted-manifest.json'
+$releaseManifestPath = Join-Path $resourceRoot 'asterisk-wsl-release-manifest.json'
 $dockerfile = Join-Path $PSScriptRoot 'asterisk-wsl-runtime.Dockerfile'
 $sourceCommit = (& git -C $repoRoot rev-parse HEAD).Trim()
 $dirty = @(& git -C $repoRoot status --porcelain)
@@ -21,7 +22,7 @@ function Get-Sha256([string]$Path) {
     finally { $algorithm.Dispose(); $stream.Dispose() }
 }
 
-if (-not $Force -and (Test-Path -LiteralPath $bundlePath) -and (Test-Path -LiteralPath $provenancePath) -and (Test-Path -LiteralPath $trustedManifestPath)) {
+if (-not $Force -and (Test-Path -LiteralPath $bundlePath) -and (Test-Path -LiteralPath $provenancePath) -and (Test-Path -LiteralPath $trustedManifestPath) -and (Test-Path -LiteralPath $releaseManifestPath)) {
     $existing = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
     if ($existing.sourceCommit -eq $sourceCommit -and $existing.sha256 -eq (Get-Sha256 $bundlePath)) {
         Write-Host "Reusing bundled Asterisk WSL rootfs for $sourceCommit."
@@ -95,9 +96,12 @@ try {
         generatedAt = [DateTimeOffset]::UtcNow.ToString('o')
         contents = @('complete Ubuntu root filesystem','Asterisk executable and modules','all apt-installed runtime libraries','systemd unit','WSL configuration','sample Asterisk configuration')
     }
-    [System.IO.File]::WriteAllText($provenancePath, ($provenance | ConvertTo-Json -Depth 4), [System.Text.UTF8Encoding]::new($false))
     $trusted = [ordered]@{ schemaVersion = 1; sourceCommit = $sourceCommit; baseImage = 'ubuntu:24.04'; baseDigest = $baseDigest; runtime = 'wsl2-linux-amd64'; rootfsSha256 = $provenance.sha256; rootfsBytes = $provenance.bytes }
     [System.IO.File]::WriteAllText($trustedManifestPath, ($trusted | ConvertTo-Json -Depth 4), [System.Text.UTF8Encoding]::new($false))
+    $provenance.trustedManifestSha256 = Get-Sha256 $trustedManifestPath
+    [System.IO.File]::WriteAllText($provenancePath, ($provenance | ConvertTo-Json -Depth 4), [System.Text.UTF8Encoding]::new($false))
+    $releaseManifest = [ordered]@{ schemaVersion = 1; releaseKind = 'asterisk-wsl-runtime'; sourceCommit = $sourceCommit; trustedManifestSha256 = $provenance.trustedManifestSha256; rootfsSha256 = $provenance.sha256; rootfsBytes = $provenance.bytes; baseDigest = $baseDigest; runtime = 'wsl2-linux-amd64' }
+    [System.IO.File]::WriteAllText($releaseManifestPath, ($releaseManifest | ConvertTo-Json -Depth 4), [System.Text.UTF8Encoding]::new($false))
     Write-Host ("Created {0} ({1} bytes, sha256:{2})." -f $bundlePath,$file.Length,$provenance.sha256)
 } finally {
     if ($containerCreated) { docker rm --force $container | Out-Null }

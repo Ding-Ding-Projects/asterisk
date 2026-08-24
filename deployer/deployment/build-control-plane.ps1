@@ -36,14 +36,21 @@ function File-Sha256([string]$Path) {
 $dockerfileSha = File-Sha256 $dockerfile
 $consoleLockSha = File-Sha256 $consoleLockfile
 $inputManifestSha = File-Sha256 $inputManifest
+$inputRecord = Get-Content -Raw -LiteralPath $inputManifest | ConvertFrom-Json
 $archivePath = Join-Path ([System.IO.Path]::GetTempPath()) "ding-pbx-source-$PID.tar"
 $contextRoot = Join-Path ([System.IO.Path]::GetTempPath()) "ding-pbx-source-context-$PID"
-New-Item -ItemType Directory -Force -Path $contextRoot | Out-Null
-& git -C $repoRoot archive --format=tar --output=$archivePath HEAD
-if ($LASTEXITCODE -ne 0) { throw "git archive exited with $LASTEXITCODE" }
-$sourceTreeSha = File-Sha256 $archivePath
-& tar.exe -xf $archivePath -C $contextRoot
-if ($LASTEXITCODE -ne 0) { throw "tar extraction of the exact git archive exited with $LASTEXITCODE" }
+try {
+    New-Item -ItemType Directory -Force -Path $contextRoot | Out-Null
+    & git -C $repoRoot archive --format=tar --output=$archivePath HEAD
+    if ($LASTEXITCODE -ne 0) { throw "git archive exited with $LASTEXITCODE" }
+    $sourceTreeSha = File-Sha256 $archivePath
+    & tar.exe -xf $archivePath -C $contextRoot
+    if ($LASTEXITCODE -ne 0) { throw "tar extraction of the exact git archive exited with $LASTEXITCODE" }
+} catch {
+    if (Test-Path -LiteralPath $archivePath) { Remove-Item -LiteralPath $archivePath -Force }
+    if (Test-Path -LiteralPath $contextRoot) { Remove-Item -LiteralPath $contextRoot -Recurse -Force }
+    throw
+}
 
 if ([string]::IsNullOrWhiteSpace($Tag)) {
     $Tag = "ding-pbx-control-plane:$($sourceCommit.Substring(0, 12))"
@@ -90,7 +97,7 @@ try {
     & docker cp "${container}:/opt/ding-pbx-console/provenance.json" $provenancePath | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "docker cp provenance exited with $LASTEXITCODE" }
     $provenance = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
-    Assert-ProvenanceRecord -Record $provenance -ExpectedCommit $sourceCommit -ExpectedVersion $Version -ExpectedDockerfileSha256 $dockerfileSha -ExpectedConsoleLockSha256 $consoleLockSha -ExpectedInputManifestSha256 $inputManifestSha | Out-Null
+    Assert-ProvenanceRecord -Record $provenance -ExpectedCommit $sourceCommit -ExpectedVersion $Version -ExpectedDockerfileSha256 $dockerfileSha -ExpectedConsoleLockSha256 $consoleLockSha -ExpectedInputManifestSha256 $inputManifestSha -ExpectedUbuntuSnapshot $inputRecord.ubuntuSnapshot -ExpectedRuntimeBaseImage $inputRecord.ubuntuBase -ExpectedNodeBuildBaseImage $inputRecord.nodeBuildBase | Out-Null
     if ($provenance.sourceTreeSha256 -ne $sourceTreeSha -or $provenance.imageDigest -ne $ImageDigest -or $provenance.ubuntuSnapshot -ne '20260824T000000Z') { throw 'Embedded provenance has an unexpected digest, source-tree hash, or package snapshot.' }
     & docker cp "${container}:/opt/ding-pbx-console/sbom-apt.txt" $sbomPath | Out-Null
     & docker cp "${container}:/opt/ding-pbx-console/sbom-apt.sha256" $sbomHashPath | Out-Null

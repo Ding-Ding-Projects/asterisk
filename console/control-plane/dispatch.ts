@@ -167,10 +167,12 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     const rootfs = join(root, 'asterisk-wsl-rootfs.tar');
     const provenance = join(root, 'asterisk-wsl-rootfs.json');
     const trustedManifest = join(root, 'asterisk-wsl-trusted-manifest.json');
-    if (!existsSync(rootfs) || !existsSync(provenance) || !existsSync(trustedManifest)) return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime or its trusted manifest is missing.' };
+    const releaseManifest = join(root, 'asterisk-wsl-release-manifest.json');
+    if (!existsSync(rootfs) || !existsSync(provenance) || !existsSync(trustedManifest) || !existsSync(releaseManifest)) return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime or its trusted release manifest is missing.' };
     try {
       const record = JSON.parse(readFileSync(provenance, 'utf8')) as Record<string, unknown>;
       const trusted = JSON.parse(readFileSync(trustedManifest, 'utf8')) as Record<string, unknown>;
+      const release = JSON.parse(readFileSync(releaseManifest, 'utf8')) as Record<string, unknown>;
       const sourceCommit = typeof record.sourceCommit === 'string' && /^[0-9a-f]{40}$/iu.test(record.sourceCommit);
       const digest = typeof record.sha256 === 'string' && /^[0-9a-f]{64}$/iu.test(record.sha256);
       const bytes = typeof record.bytes === 'number' && Number.isSafeInteger(record.bytes) && record.bytes > 0;
@@ -193,7 +195,9 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         }
       } finally { closeSync(handle); }
       const actualDigest = hash.digest('hex');
-      if (trusted.schemaVersion !== 1 || trusted.sourceCommit !== record.sourceCommit || trusted.baseDigest !== TRUSTED_WSL_BASE_DIGEST || trusted.rootfsSha256 !== record.sha256 || trusted.rootfsBytes !== record.bytes || record.schemaVersion !== 1 || !sourceCommit || !digest || !bytes || !runtime || record.baseDigest !== TRUSTED_WSL_BASE_DIGEST || actualBytes !== record.bytes || actualDigest !== record.sha256) {
+      const trustedBytes = readFileSync(trustedManifest);
+      const trustedHash = createHash('sha256').update(trustedBytes).digest('hex');
+      if (release.schemaVersion !== 1 || release.releaseKind !== 'asterisk-wsl-runtime' || release.sourceCommit !== record.sourceCommit || release.trustedManifestSha256 !== trustedHash || release.rootfsSha256 !== record.sha256 || release.rootfsBytes !== record.bytes || release.baseDigest !== TRUSTED_WSL_BASE_DIGEST || release.runtime !== 'wsl2-linux-amd64' || trusted.schemaVersion !== 1 || trusted.sourceCommit !== record.sourceCommit || trusted.baseDigest !== TRUSTED_WSL_BASE_DIGEST || trusted.rootfsSha256 !== record.sha256 || trusted.rootfsBytes !== record.bytes || record.trustedManifestSha256 !== trustedHash || record.schemaVersion !== 1 || !sourceCommit || !digest || !bytes || !runtime || record.baseDigest !== TRUSTED_WSL_BASE_DIGEST || actualBytes !== record.bytes || actualDigest !== record.sha256) {
         return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime provenance does not match the rootfs bytes.' };
       }
       return { state: 'available', rootfs, provenance, record };

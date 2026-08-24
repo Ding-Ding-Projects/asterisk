@@ -31,11 +31,12 @@ services:
       - ding-pbx-asterisk-log:/var/log/asterisk
       - ding-pbx-asterisk-spool:/var/spool/asterisk
     environment:
-      DING_HOST: 0.0.0.0
+      DING_HOST: ${DING_PBX_INTERNAL_HOST:-0.0.0.0}
       DING_PORT: 8088
       DING_DATA_DIR: /var/lib/ding-pbx-console
       DING_ASTERISK_TRANSPORT: local
       DING_PBX_NETWORK_MODE: admin-only
+      DING_PBX_MOUNT_PROFILE: five-volumes-plus-run-tmpfs
       # TLS paths point at Docker secrets, never at an image layer or a shell
       # variable containing secret bytes.
       DING_TLS_CERT: /run/secrets/tls_cert
@@ -56,6 +57,7 @@ services:
       io.ding.pbx.project: ding-pbx
       io.ding.pbx.service: control-plane
       io.ding.pbx.exposed-surface: admin-only
+      io.ding.pbx.mount-profile: five-volumes-plus-run-tmpfs
     networks:
       - control-plane
 

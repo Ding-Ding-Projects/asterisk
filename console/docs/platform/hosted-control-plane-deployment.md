@@ -4,7 +4,7 @@
 
 The hosted control plane is built from a `git archive` of the exact Asterisk repository commit supplied by `deployer/deployment/build-control-plane.ps1`. The build stage compiles Asterisk and the console server. The runtime image records the source commit, image version, source-tree, Dockerfile, lockfile, input-manifest, and Ubuntu snapshot digests in OCI labels and `/opt/ding-pbx-console/provenance.json`. It copies the pinned Node `22.23.2` runtime and records apt package versions plus a matching SBOM digest.
 
-The Windows desktop is a separate surface. It uses the bundled `console/resources/asterisk/asterisk-wsl-rootfs.tar` and its provenance record. The desktop control plane provides status, provision, daemon start, stop, restart, read, and recovery actions for its fixed managed WSL distribution. A runtime action is not successful merely because `wsl.exe` returned zero. The control plane asks the distribution or Asterisk for a direct answer and reports the observed state.
+The Windows desktop is a separate surface. It uses the bundled `console/resources/asterisk/asterisk-wsl-rootfs.tar`, provenance, trusted manifest, and release manifest. The desktop control plane provides status, provision, daemon start, stop, restart, read, and recovery actions for its fixed managed WSL distribution. A runtime action is not successful merely because `wsl.exe` returned zero. The control plane hashes the rootfs and asks the distribution or Asterisk for a direct answer before reporting the observed state.
 
 ## Configuration
 
@@ -36,7 +36,7 @@ The image runs as UID/GID `10001`, does not receive a shell command, drops all L
 
 ## Verification state
 
-The deployment manifests, external deployment-manifest schema, shared provenance validator, build script, preflight command, rollback plan, liveness endpoint, authenticated readiness endpoint, explicit hosted transport, owned-volume verification, and desktop provenance validation are implemented. Plan-only deployment performs no image pull, temporary container creation, or removal. This lane intentionally did not build an image, import WSL, contact a private host, start Docker Compose, run the installer, or capture a runtime surface. Those are release and deployment evidence steps for the next owner.
+The deployment manifests, external deployment-manifest schema, shared provenance validator, build script, preflight command, rollback plan, liveness endpoint, authenticated readiness endpoint, explicit hosted transport, owned-volume verification, and desktop provenance validation are implemented. First admin setup is loopback-only, with no public nonce or enrollment value. Plan-only deployment performs no image pull, temporary container creation, or removal. This lane intentionally did not build an image, import WSL, contact a private host, start Docker Compose, run the installer, or capture a runtime surface. Those are release and deployment evidence steps for the next owner.
 
 ## Suggested articles
 

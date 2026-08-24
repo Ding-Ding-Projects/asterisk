@@ -77,6 +77,8 @@ try {
     $delta = @(Get-ChildItem -LiteralPath $output -File -Filter '*-delta.nupkg')
     $bundledRootfs = Join-Path $repoRoot 'console\dist\squirrel-windows\win-unpacked\resources\asterisk\asterisk-wsl-rootfs.tar'
     $bundledProvenance = Join-Path $repoRoot 'console\dist\squirrel-windows\win-unpacked\resources\asterisk\asterisk-wsl-rootfs.json'
+    $bundledTrusted = Join-Path $repoRoot 'console\dist\squirrel-windows\win-unpacked\resources\asterisk\asterisk-wsl-trusted-manifest.json'
+    $bundledReleaseManifest = Join-Path $repoRoot 'console\dist\squirrel-windows\win-unpacked\resources\asterisk\asterisk-wsl-release-manifest.json'
     if ($setup.Count -ne 1) { throw "expected exactly one Setup.exe under $output; found $($setup.Count)" }
     if ($releases.Count -ne 1) { throw "expected exactly one RELEASES under $output; found $($releases.Count)" }
     if ($full.Count -lt 1) { throw "expected at least one full .nupkg under $output; found none" }
@@ -87,9 +89,13 @@ try {
     if ($identity.version -ne $Version -or $identity.candidateCommit -ne $CandidateCommit) { throw 'release identity does not match the package version and candidate commit' }
     if (-not (Test-Path -LiteralPath $bundledRootfs)) { throw 'packaged application is missing the bundled Asterisk WSL rootfs' }
     if (-not (Test-Path -LiteralPath $bundledProvenance)) { throw 'packaged application is missing Asterisk bundle provenance' }
+    if (-not (Test-Path -LiteralPath $bundledTrusted) -or -not (Test-Path -LiteralPath $bundledReleaseManifest)) { throw 'packaged application is missing the trusted WSL release manifest' }
     $bundleRecord = Get-Content -Raw -LiteralPath $bundledProvenance | ConvertFrom-Json
+    $releaseRecord = Get-Content -Raw -LiteralPath $bundledReleaseManifest | ConvertFrom-Json
+    $trustedRecord = Get-Content -Raw -LiteralPath $bundledTrusted | ConvertFrom-Json
     if ($bundleRecord.sha256 -ne (Get-Sha256 $bundledRootfs)) { throw 'packaged Asterisk WSL rootfs does not match its provenance digest' }
     if ($bundleRecord.sourceCommit -ne (& git -C $repoRoot rev-parse HEAD).Trim()) { throw 'packaged Asterisk WSL rootfs came from a different source commit' }
+    if ($releaseRecord.trustedManifestSha256 -ne (Get-Sha256 $bundledTrusted) -or $releaseRecord.rootfsSha256 -ne $bundleRecord.sha256 -or $trustedRecord.rootfsSha256 -ne $bundleRecord.sha256) { throw 'packaged WSL trusted release identity does not match the rootfs' }
     $releaseText = Get-Content -Raw -LiteralPath $releases[0].FullName
     foreach ($package in $full) {
         if ($package.Name -notmatch [regex]::Escape("-$Version-full.nupkg")) { throw "$($package.Name) does not carry package version $Version" }

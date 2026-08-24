@@ -11,6 +11,8 @@ param(
     [string]$ProjectName = 'ding-pbx-control-plane',
     [string]$BindAddress = '127.0.0.1',
     [int]$AdminPort = 8088,
+    [string]$SessionCookieFile = '',
+    [string]$SnapshotDirectory = '',
     [switch]$Execute
 )
 
@@ -24,8 +26,10 @@ if (-not (Test-Path -LiteralPath $TlsCertFile)) { throw "TLS certificate path do
 if (-not (Test-Path -LiteralPath $TlsKeyFile)) { throw "TLS private key path does not exist: $TlsKeyFile" }
 if (-not (Test-Path -LiteralPath $ManifestPath)) { throw "External deployment manifest does not exist: $ManifestPath" }
 if (-not (Test-Path -LiteralPath $PreflightEvidencePath)) { throw "Preflight evidence does not exist: $PreflightEvidencePath" }
+if ($Execute -and ([string]::IsNullOrWhiteSpace($SessionCookieFile) -or -not (Test-Path -LiteralPath $SessionCookieFile))) { throw 'Execute requires a protected operator session cookie file for authenticated readiness.' }
+if ($Execute -and ([string]::IsNullOrWhiteSpace($SnapshotDirectory))) { throw 'Execute requires an external directory for pre-change volume snapshots.' }
 $manifest = Get-Content -Raw -LiteralPath $ManifestPath | ConvertFrom-Json
-Assert-ExternalDeploymentManifest -Manifest $manifest -ImageReference $ImageRef -ProjectName $ProjectName -Port $AdminPort | Out-Null
+Assert-ExternalDeploymentManifest -Manifest $manifest -ManifestPath $ManifestPath -ImageReference $ImageRef -ProjectName $ProjectName -Port $AdminPort | Out-Null
 if ($manifest.target -ne 'local-docker') { throw 'Hosted deployment is restricted to the local Yere Dow engine. Approved SSH inventory is read-only preflight evidence only.' }
 if ($manifest.preflightEvidencePath -ne $PreflightEvidencePath) { throw 'Preflight evidence path does not match the external deployment manifest.' }
 $evidence = Get-Content -Raw -LiteralPath $PreflightEvidencePath | ConvertFrom-Json
@@ -39,15 +43,15 @@ $previousManifest = $null
 if ($PreviousImageRef) {
     if ([string]::IsNullOrWhiteSpace($PreviousManifestPath) -or -not (Test-Path -LiteralPath $PreviousManifestPath)) { throw 'A previous image requires its own external deployment manifest.' }
     $previousManifest = Get-Content -Raw -LiteralPath $PreviousManifestPath | ConvertFrom-Json
-    Assert-ExternalDeploymentManifest -Manifest $previousManifest -ImageReference $PreviousImageRef -ProjectName $ProjectName -Port $AdminPort | Out-Null
-    if ($previousManifest.preflightEvidencePath -ne $PreflightEvidencePath) { throw 'Previous manifest and preflight evidence do not match.' }
+    Assert-ExternalDeploymentManifest -Manifest $previousManifest -ManifestPath $PreviousManifestPath -ImageReference $PreviousImageRef -ProjectName $ProjectName -Port $AdminPort | Out-Null
 }
 
 function Read-Provenance([string]$Reference, [bool]$InspectEmbedded, $ExpectedManifest) {
     $container = "ding-pbx-deploy-inspect-$PID"
-    $path = Join-Path ([System.IO.Path]::GetTempPath()) "$container.json"
+    $path = $null
     $created = $false
     try {
+        $path = Join-Path ([System.IO.Path]::GetTempPath()) "$container.json"
         if ($InspectEmbedded) {
             & docker pull $Reference | Out-Host
             if ($LASTEXITCODE -ne 0) { throw "docker pull exited with $LASTEXITCODE" }
@@ -64,7 +68,7 @@ function Read-Provenance([string]$Reference, [bool]$InspectEmbedded, $ExpectedMa
         if ($LASTEXITCODE -ne 0) { throw 'The image has no embedded provenance.json.' }
         if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $ExpectedManifest.provenanceSha256) { throw 'Embedded provenance SHA-256 does not match the external deployment manifest.' }
         $record = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
-        Assert-ProvenanceRecord -Record $record -ExpectedCommit $ExpectedManifest.sourceCommit -ExpectedVersion $ExpectedManifest.version -ExpectedDockerfileSha256 $ExpectedManifest.dockerfileSha256 -ExpectedConsoleLockSha256 $ExpectedManifest.consoleLockSha256 -ExpectedInputManifestSha256 $ExpectedManifest.inputManifestSha256 | Out-Null
+        Assert-ProvenanceRecord -Record $record -ExpectedCommit $ExpectedManifest.sourceCommit -ExpectedVersion $ExpectedManifest.version -ExpectedDockerfileSha256 $ExpectedManifest.dockerfileSha256 -ExpectedConsoleLockSha256 $ExpectedManifest.consoleLockSha256 -ExpectedInputManifestSha256 $ExpectedManifest.inputManifestSha256 -ExpectedUbuntuSnapshot $ExpectedManifest.ubuntuSnapshot -ExpectedRuntimeBaseImage $ExpectedManifest.runtimeBaseImage -ExpectedNodeBuildBaseImage $ExpectedManifest.nodeBuildBaseImage | Out-Null
         if ($record.aptSbomSha256 -ne $ExpectedManifest.aptSbomSha256) { throw 'Embedded apt SBOM digest does not match the external deployment manifest.' }
         $sbomPath = Join-Path ([System.IO.Path]::GetTempPath()) "$container-sbom.txt"
         try {
@@ -82,7 +86,7 @@ function Read-Provenance([string]$Reference, [bool]$InspectEmbedded, $ExpectedMa
             $owned = (& docker inspect --format '{{index .Config.Labels "io.ding.pbx.inspect"}}' $container 2>$null).Trim()
             if ($owned -eq 'true') { & docker rm $container | Out-Null }
         }
-        if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force }
+        if ($path -and (Test-Path -LiteralPath $path)) { Remove-Item -LiteralPath $path -Force }
     }
 }
 
@@ -94,6 +98,8 @@ function Set-ComposeEnvironment([string]$Reference, $Record, $ComposeManifest) {
     $env:DING_PBX_TLS_KEY_FILE = (Resolve-Path -LiteralPath $TlsKeyFile).Path
     $env:DING_PBX_BIND_ADDRESS = $BindAddress
     $env:DING_PBX_PORT = [string]$AdminPort
+    $env:DING_PBX_INTERNAL_HOST = '0.0.0.0'
+    if ($BindAddress -in @('127.0.0.1', '::1', 'localhost')) { $env:DING_PBX_INTERNAL_HOST = $BindAddress }
 }
 
 function Get-OwnedContainerId {
@@ -125,6 +131,42 @@ function Wait-TargetReady([string]$ContainerId) {
     return $false
 }
 
+function Wait-AuthenticatedReady {
+    $cookie = (Get-Content -Raw -LiteralPath $SessionCookieFile).Trim()
+    if ([string]::IsNullOrWhiteSpace($cookie) -or $cookie -notmatch '^ding_session=') { throw 'Session cookie file does not contain the expected protected operator cookie.' }
+    $handler = [System.Net.Http.HttpClientHandler]::new()
+    $handler.ServerCertificateCustomValidationCallback = { $true }
+    $client = [System.Net.Http.HttpClient]::new($handler)
+    $client.Timeout = [TimeSpan]::FromSeconds(5)
+    try {
+        $client.DefaultRequestHeaders.Add('Cookie', $cookie)
+        $response = $client.GetAsync("https://127.0.0.1:$AdminPort/api/v1/ready").GetAwaiter().GetResult()
+        $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json
+        if (-not $response.IsSuccessStatusCode -or $body.status -ne 'ready' -or [string]$body.asteriskVersion -notmatch '^[0-9]+\.[0-9]+(?:\.[0-9]+)?') { return $false }
+        return $true
+    } finally { $client.Dispose(); $handler.Dispose() }
+}
+
+function Snapshot-Volumes {
+    New-Item -ItemType Directory -Force -Path $SnapshotDirectory | Out-Null
+    $volumes = @('ding-pbx-control-plane-data', 'ding-pbx-control-plane-asterisk-etc', 'ding-pbx-control-plane-asterisk-lib', 'ding-pbx-control-plane-asterisk-log', 'ding-pbx-control-plane-asterisk-spool')
+    foreach ($volume in $volumes) {
+        $safe = $volume.Replace('-', '_')
+        $name = "ding-pbx-snapshot-$PID-$safe"
+        $destination = Join-Path $SnapshotDirectory "$safe.tar"
+        $snapshotId = (& docker run --detach --label io.ding.pbx.snapshot=true --name $name --user 10001 --entrypoint /bin/tar -v "${volume}:/source:ro" -v "${SnapshotDirectory}:/backup" $ImageRef -cf "/backup/$safe.tar" -C /source .).Trim()
+        if ($LASTEXITCODE -ne 0 -or $snapshotId -notmatch '^[0-9a-f]{12,64}$') { throw "Could not start owned volume snapshot for $volume." }
+        do { Start-Sleep -Milliseconds 250; $state = (& docker inspect --format '{{.State.Status}}' $snapshotId 2>$null).Trim() } while ($state -eq 'running')
+        $exitCode = (& docker inspect --format '{{.State.ExitCode}}' $snapshotId 2>$null).Trim()
+        $owned = (& docker inspect --format '{{index .Config.Labels "io.ding.pbx.snapshot"}}' $snapshotId 2>$null).Trim()
+        if ($owned -ne 'true') { throw "Snapshot helper $name is not owned." }
+        & docker rm $snapshotId | Out-Null
+        if ($exitCode -ne '0' -or -not (Test-Path -LiteralPath $destination)) { throw "Volume snapshot failed for $volume." }
+    }
+    $snapshotRecord = [ordered]@{ schemaVersion = 1; sourceImage = $ImageRef; sourceCommit = $manifest.sourceCommit; sourceVersion = $manifest.version; volumes = $volumes; createdAt = [DateTimeOffset]::UtcNow.ToString('o'); compatibility = 'restore only into the same mount profile and a manifest with matching volume names' }
+    [System.IO.File]::WriteAllText((Join-Path $SnapshotDirectory 'snapshot-record.json'), ($snapshotRecord | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))
+}
+
 function Assert-OwnedDeployment([string]$ContainerId, [string]$ExpectedImageRef) {
     $digests = (& docker inspect --format '{{json .RepoDigests}}' $ContainerId).Trim() | ConvertFrom-Json
     if (-not (@($digests) | Where-Object { $_ -eq $ExpectedImageRef })) { throw 'Live container does not carry the exact immutable image digest.' }
@@ -147,21 +189,45 @@ if (-not $Execute) {
     exit 0
 }
 
+$snapshotPath = $SnapshotDirectory
+Snapshot-Volumes
+$env:DING_PBX_SNAPSHOT_RECORD = (Join-Path $SnapshotDirectory 'snapshot-record.json')
 $composeArgs = @('compose', '--project-name', $ProjectName, '--file', $ComposeFile, 'up', '--detach', '--no-build')
 & docker @composeArgs
 if ($LASTEXITCODE -ne 0) { throw "docker compose exited with $LASTEXITCODE" }
-$containerId = Get-OwnedContainerId
-Assert-OwnedDeployment $containerId $ImageRef
-if (-not (Wait-Healthy $containerId) -or -not (Wait-TargetReady $containerId)) {
-    Write-Warning 'The new control-plane image did not reach a healthy liveness state.'
+$ownershipOk = $true
+$containerId = $null
+try {
+    $containerId = Get-OwnedContainerId
+    Assert-OwnedDeployment $containerId $ImageRef
+} catch {
+    $ownershipOk = $false
+    Write-Warning "Original rollout ownership validation failed: $($_.Exception.Message)"
+}
+$liveOk = if ($ownershipOk) { Wait-Healthy $containerId } else { $false }
+$cliReady = if ($liveOk) { Wait-TargetReady $containerId } else { $false }
+$serverReady = if ($liveOk -and $cliReady) { Wait-AuthenticatedReady } else { $false }
+if (-not ($liveOk -and $cliReady -and $serverReady)) {
+    Write-Warning "Original rollout outcome: failed. liveness=$liveOk localCliReady=$cliReady authenticatedServerReady=$serverReady image=$ImageRef"
     if (-not $PreviousImageRef) { throw 'Deployment stopped without an automatic rollback image.' }
     $previous = Read-Provenance $PreviousImageRef $true $previousManifest
     Set-ComposeEnvironment $PreviousImageRef $previous $previousManifest
     & docker @composeArgs
     if ($LASTEXITCODE -ne 0) { throw 'Automatic rollback Compose update failed.' }
-    $rollbackId = Get-OwnedContainerId
-    Assert-OwnedDeployment $rollbackId $PreviousImageRef
-    if (-not (Wait-Healthy $rollbackId) -or -not (Wait-TargetReady $rollbackId)) { throw 'Automatic rollback also failed liveness or local Asterisk readiness.' }
-    throw 'The new image was rolled back after its liveness healthcheck failed.'
+    $rollbackOwnership = $true
+    $rollbackId = $null
+    try {
+        $rollbackId = Get-OwnedContainerId
+        Assert-OwnedDeployment $rollbackId $PreviousImageRef
+    } catch {
+        $rollbackOwnership = $false
+        Write-Warning "Rollback ownership validation failed: $($_.Exception.Message)"
+    }
+    $rollbackLive = if ($rollbackOwnership) { Wait-Healthy $rollbackId } else { $false }
+    $rollbackCli = if ($rollbackLive) { Wait-TargetReady $rollbackId } else { $false }
+    $rollbackServer = if ($rollbackLive -and $rollbackCli) { Wait-AuthenticatedReady } else { $false }
+    if (-not ($rollbackLive -and $rollbackCli -and $rollbackServer)) { throw "Original rollout failed and rollback failed. rollbackLiveness=$rollbackLive rollbackLocalCliReady=$rollbackCli rollbackAuthenticatedServerReady=$rollbackServer image=$PreviousImageRef" }
+    Write-Host "Rollback outcome: restored previous image successfully. liveness=$rollbackLive localCliReady=$rollbackCli authenticatedServerReady=$rollbackServer image=$PreviousImageRef"
+    throw 'The new image was rolled back after liveness or readiness failure.'
 }
 Write-Host 'The immutable image reached healthy liveness. Target readiness remains authenticated at /api/v1/ready.'

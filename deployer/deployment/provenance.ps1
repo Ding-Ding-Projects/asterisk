@@ -6,6 +6,9 @@ function Assert-ProvenanceRecord {
         [Parameter(Mandatory)] [string]$ExpectedDockerfileSha256,
         [Parameter(Mandatory)] [string]$ExpectedConsoleLockSha256,
         [Parameter(Mandatory)] [string]$ExpectedInputManifestSha256
+        ,[Parameter(Mandatory)] [string]$ExpectedUbuntuSnapshot
+        ,[Parameter(Mandatory)] [string]$ExpectedRuntimeBaseImage
+        ,[Parameter(Mandatory)] [string]$ExpectedNodeBuildBaseImage
     )
     if ($null -eq $Record -or $Record.schemaVersion -ne 1) { throw 'Provenance schema version is not 1.' }
     if ($Record.sourceCommit -ne $ExpectedCommit -or $Record.sourceTreeCommit -ne $ExpectedCommit) { throw 'Provenance source commit does not match the deployment manifest.' }
@@ -19,6 +22,7 @@ function Assert-ProvenanceRecord {
         if ([string]$pair[0] -notmatch '^[0-9a-f]{64}$') { throw "Provenance $($pair[1]) digest is invalid." }
     }
     if ($Record.ubuntuSnapshot -notmatch '^[0-9]{8}T[0-9]{6}Z$') { throw 'Provenance Ubuntu snapshot is invalid.' }
+    if ($Record.ubuntuSnapshot -ne $ExpectedUbuntuSnapshot -or $Record.baseImages.runtime -ne $ExpectedRuntimeBaseImage -or $Record.baseImages.nodeBuild -ne $ExpectedNodeBuildBaseImage) { throw 'Provenance base image or snapshot does not match the external identity.' }
     if ($Record.aptSbomSha256 -notmatch '^[0-9a-f]{64}$') { throw 'Provenance apt SBOM digest is invalid.' }
     if (-not $Record.sbom -or $Record.sbom.Count -lt 2) { throw 'Provenance does not name the complete SBOM records.' }
     return $true
@@ -33,6 +37,7 @@ function Assert-ImmutableImageReference {
 function Assert-ExternalDeploymentManifest {
     param(
         [Parameter(Mandatory)] $Manifest,
+        [Parameter(Mandatory)] [string]$ManifestPath,
         [Parameter(Mandatory)] [string]$ImageReference,
         [Parameter(Mandatory)] [string]$ProjectName,
         [Parameter(Mandatory)] [int]$Port
@@ -40,6 +45,8 @@ function Assert-ExternalDeploymentManifest {
     $schemaPath = Join-Path $PSScriptRoot 'deployment-manifest.schema.json'
     if (-not (Test-Path -LiteralPath $schemaPath)) { throw 'Committed deployment manifest schema is missing.' }
     $schema = Get-Content -Raw -LiteralPath $schemaPath | ConvertFrom-Json
+    & node (Join-Path $PSScriptRoot 'validate-deployment-manifest.mjs') $ManifestPath $schemaPath | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Committed deployment manifest JSON Schema validation failed.' }
     foreach ($field in @($schema.required)) {
         if (-not ($Manifest.PSObject.Properties.Name -contains [string]$field)) { throw "External deployment manifest is missing schema field $field." }
     }
@@ -47,6 +54,7 @@ function Assert-ExternalDeploymentManifest {
     if ($Manifest.schemaVersion -ne 1 -or $Manifest.image -ne $ImageReference -or $Manifest.projectName -ne $ProjectName -or [int]$Manifest.adminPort -ne $Port -or $Manifest.networkMode -ne 'admin-only' -or $Manifest.target -notin @('local-docker', 'approved-ssh')) {
         throw 'External deployment manifest does not match image, project, or admin port.'
     }
+    if ($Manifest.mountProfile -ne 'five-volumes-plus-run-tmpfs' -or (@($Manifest.mountInventory) -join '|') -ne (@('ding-pbx-control-plane-data', 'ding-pbx-control-plane-asterisk-etc', 'ding-pbx-control-plane-asterisk-lib', 'ding-pbx-control-plane-asterisk-log', 'ding-pbx-control-plane-asterisk-spool', '/run/asterisk:tmpfs') -join '|')) { throw 'External deployment manifest mount inventory does not match Compose.' }
     if ([string]::IsNullOrWhiteSpace([string]$Manifest.targetHost) -or [string]::IsNullOrWhiteSpace([string]$Manifest.targetUser) -or [int]$Manifest.targetSshPort -lt 0 -or [string]::IsNullOrWhiteSpace([string]$Manifest.inventoryPath)) { throw 'External deployment manifest target identity is incomplete.' }
     if ($Manifest.sourceCommit -notmatch '^[0-9a-f]{40}$' -or $Manifest.version -notmatch '^[0-9A-Za-z][0-9A-Za-z._+-]{0,63}$') { throw 'External deployment manifest commit or version is invalid.' }
     if ($Manifest.provenanceSha256 -notmatch '^[0-9a-f]{64}$') { throw 'External deployment manifest provenance digest is invalid.' }
@@ -58,5 +66,6 @@ function Assert-ExternalDeploymentManifest {
     $manifestExpiry = [DateTimeOffset]::MinValue
     if (-not [DateTimeOffset]::TryParse([string]$Manifest.preflightExpiresAt, [ref]$manifestExpiry)) { throw 'External deployment manifest preflight expiry is invalid.' }
     if ($manifestExpiry -le [DateTimeOffset]::UtcNow) { throw 'External deployment manifest preflight evidence has expired.' }
+    if ($Manifest.ubuntuSnapshot -notmatch '^[0-9]{8}T[0-9]{6}Z$' -or $Manifest.runtimeBaseImage -notmatch '@sha256:[0-9a-f]{64}$' -or $Manifest.nodeBuildBaseImage -notmatch '@sha256:[0-9a-f]{64}$') { throw 'External deployment manifest base input identity is invalid.' }
     return $true
 }

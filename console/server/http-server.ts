@@ -9,7 +9,6 @@
  */
 import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { createServer as createHttpsServer } from 'node:https';
-import { randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { parseAsteriskReadiness } from '../control-plane/asterisk-readiness.js';
 import { readFileSync, existsSync, statSync, createReadStream } from 'node:fs';
@@ -67,8 +66,6 @@ export function createServerModeHandler(options: ServerModeOptions) {
   const signingKey = loadOrCreateSigningKey(join(options.dataDir, 'session-signing-key'));
   const sessions = new SessionManager({ signingKey });
   const limiter = new LoginRateLimiter();
-  let setupNonce: string | undefined;
-  let setupNonceExpiresAt = 0;
   const dispatcher = createControlPlaneDispatcher({
     userDataPath: options.dataDir,
     resourcesPath: options.resourcesDir,
@@ -178,26 +175,14 @@ export function createServerModeHandler(options: ServerModeOptions) {
       }
       if (path === '/api/setup' && req.method === 'GET') {
         const needsSetup = !hasAdminAccount(accountStore);
-        setupNonce = needsSetup ? randomUUID() : undefined;
-        setupNonceExpiresAt = needsSetup ? Date.now() + 5 * 60_000 : 0;
-        return sendJson(res, 200, { needsSetup, tlsEnabled, setupNonce });
+        return sendJson(res, 200, { needsSetup, tlsEnabled, setupTransport: boundToLoopback ? 'loopback-only' : 'disabled-until-loopback' });
       }
       if (path === '/api/setup' && req.method === 'POST') {
         if (!boundToLoopback && !tlsEnabled) {
           return sendJson(res, 400, { error: 'SETUP_REQUIRES_TLS', message: 'First-time setup over a non-loopback connection requires TLS.' });
         }
         if (hasAdminAccount(accountStore)) return sendJson(res, 409, { error: 'ALREADY_SET_UP', message: 'An administrator account already exists.' });
-        const body = await readJsonBody(req) as { username?: string; password?: string; setupNonce?: string };
-        if (typeof body.setupNonce !== 'string' || body.setupNonce.length < 20) {
-          return sendJson(res, 400, { error: 'SETUP_NONCE_REQUIRED', message: 'Fetch a fresh setup nonce before submitting the first administrator account.' });
-        }
-        /* The nonce is intentionally single-use and process-local. Account creation is
-         * still guarded by the durable account file, so a restart cannot reopen setup. */
-        if (body.setupNonce !== setupNonce || Date.now() >= setupNonceExpiresAt) {
-          return sendJson(res, 400, { error: 'SETUP_NONCE_INVALID', message: 'That setup nonce is no longer valid. Fetch a fresh setup nonce.' });
-        }
-        setupNonce = undefined;
-        setupNonceExpiresAt = 0;
+        const body = await readJsonBody(req) as { username?: string; password?: string };
         try {
           createAdminAccount(accountStore, String(body.username ?? ''), String(body.password ?? ''));
         } catch (error) {
