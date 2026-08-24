@@ -5,7 +5,7 @@
   "features": {
     "language-modes": {
       "status": "partial",
-      "note": "site/app.js applyLanguage() switches document.lang and preview copy between English, Cantonese and bilingual, wired from initSettings() language-mode select. The handwritten PAGE_COPY_INVENTORY checks 12 dynamic surfaces and 6 five-level COPY keys, with missing-surface and missing-key counts exposed on the page. Authored article prose remains source-preserving English and is explicitly outside the dynamic COPY key count.",
+      "note": "site/app.js applyLanguage() switches document.lang and every scanned static text node plus aria-label, placeholder, and title attribute between English, generated Cantonese source, and bilingual output, wired from initSettings() language-mode select. The handwritten PAGE_COPY_INVENTORY checks 12 dynamic surfaces and 6 five-level COPY keys, while the static-copy catalog reports its scanned and missing text and attribute counts. Technical identifiers, paths, dates, hashes, URLs, code, and product facts remain exact. Prose without a phrase translation is explicitly marked as generated source boundary copy.",
       "implementation": {
         "paths": [
           "site/app.js",

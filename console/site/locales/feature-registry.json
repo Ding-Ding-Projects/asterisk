@@ -1,7 +1,7 @@
 {
   "surface": "pages-site",
   "schemaVersion": 1,
-  "readme": "Localization evidence for the Pages site, one row per canonical feature. The site localizes through its own COPY table rather than the console boundary, because it is a separate artifact that ships without the renderer. `copyKeys` names the entries a feature depends on; a row is `localized` only when every one of them exists in site/app.js, so this file is checkable against that source rather than asserted. PAGE_COPY_INVENTORY checks the 12 dynamic surfaces and 6 five-level COPY keys touched by the current surface. Authored article prose remains explicitly source-preserving English. The contract test recomputes every state and fails on any row that disagrees.",
+  "readme": "Localization evidence for the Pages site, one row per canonical feature. The site localizes through its own COPY table and static-copy catalog rather than the console boundary, because it is a separate artifact that ships without the renderer. `copyKeys` names the entries a feature depends on; a row is `localized` only when every one of them exists in site/app.js, so this file is checkable against that source rather than asserted. PAGE_COPY_INVENTORY checks the 12 dynamic surfaces and 6 five-level COPY keys, while the static catalog records every scanned text node and aria-label, placeholder, or title attribute with its missing count. Technical and factual text remains exact, and generated Cantonese boundaries are labelled honestly. The contract test recomputes every state and fails on any row that disagrees.",
   "languageModes": [
     "en",
     "zh",

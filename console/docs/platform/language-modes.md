@@ -14,15 +14,15 @@ The choice would live in application or site settings, persist across sessions, 
 
 **Desktop application:** Not implemented. No language selector exists anywhere in the interface; every label is a fixed English string with no translation table behind it.
 
-**Documentation website:** Partial. Every top-level page and composed article now receives the same persisted English, Cantonese, and bilingual control. Shared shell labels and status copy change immediately; authored article prose remains its original source text, and the shell states that limitation.
+**Documentation website:** Partial, source-boundary proof unverified. Every top-level page and composed article is scanned into a static-copy catalog at runtime, with an English source, a Cantonese source, five independent surrounding-copy levels per language, and bilingual rendering. Technical identifiers, paths, dates, hashes, URLs, code, and product facts remain byte-identical. The catalog reports scanned and missing counts through the handwritten inventory. The Cantonese fallback for prose not yet phrase-translated is explicitly labelled as a generated source boundary rather than silently called a human translation.
 
 ## Failure modes
 
-Where a translation is missing for a chosen mode, the intended behavior is to fall back to English for that string rather than showing a blank or broken label; today there is nothing to fall back from, since no second language exists yet.
+Where a static text node is missing from the catalog, the inventory reports it and keeps the English source rather than dropping or inventing the string. Technical and factual text intentionally remains exact in every language mode.
 
 ## Accessibility and localization
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.
+This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. The Day Teet Hui static catalog covers text nodes and the accessibility attributes it can scan, with a generated Cantonese source boundary for prose not yet phrase-translated.
 
 ## Verification
 
