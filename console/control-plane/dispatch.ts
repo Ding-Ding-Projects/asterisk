@@ -979,6 +979,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           const credential = (request.payload as { credential?: ToyLockCredentialReference } | undefined)?.credential;
           if (credential) await authLocks.vault.remove(credential).catch(() => false);
         }
+        if (!result.ok) return { ok: true, requestId: request.requestId, data: { ok: false, code: result.code === 'vault-unavailable' ? 'vault-unavailable' : 'persistence-unavailable', message: result.message, waitCreated: false } };
         return { ok: true, requestId: request.requestId, data: result };
       }
       if (request.action === 'toy-lock.unlock') {
@@ -992,6 +993,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const surfaceId = typeof request.payload?.surfaceId === 'string' ? request.payload.surfaceId : undefined;
         const result = await authLocks.locks.unlock(id, candidate, surfaceId);
         if (!result.ok && result.code === 'verification-failed') { await authLocks.createLadderWait(id); return { ok: true, requestId: request.requestId, data: { ...result, waitCreated: true } }; }
+        if (!result.ok) return { ok: true, requestId: request.requestId, data: { ok: false, code: result.code === 'vault-unavailable' ? 'vault-unavailable' : 'persistence-unavailable', message: result.message, waitCreated: false } };
         return { ok: true, requestId: request.requestId, data: result };
       }
       if (request.action === 'toy-lock.relock' || request.action === 'toy-lock.remove') {

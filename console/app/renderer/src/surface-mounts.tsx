@@ -16,7 +16,7 @@ import { createDurableStorage } from './durable-storage';
 import type { AuthenticatorRegistration } from '../../../shared/authenticator';
 import { LockManagerSurface } from './lock-manager-surface';
 import type { ToyLockClient, ToyLockCredentialClient } from './lock-manager-surface';
-import type { ToyLockRecord, ToyLockRecoveryMetadata } from '../../../shared/locks';
+import type { ToyLockRecord, ToyLockRecoveryMetadata, ToyLockRemovalReceipt, ToyLockUnlockReceipt } from '../../../shared/locks';
 import { SupportTicketsSurface } from './support-tickets-surface';
 import type { SupportTicket, SupportTicketsClient } from './support-tickets-surface';
 import { UnlockLadderSurface } from './unlock-ladder-surface';
@@ -82,9 +82,9 @@ const lockClient: ToyLockClient = {
   initialize: async () => { const [ready, listed, recovery] = await Promise.all([bridgeRequest<LockAction<{ count: number }>>('toy-lock.initialize'), bridgeRequest<LockAction<ReadonlyArray<ToyLockRecord>>>('toy-lock.list'), bridgeRequest<ToyLockRecoveryMetadata>('toy-lock.recovery')]); if (!listed.ok) return listed; lockRecords = listed.value; lockRecovery = recovery; return ready; },
   list: () => ({ ok: true as const, value: lockRecords }),
   create: async (input) => { const result = await bridgeRequest<LockAction<ToyLockRecord>>('toy-lock.create', input); if (result.ok) lockRecords = [...lockRecords, result.value]; return result; },
-  unlock: async (id, candidate, surfaceId) => { const result = await bridgeRequest<LockAction<ToyLockRecord> & { waitCreated?: boolean; code?: string }>('toy-lock.unlock', { id, candidateBase64: btoa(String.fromCharCode(...candidate)), surfaceId }); if (result.ok) lockRecords = lockRecords.map((record) => record.id === id ? result.value : record); return result; },
+  unlock: async (id, candidate, surfaceId) => { const result = await bridgeRequest<ToyLockUnlockReceipt<ToyLockRecord>>('toy-lock.unlock', { id, candidateBase64: btoa(String.fromCharCode(...candidate)), surfaceId }); if (result.ok) lockRecords = lockRecords.map((record) => record.id === id ? result.value : record); return result; },
   relock: async (id) => { const result = await bridgeRequest<LockAction<ToyLockRecord>>('toy-lock.relock', { id }); if (result.ok) lockRecords = lockRecords.map((record) => record.id === id ? result.value : record); return result; },
-  remove: async (id) => { const result = await bridgeRequest<LockAction<{ removed: true }>>('toy-lock.remove', { id }); if (result.ok) lockRecords = lockRecords.filter((record) => record.id !== id); return result; },
+  remove: async (id) => { const result = await bridgeRequest<LockAction<{ removed: true }>>('toy-lock.remove', { id }); if (result.ok) { lockRecords = lockRecords.filter((record) => record.id !== id); return { status: 'removed' as const, value: result.value }; } return { status: 'recoverable' as const, message: result.message, recoverable: true }; },
   get recovery() { return lockRecovery; },
 };
 const lockCredentials: ToyLockCredentialClient = { create: (targetId, method, value) => bridgeRequest('toy-lock-credential.create', { targetId, method, value }) };

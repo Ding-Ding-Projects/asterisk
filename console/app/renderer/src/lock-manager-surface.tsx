@@ -6,6 +6,7 @@ import type {
   ToyLockRecoveryMetadata,
   ToyLockUnlockDuration,
 } from '../../../shared/locks';
+import type { ToyLockRemovalReceipt, ToyLockUnlockReceipt } from '../../../shared/locks';
 import { assertStableLockId, assertToyLockUnlockDuration, isToyLockOpen } from '../../../shared/locks';
 import { withDeadline } from './authenticator-surface-state';
 import './authenticator-surface.css';
@@ -15,9 +16,9 @@ export interface ToyLockClient {
   initialize(): Promise<{ ok: true; value: { count: number } } | { ok: false; message: string }>;
   list(): { ok: true; value: ReadonlyArray<ToyLockRecord> } | { ok: false; message: string };
   create(input: Omit<CreateToyLockInput, 'at'>): Promise<{ ok: true; value: ToyLockRecord } | { ok: false; message: string }>;
-  unlock(id: string, candidate: Uint8Array, surfaceId?: string): Promise<{ ok: true; value: ToyLockRecord } | { ok: false; message: string; code?: string; waitCreated?: boolean }>;
+  unlock(id: string, candidate: Uint8Array, surfaceId?: string): Promise<ToyLockUnlockReceipt<ToyLockRecord>>;
   relock(id: string): Promise<{ ok: true; value: ToyLockRecord } | { ok: false; message: string }>;
-  remove(id: string): Promise<{ ok: true; value: { removed: true } } | { ok: false; message: string }>;
+  remove(id: string): Promise<ToyLockRemovalReceipt>;
   readonly recovery: ToyLockRecoveryMetadata;
 }
 
@@ -129,7 +130,7 @@ export function LockManagerSurface({ client, credentials, surfaceId, onNotice, o
   const remove = async (record: ToyLockRecord): Promise<boolean> => {
     if (busy) return false;
     setBusy(true);
-    try { const result = await withDeadline(client.remove(record.id)); if (!result.ok) throw new Error(result.message); await refresh(); return true; }
+    try { const result = await withDeadline(client.remove(record.id)); if (result.status !== 'removed') throw new Error(result.message); await refresh(); return true; }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'The lock could not be removed.'); }
     finally { setBusy(false); }
     return false;
