@@ -57,6 +57,26 @@ export interface ControlBinding {
    * binding one of them and quietly dropping the other.
    */
   composite?: { separator: string; part: 'before' | 'after' };
+  /**
+   * Set when the section is identified by what it IS rather than by its name.
+   *
+   * pjsip.conf and its relatives name each section after the object it configures -- [6001],
+   * [carrier-primary] -- and declare what it is inside, as `type=endpoint`. The headings that
+   * look like section names in the sample file, `[endpoint]` and `[aor]`, are commented out:
+   * they are documentation. A binding naming one of them matches nothing on any real file,
+   * which is exactly what nineteen bindings here were doing.
+   *
+   * When this is set, `section` is ignored for matching and the first section declaring this
+   * type is used instead.
+   */
+  sectionType?: string;
+}
+
+/** The first section declaring `type=<wanted>`, as a real pjsip.conf spells it. */
+function sectionOfType(value: ConfigValue, wanted: string): ConfigSection | undefined {
+  return value.find((candidate) => candidate.entries.some(
+    (entry) => entry.key === 'type' && entry.value.trim().toLowerCase() === wanted,
+  ));
 }
 
 /** Splits a composite value into its two halves, tolerating a missing or malformed one. */
@@ -192,6 +212,20 @@ function toRaw(
   }
 }
 
+/** The same three helpers, for a section identified by its type rather than its name. */
+function bt(control: string, type: string, key: string, invert?: boolean): ControlBinding {
+  return { ...b(control, type, key, invert), sectionType: type };
+}
+function nt(control: string, type: string, key: string): ControlBinding {
+  return { ...n(control, type, key), sectionType: type };
+}
+function st(control: string, type: string, key: string): ControlBinding {
+  return { ...s(control, type, key), sectionType: type };
+}
+function lt(control: string, type: string, key: string): ControlBinding {
+  return { ...l(control, type, key), sectionType: type };
+}
+
 function b(control: string, section: string, key: string, invert?: boolean): ControlBinding {
   return invert ? { control, section, key, kind: 'boolean', invert } : { control, section, key, kind: 'boolean' };
 }
@@ -279,20 +313,20 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   // accepts for `callerid_privacy` (e.g. `allowed_not_screened`), so writing the
   // design's own words back would corrupt the setting.
   endpoints: [
-    s('e_transport', 'endpoint', 'transport'),
-    s('e_context', 'endpoint', 'context'),
-    b('e_trust', 'endpoint', 'trust_id_inbound'),
-    b('e_direct', 'endpoint', 'direct_media'),
-    b('e_symmetric', 'endpoint', 'rtp_symmetric'),
-    b('e_forcerport', 'endpoint', 'force_rport'),
-    b('e_rewrite', 'endpoint', 'rewrite_contact'),
-    b('e_ice', 'endpoint', 'ice_support'),
-    s('e_encryption', 'endpoint', 'media_encryption'),
-    s('e_dtmf', 'endpoint', 'dtmf_mode'),
-    l('e_codecs', 'endpoint', 'allow'),
-    n('e_maxcontacts', 'aor', 'max_contacts'),
-    n('e_qualify', 'aor', 'qualify_frequency'),
-    n('e_expiry', 'aor', 'default_expiration'),
+    st('e_transport', 'endpoint', 'transport'),
+    st('e_context', 'endpoint', 'context'),
+    bt('e_trust', 'endpoint', 'trust_id_inbound'),
+    bt('e_direct', 'endpoint', 'direct_media'),
+    bt('e_symmetric', 'endpoint', 'rtp_symmetric'),
+    bt('e_forcerport', 'endpoint', 'force_rport'),
+    bt('e_rewrite', 'endpoint', 'rewrite_contact'),
+    bt('e_ice', 'endpoint', 'ice_support'),
+    st('e_encryption', 'endpoint', 'media_encryption'),
+    st('e_dtmf', 'endpoint', 'dtmf_mode'),
+    lt('e_codecs', 'endpoint', 'allow'),
+    nt('e_maxcontacts', 'aor', 'max_contacts'),
+    nt('e_qualify', 'aor', 'qualify_frequency'),
+    nt('e_expiry', 'aor', 'default_expiration'),
   ],
 
   // configs/samples/pjsip.conf.sample — [registration] template (~line 1522) for the
@@ -300,11 +334,11 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   // holds a failover order list), t_from (no from-domain-source enum key) and
   // t_privacy (no privacy-header key with these exact values) are unmapped.
   trunks: [
-    n('t_retry', 'registration', 'retry_interval'),
-    n('t_forbidden', 'registration', 'forbidden_retry_interval'),
-    n('t_fatal', 'registration', 'max_retries'),
-    b('t_pai', 'endpoint', 'send_pai'),
-    s('t_100rel', 'endpoint', '100rel'),
+    nt('t_retry', 'registration', 'retry_interval'),
+    nt('t_forbidden', 'registration', 'forbidden_retry_interval'),
+    nt('t_fatal', 'registration', 'max_retries'),
+    bt('t_pai', 'endpoint', 'send_pai'),
+    st('t_100rel', 'endpoint', '100rel'),
   ],
 
   // configs/samples/extensions.conf.sample has no keyed IVR-behaviour settings of this
@@ -499,7 +533,9 @@ export function readControlValues(screen: string, value: ConfigValue | undefined
   const out: Record<string, unknown> = {};
   if (!value) return out;
   for (const binding of bindingsFor(screen)) {
-    const section = value.find((candidate) => candidate.name === binding.section);
+    const section = binding.sectionType
+      ? sectionOfType(value, binding.sectionType)
+      : value.find((candidate) => candidate.name === binding.section);
     const entry = section?.entries.find((e) => e.key === binding.key);
     if (!entry) continue;
     const rawValue = binding.composite
@@ -538,8 +574,16 @@ export function applyControlValues(
     const own = toRaw(changes[binding.control], binding.kind, binding.invert, binding.valueMap);
     if (own === undefined) continue;
 
-    let section = sections.find((sec) => sec.name === binding.section);
+    let section = binding.sectionType
+      ? sections.find((sec) => sec.entries.some(
+        (entry) => entry.key === 'type' && entry.value.trim().toLowerCase() === binding.sectionType))
+      : sections.find((sec) => sec.name === binding.section);
     if (!section) {
+      /* A type-matched binding does not invent a section. Creating [endpoint] because no
+       * endpoint exists yet would write a section Asterisk reads as an object literally
+       * called "endpoint", which is not what anybody meant. Making one is the endpoint
+       * editor's job, and it names it after the extension. */
+      if (binding.sectionType) continue;
       section = { name: binding.section, entries: [] };
       sections.push(section);
     }

@@ -426,3 +426,74 @@ test('a malformed stored value does not stop the other half being edited', () =>
   const after = applyControlValues('httpd', cfg, { ht_tlsport: 8443 });
   assert.match(after[0].entries[0].value, /8443$/u);
 });
+
+// ---------------------------------------------------------------- sections found by type
+
+/** A pjsip.conf as Asterisk actually receives one: sections named after the object. */
+const realisticPjsip: ConfigValue = [
+  { name: 'transport-udp', entries: [{ key: 'type', value: 'transport' }, { key: 'protocol', value: 'udp' }] },
+  { name: '6001', entries: [
+    { key: 'type', value: 'endpoint' },
+    { key: 'transport', value: 'transport-udp' },
+    { key: 'context', value: 'from-internal' },
+  ] },
+  { name: '6001-aor', entries: [{ key: 'type', value: 'aor' }, { key: 'max_contacts', value: '3' }] },
+];
+
+test('a binding finds its section by what it is, not by what it is called', () => {
+  /* This is the defect these bindings shipped with. The headings that look like section
+   * names in pjsip.conf.sample -- [endpoint], [aor] -- are COMMENTED OUT: documentation, not
+   * sections. A real file names each section after the object and says what it is inside. So
+   * fourteen bindings looked for a section literally called "endpoint" and found nothing, on
+   * every real file, and no test looked because none existed for this screen. */
+  const values = readControlValues('endpoints', realisticPjsip);
+  assert.equal(values.e_transport, 'transport-udp');
+  assert.equal(values.e_context, 'from-internal');
+  assert.equal(values.e_maxcontacts, 3, 'the aor section was not found by its type either');
+});
+
+test('the fabricated section name no longer matches, which is the point', () => {
+  /* A section literally called [endpoint] is not an endpoint; it is an object somebody named
+   * "endpoint". Matching it was the bug. */
+  const fabricated: ConfigValue = [{ name: 'endpoint', entries: [{ key: 'transport', value: 'transport-udp' }] }];
+  assert.deepEqual(readControlValues('endpoints', fabricated), {});
+});
+
+test('writing goes into the object section, leaving its name and type alone', () => {
+  const after = applyControlValues('endpoints', realisticPjsip, { e_context: 'from-trunks' });
+  const edited = after.find((section) => section.name === '6001');
+  assert.equal(edited.entries.find((e) => e.key === 'context').value, 'from-trunks');
+  assert.equal(edited.entries.find((e) => e.key === 'type').value, 'endpoint', 'the type was disturbed');
+  assert.equal(after.length, realisticPjsip.length, 'a section was invented');
+});
+
+test('with no such object, nothing is written and no section is invented', () => {
+  /* Creating [endpoint] because no endpoint exists yet would write an object Asterisk reads
+   * as one literally called "endpoint". Making a real one is the endpoint editor's job, and
+   * it names it after the extension. */
+  const empty: ConfigValue = [{ name: 'general', entries: [] }];
+  const after = applyControlValues('endpoints', empty, { e_context: 'from-internal' });
+  assert.deepEqual(after, empty);
+});
+
+test('the first object of that type is the one used, consistently for read and write', () => {
+  const two: ConfigValue = [
+    { name: '6001', entries: [{ key: 'type', value: 'endpoint' }, { key: 'context', value: 'first' }] },
+    { name: '6002', entries: [{ key: 'type', value: 'endpoint' }, { key: 'context', value: 'second' }] },
+  ];
+  assert.equal(readControlValues('endpoints', two).e_context, 'first');
+  const after = applyControlValues('endpoints', two, { e_context: 'changed' });
+  assert.equal(after[0].entries.find((e) => e.key === 'context').value, 'changed');
+  assert.equal(after[1].entries.find((e) => e.key === 'context').value, 'second', 'it edited more than one object');
+});
+
+test('a type is matched however Asterisk spells its case and spacing', () => {
+  const odd: ConfigValue = [{ name: '6001', entries: [{ key: 'type', value: ' Endpoint ' }, { key: 'context', value: 'x' }] }];
+  assert.equal(readControlValues('endpoints', odd).e_context, 'x');
+});
+
+test('a fixed section like [general] still matches by name', () => {
+  /* Most files genuinely do have one, and nothing about them changed. */
+  const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'bindaddr', value: '127.0.0.1' }] }];
+  assert.equal(readControlValues('httpd', cfg).ht_bindaddr, '127.0.0.1');
+});
