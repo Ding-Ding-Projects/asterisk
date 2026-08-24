@@ -47,7 +47,7 @@ $headCommit = (& git -C $repoRoot rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or $headCommit -notmatch '^[0-9a-f]{40}$') { throw 'Could not resolve the exact candidate commit from the checkout.' }
 if ([string]::IsNullOrWhiteSpace($CandidateCommit)) { $CandidateCommit = $headCommit }
 if ($CandidateCommit -ne $headCommit) { throw "Candidate commit $CandidateCommit does not match checkout HEAD $headCommit." }
-if ([string]::IsNullOrWhiteSpace($Version)) { $Version = (Get-Content -Raw (Join-Path $repoRoot 'consolepackage.json') | ConvertFrom-Json).version }
+if ([string]::IsNullOrWhiteSpace($Version)) { $Version = (Get-Content -Raw (Join-Path $repoRoot 'console\package.json') | ConvertFrom-Json).version }
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "Version '$Version' must be numeric semantic version text." }
 $env:DING_PBX_VERSION = $Version
 $env:DING_PBX_CANDIDATE_COMMIT = $CandidateCommit
@@ -98,7 +98,7 @@ try {
     foreach ($package in $delta) { if ($releaseText -notmatch [regex]::Escape($package.Name)) { throw "RELEASES does not reference $($package.Name)" } }
     if ($identity.artifacts.setup.name -ne $setup[0].Name -or $identity.artifacts.releases.name -ne $releases[0].Name) { throw 'release identity does not name the exact Setup.exe and RELEASES artifacts' }
     if (@($identity.artifacts.fullPackages).Count -ne $full.Count) { throw 'release identity does not enumerate every full package' }
-    $hashLines = Get-ChildItem -LiteralPath $output -File | Sort-Object Name | ForEach-Object { "{0}  {1}" -f (Get-Sha256 $_.FullName), $_.Name }
+    $hashLines = Get-ChildItem -LiteralPath $output -File | Where-Object Name -ne 'SHA256SUMS.txt' | Sort-Object Name | ForEach-Object { "{0}  {1}" -f (Get-Sha256 $_.FullName), $_.Name }
     $hashLines | Set-Content -Encoding ascii (Join-Path $output 'SHA256SUMS.txt')
     if (-not (Test-UnsignedPortableExecutable $setup[0].FullName)) { throw 'code-signing policy violation: Setup.exe contains an Authenticode certificate table' }
 

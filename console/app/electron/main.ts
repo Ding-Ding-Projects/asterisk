@@ -17,10 +17,10 @@ let mainWindow: BrowserWindow | null = null;
 const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false });
 const { controlPlaneRequest } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
-let unsavedDraftCount = 0;
 let updateCheckInFlight: Promise<void> | undefined;
 let updateGeneration = 0;
 let installingLatch: Promise<UpdaterRestartResult> | undefined;
+let restartQuitScheduled = false;
 
 function readInitialState(): UpdaterState {
   const identity = readCurrentIdentity();
@@ -40,7 +40,7 @@ function toRendererStatus(state: UpdaterState): UpdaterStatusForRenderer {
     latestVersion: state.resolved?.version,
     releaseUrl: state.resolved?.releaseUrl,
     lastError: state.lastError,
-    unsavedDraftCount,
+    unsavedDraftCount: state.unsavedDraftCount,
     restartPending: state.restartPending,
     dismissed: Boolean(state.dismissedTag && state.dismissedTag === state.resolved?.tag),
   };
@@ -125,25 +125,34 @@ ipcMain.handle('updater:get-status', () => toRendererStatus(updaterState));
 ipcMain.handle('updater:check-now', async () => { await runUpdateCheck(true); return toRendererStatus(updaterState); });
 ipcMain.on('updater:dismiss', () => publishUpdaterState(dismissedForNow(updaterState)));
 ipcMain.on('updater:set-draft-count', (_event, count: unknown) => {
-  unsavedDraftCount = Number.isSafeInteger(count) && Number(count) >= 0 ? Math.min(Number(count), 10000) : 0;
+  const unsavedDraftCount = Number.isSafeInteger(count) && Number(count) >= 0 ? Math.min(Number(count), 10000) : 0;
+  updaterState = { ...updaterState, unsavedDraftCount, revision: updaterState.revision + 1 };
   mainWindow?.webContents.send('updater:status', toRendererStatus(updaterState));
 });
 ipcMain.handle('updater:restart-to-install', async (): Promise<UpdaterRestartResult> => {
   if (installingLatch) return installingLatch;
-  if (unsavedDraftCount > 0) return { ok: false, reason: 'Review, apply, or discard PBX drafts before restarting to install the update.' };
+  if (updaterState.unsavedDraftCount > 0) return { ok: false, reason: 'Review, apply, or discard PBX drafts before restarting to install the update.' };
   if (updaterState.state !== 'ready' || !updaterState.downloadedPath) return { ok: false, reason: 'The update is not ready to install.' };
-  installingLatch = (async () => {
+  const attempt = (async () => {
     publishUpdaterState({ ...updaterState, restartPending: true, revision: updaterState.revision + 1 });
     const result = await launchInstaller(updaterState.downloadedPath!);
     if (!result.ok) {
       publishUpdaterState(updateFailed(updaterState, result.reason));
       return result;
     }
-    await new Promise<void>((resolve) => setImmediate(resolve));
-    app.quit();
     return result;
-  })().finally(() => { installingLatch = undefined; });
-  return installingLatch;
+  })();
+  installingLatch = attempt;
+  const result = await attempt;
+  if (!result.ok) {
+    if (installingLatch === attempt) installingLatch = undefined;
+    return result;
+  }
+  if (!restartQuitScheduled) {
+    restartQuitScheduled = true;
+    setImmediate(() => app.quit());
+  }
+  return result;
 });
 
 function createWindow(): void {

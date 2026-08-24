@@ -101,27 +101,45 @@ export async function downloadAsset(asset: ReleaseAsset, fetchImpl: typeof fetch
   if (!Number.isSafeInteger(asset.size) || asset.size <= 0 || asset.size > MAX_INSTALLER_BYTES) throw new Error('The release installer size is outside the safe limit.');
   if (basename(asset.name) !== asset.name || asset.name.length > 160) throw new Error('The release installer name is unsafe.');
   const directory = await mkdtemp(join(tmpdir(), TEMP_PREFIX));
-  const path = join(directory, asset.name);
+    const path = join(directory, asset.name);
   try {
     const response = await fetchBounded(fetchImpl, asset.browserDownloadUrl, {}, MAX_INSTALLER_BYTES, 'Setup.exe download');
     if (!response.body) throw new Error('Setup.exe download had no body.');
     const reader = response.body.getReader();
     const stream = createWriteStream(path, { flags: 'wx' });
+    let streamFailure: Error | undefined;
+    stream.on('error', (error) => { streamFailure = error; });
     const hash = createHash('sha256');
     let total = 0;
     try {
       for (;;) {
         const part = await withDeadline(reader.read(), STREAM_READ_TIMEOUT_MS, 'Setup.exe stream read timed out.');
         if (part.done) break;
+        if (streamFailure) throw streamFailure;
         total += part.value.byteLength;
         if (total > MAX_INSTALLER_BYTES || total > asset.size) throw new Error('Setup.exe exceeded its declared size.');
         hash.update(part.value);
-        if (!stream.write(part.value)) await withDeadline(new Promise<void>((resolve) => stream.once('drain', resolve)), STREAM_READ_TIMEOUT_MS, 'Setup.exe disk write stalled.');
+        if (!stream.write(part.value)) {
+          await withDeadline(new Promise<void>((resolve, reject) => {
+            const onDrain = () => { cleanup(); resolve(); };
+            const onError = (error: Error) => { cleanup(); reject(error); };
+            const cleanup = () => { stream.removeListener('drain', onDrain); stream.removeListener('error', onError); };
+            stream.once('drain', onDrain);
+            stream.once('error', onError);
+          }), STREAM_READ_TIMEOUT_MS, 'Setup.exe disk write stalled.');
+        }
       }
     } finally {
       await reader.cancel().catch(() => undefined);
-      await new Promise<void>((resolve, reject) => stream.end((error) => error ? reject(error) : resolve()));
+      await withDeadline(new Promise<void>((resolve, reject) => {
+        const onError = (error: Error) => { cleanup(); reject(error); };
+        const onFinish = (error?: Error | null) => { cleanup(); error ? reject(error) : resolve(); };
+        const cleanup = () => stream.removeListener('error', onError);
+        stream.once('error', onError);
+        stream.end(onFinish);
+      }), STREAM_READ_TIMEOUT_MS, 'Setup.exe disk close stalled.');
     }
+    if (streamFailure) throw streamFailure;
     const result = await stat(path);
     return { path, directory, sha256: hash.digest('hex'), size: result.size };
   } catch (error) {
@@ -152,11 +170,24 @@ export async function sweepStaleDownloads(maxAgeMs = 24 * 60 * 60 * 1000): Promi
 export async function launchInstaller(installerPath: string): Promise<{ ok: true } | { ok: false; reason: string }> {
   return new Promise((resolve) => {
     let settled = false;
-    const finish = (result: { ok: true } | { ok: false; reason: string }) => { if (!settled) { settled = true; resolve(result); } };
-    const child = spawn(installerPath, ['--silent'], { detached: true, stdio: 'ignore', windowsHide: true });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const finish = (result: { ok: true } | { ok: false; reason: string }) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      resolve(result);
+    };
+    let child: ReturnType<typeof spawn>;
+    try {
+      child = spawn(installerPath, ['--silent'], { detached: true, stdio: 'ignore', windowsHide: true });
+    } catch (error) {
+      finish({ ok: false, reason: `Could not start the installer: ${error instanceof Error ? error.message : String(error)}` });
+      return;
+    }
     child.once('spawn', () => { child.unref(); finish({ ok: true }); });
     child.once('error', (error) => finish({ ok: false, reason: `Could not start the installer: ${error.message}` }));
-    setTimeout(() => finish({ ok: false, reason: 'Installer start timed out.' }), REQUEST_TIMEOUT_MS).unref();
+    timer = setTimeout(() => finish({ ok: false, reason: 'Installer start timed out.' }), REQUEST_TIMEOUT_MS);
+    timer.unref();
   });
 }
 

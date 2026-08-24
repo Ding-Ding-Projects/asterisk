@@ -151,13 +151,24 @@ export function validateReleaseIdentity(identity: unknown, resolved: ResolvedUpd
   if (!records.every((record) => Boolean(record && typeof record.name === 'string' && Number.isSafeInteger(record.size) && record.size > 0 && typeof record.sha256 === 'string' && SHA_PATTERN.test(record.sha256)))) {
     return { ok: false, reason: 'The published release identity contains an invalid artifact digest record.' };
   }
+  const recordNames = records.map((record) => record.name);
+  if (new Set(recordNames).size !== recordNames.length) {
+    return { ok: false, reason: 'The published release identity contains duplicate artifact records.' };
+  }
+  const escapedVersion = resolved.version.replace(/[.]/gu, '\\.');
+  const versionPattern = new RegExp(`-${escapedVersion}-(?:full|delta)\\.nupkg$`, 'iu');
+  if (!artifacts.fullPackages.every((record) => versionPattern.test(record.name)) || !artifacts.deltaPackages.every((record) => versionPattern.test(record.name)) || artifacts.setup.name !== 'Ding-PBX-Console-Setup.exe') {
+    return { ok: false, reason: 'The published artifact filenames do not carry the release version.' };
+  }
   const resolvedAssets = [...resolved.fullPackageAssets, ...resolved.deltaPackageAssets, resolved.setupAsset, resolved.releasesAsset];
   for (const record of records) {
     const asset = resolvedAssets.find((candidate) => candidate.name === record.name);
     if (!asset) return { ok: false, reason: `The published release identity names an unknown artifact ${record.name}.` };
     if (asset && asset.size !== record.size) return { ok: false, reason: `The published release identity does not match asset ${record.name}.` };
   }
-  if (artifacts.setup.name !== resolved.setupAsset.name || artifacts.releases.name !== resolved.releasesAsset.name ||
+  const resolvedNames = resolvedAssets.map((asset) => asset.name);
+  if (new Set(resolvedNames).size !== resolvedNames.length || recordNames.length !== resolvedNames.length || recordNames.some((name) => !resolvedNames.includes(name)) ||
+    artifacts.setup.name !== resolved.setupAsset.name || artifacts.releases.name !== resolved.releasesAsset.name ||
     artifacts.fullPackages.length !== resolved.fullPackageAssets.length || artifacts.fullPackages.some((record) => !resolved.fullPackageAssets.some((asset) => asset.name === record.name && asset.size === record.size)) ||
     artifacts.deltaPackages.length !== resolved.deltaPackageAssets.length || artifacts.deltaPackages.some((record) => !resolved.deltaPackageAssets.some((asset) => asset.name === record.name && asset.size === record.size))) {
     return { ok: false, reason: 'The published release identity does not enumerate the complete Squirrel artifact set.' };
@@ -184,10 +195,11 @@ export interface UpdaterState {
   revision: number;
   dismissedTag: string | undefined;
   restartPending: boolean;
+  unsavedDraftCount: number;
 }
 
 export function initialUpdaterState(currentVersion: Version | undefined, currentTag?: string): UpdaterState {
-  return { state: 'idle', currentVersion, currentTag, resolved: undefined, downloadedPath: undefined, lastCheckedAt: undefined, lastError: undefined, revision: 0, dismissedTag: undefined, restartPending: false };
+  return { state: 'idle', currentVersion, currentTag, resolved: undefined, downloadedPath: undefined, lastCheckedAt: undefined, lastError: undefined, revision: 0, dismissedTag: undefined, restartPending: false, unsavedDraftCount: 0 };
 }
 
 export function shouldCheckNow(lastCheckedAt: string | undefined, now: Date, intervalMs: number): boolean {

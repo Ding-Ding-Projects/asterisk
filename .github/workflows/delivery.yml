@@ -138,7 +138,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path release-staging,evidence | Out-Null
           Copy-Item console/dist/squirrel-windows/squirrel-windows/* -Destination release-staging -Force
           Copy-Item console/resources/update-manifest.json -Destination release-staging/update-manifest.json -Force
-          Get-ChildItem release-staging -File | Sort-Object Name | ForEach-Object {
+          Get-ChildItem release-staging -File | Where-Object Name -ne 'SHA256SUMS.txt' | Sort-Object Name | ForEach-Object {
             "{0}  {1}" -f (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant(), $_.Name
           } | Set-Content -Encoding ascii release-staging/SHA256SUMS.txt
           Copy-Item console/release/line-count.md,console/release/line-count.json -Destination release-staging

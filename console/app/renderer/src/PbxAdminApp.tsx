@@ -145,7 +145,14 @@ export class PbxAdminApp extends App {
     return { screen: state.screen ?? '', values: state.values ?? {} };
   }
 
-  private publishDraftCount(count: number): void {
+  private publishDraftCount(currentKey?: string, currentValue?: ConfigValue): void {
+    let count = 0;
+    for (const [key, draft] of this.adminDrafts) {
+      const loaded = this.adminLoaded.get(key);
+      if (!loaded) continue;
+      const value = key === currentKey && currentValue ? currentValue : draft;
+      if (JSON.stringify(value) !== JSON.stringify(loaded)) count += 1;
+    }
     if (count === this.publishedDraftCount) return;
     this.publishedDraftCount = count;
     window.dingDesktop?.updater.setUnsavedDraftCount(count);
@@ -458,8 +465,7 @@ export class PbxAdminApp extends App {
         ctls: structureCtls,
       });
 
-      const changed = key && this.adminLoaded.has(key) && JSON.stringify(draft) !== JSON.stringify(this.adminLoaded.get(key));
-      this.publishDraftCount(changed ? 1 : 0);
+      this.publishDraftCount(typeof key === 'string' ? key : undefined, draft);
       const planDiffs = plan?.diffs?.length ?? 0;
       groups.push({
         title: 'Review & apply',
