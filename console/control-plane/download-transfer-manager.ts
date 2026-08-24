@@ -3,6 +3,8 @@ import { createReadStream, existsSync, lstatSync, readFileSync } from 'node:fs';
 import { mkdir, open, stat, unlink } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { basename, dirname, isAbsolute, join, parse, relative, resolve, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import {
@@ -28,6 +30,7 @@ const REPARSE_INSPECTION_DEADLINE_MS = 10_000;
 const INTEGRITY_READ_DEADLINE_MS = 30_000;
 const SNAPSHOT_STATUSES = new Set(['queued', 'downloading', 'paused', 'completed', 'failed', 'cancelled', 'partial']);
 const TIMEOUT_KINDS = new Set(['header', 'body-idle', 'total']);
+const execFileAsync = promisify(execFile);
 const execFileAsync = promisify(execFile);
 
 type SnapshotListener = (snapshot: DownloadTransferSnapshot) => void;
@@ -57,9 +60,10 @@ export class DownloadTransferManager implements DownloadTransferClient {
   private readonly pendingQueue: string[] = [];
   private readonly listeners = new Set<SnapshotListener>();
   private readonly tasks = new Map<string, TransferTask>();
+  private secureTempHelperPath?: string;
   private initialized = false;
 
-  constructor(userDataPath: string) { this.statePath = join(userDataPath, 'download-transfers.json'); this.load(); }
+  constructor(userDataPath: string, secureTempHelperPath?: string) { this.statePath = join(userDataPath, 'download-transfers.json'); this.secureTempHelperPath = secureTempHelperPath; this.load(); }
 
   private load(): void {
     if (!existsSync(this.statePath)) { this.initialized = true; return; }
@@ -135,6 +139,7 @@ export class DownloadTransferManager implements DownloadTransferClient {
   }
 
   subscribeGlobal(listener: SnapshotListener): () => void { this.listeners.add(listener); return () => this.listeners.delete(listener); }
+  setSecureTempHelperPath(path: string | undefined): void { this.secureTempHelperPath = path; }
   listHandoffs(): ExtensionDownloadHandoff[] { return [...this.handoffs.values()]; }
   listPendingHandoffs(): ExtensionDownloadHandoff[] { return this.pendingQueue.map((handoffId) => this.handoffs.get(handoffId)).filter((handoff): handoff is ExtensionDownloadHandoff => Boolean(handoff) && !this.getLatestSnapshot(handoff.handoffId)); }
   nextPendingHandoff(): ExtensionDownloadHandoff | undefined { return this.listPendingHandoffs()[0]; }
@@ -295,6 +300,13 @@ export class DownloadTransferManager implements DownloadTransferClient {
       return { cleanupCompleted: false, cleanupError: { code: 'CLEANUP_FAILED', message: error instanceof Error ? error.message : 'The temporary file could not be removed.', retryable: true, observedAt: observedAt() } };
     }
   }
+  private async createSecureTemp(parentPath: string, tempPath: string): Promise<void> {
+    if (process.platform !== 'win32') return;
+    if (!this.secureTempHelperPath || !existsSync(this.secureTempHelperPath)) throw new Error('SECURE_TEMP_HELPER_UNAVAILABLE: The verified native temporary-file helper is unavailable.');
+    const result = await execFileAsync(this.secureTempHelperPath, ['--create', parentPath, tempPath], { windowsHide: true, timeout: 5000, maxBuffer: 16 * 1024 });
+    const receipt = JSON.parse(String(result.stdout).trim()) as { accepted?: unknown; code?: unknown };
+    if (receipt.accepted !== true || receipt.code !== 'SECURE_TEMP_CREATED') throw new Error(`SECURE_TEMP_CREATE_FAILED: ${String(receipt.code ?? 'The helper refused temporary creation.')}`);
+  }
   private async inspectCompleteTemp(path: string, expectedSize: number, signal?: AbortSignal): Promise<{ size: number; sha256: string }> {
     const stream = createReadStream(path);
     let timeout = false;
@@ -363,7 +375,8 @@ export class DownloadTransferManager implements DownloadTransferClient {
       if (!response.body) throw new Error('The source did not provide a readable transfer body.');
       await mkdir(dirname(snapshot.destinationPath), { recursive: true });
       await this.assertNoReparseComponents(dirname(snapshot.destinationPath));
-      const handle = await open(task.tempPath, resume ? 'a' : 'wx'); const reader = response.body.getReader(); const started = Date.now(); const resumeSupport: DownloadResumeSupport = { acceptRanges, etag, lastModified };
+      if (!resume) await this.createSecureTemp(dirname(snapshot.destinationPath), task.tempPath);
+      const handle = await open(task.tempPath, resume ? 'a' : 'a'); const reader = response.body.getReader(); const started = Date.now(); const resumeSupport: DownloadResumeSupport = { acceptRanges, etag, lastModified };
       snapshot = { ...snapshot, status: 'downloading', totalBytes, resume: resumeSupport, canPause: supportsResume, canResume: false, canCancel: true, resumeDisabledReason: supportsResume ? undefined : 'The source did not provide both byte ranges and an ETag or Last-Modified validator.', deadlineAt: new Date(deadlineAtMs).toISOString(), observedAt: observedAt() }; this.emit(snapshot);
       try {
         while (true) {

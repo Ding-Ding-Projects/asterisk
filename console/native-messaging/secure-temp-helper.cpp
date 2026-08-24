@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include <windows.h>
 #include <string>
+#include <iostream>
 
 // Native helper contract for the Deen No destination path. The parent handle is
 // opened without FILE_SHARE_DELETE and with FILE_FLAG_OPEN_REPARSE_POINT, so a
@@ -20,4 +21,31 @@ extern "C" __declspec(dllexport) HANDLE OpenVerifiedDirectory(const wchar_t* dir
 extern "C" __declspec(dllexport) HANDLE CreateNoFollowTemp(const HANDLE parent, const wchar_t* fullPath) {
   if (!parent || parent == INVALID_HANDLE_VALUE || !fullPath) return INVALID_HANDLE_VALUE;
   return CreateFileW(fullPath, GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_NEW, FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_WRITE_THROUGH, nullptr);
+}
+
+int main(int argc, char** argv) {
+  if (argc != 4 || std::string(argv[1]) != "--create") {
+    std::cout << R"({"accepted":false,"code":"SECURE_TEMP_ARGUMENTS"})" << std::endl;
+    return 2;
+  }
+  const int parentLength = MultiByteToWideChar(CP_UTF8, 0, argv[2], -1, nullptr, 0);
+  const int tempLength = MultiByteToWideChar(CP_UTF8, 0, argv[3], -1, nullptr, 0);
+  std::wstring parentPath(static_cast<std::size_t>(parentLength), L'\0');
+  std::wstring tempPath(static_cast<std::size_t>(tempLength), L'\0');
+  MultiByteToWideChar(CP_UTF8, 0, argv[2], -1, parentPath.data(), parentLength);
+  MultiByteToWideChar(CP_UTF8, 0, argv[3], -1, tempPath.data(), tempLength);
+  const HANDLE parent = OpenVerifiedDirectory(parentPath.c_str());
+  if (parent == INVALID_HANDLE_VALUE) {
+    std::cout << R"({"accepted":false,"code":"SECURE_TEMP_PARENT_REPARSE"})" << std::endl;
+    return 1;
+  }
+  const HANDLE child = CreateNoFollowTemp(parent, tempPath.c_str());
+  CloseHandle(parent);
+  if (child == INVALID_HANDLE_VALUE) {
+    std::cout << R"({"accepted":false,"code":"SECURE_TEMP_CREATE_FAILED"})" << std::endl;
+    return 1;
+  }
+  CloseHandle(child);
+  std::cout << R"({"accepted":true,"code":"SECURE_TEMP_CREATED"})" << std::endl;
+  return 0;
 }

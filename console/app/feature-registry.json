@@ -2423,7 +2423,7 @@
       },
       "registration": {
         "paths": ["console/shared/native-messaging.ts", "console/app/electron/main.ts", "console/native-messaging/com.dingdingprojects.asterisk.downloads.json", "console/native-messaging/register-native-host.ps1", "console/shared/control-plane.ts", "console/app/renderer/src/surface-mounts.tsx", "console/app/renderer/src/download-window-mount.tsx"],
-        "symbols": ["DOWNLOAD_EXTENSION_ID", "startNativeDownloadIngress", "acceptExtensionHandoff", "OpenVerifiedDirectory", "CreateNoFollowTemp", "SurfaceMounts", "DownloadWindowMount"]
+        "symbols": ["DOWNLOAD_EXTENSION_ID", "NativeIngressConfig", "startNativeDownloadIngress", "reloadNativeDownloadIngress", "acceptExtensionHandoff", "OpenVerifiedDirectory", "CreateNoFollowTemp", "nativeHost", "SurfaceMounts", "DownloadWindowMount"]
       },
       "route": "desktop://console/#surface=download/start",
       "documentation": {

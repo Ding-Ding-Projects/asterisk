@@ -3,6 +3,18 @@ import type { ExtensionDownloadHandoff } from './download-transfer.js';
 export const DOWNLOAD_EXTENSION_ID = 'dnpkplcgjmipnndmghkhljjoefjhidab';
 export const DOWNLOAD_NATIVE_MESSAGE_LIMIT = 128 * 1024;
 
+export interface NativeIngressConfig {
+  schemaVersion: 1;
+  pipeName: string;
+  challenge: string;
+  extensionId: typeof DOWNLOAD_EXTENSION_ID;
+  executablePath: string;
+  executableSha256: string;
+  secureHelperPath: string;
+  secureHelperSha256: string;
+  manifestPath: string;
+}
+
 export interface NativeDownloadIngressMessage {
   type: 'download-handoff';
   extensionId: typeof DOWNLOAD_EXTENSION_ID;
