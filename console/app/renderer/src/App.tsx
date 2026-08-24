@@ -257,6 +257,8 @@ export class App extends Base {
   private forgeReceipts: Array<Record<string, string>> = [];
   private forgeActiveAccountId = '';
   private forgeOwnerId = '';
+  private forgeOwnerCanFork = false;
+  private forgeOwnerCanCreate = false;
   private forgeRepositoryName = '';
   private forgeSourceRemote = '';
   private forgeSourcePath = '';
@@ -382,10 +384,13 @@ export class App extends Base {
       const fork = owner.canForkRepository === true ? 'fork proven' : 'fork unknown';
       const create = owner.canCreateRepository === true ? 'create proven' : 'create unknown';
       const reason = owner.capabilities && typeof owner.capabilities === 'object' ? String((owner.capabilities as Record<string, unknown>).reason ?? '') : '';
-      return { id: String(owner.id ?? ''), label: `${String(owner.displayName ?? owner.login ?? '')} · ${String(owner.kind ?? '')} · ${fork}, ${create}${reason ? ` · ${reason}` : ''}`, login: String(owner.login ?? ''), kind: String(owner.kind ?? '') };
+      return { id: String(owner.id ?? ''), label: `${String(owner.displayName ?? owner.login ?? '')} · ${String(owner.kind ?? '')} · ${fork}, ${create}${reason ? ` · ${reason}` : ''}`, login: String(owner.login ?? ''), kind: String(owner.kind ?? ''), fork: owner.canForkRepository === true ? 'true' : 'false', create: owner.canCreateRepository === true ? 'true' : 'false' };
     });
     this.forgeOwners = owners;
     this.forgeOwnerId = owners.some((owner) => owner.id === this.forgeOwnerId) ? this.forgeOwnerId : owners[0]?.id ?? '';
+    const selectedOwner = owners.find((owner) => owner.id === this.forgeOwnerId);
+    this.forgeOwnerCanFork = selectedOwner?.fork === 'true';
+    this.forgeOwnerCanCreate = selectedOwner?.create === 'true';
     this.forgeStatus = response.message ?? `${owners.length} personal and organization owner${owners.length === 1 ? '' : 's'} loaded from provider data.`;
     this.forceUpdate();
   };
@@ -2052,6 +2057,8 @@ It is shown once. The phone needs it to register.`);
         forgeCapabilities: this.forgeCapabilities,
         forgeOwners: this.forgeOwners,
         forgeOwnerId: this.forgeOwnerId,
+        forgeForkDisabled: bridge?.platform === 'web' || !this.forgeOwnerCanFork,
+        forgeCopyPushDisabled: bridge?.platform === 'web' || !this.forgeOwnerCanCreate,
         forgeRepositoryName: this.forgeRepositoryName,
         forgeSourceRemote: this.forgeSourceRemote,
         forgeSourcePath: this.forgeSourcePath,
@@ -2065,7 +2072,7 @@ It is shown once. The phone needs it to register.`);
         forgeFork: () => void this.forgePublish('fork'),
         forgeCopyPush: () => void this.forgePublish('copy-and-push'),
         onForgeSearch: (event: { target: { value: string } }) => { this.forgeSearch = event.target.value.slice(0, 256); const prior = this.state as { patterns?: Record<string, string[]>; regexFlags?: string[] }; this.setState({ patterns: { ...(prior.patterns ?? {}), forge: [] }, regexFlags: (prior.regexFlags ?? ['i']).filter((flag) => flag !== 'g'), rxText: '' } as never); this.forceUpdate(); },
-        onForgeOwner: (event: { target: { value: string } }) => { this.forgeOwnerId = event.target.value; this.forceUpdate(); },
+        onForgeOwner: (event: { target: { value: string } }) => { this.forgeOwnerId = event.target.value; const owner = this.forgeOwners.find((candidate) => candidate.id === this.forgeOwnerId); this.forgeOwnerCanFork = owner?.fork === 'true'; this.forgeOwnerCanCreate = owner?.create === 'true'; this.forceUpdate(); },
         onForgeRepositoryName: (event: { target: { value: string } }) => { this.forgeRepositoryName = event.target.value.slice(0, 100); this.forceUpdate(); },
         onForgeSourceRemote: (event: { target: { value: string } }) => { this.forgeSourceRemote = event.target.value.slice(0, 4096); this.forceUpdate(); },
         onForgeSourcePath: (event: { target: { value: string } }) => { this.forgeSourcePath = event.target.value.slice(0, 4096); this.forceUpdate(); },

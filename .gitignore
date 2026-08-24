@@ -54,6 +54,7 @@ compile_commands.json
 /console/tsconfig.tsbuildinfo
 /console/resources/asterisk-wsl-rootfs.tar
 /console/resources/asterisk-wsl-rootfs.json
+/console/resources/forge/gh.exe
 
 # Compiled output emitted beside sources. A stray typecheck with the wrong
 # settings drops these into the source tree, where they shadow the real

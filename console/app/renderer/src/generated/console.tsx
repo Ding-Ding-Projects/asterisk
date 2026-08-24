@@ -801,10 +801,10 @@ function Template(v: any) {
                   h("button", { disabled: v.forgeHostedUnavailable, onClick: fn(v.forgeOwnersLoad), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:8px 14px; color:#C4CBC2; cursor:pointer;`) },
                     "Load personal and organization owners"
                   ),
-                  h("button", { disabled: v.forgeHostedUnavailable, onClick: fn(v.forgeFork), style: sty(`background:#005230; border:0; border-radius:999px; padding:9px 15px; color:#9FF7C4; cursor:pointer;`) },
+                  h("button", { disabled: v.forgeForkDisabled, onClick: fn(v.forgeFork), style: sty(`background:#005230; border:0; border-radius:999px; padding:9px 15px; color:#9FF7C4; cursor:pointer;`) },
                     "Fork to selected owner"
                   ),
-                  h("button", { disabled: v.forgeHostedUnavailable, onClick: fn(v.forgeCopyPush), style: sty(`background:#1B4D33; border:0; border-radius:999px; padding:9px 15px; color:#9FF7C4; cursor:pointer;`) },
+                  h("button", { disabled: v.forgeCopyPushDisabled, onClick: fn(v.forgeCopyPush), style: sty(`background:#1B4D33; border:0; border-radius:999px; padding:9px 15px; color:#9FF7C4; cursor:pointer;`) },
                     "Copy and push to selected owner"
                   )
                 ),

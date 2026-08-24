@@ -19,7 +19,7 @@ Every process call uses typed executable and argument arrays, `shell: false`, bo
 
 The durable file is `forge-publishing.json` under the application's private data folder. It contains schema version 1, account metadata, the active account id, and redacted publication receipts. It contains no token, password, cookie, private key, or invented vault key. A provider vault reference is displayed only when the provider actually supplies one. Account mutation and publication receipts are also recorded through the app's local append-only history.
 
-Release blocker: the packaged desktop contract currently has no immutable approved public GitHub OAuth client id, so device sign-in reports unavailable until the owner supplies that reviewed public id through the packaged contract. It never reads an arbitrary environment identity and never falls back to a plaintext credential.
+The packaged desktop contract bundles and verifies the pinned GitHub CLI executable and the ConPTY helper. When no immutable project OAuth client id is packaged, Add account uses that helper to drive `gh auth login --web` through a native pseudo-terminal, surfaces the public verification URL, user code, expiry, and terminal status, and never opens a browser automatically. The direct HTTP device flow is used only when an immutable approved project client id is packaged. It never reads an arbitrary environment identity and never falls back to a plaintext credential.
 
 The source-folder field has a native folder picker. The account search is plain text by default and has an adjacent anchored full regex builder with bounded pattern length, flags, guided tokens, validation, and match counts. The provider capability list distinguishes GitHub, which currently supports both routes, from GitLab, which remains visible but unavailable until a local CLI and OS-vault adapter are configured. The active operation exposes busy, progress, cancellation, and completion state.
 
@@ -39,7 +39,7 @@ The renderer accepts account names and owner ids, never provider tokens. Durable
 
 ## Verification
 
-This lane did not call provider APIs, run tests, lint, build the product, package an installer, launch the desktop surface, or capture a screenshot. Static evidence is the typed action union, the dispatcher branches, the allowlisted executor calls, the inherited-auth clearing path, device sign-in command, active-account confirmation, `git ls-remote` verification path, hosted refusal, generated History-screen route, atomic versioned state store, reloadable receipts, and updated feature registry. Runtime provider verification remains unrun and must be performed by the parent lane through the approved desktop evidence path.
+This lane did not call provider APIs, run tests, lint, build the product, package an installer, launch the desktop surface, or capture a screenshot. Static evidence is the typed action union, the dispatcher branches, the allowlisted executor calls, the pinned dependency records, package-resource verification hooks, validated ConPTY helper, inherited-auth clearing path, device sign-in command, active-account confirmation, `git ls-remote` verification path, hosted refusal, generated History-screen route, atomic versioned state store, reloadable receipts, and updated feature registry. Runtime provider verification remains unrun and must be performed by the parent lane through the approved desktop evidence path.
 
 ## Suggested articles
 

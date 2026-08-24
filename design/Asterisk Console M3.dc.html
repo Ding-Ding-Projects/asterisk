@@ -541,8 +541,8 @@
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
               <button disabled="{{ forgeHostedUnavailable }}" onClick="{{ forgeOwnersLoad }}" style="background:transparent; border:1px solid #414942; border-radius:999px; padding:8px 14px; color:#C4CBC2; cursor:pointer;">Load personal and organization owners</button>
-              <button disabled="{{ forgeHostedUnavailable }}" onClick="{{ forgeFork }}" style="background:#005230; border:0; border-radius:999px; padding:9px 15px; color:#9FF7C4; cursor:pointer;">Fork to selected owner</button>
-              <button disabled="{{ forgeHostedUnavailable }}" onClick="{{ forgeCopyPush }}" style="background:#1B4D33; border:0; border-radius:999px; padding:9px 15px; color:#9FF7C4; cursor:pointer;">Copy and push to selected owner</button>
+              <button disabled="{{ forgeForkDisabled }}" onClick="{{ forgeFork }}" style="background:#005230; border:0; border-radius:999px; padding:9px 15px; color:#9FF7C4; cursor:pointer;">Fork to selected owner</button>
+              <button disabled="{{ forgeCopyPushDisabled }}" onClick="{{ forgeCopyPush }}" style="background:#1B4D33; border:0; border-radius:999px; padding:9px 15px; color:#9FF7C4; cursor:pointer;">Copy and push to selected owner</button>
             </div>
             <div style="margin-top:12px; color:#8FA394; font-size:11.5px; line-height:1.5;">Credentials remain in gh's secure keyring after verification, and no token is shown here. Provider capability gaps stay visible, and a failed account request keeps its re-auth action beside this surface.</div>
             <sc-for list="{{ forgeReceipts }}" as="r">

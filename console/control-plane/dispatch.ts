@@ -21,6 +21,7 @@ import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, Co
 import { ServerInventory, SettingsRegistry } from './index.js';
 import type { ServerInventoryStore, ServerRecord, SettingsSnapshotStore } from './index.js';
 import { atomicWriteFileSync } from './atomic-file.js';
+import { FORGE_CONPTY_HELPER_SHA256, FORGE_GH_SHA256, FileForgeStateStore, ForgePublisher } from './forge-publishing.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
 import type { ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
@@ -52,7 +53,7 @@ export interface ControlPlaneDispatcherOptions {
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
   const { userDataPath, resourcesPath, hosted } = options;
-  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker', 'git', 'gh'] });
+  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker', 'git', 'gh', 'powershell.exe'] });
   const asteriskService = new AsteriskService({ executor: processExecutor });
   const targetDiscovery = new TargetDiscovery(processExecutor);
   const cliGateway = new LocalAsteriskCliGateway(processExecutor);
@@ -266,9 +267,9 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     return cachedSettingsRegistry;
   }
 
-  let cachedForgePublisher: import('./forge-publishing.js').ForgePublisher | undefined;
+  let cachedForgePublisher: ForgePublisher | undefined;
   let forgeHistoryReady: Promise<import('./local-history.js').LocalHistory> | undefined;
-  async function forgePublisher(): Promise<import('./forge-publishing.js').ForgePublisher> {
+  async function forgePublisher(): Promise<ForgePublisher> {
     if (cachedForgePublisher) return cachedForgePublisher;
     if (!forgeHistoryReady) {
       forgeHistoryReady = (async () => {
@@ -278,12 +279,16 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       })();
     }
     const history = await forgeHistoryReady;
-    const { FileForgeStateStore, ForgePublisher } = await import('./forge-publishing.js');
     cachedForgePublisher = new ForgePublisher({
       executor: processExecutor,
       store: new FileForgeStateStore(join(userDataPath, 'forge-publishing.json')),
       history,
       deviceClientId: options.forgeDeviceClientId,
+      conptyHelperPath: join(resourcesPath, 'forge', 'forge-device-signin.ps1'),
+      conptyStatePath: join(userDataPath, 'forge-device-state.json'),
+      bundledGhPath: join(resourcesPath, 'forge', 'gh.exe'),
+      bundledGhSha256: FORGE_GH_SHA256,
+      conptyHelperSha256: FORGE_CONPTY_HELPER_SHA256,
     });
     return cachedForgePublisher;
   }

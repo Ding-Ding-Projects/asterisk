@@ -87,6 +87,14 @@ try {
     if ($identity.version -ne $Version -or $identity.candidateCommit -ne $CandidateCommit) { throw 'release identity does not match the package version and candidate commit' }
     if (-not (Test-Path -LiteralPath $bundledRootfs)) { throw 'packaged application is missing the bundled Asterisk WSL rootfs' }
     if (-not (Test-Path -LiteralPath $bundledProvenance)) { throw 'packaged application is missing Asterisk bundle provenance' }
+    $forgeGh = Join-Path $repoRoot 'console\dist\squirrel-windows\win-unpacked\resources\forge\gh.exe'
+    $forgeHelper = Join-Path $repoRoot 'console\dist\squirrel-windows\win-unpacked\resources\forge\forge-device-signin.ps1'
+    $forgeRecords = @((Get-Content -Raw -LiteralPath (Join-Path $repoRoot 'dependency-manifest.json') | ConvertFrom-Json).dependencies | Where-Object { $_.id -in @('github-cli-win-x64','forge-conpty-helper') })
+    $forgeGhRecord = $forgeRecords | Where-Object id -eq 'github-cli-win-x64'
+    $forgeHelperRecord = $forgeRecords | Where-Object id -eq 'forge-conpty-helper'
+    if (-not $forgeGhRecord -or -not $forgeHelperRecord) { throw 'dependency manifest is missing the pinned forge executable or ConPTY helper record' }
+    if (-not (Test-Path -LiteralPath $forgeGh) -or (Get-Sha256 $forgeGh) -ne $forgeGhRecord.sha256) { throw 'packaged gh.exe is missing or does not match the pinned digest' }
+    if (-not (Test-Path -LiteralPath $forgeHelper) -or (Get-Sha256 $forgeHelper) -ne $forgeHelperRecord.sha256) { throw 'packaged forge ConPTY helper is missing or does not match the pinned digest' }
     $bundleRecord = Get-Content -Raw -LiteralPath $bundledProvenance | ConvertFrom-Json
     if ($bundleRecord.sha256 -ne (Get-Sha256 $bundledRootfs)) { throw 'packaged Asterisk WSL rootfs does not match its provenance digest' }
     if ($bundleRecord.sourceCommit -ne (& git -C $repoRoot rev-parse HEAD).Trim()) { throw 'packaged Asterisk WSL rootfs came from a different source commit' }
