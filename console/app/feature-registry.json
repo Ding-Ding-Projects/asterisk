@@ -104,9 +104,13 @@
       ]
     },
     "status-hub": {
-      "state": "absent",
-      "note": "No live status-hub project, session card, or question-card surface exists. The single textual match for status-hub in the compiled console is a rail/menu label, not a working status surface.",
-      "files": []
+      "state": "partial",
+      "note": "Implemented 2026-08-24 as app/renderer/src/status-hub-client.ts: the report a console sends about its own state, and the rules for refusing to send a claim it cannot support. A lane claiming passed or failed with no evidence is refused, because those are the two states a reader acts on and a lane claiming either with nothing to check is what makes a status page worse than none. `unrun` is a state of its own rather than a synonym for failed, since a check nobody ran reported as failed sends somebody hunting a defect that does not exist. Every field is named explicitly when the payload is built rather than spread, because a session is assembled from state that also holds credentials, hostnames and vault keys. And a reply cursor older than the hub still holds resynchronises and REPORTS the gap, because retrying asks the same impossible question forever and skipping means somebody’s answer was never acted on.",
+      "blockedBy": "BLOCKED ON THE TRANSPORT AND A HUB TO REPORT TO. Nothing sends the payload: there is no privileged HTTP client for it, no configured hub address, and no session key. Real consumption needs the same shape the settings source now has -- a fetcher in the process that owns the credential vault, a dispatch action reaching it, and a surface to configure the hub -- plus a poll that reports on a timer and reads the reply inbox with the cursor this module already advances. Wiring a control before that exists would produce a status page that validates a report and never sends it.",
+      "files": [
+        "app/renderer/src/status-hub-client.ts",
+        "tests/ui/status-hub-client.test.tsx"
+      ]
     },
     "material-appearance": {
       "state": "partial",

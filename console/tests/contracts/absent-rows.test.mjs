@@ -47,7 +47,6 @@ const sources = (() => {
  * match everything. Every entry here names something that only exists if the feature does.
  */
 const EVIDENCE_OF_EXISTENCE = {
-  'status-hub': ['statusHub', 'status-hub'],
   'app-logo-customization': ['appLogo', 'logoCustom'],
   'local-file-converter': ['convertFile', 'fileConverter'],
   'ollama-suite-manager': ['ollama'],
