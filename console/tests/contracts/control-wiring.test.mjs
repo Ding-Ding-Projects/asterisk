@@ -131,9 +131,15 @@ test('no control id is defined twice on one screen', () => {
    * group without checking whether the thing already exists, which is how a settings screen
    * turns into a catalogue of near-duplicates rather than one integrated surface.
    *
-   * The server ids are the deliberate exception: one connection is described once and shown
-   * in both the servers screen and its wizard, sharing a single value on purpose. They are
-   * named here so adding another shared id is a decision somebody writes down. */
+   * The server ids are the deliberate exception, and that was checked rather than assumed:
+   * one occurrence sits on the servers screen and the other inside the WIZARDS block, so it
+   * is one connection described twice, sharing a single value on purpose. They are named
+   * here so adding another shared id is a decision somebody writes down.
+   *
+   * ap_contrast used to be on this list and should not have been. It was two different
+   * settings -- a slider the appearance preview reads, and a text readout of a measured
+   * ratio -- wearing one key. An exemption nobody verified is just a defect with permission,
+   * so each name here is checked in both directions below. */
   const design = readFileSync(new URL('../../../design/Asterisk Console M3.dc.html', import.meta.url), 'utf8');
   const counts = new Map();
   for (const match of design.matchAll(/ctl\('([a-z0-9_]+)'/g)) {
@@ -141,7 +147,7 @@ test('no control id is defined twice on one screen', () => {
   }
   const SHARED_ON_PURPOSE = new Set([
     'sv_amiport', 'sv_container', 'sv_forward', 'sv_host', 'sv_hostkey', 'sv_iface',
-    'sv_kind', 'sv_readonly', 'sv_sshport', 'sv_tls', 'sv_user', 'sv_watch', 'ap_contrast',
+    'sv_kind', 'sv_readonly', 'sv_sshport', 'sv_tls', 'sv_user', 'sv_watch',
   ]);
   const unexpected = [...counts].filter(([id, n]) => n > 1 && !SHARED_ON_PURPOSE.has(id));
   assert.deepEqual(unexpected, [],
