@@ -29,7 +29,9 @@ export type ControlPlaneAction =
   | 'settings.snapshot' | 'settings.write' | 'settings.remove'
   /* The desktop's complete local migration and Git history surface. */
   | 'migration.export' | 'migration.validate' | 'migration.import'
+  | 'migration.cancel'
   | 'backup.create' | 'backup.list'
+  | 'backup.prune'
   | 'git.history.status' | 'git.remote.set' | 'git.remote.remove'
   | 'git.remote.fetch' | 'git.remote.push';
 

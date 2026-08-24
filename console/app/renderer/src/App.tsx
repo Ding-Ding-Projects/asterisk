@@ -263,6 +263,9 @@ export class App extends Base {
   private migrationImportSource = '';
   private migrationRemoteName = 'origin';
   private migrationRemoteUrl = '';
+  private migrationOperationId = '';
+  private migrationOmissionText = 'Omitted by design: credential-vault secrets, private vocabulary, source paths, and transient caches. Every omission is recorded in the manifest.';
+  private migrationSearchText = '';
 
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
@@ -344,7 +347,7 @@ export class App extends Base {
     this.migrationStatus = 'Export running: hashing records and creating a verified Git bundle.'; this.forceUpdate();
     const response = await this.request('migration.export');
     if (!response?.ok) this.fire('Migration export not completed', response?.message ?? 'The desktop control plane did not answer.');
-    else this.fire('Migration export ready', `The verified bundle is at ${(response.data as { path?: string }).path ?? 'the local export folder'}.`);
+    else { const data = response.data as { path?: string; operation?: { id?: string }; manifest?: { omissions?: Array<{ path: string; detail: string }> } }; this.migrationOperationId = data.operation?.id ?? ''; this.migrationOmissionText = (data.manifest?.omissions ?? []).map((entry) => `${entry.path}: ${entry.detail}`).join(' · ') || 'No omissions were reported.'; this.fire('Migration export ready', `The verified bundle is at ${data.path ?? 'the local export folder'}.`); }
     await this.loadMigrationState();
   };
 
@@ -352,7 +355,7 @@ export class App extends Base {
     this.migrationStatus = 'Backup running: staging every movable record before it is retained.'; this.forceUpdate();
     const response = await this.request('backup.create');
     if (!response?.ok) this.fire('Backup not completed', response?.message ?? 'The desktop control plane did not answer.');
-    else this.fire('Backup verified', `The backup is at ${(response.data as { path?: string }).path ?? 'the local backup folder'}.`);
+    else { const data = response.data as { path?: string; operation?: { id?: string }; manifest?: { omissions?: Array<{ path: string; detail: string }> } }; this.migrationOperationId = data.operation?.id ?? ''; this.migrationOmissionText = (data.manifest?.omissions ?? []).map((entry) => `${entry.path}: ${entry.detail}`).join(' · ') || 'No omissions were reported.'; this.fire('Backup verified', `The backup is at ${data.path ?? 'the local backup folder'}.`); }
     await this.loadMigrationState();
   };
 
@@ -397,11 +400,21 @@ export class App extends Base {
     this.forceUpdate();
   };
 
+  private migrationCancel = async (): Promise<void> => {
+    if (!this.migrationOperationId) { this.toast('No migration operation is running.'); return; }
+    const response = await this.request('migration.cancel', { payload: { operationId: this.migrationOperationId } });
+    this.fire(response?.ok ? 'Cancellation requested' : 'Cancellation not available', response?.message ?? 'No matching operation is running.');
+  };
+
+  private migrationSearchInput = (event: unknown): void => { this.migrationSearchText = String((event as { target?: { value?: unknown } }).target?.value ?? '').slice(0, 256); this.forceUpdate(); };
+  private migrationRegex = (): void => this.setState({ regexOpen: true, regexTarget: 'nav', regexX: '40%', regexY: '160px' } as never);
+
   private validateMigrationImport = async (): Promise<void> => {
     if (!this.migrationImportSource) { this.toast('Choose a migration manifest first.'); return; }
     const response = await this.request('migration.validate', { payload: { source: this.migrationImportSource } });
     if (!response?.ok) { this.fire('Migration rejected', response?.message ?? 'The bundle did not pass validation.'); return; }
-    const manifest = response.data as { manifest?: { files?: Array<{ path: string }>; omissions?: Array<{ path: string }> } };
+    const manifest = response.data as { manifest?: { files?: Array<{ path: string }>; omissions?: Array<{ path: string; detail?: string }> } };
+    this.migrationOmissionText = (manifest.manifest?.omissions ?? []).map((entry) => `${entry.path}: ${entry.detail ?? 'omitted by policy'}`).join(' · ') || 'No omissions were reported.';
     this.fire('Migration preview ready', `${manifest.manifest?.files?.length ?? 0} files are valid. ${manifest.manifest?.omissions?.length ?? 0} sensitive categories remain omitted.`);
     this.areYouSure('Replace local state from migration', 'The current state will be backed up first. The two-key confirmation must finish before the validated bundle replaces live data.', 3, () => { void this.confirmMigrationImport(); });
   };
@@ -2045,7 +2058,12 @@ It is shown once. The phone needs it to register.`);
           ],
           importMigrationFile: this.importMigrationFile,
           backupRows: this.historyData.backups.slice(0, 5).map((backup) => ({ label: `${backup.createdAt || 'backup'} · ${backup.bytes} bytes · ${backup.verified ? 'verified' : 'unverified'}`, color: backup.verified ? '#9FF7C4' : '#FFD68A' })),
-          migrationOmissions: 'Omitted by design: credential-vault secrets, private vocabulary, source paths, and transient caches. Every omission is recorded in the manifest.',
+          migrationOmissions: this.migrationOmissionText,
+          migrationSearchText: this.migrationSearchText,
+          migrationSearchInput: this.migrationSearchInput,
+          migrationRegex: this.migrationRegex,
+          migrationCancel: this.migrationCancel,
+          migrationSearchSummary: `${this.historyData.backups.length + this.historyData.remotes.length + (this.historyData.entries.length ? 1 : 0)} searchable local records`,
           remoteNameText: this.migrationRemoteName,
           remoteUrlText: this.migrationRemoteUrl || (this.historyData.remotes[0]?.url ?? ''),
           remoteNameInput: (event: unknown) => { this.migrationRemoteName = String((event as { target?: { value?: unknown } }).target?.value ?? '').slice(0, 64); },

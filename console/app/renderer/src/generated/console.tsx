@@ -544,6 +544,23 @@ function Template(v: any) {
                 h("div", { style: sty(`font-size:11px; color:#778078; margin-top:10px;`) },
                   S(v.migrationOmissions)
                 ),
+                h("div", { style: sty(`display:flex; align-items:center; gap:8px; margin-top:10px;`) },
+                  h("span", { style: sty(`font-size:17px; color:#82D9A5;`), className: "msym" },
+                    "search"
+                  ),
+                  h("input", { value: v.migrationSearchText, onInput: fn(v.migrationSearchInput), "aria-label": `Search backups, remotes, and receipts`, placeholder: `Search backups, remotes, and receipts`, style: sty(`flex:1; min-height:44px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:8px 10px; color:#DFE4DC; font:inherit;`) }),
+                  h("button", { onClick: fn(v.migrationRegex), title: `Regex builder`, style: sty(`width:44px; height:44px; border-radius:10px; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center;`) },
+                    h("span", { style: sty(`font-size:18px;`), className: "msym" },
+                      "data_object"
+                    )
+                  ),
+                  h("span", { style: sty(`font-size:11px; color:#8FA394;`) },
+                    S(v.migrationSearchSummary)
+                  ),
+                  h("button", { onClick: fn(v.migrationCancel), style: sty(`min-height:44px; background:transparent; border:1px solid #FFB4AB; border-radius:10px; padding:8px 12px; color:#FFB4AB; font:inherit; cursor:pointer;`) },
+                    "Cancel operation"
+                  )
+                ),
                 h("div", { style: sty(`display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid #333B34;`) },
                   h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                     "link"

@@ -22,6 +22,6 @@ The screen lists the local branch, exact refs, clean state, ahead/behind counts,
 
 ## Verification boundary
 
-The narrow verification for this feature is design compilation plus schema and syntax checks. A packaged-artifact interaction, real import, real remote fetch, and real remote push remain runtime evidence to collect before the feature can be called fully verified.
+The narrow verification for this feature is design compilation plus schema and syntax checks. No built-artifact UI capture exists yet. A packaged-artifact interaction, real import, real remote fetch, and real remote push remain runtime evidence to collect before the feature can be called fully verified.
 
 Suggested articles: [Local version history](local-version-history.md), [Complete data export](complete-exports.md), [Destructive-action super confirmation](destructive-action-confirmation.md), and [In-context failure recovery](in-context-recovery.md).

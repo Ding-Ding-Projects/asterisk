@@ -409,6 +409,11 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const result = await migration.importMigration(source, confirmed);
         return { ok: result.operation.state === 'succeeded', requestId: request.requestId, code: result.operation.state === 'succeeded' ? undefined : 'MIGRATION_IMPORT_FAILED', message: result.operation.detail, data: result } as ControlPlaneResponse;
       }
+      if (request.action === 'migration.cancel') {
+        const operationId = typeof request.payload?.operationId === 'string' ? request.payload.operationId : '';
+        const result = await migration.cancel(operationId);
+        return { ok: result.cancelled, requestId: request.requestId, code: result.cancelled ? undefined : 'MIGRATION_CANCEL_NOT_FOUND', message: result.detail, data: result } as ControlPlaneResponse;
+      }
       if (request.action === 'backup.create') {
         const result = await migration.createBackup();
         return { ok: result.operation.state === 'succeeded', requestId: request.requestId, code: result.operation.state === 'succeeded' ? undefined : 'BACKUP_FAILED', message: result.operation.detail, data: result } as ControlPlaneResponse;
@@ -416,13 +421,18 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'backup.list') {
         return { ok: true, requestId: request.requestId, data: { backups: await migration.listBackups() } };
       }
+      if (request.action === 'backup.prune') {
+        const keep = Number(request.payload?.keep ?? 30);
+        return { ok: true, requestId: request.requestId, data: await migration.pruneBackups(keep) };
+      }
       if (request.action === 'git.history.status') {
         return { ok: true, requestId: request.requestId, data: await migration.gitStatus() };
       }
       if (request.action === 'git.remote.set') {
         const name = typeof request.payload?.name === 'string' ? request.payload.name : '';
         const url = typeof request.payload?.url === 'string' ? request.payload.url : '';
-        return { ok: true, requestId: request.requestId, data: await migration.setRemote(name, url) };
+        const pushUrl = typeof request.payload?.pushUrl === 'string' ? request.payload.pushUrl : undefined;
+        return { ok: true, requestId: request.requestId, data: await migration.setRemote(name, url, pushUrl) };
       }
       if (request.action === 'git.remote.remove') {
         const name = typeof request.payload?.name === 'string' ? request.payload.name : '';
