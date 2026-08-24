@@ -34,7 +34,7 @@
       "id": "candidate-provenance",
       "source": "console/scripts/package-squirrel.mjs",
       "status": "implemented-unverified",
-      "evidence": "Writes school-mode-provenance.json into win-unpacked before the packaged probe, which reads and compares product, app id, package version and candidate commit."
+      "evidence": "Stages school-mode-provenance.json before electron-builder, packages it through extraResources, and has the final-artifact main-process probe read and compare product, app id, package version and candidate commit."
     },
     {
       "id": "keytar-vault-roundtrip",

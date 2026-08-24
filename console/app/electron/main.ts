@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import * as keytar from 'keytar';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
@@ -165,6 +167,7 @@ function createWindow(): void {
   mainWindow.once('ready-to-show', () => mainWindow?.show());
   if (process.env.VITE_DEV_SERVER_URL) mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
   else mainWindow.loadFile(join(import.meta.dirname, '../../../dist/index.html'));
+  runPackagedProbeWhenRequested();
 }
 
 ipcMain.on('window:minimize', () => mainWindow?.minimize());
@@ -197,6 +200,62 @@ ipcMain.handle('school:verify-credential', async (_event, candidate: unknown) =>
   }
 });
 ipcMain.handle('school:recovery-path', () => ({ ok: true, path: app.getPath('userData') }));
+ipcMain.handle('school:packaged-vault-probe', async (_event, expected: unknown) => {
+  const candidate = expected as { product?: unknown; packageVersion?: unknown; candidateCommit?: unknown; appId?: unknown };
+  const provenancePath = join(process.resourcesPath, 'school-mode-provenance.json');
+  let provenanceMatched = false;
+  try {
+    const provenance = JSON.parse(readFileSync(provenancePath, 'utf8')) as Record<string, unknown>;
+    provenanceMatched = provenance.schemaVersion === 1
+      && provenance.product === candidate.product
+      && provenance.packageVersion === candidate.packageVersion
+      && provenance.candidateCommit === candidate.candidateCommit
+      && provenance.appId === candidate.appId;
+  } catch {
+    provenanceMatched = false;
+  }
+  const service = `${SCHOOL_CREDENTIAL_SERVICE}:packaged-roundtrip:${String(candidate.packageVersion ?? '')}:${String(candidate.candidateCommit ?? '')}`;
+  const account = `probe-${randomUUID()}`;
+  const value = randomUUID();
+  let writeSucceeded = false;
+  let readMatched = false;
+  let deleteSucceeded = false;
+  let absentAfterDelete = false;
+  try {
+    await keytar.setPassword(service, account, value);
+    writeSucceeded = true;
+    readMatched = (await keytar.getPassword(service, account)) === value;
+    deleteSucceeded = await keytar.deletePassword(service, account);
+    absentAfterDelete = (await keytar.getPassword(service, account)) === null;
+  } finally {
+    if (!deleteSucceeded) await keytar.deletePassword(service, account).catch(() => false);
+  }
+  return { provenanceMatched, writeSucceeded, readMatched, deleteSucceeded, absentAfterDelete };
+});
+
+function packagedProbeResultPath(): string | undefined {
+  const prefix = '--school-vault-probe-result=';
+  const argument = process.argv.find((value) => value.startsWith(prefix));
+  return argument ? argument.slice(prefix.length) : undefined;
+}
+
+function runPackagedProbeWhenRequested(): void {
+  const resultPath = packagedProbeResultPath();
+  if (!resultPath || !mainWindow) return;
+  mainWindow.webContents.once('did-finish-load', () => {
+    void (async () => {
+      try {
+        const provenance = JSON.parse(readFileSync(join(process.resourcesPath, 'school-mode-provenance.json'), 'utf8'));
+        const result = await mainWindow?.webContents.executeJavaScript(`window.dingDesktop.school.packagedVaultProbe(${JSON.stringify({ product: provenance.product, packageVersion: provenance.packageVersion, candidateCommit: provenance.candidateCommit, appId: provenance.appId })})`, true);
+        writeFileSync(resultPath, JSON.stringify(result) + '\n', 'utf8');
+      } catch (error) {
+        writeFileSync(resultPath, JSON.stringify({ error: error instanceof Error ? error.message : String(error) }) + '\n', 'utf8');
+      } finally {
+        app.quit();
+      }
+    })();
+  });
+}
 ipcMain.handle('accessibility:screen-reader', () => app.isAccessibilitySupportEnabled());
 
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {

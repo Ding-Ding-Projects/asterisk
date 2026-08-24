@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -10,8 +11,14 @@ const inventorySource = readFileSync(join(root, 'app', 'renderer', 'src', 'event
 const localeSource = readFileSync(join(root, 'app', 'renderer', 'src', 'locale-yue.ts'), 'utf8');
 const census = JSON.parse(readFileSync(join(root, 'inventories', 'event-copy-census.json'), 'utf8'));
 if (census.status !== 'implemented-unverified' || census.sources.length !== 3 || census.templates.length !== 2) throw new Error('Dynamic event census is missing its exact source or template rows.');
+const compilerPath = join(root, 'scripts', 'compile-design.mjs');
+const compilerHash = createHash('sha256').update(readFileSync(compilerPath)).digest('hex');
+const sourceIds = new Set();
 for (const source of census.sources) {
+  if (!source.id || sourceIds.has(source.id) || !/^[0-9a-f]{64}$/u.test(source.sha256) || source.compilerRevision !== compilerHash) throw new Error(`Dynamic event census source identity or compiler revision is invalid: ${source.id}`);
+  sourceIds.add(source.id);
   const sourceText = readFileSync(join(root, '..', source.path), 'utf8');
+  if (createHash('sha256').update(sourceText).digest('hex') !== source.sha256) throw new Error(`Dynamic event census source hash drift: ${source.path}`);
   if (!/this\.(?:toast|fire)\(/u.test(sourceText)) throw new Error(`Dynamic event census source has no toast or dialog call form: ${source.path}`);
 }
 const records = new Map([...inventorySource.matchAll(/key: '([^']+)'[^\n]*status: '(localized|english-fallback)'/g)].map((match) => [match[1], match[2]]));

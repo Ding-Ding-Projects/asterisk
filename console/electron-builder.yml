@@ -15,6 +15,8 @@ extraResources:
     to: asterisk/asterisk-wsl-rootfs.json
   - from: resources/update-manifest.json
     to: update-manifest.json
+  - from: resources/school-mode-provenance.json
+    to: school-mode-provenance.json
 win:
   target: squirrel
   icon: assets/icon.png

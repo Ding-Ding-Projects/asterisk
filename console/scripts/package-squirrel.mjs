@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,6 +14,7 @@ const runAttempt = process.env.GITHUB_RUN_ATTEMPT;
 const runNumberText = process.env.GITHUB_RUN_NUMBER;
 const tag = process.env.DING_PBX_RELEASE_TAG ?? (runNumberText && runAttempt ? `ding-pbx-console-v0.0.${runNumberText}-r${runAttempt}` : null);
 const unpackedOutput = join(consoleRoot, 'dist', 'squirrel-windows', 'win-unpacked');
+const sourceProvenance = join(consoleRoot, 'resources', 'school-mode-provenance.json');
 
 if (!/^\d+\.\d+\.\d+$/u.test(version)) throw new Error('DING_PBX_VERSION must be an explicit numeric semantic version.');
 if (!/^[0-9a-f]{40}$/u.test(candidateCommit)) throw new Error('DING_PBX_CANDIDATE_COMMIT must be the explicit 40-character candidate commit.');
@@ -30,6 +31,9 @@ if (head.status !== 0 || head.stdout.trim() !== candidateCommit) throw new Error
 process.env.DING_PBX_VERSION = version;
 process.env.DING_PBX_CANDIDATE_COMMIT = candidateCommit;
 if (existsSync(unpackedOutput)) rmSync(unpackedOutput, { recursive: true, force: true });
+if (existsSync(sourceProvenance)) throw new Error('The provenance staging file already exists. Refusing to overwrite user content.');
+writeFileSync(sourceProvenance, JSON.stringify({ schemaVersion: 1, product: packageJson.name, packageVersion: version, candidateCommit, appId: 'org.dingdingprojects.dingpbxconsole' }, null, 2) + '\n', 'utf8');
+process.once('exit', () => { try { unlinkSync(sourceProvenance); } catch { /* already removed */ } });
 const cli = join(consoleRoot, 'node_modules', 'electron-builder', 'cli.js');
 const native = spawnSync(process.execPath, [join(consoleRoot, 'node_modules', 'electron-builder', 'cli.js'), 'install-app-deps', '--platform', 'win32', '--arch', 'x64'], { cwd: consoleRoot, env: process.env, stdio: 'inherit', shell: false });
 if (native.error) throw native.error;
@@ -37,15 +41,6 @@ if (native.status !== 0) process.exit(native.status ?? 1);
 const result = spawnSync(process.execPath, [cli, '--win', 'squirrel', '--config', 'electron-builder.yml', `--config.extraMetadata.version=${version}`], { cwd: consoleRoot, env: process.env, stdio: 'inherit', shell: false });
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
-
-const unpackedProvenance = join(unpackedOutput, 'resources', 'school-mode-provenance.json');
-writeFileSync(unpackedProvenance, JSON.stringify({
-  schemaVersion: 1,
-  product: packageJson.name,
-  packageVersion: version,
-  candidateCommit,
-  appId: 'org.dingdingprojects.dingpbxconsole',
-}, null, 2) + '\n', 'utf8');
 
 const packagedProbe = spawnSync(process.execPath, [join(consoleRoot, 'scripts', 'verify-keytar-packaged.mjs')], { cwd: consoleRoot, env: process.env, stdio: 'inherit', shell: false });
 if (packagedProbe.error) throw packagedProbe.error;

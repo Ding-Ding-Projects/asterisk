@@ -14,6 +14,7 @@ const api = Object.freeze({
     setCredential: value => ipcRenderer.invoke('school:set-credential', value),
     verifyCredential: value => ipcRenderer.invoke('school:verify-credential', value),
     recoveryPath: () => ipcRenderer.invoke('school:recovery-path'),
+    packagedVaultProbe: expected => ipcRenderer.invoke('school:packaged-vault-probe', expected),
   }),
   accessibility: Object.freeze({
     isScreenReaderActive: () => ipcRenderer.invoke('accessibility:screen-reader'),

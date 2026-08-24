@@ -4,20 +4,29 @@
   "purpose": "Exact census contract for dynamic toast and dialog call forms across the source, design input, generated renderer and runtime helpers.",
   "sources": [
     {
+      "id": "app-event-source",
       "path": "console/app/renderer/src/App.tsx",
       "mode": "direct-inventory",
+      "sha256": "aeaca4613cad98a49a375bdad2a6f143f3e624e45a4eb955daecf68118dfb604",
+      "compilerRevision": "87a632250af32a0d314619a5d439ac12e147dd52889cc7aeab507db2c31f287e",
       "literalStatus": "inventory-key-required",
       "templateStatus": "template-key-required"
     },
     {
+      "id": "design-event-source",
       "path": "design/Asterisk Console M3.dc.html",
       "mode": "generated-helper-route",
+      "sha256": "a317a6781d69b7060f089f75dc0e37653c8578124f572c7d0a50a458414cd790",
+      "compilerRevision": "87a632250af32a0d314619a5d439ac12e147dd52889cc7aeab507db2c31f287e",
       "literalStatus": "localized-runtime-helper",
       "templateStatus": "template-key-required"
     },
     {
+      "id": "generated-event-source",
       "path": "console/app/renderer/src/generated/console.tsx",
       "mode": "generated-helper-route",
+      "sha256": "cfe66a1fdacea117687216ab19c610be8cf7f8509d255493192ac9e66a68b87d",
+      "compilerRevision": "87a632250af32a0d314619a5d439ac12e147dd52889cc7aeab507db2c31f287e",
       "literalStatus": "localized-runtime-helper",
       "templateStatus": "template-key-required"
     }
@@ -26,11 +35,13 @@
     {
       "key": "localizedToast",
       "path": "console/app/renderer/src/App.tsx",
+      "sourceId": "app-event-source",
       "fallback": "untranslated-yue-track-plain-english"
     },
     {
       "key": "localizedFire",
       "path": "console/app/renderer/src/App.tsx",
+      "sourceId": "app-event-source",
       "fallback": "untranslated-yue-track-plain-english"
     }
   ],

@@ -15,6 +15,7 @@ const api: DingDesktopApi = {
     setCredential: (value: string) => ipcRenderer.invoke('school:set-credential', value) as Promise<{ ok: boolean; reason?: string }>,
     verifyCredential: (value: string) => ipcRenderer.invoke('school:verify-credential', value) as Promise<{ ok: boolean; reason?: string }>,
     recoveryPath: () => ipcRenderer.invoke('school:recovery-path') as Promise<{ ok: boolean; path?: string; reason?: string }>,
+    packagedVaultProbe: (expected: { product: string; packageVersion: string; candidateCommit: string; appId: string }) => ipcRenderer.invoke('school:packaged-vault-probe', expected) as Promise<{ provenanceMatched: boolean; writeSucceeded: boolean; readMatched: boolean; deleteSucceeded: boolean; absentAfterDelete: boolean }>,
   },
   accessibility: {
     isScreenReaderActive: () => ipcRenderer.invoke('accessibility:screen-reader') as Promise<boolean>,
