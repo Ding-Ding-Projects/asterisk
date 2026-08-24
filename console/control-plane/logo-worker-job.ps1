@@ -32,6 +32,7 @@ public static class LogoWorkerAppContainerLauncher {
   [DllImport("kernel32.dll")] static extern uint ResumeThread(IntPtr thread);
   [DllImport("kernel32.dll")] static extern uint WaitForSingleObject(IntPtr handle,uint milliseconds);
   [DllImport("kernel32.dll")] static extern bool GetExitCodeProcess(IntPtr handle,out uint code);
+  [DllImport("kernel32.dll",SetLastError=true)] static extern bool TerminateProcess(IntPtr handle,uint code);
   [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
   [DllImport("kernel32.dll")] static extern IntPtr GetStdHandle(int handle);
   [DllImport("kernel32.dll",SetLastError=true)] static extern bool GetHandleInformation(IntPtr handle,out uint flags);
@@ -58,7 +59,7 @@ public static class LogoWorkerAppContainerLauncher {
       if(!AssignProcessToJobObject(job,pi.hProcess)) throw new Win32Exception(Marshal.GetLastWin32Error(),"AssignProcessToJobObject failed");
       if(ResumeThread(pi.hThread)==unchecked((uint)-1)) throw new Win32Exception(Marshal.GetLastWin32Error(),"ResumeThread failed");
       Console.Out.WriteLine("READY"); Console.Out.WriteLine("WORKER_PID:"+pi.dwProcessId); Console.Out.Flush(); WaitForSingleObject(pi.hProcess,INFINITE); uint exit; if(!GetExitCodeProcess(pi.hProcess,out exit)) throw new Win32Exception(Marshal.GetLastWin32Error(),"GetExitCodeProcess failed"); return (int)exit;
-    }finally{if(pi.hThread!=IntPtr.Zero)CloseHandle(pi.hThread);if(pi.hProcess!=IntPtr.Zero)CloseHandle(pi.hProcess);if(attributes!=IntPtr.Zero){DeleteProcThreadAttributeList(attributes);Marshal.FreeHGlobal(attributes);}if(job!=IntPtr.Zero)CloseHandle(job);if(sid!=IntPtr.Zero)DeleteAppContainerProfile(profile);}
+    }finally{if(pi.hProcess!=IntPtr.Zero){uint current; if(GetExitCodeProcess(pi.hProcess,out current) && current==259) TerminateProcess(pi.hProcess,1); CloseHandle(pi.hProcess);}if(pi.hThread!=IntPtr.Zero)CloseHandle(pi.hThread);if(attributes!=IntPtr.Zero){DeleteProcThreadAttributeList(attributes);Marshal.FreeHGlobal(attributes);}if(job!=IntPtr.Zero)CloseHandle(job);if(sid!=IntPtr.Zero)DeleteAppContainerProfile(profile);}
   }
 }
 "@

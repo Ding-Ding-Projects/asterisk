@@ -18,7 +18,7 @@
     "test:contracts": "node --test tests/contracts/*.test.mjs",
     "test:site": "node site/tests/site.test.mjs",
     "bundle:asterisk": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-asterisk-wsl-bundle.ps1",
-    "package:squirrel": "npm run bundle:asterisk && npm run build && node scripts/package-squirrel.mjs && node scripts/verify-logo-decoder-package.mjs",
+    "package:squirrel": "npm run build && npm run bundle:asterisk && node scripts/package-squirrel.mjs && node scripts/verify-logo-decoder-package.mjs",
     "compile:design": "node scripts/compile-design.mjs && node scripts/extend-pbx-m3.mjs",
     "test:renderer": "tsx --test tests/ui/*.test.tsx",
     "test:inventories": "node scripts/verify-inventories.mjs --allow-unverified && node scripts/negative-design-parity.mjs && node scripts/negative-surface-completeness.mjs && node scripts/negative-evidence-claims.mjs",

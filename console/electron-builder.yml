@@ -19,7 +19,7 @@ extraResources:
     to: logo-decoder/node_modules/sharp
   - from: node_modules/@img
     to: logo-decoder/node_modules/@img
-  - from: resources/logo-decoder-manifest.json
+  - from: dist/logo-decoder-manifest.json
     to: logo-decoder/logo-decoder-manifest.json
   - from: control-plane/logo-worker-job.ps1
     to: logo-decoder/logo-worker-job.ps1
