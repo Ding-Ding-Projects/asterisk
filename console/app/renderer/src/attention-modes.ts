@@ -91,6 +91,7 @@ function markerForSpan(kind: SensitiveSpanKind): string {
 const CREDENTIAL_KEY = /^(?:password|passphrase|secret|token|pin|code|api[_ -]?key|access[_ -]?token|refresh[_ -]?token|credential)\s*[:=]\s*/iu;
 const PBX_BASENAME = /^(?:pjsip|extensions|queues|http|acl|asterisk|modules|logger|rtp|cdr|cel|features|musiconhold|voicemail)(?:\.conf)?(?:[\\/]|(?=[,;\s)\]}]|$))/iu;
 const PBX_RELATIVE_PATH = /^(?:[A-Za-z0-9._-]+[\\/])+(?:pjsip|extensions|queues|http|acl|asterisk|modules|logger|rtp|cdr|cel|features|musiconhold|voicemail)(?:\.conf)?(?:[\\/]|(?=[,;\s)\]}]|$))/iu;
+const PBX_RELATIVE_PATH_WITH_SPACES = /^(?:(?:[A-Za-z0-9._-]+\s+){0,2})PBX(?:[^"'`\r\n,;()[\]}]*[\\/])+(?:pjsip|extensions|queues|http|acl|asterisk|modules|logger|rtp|cdr|cel|features|musiconhold|voicemail)(?:\.conf)?(?:[\\/]|(?=[,;\s)\]}]|$))/iu;
 
 function isQuote(value: string): boolean { return value === '"' || value === "'" || value === '`'; }
 function isUrlStart(value: string, index: number): boolean { return /^(?:https?|file):\/\//iu.test(value.slice(index)); }
@@ -99,10 +100,11 @@ function isPathStart(value: string, index: number): boolean {
   if (before && !/[\s=(\[{<]/u.test(before)) return false;
   return /^(?:[A-Za-z]:[\\/]|\\\\|\/(?:etc|var|home|tmp|opt|srv|mnt|usr)(?:\/|$)|\.{1,2}[\\/])/u.test(value.slice(index))
     || PBX_BASENAME.test(value.slice(index))
-    || PBX_RELATIVE_PATH.test(value.slice(index));
+    || PBX_RELATIVE_PATH.test(value.slice(index))
+    || PBX_RELATIVE_PATH_WITH_SPACES.test(value.slice(index));
 }
 function isSensitiveQuoted(value: string): boolean {
-  return isUrlStart(value, 0) || /^(?:[A-Za-z]:[\\/]|\\\\|\/(?:etc|var|home|tmp|opt|srv|mnt|usr)(?:\/|$)|\.{1,2}[\\/])/u.test(value) || PBX_BASENAME.test(value) || PBX_RELATIVE_PATH.test(value);
+  return isUrlStart(value, 0) || /^(?:[A-Za-z]:[\\/]|\\\\|\/(?:etc|var|home|tmp|opt|srv|mnt|usr)(?:\/|$)|\.{1,2}[\\/])/u.test(value) || PBX_BASENAME.test(value) || PBX_RELATIVE_PATH.test(value) || PBX_RELATIVE_PATH_WITH_SPACES.test(value);
 }
 function scanToDelimiter(value: string, start: number, _url: boolean): number {
   let index = start;

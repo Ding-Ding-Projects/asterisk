@@ -74,6 +74,9 @@ function verifyAttentionWiring() {
       ['url https://example.invalid/retry/because/please/will path, this recovery', 'url [url omitted], this recovery'],
       ['path configs/pjsip.conf, the recovery text', 'path [path omitted], the recovery text'],
       ['path retry/because/please/will/pjsip.conf; check this recovery', 'path [path omitted]; check this recovery'],
+      ['PBX configs/pjsip.conf, the recovery text', '[path omitted], the recovery text'],
+      ['office PBX/retry because/pjsip.conf; check this recovery', '[path omitted]; check this recovery'],
+      ['"office PBX/retry because/pjsip.conf"', '"[path omitted]"'],
       ['HTTPS://example.invalid/config, the recovery text', '[url omitted], the recovery text'],
       ['FILE:///C:/Program Files/pjsip.conf; this recovery', '[url omitted]; this recovery'],
     ]) {
