@@ -16,9 +16,9 @@
       ]
     },
     "funny-levels": {
-      "state": "absent",
-      "note": "No funny-level slider or copy-styling mechanism exists. Notification and dialog copy in App.tsx and the compiled console (this.fire/this.toast) is fixed text with no tone variation.",
-      "files": []
+      "state": "implemented",
+      "note": "Implemented with independent English and Cantonese 1 to 5 controls in the compiled design, durable persistence, and App.tsx toast/dialog styling that preserves factual text.",
+      "files": ["app/renderer/src/funny-levels.ts", "app/renderer/src/App.tsx", "design/Asterisk Console M3.dc.html"]
     },
     "dialog-emojis": {
       "state": "implemented",
@@ -31,16 +31,14 @@
       ]
     },
     "school-mode": {
-      "state": "absent",
-      "note": "No School mode setting, rename, or shared-credential unlock exists. The per-element lock mechanism in the compiled console (tryUnlock, PIN/password) is unrelated to School mode.",
-      "files": []
+      "state": "implemented",
+      "note": "Implemented with a shared durable state, live snapshot refresh, renamable label, hidden optional controls, saved-setting restoration, and Electron safeStorage credential verification.",
+      "files": ["app/renderer/src/school-mode.ts", "app/renderer/src/App.tsx", "app/electron/main.ts", "app/electron/preload.ts", "app/electron/preload.cjs", "design/Asterisk Console M3.dc.html"]
     },
     "narration": {
-      "state": "partial",
-      "note": "app/renderer/src/narration.ts implements TTS narration logic (queue, per-category cooldown, language selection) and is covered by tests/ui/narration.test.tsx, but the module is never imported by App.tsx, PbxAdminApp.tsx, or PbxAdminIntegratedApp.tsx, so it never runs inside the mounted application.",
-      "files": [
-        "app/renderer/src/narration.ts"
-      ]
+      "state": "implemented",
+      "note": "Mounted App.tsx now creates the browser speech adapter, persists narrator settings, refreshes installed voice options, reports missing and network-backed voices, and queues localized notifications and dialogs through the serialized narrator.",
+      "files": ["app/renderer/src/narration.ts", "app/renderer/src/App.tsx", "design/Asterisk Console M3.dc.html"]
     },
     "scheduled-settings": {
       "state": "absent",

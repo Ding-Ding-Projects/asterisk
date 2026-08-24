@@ -11,6 +11,10 @@ const api: DingDesktopApi = {
   controlPlane: {
     request: (request: ControlPlaneRequest) => ipcRenderer.invoke('control-plane:request', request) as Promise<ControlPlaneResponse>,
   },
+  school: {
+    setCredential: (value: string) => ipcRenderer.invoke('school:set-credential', value) as Promise<{ ok: boolean; reason?: string }>,
+    verifyCredential: (value: string) => ipcRenderer.invoke('school:verify-credential', value) as Promise<{ ok: boolean; reason?: string }>,
+  },
   updater: {
     getStatus: () => ipcRenderer.invoke('updater:get-status') as Promise<UpdaterStatusForRenderer>,
     checkNow: () => ipcRenderer.invoke('updater:check-now') as Promise<UpdaterStatusForRenderer>,

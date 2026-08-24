@@ -368,6 +368,22 @@ present: looking for a native `select` finds nothing, because a choice renders a
 and matching button text finds every option **except the one currently set**, because the selected
 option carries a mark and its text is not the bare value.
 
+## Language, School mode and narration lane
+
+The desktop language lane is implemented in the current task Gerk Tong Hui, pending its own commit
+and integration. The design source adds three language modes, independent English and Cantonese funny
+levels, a persisted dialog-emoji switch, a shared renamable School mode, and an off-by-default narration
+group. The renderer mounts the existing localization boundary, applies bounded funny wrappers to app
+notifications and dialogs, polls the shared settings snapshot once per second, and hides Cantonese,
+funny, vocabulary, dialog-emoji and narration controls while School mode is active. Electron stores
+the School unlock credential through `safeStorage`; the plain settings snapshot never receives it.
+
+The browser speech adapter enumerates the installed voice list late through `voiceschanged`, persists
+stable voice URI identities, reports missing and network-backed choices, and serializes English then
+Cantonese for `Both`. No tests, lint, broad build, packaging, UI capture or release work was run in
+this lane, per its bounded scope. The generated renderer and docs bundle were regenerated from the
+checked-in design and Markdown sources.
+
 
 ## Next owner actions
 

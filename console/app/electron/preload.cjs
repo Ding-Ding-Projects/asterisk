@@ -10,6 +10,10 @@ const api = Object.freeze({
   controlPlane: Object.freeze({
     request: request => ipcRenderer.invoke('control-plane:request', request),
   }),
+  school: Object.freeze({
+    setCredential: value => ipcRenderer.invoke('school:set-credential', value),
+    verifyCredential: value => ipcRenderer.invoke('school:verify-credential', value),
+  }),
   updater: Object.freeze({
     getStatus: () => ipcRenderer.invoke('updater:get-status'),
     checkNow: () => ipcRenderer.invoke('updater:check-now'),

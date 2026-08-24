@@ -1,33 +1,33 @@
 # Funny-level sliders
 
-Two independent sliders, one per language, that control how playful the product's own copy sounds — from fully serious to maximum playfulness.
+Two independent sliders, one for English and one for Cantonese, style the console's own copy without changing its facts.
 
 ## Behavior
 
-Two sliders, English and Cantonese, are meant to each range from level 1 (fully professional wording) to level 5 (maximum playfulness), restyling every message category including warnings and errors without changing the underlying facts they carry.
+`English funny level` and `Cantonese funny level` each range from 1 (fully serious) to 5 (maximum playfulness). Notification and dialog wrappers use the selected language's level while keeping factual text, technical values, error causes and irreversible-action warnings intact.
 
 ## Configuration
 
-Sliders would live in settings, default to level 5 for both languages, and be changeable and resettable independently of each other.
+Both controls live in `Customise everything`, default to level 5, persist in the durable settings store, and can be changed or reset independently. School mode temporarily forces both to level 1 and restores the saved choices after a verified unlock.
 
 ## Current status
 
-**Desktop application:** Not implemented. No slider exists and all product copy is written at a single fixed tone.
+**Desktop application:** Implemented. The pure funny-level module clamps values to the supported range and supplies the styling boundary used by app events.
 
-**Documentation website:** Partial. A settings page draft includes slider controls, but changing them does not yet restyle any rendered page copy.
+**Documentation website:** Partial. Its settings page has separate controls but remains a separate runtime.
 
 ## Failure modes
 
-A message's facts (file names, error causes, irreversible-action warnings) are meant to stay exact at every level regardless of tone; if a restyled string ever disagreed with the underlying fact, that would be treated as a defect in the styling layer, not an acceptable trade-off.
+Malformed or out-of-range stored values fall back to level 5. Styling adds only bounded voice, never a replacement for the underlying fact.
 
 ## Accessibility and localization
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.
+Both sliders are keyboard-reachable generated controls with localized labels. Voice names, file paths, identifiers and observed PBX data are never restyled as funny copy.
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+The pure funny-level module and renderer integration are covered by focused renderer checks. Built-artifact interaction evidence remains tracked in the per-surface inventory.
 
 ## Suggested articles
 
-[Language modes](language-modes.md), [Platform feature index](README.md).
+[Language modes](language-modes.md), [School mode](school-mode.md), [Non-blocking notifications](non-blocking-notifications.md), [Platform feature index](README.md).

@@ -25,6 +25,19 @@ import {
   isLanguageMode, languageMode, setCatalog, setLanguageMode, setVocabularyStorage,
   type LanguageMode,
 } from './text-boundary';
+import {
+  CHOOSE_AUTOMATICALLY, browserSpeechEngine, Narrator, voiceOptions,
+  type NarrationLanguage, type SpeechEngine,
+} from './narration';
+import {
+  DEFAULT_FUNNY_LEVELS, readFunnyLevels, styleFunnyText, writeFunnyLevels,
+  type FunnyLevels,
+} from './funny-levels';
+import {
+  DEFAULT_SCHOOL_NAME, SCHOOL_MODE_SETTING,
+  readPreviousSettings, renameSchoolMode, schoolModeEnabled,
+  schoolModeName, savePreviousSettings, writeSchoolMode,
+} from './school-mode';
 import { CANTONESE } from './locale-yue';
 import {
   IDENTITY, displayName, resetDisplayName, setDisplayName,
@@ -142,6 +155,8 @@ interface Shell {
 /** The shape the compiled shell hands every control callback. */
 interface ControlRef { id?: string; label?: string; kind?: string }
 
+type SchoolStatus = 'unknown' | 'enabled' | 'disabled' | 'refresh-failed';
+
 const Base = ConsoleShell as unknown as new (props: Record<string, never>) => Component<Record<string, never>> & Shell;
 
 export class App extends Base {
@@ -180,6 +195,17 @@ export class App extends Base {
    *  stored yet", exactly like a missing settings file. */
   private durableStorage: DurableStorageHandle = createDurableStorage(this.bridge());
   private vocabStorage: VocabularyStorage = this.durableStorage.storage;
+  private funnyLevels: FunnyLevels = { ...DEFAULT_FUNNY_LEVELS };
+  private schoolStatus: SchoolStatus = 'unknown';
+  private schoolRefreshTimer: ReturnType<typeof setInterval> | undefined;
+  private schoolCredentialPromptOpen = false;
+  private narrator: Narrator | undefined;
+  private speechEngine: SpeechEngine | undefined;
+  private narrationStatusLine = 'No voice list loaded yet.';
+  private voiceOptionIds: Record<string, string> = {};
+  private voicesChangedUnsubscribe: (() => void) | undefined;
+  private readonly baseToast: (message: string) => void;
+  private readonly baseFire: (title: string, body: string) => void;
 
   /* The design's `lang_mode` control, mapped to the boundary's own mode names. The
    * control names each language in that language, which is the one label a person
@@ -215,6 +241,15 @@ export class App extends Base {
     super(props);
     this.baseSetVal = this.setVal as (control: ControlRef, value: unknown) => void;
     this.setVal = this.languageAwareSetVal;
+    this.baseToast = this.toast.bind(this);
+    this.baseFire = this.fire.bind(this);
+    this.toast = this.localizedToast;
+    this.fire = this.localizedFire;
+    this.speechEngine = browserSpeechEngine();
+    if (this.speechEngine) {
+      this.narrator = new Narrator(this.speechEngine);
+      this.voicesChangedUnsubscribe = this.speechEngine.onVoicesChanged(() => this.refreshNarrationVoiceOptions());
+    }
   }
   /** The chosen file's own name, kept only for display — never its contents. */
   private pickedFileNames = new Map<string, string>();
@@ -260,10 +295,28 @@ export class App extends Base {
      * at construction keeps the uploaded file and the rendered text reading from one
      * storage handle instead of two that can disagree. */
     setVocabularyStorage(this.vocabStorage);
+    this.funnyLevels = readFunnyLevels(this.vocabStorage);
+    this.refreshNarrationVoiceOptions();
+    void this.refreshSharedSchoolState();
+    this.schoolRefreshTimer = setInterval(() => { void this.refreshSharedSchoolState(); }, 1000);
     void this.durableStorage.bootstrap().then(() => {
       this.restoreLanguageMode();
+      this.funnyLevels = readFunnyLevels(this.vocabStorage);
+      this.restoreNarrationSettings();
       this.restoreDisplayName();
       this.restoreAppearance();
+      this.setState((prior: { values?: Record<string, unknown> }) => ({
+        values: {
+          ...(prior.values ?? {}),
+          fun_level: Math.min(this.funnyLevels.en, this.funnyLevels.yue),
+          fun_english: this.funnyLevels.en,
+          fun_cantonese: this.funnyLevels.yue,
+          school_mode: schoolModeEnabled(this.vocabStorage),
+          school_name: schoolModeName(this.vocabStorage),
+          school_status: this.schoolStatus,
+        },
+      }) as never);
+      if (schoolModeEnabled(this.vocabStorage)) this.applySchoolMode(true, false);
       this.forceUpdate();
     });
     /* The configured server list is not a reading from any PBX — it exists before
@@ -283,6 +336,12 @@ export class App extends Base {
     super.componentWillUnmount?.();
     if (this.refreshTimer) clearInterval(this.refreshTimer);
     this.refreshTimer = undefined;
+    if (this.schoolRefreshTimer) clearInterval(this.schoolRefreshTimer);
+    this.schoolRefreshTimer = undefined;
+    this.narrator?.dispose();
+    this.narrator = undefined;
+    this.voicesChangedUnsubscribe?.();
+    this.voicesChangedUnsubscribe = undefined;
   }
 
   componentDidUpdate() {
@@ -549,6 +608,224 @@ ${resolution.disclosure}`);
     if (isLanguageMode(saved)) setLanguageMode(saved);
   }
 
+  private currentFunnyText(text: string): string {
+    if (languageMode() === 'both' && text.includes(' · ')) {
+      const [english, cantonese] = text.split(' · ', 2);
+      return `${styleFunnyText(english!, 'en', this.funnyLevels.en)} · ${styleFunnyText(cantonese!, 'yue', this.funnyLevels.yue)}`;
+    }
+    return styleFunnyText(text, languageMode() === 'yue' ? 'yue' : 'en', languageMode() === 'yue' ? this.funnyLevels.yue : this.funnyLevels.en);
+  }
+
+  /** The generated shell owns the actual toast and dialog renderers. This wrapper
+   * keeps every app event on the localization and funny-level boundary and queues
+   * the same factual text for the optional narrator. */
+  private localizedToast = (message: string): void => {
+    const shown = this.currentFunnyText(message);
+    this.baseToast(shown);
+    this.narrator?.enqueue('notification', shown);
+  };
+
+  private localizedFire = (title: string, body: string): void => {
+    const shownTitle = this.currentFunnyText(title);
+    const shownBody = this.currentFunnyText(body);
+    this.baseFire(shownTitle, shownBody);
+    this.narrator?.enqueue('dialog', `${shownTitle}. ${shownBody}`, { isError: /not |failed|error|cannot|could not|rejected|unavailable/iu.test(body) });
+  };
+
+  private restoreNarrationSettings(): void {
+    const raw = this.vocabStorage.getItem('console.narration');
+    if (!raw || !this.narrator) return;
+    try {
+      const saved = JSON.parse(raw) as { enabled?: boolean; language?: NarrationLanguage; voices?: { en?: string; zh?: string }; rate?: number; pitch?: number };
+      this.narrator.setSettings({
+        enabled: saved.enabled === true,
+        language: saved.language === 'zh' || saved.language === 'both' ? saved.language : 'en',
+        voices: saved.voices,
+        rate: saved.rate,
+        pitch: saved.pitch,
+      });
+      this.syncNarrationStateToControls();
+      this.updateNarrationStatus();
+    } catch {
+      // Invalid local settings fail closed to narration off and platform defaults.
+    }
+  }
+
+  private syncNarrationStateToControls(): void {
+    const settings = this.narrator?.getSettings();
+    if (!settings) return;
+    const language = settings.language === 'zh' ? '廣東話' : settings.language === 'both' ? 'Both' : 'English';
+    this.setState((prior: { values?: Record<string, unknown> }) => ({
+      values: {
+        ...(prior.values ?? {}),
+        nar_enabled: settings.enabled,
+        nar_language: language,
+        nar_en_voice: this.voiceLabelForId(settings.voices.en, 'en'),
+        nar_yue_voice: this.voiceLabelForId(settings.voices.zh, 'zh'),
+        nar_rate: settings.rate,
+        nar_pitch: settings.pitch,
+      },
+    }) as never);
+  }
+
+  private persistNarration(): void {
+    const settings = this.narrator?.getSettings();
+    if (!settings) return;
+    this.vocabStorage.setItem('console.narration', JSON.stringify(settings));
+    this.updateNarrationStatus();
+  }
+
+  private refreshNarrationVoiceOptions(): void {
+    if (!this.speechEngine) {
+      this.narrationStatusLine = 'Speech synthesis is not available on this computer.';
+      return;
+    }
+    const screens = SCREENS as unknown as { customise?: { groups?: Array<{ ctls: Array<{ id: string; options?: string[] }> }> } };
+    this.voiceOptionIds = {};
+    for (const group of screens.customise?.groups ?? []) {
+      for (const control of group.ctls) {
+        if (control.id === 'nar_en_voice' || control.id === 'nar_yue_voice') {
+          const language = control.id === 'nar_en_voice' ? 'en' : 'zh';
+          const options = voiceOptions(this.speechEngine, language);
+          control.options = options.map((option) => {
+            if (option.id === CHOOSE_AUTOMATICALLY) return option.label;
+            const label = `${option.label} (${language})`;
+            this.voiceOptionIds[label] = option.id;
+            return label;
+          });
+        }
+      }
+    }
+    this.updateNarrationStatus();
+    this.forceUpdate();
+  }
+
+  private voiceLabelForId(id: string | undefined, language: 'en' | 'zh'): string {
+    if (!id) return 'Choose automatically';
+    const option = Object.entries(this.voiceOptionIds).find(([, voiceId]) => voiceId === id);
+    return option?.[0] ?? `Installed voice (${language})`;
+  }
+
+  private updateNarrationStatus(): void {
+    if (!this.narrator) {
+      this.narrationStatusLine = 'Speech synthesis is not available on this computer.';
+      return;
+    }
+    const english = this.narrator.status('en').message;
+    const cantonese = this.narrator.status('zh').message;
+    this.narrationStatusLine = `English: ${english} Cantonese: ${cantonese}`;
+  }
+
+  private applyNarrationControl(control: ControlRef, value: unknown): void {
+    if (!this.narrator) return;
+    if (control.id === 'nar_enabled' && typeof value === 'boolean') this.narrator.setSettings({ enabled: value });
+    if (control.id === 'nar_language') {
+      const language: NarrationLanguage = value === '廣東話' ? 'zh' : value === 'Both' ? 'both' : 'en';
+      this.narrator.setSettings({ language });
+    }
+    if (control.id === 'nar_en_voice' || control.id === 'nar_yue_voice') {
+      const selected = String(value) === 'Choose automatically' ? undefined : this.voiceOptionIds[String(value)] ?? String(value);
+      this.narrator.setSettings({ voices: control.id === 'nar_en_voice' ? { en: selected } : { zh: selected } });
+    }
+    if (control.id === 'nar_rate' && typeof value === 'number') this.narrator.setSettings({ rate: value });
+    if (control.id === 'nar_pitch' && typeof value === 'number') this.narrator.setSettings({ pitch: value });
+    this.persistNarration();
+  }
+
+  private async refreshSharedSchoolState(): Promise<void> {
+    const response = await this.request('settings.snapshot');
+    if (!response?.ok) {
+      this.schoolStatus = 'refresh-failed';
+      this.forceUpdate();
+      return;
+    }
+    const values = response.data as { values?: Record<string, string> };
+    const snapshot = values.values ?? {};
+    const enabled = snapshot[SCHOOL_MODE_SETTING] === 'on';
+    const localEnabled = schoolModeEnabled(this.vocabStorage);
+    const name = snapshot['console.schoolModeName']?.trim() || DEFAULT_SCHOOL_NAME;
+    if (enabled !== localEnabled) this.applySchoolMode(enabled, false);
+    if (snapshot[SCHOOL_MODE_SETTING] !== this.vocabStorage.getItem(SCHOOL_MODE_SETTING)) this.vocabStorage.setItem(SCHOOL_MODE_SETTING, enabled ? 'on' : 'off');
+    if (snapshot['console.schoolModeName'] && snapshot['console.schoolModeName'] !== this.vocabStorage.getItem('console.schoolModeName')) this.vocabStorage.setItem('console.schoolModeName', name);
+    this.schoolStatus = enabled ? 'enabled' : 'disabled';
+    this.setState((prior: { values?: Record<string, unknown> }) => ({
+      values: { ...(prior.values ?? {}), school_mode: enabled, school_name: name, school_status: this.schoolStatus },
+    }) as never);
+  }
+
+  private applySchoolMode(enabled: boolean, persist: boolean): void {
+    const storage = this.vocabStorage;
+    const currentlyEnabled = schoolModeEnabled(storage);
+    if (enabled === currentlyEnabled && this.schoolStatus === (enabled ? 'enabled' : 'disabled')) return;
+    if (enabled) {
+      savePreviousSettings(storage, languageMode(), this.funnyLevels);
+      if (persist) writeSchoolMode(storage, true);
+      setLanguageMode('en');
+      this.funnyLevels = { en: 1, yue: 1 };
+      this.schoolStatus = 'enabled';
+      this.narrator?.setSettings({ enabled: false });
+    } else {
+      if (persist) writeSchoolMode(storage, false);
+      const previous = readPreviousSettings(storage);
+      if (isLanguageMode(previous?.language)) {
+        setLanguageMode(previous.language);
+        storage.setItem(App.LANGUAGE_SETTING, previous.language);
+      }
+      this.funnyLevels = {
+        en: Number(previous?.funny?.en) || DEFAULT_FUNNY_LEVELS.en,
+        yue: Number(previous?.funny?.yue) || DEFAULT_FUNNY_LEVELS.yue,
+      };
+      writeFunnyLevels(storage, this.funnyLevels);
+      this.schoolStatus = 'disabled';
+    }
+    this.setState((prior: { values?: Record<string, unknown> }) => ({
+      values: { ...(prior.values ?? {}), school_mode: enabled, school_status: this.schoolStatus, fun_english: this.funnyLevels.en, fun_cantonese: this.funnyLevels.yue },
+    }) as never);
+    this.forceUpdate();
+  }
+
+  private setSchoolMode = async (enabled: boolean): Promise<void> => {
+    if (enabled) {
+      this.applySchoolMode(true, true);
+      return;
+    }
+    await this.unlockSchoolMode();
+  };
+
+  private configureSchoolCredential = async (): Promise<void> => {
+    if (this.schoolCredentialPromptOpen) return;
+    this.schoolCredentialPromptOpen = true;
+    try {
+      const value = typeof window !== 'undefined' ? window.prompt('Set the shared School mode unlock credential. It is stored only in the desktop credential store.') : null;
+      if (!value) return;
+      const bridge = this.bridge() as DesktopBridge | undefined;
+      const result = await bridge?.school?.setCredential(value);
+      if (result?.ok) this.toast('School mode unlock credential saved locally.');
+      else this.fire('School mode credential not saved', result?.reason ?? 'The desktop credential store is unavailable.');
+    } finally {
+      this.schoolCredentialPromptOpen = false;
+    }
+  };
+
+  private unlockSchoolMode = async (): Promise<void> => {
+    if (this.schoolCredentialPromptOpen) return;
+    this.schoolCredentialPromptOpen = true;
+    try {
+      const value = typeof window !== 'undefined' ? window.prompt(`Enter the ${schoolModeName(this.vocabStorage)} unlock credential.`) : null;
+      if (!value) return;
+      const bridge = this.bridge() as DesktopBridge | undefined;
+      const result = await bridge?.school?.verifyCredential(value);
+      if (!result?.ok) {
+        this.fire('School mode remains on', result?.reason ?? 'The shared credential was not accepted.');
+        return;
+      }
+      this.applySchoolMode(false, true);
+      this.toast(`${schoolModeName(this.vocabStorage)} unlocked. Earlier language and funny levels are back.`);
+    } finally {
+      this.schoolCredentialPromptOpen = false;
+    }
+  };
+
   /** Every control change routes through the compiled shell's `setVal`; this notices
    *  the language one on its way past, applies it live and persists it, then hands the
    *  change on unchanged so the control behaves like every other control. */
@@ -597,6 +874,41 @@ ${resolution.disclosure}`);
         this.durableStorage.storage.setItem(App.LANGUAGE_SETTING, mode);
       }
     }
+    if (control?.id === 'fun_english_reset' && value === true) {
+      this.funnyLevels = writeFunnyLevels(this.vocabStorage, { en: DEFAULT_FUNNY_LEVELS.en, yue: this.funnyLevels.yue });
+      this.setState((prior: { values?: Record<string, unknown> }) => ({ values: { ...(prior.values ?? {}), fun_english: this.funnyLevels.en, fun_cantonese: this.funnyLevels.yue, fun_english_reset: false } }) as never);
+      this.baseSetVal(control, false);
+      return;
+    }
+    if (control?.id === 'fun_cantonese_reset' && value === true) {
+      this.funnyLevels = writeFunnyLevels(this.vocabStorage, { en: this.funnyLevels.en, yue: DEFAULT_FUNNY_LEVELS.yue });
+      this.setState((prior: { values?: Record<string, unknown> }) => ({ values: { ...(prior.values ?? {}), fun_english: this.funnyLevels.en, fun_cantonese: this.funnyLevels.yue, fun_cantonese_reset: false } }) as never);
+      this.baseSetVal(control, false);
+      return;
+    }
+    if (control?.id === 'fun_english' || control?.id === 'fun_cantonese') {
+      const levels = control.id === 'fun_english'
+        ? writeFunnyLevels(this.vocabStorage, { en: Number(value), yue: this.funnyLevels.yue })
+        : writeFunnyLevels(this.vocabStorage, { en: this.funnyLevels.en, yue: Number(value) });
+      this.funnyLevels = levels;
+      this.setState((prior: { values?: Record<string, unknown> }) => ({ values: { ...(prior.values ?? {}), fun_level: Math.min(levels.en, levels.yue), fun_english: levels.en, fun_cantonese: levels.yue } }) as never);
+    }
+    if (control?.id === 'school_mode' && typeof value === 'boolean') {
+      if (!value) {
+        void this.setSchoolMode(false);
+        this.baseSetVal(control, true);
+        return;
+      }
+      void this.setSchoolMode(true);
+    }
+    if (control?.id === 'school_name' && typeof value === 'string') {
+      const problems = renameSchoolMode(this.vocabStorage, value);
+      if (problems.length > 0) this.fire('School mode name not saved', problems[0]!);
+    }
+    if (control?.id === 'school_set_credential' && value === true) void this.configureSchoolCredential();
+    if (control?.id === 'school_unlock' && value === true) void this.unlockSchoolMode();
+    if (control?.id?.startsWith('nar_')) this.applyNarrationControl(control, value);
+    if (control?.id === 'nt_quiet' && typeof value === 'boolean') this.narrator?.setQuiet(value);
     this.baseSetVal(control, value);
   };
 
@@ -604,6 +916,8 @@ ${resolution.disclosure}`);
   controlActionText = (action: string): string => {
     if (action === 'daemon-status') return this.daemonStatusLine;
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
+    if (action === 'school-status') return `${schoolModeName(this.vocabStorage)}: ${this.schoolStatus}`;
+    if (action === 'narration-status') return this.narrationStatusLine;
     return '';
   };
 
@@ -1729,6 +2043,19 @@ It is shown once. The phone needs it to register.`);
     this.applyRows(screen);
     this.syncAppearance();
     const values = super.renderVals() as Record<string, unknown>;
+    if (schoolModeEnabled(this.vocabStorage)) {
+      const groups = values.groups as Array<{ ctls?: Array<{ id?: string }> }> | undefined;
+      if (groups) {
+        const hidden = (id: string | undefined): boolean => Boolean(id && (
+          id === 'lang_mode' || id === 'dlg_emoji' || id.startsWith('fun_') || id.startsWith('va_') ||
+          id === 'nar_enabled' || id === 'nar_language' || id === 'nar_en_voice' || id === 'nar_yue_voice' ||
+          id === 'nar_rate' || id === 'nar_pitch' || id === 'nar_status'
+        ));
+        values.groups = groups
+          .map((group) => ({ ...group, ctls: (group.ctls ?? []).filter((control) => !hidden(control.id)) }))
+          .filter((group) => (group.ctls ?? []).length > 0);
+      }
+    }
     const bridge = this.bridge();
     const readings = this.readings[screen];
     const note = this.note(screen);
@@ -2257,4 +2584,8 @@ interface DesktopBridge {
   platform: string;
   window: { minimize: () => void; toggleMaximize: () => void; close: () => void };
   controlPlane: { request: (request: Record<string, unknown>) => Promise<ControlPlaneResponse | undefined> };
+  school?: {
+    setCredential(value: string): Promise<{ ok: boolean; reason?: string }>;
+    verifyCredential(value: string): Promise<{ ok: boolean; reason?: string }>;
+  };
 }

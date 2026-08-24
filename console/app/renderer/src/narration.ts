@@ -33,6 +33,60 @@ export interface SpeechEngine {
   cancel(): void;
 }
 
+/** Stable picker value used for the platform-selected voice. */
+export const CHOOSE_AUTOMATICALLY = 'auto';
+
+/** A picker option is built from the voices present on this machine at runtime. */
+export interface VoiceOption {
+  id: string;
+  label: string;
+  localService?: boolean;
+}
+
+export function voiceOptions(engine: SpeechEngine, language: 'en' | 'zh'): VoiceOption[] {
+  return [
+    { id: CHOOSE_AUTOMATICALLY, label: 'Choose automatically' },
+    ...engine.voices()
+      .filter((voice) => voiceMatchesLanguage(voice, language))
+      .map((voice) => ({ id: voice.id, label: voice.name, localService: voice.localService })),
+  ];
+}
+
+/** Browser SpeechSynthesis adapter. Voice URI is the stable identity, never display name. */
+export function browserSpeechEngine(): SpeechEngine | undefined {
+  if (typeof window === 'undefined' || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return undefined;
+  const synthesis = window.speechSynthesis;
+  const readVoices = (): SpeechVoice[] => synthesis.getVoices().map((voice) => ({
+    id: voice.voiceURI || `${voice.lang}:${voice.name}`,
+    name: voice.name,
+    lang: voice.lang,
+    localService: voice.localService,
+  }));
+  return {
+    voices: readVoices,
+    onVoicesChanged(listener) {
+      synthesis.addEventListener('voiceschanged', listener);
+      return () => synthesis.removeEventListener('voiceschanged', listener);
+    },
+    speak(request) {
+      return new Promise<void>((resolve, reject) => {
+        const utterance = new SpeechSynthesisUtterance(request.text);
+        const voice = request.voiceId && readVoices().find((candidate) => candidate.id === request.voiceId);
+        if (voice) {
+          const native = synthesis.getVoices().find((candidate) => (candidate.voiceURI || `${candidate.lang}:${candidate.name}`) === voice.id);
+          if (native) utterance.voice = native;
+        }
+        utterance.rate = request.rate;
+        utterance.pitch = request.pitch;
+        utterance.onend = () => resolve();
+        utterance.onerror = () => reject(new Error('Speech synthesis could not speak this line.'));
+        synthesis.speak(utterance);
+      });
+    },
+    cancel: () => synthesis.cancel(),
+  };
+}
+
 export interface NarrationSettings {
   enabled: boolean;
   language: NarrationLanguage;

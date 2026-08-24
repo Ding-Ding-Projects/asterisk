@@ -29,6 +29,19 @@
 import { createElement, type ReactNode } from 'react';
 
 import { applyVocabularyText, type VocabularyStorage } from './personal-vocabulary';
+export {
+  clampFunnyLevel,
+  DEFAULT_FUNNY_LEVELS,
+  FUNNY_LEVELS_SETTING,
+  MAX_FUNNY_LEVEL,
+  MIN_FUNNY_LEVEL,
+  readFunnyLevels,
+  styleBilingualText,
+  styleFunnyText,
+  writeFunnyLevels,
+  type FunnyLanguage,
+  type FunnyLevels,
+} from './funny-levels';
 
 export const LANGUAGE_MODES = ['en', 'yue', 'both'] as const;
 export type LanguageMode = (typeof LANGUAGE_MODES)[number];

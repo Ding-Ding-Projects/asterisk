@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, safeStorage } from 'electron';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
@@ -169,6 +170,32 @@ ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindow.unmaximize() : mainWindow?.maximize());
 ipcMain.on('window:close', () => mainWindow?.close());
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
+
+/** School mode's shared unlock value belongs in Electron's encrypted credential
+ * store, not the plain settings snapshot. Only success or a neutral reason crosses
+ * the renderer boundary, never the stored value or its encrypted bytes. */
+const schoolCredentialPath = (): string => join(app.getPath('userData'), 'school-mode-credential.bin');
+ipcMain.handle('school:set-credential', async (_event, candidate: unknown) => {
+  if (typeof candidate !== 'string' || candidate.length < 4 || candidate.length > 256) return { ok: false, reason: 'The unlock credential must be between 4 and 256 characters.' };
+  if (!safeStorage.isEncryptionAvailable()) return { ok: false, reason: 'The desktop credential store is unavailable.' };
+  try {
+    writeFileSync(schoolCredentialPath(), safeStorage.encryptString(candidate));
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: 'The desktop credential store could not save the credential.' };
+  }
+});
+ipcMain.handle('school:verify-credential', async (_event, candidate: unknown) => {
+  if (typeof candidate !== 'string' || !safeStorage.isEncryptionAvailable()) return { ok: false, reason: 'The desktop credential store is unavailable.' };
+  try {
+    const file = schoolCredentialPath();
+    if (!existsSync(file)) return { ok: false, reason: 'No School mode unlock credential has been set yet.' };
+    const stored = safeStorage.decryptString(readFileSync(file));
+    return stored === candidate ? { ok: true } : { ok: false, reason: 'The shared credential was not accepted.' };
+  } catch {
+    return { ok: false, reason: 'The desktop credential store could not verify the credential.' };
+  }
+});
 
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();

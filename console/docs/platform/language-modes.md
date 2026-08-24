@@ -1,32 +1,32 @@
 # Language modes
 
-Lets a person pick English, playful Cantonese, or a bilingual view of every label the product shows.
+The desktop console offers English, playful Hong Kong Cantonese, and a bilingual view of its own user-facing copy.
 
 ## Behavior
 
-A language mode setting is meant to control which language every user-facing string renders in, independent of the operating system's own locale, with three choices: English only, a playful Cantonese variant, and a bilingual mode showing both languages together without crowding the layout.
+The `Language` control stores `en`, `yue`, or `both`. The localized element factory applies the selected mode to visible text and accessible names, and the personal-vocabulary boundary runs after localization. Bilingual mode keeps English first and appends Cantonese with a compact separator.
 
 ## Configuration
 
-The choice would live in application or site settings, persist across sessions, and apply to every screen at once rather than page by page.
+The choice is persisted in the durable settings store and applies to every rendered screen. Missing translations keep the English source string. Technical identifiers, values and paths are not translated.
 
 ## Current status
 
-**Desktop application:** Not implemented. No language selector exists anywhere in the interface; every label is a fixed English string with no translation table behind it.
+**Desktop application:** Implemented in the compiled renderer. The control is mounted in `Customise everything` and the generated design tree routes through the localization boundary.
 
-**Documentation website:** Partial. A mode selector exists in site settings and changes visible copy on a handful of pages, not every string across the site.
+**Documentation website:** Partial. The site has its own settings copy table and remains independent from the desktop renderer.
 
 ## Failure modes
 
-Where a translation is missing for a chosen mode, the intended behavior is to fall back to English for that string rather than showing a blank or broken label; today there is nothing to fall back from, since no second language exists yet.
+An invalid stored mode fails closed to English. A missing Cantonese entry never produces an empty label or a dangling bilingual separator.
 
 ## Accessibility and localization
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.
+The language control is a generated Material Design control and its accessible names pass through the same boundary as visible text. All three modes preserve control values and technical data exactly.
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+The implementation is covered by the renderer text-boundary and contract suites. Built-artifact interaction and capture evidence remain tracked in the per-surface inventory.
 
 ## Suggested articles
 

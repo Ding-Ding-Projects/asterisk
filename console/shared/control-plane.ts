@@ -78,6 +78,10 @@ export interface DingDesktopApi {
   platform: string;
   window: { minimize(): void; toggleMaximize(): void; close(): void };
   controlPlane: { request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> };
+  school: {
+    setCredential(value: string): Promise<{ ok: boolean; reason?: string }>;
+    verifyCredential(value: string): Promise<{ ok: boolean; reason?: string }>;
+  };
   updater: {
     /** Current state, read once (e.g. on mount) without waiting for the next push. */
     getStatus(): Promise<UpdaterStatusForRenderer>;
