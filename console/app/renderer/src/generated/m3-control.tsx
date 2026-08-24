@@ -5,7 +5,7 @@
 import { DCLogic, h, F, A, R, S, fn, sty } from '../dc-runtime';
 function Template(v: any) {
   return F(
-    h("div", { role: `group`, "aria-labelledby": v.labelId, "aria-describedby": v.describedBy, "aria-disabled": v.isDisabled, "data-control-kind": v.ctl.kind, "data-appearance-id": `control-${S(v.ctl.id)}`, style: sty(`display:flex; flex-direction:column; gap:10px; min-width:0; max-width:100%;`) },
+    h("div", { role: `group`, "aria-labelledby": v.labelId, "aria-describedby": v.describedBy, "aria-disabled": v.isDisabled, "data-control-kind": v.ctl.kind, "data-appearance-id": v.ctl.presentationId || ('control-' + v.ctl.id), style: sty(`display:flex; flex-direction:column; gap:10px; min-width:0; max-width:100%;`) },
       h("div", { style: sty(`display:flex; align-items:center; gap:8px; min-width:0; flex-wrap:wrap;`) },
         (v.labelForInput ? h("label", { id: v.labelId, htmlFor: v.primaryId, style: sty(`font-size:12.5px; font-weight:500; color:#C4CBC2; min-width:0; overflow-wrap:anywhere;`) },
             S(v.ctl.label)

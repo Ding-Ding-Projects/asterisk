@@ -14,6 +14,8 @@ Colors would be chosen through a continuous picker with bidirectional conversion
 
 **Desktop application:** Partial. The central renderer creates one persisted `AppearanceStore`, installs the appearance runtime stylesheet, derives the generated preview from that store, marks design-authored rendered controls with stable appearance ids, and exposes every appearance property through the shared rich-control registration. The checked-in palette now renders real rich rows. Dynamic target-specific controls without canonical entries remain explicit defects, and built-artifact interaction remains unverified in this lane.
 
+Import, inverse restore, and named preset application migrate an enabled superscript and subscript pair transactionally, retaining superscript and returning an advisory warning. A failed history acknowledgement is reported separately from the already-applied appearance operation.
+
 **Documentation website:** Partial. Every page exposes persisted dark, light, and high-contrast themes, density, accent, font scale, navigation docking, logo presets, and a broad color translator. These values apply live. Per-element editors and full word-processor typography remain incomplete.
 
 ## Failure modes

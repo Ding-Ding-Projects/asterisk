@@ -48,6 +48,24 @@ Appearance validation iterates every required id family and direct target set. D
 
 No tests, lint, broad build, package, UI, browser, captures, dew, or cleanup ran.
 
+## Ninth refutation repair, 2026-08-24
+
+The registry now keeps one live navigation adapter rather than treating registration-time navigation as current state. It reconciles canonical destination and control targets with generated tabs, order, active screen, rail, groups, and pins. Palette activation uses that adapter to add an unopened destination and update tabs, screen, and rail together before resolving, focusing, and highlighting the exact target. Semantically identical prepared control duplicates are suppressed; material collisions remain named unavailable defects.
+
+Appearance import, inverse restore, and named preset application now normalize enabled superscript and subscript conflicts in one transactional store commit. Superscript wins deterministically, the migration warning travels with the operation result, and the advisory history path remains honest if its acknowledgement is unavailable. The appearance inventory has handwritten exact static expected sets for each mounted state, compares them with a root-inclusive observed set, checks generated IDs from the live state, and reports both missing and unexpected IDs.
+
+The hosted producer registry note now states that browser-local cache production remains partial until runtime evidence exists. No tests, lint, broad build, package, UI, browser, captures, dew, or cleanup ran.
+
+## Tenth refutation repair, 2026-08-24
+
+Palette rows now have separate `palette-row-*` and nested `palette-control-*` presentation identities. Their registered commands still target the underlying screen control, so presentation styling cannot accidentally create a second control target. The checked-in M3 Control design input and compiler output carry the explicit presentation identity.
+
+Definition refresh now retains live workspace and strip metadata, including active strip, docking, overflow capacity, groups, group order, and the axis derived from docking. Palette activation keeps an inverse navigation snapshot, retries target resolution for a bounded number of render frames, and restores the previous navigation and shell state if the exact DOM target never mounts.
+
+Rich action and history records share one operation identifier. The renderer emits separate actual-action and history-outcome notifications, and the redacted history metadata carries that operation identifier. The hosted producer registry and dim-sum article now name `HostedDimSumCacheControl`, `validateDimSumCachePayloadAsync`, `DIM_SUM_CACHE_STORAGE_KEY`, and `window.localStorage` exactly.
+
+No tests, lint, broad build, package, UI, browser, captures, dew, or cleanup ran in this lane.
+
 ## Scope
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.

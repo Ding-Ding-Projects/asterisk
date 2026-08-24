@@ -32,6 +32,7 @@ export interface RedactedHistoryMetadata {
   labels?: ReadonlyArray<string>;
   changedFields?: ReadonlyArray<string>;
   source?: string;
+  operationId?: string;
 }
 
 export interface HistoryEntryDraft {

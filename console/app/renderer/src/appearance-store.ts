@@ -84,6 +84,57 @@ function cloneModel(model: AppearanceModel): AppearanceModel {
   return JSON.parse(JSON.stringify(model)) as AppearanceModel;
 }
 
+function exclusiveTargetKey(item: AppearanceOverride | AppearanceDraft): string {
+  return JSON.stringify([item.target.scope, item.target.scope === 'element' ? item.target.elementId : '', item.state]);
+}
+
+function isEnabledExclusive(item: AppearanceOverride | AppearanceDraft): boolean {
+  return item.value.kind === 'literal' && item.value.value.trim().toLowerCase() === 'true';
+}
+
+function normalizeExclusiveOverrides(
+  items: ReadonlyArray<AppearanceOverride | AppearanceDraft>,
+): { items: Array<AppearanceOverride | AppearanceDraft>; warnings: string[] } {
+  const unique = new Map<string, AppearanceOverride | AppearanceDraft>();
+  for (const item of items) unique.set(appearanceOverrideKey(item.target, item.state, item.property), item);
+  const grouped = new Map<string, Array<AppearanceOverride | AppearanceDraft>>();
+  for (const item of unique.values()) {
+    const group = grouped.get(exclusiveTargetKey(item)) ?? [];
+    group.push(item);
+    grouped.set(exclusiveTargetKey(item), group);
+  }
+  const removed = new Set<AppearanceOverride | AppearanceDraft>();
+  let conflictCount = 0;
+  for (const group of grouped.values()) {
+    const superscript = group.find((item) => item.property === 'superscript' && isEnabledExclusive(item));
+    const subscript = group.find((item) => item.property === 'subscript' && isEnabledExclusive(item));
+    if (!superscript || !subscript) continue;
+    conflictCount += 1;
+    removed.add(subscript);
+  }
+  return {
+    items: [...unique.values()].filter((item) => !removed.has(item)),
+    warnings: conflictCount > 0
+      ? [`Migrated ${conflictCount} appearance target/state conflict${conflictCount === 1 ? '' : 's'}: superscript was retained and subscript was cleared.`]
+      : [],
+  };
+}
+
+function normalizeExclusiveModel(model: AppearanceModel): { model: AppearanceModel; warnings: string[] } {
+  const overrides = normalizeExclusiveOverrides(model.overrides);
+  const drafts = normalizeExclusiveOverrides(model.drafts);
+  const presetWarnings: string[] = [];
+  const presets = model.presets.map((preset) => {
+    const normalized = normalizeExclusiveOverrides(preset.overrides);
+    presetWarnings.push(...normalized.warnings.map((warning) => `Preset '${preset.name}': ${warning}`));
+    return { ...preset, overrides: normalized.items as AppearanceOverride[] };
+  });
+  return {
+    model: { ...model, overrides: overrides.items as AppearanceOverride[], drafts: drafts.items as AppearanceDraft[], presets },
+    warnings: [...overrides.warnings, ...drafts.warnings, ...presetWarnings],
+  };
+}
+
 function loadModel(
   storage: AppearanceStorage,
   storageKey: string,
@@ -108,11 +159,23 @@ function loadModel(
       status: { source: 'rejected', message: `Saved appearance was rejected: ${imported.errors.join('; ')}` },
     };
   }
+  const normalized = normalizeExclusiveModel(imported.model);
+  const normalizedModel = capabilities.length > 0
+    ? { ...normalized.model, capabilities: [...capabilities] }
+    : normalized.model;
+  let message = 'Saved appearance loaded from local storage.';
+  if (normalized.warnings.length > 0) {
+    message += ` ${normalized.warnings.join(' ')}`;
+    try {
+      const persisted = exportAppearanceModel(normalizedModel);
+      if (persisted.ok && persisted.text !== stored) storage.setItem(storageKey, persisted.text);
+    } catch {
+      message += ' The migrated form could not be written back and will be retried on the next save.';
+    }
+  }
   return {
-    model: capabilities.length > 0
-      ? { ...imported.model, capabilities: [...capabilities] }
-      : imported.model,
-    status: { source: 'persisted', message: 'Saved appearance loaded from local storage.' },
+    model: normalizedModel,
+    status: { source: 'persisted', message },
   };
 }
 
@@ -314,14 +377,15 @@ export function createAppearanceStore(
   function applyNamedPreset(id: string): AppearanceOperationResult {
     const preset = model.presets.find((item) => item.id === id);
     if (!preset) return failure(`Preset '${id}' does not exist.`);
+    const normalized = normalizeExclusiveOverrides(preset.overrides);
     return commit({
       ...model,
-      overrides: preset.overrides.map((item) => ({ ...item })),
+      overrides: normalized.items as AppearanceOverride[],
       globals: JSON.parse(JSON.stringify(preset.globals)) as AppearanceGlobalSettings,
       rainbowLevel: preset.rainbowLevel,
       drafts: [],
       activePresetId: id,
-    }, `Apply preset '${preset.name}'`);
+    }, `Apply preset '${preset.name}'`, normalized.warnings);
   }
 
   function deleteNamedPreset(id: string): AppearanceOperationResult {
@@ -368,13 +432,17 @@ export function createAppearanceStore(
       return commit({ ...model, rainbowLevel: level }, 'Update global rainbow speed');
     },
     setLogoMetadata: (logo) => commit({ ...model, logo }, 'Update logo appearance metadata'),
-    replaceFromImport: (importedModel) => commit({ ...cloneModel(importedModel), revision: model.revision }, 'Import appearance'),
+    replaceFromImport: (importedModel) => {
+      const normalized = normalizeExclusiveModel(cloneModel(importedModel));
+      return commit({ ...normalized.model, revision: model.revision }, 'Import appearance', normalized.warnings);
+    },
     executeInverse: (inverse) => {
       if (inverse.type !== 'restore-snapshot') return failure('Unsupported inverse action.');
       if (model.revision !== inverse.expectedRevision) {
         return failure(`Inverse action expected revision ${inverse.expectedRevision}, current revision is ${model.revision}.`);
       }
-      return commit({ ...cloneModel(inverse.snapshot), revision: model.revision }, inverse.label);
+      const normalized = normalizeExclusiveModel(cloneModel(inverse.snapshot));
+      return commit({ ...normalized.model, revision: model.revision }, inverse.label, normalized.warnings);
     },
   };
 }

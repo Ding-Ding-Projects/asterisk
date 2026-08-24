@@ -2,6 +2,7 @@ import { APPEARANCE_PROPERTIES, type AppearanceProperty } from './appearance-sch
 import { createCommandRegistry, type CommandDefinition, type CommandRegistry, type CommandHandlerMap, type OptionsProviderMap, type ValueReaderMap } from './command-registry';
 import { ORDER, SCREENS } from './generated/console';
 import { createEmptyStrip, createNavigationState, createWorkspace, type NavigationState, type NavigationTab } from './navigation-state';
+import { createLiveNavigationAdapter, type LiveNavigationAdapter } from './live-navigation-adapter';
 import { createSearchField, createSearchFieldIdentity, createSearchStateMap, type SearchFieldKind } from './search-state';
 
 export interface RichControlMountOptions {
@@ -12,11 +13,13 @@ export interface RichControlMountOptions {
   readonly writeAppearanceValue: (property: AppearanceProperty, value: unknown) => void;
   readonly executeControlAction?: (controlId: string, action: string) => void;
   readonly runtimeControls?: Readonly<Record<string, ReadonlyArray<RichControlInput>>>;
+  readonly navigationAdapter?: LiveNavigationAdapter;
 }
 
 export interface RichControlRegistration {
   readonly registry: CommandRegistry;
   readonly navigationState: NavigationState;
+  readonly navigationAdapter: LiveNavigationAdapter;
   readonly definitions: ReadonlyArray<CommandDefinition>;
   readonly settingControlIds: ReadonlyArray<string>;
   readonly appearanceControlIds: ReadonlyArray<string>;
@@ -48,6 +51,12 @@ export function controlAppearanceId(controlId: string): string {
 
 export function tabAppearanceId(destinationId: string): string {
   return `tab-${idPart(destinationId)}`;
+}
+
+/** Presentation identity for the nested control rendered inside a palette row.
+ * It is deliberately distinct from the underlying screen control target. */
+export function paletteControlAppearanceId(commandId: string): string {
+  return `palette-control-${idPart(commandId)}`;
 }
 
 function canonicalNavigationState(runtimeControls: Readonly<Record<string, ReadonlyArray<RichControlInput>>> = {}): NavigationState {
@@ -94,7 +103,10 @@ export const CANONICAL_NAVIGATION_STATE = canonicalNavigationState();
 
 function target(destinationId: string, elementId: string, navigationState: NavigationState) {
   const safeDestination = idPart(destinationId);
-  const safeElement = idPart(elementId);
+  // The element id is already emitted by controlAppearanceId/tabAppearanceId.
+  // Re-sanitising it here would create a second identity function and could make
+  // a valid generated target differ from the DOM byte-for-byte.
+  const safeElement = elementId;
   const workspace = navigationState.workspaces.console-workspace!;
   const strip = workspace.strips['console-strip']!;
   const tab = strip.tabs[`tab:${safeDestination}`];
@@ -142,6 +154,21 @@ function groupsFor(screen: DesignScreen): RichControlInput[] {
   });
 }
 
+function controlFingerprint(control: RichControlInput): string {
+  return JSON.stringify({
+    id: control.id,
+    label: control.label,
+    kind: richKind(control),
+    value: control.value,
+    options: control.options,
+    min: control.min,
+    max: control.max,
+    step: control.step,
+    action: control.action,
+    accept: control.accept,
+  });
+}
+
 function definitionForDestination(destinationId: string, screen: DesignScreen, handlers: Record<string, (context: { value?: unknown }) => void | Promise<void>>, navigationState: NavigationState): CommandDefinition {
   const id = `destination.${idPart(destinationId)}`;
   const handlerId = `open.${idPart(destinationId)}`;
@@ -165,7 +192,10 @@ export function createRichControlRegistration(options: RichControlMountOptions):
   const settingControlIds: string[] = [];
   const appearanceControlIds: string[] = [];
   const defects: string[] = [];
-  const navigationState = canonicalNavigationState(options.runtimeControls);
+  const definitionState = canonicalNavigationState(options.runtimeControls);
+  const navigationAdapter = options.navigationAdapter ?? createLiveNavigationAdapter(definitionState);
+  navigationAdapter.replaceDefinitionState(definitionState);
+  const navigationState = definitionState;
   const destinationIds = [...new Set([...(ORDER as ReadonlyArray<string>), ...Object.keys(options.runtimeControls ?? {})])];
 
   for (const destinationId of destinationIds) {
@@ -176,13 +206,17 @@ export function createRichControlRegistration(options: RichControlMountOptions):
     definitions.push(destination);
 
     const seenControlIds = new Set<string>();
+    const controlsForCollision: RichControlInput[] = [];
     const controls = [...groupsFor(screen), ...(options.runtimeControls?.[destinationId] ?? [])].filter((control) => {
       if (typeof control.id !== 'string') return true;
       if (seenControlIds.has(control.id)) {
-        defects.push(`Control collision at destination ${destinationId}, control ${control.id}.`);
+        const first = controlsForCollision.find((candidate) => candidate.id === control.id);
+        if (first && controlFingerprint(first) === controlFingerprint(control)) return false;
+        defects.push(`Material control collision at destination ${destinationId}, control ${control.id}.`);
         return false;
       }
       seenControlIds.add(control.id);
+      controlsForCollision.push(control);
       return true;
     });
     for (const control of controls) {
@@ -273,5 +307,5 @@ export function createRichControlRegistration(options: RichControlMountOptions):
     providers,
     destinationIds.map((destinationId) => ({ destinationId, capabilities: new Set<string>(['settings', 'appearance', 'palette']) })),
   );
-  return { registry, navigationState, definitions, settingControlIds, appearanceControlIds, defects };
+  return { registry, navigationState: navigationAdapter.getState(), navigationAdapter, definitions, settingControlIds, appearanceControlIds, defects };
 }

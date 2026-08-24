@@ -47,11 +47,13 @@ import { COLOUR_FORMATS, formatColour, parseColour, translate as translateColour
 import { resolveAppearanceValue } from './appearance';
 import { APPEARANCE_RUNTIME_STYLES, bindAppearanceRuntime, detectAppearanceCapabilities, mountAppearanceModel, type BoundAppearanceRuntime } from './appearance-runtime';
 import { createAppearanceStore, type AppearanceStore } from './appearance-store';
-import { controlAppearanceId, createRichControlRegistration, type RichControlInput, type RichControlRegistration } from './rich-control-registration';
+import { controlAppearanceId, createRichControlRegistration, paletteControlAppearanceId, type RichControlInput, type RichControlRegistration } from './rich-control-registration';
+import type { LiveNavigationAdapter } from './live-navigation-adapter';
 import { executeRichControl, type RegisteredCommand, type RichControlDescriptor } from './command-registry';
 import { createTeleportInstruction } from './palette-index';
+import type { NavigationState } from './navigation-state';
 import { publishStartupContext } from './startup-context';
-import { appearanceFamilyDefects, missingAppearanceElementIds } from './appearance-element-inventory';
+import { appearanceFamilyDefects, appearanceInventoryDefects, missingAppearanceElementIds, type AppearanceMountedState } from './appearance-element-inventory';
 import { validateDesktopSettings } from '../../../shared/settings-schema';
 import { DESKTOP_SETTINGS_STORAGE_KEY } from './settings-store';
 import {
@@ -245,6 +247,7 @@ export class App extends Base {
       writeAppearanceValue: (property, value) => this.writeMountedAppearanceValue(property, value),
       executeControlAction: (controlId, action) => this.onControlAction(action, controlId),
     });
+    this.navigationAdapter = this.richControlRegistration.navigationAdapter;
   }
   /** The chosen file's own name, kept only for display — never its contents. */
   private pickedFileNames = new Map<string, string>();
@@ -269,6 +272,7 @@ export class App extends Base {
   private appearanceRuntime: BoundAppearanceRuntime | undefined;
   private appearanceObserver: MutationObserver | undefined;
   private richControlRegistration: RichControlRegistration;
+  private navigationAdapter!: LiveNavigationAdapter;
   /** The unlock ladder (unlock-ladder.ts) for the per-element lock's unlock dialog.
    *  Renderer-only: this app's per-element lock has no server-enforced attempt budget
    *  or time-based lockout of its own, so this in-memory instance -- like the PIN and
@@ -285,6 +289,7 @@ export class App extends Base {
   protected refreshRichControlRegistration(screenId: string, controls: ReadonlyArray<RichControlInput>): void {
     this.richControlRegistration = createRichControlRegistration({
       runtimeControls: { [screenId]: controls },
+      navigationAdapter: this.navigationAdapter,
       readControlValue: (controlId) => ((this.state as { values?: Record<string, unknown> }).values ?? {})[controlId],
       writeControlValue: (controlId, value) => this.setVal({ id: controlId }, value),
       openDestination: (destinationId) => {
@@ -363,6 +368,13 @@ export class App extends Base {
   }
 
   componentDidUpdate() {
+    this.navigationAdapter.syncGenerated({
+      screen: (this.state as { screen?: unknown }).screen,
+      tabs: (this.state as { tabs?: unknown }).tabs,
+      pinned: (this.state as { pinned?: unknown }).pinned,
+      groups: (this.state as { groups?: unknown }).groups,
+      railId: (this.state as { railId?: unknown }).railId,
+    });
     this.publishDimSumContext(true);
     this.syncLegacyAppearanceStore();
     void this.refresh();
@@ -477,6 +489,30 @@ export class App extends Base {
       document.documentElement.dataset.appearanceRegistrationError = `family:${familyDefects.join(' | ')}`;
       return false;
     }
+    const state = (this.state as { paletteOpen?: unknown; appearOpen?: unknown });
+    const mountedState: AppearanceMountedState = state.paletteOpen && state.appearOpen
+      ? 'palette-appearance'
+      : state.paletteOpen ? 'palette' : state.appearOpen ? 'appearance' : 'shell';
+    const expectedDynamicIds = new Set<string>();
+    const activeScreen = typeof (this.state as { screen?: unknown }).screen === 'string' ? (this.state as { screen: string }).screen : '';
+    for (const entry of this.richControlRegistration.registry.entries) {
+      if (entry.target.destinationId === activeScreen && entry.control) expectedDynamicIds.add(entry.control.controlId);
+    }
+    const generated = (this.state as { tabs?: unknown; groups?: unknown }).tabs;
+    if (Array.isArray(generated)) for (const tab of generated) if (typeof tab === 'string') expectedDynamicIds.add(`tab-${tab}`);
+    const groups = (this.state as { groups?: unknown }).groups;
+    if (Array.isArray(groups)) for (const group of groups) {
+      if (group && typeof group === 'object' && typeof (group as { id?: unknown }).id === 'string') expectedDynamicIds.add(`tab-group-${(group as { id: string }).id}`);
+    }
+    if (state.paletteOpen) for (const item of this.paletteItemsForRegistry()) {
+      expectedDynamicIds.add(`palette-row-${String(item.id)}`);
+      if (item.ctl && typeof item.id === 'string') expectedDynamicIds.add(paletteControlAppearanceId(item.id));
+    }
+    const inventoryDefects = appearanceInventoryDefects(document, mountedState, expectedDynamicIds);
+    if (inventoryDefects.length > 0) {
+      document.documentElement.dataset.appearanceRegistrationError = `inventory:${inventoryDefects.join(' | ')}`;
+      return false;
+    }
     delete document.documentElement.dataset.appearanceRegistrationError;
     return true;
   }
@@ -523,10 +559,7 @@ export class App extends Base {
     const entries = registry.entries.map((entry: RegisteredCommand) => {
       const current = entry.control ? registry.valueReaders[entry.control.valueReaderId]?.() : undefined;
       const execute = (value: unknown): void => {
-        if (!createTeleportInstruction(this.richControlRegistration.navigationState, entry.target)) {
-          this.toast(`Control target is stale: ${entry.target.elementId}. Refresh the screen before retrying.`);
-          return;
-        }
+        if (!this.ensurePaletteTarget(entry)) return;
         void executeRichControl(registry, entry.id, value).then(() => this.forceUpdate());
       };
       const control = entry.control;
@@ -539,7 +572,7 @@ export class App extends Base {
         notRich: true,
         go: () => this.activatePaletteTarget(entry),
       };
-      const base = { id: control.controlId, label: control.label, value: current, onInfo: () => {}, onWizard: () => {} } as Record<string, unknown>;
+      const base = { id: control.controlId, presentationId: paletteControlAppearanceId(entry.id), sourceControlId: control.sourceControlId, label: control.label, value: current, onInfo: () => {}, onWizard: () => {} } as Record<string, unknown>;
       if (control.kind === 'switch') {
         base.kind = 'switch'; base.on = Boolean(current); base.off = !Boolean(current); base.toggle = () => execute(!Boolean(current));
       } else if (control.kind === 'select') {
@@ -575,26 +608,97 @@ export class App extends Base {
     return [...entries, ...defects];
   }
 
-  private activatePaletteTarget(entry: RegisteredCommand): void {
-    const instruction = createTeleportInstruction(this.richControlRegistration.navigationState, entry.target);
+  private ensurePaletteTarget(entry: RegisteredCommand): { instruction: NonNullable<ReturnType<typeof createTeleportInstruction>>; previousState: NavigationState } | undefined {
+    const previousState = this.navigationAdapter.getState();
+    if (!this.navigationAdapter.activateTarget(entry.target)) {
+      this.toast(`Palette target is stale: ${entry.target.elementId}. Refresh the palette and try again.`);
+      return undefined;
+    }
+    const instruction = createTeleportInstruction(this.navigationAdapter.getState(), entry.target);
     if (!instruction) {
       this.toast(`Palette target is stale: ${entry.target.elementId}. Refresh the palette and try again.`);
-      return;
+      return undefined;
     }
-    const currentTabs = (this.state as { tabs?: unknown }).tabs;
+    const navigation = this.navigationAdapter.getState();
+    const workspace = navigation.workspaces[instruction.workspaceId];
+    const strip = workspace?.strips[instruction.stripId];
+    if (!workspace || !strip) {
+      this.toast(`Palette target is stale: ${entry.target.elementId}. Refresh the palette and try again.`);
+      return undefined;
+    }
+    const tabs = strip.tabOrder.map((tabId) => strip.tabs[tabId]?.destinationId).filter((id): id is string => Boolean(id));
+    const pinned = strip.tabOrder.filter((tabId) => strip.tabs[tabId]?.pinned).map((tabId) => strip.tabs[tabId]!.destinationId);
+    const groups = strip.groupOrder.map((groupId) => {
+      const group = strip.groups[groupId]!;
+      return {
+        id: group.id,
+        name: group.name,
+        colour: group.colour,
+        collapsed: group.collapsed,
+        pinned: group.pinned,
+        tabs: strip.tabOrder.filter((tabId) => strip.tabs[tabId]?.groupId === group.id).map((tabId) => strip.tabs[tabId]!.destinationId),
+      };
+    });
     const currentRail = (this.state as { railId?: string }).railId;
     const destinationRail = ((SCREENS as Record<string, { rail?: string }>)[entry.target.destinationId]?.rail) ?? currentRail;
-    const nextTabs = Array.isArray(currentTabs) && !currentTabs.includes(entry.target.destinationId)
-      ? [...currentTabs, entry.target.destinationId]
-      : currentTabs;
-    this.setState({ paletteOpen: false, screen: entry.target.destinationId, railId: destinationRail, ...(Array.isArray(nextTabs) ? { tabs: nextTabs } : {}) });
-    globalThis.requestAnimationFrame?.(() => {
+    this.setState({ screen: entry.target.destinationId, railId: destinationRail, tabs, pinned, groups });
+    return { instruction, previousState };
+  }
+
+  private activatePaletteTarget(entry: RegisteredCommand): boolean {
+    const prepared = this.ensurePaletteTarget(entry);
+    if (!prepared) return false;
+    const { instruction, previousState } = prepared;
+    this.setState({ paletteOpen: false });
+    let attempts = 0;
+    const resolveAfterRender = (): void => {
       const target = document.querySelector<HTMLElement>(`[data-appearance-id="${CSS.escape(instruction.elementId)}"]`);
-      if (!target) { this.toast(`Palette target is stale after navigation: ${instruction.elementId}.`); return; }
+      if (!target) {
+        attempts += 1;
+        if (attempts < 4) {
+          if (globalThis.requestAnimationFrame) globalThis.requestAnimationFrame(resolveAfterRender);
+          else globalThis.setTimeout(resolveAfterRender, 25);
+          return;
+        }
+        this.navigationAdapter.restore(previousState);
+        this.restoreNavigationShell(previousState, true);
+        this.toast(`Palette target is stale after bounded render: ${instruction.elementId}. Navigation was rolled back.`);
+        return;
+      }
       target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       target.focus({ preventScroll: true });
       target.dataset.paletteHighlight = 'true';
       globalThis.setTimeout(() => { target.removeAttribute('data-palette-highlight'); }, 900);
+    };
+    if (globalThis.requestAnimationFrame) globalThis.requestAnimationFrame(resolveAfterRender);
+    else globalThis.setTimeout(resolveAfterRender, 25);
+    return true;
+  }
+
+  private restoreNavigationShell(snapshot: NavigationState, reopenPalette: boolean): void {
+    const workspace = snapshot.workspaces[snapshot.activeWorkspaceId];
+    const strip = workspace?.strips[workspace.activeStripId];
+    if (!workspace || !strip) return;
+    const activeTab = strip.activeTabId ? strip.tabs[strip.activeTabId] : undefined;
+    const tabs = strip.tabOrder.map((tabId) => strip.tabs[tabId]?.destinationId).filter((id): id is string => Boolean(id));
+    const pinned = strip.tabOrder.filter((tabId) => strip.tabs[tabId]?.pinned).map((tabId) => strip.tabs[tabId]!.destinationId);
+    const groups = strip.groupOrder.map((groupId) => {
+      const group = strip.groups[groupId]!;
+      return {
+        id: group.id,
+        name: group.name,
+        colour: group.colour,
+        collapsed: group.collapsed,
+        pinned: group.pinned,
+        tabs: strip.tabOrder.filter((tabId) => strip.tabs[tabId]?.groupId === group.id).map((tabId) => strip.tabs[tabId]!.destinationId),
+      };
+    });
+    this.setState({
+      ...(reopenPalette ? { paletteOpen: true } : {}),
+      ...(activeTab ? { screen: activeTab.destinationId, railId: (SCREENS as Record<string, { rail?: string }>)[activeTab.destinationId]?.rail } : {}),
+      tabs,
+      pinned,
+      groups,
     });
   }
 
@@ -779,34 +883,35 @@ export class App extends Base {
     reader.readAsText(file);
   };
 
-  onFileCleared = (ctl: SourceControlDescriptor): void => {
+  onFileCleared = (ctl: SourceControlDescriptor) => {
     const result = clearVocabulary(this.vocabStorage);
     this.pickedFileNames.delete(ctl.id);
     this.forceUpdate();
     this.toast(result.status);
+    return result;
   };
 
   // ---------------------------------------------------------------- daemon lifecycle
 
-  private daemonAction = async (verb: 'start' | 'stop' | 'restart'): Promise<void> => {
+  private daemonAction = async (verb: 'start' | 'stop' | 'restart', operationId?: string): Promise<boolean> => {
     if (!this.target.connected) {
       this.fire('No target connected', 'Connect to a server first — there is nothing to start, stop, or restart yet.');
-      return;
+      return false;
     }
     this.toast(`${verb === 'start' ? 'Starting' : verb === 'stop' ? 'Stopping' : 'Restarting'} the phone system…`);
     const serverId = this.target.id;
-    const response = await this.request(`daemon.${verb}`, { serverId });
+    const response = await this.request(`daemon.${verb}`, { serverId, ...(operationId ? { operationId } : {}) });
     if (!response?.ok) {
       this.fire('Not done', response?.message ?? `The phone system did not ${verb}.`);
       await this.refreshDaemonStatus();
-      return;
+      return false;
     }
     const observed = (response.data as { status?: { state?: string; reason?: string; distribution?: string } }).status;
     const expectedState = verb === 'stop' ? 'daemonNotRunning' : 'daemonAnswering';
     if (observed?.state !== expectedState || this.target.id !== serverId) {
       this.fire('State not verified', observed?.reason ?? `The ${verb} request returned without the expected daemon state on the selected target.`);
       await this.refreshDaemonStatus();
-      return;
+      return false;
     }
     /* Anything read before this point may no longer reflect what Asterisk is doing. */
     this.readings = {};
@@ -816,6 +921,7 @@ export class App extends Base {
       ? `Asterisk on ${this.target.label} was independently observed as not running after the stop.`
       : `Asterisk on ${this.target.label} returned a valid daemon identity after the ${verb}.`;
     this.fire(`Phone system ${verb === 'start' ? 'started' : verb === 'stop' ? 'stopped' : 'restarted'}`, detail);
+    return true;
   };
 
   private refreshDaemonStatus = async (): Promise<void> => {
@@ -884,23 +990,37 @@ export class App extends Base {
       return;
     }
     if (canonicalControlId) {
-      this.fire('Action started', `${action} from ${canonicalControlId}. History acknowledgement is pending.`);
-      void this.recordControlActionHistory(canonicalControlId, action);
+      const operationId = crypto.randomUUID();
+      this.fire('Action started', `${action} from ${canonicalControlId}. Operation ${operationId} started; history acknowledgement is pending.`);
+      void this.recordControlActionHistory(canonicalControlId, action, operationId);
+      void this.runControlAction(action, operationId);
+      return;
     }
-    if (action === 'vocab-clear') { this.onFileCleared({ id: 'va_file' }); return; }
-    if (action === 'daemon-start') { void this.daemonAction('start'); return; }
-    if (action === 'daemon-stop') { void this.daemonAction('stop'); return; }
-    if (action === 'daemon-restart') { void this.daemonAction('restart'); return; }
+    void this.runControlAction(action, crypto.randomUUID());
   };
 
-  private async recordControlActionHistory(controlId: string, action: string): Promise<void> {
+  private async runControlAction(action: string, operationId: string): Promise<void> {
+    let ok = false;
+    let detail = 'No action handler is registered for this control.';
+    if (action === 'vocab-clear') {
+      const result = this.onFileCleared({ id: 'va_file' });
+      ok = result.ok;
+      detail = result.status;
+    } else if (action === 'daemon-start' || action === 'daemon-stop' || action === 'daemon-restart') {
+      ok = await this.daemonAction(action.slice('daemon-'.length) as 'start' | 'stop' | 'restart', operationId);
+      detail = ok ? 'The observed daemon state matches the requested action.' : 'The requested daemon state was not independently observed.';
+    }
+    this.fire('Action outcome', `${action} operation ${operationId} ${ok ? 'completed' : 'did not complete'}: ${detail}`);
+  }
+
+  private async recordControlActionHistory(controlId: string, action: string, operationId: string): Promise<void> {
     const response = await this.request('local-history.record', {
-      payload: { action: 'settings-changed', stableRecordId: controlId, subject: action, snapshot: { controlId, action } },
+      payload: { action: 'settings-changed', stableRecordId: controlId, subject: action, metadata: { source: 'rich-control', operationId }, snapshot: { controlId, action, operationId } },
     }).catch(() => undefined);
     const nested = response?.data as { ok?: unknown; status?: unknown } | undefined;
     const acknowledged = response?.ok === true && nested?.ok !== false && nested?.status !== 'failed';
-    if (acknowledged) this.fire('Action history recorded', `${action} from ${controlId} was acknowledged by local history.`);
-    else this.fire('Action started', `${action} from ${controlId} is running, but local history is unavailable.`);
+    if (acknowledged) this.fire('Action history outcome', `${action} operation ${operationId} was acknowledged by local history.`);
+    else this.fire('Action history outcome', `${action} operation ${operationId} started, but local history is unavailable.`);
   }
 
   // ---------------------------------------------------------------- server add / remove
@@ -2244,7 +2364,9 @@ It is shown once. The phone needs it to register.`);
           control: entry.control,
           currentValue: entry.control ? this.richControlRegistration.registry.valueReaders[entry.control.valueReaderId]?.() : undefined,
           options: entry.control?.optionsProviderId ? this.richControlRegistration.registry.optionsProviders[entry.control.optionsProviderId]?.() ?? [] : [],
-          execute: (value: unknown) => executeRichControl(this.richControlRegistration.registry, entry.id, value),
+          execute: (value: unknown) => {
+            if (this.ensurePaletteTarget(entry)) void executeRichControl(this.richControlRegistration.registry, entry.id, value).then(() => this.forceUpdate());
+          },
         })),
       __window: {
         minimize: () => bridge?.window.minimize(),

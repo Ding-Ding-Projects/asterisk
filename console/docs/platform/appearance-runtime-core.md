@@ -22,7 +22,7 @@ Rainbow is a discriminated marker, not a color string and not a palette entry. O
 
 The local store uses schema version 2 and a caller-provided storage adapter. The browser adapter can use local storage, while tests or non-browser hosts can supply another adapter without changing the model. Reads revalidate the complete stored document. Writes serialize and validate the complete next model before replacing the prior stored value. A rejected import applies nothing.
 
-JSON export includes the complete model, drafts, presets, capability records, and safe logo rendering metadata. It does not include custom-logo bytes, filenames, paths, cache keys, or network references. A custom logo export states that the local asset was omitted.
+JSON export includes the complete model, drafts, presets, capability records, and safe logo rendering metadata. It does not include custom-logo bytes, filenames, paths, cache keys, or network references. A custom logo export states that the local asset was omitted. Import, restore, and preset application validate the complete model in one transaction. If an imported snapshot contains both enabled superscript and subscript for one target and state, migration retains superscript, clears subscript, and records a warning alongside the history entry. A failed persistence write leaves the previous model active and does not claim that the migration was recorded.
 
 ## Capability records
 
@@ -30,7 +30,7 @@ Runtime support is recorded explicitly for installed-font enumeration, variable 
 
 ## Mounting
 
-`appearance-runtime.ts` mounts values onto elements that expose `data-appearance-id`. A host can set `data-appearance-state` as interaction changes and remount the model. The adapter reports element identifiers that are stored but not present in the mounted surface. It also exports the stylesheet needed for hue interpolation. The central renderer must install that stylesheet and mount the adapter before these model changes become visible.
+`appearance-runtime.ts` mounts values onto elements that expose `data-appearance-id`. A host can set `data-appearance-state` as interaction changes and remount the model. Palette rows use separate `palette-row-*` and nested `palette-control-*` presentation IDs, while their commands retain the underlying screen target. The adapter reports element identifiers that are stored but not present in the mounted surface. It also exports the stylesheet needed for hue interpolation. The central renderer must install that stylesheet and mount the adapter before these model changes become visible.
 
 ## Failure modes and security
 
