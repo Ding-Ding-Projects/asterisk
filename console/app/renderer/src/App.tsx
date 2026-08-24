@@ -32,7 +32,6 @@ import {
 import { setEmojisEnabled } from './dialog-emojis';
 import { isAttentionMode, setModeEnabled } from './attention-modes';
 import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
-import { KNOWN_EDITORS, chooseEditor, clearEditorChoice } from './external-editor';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
 import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
@@ -180,8 +179,9 @@ export class App extends Base {
    *  stored yet", exactly like a missing settings file. */
   private durableStorage: DurableStorageHandle = createDurableStorage(this.bridge());
   private vocabStorage: VocabularyStorage = this.durableStorage.storage;
-  private externalEditorStatus: ExternalEditorStatus = { editors: [] };
+  private externalEditorStatus: ExternalEditorStatus = { editors: [], persistenceState: 'missing' };
   private lastExport: { name: string; content: string } | undefined;
+  private externalProjectFolder = '';
 
   /* The design's `lang_mode` control, mapped to the boundary's own mode names. The
    * control names each language in that language, which is the one label a person
@@ -305,14 +305,14 @@ export class App extends Base {
       this.externalEditorStatus = await bridge.externalEditor.detect();
       this.forceUpdate();
     } catch (error) {
-      this.externalEditorStatus = { editors: [], noEditorMessage: error instanceof Error ? error.message : 'Editor detection is unavailable.' };
+      this.externalEditorStatus = { editors: [], noEditorMessage: error instanceof Error ? error.message : 'Editor detection is unavailable.', persistenceState: 'invalid' };
       this.forceUpdate();
     }
   }
 
   private editorResult(result: ExternalEditorLaunchResult | undefined): void {
     if (!result) { this.fire('Editor not reached', 'The desktop bridge is unavailable, so nothing was opened.'); return; }
-    if (result.ok) { this.toast(`${result.editorId} opened ${result.target.path}`); return; }
+    if (result.ok) { this.toast(result.source ? `${result.editorId} opened local materialization for ${result.source}` : `${result.editorId} opened ${result.target.path}`); return; }
     this.fire('Editor not opened', result.message);
   }
 
@@ -325,6 +325,19 @@ export class App extends Base {
         this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, 'pbxadm:ed_custom_path': picked.executable } }));
         this.toast('Executable selected. Save the custom editor to keep it.');
       }
+      return;
+    }
+    if (action === 'editor-pick-portable') {
+      const picked = await bridge.externalEditor.pickExecutable();
+      if (!picked.canceled && picked.executable) {
+        try { this.externalEditorStatus = await bridge.externalEditor.savePortable(picked.executable); this.toast('Portable Visual Studio Code path saved and selected.'); this.forceUpdate(); }
+        catch (error) { this.fire('Portable editor not saved', error instanceof Error ? error.message : String(error)); }
+      }
+      return;
+    }
+    if (action === 'editor-pick-project') {
+      const picked = await bridge.externalEditor.pickFolder();
+      if (!picked.canceled && picked.folder) { this.externalProjectFolder = picked.folder; this.toast(`Project folder selected: ${picked.folder}`); this.forceUpdate(); }
       return;
     }
     if (action === 'editor-save-custom') {
@@ -341,11 +354,12 @@ export class App extends Base {
       return;
     }
     if (action === 'editor-open-project') {
-      this.editorResult(await bridge.externalEditor.openProjectFolder());
+      if (!this.externalProjectFolder) { this.fire('Project folder not chosen', 'Choose a local project folder first. The installed console folder is not assumed to be your project.'); return; }
+      this.editorResult(await bridge.externalEditor.openProjectFolder(this.externalProjectFolder));
       return;
     }
     if (action === 'editor-download') {
-      const result = await bridge.externalEditor.openDownload(this.externalEditorStatus.selectedId);
+      const result = await bridge.externalEditor.openDownload(this.externalEditorStatus.selectedId ?? 'vscode');
       if (result.ok) this.toast('Official editor download opened.'); else this.fire('Download link not opened', result.message);
       return;
     }
@@ -358,8 +372,21 @@ export class App extends Base {
       this.forceUpdate();
       return;
     }
+    if (action === 'editor-clear-choice') {
+      this.externalEditorStatus = await bridge.externalEditor.clearChoice();
+      this.toast('Editor choice forgotten.');
+      this.forceUpdate();
+      return;
+    }
+    if (action === 'editor-reset-storage') {
+      this.externalEditorStatus = await bridge.externalEditor.resetStorage();
+      this.toast('Editor settings reset.');
+      this.forceUpdate();
+      return;
+    }
     if (action === 'editor-open-vscode') {
-      this.editorResult(await bridge.externalEditor.openProjectFolder('vscode'));
+      if (!this.externalProjectFolder) { this.fire('Project folder not chosen', 'Choose a local project folder first.'); return; }
+      this.editorResult(await bridge.externalEditor.openProjectFolder(this.externalProjectFolder, 'vscode'));
       return;
     }
     if (action === 'editor-open-export') {
@@ -369,9 +396,13 @@ export class App extends Base {
     }
     if (action === 'editor-open-selected') {
       const screen = (this.state as { screen: string }).screen;
-      const resource = this.configs[screen]?.resource;
-      if (!resource) { this.fire('No selected file', 'This screen has not reported a local file to open.'); return; }
-      this.editorResult(await bridge.externalEditor.launch({ kind: 'file', path: resource }));
+      const reading = this.configs[screen];
+      if (!reading || reading.state !== 'read' || !reading.value) { this.fire('No selected file', 'This screen has not completed a live configuration read.'); return; }
+      const source = reading.resource;
+      const content = renderForDisplay(reading.value, 100_000);
+      if (content.includes('not shown')) { this.fire('Selected file too large', 'The read-back exceeds the bounded local materialization limit, so no partial editor file was created.'); return; }
+      if (!content) { this.fire('No selected file', 'The live configuration read was empty, so no local editor file was created.'); return; }
+      this.editorResult(await bridge.externalEditor.openMaterializedFile({ name: source.split('/').pop() ?? 'asterisk.conf', content, source, editorId: this.externalEditorStatus.selectedId }));
     }
   }
 
@@ -650,16 +681,6 @@ ${resolution.disclosure}`);
       resetDisplayName(this.durableStorage.storage);
       this.toast(`Name restored to ${IDENTITY.productName}`);
     }
-    /* The five attention modes share one prefix and one handler, so adding a sixth is
-     * a registry entry rather than another branch here. */
-    if (controlId === 'ed_choice' && typeof value === 'string') {
-      const editor = KNOWN_EDITORS.find((candidate) => candidate.name === value);
-      if (editor) chooseEditor(this.durableStorage.storage, editor.id);
-    }
-    if (controlId === 'ed_clear' && value === true) {
-      clearEditorChoice(this.durableStorage.storage);
-      this.toast('Editor choice forgotten');
-    }
     if (control?.id === 'sup_open' && value === true) {
       this.fileSupportTicket();
       return;
@@ -686,6 +707,7 @@ ${resolution.disclosure}`);
     if (action === 'daemon-status') return this.daemonStatusLine;
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
     if (action === 'editor-status') return this.externalEditorStatus.noEditorMessage ?? `${this.externalEditorStatus.editors.filter((editor) => editor.available).length} editor(s) detected.`;
+    if (action === 'editor-persistence') return this.externalEditorStatus.persistenceMessage ?? `Saved editor settings: ${this.externalEditorStatus.persistenceState}.`;
     return '';
   };
 
@@ -1834,7 +1856,6 @@ It is shown once. The phone needs it to register.`);
                 }
                 void bridge?.externalEditor.choose(editor.id).then((next) => {
                   this.externalEditorStatus = next;
-                  this.durableStorage.storage.setItem('console.externalEditor', editor.id);
                   this.forceUpdate();
                 }).catch((error) => this.fire('Editor not selected', error instanceof Error ? error.message : String(error)));
               },
@@ -2375,12 +2396,17 @@ interface DesktopBridge {
   externalEditor: {
     detect: () => Promise<ExternalEditorStatus>;
     choose: (editorId: string) => Promise<ExternalEditorStatus>;
+    clearChoice: () => Promise<ExternalEditorStatus>;
+    resetStorage: () => Promise<ExternalEditorStatus>;
     saveCustom: (record: { name: string; executable: string; supportsFolderWorkspace?: boolean }) => Promise<ExternalEditorStatus>;
     removeCustom: (editorId: string) => Promise<ExternalEditorStatus>;
+    savePortable: (executable: string) => Promise<ExternalEditorStatus>;
     pickExecutable: () => Promise<{ canceled: boolean; executable?: string }>;
+    pickFolder: () => Promise<{ canceled: boolean; folder?: string }>;
     openDownload: (editorId?: string) => Promise<{ ok: boolean; message: string }>;
-    openProjectFolder: (editorId?: string) => Promise<ExternalEditorLaunchResult>;
+    openProjectFolder: (folder: string, editorId?: string) => Promise<ExternalEditorLaunchResult>;
     launch: (target: { kind: 'file' | 'folder'; path: string }, editorId?: string) => Promise<ExternalEditorLaunchResult>;
-    openExport: (input: { name: string; content: string; editorId?: string }) => Promise<ExternalEditorLaunchResult>;
+    openExport: (input: { name: string; content: string; source?: string; editorId?: string }) => Promise<ExternalEditorLaunchResult>;
+    openMaterializedFile: (input: { name: string; content: string; source: string; editorId?: string }) => Promise<ExternalEditorLaunchResult>;
   };
 }

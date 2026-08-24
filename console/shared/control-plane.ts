@@ -89,6 +89,8 @@ export interface ExternalEditorStatus {
   editors: ExternalEditorCandidate[];
   selectedId?: string;
   noEditorMessage?: string;
+  persistenceState: 'valid' | 'missing' | 'invalid';
+  persistenceMessage?: string;
 }
 
 export interface ExternalEditorLaunchTarget {
@@ -103,6 +105,8 @@ export interface ExternalEditorLaunchReceipt {
   args: string[];
   target: ExternalEditorLaunchTarget;
   pid?: number;
+  source?: string;
+  materializedPath?: string;
 }
 
 export interface ExternalEditorLaunchFailure {
@@ -124,13 +128,18 @@ export interface ExternalEditorCustomRecord {
 export interface ExternalEditorApi {
   detect(): Promise<ExternalEditorStatus>;
   choose(editorId: string): Promise<ExternalEditorStatus>;
+  clearChoice(): Promise<ExternalEditorStatus>;
+  resetStorage(): Promise<ExternalEditorStatus>;
   saveCustom(record: ExternalEditorCustomRecord): Promise<ExternalEditorStatus>;
   removeCustom(editorId: string): Promise<ExternalEditorStatus>;
   pickExecutable(): Promise<{ canceled: boolean; executable?: string }>;
+  pickFolder(): Promise<{ canceled: boolean; folder?: string }>;
+  savePortable(executable: string): Promise<ExternalEditorStatus>;
   openDownload(editorId?: string): Promise<{ ok: boolean; message: string }>;
-  openProjectFolder(editorId?: string): Promise<ExternalEditorLaunchResult>;
+  openProjectFolder(folder: string, editorId?: string): Promise<ExternalEditorLaunchResult>;
   launch(target: ExternalEditorLaunchTarget, editorId?: string): Promise<ExternalEditorLaunchResult>;
-  openExport(input: { name: string; content: string; editorId?: string }): Promise<ExternalEditorLaunchResult>;
+  openExport(input: { name: string; content: string; source?: string; editorId?: string }): Promise<ExternalEditorLaunchResult>;
+  openMaterializedFile(input: { name: string; content: string; source: string; editorId?: string }): Promise<ExternalEditorLaunchResult>;
 }
 
 export interface DingDesktopApi {

@@ -441,3 +441,21 @@ registry, Cantonese label registry, generated documentation bundle, roadmap and 
 were updated. This lane deliberately did not run tests, lint, a broad build, packaging, UI
 driving or captures. The next owner should verify the real packaged artifact and native editor
 launch paths.
+
+## External editor refutation repairs, 2026-08-24
+
+The follow-up review found that the first mount still passed a remote PBX path to the local
+editor, treated the installed application directory as the user's project, duplicated the
+selected editor in renderer storage, used a Visual Studio Code fallback for unknown download
+ids, and lacked persistence diagnostics. Those paths are repaired in this lane.
+
+Selected PBX configuration content now comes from the completed structured read-back and is
+materialized into a bounded application-data export before launch. The receipt carries both
+the source resource and the local materialized target. Project opening requires a native local
+folder picker. Portable Visual Studio Code can be selected at an arbitrary local executable
+path, while automatic discovery remains limited to the documented user and machine routes.
+
+The privileged store now owns choice selection, clear, reset, invalid-state reporting and
+portable-path persistence. It writes through the shared Windows-safe atomic rename retry
+helper. Launches stat targets and reject a file-versus-folder mismatch, clear their timeout
+on every finish path, and refuse unknown or stale ids without falling back to another editor.

@@ -8,11 +8,13 @@ The desktop process detects real executables and returns normalized absolute pat
 
 The settings surface provides these actions:
 
-- Open the current project folder as a workspace root.
-- Open the selected configuration file when the current screen has reported one.
+- Choose a local project folder through the native folder picker, then open that chosen folder as a workspace root. The installed console directory is never guessed as the user's project.
+- Open the selected configuration file by materializing the exact structured read-back content into a bounded local application-data export. A remote `/etc/asterisk/...` path is never passed to the local editor.
 - Open the current project explicitly in Visual Studio Code.
 - Open the latest export in Visual Studio Code through one action.
 - Browse for a custom editor executable, save it, remove it, or forget the selected editor.
+- Choose an arbitrary portable Visual Studio Code executable, which is verified and persisted separately from bounded automatic discovery routes.
+- Inspect invalid or corrupt persistence and reset the privileged editor store in one action.
 
 Folder opening is capability-aware. Visual Studio Code variants receive `--new-window` followed by the folder path. Editors without folder-workspace support refuse the folder action with an actionable message rather than opening a misleading single file.
 
@@ -20,7 +22,7 @@ Folder opening is capability-aware. Visual Studio Code variants receive `--new-w
 
 Custom records use the versioned `console.externalEditors.v1` shape in the application data store. The privileged runtime bounds the record to 32 entries, limits names to 80 characters and executable paths to 1,024 characters, normalizes accepted paths, and rejects command-line operators, quotes, newlines, and malformed identifiers. The selected editor id is stored separately from the renderer's display state so the choice survives relaunch and unavailable choices can still be reported.
 
-Exports handed to an editor are written to an application-owned `external-editor-exports` directory with a bounded UTF-8 payload and a sanitized filename. The source export remains unchanged.
+Exports handed to an editor are written to an application-owned `external-editor-exports` directory with a bounded UTF-8 payload and a sanitized filename. The source export remains unchanged. A selected PBX configuration receives a source path and a local materialized target path in its launch receipt.
 
 ## Security and failure modes
 
@@ -28,7 +30,7 @@ No editor launch goes through a shell. The runtime calls `child_process.spawn` w
 
 When no supported editor is installed, the settings surface states that the console works fully without one and offers the official Visual Studio Code download page. It does not auto-download software. A missing selected executable, invalid custom record, unsupported folder target, unavailable bridge, oversized export, and failed process start each produces a distinct failure message.
 
-The hosted browser surface exposes an honest no-editor state because native executable detection, file picking and process creation require the installed desktop runtime. No browser route pretends that a local editor was opened. The official Visual Studio Code download action is allowlisted to `https://code.visualstudio.com/` and its documented Insiders and download paths.
+The hosted browser surface exposes an honest no-editor state because native executable detection, file picking and process creation require the installed desktop runtime. No browser route pretends that a local editor was opened. The official download action requires a known current editor id and uses one exact URL allowlist. Unknown or stale ids do not fall back to Visual Studio Code.
 
 ## Accessibility and localization
 

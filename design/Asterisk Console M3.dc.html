@@ -2527,18 +2527,22 @@ const SCREENS = {
     ]},
     { title:'External editor', desc:'Hand a config file or an export to the editor you already use. The console works fully without one; this is a convenience, not something it needs.', ctls:[
       ctl('ed_status','Detection status','text','No supported editor has been detected yet.',{ action:'editor-status', info:'Detection runs in the privileged desktop process and reports normalized executable paths. An unavailable saved choice remains visible rather than being replaced silently.' }),
+      ctl('ed_persistence','Saved editor settings','text','No saved editor settings have been written yet.',{ action:'editor-persistence', info:'The privileged editor store reports valid, missing, or invalid data. Invalid data stays visible with a reset action instead of being silently discarded.' }),
       ctl('ed_choice','Editor','select','',{ options:['Visual Studio Code','Visual Studio Code Insiders','Visual Studio Code Portable','Notepad++','Sublime Text','Notepad'], info:'Only editors actually installed on this machine are offered. A saved choice remains visible when it is unavailable, so the console never launches a different editor without your choice.' }),
       ctl('pbxadm:ed_custom_name','Other editor name','text','',{ placeholder:'My editor' }),
       ctl('pbxadm:ed_custom_path','Other editor executable','text','',{ placeholder:'C:\\tools\\editor.exe', info:'The program itself, not a command line. Browse for it rather than typing it if you are not sure; quotes and shell operators are refused because this launches a program directly rather than through a shell.' }),
       ctl('ed_browse','Browse for executable','segmented','Browse',{ options:['Browse'], action:'editor-browse' }),
+      ctl('ed_pick_portable','Choose portable Visual Studio Code','segmented','Choose portable executable',{ options:['Choose portable executable'], action:'editor-pick-portable' }),
       ctl('ed_download','Open official download link','segmented','Open official download',{ options:['Open official download'], action:'editor-download' }),
       ctl('ed_save_custom','Save custom editor','segmented','Save',{ options:['Save'], action:'editor-save-custom' }),
       ctl('ed_remove_custom','Remove custom editor','segmented','Remove custom editor',{ options:['Remove custom editor'], action:'editor-remove-custom' }),
-      ctl('ed_open_project','Open current project folder','segmented','Open project folder',{ options:['Open project folder'], action:'editor-open-project' }),
+      ctl('ed_pick_project','Choose local project folder','segmented','Choose project folder',{ options:['Choose project folder'], action:'editor-pick-project' }),
+      ctl('ed_open_project','Open chosen project folder','segmented','Open project folder',{ options:['Open project folder'], action:'editor-open-project' }),
       ctl('ed_open_selected','Open selected file','segmented','Open selected file',{ options:['Open selected file'], action:'editor-open-selected' }),
       ctl('ed_open_vscode','Open in Visual Studio Code','segmented','Open in Visual Studio Code',{ options:['Open in Visual Studio Code'], action:'editor-open-vscode' }),
       ctl('ed_open_export','Open latest export in editor','segmented','Open latest export',{ options:['Open latest export'], action:'editor-open-export' }),
-      ctl('ed_clear','Forget the chosen editor','switch',false)
+      ctl('ed_clear','Forget the chosen editor','segmented','Forget chosen editor',{ options:['Forget chosen editor'], action:'editor-clear-choice' }),
+      ctl('ed_reset_storage','Reset invalid editor settings','segmented','Reset editor settings',{ options:['Reset editor settings'], action:'editor-reset-storage' })
     ]},
     { title:'Support Tickets', desc:'Locked out of something and cannot remember the credential? Open a ticket. Nothing here is sent anywhere: the ticket exists only on this computer, no network request is made, no data is collected, and nobody is reading it.', ctls:[
       ctl('sup_category','Category','select','Forgotten PIN or password',{ options:['Locked out of an element','Forgotten PIN or password','Lost my authenticator','Something else'] }),

@@ -159,8 +159,11 @@ ipcMain.handle('updater:restart-to-install', async (): Promise<UpdaterRestartRes
 
 ipcMain.handle('external-editor:detect', () => externalEditor.status());
 ipcMain.handle('external-editor:choose', (_event, editorId: unknown) => externalEditor.choose(String(editorId ?? '')));
+ipcMain.handle('external-editor:clear-choice', () => externalEditor.clearChoice());
+ipcMain.handle('external-editor:reset-storage', () => externalEditor.resetStorage());
 ipcMain.handle('external-editor:save-custom', (_event, record: ExternalEditorCustomRecord) => externalEditor.saveCustom(record));
 ipcMain.handle('external-editor:remove-custom', (_event, editorId: unknown) => externalEditor.removeCustom(String(editorId ?? '')));
+ipcMain.handle('external-editor:save-portable', (_event, executable: unknown) => externalEditor.savePortable(String(executable ?? '')));
 ipcMain.handle('external-editor:pick-executable', async () => {
   const result = await dialog.showOpenDialog(mainWindow ?? undefined, {
     title: 'Choose an editor executable',
@@ -169,16 +172,23 @@ ipcMain.handle('external-editor:pick-executable', async () => {
   });
   return { canceled: result.canceled, executable: result.canceled ? undefined : result.filePaths[0] };
 });
+ipcMain.handle('external-editor:pick-folder', async () => {
+  const result = await dialog.showOpenDialog(mainWindow ?? undefined, { title: 'Choose a local project folder', properties: ['openDirectory', 'createDirectory'] });
+  return { canceled: result.canceled, folder: result.canceled ? undefined : result.filePaths[0] };
+});
 ipcMain.handle('external-editor:open-download', async (_event, editorId?: string) => {
-  const candidate = externalEditor.status().editors.find((editor) => editor.id === editorId) ?? externalEditor.status().editors.find((editor) => editor.id === 'vscode');
-  const url = candidate?.downloadUrl;
-  if (!url || !/^https:\/\/code\.visualstudio\.com(?:\/|$)/u.test(url)) return { ok: false, message: 'No official download link is available for the selected editor.' };
+  const resolved = externalEditor.openDownload(editorId);
+  if (!resolved.ok) return resolved;
+  const allowed = new Set(['https://code.visualstudio.com/', 'https://code.visualstudio.com/insiders/', 'https://code.visualstudio.com/download']);
+  const url = allowed.has(resolved.message) ? resolved.message : undefined;
+  if (!url) return { ok: false, message: 'The official download link was not on the exact allowlist.' };
   try { await shell.openExternal(url); return { ok: true, message: url }; }
   catch (error) { return { ok: false, message: error instanceof Error ? error.message : 'The official download link could not be opened.' }; }
 });
-ipcMain.handle('external-editor:open-project', (_event, editorId?: string) => externalEditor.launch({ kind: 'folder', path: app.getAppPath() }, editorId));
+ipcMain.handle('external-editor:open-project', (_event, folder: unknown, editorId?: string) => externalEditor.launch({ kind: 'folder', path: String(folder ?? '') }, editorId));
 ipcMain.handle('external-editor:launch', (_event, target: ExternalEditorLaunchTarget, editorId?: string) => externalEditor.launch(target, editorId));
 ipcMain.handle('external-editor:open-export', (_event, input: { name: string; content: string; editorId?: string }) => externalEditor.openExport(input));
+ipcMain.handle('external-editor:open-materialized-file', (_event, input: { name: string; content: string; source: string; editorId?: string }) => externalEditor.openMaterializedFile(input));
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({

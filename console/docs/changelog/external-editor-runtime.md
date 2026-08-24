@@ -7,8 +7,11 @@ stable, Insiders and Portable routes are distinct, folder targets require worksp
 and unavailable saved choices remain visible instead of being replaced.
 
 The renderer, Electron preload, hosted fallback, control-plane runtime, design source and
-generated output share one typed bridge. Exports can be handed directly to Visual Studio Code
-through an application-owned UTF-8 file. The launch path never uses a shell.
+generated output share one typed bridge. Exports and selected PBX read-back content can be
+handed directly to Visual Studio Code through application-owned UTF-8 files. The launch path
+never uses a shell. The privileged store is the only source of the selected editor id and uses
+the shared bounded Windows-safe atomic rename retry helper. Invalid persistence is visible and
+resettable.
 
 ## Suggested articles
 

@@ -158,10 +158,11 @@
     },
     "external-editor-handoff": {
       "state": "implemented",
-      "note": "Implemented 2026-08-23 as a pure renderer policy plus the privileged control-plane runtime, preload bridge, and mounted App.tsx actions. Detects stable, Insiders, portable and machine/user Visual Studio Code routes with normalized absolute paths and environment expansion, persists bounded custom records, keeps unavailable choices visible, uses a native executable picker, and launches through child_process.spawn with shell:false and separate executable and argument values. Folder targets require workspace capability, exports can be handed directly to Visual Studio Code, and the no-editor state offers the official download link without treating an editor as a missing prerequisite.",
+      "note": "Mounted as a pure renderer policy plus the privileged control-plane runtime, preload bridge, and App.tsx actions. Detects stable, Insiders and bounded portable Visual Studio Code routes with normalized absolute paths and environment expansion, persists verified portable paths and bounded custom records, keeps unavailable choices visible, uses native file and folder pickers, materializes selected PBX read-back content into bounded local exports, and launches through child_process.spawn with shell:false and separate executable and argument values. The privileged store is the sole choice source, uses Windows-safe atomic rename retry, reports invalid persistence and offers reset, enforces file versus folder kind, and refuses unknown or stale editor ids without a fallback.",
       "files": [
         "app/renderer/src/external-editor.ts",
         "control-plane/external-editor-runtime.ts",
+        "control-plane/atomic-file.ts",
         "app/electron/main.ts",
         "app/electron/preload.ts",
         "app/electron/preload.cjs",
