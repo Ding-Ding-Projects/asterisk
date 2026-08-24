@@ -18,8 +18,9 @@ import {
   parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime,
 } from './asterisk-parsers.js';
 import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory } from './index.js';
-import { ServerInventory } from './index.js';
-import type { ServerInventoryStore, ServerRecord } from './index.js';
+import { ServerInventory, SettingsRegistry } from './index.js';
+import type { ServerInventoryStore, ServerRecord, SettingsSnapshotStore } from './index.js';
+import { atomicWriteFileSync } from './atomic-file.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
 import type { ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
@@ -218,6 +219,46 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     return cachedServerInventory;
   }
 
+  /**
+   * The durable settings store backing every renderer control that must survive a
+   * relaunch (the appearance editor, the personal-vocabulary cache, and any future
+   * caller) -- see `control-plane/settings-store.ts`. Written atomically: a plain
+   * `writeFileSync` here would leave a truncated `settings.json` behind if the process
+   * were killed mid-write, or fail outright on Windows when Defender/the indexer/a
+   * sync client has the destination momentarily open.
+   */
+  class FileSettingsStore implements SettingsSnapshotStore {
+    constructor(private readonly path: string) {}
+    read(): Record<string, string> | undefined {
+      if (!existsSync(this.path)) return undefined;
+      try {
+        const parsed = JSON.parse(readFileSync(this.path, 'utf8')) as unknown;
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+        const out: Record<string, string> = {};
+        for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+          if (typeof value === 'string') out[key] = value;
+        }
+        return out;
+      } catch {
+        // Corrupt or truncated JSON fails closed to "nothing persisted" -- every
+        // renderer default applies -- rather than throwing at startup.
+        return undefined;
+      }
+    }
+    write(snapshot: Record<string, string>): void {
+      atomicWriteFileSync(this.path, JSON.stringify(snapshot, null, 2));
+    }
+  }
+
+  let cachedSettingsRegistry: SettingsRegistry | undefined;
+  function settingsRegistry(): SettingsRegistry {
+    if (!cachedSettingsRegistry) {
+      const path = join(userDataPath, 'settings.json');
+      cachedSettingsRegistry = new SettingsRegistry(new FileSettingsStore(path));
+    }
+    return cachedSettingsRegistry;
+  }
+
   async function controlPlaneRequest(request: ControlPlaneRequest): Promise<ControlPlaneResponse> {
     try {
       if (hosted && HOSTED_UNSUPPORTED_ACTIONS.has(request.action)) {
@@ -317,6 +358,32 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           return { ok: true, requestId: request.requestId, data: { server } };
         } catch (error) {
           return { ok: false, requestId: request.requestId, code: (error as { code?: string }).code ?? 'SERVER_SET_ACTIVE_FAILED', message: error instanceof Error ? error.message : 'Could not switch the active server.' };
+        }
+      }
+      if (request.action === 'settings.snapshot') {
+        return { ok: true, requestId: request.requestId, data: { values: settingsRegistry().snapshot() } };
+      }
+      if (request.action === 'settings.write') {
+        const payload = request.payload as { key?: string; value?: string } | undefined;
+        const key = payload?.key?.trim();
+        if (!key) return { ok: false, requestId: request.requestId, code: 'SETTING_KEY_REQUIRED', message: 'A settings key is required.' };
+        if (typeof payload?.value !== 'string') return { ok: false, requestId: request.requestId, code: 'SETTING_VALUE_REQUIRED', message: 'A settings value must be a string.' };
+        try {
+          settingsRegistry().set(key, payload.value);
+          return { ok: true, requestId: request.requestId, data: { key } };
+        } catch (error) {
+          return { ok: false, requestId: request.requestId, code: 'SETTING_WRITE_FAILED', message: error instanceof Error ? error.message : 'Could not persist the setting.' };
+        }
+      }
+      if (request.action === 'settings.remove') {
+        const payload = request.payload as { key?: string } | undefined;
+        const key = payload?.key?.trim();
+        if (!key) return { ok: false, requestId: request.requestId, code: 'SETTING_KEY_REQUIRED', message: 'A settings key is required.' };
+        try {
+          settingsRegistry().remove(key);
+          return { ok: true, requestId: request.requestId, data: { key } };
+        } catch (error) {
+          return { ok: false, requestId: request.requestId, code: 'SETTING_REMOVE_FAILED', message: error instanceof Error ? error.message : 'Could not remove the setting.' };
         }
       }
       if (request.action === 'server.connect' || request.action === 'pbx.snapshot') {

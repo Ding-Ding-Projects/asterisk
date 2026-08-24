@@ -22,7 +22,11 @@ export type ControlPlaneAction =
   /* Prompts and music-on-hold media on the target, so a "custom" choice can be given a file. */
   | 'media.list' | 'media.upload' | 'media.remove'
   /* The console's own append-only record of what it changed, kept locally. */
-  | 'local-history.list' | 'local-history.record' | 'local-history.restore';
+  | 'local-history.list' | 'local-history.record' | 'local-history.restore'
+  /* Durable renderer settings (appearance, personal vocabulary) -- see
+   * `control-plane/settings-store.ts`. The renderer's own `localStorage` is in-memory
+   * only for a `file://` origin and never survives a relaunch. */
+  | 'settings.snapshot' | 'settings.write' | 'settings.remove';
 
 /** The screens a `pbx.read` can answer, each backed by read-only Asterisk CLI output. */
 export type PbxReadView =
