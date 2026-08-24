@@ -13,6 +13,8 @@ export {
   SettingsStore,
   createBrowserSettingsStore,
   createMemorySettingsStorage,
+  probeBrowserSettingsStorage,
+  type BrowserSettingsStorageProbe,
   type SettingsStorage,
   type SettingsStorageEvents,
   type SettingsStoreSnapshot,

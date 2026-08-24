@@ -8,7 +8,6 @@ import {
 } from '../../../shared/settings-schema';
 import {
   applyVocabularyTextAtBoundary,
-  createMemoryStorage,
   type VocabularyStorage,
   type VocabularyTextBoundaryInput,
 } from './personal-vocabulary';
@@ -23,6 +22,7 @@ import {
 import {
   SettingsStore,
   createBrowserSettingsStore,
+  probeBrowserSettingsStorage,
   type SettingsUpdateResult,
 } from './settings-store';
 import {
@@ -30,7 +30,7 @@ import {
   type ScheduleSourceStates,
 } from './settings/schedule';
 
-export type SettingProvenanceKind = 'default' | 'persisted' | 'scheduled' | 'school-mode';
+export type SettingProvenanceKind = 'default' | 'persisted' | 'session-memory' | 'scheduled' | 'school-mode';
 
 export interface SettingProvenance {
   kind: SettingProvenanceKind;
@@ -179,7 +179,12 @@ export class RendererSettingsRuntime {
 
     const defaultProvenance: SettingProvenance = stored.provenance === 'persisted'
       ? { kind: 'persisted', detail: 'Loaded from the validated local settings record.' }
-      : { kind: 'default', detail: 'Using the compiled default because no valid local value is stored.' };
+      : stored.provenance === 'session-memory'
+        ? {
+            kind: 'session-memory',
+            detail: stored.recoveryReason ?? 'Browser storage is unavailable. This value is memory-only for the current session.',
+          }
+        : { kind: 'default', detail: 'Using the compiled default because no valid local value is stored.' };
     const provenance = Object.fromEntries(allTargets.map((target) => [target, { ...defaultProvenance }])) as Record<ScheduledSettingTarget, SettingProvenance>;
     for (const [target, ruleId] of Object.entries(evaluation.ruleForTarget) as Array<[ScheduledSettingTarget, string]>) {
       provenance[target] = { kind: 'scheduled', ruleId, detail: `Temporarily supplied by schedule rule ${ruleId}.` };
@@ -311,8 +316,9 @@ export function createRendererSettingsRuntime(options: RendererSettingsRuntimeOp
 
 /** App integration helper for browser storage, with a memory fallback kept explicit. */
 export function browserSettingsRuntime(): RendererSettingsRuntime {
-  const vocabularyStorage = typeof window !== 'undefined' && window.localStorage
-    ? window.localStorage
-    : createMemoryStorage();
-  return createRendererSettingsRuntime({ vocabularyStorage, store: createBrowserSettingsStore() });
+  const storageProbe = probeBrowserSettingsStorage();
+  return createRendererSettingsRuntime({
+    vocabularyStorage: storageProbe.storage,
+    store: createBrowserSettingsStore(storageProbe),
+  });
 }
