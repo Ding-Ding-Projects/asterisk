@@ -27,6 +27,7 @@ interface DownloadWindowRecord { window: BrowserWindow; handoffId?: string; tran
 const downloadWindows = new Map<DownloadSurfaceKind, DownloadWindowRecord>();
 let downloadOriginWindow: BrowserWindow | null = null;
 let nativeIngressBroker: ChildProcessWithoutNullStreams | undefined;
+let stoppingNativeIngressBroker: ChildProcessWithoutNullStreams | undefined;
 let nativeIngressConfig: NativeIngressConfig | undefined;
 const execFileAsync = promisify(execFile);
 let nativeHostStatus: NativeHostStatus = { state: 'unavailable', message: 'Native extension ingress has not been registered.', retryable: true };
@@ -335,20 +336,26 @@ async function startNativeDownloadIngress(): Promise<void> {
     }
   });
   broker.on('error', (error) => { if (nativeIngressBroker === broker) nativeIngressBroker = undefined; if (!startupSettled) { clearTimeout(startupTimer); publishNativeHostStatus({ state: 'error', message: error.message, retryable: true }); settleStartup(error); } else publishNativeHostStatus({ state: 'error', message: error.message, retryable: true }); });
-  broker.on('close', () => { if (nativeIngressBroker === broker) nativeIngressBroker = undefined; if (!startupSettled) { clearTimeout(startupTimer); const error = new Error('The native ingress broker stopped before readiness.'); publishNativeHostStatus({ state: 'unavailable', message: error.message, retryable: true }); settleStartup(error); } else if (ready) publishNativeHostStatus({ state: 'error', message: 'The native ingress broker stopped before another handoff could be accepted.', retryable: true }); });
+  broker.on('close', () => { if (stoppingNativeIngressBroker === broker) { stoppingNativeIngressBroker = undefined; if (nativeIngressBroker === broker) nativeIngressBroker = undefined; return; } if (nativeIngressBroker === broker) nativeIngressBroker = undefined; if (!startupSettled) { clearTimeout(startupTimer); const error = new Error('The native ingress broker stopped before readiness.'); publishNativeHostStatus({ state: 'unavailable', message: error.message, retryable: true }); settleStartup(error); } else if (ready) publishNativeHostStatus({ state: 'error', message: 'The native ingress broker stopped before another handoff could be accepted.', retryable: true }); });
   await startup.catch(() => undefined);
 }
 
-function stopNativeDownloadIngress(): void {
-  if (!nativeIngressBroker) return;
-  nativeIngressBroker.kill();
-  nativeIngressBroker = undefined;
+async function stopNativeDownloadIngress(): Promise<boolean> {
+  const broker = nativeIngressBroker;
+  if (!broker) return true;
+  stoppingNativeIngressBroker = broker;
+  broker.kill();
+  const closed = await Promise.race([new Promise<boolean>((resolve) => broker.once('close', () => resolve(true))), new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 5_000))]);
+  if (!closed) { publishNativeHostStatus({ state: 'error', message: 'The previous native ingress broker did not close before reload.', retryable: true }); return false; }
+  if (nativeIngressBroker === broker) nativeIngressBroker = undefined;
+  stoppingNativeIngressBroker = undefined;
   nativeIngressConfig = undefined;
   downloadTransfers.setSecureTempHelperPath(undefined);
   publishNativeHostStatus({ state: 'unavailable', message: 'The native extension ingress is stopped.', retryable: true });
+  return true;
 }
 
-async function reloadNativeDownloadIngress(): Promise<void> { stopNativeDownloadIngress(); await startNativeDownloadIngress(); }
+async function reloadNativeDownloadIngress(): Promise<void> { if (await stopNativeDownloadIngress()) await startNativeDownloadIngress(); }
 
 function windowRecordForContents(contents: WebContents): DownloadWindowRecord | undefined {
   return [...downloadWindows.values()].find((record) => record.window.webContents === contents);
@@ -511,7 +518,11 @@ if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
       if (handoffs.length > 0) openNextPendingStart(mainWindow);
     }
   }).then(scheduleUpdateChecks);
-  app.on('will-quit', () => { stopNativeDownloadIngress(); });
+  app.on('will-quit', (event) => {
+    if (!nativeIngressBroker || stoppingNativeIngressBroker) return;
+    event.preventDefault();
+    void stopNativeDownloadIngress().then((closed) => { if (closed) app.quit(); });
+  });
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 }
