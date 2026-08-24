@@ -73,6 +73,7 @@
   let dimSumDrawnThisLaunch = false;
   const DIM_SUM_IMAGE_CACHE_KEY = 'ding-pbx-dimsum-image-cache-v2';
   const WEEKDAYS = [['mo', 'Monday'], ['tu', 'Tuesday'], ['we', 'Wednesday'], ['th', 'Thursday'], ['fr', 'Friday'], ['sa', 'Saturday'], ['su', 'Sunday']];
+  let compatibilityMalformed = false;
   const $ = (id) => document.getElementById(id);
   const all = (selector) => [...document.querySelectorAll(selector)];
   const copy = (en, zh, tone, mode = state.language) => {
@@ -112,7 +113,7 @@
       const saved = parseUniqueJson(raw);
       if (saved.schemaVersion !== undefined && ![1, SETTINGS_SCHEMA_VERSION].includes(saved.schemaVersion)) throw new Error('Unsupported settings schema version.');
       if (!saved.schemaVersion) {
-        try { const legacy = parseUniqueJson(localStorage.getItem(MIRROR_STATE_KEY) || '{}'); if (['en', 'zh', 'both'].includes(legacy.language)) saved.language = legacy.language; if (Number.isFinite(legacy.englishFunny)) saved.englishFunny = Number(legacy.englishFunny) >= 1 && Number(legacy.englishFunny) <= 5 ? Number(legacy.englishFunny) : Math.min(5, Math.max(1, Math.round(Number(legacy.englishFunny) * 4 / 3 + 1))); if (Number.isFinite(legacy.cantoneseFunny)) saved.cantoneseFunny = Number(legacy.cantoneseFunny) >= 1 && Number(legacy.cantoneseFunny) <= 5 ? Number(legacy.cantoneseFunny) : Math.min(5, Math.max(1, Math.round(Number(legacy.cantoneseFunny) * 4 / 3 + 1))); } catch { /* the global record remains authoritative */ }
+        try { const legacy = parseUniqueJson(localStorage.getItem(MIRROR_STATE_KEY) || '{}'); if (['en', 'zh', 'both'].includes(legacy.language)) saved.language = legacy.language; if (Number.isFinite(legacy.englishFunny)) saved.englishFunny = Number(legacy.englishFunny) >= 1 && Number(legacy.englishFunny) <= 5 ? Number(legacy.englishFunny) : Math.min(5, Math.max(1, Math.round(Number(legacy.englishFunny) * 4 / 3 + 1))); if (Number.isFinite(legacy.cantoneseFunny)) saved.cantoneseFunny = Number(legacy.cantoneseFunny) >= 1 && Number(legacy.cantoneseFunny) <= 5 ? Number(legacy.cantoneseFunny) : Math.min(5, Math.max(1, Math.round(Number(legacy.cantoneseFunny) * 4 / 3 + 1))); } catch { compatibilityMalformed = true; }
       }
       const oldSchedule = saved.schedule || {};
       const rules = Array.isArray(oldSchedule.rules) ? oldSchedule.rules : (oldSchedule.enabled ? [{
@@ -135,11 +136,12 @@
     safe.narratorPitch = Math.min(2, Math.max(0, Number(raw.narratorPitch) || 1));
     safe.dimSumShown = Math.min(100000, Math.max(0, Number(raw.dimSumShown) || 0));
     const schedule = raw.schedule || {};
-    safe.schedule = { schemaVersion: 1, lastAppliedRule: typeof schedule.lastAppliedRule === 'string' ? schedule.lastAppliedRule.slice(0, 128) : '', lastAppliedSignature: typeof schedule.lastAppliedSignature === 'string' ? schedule.lastAppliedSignature.slice(0, 256) : '', paused: schedule.paused === true, invalidTimezones: [], rules: Array.isArray(schedule.rules) ? schedule.rules.slice(0, MAX_RULES).map((rule) => ({ id: String(rule?.id || '').slice(0, 128), target: String(rule?.target || '').slice(0, 64), value: String(rule?.value || '').slice(0, 120), startDate: String(rule?.startDate || '').slice(0, 10), endDate: String(rule?.endDate || '').slice(0, 10), startTime: String(rule?.startTime || '').slice(0, 5), endTime: String(rule?.endTime || '').slice(0, 5), allDay: rule?.allDay === true, weekdays: Array.isArray(rule?.weekdays) ? rule.weekdays.filter((day) => WEEKDAYS.some(([id]) => id === day)).slice(0, 7) : [], everyDay: rule?.everyDay === true, timezone: String(rule?.timezone || '').slice(0, 80), precedence: Math.min(100, Math.max(0, Number(rule?.precedence) || 0)), source: ['local', 'https', 'home-assistant'].includes(rule?.source) ? rule.source : 'local', endpoint: String(rule?.endpoint || '').slice(0, 512), entity: String(rule?.entity || '').slice(0, 128) })) : [] };
+    safe.schedule = { schemaVersion: 1, lastAppliedRule: typeof schedule.lastAppliedRule === 'string' ? schedule.lastAppliedRule.slice(0, 128) : '', lastAppliedSignature: typeof schedule.lastAppliedSignature === 'string' ? schedule.lastAppliedSignature.slice(0, 256) : '', paused: schedule.paused === true, invalidTimezones: [], rules: Array.isArray(schedule.rules) ? schedule.rules.slice(0, MAX_RULES).map((rule) => ({ id: String(rule?.id || '').slice(0, 128), target: String(rule?.target || '').slice(0, 64), value: String(rule?.value || '').slice(0, 120), startDate: String(rule?.startDate || '').slice(0, 10), endDate: String(rule?.endDate || '').slice(0, 10), startTime: String(rule?.startTime || '').slice(0, 5), endTime: String(rule?.endTime || '').slice(0, 5), allDay: rule?.allDay === true, weekdays: Array.isArray(rule?.weekdays) ? rule.weekdays.filter((day) => WEEKDAYS.some(([id]) => id === day)).slice(0, 7) : [], everyDay: rule?.everyDay === true, timezone: String(rule?.timezone || '').slice(0, 80), precedence: Math.min(100, Math.max(0, Number(rule?.precedence) || 0)), source: ['local', 'https', 'home-assistant'].includes(rule?.source) ? rule.source : 'local', endpoint: String(rule?.endpoint || '').slice(0, 512), entity: String(rule?.entity || '').slice(0, 128), disabled: rule?.disabled === true })) : [] };
     safe.schedule.invalidTimezones = safe.schedule.rules.filter((rule) => !isValidTimezone(rule.timezone)).map((rule) => rule.id);
     safe.schedule.invalidRules = safe.schedule.rules.filter((rule) => !isValidStoredRule(rule)).map((rule) => rule.id);
-    safe.schedule.rules = safe.schedule.rules.filter((rule) => isValidStoredRule(rule));
+    safe.schedule.rules = safe.schedule.rules.map((rule) => ({ ...rule, disabled: rule.disabled || !isValidStoredRule(rule) }));
     safe.schemaVersion = SETTINGS_SCHEMA_VERSION;
+    safe.compatibilityStatus = compatibilityMalformed ? 'malformed' : 'valid';
     return safe;
   }
   const state = sanitizeState(load());
@@ -232,6 +234,7 @@
     return [...new Uint8Array(digestValue)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
   }
   function bytesToBase64(bytes) { let binary = ''; for (let offset = 0; offset < bytes.length; offset += 8192) binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192)); return btoa(binary); }
+  function fisherYates(values) { const output = [...values]; for (let index = output.length - 1; index > 0; index -= 1) { const swap = Math.floor(Math.random() * (index + 1)); [output[index], output[swap]] = [output[swap], output[index]]; } return output; }
   async function fetchWithDeadline(url, options = {}, timeoutMs = 5000) { const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs); try { return await fetch(url, { ...options, signal: controller.signal }); } finally { clearTimeout(timer); } }
   function withDeadline(promise, timeoutMs = 5000) { let timer; return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Operation deadline exceeded.')), timeoutMs); })]).finally(() => clearTimeout(timer)); }
   async function decodeImage(dataUrl) {
@@ -244,15 +247,15 @@
       if (!response.ok) throw new Error(`Cache metadata HTTP ${response.status}`);
       const raw = await withDeadline(response.text()); if (new TextEncoder().encode(raw).byteLength > 131072) throw new Error('Dim-sum cache metadata is too large.');
       const parsed = parseUniqueJson(raw);
-      if (parsed.schemaVersion !== DIM_SUM_CACHE.schemaVersion || parsed.sourceUrl !== DIM_SUM_CACHE.sourceUrl || parsed.catalogRevision !== DIM_SUM_CACHE.releaseNamespace || !Array.isArray(parsed.dishes)) throw new Error('Dim-sum cache schema or source revision is not accepted.');
-      DISHES = parsed.dishes.filter((dish) => { if (!dish || typeof dish.id !== 'string' || typeof dish.imageUrl !== 'string' || typeof dish.sha256 !== 'string' || dish.sha256.length !== 64 || dish.releaseTag !== DIM_SUM_CACHE.releaseNamespace || typeof dish.catalogRevision !== 'string' || !dish.name || typeof dish.name.en !== 'string' || typeof dish.name.zhHant !== 'string') return false; try { const url = new URL(dish.imageUrl); const filename = url.pathname.split('/').pop() || ''; return url.protocol === 'https:' && url.hostname === 'github.com' && url.pathname.startsWith('/Ding-Ding-Projects/dim-sum-photos/releases/download/catalog-v1/') && filename === `hk-dish-${dish.id.slice(-4)}-${filename.split('-').slice(3).join('-')}` && /^hk-dish-\d{4}-[a-z0-9-]+\.png$/.test(filename); } catch { return false; } }).map((dish) => ({ id: dish.id, en: dish.name.en, zh: dish.name.zhHant, imageUrl: dish.imageUrl, sha256: dish.sha256, releaseTag: dish.releaseTag, catalogRevision: dish.catalogRevision }));
+      if (parsed.schemaVersion !== DIM_SUM_CACHE.schemaVersion || parsed.sourceUrl !== DIM_SUM_CACHE.sourceUrl || parsed.catalogRevision !== DIM_SUM_CACHE.releaseNamespace || !Array.isArray(parsed.dishes) || parsed.dishes.length > 32) throw new Error('Dim-sum cache schema or source revision is not accepted.');
+      DISHES = parsed.dishes.filter((dish) => { if (!dish || typeof dish.id !== 'string' || typeof dish.imageUrl !== 'string' || typeof dish.sha256 !== 'string' || dish.sha256.length !== 64 || dish.releaseTag !== DIM_SUM_CACHE.releaseNamespace || typeof dish.catalogRevision !== 'string' || !dish.name || typeof dish.name.en !== 'string' || typeof dish.name.zhHant !== 'string') return false; try { const url = new URL(dish.imageUrl); const filename = url.pathname.split('/').pop() || ''; const expectedPath = `/Ding-Ding-Projects/dim-sum-photos/releases/download/catalog-v1/${filename}`; return url.protocol === 'https:' && url.hostname === 'github.com' && url.pathname === expectedPath && filename === `hk-dish-${dish.id.slice(-4)}-${filename.split('-').slice(3).join('-')}` && /^hk-dish-\d{4}-[a-z0-9-]+\.png$/.test(filename); } catch { return false; } }).map((dish) => ({ id: dish.id, en: dish.name.en, zh: dish.name.zhHant, imageUrl: dish.imageUrl, sha256: dish.sha256, releaseTag: dish.releaseTag, catalogRevision: dish.catalogRevision }));
       let cached = {};
-      try { cached = parseUniqueJson(localStorage.getItem(DIM_SUM_IMAGE_CACHE_KEY) || '{}'); if (cached.schemaVersion !== 1 || cached.sourceUrl !== DIM_SUM_CACHE.sourceUrl || cached.catalogRevision !== DIM_SUM_CACHE.releaseNamespace || !Array.isArray(cached.entries)) throw new Error('stale image cache'); } catch { localStorage.removeItem(DIM_SUM_IMAGE_CACHE_KEY); cached = {}; }
+      try { const cacheRaw = localStorage.getItem(DIM_SUM_IMAGE_CACHE_KEY) || '{}'; if (new TextEncoder().encode(cacheRaw).byteLength > 6291456) throw new Error('image cache too large'); cached = parseUniqueJson(cacheRaw); if (cached.schemaVersion !== 1 || cached.sourceUrl !== DIM_SUM_CACHE.sourceUrl || cached.catalogRevision !== DIM_SUM_CACHE.releaseNamespace || !Array.isArray(cached.entries) || cached.entries.length > 32) throw new Error('stale image cache'); } catch { localStorage.removeItem(DIM_SUM_IMAGE_CACHE_KEY); cached = {}; }
       const usable = [];
-      for (const dish of DISHES) { const local = cached?.entries?.find((entry) => entry.id === dish.id && entry.sha256 === dish.sha256 && entry.releaseTag === dish.releaseTag && entry.catalogRevision === dish.catalogRevision && typeof entry.dataUrl === 'string'); if (local && await sha256Hex(Uint8Array.from(atob(local.dataUrl.split(',')[1] || ''), (char) => char.charCodeAt(0))) === dish.sha256 && await decodeImage(local.dataUrl)) usable.push({ ...dish, dataUrl: local.dataUrl }); }
+      for (const dish of DISHES) { const local = cached?.entries?.find((entry) => entry.id === dish.id && entry.sha256 === dish.sha256 && entry.releaseTag === dish.releaseTag && entry.catalogRevision === dish.catalogRevision && typeof entry.dataUrl === 'string' && entry.dataUrl.length <= 1398104); if (local) { try { const encoded = local.dataUrl.split(',')[1] || ''; const bytes = Uint8Array.from(atob(encoded), (char) => char.charCodeAt(0)); if (bytes.length > 1048576) continue; if (await sha256Hex(bytes) === dish.sha256 && await decodeImage(local.dataUrl)) usable.push({ ...dish, dataUrl: local.dataUrl }); } catch { /* purge below if no usable entry */ } } }
       if (usable.length) { DISHES = usable; return true; }
       localStorage.removeItem(DIM_SUM_IMAGE_CACHE_KEY);
-      const candidates = [...DISHES].sort(() => Math.random() - 0.5).slice(0, 3);
+      const candidates = fisherYates(DISHES).slice(0, 3);
       for (const candidate of candidates) {
         try {
           const imageResponse = await fetchWithDeadline(candidate.imageUrl, { cache: 'force-cache', credentials: 'omit', redirect: 'error', referrerPolicy: 'no-referrer' }); if (!imageResponse.ok || !imageResponse.body) continue;
@@ -423,7 +426,7 @@
     let count = 0;
     settingRows().forEach((row) => { const visible = !schoolSuppressed(row) && searchMatches(row.textContent); row.hidden = !visible; if (visible) count += 1; });
     const status = $('global-settings-search-status');
-    if (status) status.textContent = `${state.schoolName}: ${count} setting${count === 1 ? '' : 's'} shown.`;
+    if (status) status.textContent = `${state.schoolName}: ${count} setting${count === 1 ? '' : 's'} shown.${state.compatibilityStatus === 'malformed' ? ' Compatibility mirror malformed, unrelated fields were preserved.' : ''}`;
   }
   function openRegex() {
     const popover = $('global-regex-popover');
@@ -713,9 +716,9 @@
     $('global-narrator-rate-output') && ($('global-narrator-rate-output').textContent = String(state.narratorRate));
     $('global-narrator-pitch-output') && ($('global-narrator-pitch-output').textContent = String(state.narratorPitch));
     $('global-schedule-enabled') && ($('global-schedule-enabled').checked = state.schedule.rules.length > 0 && !state.schedule.paused);
-    $('global-schedule-timezone') && ($('global-schedule-timezone').value = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local timezone');
+    if ($('global-schedule-timezone')) { const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local timezone'; if (!state.schedule.invalidTimezones.length || !$('global-schedule-timezone').value) $('global-schedule-timezone').value = localTimezone; $('global-schedule-timezone').readOnly = !state.schedule.invalidTimezones.length; }
     renderScheduleRules();
-    if ($('global-schedule-status') && (state.schedule.invalidTimezones.length || state.schedule.invalidRules.length)) $('global-schedule-status').textContent = 'Some saved schedule rules were invalid and were paused until corrected or removed.';
+    if ($('global-schedule-status') && (state.schedule.invalidTimezones.length || state.schedule.invalidRules.length)) setScheduleStatus('Some saved schedule rules were invalid and were paused until corrected or removed.', '部分已保存排程規則無效，已暫停，請修正或者移除。');
     $('global-display-name') && ($('global-display-name').value = state.displayName);
     const updateStatus = $('global-update-status');
     if (updateStatus) updateStatus.textContent = copy('No verified installer or release manifest is published for this static page. No update action is available.', '此靜態頁未有已驗證安裝程式或者發行清單，暫時冇更新操作。', 'en');
@@ -748,7 +751,7 @@
   function applyScheduleRules() {
     Object.assign(effectiveSettings, baseSettings);
     if (state.schedule.paused) { state.language = effectiveSettings.language; state.narratorEnabled = effectiveSettings.narratorEnabled; state.displayName = effectiveSettings.displayName; document.documentElement.dataset.theme = effectiveSettings.theme; document.documentElement.dataset.density = effectiveSettings.density; return; }
-    const active = state.schedule.rules.filter((rule) => rule.source === 'local' && scheduleRuleMatches(rule)).sort((a, b) => Number(b.precedence) - Number(a.precedence))[0];
+    const active = state.schedule.rules.filter((rule) => !rule.disabled && rule.source === 'local' && scheduleRuleMatches(rule)).sort((a, b) => Number(b.precedence) - Number(a.precedence))[0];
     if (active && SCHEDULE_TARGETS.some(([id]) => id === active.target)) effectiveSettings[active.target] = active.target === 'narratorEnabled' ? active.value === 'true' : active.value;
     state.language = effectiveSettings.language;
     state.narratorEnabled = effectiveSettings.narratorEnabled;
@@ -756,12 +759,12 @@
     if (effectiveSettings.theme === 'light' || effectiveSettings.theme === 'dark' || effectiveSettings.theme === 'contrast') document.documentElement.dataset.theme = effectiveSettings.theme;
     if (effectiveSettings.density === 'compact' || effectiveSettings.density === 'comfortable' || effectiveSettings.density === 'spacious') document.documentElement.dataset.density = effectiveSettings.density;
     state.schedule.lastAppliedRule = active?.id || '';
-    state.schedule.lastAppliedSignature = active ? `${active.id}|${active.target}|${active.value}` : '';
+    state.schedule.lastAppliedSignature = effectiveRuleSignature();
   }
   function effectiveRuleSignature(now = new Date()) {
     if (state.schedule.paused) return '';
-    const active = state.schedule.rules.filter((rule) => rule.source === 'local' && scheduleRuleMatches(rule, now)).sort((a, b) => Number(b.precedence) - Number(a.precedence))[0];
-    return active ? `${active.id}|${active.target}|${active.value}` : '';
+    const active = state.schedule.rules.filter((rule) => !rule.disabled && rule.source === 'local' && scheduleRuleMatches(rule, now)).sort((a, b) => Number(b.precedence) - Number(a.precedence))[0];
+    return `${state.schedule.paused ? 'paused' : 'running'}|invalid=${state.schedule.invalidRules.join(',')}|${active ? `${active.id}|${active.target}|${active.value}|${active.source}|${active.endpoint}` : 'base'}`;
   }
   function applyExternalSetting(body, active) {
     if (!active) return;
@@ -794,7 +797,8 @@
   function renderScheduleRules() {
     const node = $('global-schedule-rules');
     if (!node) return;
-    node.innerHTML = state.schedule.rules.length ? state.schedule.rules.map((rule) => `<div class="global-schedule-rule"><strong>${escapeHtml(rule.target)} = ${escapeHtml(rule.value)}</strong><span>${escapeHtml(rule.startDate || 'any date')} ${escapeHtml(rule.allDay ? 'all day' : `${rule.startTime || 'any time'} to ${rule.endTime || 'any time'}`)} · ${escapeHtml(rule.everyDay ? 'every day' : (rule.weekdays || []).join(', ') || 'no weekdays')} · ${escapeHtml(rule.timezone || 'local timezone')} · precedence ${escapeHtml(rule.precedence)}</span><button type="button" class="text-button" data-remove-schedule="${escapeHtml(rule.id)}">Remove</button></div>`).join('') : '<p>No schedule rules saved.</p>';
+    node.innerHTML = state.schedule.rules.length ? state.schedule.rules.map((rule) => `<div class="global-schedule-rule" data-disabled-rule="${rule.disabled ? 'true' : 'false'}"><strong>${escapeHtml(rule.target)} = ${escapeHtml(rule.value)}${rule.disabled ? ` (${escapeHtml(copy('disabled', '已停用', 'en'))})` : ''}</strong><span>${escapeHtml(rule.startDate || copy('any date', '任何日期', 'en'))} ${escapeHtml(rule.allDay ? copy('all day', '全日', 'en') : `${rule.startTime || copy('any time', '任何時間', 'en')} to ${rule.endTime || copy('any time', '任何時間', 'en')}`)} · ${escapeHtml(rule.everyDay ? copy('every day', '每日', 'en') : (rule.weekdays || []).join(', ') || copy('no weekdays', '未選星期', 'en'))} · ${escapeHtml(rule.timezone || copy('local timezone', '本地時區', 'en'))} · precedence ${escapeHtml(rule.precedence)}</span><button type="button" class="text-button" data-edit-schedule="${escapeHtml(rule.id)}">${escapeHtml(copy('Edit', '編輯', 'en'))}</button><button type="button" class="text-button" data-remove-schedule="${escapeHtml(rule.id)}">${escapeHtml(copy('Remove', '移除', 'en'))}</button></div>`).join('') : `<p>${escapeHtml(copy('No schedule rules saved.', '未保存排程規則。', 'en'))}</p>`;
+    all('[data-edit-schedule]').forEach((button) => { button.onclick = () => { const rule = state.schedule.rules.find((candidate) => candidate.id === button.dataset.editSchedule); if (!rule) return; $('global-schedule-target').value = rule.target; $('global-schedule-value').value = rule.value; $('global-schedule-start-date').value = rule.startDate; $('global-schedule-end-date').value = rule.endDate; $('global-schedule-start-time').value = rule.startTime; $('global-schedule-end-time').value = rule.endTime; $('global-schedule-all-day').checked = rule.allDay; $('global-schedule-every-day').checked = rule.everyDay; $('global-schedule-timezone').value = rule.timezone; $('global-schedule-precedence').value = rule.precedence; $('global-schedule-source').value = rule.source; $('global-schedule-endpoint').value = rule.endpoint; $('global-schedule-entity').value = rule.entity; $('global-schedule-status').textContent = 'Editing the selected rule. Save it as a new validated rule, then remove the old record if needed.'; $('global-schedule-value').focus(); }; });
     all('[data-remove-schedule]').forEach((button) => { button.onclick = () => openConfirmation('schedule-remove', button, 'Remove this schedule rule from the local rule list. The active base setting will remain available.', button.dataset.removeSchedule); });
   }
   function validateEndpoint(endpoint, source) {
@@ -833,29 +837,29 @@
     const bytes = new Uint8Array(total); let offset = 0; chunks.forEach((chunk) => { bytes.set(chunk, offset); offset += chunk.byteLength; });
     const value = parseUniqueJson(new TextDecoder().decode(bytes)); validateExternalPayload(value); return value;
   }
+  function setScheduleStatus(en, zh) { setLocalizedText($('global-schedule-status'), en, zh, 'en'); }
   function saveSchedule() {
     const source = $('global-schedule-source').value;
     const endpoint = $('global-schedule-endpoint').value.trim();
-    if (source !== 'local') { try { validateEndpoint(endpoint, source); } catch (error) { $('global-schedule-status').textContent = `Schedule not saved: ${error.message}`; return; } }
-    const startDate = $('global-schedule-start-date').value; const endDate = $('global-schedule-end-date').value; const startTime = $('global-schedule-start-time').value; const endTime = $('global-schedule-end-time').value;
-    const timezone = $('global-schedule-timezone').value;
-    if (!isValidTimezone(timezone)) { $('global-schedule-status').textContent = 'Schedule not saved: choose a valid IANA timezone.'; return; }
-    if (startDate && endDate && endDate < startDate) { $('global-schedule-status').textContent = 'Schedule not saved: the end date must not precede the start date.'; return; }
+    if (source !== 'local') { try { validateEndpoint(endpoint, source); } catch (error) { setScheduleStatus(`Schedule not saved: ${error.message}`, `排程未保存：${error.message}`); return; } }
+    const startDate = $('global-schedule-start-date').value; const endDate = $('global-schedule-end-date').value; const startTime = $('global-schedule-start-time').value; const endTime = $('global-schedule-end-time').value; const timezone = $('global-schedule-timezone').value;
+    if (!isValidTimezone(timezone)) { setScheduleStatus('Schedule not saved: choose a valid IANA timezone.', '排程未保存：請選擇有效 IANA 時區。'); return; }
+    if (startDate && endDate && endDate < startDate) { setScheduleStatus('Schedule not saved: the end date must not precede the start date.', '排程未保存：結束日期不可早過開始日期。'); return; }
     const allDay = $('global-schedule-all-day')?.checked === true;
-    if (!allDay && (!startTime || !endTime)) { $('global-schedule-status').textContent = 'Schedule not saved: choose both a start and end time, or use a local all-day rule.'; return; }
-    const rule = { id: `rule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, target: $('global-schedule-target').value, value: $('global-schedule-value').value.slice(0, 120), startDate, endDate, startTime: allDay ? '' : startTime, endTime: allDay ? '' : endTime, allDay, weekdays: all('[data-global-weekday]:checked').map((node) => node.dataset.globalWeekday), everyDay: $('global-schedule-every-day').checked, timezone, precedence: Math.min(100, Math.max(0, Number($('global-schedule-precedence').value) || 0)), source, endpoint, entity: $('global-schedule-entity').value.trim().slice(0, 128) };
-    if (!rule.value) { $('global-schedule-status').textContent = 'Schedule not saved: choose a target value.'; return; }
-    if (!validateTargetValue(rule.target, rule.value)) { $('global-schedule-status').textContent = 'Schedule not saved: the value does not match the selected target setting.'; return; }
-    if (!rule.everyDay && !rule.weekdays.length) { $('global-schedule-status').textContent = 'Schedule not saved: choose weekdays or Every day.'; return; }
-    if (source === 'home-assistant' && !/^\b(?:binary_sensor|input_boolean)\.[a-z0-9_]+$/i.test(rule.entity)) { $('global-schedule-status').textContent = 'Schedule not saved: use a boolean Home Assistant entity such as input_boolean.example.'; return; }
-    state.schedule.rules = [...state.schedule.rules, rule].slice(-MAX_RULES); state.schedule.lastAppliedRule = ''; state.schedule.lastAppliedSignature = ''; save(); applyState(); $('global-schedule-status').textContent = copy('Versioned schedule rule saved locally. It applies by precedence when its date, time, weekday, and timezone window matches.', '版本化排程規則已保存喺本地，日期、時間、星期同時區符合時會按優先次序套用。', 'en'); notifyLocalized('Schedule saved', '排程已保存', 'The local rule is ready.', '本地規則準備好喇。');
+    if (!allDay && (!startTime || !endTime)) { setScheduleStatus('Schedule not saved: choose both a start and end time, or use a local all-day rule.', '排程未保存：請選擇開始及結束時間，或者使用本地全日規則。'); return; }
+    const rule = { id: `rule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, target: $('global-schedule-target').value, value: $('global-schedule-value').value.slice(0, 120), startDate, endDate, startTime: allDay ? '' : startTime, endTime: allDay ? '' : endTime, allDay, weekdays: all('[data-global-weekday]:checked').map((node) => node.dataset.globalWeekday), everyDay: $('global-schedule-every-day').checked, timezone, precedence: Math.min(100, Math.max(0, Number($('global-schedule-precedence').value) || 0)), source, endpoint, entity: $('global-schedule-entity').value.trim().slice(0, 128), disabled: false };
+    if (!rule.value) { setScheduleStatus('Schedule not saved: choose a target value.', '排程未保存：請選擇目標值。'); return; }
+    if (!validateTargetValue(rule.target, rule.value)) { setScheduleStatus('Schedule not saved: the value does not match the selected target setting.', '排程未保存：數值不符合所選目標設定。'); return; }
+    if (!rule.everyDay && !rule.weekdays.length) { setScheduleStatus('Schedule not saved: choose weekdays or Every day.', '排程未保存：請選擇星期或者每日。'); return; }
+    if (source === 'home-assistant' && !/^\b(?:binary_sensor|input_boolean)\.[a-z0-9_]+$/i.test(rule.entity)) { setScheduleStatus('Schedule not saved: use a boolean Home Assistant entity such as input_boolean.example.', '排程未保存：請使用布林 Home Assistant 實體，例如 input_boolean.example。'); return; }
+    state.schedule.rules = [...state.schedule.rules, rule].slice(-MAX_RULES); state.schedule.lastAppliedRule = ''; state.schedule.lastAppliedSignature = ''; save(); applyState(); setScheduleStatus('Versioned schedule rule saved locally. It applies by precedence when its date, time, weekday, and timezone window matches.', '版本化排程規則已保存喺本地，日期、時間、星期同時區符合時會按優先次序套用。'); notifyLocalized('Schedule saved', '排程已保存', 'The local rule is ready.', '本地規則準備好喇。');
   }
   async function checkSource() {
     const source = $('global-schedule-source').value;
-    if (source === 'local') { $('global-schedule-status').textContent = 'Local source selected, so no network request is needed.'; return; }
+    if (source === 'local') { setScheduleStatus('Local source selected, so no network request is needed.', '已選擇本地來源，所以唔需要網絡要求。'); return; }
     const endpoint = $('global-schedule-endpoint').value.trim();
     let timer;
-    try { const url = validateEndpoint(endpoint, source); const controller = new AbortController(); timer = setTimeout(() => controller.abort(), 5000); const response = await fetch(url.href, { credentials: 'omit', redirect: 'error', cache: 'no-store', signal: controller.signal, headers: { Accept: 'application/json' } }); if (!response.ok) throw new Error(`HTTP ${response.status}`); const body = await readBoundedJson(response); if (source === 'home-assistant') { const proxy = validateHomeAssistantProxy(body); if (proxy.state === 'on') applyExternalSetting(proxy, true); else { applyScheduleRules(); applyState(); } $('global-schedule-status').textContent = proxy.state === 'on' ? 'The Home Assistant reduced proxy is on. Its validated target and value were applied only to the effective local layer.' : 'The Home Assistant reduced proxy is off. The local base setting remains active.'; } else { applyExternalSetting(body, body.enabled !== false); if (body.enabled === false) { applyScheduleRules(); applyState(); } $('global-schedule-status').textContent = 'Source checked explicitly. The bounded response was read locally and was not stored as a permanent setting.'; } } catch (error) { $('global-schedule-status').textContent = `Source check failed safely: ${error.message}. The last local value remains active.`; } finally { if (timer) clearTimeout(timer); }
+    try { const url = validateEndpoint(endpoint, source); const controller = new AbortController(); timer = setTimeout(() => controller.abort(), 5000); const response = await fetch(url.href, { credentials: 'omit', redirect: 'error', cache: 'no-store', signal: controller.signal, headers: { Accept: 'application/json' } }); if (!response.ok) throw new Error(`HTTP ${response.status}`); const body = await readBoundedJson(response); if (source === 'home-assistant') { const proxy = validateHomeAssistantProxy(body); if (proxy.state === 'on') applyExternalSetting(proxy, true); else { applyScheduleRules(); applyState(); } if (proxy.state === 'on') setScheduleStatus('The Home Assistant reduced proxy is on. Its validated target and value were applied only to the effective local layer.', 'Home Assistant 縮減代理已開啟，已驗證目標值只套用到有效本地層。'); else setScheduleStatus('The Home Assistant reduced proxy is off. The local base setting remains active.', 'Home Assistant 縮減代理已關閉，本地底層設定保持有效。'); } else { applyExternalSetting(body, body.enabled !== false); if (body.enabled === false) { applyScheduleRules(); applyState(); } setScheduleStatus('Source checked explicitly. The bounded response was read locally and was not stored as a permanent setting.', '來源已明確檢查，受限回應只喺本地讀取，冇保存成永久設定。'); } } catch (error) { setScheduleStatus(`Source check failed safely: ${error.message}. The last local value remains active.`, `來源安全檢查失敗：${error.message}。最後有效本地值保持不變。`); } finally { if (timer) clearTimeout(timer); }
   }
   function showDimSum() {
     if (!canShowDimSum() || !dishCatalogUsable()) return;
